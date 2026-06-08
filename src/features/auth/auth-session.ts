@@ -1,0 +1,140 @@
+import "server-only";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { LanguageCode, Tier } from "@/types/domain";
+import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
+import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const LANGUAGE_CODES = new Set<LanguageCode>(["en", "de", "ru"]);
+const TIERS = new Set<Tier>(["A1", "A2", "B1", "B2", "C1"]);
+
+interface ProfileRow {
+  display_name: string | null;
+  preferred_language_code: string | null;
+  preferred_tier: string | null;
+}
+
+function normalizeProfile(row?: ProfileRow | null): AuthProfile {
+  const preferredLanguageCode = row?.preferred_language_code;
+  const preferredTier = row?.preferred_tier;
+
+  return {
+    displayName: row?.display_name ?? null,
+    preferredLanguageCode:
+      preferredLanguageCode && LANGUAGE_CODES.has(preferredLanguageCode as LanguageCode)
+        ? (preferredLanguageCode as LanguageCode)
+        : null,
+    preferredTier: preferredTier && TIERS.has(preferredTier as Tier) ? (preferredTier as Tier) : null,
+  };
+}
+
+export async function getRequestOrigin() {
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+
+  if (origin) {
+    return origin;
+  }
+
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = forwardedHost ?? headerStore.get("host") ?? "localhost:3000";
+  const protocol = headerStore.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+
+  return `${protocol}://${host}`;
+}
+
+async function readProfile(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("display_name, preferred_language_code, preferred_tier")
+    .eq("user_id", userId)
+    .maybeSingle<ProfileRow>();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+function getMetadataString(user: User, key: string) {
+  const value = user.user_metadata?.[key];
+  return typeof value === "string" ? value : null;
+}
+
+export async function ensureUserProfile(
+  supabase: SupabaseClient,
+  user: User,
+  preferences?: {
+    displayName?: string | null;
+    preferredLanguageCode?: LanguageCode | null;
+    preferredTier?: Tier | null;
+  },
+) {
+  const existingProfile = await readProfile(supabase, user.id);
+
+  if (existingProfile) {
+    return normalizeProfile(existingProfile);
+  }
+
+  const metadataLanguage = getMetadataString(user, "preferred_language_code");
+  const metadataTier = getMetadataString(user, "preferred_tier");
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .insert({
+      user_id: user.id,
+      display_name: preferences?.displayName?.trim() || getMetadataString(user, "display_name") || null,
+      preferred_language_code:
+        preferences?.preferredLanguageCode ??
+        (LANGUAGE_CODES.has(metadataLanguage as LanguageCode) ? (metadataLanguage as LanguageCode) : "en"),
+      preferred_tier:
+        preferences?.preferredTier ?? (TIERS.has(metadataTier as Tier) ? (metadataTier as Tier) : "A1"),
+    })
+    .select("display_name, preferred_language_code, preferred_tier")
+    .maybeSingle<ProfileRow>();
+
+  if (error) {
+    return normalizeProfile();
+  }
+
+  return normalizeProfile(data);
+}
+
+export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {
+  if (!hasSupabaseBrowserConfig()) {
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user?.email) {
+    return null;
+  }
+
+  const profile = normalizeProfile(await readProfile(supabase, user.id));
+
+  return {
+    id: user.id,
+    email: user.email,
+    profile,
+  };
+}
+
+export async function requireAuthUser(nextPath: string) {
+  const user = await getCurrentAuthUser();
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(getSafeNextPath(nextPath, DEFAULT_AUTH_REDIRECT))}`);
+  }
+
+  return user;
+}

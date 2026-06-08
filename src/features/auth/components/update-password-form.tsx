@@ -1,0 +1,34 @@
+"use client";
+
+import { useActionState } from "react";
+import { updatePasswordAction } from "@/features/auth/actions";
+import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
+import { FieldError, FormMessage } from "@/features/auth/components/form-message";
+import { PasswordInput } from "@/features/auth/components/password-input";
+import { SubmitButton } from "@/features/auth/components/submit-button";
+
+export function UpdatePasswordForm() {
+  const [state, formAction] = useActionState(updatePasswordAction, AUTH_ACTION_IDLE_STATE);
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <FormMessage state={state} />
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-800">Yeni şifre</span>
+        <PasswordInput name="password" autoComplete="new-password" required />
+        <FieldError message={state.fieldErrors?.password?.[0]} />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-800">Yeni şifre tekrarı</span>
+        <PasswordInput name="confirmPassword" autoComplete="new-password" required />
+        <FieldError message={state.fieldErrors?.confirmPassword?.[0]} />
+      </label>
+
+      <SubmitButton className="w-full" pendingLabel="Güncelleniyor">
+        Şifreyi güncelle
+      </SubmitButton>
+    </form>
+  );
+}
