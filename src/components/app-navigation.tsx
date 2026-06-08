@@ -3,9 +3,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Boxes, Compass, GraduationCap, LibraryBig, Sparkles } from "lucide-react";
+import { BookOpen, Boxes, Compass, GraduationCap, LibraryBig, Sparkles, Trophy } from "lucide-react";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import type { AuthShellUser } from "@/features/auth/auth-types";
+import { useProgressStats } from "@/features/progress/progress-client";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { buttonClassName } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const navItems = [
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
+  const { stats } = useProgressStats();
 
   return (
     <>
@@ -45,7 +47,15 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               Kart çek
             </Link>
             {user ? (
-              <AccountMenu user={user} />
+              <>
+                <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 sm:flex">
+                  <Trophy className="size-4 text-amber-500" aria-hidden="true" />
+                  <span>{stats.rank.label}</span>
+                  <span className="text-slate-400">/</span>
+                  <span>{stats.totalPoints} puan</span>
+                </div>
+                <AccountMenu user={user} />
+              </>
             ) : (
               <>
                 <Link href="/login" className={buttonClassName("ghost", "sm")}>

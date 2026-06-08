@@ -147,7 +147,7 @@ export default function Home() {
               <h2 className="font-display text-3xl font-semibold">Koleksiyonunu büyüt.</h2>
             </div>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Başlangıçta local çalışan sistem, Supabase veri yapısına hazır şekilde tasarlanır.
+              Giriş yapan kullanıcılar puan, rank ve kart ilerlemesini Supabase üzerinde kalıcı olarak takip eder.
             </p>
           </div>
           <Link href="/kesfet" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>

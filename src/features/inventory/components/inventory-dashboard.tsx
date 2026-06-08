@@ -19,6 +19,7 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
   const [status, setStatus] = useState<CardStatus | "all">(learnedOnly ? "learned" : "all");
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudError = useInventoryStore((state) => state.cloudError);
   const reset = useInventoryStore((state) => state.reset);
   const requireAuthAction = useRequireAuthAction();
 
@@ -47,6 +48,12 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
 
   return (
     <div className="space-y-6">
+      {cloudError ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          {cloudError}
+        </div>
+      ) : null}
+
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="grid gap-2 sm:grid-cols-3">

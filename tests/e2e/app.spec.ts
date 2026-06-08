@@ -72,6 +72,12 @@ test("account settings redirects guests to login", async ({ page }) => {
   await expect(page).toHaveURL(/\/login\?next=%2Faccount%2Fsettings/);
 });
 
+test("profile redirects guests to login", async ({ page }) => {
+  await page.goto("/profil", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveURL(/\/login\?next=%2Fprofil/);
+});
+
 test("guest add-card action redirects to register with next path", async ({ page }) => {
   await page.goto("/kesfet", { waitUntil: "domcontentloaded" });
 

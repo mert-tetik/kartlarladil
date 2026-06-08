@@ -75,6 +75,41 @@ export interface QuizQuestion {
   correctAnswer: string;
 }
 
+export type TierPoints = Record<Tier, number>;
+
+export interface RankDefinition {
+  id: string;
+  label: string;
+  minPoints: number;
+}
+
+export interface TierProgressStat {
+  tier: Tier;
+  total: number;
+  learned: number;
+  points: number;
+}
+
+export interface LanguageProgressStat {
+  language: LanguageCode;
+  total: number;
+  learned: number;
+  points: number;
+}
+
+export interface ProgressStats {
+  totalPoints: number;
+  totalCards: number;
+  activeCards: number;
+  learnedCards: number;
+  rank: RankDefinition;
+  nextRank: RankDefinition | null;
+  pointsToNextRank: number;
+  rankProgressPercent: number;
+  tierStats: TierProgressStat[];
+  languageStats: LanguageProgressStat[];
+}
+
 export interface CardFilters {
   language?: LanguageCode | "all";
   tier?: Tier | "all";

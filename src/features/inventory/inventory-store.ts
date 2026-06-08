@@ -6,6 +6,13 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { STORAGE_KEY } from "@/lib/constants";
 import type { InventoryCard, PracticeAttempt, PracticeMode } from "@/types/domain";
 import {
+  addCloudInventoryCardAction,
+  listCloudInventoryAction,
+  migrateLocalInventoryToCloudAction,
+  recordCloudPracticeAttemptAction,
+  resetCloudInventoryAction,
+} from "@/features/inventory/cloud-actions";
+import {
   addCardToInventory,
   applyAnswerProgress,
   createPracticeAttempt,
@@ -20,8 +27,14 @@ interface InventoryState {
   cards: InventoryCard[];
   attempts: PracticeAttempt[];
   hydrated: boolean;
+  cloudEnabled: boolean;
+  cloudLoading: boolean;
+  cloudError: string;
   setHydrated: (hydrated: boolean) => void;
-  addCard: (cardId: string) => void;
+  setCloudEnabled: (enabled: boolean) => void;
+  loadCloudInventory: () => Promise<void>;
+  migrateLocalInventoryToCloud: () => Promise<void>;
+  addCard: (cardId: string) => Promise<void>;
   hasCard: (cardId: string) => boolean;
   recordAnswer: (input: {
     cardId: string;
@@ -29,8 +42,8 @@ interface InventoryState {
     correctAnswer: string;
     isCorrect: boolean;
     mode: PracticeMode;
-  }) => RecordAnswerResult | undefined;
-  reset: () => void;
+  }) => Promise<RecordAnswerResult | undefined>;
+  reset: () => Promise<void>;
 }
 
 export const useInventoryStore = create<InventoryState>()(
@@ -39,12 +52,79 @@ export const useInventoryStore = create<InventoryState>()(
       cards: [],
       attempts: [],
       hydrated: false,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
 
       setHydrated(hydrated) {
         set({ hydrated });
       },
 
-      addCard(cardId) {
+      setCloudEnabled(enabled) {
+        set({ cloudEnabled: enabled, cloudError: enabled ? get().cloudError : "" });
+      },
+
+      async loadCloudInventory() {
+        if (!get().cloudEnabled) {
+          return;
+        }
+
+        set({ cloudLoading: true, cloudError: "" });
+        const result = await listCloudInventoryAction();
+
+        if (result.status === "error" || !result.data) {
+          set({ cloudLoading: false, cloudError: result.message });
+          return;
+        }
+
+        set({
+          cards: result.data.cards,
+          attempts: result.data.attempts,
+          cloudLoading: false,
+          cloudError: "",
+        });
+      },
+
+      async migrateLocalInventoryToCloud() {
+        if (!get().cloudEnabled) {
+          return;
+        }
+
+        set({ cloudLoading: true, cloudError: "" });
+        const result = await migrateLocalInventoryToCloudAction(get().cards);
+
+        if (result.status === "error" || !result.data) {
+          set({ cloudLoading: false, cloudError: result.message });
+          return;
+        }
+
+        set({
+          cards: result.data.cards,
+          attempts: result.data.attempts,
+          cloudLoading: false,
+          cloudError: "",
+        });
+      },
+
+      async addCard(cardId) {
+        if (get().cloudEnabled) {
+          set({ cloudLoading: true, cloudError: "" });
+          const result = await addCloudInventoryCardAction(cardId);
+
+          if (result.status === "error" || !result.data) {
+            set({ cloudLoading: false, cloudError: result.message });
+            return;
+          }
+
+          set({
+            cards: result.data.cards,
+            attempts: result.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+          return;
+        }
+
         set((state) => ({
           cards: addCardToInventory(state.cards, cardId),
         }));
@@ -54,7 +134,34 @@ export const useInventoryStore = create<InventoryState>()(
         return get().cards.some((card) => card.cardId === cardId);
       },
 
-      recordAnswer(input) {
+      async recordAnswer(input) {
+        if (get().cloudEnabled) {
+          set({ cloudLoading: true, cloudError: "" });
+          const result = await recordCloudPracticeAttemptAction(input);
+
+          if (result.status === "error" || !result.data) {
+            set({ cloudLoading: false, cloudError: result.message });
+            return undefined;
+          }
+
+          const inventoryCard = result.data.cards.find((card) => card.cardId === input.cardId);
+          const attempt = result.data.attempts.find(
+            (item) =>
+              item.cardId === input.cardId &&
+              item.selectedAnswer === input.selectedAnswer &&
+              item.correctAnswer === input.correctAnswer,
+          );
+
+          set({
+            cards: result.data.cards,
+            attempts: result.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+
+          return inventoryCard && attempt ? { inventoryCard, attempt } : undefined;
+        }
+
         const vocabularyCard = VOCABULARY_CARDS.find((card) => card.id === input.cardId);
         const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
 
@@ -79,7 +186,25 @@ export const useInventoryStore = create<InventoryState>()(
         };
       },
 
-      reset() {
+      async reset() {
+        if (get().cloudEnabled) {
+          set({ cloudLoading: true, cloudError: "" });
+          const result = await resetCloudInventoryAction();
+
+          if (result.status === "error" || !result.data) {
+            set({ cloudLoading: false, cloudError: result.message });
+            return;
+          }
+
+          set({
+            cards: result.data.cards,
+            attempts: result.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+          return;
+        }
+
         set({
           cards: [],
           attempts: [],

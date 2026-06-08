@@ -22,6 +22,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run report:cards
+npm run supabase:import-cards
 npm run test
 npm run test:e2e
 npm run build
@@ -35,6 +36,8 @@ npm run build
 - Kullanıcı kartı manuel olarak öğrenildi yapamaz.
 - Yanlış cevap doğru sayacını 1 azaltır, minimum 0.
 - Eşiğe ulaşan aktif kart otomatik öğrenildi olur.
+- Öğrenilen kartlar tierına göre puan kazandırır: A1 = 10, A2 = 20, B1 = 40, B2 = 70, C1 = 110.
+- Rank, öğrenilmiş kartlardan türetilen toplam puana göre hesaplanır; ayrı bir manuel puan sayacı tutulmaz.
 - Katalog yalnızca tek kelimelik ana terimler içerir; ifade, kalıp ve cümle yapıları `term` alanına girmez.
 - Starter katalog kalite önceliklidir; dil başına sabit 5.000 kart hedefi kovalanmaz.
 - Her kartta 5 örnek kullanım ve dile/kelime türüne göre gramer anlatımı bulunur.
@@ -48,9 +51,9 @@ src/components          shared layout and UI primitives
 src/data                seed languages, tiers, generated starter catalog
 src/features/auth       Supabase auth actions, forms, profile/account UI
 src/features/cards      discovery and card UI
-src/features/inventory  local inventory store and selectors
+src/features/inventory  local/cloud inventory store, selectors, and Supabase actions
 src/features/quiz       quiz engine and practice UI
-src/lib                 utilities and future Supabase helpers
+src/lib                 utilities and Supabase helpers
 src/types               domain interfaces
 supabase/migrations     Supabase-ready schema
 docs                    architecture and Supabase notes
@@ -64,7 +67,7 @@ MVP data is stored in the browser under:
 kartlarla-dil:v2
 ```
 
-Use the reset button in inventory to clear local progress.
+Use the reset button in inventory to clear guest/local progress.
 
 Run `npm run report:cards` to inspect the current catalog size, language/tier distribution, part-of-speech distribution, invalid terms, duplicates, and sample words.
 
@@ -72,5 +75,7 @@ Run `npm run report:cards` to inspect the current catalog size, language/tier di
 
 Auth uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from `.env.local`.
 Permanent account deletion additionally requires `SUPABASE_SERVICE_ROLE_KEY` on the server.
+
+Run `npm run supabase:import-cards` with `SUPABASE_SERVICE_ROLE_KEY` before using cloud inventory. Authenticated users store inventory, quiz attempts, progress stats, points, and rank through Supabase-backed `user_cards` and `practice_attempts`; guest data remains local.
 
 See `docs/SUPABASE.md` before applying the database migration to a real project.

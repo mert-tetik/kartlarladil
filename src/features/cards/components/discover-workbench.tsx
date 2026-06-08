@@ -40,6 +40,7 @@ export function DiscoverWorkbench() {
   );
   const inventoryCards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudError = useInventoryStore((state) => state.cloudError);
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
 
@@ -91,6 +92,12 @@ export function DiscoverWorkbench() {
 
   return (
     <div className="space-y-6">
+      {cloudError ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          {cloudError}
+        </div>
+      ) : null}
+
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
           <label className="relative block">

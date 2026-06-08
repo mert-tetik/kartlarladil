@@ -17,9 +17,9 @@ The learning rule lives in `src/features/quiz/quiz-engine.ts`. UI code should no
 ## Data flow
 
 1. `localCardRepository` reads the generated starter catalog from `src/data/cards.ts`.
-2. `useInventoryStore` persists user-owned cards and attempts to `localStorage` under `kartlarla-dil:v2`.
-3. Route-level client components read from the store and render filtered views.
-4. Future Supabase repositories should map `cards.source_key` to local catalog records and use Supabase `cards.id` UUID values for `user_cards.card_id`.
+2. Guest inventory persists to `localStorage` under `kartlarla-dil:v2`.
+3. Authenticated inventory uses Supabase `user_cards` and `practice_attempts`; client state is hydrated from cloud server actions.
+4. Cloud inventory maps local `VocabularyCard.sourceKey` values to Supabase `cards.id` UUID values through `cards.source_key`.
 
 ## Auth flow
 
@@ -29,11 +29,16 @@ login, register, password reset, password update, profile update, logout, and pe
 The root `proxy.ts` refreshes Supabase cookies before Server Components read auth state. UI components receive only serializable
 user fields: id, email, display name, and preferred language. Service role access is isolated to the server-only admin client.
 
-Client write actions use the auth session provider before mutating local inventory state. Guests can still search, draw cards,
+Client write actions use the auth session provider before mutating inventory state. Guests can still search, draw cards,
 and inspect card details, but adding cards, recording quiz answers, and resetting inventory redirect to `/register?next=...`.
+Authenticated users write through Supabase-backed inventory actions.
 
 Discover filters are remembered in `localStorage` under `kartlarla-dil:discover-filters:v1`. The initial filter falls back to
 the authenticated profile preference, then to English A1.
+
+Progress stats are derived from inventory, not stored as mutable counters. Learned cards produce tier-based points:
+A1 = 10, A2 = 20, B1 = 40, B2 = 70, C1 = 110. Rank is calculated from total points and shared by the navbar,
+account menu, and `/profil` page.
 
 ## UI structure
 

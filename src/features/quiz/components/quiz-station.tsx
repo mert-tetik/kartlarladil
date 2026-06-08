@@ -24,6 +24,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const requireAuthAction = useRequireAuthAction();
 
@@ -46,6 +47,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     setQuestion(buildQuizQuestion(availableCards[nextIndex].card, VOCABULARY_CARDS));
     setSelectedAnswer(null);
     setAnswered(false);
+    setSubmitting(false);
     setDetailsOpen(false);
   }
 
@@ -97,20 +99,22 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const correct = selectedAnswer === currentQuestion.correctAnswer;
 
   function submit(answer: string) {
-    if (answered) {
+    if (answered || submitting) {
       return;
     }
 
-    requireAuthAction(() => {
-      setSelectedAnswer(answer);
-      setAnswered(true);
-      recordAnswer({
+    void requireAuthAction(async () => {
+      setSubmitting(true);
+      await recordAnswer({
         cardId: currentQuestion.card.id,
         selectedAnswer: answer,
         correctAnswer: currentQuestion.correctAnswer,
         isCorrect: answer === currentQuestion.correctAnswer,
         mode,
       });
+      setSelectedAnswer(answer);
+      setAnswered(true);
+      setSubmitting(false);
     }, {
       nextPath: mode === "active" ? "/ogren" : "/ogrenilenler",
     });
@@ -151,7 +155,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
               key={option}
               type="button"
               onClick={() => submit(option)}
-              disabled={answered}
+              disabled={answered || submitting}
               className={cn(
                 "min-h-14 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-white disabled:cursor-default",
                 answered && isCorrectOption && "border-emerald-500 bg-emerald-50 text-emerald-900",

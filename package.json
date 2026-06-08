@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "report:cards": "node scripts/report-cards.mjs",
+    "supabase:import-cards": "node scripts/import-cards-to-supabase.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "pretest:e2e": "next build",

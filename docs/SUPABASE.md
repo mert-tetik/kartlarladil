@@ -1,7 +1,7 @@
 # Supabase Notes
 
-The app currently keeps card inventory in localStorage, but Supabase Auth is wired for email/password sessions.
-The database schema is prepared for profile, inventory, and practice data.
+The app keeps guest card inventory in localStorage. Authenticated inventory, quiz attempts, progress stats, points,
+and ranks are backed by Supabase tables.
 
 ## Environment variables
 
@@ -60,6 +60,18 @@ Languages and catalog cards are public read data. User profile, inventory, and a
 
 The migration also grants the expected table privileges to `anon` and `authenticated`. Supabase projects may still require checking the Data API exposure settings before the REST API can read newly created tables.
 
+## Catalog import
+
+Before authenticated inventory can work, import the local starter catalog into Supabase:
+
+```bash
+npm run supabase:import-cards
+```
+
+The script requires `NEXT_PUBLIC_SUPABASE_URL` and server-only `SUPABASE_SERVICE_ROLE_KEY`. It upserts `languages`
+and `cards` by stable keys. If the Supabase `cards` table is empty, authenticated write actions will show:
+`Kart kataloğu Supabase’e aktarılmamış.`
+
 ## Card detail payloads
 
 `cards.source_key` is the stable import key from the app catalog, such as `en-a1-isim-apple`. Supabase keeps `cards.id` as the UUID primary key; user inventory references that UUID through `user_cards.card_id`.
@@ -70,11 +82,9 @@ The migration also grants the expected table privileges to `anon` and `authentic
 
 `cards.grammar` should match `GrammarGuide`: summary, rules, details, and optional table objects. Russian verbs should include present/future and past-tense table rows when available.
 
-## Future repository switch
+## Inventory and stats
 
-The local implementation should be replaced behind the existing repository interfaces:
+Authenticated user inventory uses server actions in the inventory feature. Route components do not call Supabase directly.
+The UI continues to use local catalog `sourceKey` values; server actions resolve those keys to Supabase `cards.id` UUIDs.
 
-- `CardRepository`
-- `InventoryRepository`
-
-Do not call Supabase directly from route components. Keep Supabase access in `src/lib/supabase` and repository modules.
+Points and ranks are derived from `user_cards.status = 'learned'` joined with `cards.tier`; no separate mutable score table is used.
