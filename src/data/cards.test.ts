@@ -51,7 +51,7 @@ describe("starter card catalog", () => {
 
   it("adds five varied examples to every card", () => {
     const expectedContexts = ["daily", "question", "negative", "contextual", "natural"];
-    const placeholderPattern = /is useful in a clear sentence|clear sentence|klaren Satz|açık bir cümlede/i;
+    const placeholderPattern = /is useful in a clear sentence|I wrote the word|clear sentence|klaren Satz|açık bir cümlede/i;
     const invalidCards = VOCABULARY_CARDS.filter(
       (card) =>
         card.examples.length !== 5 ||
@@ -64,6 +64,21 @@ describe("starter card catalog", () => {
     );
 
     expect(invalidCards).toEqual([]);
+  });
+
+  it("keeps the first example sentences distributed across multiple patterns", () => {
+    for (const language of LANGUAGES) {
+      const patternCounts = new Map<string, number>();
+      const cards = VOCABULARY_CARDS.filter((card) => card.language === language.code);
+
+      for (const card of cards) {
+        const pattern = normalizeExamplePattern(card.example, card.term);
+        patternCounts.set(pattern, (patternCounts.get(pattern) ?? 0) + 1);
+      }
+
+      expect(patternCounts.size).toBeGreaterThanOrEqual(10);
+      expect(Math.max(...patternCounts.values())).toBeLessThan(cards.length / 3);
+    }
   });
 
   it("adds grammar guidance to every card", () => {
@@ -91,3 +106,7 @@ describe("starter card catalog", () => {
     expect(russianVerb!.grammar.tables?.[1].rows).toHaveLength(4);
   });
 });
+
+function normalizeExamplePattern(sentence: string, term: string) {
+  return sentence.split(term).join("{term}");
+}

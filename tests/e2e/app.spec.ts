@@ -135,7 +135,7 @@ test("card details show examples and grammar without auth", async ({ page }) => 
   await expect(detailsDialog).toBeVisible();
   await expect(page.getByRole("heading", { name: "5 örnek kullanım" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gramer anlatımı" })).toBeVisible();
-  await expect(detailsDialog.getByText('I wrote the word "apple" in my notebook.')).toBeVisible();
+  await expect(detailsDialog.locator("article").first()).toContainText("apple");
   await expect(page.getByText(/is useful in a clear sentence/)).toHaveCount(0);
   await expect(detailsDialog.getByText('Can you explain "apple" with one example?')).toBeVisible();
 });

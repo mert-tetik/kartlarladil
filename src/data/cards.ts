@@ -15,6 +15,9 @@ type WordSeed = {
 };
 
 type CatalogSeed = Record<LanguageCode, Record<Tier, WordSeed[]>>;
+type PartOfSpeechGroup = "noun" | "verb" | "adjective" | "adverb" | "conjunction" | "other";
+type BaseExample = Pick<CardExample, "sentence" | "translation">;
+type BaseExampleTemplate = (word: WordSeed) => BaseExample;
 
 export interface CatalogReport {
   total: number;
@@ -613,9 +616,6 @@ const RUSSIAN_VERB_OVERRIDES: Record<string, RussianVerbForms> = {
   ),
 };
 
-export const VOCABULARY_CARDS: VocabularyCard[] = buildCatalog(CATALOG_SEED);
-export const CATALOG_REPORT = getCatalogReport(VOCABULARY_CARDS);
-
 export function isSingleWordTerm(term: string) {
   return SINGLE_WORD_PATTERN.test(term.trim());
 }
@@ -736,134 +736,409 @@ function w(value: string): WordSeed {
 }
 
 function buildBaseExample(language: LanguageCode, word: WordSeed) {
-  if (language === "en") {
-    if (hasPartOfSpeech(word, "isim")) {
-      return {
-        sentence: `I wrote the word "${word.term}" in my notebook.`,
-        translation: `Defterime "${word.term}" kelimesini yazdım.`,
-      };
-    }
+  const group = getPartOfSpeechGroup(word);
+  const templates = BASE_EXAMPLE_TEMPLATES[language][group];
 
-    if (hasPartOfSpeech(word, "fiil")) {
-      return {
-        sentence: `We can use "${word.term}" in a simple conversation.`,
-        translation: `"${word.term}" kelimesini basit bir sohbette kullanabiliriz.`,
-      };
-    }
+  return templates[stableIndex(`${language}:${group}:${word.term}`, templates.length)](word);
+}
 
-    if (hasPartOfSpeech(word, "bağlaç")) {
-      return {
-        sentence: `The word "${word.term}" connects two ideas in one sentence.`,
-        translation: `"${word.term}" tek cümlede iki fikri bağlar.`,
-      };
-    }
+const BASE_EXAMPLE_TEMPLATES: Record<LanguageCode, Record<PartOfSpeechGroup, BaseExampleTemplate[]>> = {
+  en: {
+    noun: [
+      (word) => ({
+        sentence: `The ${word.term} is part of today's story.`,
+        translation: `${word.term} bugünkü hikayenin bir parçasıdır.`,
+      }),
+      (word) => ({
+        sentence: `I noticed the ${word.term} before the lesson began.`,
+        translation: `Ders başlamadan önce ${word.term} kelimesini fark ettim.`,
+      }),
+      (word) => ({
+        sentence: `They talked about the ${word.term} during lunch.`,
+        translation: `Öğle yemeğinde ${word.term} hakkında konuştular.`,
+      }),
+      (word) => ({
+        sentence: `She checked the ${word.term} on the list.`,
+        translation: `Listedeki ${word.term} kelimesini kontrol etti.`,
+      }),
+      (word) => ({
+        sentence: `The ${word.term} appears in a simple dialogue.`,
+        translation: `${word.term} basit bir diyalogda geçer.`,
+      }),
+      (word) => ({
+        sentence: `He remembered the ${word.term} after class.`,
+        translation: `Dersten sonra ${word.term} kelimesini hatırladı.`,
+      }),
+    ],
+    verb: [
+      (word) => ({
+        sentence: `The group practiced "${word.term}" in a short dialogue.`,
+        translation: `Grup "${word.term}" kelimesini kısa bir diyalogda çalıştı.`,
+      }),
+      (word) => ({
+        sentence: `I heard "${word.term}" during the conversation.`,
+        translation: `Konuşma sırasında "${word.term}" kelimesini duydum.`,
+      }),
+      (word) => ({
+        sentence: `She placed "${word.term}" next to a clear example.`,
+        translation: `"${word.term}" kelimesini açık bir örneğin yanına koydu.`,
+      }),
+      (word) => ({
+        sentence: `We reviewed "${word.term}" before the exercise.`,
+        translation: `Alıştırmadan önce "${word.term}" kelimesini tekrar ettik.`,
+      }),
+      (word) => ({
+        sentence: `The lesson shows how "${word.term}" changes the meaning.`,
+        translation: `Ders, "${word.term}" kelimesinin anlamı nasıl değiştirdiğini gösterir.`,
+      }),
+      (word) => ({
+        sentence: `He repeated "${word.term}" after listening to the sentence.`,
+        translation: `Cümleyi dinledikten sonra "${word.term}" kelimesini tekrar etti.`,
+      }),
+    ],
+    adjective: [
+      (word) => ({
+        sentence: `The ${word.term} answer helped the class.`,
+        translation: `${word.term} cevap sınıfa yardımcı oldu.`,
+      }),
+      (word) => ({
+        sentence: `A ${word.term} detail changed the meaning.`,
+        translation: `${word.term} bir detay anlamı değiştirdi.`,
+      }),
+      (word) => ({
+        sentence: `She chose the ${word.term} option.`,
+        translation: `${word.term} seçeneği tercih etti.`,
+      }),
+      (word) => ({
+        sentence: `The ${word.term} tone made the sentence stronger.`,
+        translation: `${word.term} ton cümleyi güçlendirdi.`,
+      }),
+      (word) => ({
+        sentence: `I marked the ${word.term} idea in the text.`,
+        translation: `Metindeki ${word.term} fikri işaretledim.`,
+      }),
+    ],
+    adverb: [
+      (word) => ({
+        sentence: `"${word.term}" changes the rhythm of the sentence.`,
+        translation: `"${word.term}" cümlenin ritmini değiştirir.`,
+      }),
+      (word) => ({
+        sentence: `The speaker used "${word.term}" to soften the point.`,
+        translation: `Konuşmacı noktayı yumuşatmak için "${word.term}" kullandı.`,
+      }),
+      (word) => ({
+        sentence: `I placed "${word.term}" near the main verb.`,
+        translation: `"${word.term}" kelimesini ana fiilin yakınına koydum.`,
+      }),
+    ],
+    conjunction: [
+      (word) => ({
+        sentence: `I used "${word.term}" to connect the two ideas.`,
+        translation: `İki fikri bağlamak için "${word.term}" kullandım.`,
+      }),
+      (word) => ({
+        sentence: `"${word.term}" keeps the sentence moving.`,
+        translation: `"${word.term}" cümlenin akışını sürdürür.`,
+      }),
+      (word) => ({
+        sentence: `The second clause begins with "${word.term}".`,
+        translation: `İkinci yan cümle "${word.term}" ile başlar.`,
+      }),
+    ],
+    other: [
+      (word) => ({
+        sentence: `I practiced "${word.term}" in a short example.`,
+        translation: `"${word.term}" kelimesini kısa bir örnekte çalıştım.`,
+      }),
+      (word) => ({
+        sentence: `The class added "${word.term}" to the board.`,
+        translation: `Sınıf "${word.term}" kelimesini tahtaya ekledi.`,
+      }),
+      (word) => ({
+        sentence: `We found "${word.term}" in the reading text.`,
+        translation: `"${word.term}" kelimesini okuma metninde bulduk.`,
+      }),
+    ],
+  },
+  de: {
+    noun: [
+      (word) => ({
+        sentence: `"${word.term}" steht im ersten Satz.`,
+        translation: `"${word.term}" ilk cümlede yer alır.`,
+      }),
+      (word) => ({
+        sentence: `Ich finde "${word.term}" im kurzen Text.`,
+        translation: `"${word.term}" kelimesini kısa metinde buluyorum.`,
+      }),
+      (word) => ({
+        sentence: `Wir besprechen "${word.term}" nach dem Unterricht.`,
+        translation: `Dersten sonra "${word.term}" hakkında konuşuyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Die Lehrerin markiert "${word.term}" an der Tafel.`,
+        translation: `Öğretmen tahtada "${word.term}" kelimesini işaretler.`,
+      }),
+      (word) => ({
+        sentence: `Im Dialog kommt "${word.term}" zweimal vor.`,
+        translation: `Diyalogda "${word.term}" iki kez geçer.`,
+      }),
+      (word) => ({
+        sentence: `Er wiederholt "${word.term}" vor der Übung.`,
+        translation: `Alıştırmadan önce "${word.term}" kelimesini tekrar eder.`,
+      }),
+    ],
+    verb: [
+      (word) => ({
+        sentence: `Im Kurs üben wir "${word.term}" gemeinsam.`,
+        translation: `Kursta "${word.term}" kelimesini birlikte çalışıyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Ich höre "${word.term}" in einem Gespräch.`,
+        translation: `"${word.term}" kelimesini bir konuşmada duyuyorum.`,
+      }),
+      (word) => ({
+        sentence: `Sie verbindet "${word.term}" mit einem Beispiel.`,
+        translation: `"${word.term}" kelimesini bir örnekle ilişkilendiriyor.`,
+      }),
+      (word) => ({
+        sentence: `Wir schreiben "${word.term}" neben den Satz.`,
+        translation: `"${word.term}" kelimesini cümlenin yanına yazıyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Der Text zeigt "${word.term}" in einem neuen Kontext.`,
+        translation: `Metin "${word.term}" kelimesini yeni bir bağlamda gösterir.`,
+      }),
+      (word) => ({
+        sentence: `Er spricht "${word.term}" langsam nach.`,
+        translation: `"${word.term}" kelimesini yavaşça tekrar eder.`,
+      }),
+    ],
+    adjective: [
+      (word) => ({
+        sentence: `"${word.term}" macht die Aussage genauer.`,
+        translation: `"${word.term}" ifadeyi daha kesin hale getirir.`,
+      }),
+      (word) => ({
+        sentence: `Ein "${word.term}" Detail verändert den Sinn.`,
+        translation: `"${word.term}" bir detay anlamı değiştirir.`,
+      }),
+      (word) => ({
+        sentence: `Sie markiert die "${word.term}" Stelle im Text.`,
+        translation: `Metindeki "${word.term}" yeri işaretler.`,
+      }),
+      (word) => ({
+        sentence: `Mit "${word.term}" klingt der Satz stärker.`,
+        translation: `"${word.term}" ile cümle daha güçlü duyulur.`,
+      }),
+      (word) => ({
+        sentence: `Das Beispiel bleibt durch "${word.term}" klar.`,
+        translation: `Örnek "${word.term}" sayesinde açık kalır.`,
+      }),
+    ],
+    adverb: [
+      (word) => ({
+        sentence: `"${word.term}" verändert den Rhythmus des Satzes.`,
+        translation: `"${word.term}" cümlenin ritmini değiştirir.`,
+      }),
+      (word) => ({
+        sentence: `Ich setze "${word.term}" vor den Hauptgedanken.`,
+        translation: `"${word.term}" kelimesini ana fikrin önüne koyuyorum.`,
+      }),
+      (word) => ({
+        sentence: `Der Sprecher nutzt "${word.term}" für den Übergang.`,
+        translation: `Konuşmacı geçiş için "${word.term}" kullanır.`,
+      }),
+    ],
+    conjunction: [
+      (word) => ({
+        sentence: `"${word.term}" verbindet zwei Satzteile.`,
+        translation: `"${word.term}" iki cümle parçasını bağlar.`,
+      }),
+      (word) => ({
+        sentence: `Der zweite Gedanke beginnt mit "${word.term}".`,
+        translation: `İkinci fikir "${word.term}" ile başlar.`,
+      }),
+      (word) => ({
+        sentence: `Ich nutze "${word.term}" für einen Gegensatz.`,
+        translation: `Bir karşıtlık için "${word.term}" kullanıyorum.`,
+      }),
+    ],
+    other: [
+      (word) => ({
+        sentence: `Ich übe "${word.term}" mit einem kurzen Beispiel.`,
+        translation: `"${word.term}" kelimesini kısa bir örnekle çalışıyorum.`,
+      }),
+      (word) => ({
+        sentence: `Die Gruppe findet "${word.term}" im Lesetext.`,
+        translation: `Grup "${word.term}" kelimesini okuma metninde bulur.`,
+      }),
+      (word) => ({
+        sentence: `Wir notieren "${word.term}" für die Wiederholung.`,
+        translation: `Tekrar için "${word.term}" kelimesini not ediyoruz.`,
+      }),
+    ],
+  },
+  ru: {
+    noun: [
+      (word) => ({
+        sentence: `«${word.term}» стоит в первом предложении.`,
+        translation: `«${word.term}» ilk cümlede yer alır.`,
+      }),
+      (word) => ({
+        sentence: `Я нахожу «${word.term}» в коротком тексте.`,
+        translation: `«${word.term}» kelimesini kısa metinde buluyorum.`,
+      }),
+      (word) => ({
+        sentence: `Мы обсуждаем «${word.term}» после урока.`,
+        translation: `Dersten sonra «${word.term}» hakkında konuşuyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Учитель пишет «${word.term}» на доске.`,
+        translation: `Öğretmen tahtaya «${word.term}» kelimesini yazar.`,
+      }),
+      (word) => ({
+        sentence: `В диалоге «${word.term}» звучит естественно.`,
+        translation: `Diyalogda «${word.term}» doğal duyulur.`,
+      }),
+      (word) => ({
+        sentence: `Он повторяет «${word.term}» перед упражнением.`,
+        translation: `Alıştırmadan önce «${word.term}» kelimesini tekrar eder.`,
+      }),
+    ],
+    verb: [
+      (word) => ({
+        sentence: `На уроке мы тренируем «${word.term}» вместе.`,
+        translation: `Derste «${word.term}» kelimesini birlikte çalışıyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Я слышу «${word.term}» в разговоре.`,
+        translation: `«${word.term}» kelimesini bir konuşmada duyuyorum.`,
+      }),
+      (word) => ({
+        sentence: `Она связывает «${word.term}» с примером.`,
+        translation: `«${word.term}» kelimesini bir örnekle ilişkilendiriyor.`,
+      }),
+      (word) => ({
+        sentence: `Мы записываем «${word.term}» рядом с фразой.`,
+        translation: `«${word.term}» kelimesini ifadenin yanına yazıyoruz.`,
+      }),
+      (word) => ({
+        sentence: `Текст показывает «${word.term}» в новом контексте.`,
+        translation: `Metin «${word.term}» kelimesini yeni bir bağlamda gösterir.`,
+      }),
+      (word) => ({
+        sentence: `Он медленно повторяет «${word.term}» вслух.`,
+        translation: `«${word.term}» kelimesini yavaşça sesli tekrar eder.`,
+      }),
+    ],
+    adjective: [
+      (word) => ({
+        sentence: `«${word.term}» делает мысль точнее.`,
+        translation: `«${word.term}» düşünceyi daha kesin hale getirir.`,
+      }),
+      (word) => ({
+        sentence: `Деталь «${word.term}» меняет смысл.`,
+        translation: `«${word.term}» detayı anlamı değiştirir.`,
+      }),
+      (word) => ({
+        sentence: `Она отмечает «${word.term}» место в тексте.`,
+        translation: `Metindeki «${word.term}» yeri işaretler.`,
+      }),
+      (word) => ({
+        sentence: `С «${word.term}» фраза звучит сильнее.`,
+        translation: `«${word.term}» ile ifade daha güçlü duyulur.`,
+      }),
+      (word) => ({
+        sentence: `Пример с «${word.term}» остается понятным.`,
+        translation: `«${word.term}» içeren örnek anlaşılır kalır.`,
+      }),
+    ],
+    adverb: [
+      (word) => ({
+        sentence: `«${word.term}» меняет ритм предложения.`,
+        translation: `«${word.term}» cümlenin ritmini değiştirir.`,
+      }),
+      (word) => ({
+        sentence: `Я ставлю «${word.term}» перед главной мыслью.`,
+        translation: `«${word.term}» kelimesini ana fikrin önüne koyuyorum.`,
+      }),
+      (word) => ({
+        sentence: `Говорящий использует «${word.term}» для перехода.`,
+        translation: `Konuşmacı geçiş için «${word.term}» kullanır.`,
+      }),
+    ],
+    conjunction: [
+      (word) => ({
+        sentence: `«${word.term}» соединяет две части предложения.`,
+        translation: `«${word.term}» cümlenin iki parçasını bağlar.`,
+      }),
+      (word) => ({
+        sentence: `Вторая мысль начинается с «${word.term}».`,
+        translation: `İkinci fikir «${word.term}» ile başlar.`,
+      }),
+      (word) => ({
+        sentence: `Я использую «${word.term}» для контраста.`,
+        translation: `Bir karşıtlık için «${word.term}» kullanıyorum.`,
+      }),
+    ],
+    other: [
+      (word) => ({
+        sentence: `Я повторяю «${word.term}» с коротким примером.`,
+        translation: `«${word.term}» kelimesini kısa bir örnekle tekrar ediyorum.`,
+      }),
+      (word) => ({
+        sentence: `Группа находит «${word.term}» в тексте.`,
+        translation: `Grup «${word.term}» kelimesini metinde bulur.`,
+      }),
+      (word) => ({
+        sentence: `Мы записываем «${word.term}» для повторения.`,
+        translation: `Tekrar için «${word.term}» kelimesini not ediyoruz.`,
+      }),
+    ],
+  },
+};
 
-    if (hasPartOfSpeech(word, "zarf")) {
-      return {
-        sentence: `The word "${word.term}" can change how the action feels.`,
-        translation: `"${word.term}" eylemin nasıl hissedildiğini değiştirebilir.`,
-      };
-    }
-
-    if (hasPartOfSpeech(word, "sıfat")) {
-      return {
-        sentence: `The word "${word.term}" gives the sentence a sharper meaning.`,
-        translation: `"${word.term}" cümleye daha net bir anlam katar.`,
-      };
-    }
-
-    return {
-      sentence: `I practiced "${word.term}" with a short example.`,
-      translation: `"${word.term}" kelimesini kısa bir örnekle çalıştım.`,
-    };
-  }
-
-  if (language === "de") {
-    if (hasPartOfSpeech(word, "isim")) {
-      return {
-        sentence: `Ich schreibe "${word.term}" in mein Notizbuch.`,
-        translation: `Defterime "${word.term}" kelimesini yazıyorum.`,
-      };
-    }
-
-    if (hasPartOfSpeech(word, "fiil")) {
-      return {
-        sentence: `Wir verwenden "${word.term}" in einem kurzen Gespräch.`,
-        translation: `"${word.term}" kelimesini kısa bir sohbette kullanıyoruz.`,
-      };
-    }
-
-    if (hasPartOfSpeech(word, "bağlaç")) {
-      return {
-        sentence: `"${word.term}" verbindet zwei Gedanken in einem Satz.`,
-        translation: `"${word.term}" tek cümlede iki fikri bağlar.`,
-      };
-    }
-
-    if (hasPartOfSpeech(word, "zarf")) {
-      return {
-        sentence: `"${word.term}" verändert, wie die Handlung klingt.`,
-        translation: `"${word.term}" eylemin nasıl duyulduğunu değiştirir.`,
-      };
-    }
-
-    if (hasPartOfSpeech(word, "sıfat")) {
-      return {
-        sentence: `"${word.term}" macht den Satz genauer.`,
-        translation: `"${word.term}" cümleyi daha kesin hale getirir.`,
-      };
-    }
-
-    return {
-      sentence: `Ich übe "${word.term}" mit einem kurzen Beispiel.`,
-      translation: `"${word.term}" kelimesini kısa bir örnekle çalışıyorum.`,
-    };
-  }
-
+function getPartOfSpeechGroup(word: WordSeed): PartOfSpeechGroup {
   if (hasPartOfSpeech(word, "isim")) {
-    return {
-      sentence: `Я записал(а) «${word.term}» в тетрадь.`,
-      translation: `Defterime «${word.term}» kelimesini yazdım.`,
-    };
+    return "noun";
   }
 
   if (hasPartOfSpeech(word, "fiil")) {
-    return {
-      sentence: `Мы можем использовать «${word.term}» в коротком разговоре.`,
-      translation: `«${word.term}» kelimesini kısa bir sohbette kullanabiliriz.`,
-    };
-  }
-
-  if (hasPartOfSpeech(word, "bağlaç")) {
-    return {
-      sentence: `«${word.term}» соединяет две мысли в одном предложении.`,
-      translation: `«${word.term}» tek cümlede iki fikri bağlar.`,
-    };
-  }
-
-  if (hasPartOfSpeech(word, "zarf")) {
-    return {
-      sentence: `«${word.term}» меняет звучание действия.`,
-      translation: `«${word.term}» eylemin nasıl duyulduğunu değiştirir.`,
-    };
+    return "verb";
   }
 
   if (hasPartOfSpeech(word, "sıfat")) {
-    return {
-      sentence: `«${word.term}» делает предложение точнее.`,
-      translation: `«${word.term}» cümleyi daha kesin hale getirir.`,
-    };
+    return "adjective";
   }
 
-  return {
-    sentence: `Я повторяю «${word.term}» с коротким примером.`,
-    translation: `«${word.term}» kelimesini kısa bir örnekle tekrar ediyorum.`,
-  };
+  if (hasPartOfSpeech(word, "zarf")) {
+    return "adverb";
+  }
+
+  if (hasPartOfSpeech(word, "bağlaç")) {
+    return "conjunction";
+  }
+
+  return "other";
 }
 
 function hasPartOfSpeech(word: WordSeed, partOfSpeech: string) {
   return word.partOfSpeech.toLocaleLowerCase("tr").includes(partOfSpeech);
 }
+
+function stableIndex(value: string, size: number) {
+  let hash = 0;
+
+  for (const character of value) {
+    hash = (hash * 31 + character.codePointAt(0)!) % 2147483647;
+  }
+
+  return hash % size;
+}
+
+export const VOCABULARY_CARDS: VocabularyCard[] = buildCatalog(CATALOG_SEED);
+export const CATALOG_REPORT = getCatalogReport(VOCABULARY_CARDS);
 
 function buildCardExamples(
   language: LanguageCode,
