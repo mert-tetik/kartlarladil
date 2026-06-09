@@ -233,10 +233,10 @@ export function VocabularyCardView({
 
             <div className="relative flex flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
-                <span className="rounded-full border border-white/45 bg-white/15 px-2.5 py-1 text-xs font-semibold text-white/95">
+                <span className="text-xs font-semibold text-white/75">
                   {TIER_LABELS[card.tier]}
                 </span>
-                <span className="rounded-full border border-white/45 bg-white/15 px-2.5 py-1 text-xs font-semibold text-white/95">
+                <span className="text-xs font-semibold text-white/75">
                   {LANGUAGE_NAMES[card.language]}
                 </span>
               </div>
