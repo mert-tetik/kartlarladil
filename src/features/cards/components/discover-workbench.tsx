@@ -38,6 +38,7 @@ export function DiscoverWorkbench() {
   const [cards, setCards] = useState<VocabularyCard[]>(() =>
     localCardRepository.draw(5, profileFallback),
   );
+  const [dealCycle, setDealCycle] = useState(0);
   const inventoryCards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudError = useInventoryStore((state) => state.cloudError);
@@ -50,10 +51,16 @@ export function DiscoverWorkbench() {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setCards(localCardRepository.draw(5, preferences, [...ownedIds]));
+      setDealCycle((cycle) => cycle + 1);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
   }, [ownedIds, preferences]);
+
+  function dealCards(nextCards: VocabularyCard[]) {
+    setCards(nextCards);
+    setDealCycle((cycle) => cycle + 1);
+  }
 
   function updatePreferences(nextPreferences: {
     language?: DiscoverLanguageFilter;
@@ -66,11 +73,10 @@ export function DiscoverWorkbench() {
     };
 
     writeDiscoverPreferences(window.localStorage, updatedPreferences);
-    setCards(localCardRepository.draw(5, updatedPreferences, [...ownedIds]));
   }
 
   function searchCards() {
-    setCards(
+    dealCards(
       localCardRepository
         .list({ query, language, tier })
         .filter((card) => !ownedIds.has(card.id))
@@ -79,7 +85,7 @@ export function DiscoverWorkbench() {
   }
 
   function drawCards(count: 5 | 10) {
-    setCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
+    dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
   }
 
   function skipCard(cardId: string) {
@@ -138,7 +144,9 @@ export function DiscoverWorkbench() {
             onClick={() => {
               setQuery("");
               writeDiscoverPreferences(window.localStorage, DEFAULT_DISCOVER_PREFERENCES);
-              setCards(localCardRepository.draw(5, DEFAULT_DISCOVER_PREFERENCES, [...ownedIds]));
+              if (language === DEFAULT_DISCOVER_PREFERENCES.language && tier === DEFAULT_DISCOVER_PREFERENCES.tier) {
+                dealCards(localCardRepository.draw(5, DEFAULT_DISCOVER_PREFERENCES, [...ownedIds]));
+              }
             }}
           >
             Filtreleri temizle
@@ -148,16 +156,22 @@ export function DiscoverWorkbench() {
 
       {cards.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {cards.map((card) => (
-            <VocabularyCardView
-              key={card.id}
-              card={card}
-              owned={ownedIds.has(card.id)}
-              initialFace="back"
-              flippable
-              onAdd={() => requireAuthAction(() => addCard(card.id), { nextPath: "/kesfet" })}
-              onSkip={() => skipCard(card.id)}
-            />
+          {cards.map((card, index) => (
+            <div
+              key={`${dealCycle}-${card.id}`}
+              data-card-deal-index={index}
+              className="discover-card-deal"
+              style={{ animationDelay: `${index * 55}ms` }}
+            >
+              <VocabularyCardView
+                card={card}
+                owned={ownedIds.has(card.id)}
+                initialFace="back"
+                flippable
+                onAdd={() => requireAuthAction(() => addCard(card.id), { nextPath: "/kesfet" })}
+                onSkip={() => skipCard(card.id)}
+              />
+            </div>
           ))}
         </div>
       ) : (

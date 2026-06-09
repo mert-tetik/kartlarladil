@@ -83,6 +83,7 @@ test("guest add-card action redirects to register with next path", async ({ page
 
   await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill("apple");
   await page.getByRole("button", { name: "Ara" }).click();
+  await expect(page.locator('[data-card-deal-index="0"]').first()).toBeVisible();
   await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
   await expect(page.locator('[data-card-back-tier="A1"]').first()).toBeVisible();
 

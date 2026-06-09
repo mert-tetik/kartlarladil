@@ -41,3 +41,34 @@ button:disabled,
   background: #0f172a;
   color: #ffffff;
 }
+
+.discover-card-deal {
+  animation: discover-card-deal 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+@keyframes discover-card-deal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -34px, 0) rotateX(-10deg) scale(0.985);
+  }
+
+  62% {
+    opacity: 1;
+    transform: translate3d(0, 5px, 0) rotateX(1deg) scale(1.006);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover-card-deal {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+}
