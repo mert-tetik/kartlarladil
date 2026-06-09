@@ -1,18 +1,22 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
+import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats } from "@/types/domain";
+
+vi.mock("@/lib/sound-effects", () => ({
+  playSoundEffect: vi.fn(),
+}));
 
 describe("RankProgressPopover", () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
-  it("opens the rank ladder from the navbar rank display", async () => {
-    const user = userEvent.setup();
+  it("opens the rank ladder from the navbar rank display", () => {
     const rankProgress = getNextRankProgress(250);
 
     render(
@@ -25,7 +29,7 @@ describe("RankProgressPopover", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Rank ilerlemesini göster" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rank ilerlemesini göster" }));
 
     expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
     expect(screen.getByText("Kelime Toplayıcı için 50 puan kaldı")).toBeVisible();
@@ -80,6 +84,7 @@ describe("RankProgressPopover", () => {
 
     const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
     expect(rankUpDialog).toBeVisible();
+    expect(playSoundEffect).toHaveBeenCalledWith("rank-up");
     expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
     expect(within(rankUpDialog).getByText("100 puan")).toBeVisible();

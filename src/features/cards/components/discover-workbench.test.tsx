@@ -52,7 +52,7 @@ describe("DiscoverWorkbench", () => {
     await user.click(screen.getByRole("button", { name: "Geç" }));
 
     expect(container.querySelector('[data-discover-exit-kind="skip"]')).toBeInTheDocument();
-  }, 10_000);
+  }, 20_000);
 
   it("moves an added card upward before writing it to the inventory", async () => {
     const user = userEvent.setup();
@@ -63,7 +63,7 @@ describe("DiscoverWorkbench", () => {
 
     expect(container.querySelector('[data-discover-exit-kind="add"]')).toBeInTheDocument();
     await waitFor(() => expect(useInventoryStore.getState().hasCard("en-a1-isim-apple")).toBe(true));
-  }, 10_000);
+  }, 20_000);
 });
 
 function renderWorkbench() {

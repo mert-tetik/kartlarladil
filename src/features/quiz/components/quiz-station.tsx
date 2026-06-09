@@ -15,6 +15,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { playSoundEffect } from "@/lib/sound-effects";
 import type { PracticeMode, QuizQuestion } from "@/types/domain";
 
 export function QuizStation({ mode }: { mode: PracticeMode }) {
@@ -104,12 +105,15 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     }
 
     void requireAuthAction(async () => {
+      const isCorrect = answer === currentQuestion.correctAnswer;
+
       setSubmitting(true);
+      playSoundEffect(isCorrect ? "correct" : "incorrect");
       await recordAnswer({
         cardId: currentQuestion.card.id,
         selectedAnswer: answer,
         correctAnswer: currentQuestion.correctAnswer,
-        isCorrect: answer === currentQuestion.correctAnswer,
+        isCorrect,
         mode,
       });
       setSelectedAnswer(answer);

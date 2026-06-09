@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { cn } from "@/lib/utils";
+import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
@@ -151,6 +152,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
       setDisplayStats(stats);
       setScoreGain(0);
       if (didRankUp) {
+        playSoundEffect("rank-up");
         setRankUpRank(stats.rank);
       }
     }, SCORE_GAIN_ANIMATION_MS);
