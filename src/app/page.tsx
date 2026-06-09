@@ -9,10 +9,10 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 const previewCards = [
-  pickPreviewCard("en", "A1"),
-  pickPreviewCard("en", "B1"),
-  pickPreviewCard("de", "C1"),
-].filter((card): card is VocabularyCard => Boolean(card));
+  { card: pickPreviewCard("en", "A1", "friend"), face: "front" },
+  { card: pickPreviewCard("de", "B1"), face: "back" },
+  { card: pickPreviewCard("ru", "A1"), face: "front" },
+].filter((item): item is { card: VocabularyCard; face: "front" | "back" } => Boolean(item.card));
 
 const featureItems = [
   {
@@ -85,8 +85,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-slate-50">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-slate-100">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:44px_44px]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.82)_0%,rgba(255,255,255,0.42)_36%,rgba(241,245,249,0.26)_36%,rgba(241,245,249,0.26)_100%)]"
+        />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:px-8">
           <div>
             <h2 className="font-display text-4xl font-semibold text-slate-950">Kartlar fiziksel bir koleksiyon gibi çalışır.</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
@@ -111,10 +119,20 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
-            {previewCards.map((card) => (
-              <VocabularyCardView key={card.id} card={card} compact />
-            ))}
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:overflow-visible">
+            <div
+              data-landing-card-showcase
+              className="grid min-w-[680px] grid-cols-3 items-stretch gap-3 sm:gap-4 lg:min-w-0 lg:gap-5"
+            >
+              {previewCards.map(({ card, face }) => (
+                <VocabularyCardView
+                  key={card.id}
+                  card={card}
+                  initialFace={face}
+                  flippable={face === "back"}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -178,6 +196,15 @@ function CardBackdrop() {
   );
 }
 
-function pickPreviewCard(language: LanguageCode, tier: Tier) {
-  return VOCABULARY_CARDS.find((card) => card.language === language && card.tier === tier);
+function pickPreviewCard(language: LanguageCode, tier: Tier, term?: string) {
+  const matchingCards = VOCABULARY_CARDS.filter((card) => card.language === language && card.tier === tier);
+
+  if (term) {
+    return (
+      matchingCards.find((card) => card.term.toLocaleLowerCase("tr-TR") === term.toLocaleLowerCase("tr-TR")) ??
+      matchingCards[0]
+    );
+  }
+
+  return matchingCards[0];
 }
