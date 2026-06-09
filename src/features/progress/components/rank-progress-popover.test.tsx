@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -58,6 +58,35 @@ describe("RankProgressPopover", () => {
 
     expect(screen.getByText("40 puan")).toBeVisible();
     expect(screen.queryByText("+40")).not.toBeInTheDocument();
+  });
+
+  it("opens a rank-up menu when the user reaches a new rank", () => {
+    vi.useFakeTimers();
+    const nextStats = makeStats(100);
+
+    const { rerender } = render(<RankProgressPopover stats={makeStats(90)} />);
+
+    rerender(<RankProgressPopover stats={nextStats} />);
+
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
+    expect(rankUpDialog).toBeVisible();
+    expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
+    expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
+    expect(within(rankUpDialog).getByText("100 puan")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: /Rankleri/ }));
+
+    expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
   });
 });
 

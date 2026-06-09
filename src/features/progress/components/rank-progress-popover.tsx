@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,7 @@ const SCORE_GAIN_ANIMATION_MS = 700;
 export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const { displayStats, scoreGain } = useAnimatedScoreDisplay(stats);
+  const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -64,7 +65,17 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
         </span>
       </button>
 
-      {open ? (
+      {rankUpRank ? (
+        <RankUpMenu
+          rank={rankUpRank}
+          points={displayStats.totalPoints}
+          onClose={dismissRankUp}
+          onViewRanks={() => {
+            dismissRankUp();
+            setOpen(true);
+          }}
+        />
+      ) : open ? (
         <div
           role="dialog"
           aria-label="Rank ilerlemesi"
@@ -108,11 +119,13 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
 function useAnimatedScoreDisplay(stats: ProgressStats) {
   const [displayStats, setDisplayStats] = useState(stats);
   const [scoreGain, setScoreGain] = useState(0);
+  const [rankUpRank, setRankUpRank] = useState<RankDefinition | null>(null);
   const displayStatsRef = useRef(stats);
 
   useEffect(() => {
     const previousStats = displayStatsRef.current;
     const gainedPoints = stats.totalPoints - previousStats.totalPoints;
+    const didRankUp = stats.rank.minPoints > previousStats.rank.minPoints;
 
     if (gainedPoints === 0) {
       displayStatsRef.current = stats;
@@ -124,6 +137,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
         displayStatsRef.current = stats;
         setDisplayStats(stats);
         setScoreGain(0);
+        setRankUpRank(null);
       }, 0);
 
       return () => window.clearTimeout(resetTimer);
@@ -136,6 +150,9 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
       displayStatsRef.current = stats;
       setDisplayStats(stats);
       setScoreGain(0);
+      if (didRankUp) {
+        setRankUpRank(stats.rank);
+      }
     }, SCORE_GAIN_ANIMATION_MS);
 
     return () => {
@@ -147,7 +164,62 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
   return {
     displayStats,
     scoreGain,
+    rankUpRank,
+    dismissRankUp: () => setRankUpRank(null),
   };
+}
+
+function RankUpMenu({
+  rank,
+  points,
+  onClose,
+  onViewRanks,
+}: {
+  rank: RankDefinition;
+  points: number;
+  onClose: () => void;
+  onViewRanks: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-label="Rank atladın"
+      className="rank-up-menu absolute right-0 top-11 z-50 w-[min(92vw,340px)] rounded-lg border border-amber-200 bg-white p-4 text-sm shadow-sm"
+    >
+      <button
+        type="button"
+        aria-label="Rank atlama menüsünü kapat"
+        onClick={onClose}
+        className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950"
+      >
+        <X className="size-4" aria-hidden="true" />
+      </button>
+
+      <div className="flex items-start gap-3 pr-8">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50">
+          <RankIcon icon={rank.icon} className={cn("size-6", getRankIconTone(rank.icon))} />
+        </div>
+        <div>
+          <p className="font-semibold text-slate-950">Rank atladın</p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">Şu anki rankin</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950">{rank.label}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
+        <span className="text-xs font-semibold text-slate-500">Toplam puan</span>
+        <span className="text-xs font-bold text-slate-950">{points.toLocaleString("tr-TR")} puan</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={onViewRanks}
+        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+      >
+        Rankleri gör
+      </button>
+    </div>
+  );
 }
 
 function RankStep({
