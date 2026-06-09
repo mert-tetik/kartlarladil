@@ -9,6 +9,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EmptyState } from "@/components/empty-state";
+import { LanguageFlag } from "@/components/language-flag";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -67,7 +68,10 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
                   language === item.code && "border-slate-950 bg-white",
                 )}
               >
-                <span className="text-sm font-semibold text-slate-950">{item.name}</span>
+                <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <LanguageFlag code={item.code} />
+                  {item.name}
+                </span>
                 <span className="mt-2 block text-2xl font-bold text-slate-950">{item.count}</span>
               </button>
             ))}
