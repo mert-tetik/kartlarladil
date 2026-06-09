@@ -16,6 +16,12 @@ describe("RankProgressPopover", () => {
     vi.clearAllMocks();
   });
 
+  it("keeps the rank trigger visible for mobile navigation", () => {
+    render(<RankProgressPopover stats={makeStats(0)} />);
+
+    expect(screen.getByRole("button", { name: "Rank ilerlemesini göster" }).parentElement).not.toHaveClass("hidden");
+  });
+
   it("opens the rank ladder from the navbar rank display", () => {
     const rankProgress = getNextRankProgress(250);
 

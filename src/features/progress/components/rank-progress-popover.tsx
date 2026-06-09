@@ -37,7 +37,7 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
   }, []);
 
   return (
-    <div ref={rootRef} className="relative hidden sm:block">
+    <div ref={rootRef} className="relative block">
       <button
         type="button"
         aria-label="Rank ilerlemesini göster"
@@ -45,14 +45,14 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
         aria-haspopup="dialog"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100",
+          "flex h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 min-[390px]:gap-2 min-[390px]:px-3 sm:h-auto sm:py-1.5",
           open && "border-slate-300 bg-white ring-2 ring-slate-200",
         )}
       >
         <RankIcon icon={displayStats.rank.icon} className={cn("size-4", getRankIconTone(displayStats.rank.icon))} />
-        <span>{displayStats.rank.label}</span>
-        <span className="text-slate-400">/</span>
-        <span className="relative inline-flex min-w-10 justify-start">
+        <span className="hidden min-[390px]:inline">{displayStats.rank.label}</span>
+        <span className="hidden text-slate-400 min-[390px]:inline">/</span>
+        <span className="relative inline-flex min-w-4 justify-start min-[390px]:min-w-10">
           {scoreGain > 0 ? (
             <span
               key={scoreGain}
@@ -62,7 +62,8 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
               +{scoreGain.toLocaleString("tr-TR")}
             </span>
           ) : null}
-          <span>{displayStats.totalPoints.toLocaleString("tr-TR")} puan</span>
+          <span className="min-[390px]:hidden">{displayStats.totalPoints.toLocaleString("tr-TR")}</span>
+          <span className="hidden min-[390px]:inline">{displayStats.totalPoints.toLocaleString("tr-TR")} puan</span>
         </span>
       </button>
 

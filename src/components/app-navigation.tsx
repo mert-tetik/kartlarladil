@@ -44,7 +44,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/kart-cek" className={buttonClassName("secondary", "sm", "hidden md:inline-flex")}>
+            <Link href="/kart-cek" className={buttonClassName("secondary", "sm", "hidden min-[390px]:inline-flex")}>
               Kart çek
             </Link>
             {user ? (

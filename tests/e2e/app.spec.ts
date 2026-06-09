@@ -160,6 +160,8 @@ test("mobile navigation exposes the main sections", async ({ page, isMobile }) =
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page.getByRole("banner").getByRole("link", { name: "Kart çek" })).toBeVisible();
+
   const mobileNav = page.getByRole("navigation", { name: "Mobil ana menü" });
   await expect(mobileNav.getByRole("link", { name: "Kart çek" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Kartlarım" })).toBeVisible();
