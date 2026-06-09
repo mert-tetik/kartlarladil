@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { PackagePlus, Search } from "lucide-react";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { FilterControls } from "@/features/cards/components/filter-controls";
@@ -21,6 +21,23 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import type { VocabularyCard } from "@/types/domain";
 
+type DiscoverDismissKind = "skip" | "add";
+
+interface ExitingDiscoverCard {
+  key: string;
+  card: VocabularyCard;
+  kind: DiscoverDismissKind;
+  rect: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+}
+
+const DISCOVER_EXIT_ANIMATION_MS = 380;
+const DISCOVER_LAYOUT_ANIMATION_MS = 360;
+
 export function DiscoverWorkbench() {
   const { user } = useAuthSession();
   const profile = user?.profile ?? null;
@@ -39,6 +56,14 @@ export function DiscoverWorkbench() {
     localCardRepository.draw(5, profileFallback),
   );
   const [dealCycle, setDealCycle] = useState(0);
+  const [exitingCards, setExitingCards] = useState<ExitingDiscoverCard[]>([]);
+  const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef(new Map<string, HTMLDivElement>());
+  const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
+  const exitTimerRefs = useRef<number[]>([]);
+  const exitSequenceRef = useRef(0);
+  const skipNextOwnedRefreshRef = useRef(false);
   const inventoryCards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudError = useInventoryStore((state) => state.cloudError);
@@ -47,8 +72,14 @@ export function DiscoverWorkbench() {
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const { language, tier } = preferences;
+  const showCardGrid = cards.length > 0 || exitingCards.length > 0;
 
   useEffect(() => {
+    if (skipNextOwnedRefreshRef.current) {
+      skipNextOwnedRefreshRef.current = false;
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
       setCards(localCardRepository.draw(5, preferences, [...ownedIds]));
       setDealCycle((cycle) => cycle + 1);
@@ -57,7 +88,58 @@ export function DiscoverWorkbench() {
     return () => window.clearTimeout(timeoutId);
   }, [ownedIds, preferences]);
 
+  useEffect(() => {
+    const exitTimers = exitTimerRefs.current;
+
+    return () => {
+      for (const timerId of exitTimers) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    // FLIP keeps the remaining cards moving from their old grid positions instead of jumping.
+    const snapshot = layoutSnapshotRef.current;
+
+    if (snapshot.size === 0 || shouldReduceMotion()) {
+      layoutSnapshotRef.current = new Map();
+      return;
+    }
+
+    for (const [cardId, element] of cardRefs.current) {
+      const previousRect = snapshot.get(cardId);
+
+      if (!previousRect || typeof element.animate !== "function") {
+        continue;
+      }
+
+      const nextRect = element.getBoundingClientRect();
+      const deltaX = previousRect.left - nextRect.left;
+      const deltaY = previousRect.top - nextRect.top;
+
+      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
+        continue;
+      }
+
+      element.animate(
+        [
+          { transform: `translate3d(${deltaX}px, ${deltaY}px, 0)` },
+          { transform: "translate3d(0, 0, 0)" },
+        ],
+        {
+          duration: DISCOVER_LAYOUT_ANIMATION_MS,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        },
+      );
+    }
+
+    layoutSnapshotRef.current = new Map();
+  }, [cards]);
+
   function dealCards(nextCards: VocabularyCard[]) {
+    setExitingCards([]);
+    setExitGridHeight(null);
     setCards(nextCards);
     setDealCycle((cycle) => cycle + 1);
   }
@@ -89,7 +171,83 @@ export function DiscoverWorkbench() {
   }
 
   function skipCard(cardId: string) {
-    setCards((current) => current.filter((card) => card.id !== cardId));
+    dismissCard(cardId, "skip");
+  }
+
+  function addDiscoveredCard(cardId: string) {
+    requireAuthAction(() => {
+      skipNextOwnedRefreshRef.current = true;
+      dismissCard(cardId, "add");
+      void addCard(cardId);
+    }, { nextPath: "/kesfet" });
+  }
+
+  function dismissCard(cardId: string, kind: DiscoverDismissKind) {
+    const card = cards.find((item) => item.id === cardId);
+
+    if (!card) {
+      return;
+    }
+
+    captureLayoutSnapshot();
+    const exitKey = `${kind}-${card.id}-${exitSequenceRef.current}`;
+    exitSequenceRef.current += 1;
+    const exitingCard = createExitingCard(card, kind, exitKey);
+
+    if (exitingCard) {
+      setExitingCards((current) => [...current, exitingCard]);
+      const timerId = window.setTimeout(() => {
+        setExitingCards((current) => current.filter((item) => item.key !== exitingCard.key));
+      }, DISCOVER_EXIT_ANIMATION_MS);
+
+      exitTimerRefs.current.push(timerId);
+    }
+
+    setCards((current) => current.filter((item) => item.id !== cardId));
+  }
+
+  function captureLayoutSnapshot() {
+    const snapshot = new Map<string, DOMRect>();
+
+    for (const [cardId, element] of cardRefs.current) {
+      snapshot.set(cardId, element.getBoundingClientRect());
+    }
+
+    layoutSnapshotRef.current = snapshot;
+  }
+
+  function createExitingCard(card: VocabularyCard, kind: DiscoverDismissKind, exitKey: string) {
+    const grid = gridRef.current;
+    const element = cardRefs.current.get(card.id);
+
+    if (!grid || !element) {
+      return null;
+    }
+
+    const gridRect = grid.getBoundingClientRect();
+    const cardRect = element.getBoundingClientRect();
+    setExitGridHeight(grid.offsetHeight);
+
+    return {
+      key: exitKey,
+      card,
+      kind,
+      rect: {
+        left: cardRect.left - gridRect.left,
+        top: cardRect.top - gridRect.top,
+        width: cardRect.width,
+        height: cardRect.height,
+      },
+    };
+  }
+
+  function setCardRef(cardId: string, element: HTMLDivElement | null) {
+    if (element) {
+      cardRefs.current.set(cardId, element);
+      return;
+    }
+
+    cardRefs.current.delete(cardId);
   }
 
   if (!hydrated) {
@@ -154,11 +312,16 @@ export function DiscoverWorkbench() {
         </div>
       </div>
 
-      {cards.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {showCardGrid ? (
+        <div
+          ref={gridRef}
+          className="discover-card-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
+        >
           {cards.map((card, index) => (
             <div
               key={`${dealCycle}-${card.id}`}
+              ref={(element) => setCardRef(card.id, element)}
               data-card-deal-index={index}
               className="discover-card-deal"
               style={{ animationDelay: `${index * 55}ms` }}
@@ -168,8 +331,29 @@ export function DiscoverWorkbench() {
                 owned={ownedIds.has(card.id)}
                 initialFace="back"
                 flippable
-                onAdd={() => requireAuthAction(() => addCard(card.id), { nextPath: "/kesfet" })}
+                onAdd={() => addDiscoveredCard(card.id)}
                 onSkip={() => skipCard(card.id)}
+              />
+            </div>
+          ))}
+          {exitingCards.map((item) => (
+            <div
+              key={item.key}
+              data-discover-exit-kind={item.kind}
+              className="discover-card-exit"
+              style={{
+                left: `${item.rect.left}px`,
+                top: `${item.rect.top}px`,
+                width: `${item.rect.width}px`,
+                height: `${item.rect.height}px`,
+              }}
+            >
+              <VocabularyCardView
+                card={item.card}
+                owned={item.kind === "add"}
+                initialFace="front"
+                onAdd={() => undefined}
+                onSkip={() => undefined}
               />
             </div>
           ))}
@@ -195,4 +379,12 @@ function parseStoredPreferences(snapshot: string, fallback: typeof DEFAULT_DISCO
   } catch {
     return fallback;
   }
+}
+
+function shouldReduceMotion() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
