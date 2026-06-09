@@ -2,12 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
-import { DiscoverWorkbench } from "@/features/cards/components/discover-workbench";
+import { CardDrawWorkbench } from "@/features/cards/components/card-draw-workbench";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/kesfet",
+  usePathname: () => "/kart-cek",
   useRouter: () => ({
     push: vi.fn(),
   }),
@@ -31,7 +31,7 @@ const testUser: AuthShellUser = {
   },
 };
 
-describe("DiscoverWorkbench", () => {
+describe("CardDrawWorkbench", () => {
   beforeEach(() => {
     window.localStorage.clear();
     useInventoryStore.setState({
@@ -44,14 +44,14 @@ describe("DiscoverWorkbench", () => {
     });
   });
 
-  it("shrinks a skipped card before removing it from the discover grid", async () => {
+  it("shrinks a skipped card before removing it from the card draw grid", async () => {
     const user = userEvent.setup();
     const { container } = renderWorkbench();
 
     await revealAppleCard(user);
     await user.click(screen.getByRole("button", { name: "Geç" }));
 
-    expect(container.querySelector('[data-discover-exit-kind="skip"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-card-draw-exit-kind="skip"]')).toBeInTheDocument();
   }, 20_000);
 
   it("moves an added card upward before writing it to the inventory", async () => {
@@ -61,7 +61,7 @@ describe("DiscoverWorkbench", () => {
     await revealAppleCard(user);
     await user.click(screen.getByRole("button", { name: "Ekle" }));
 
-    expect(container.querySelector('[data-discover-exit-kind="add"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-card-draw-exit-kind="add"]')).toBeInTheDocument();
     await waitFor(() => expect(useInventoryStore.getState().hasCard("en-a1-isim-apple")).toBe(true));
   }, 20_000);
 });
@@ -69,7 +69,7 @@ describe("DiscoverWorkbench", () => {
 function renderWorkbench() {
   return render(
     <AuthSessionProvider user={testUser}>
-      <DiscoverWorkbench />
+      <CardDrawWorkbench />
     </AuthSessionProvider>,
   );
 }

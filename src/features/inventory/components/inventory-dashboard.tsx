@@ -111,10 +111,10 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
         <EmptyState
           icon={Boxes}
           title={learnedOnly ? "Bu dilde öğrenilmiş kart yok" : "Bu dilde kart yok"}
-          description="Keşfet ekranından kart çekerek envanterini büyütmeye başlayabilirsin."
+          description="Kart çek ekranından kart çekerek envanterini büyütmeye başlayabilirsin."
           action={
-            <Link href="/kesfet" className={buttonClassName("primary", "md")}>
-              Kart keşfet
+            <Link href="/kart-cek" className={buttonClassName("primary", "md")}>
+              Kart çek
             </Link>
           }
         />

@@ -30,7 +30,7 @@ permanent account deletion and must never be prefixed with `NEXT_PUBLIC_`.
 Guest users are redirected to `/register?next=...` when they attempt user-owned write actions such as adding a card,
 recording quiz progress, or resetting inventory. The `next` value is limited to internal app paths.
 
-When no `next` is provided, login/register redirect to `/kesfet`. Registration asks for preferred language and tier;
+When no `next` is provided, login/register redirect to `/kart-cek`. Registration asks for preferred language and tier;
 those values seed `user_profiles.preferred_language_code` and `user_profiles.preferred_tier`.
 
 Configure these redirect URLs in the Supabase Dashboard:

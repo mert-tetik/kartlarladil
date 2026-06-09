@@ -1,4 +1,4 @@
-export const DEFAULT_AUTH_REDIRECT = "/kesfet";
+export const DEFAULT_AUTH_REDIRECT = "/kart-cek";
 
 export function getSafeNextPath(value: unknown, fallback = DEFAULT_AUTH_REDIRECT) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {

@@ -50,7 +50,7 @@ export default function Home() {
               ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/kesfet" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
+              <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
                 Kart çekmeye başla
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
@@ -150,8 +150,8 @@ export default function Home() {
               Giriş yapan kullanıcılar puan, rank ve kart ilerlemesini Supabase üzerinde kalıcı olarak takip eder.
             </p>
           </div>
-          <Link href="/kesfet" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
-            Keşfet
+          <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
+            Kart çek
             <CheckCircle2 className="size-4" aria-hidden="true" />
           </Link>
         </div>

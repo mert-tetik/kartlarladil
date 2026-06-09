@@ -6,27 +6,27 @@ import { localCardRepository } from "@/features/cards/card-repository";
 import { FilterControls } from "@/features/cards/components/filter-controls";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
-  DEFAULT_DISCOVER_PREFERENCES,
-  DISCOVER_PREFERENCES_KEY,
-  getDiscoverPreferenceFallback,
-  normalizeDiscoverPreferences,
-  subscribeDiscoverPreferences,
-  writeDiscoverPreferences,
-  type DiscoverLanguageFilter,
-  type DiscoverTierFilter,
-} from "@/features/cards/discover-preferences";
+  DEFAULT_CARD_DRAW_PREFERENCES,
+  CARD_DRAW_PREFERENCES_KEY,
+  getCardDrawPreferenceFallback,
+  normalizeCardDrawPreferences,
+  subscribeCardDrawPreferences,
+  writeCardDrawPreferences,
+  type CardDrawLanguageFilter,
+  type CardDrawTierFilter,
+} from "@/features/cards/card-draw-preferences";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import type { VocabularyCard } from "@/types/domain";
 
-type DiscoverDismissKind = "skip" | "add";
+type CardDrawDismissKind = "skip" | "add";
 
-interface ExitingDiscoverCard {
+interface ExitingCardDrawCard {
   key: string;
   card: VocabularyCard;
-  kind: DiscoverDismissKind;
+  kind: CardDrawDismissKind;
   rect: {
     left: number;
     top: number;
@@ -35,16 +35,16 @@ interface ExitingDiscoverCard {
   };
 }
 
-const DISCOVER_EXIT_ANIMATION_MS = 380;
-const DISCOVER_LAYOUT_ANIMATION_MS = 360;
+const CARD_DRAW_EXIT_ANIMATION_MS = 380;
+const CARD_DRAW_LAYOUT_ANIMATION_MS = 360;
 
-export function DiscoverWorkbench() {
+export function CardDrawWorkbench() {
   const { user } = useAuthSession();
   const profile = user?.profile ?? null;
-  const profileFallback = useMemo(() => getDiscoverPreferenceFallback(profile), [profile]);
+  const profileFallback = useMemo(() => getCardDrawPreferenceFallback(profile), [profile]);
   const storedPreferenceSnapshot = useSyncExternalStore(
-    subscribeDiscoverPreferences,
-    () => window.localStorage.getItem(DISCOVER_PREFERENCES_KEY) ?? "",
+    subscribeCardDrawPreferences,
+    () => window.localStorage.getItem(CARD_DRAW_PREFERENCES_KEY) ?? "",
     () => "",
   );
   const preferences = useMemo(
@@ -56,7 +56,7 @@ export function DiscoverWorkbench() {
     localCardRepository.draw(5, profileFallback),
   );
   const [dealCycle, setDealCycle] = useState(0);
-  const [exitingCards, setExitingCards] = useState<ExitingDiscoverCard[]>([]);
+  const [exitingCards, setExitingCards] = useState<ExitingCardDrawCard[]>([]);
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -128,7 +128,7 @@ export function DiscoverWorkbench() {
           { transform: "translate3d(0, 0, 0)" },
         ],
         {
-          duration: DISCOVER_LAYOUT_ANIMATION_MS,
+          duration: CARD_DRAW_LAYOUT_ANIMATION_MS,
           easing: "cubic-bezier(0.22, 1, 0.36, 1)",
         },
       );
@@ -145,8 +145,8 @@ export function DiscoverWorkbench() {
   }
 
   function updatePreferences(nextPreferences: {
-    language?: DiscoverLanguageFilter;
-    tier?: DiscoverTierFilter;
+    language?: CardDrawLanguageFilter;
+    tier?: CardDrawTierFilter;
   }) {
     const updatedPreferences = {
       language,
@@ -154,7 +154,7 @@ export function DiscoverWorkbench() {
       ...nextPreferences,
     };
 
-    writeDiscoverPreferences(window.localStorage, updatedPreferences);
+    writeCardDrawPreferences(window.localStorage, updatedPreferences);
   }
 
   function searchCards() {
@@ -174,15 +174,15 @@ export function DiscoverWorkbench() {
     dismissCard(cardId, "skip");
   }
 
-  function addDiscoveredCard(cardId: string) {
+  function addDrawnCard(cardId: string) {
     requireAuthAction(() => {
       skipNextOwnedRefreshRef.current = true;
       dismissCard(cardId, "add");
       void addCard(cardId);
-    }, { nextPath: "/kesfet" });
+    }, { nextPath: "/kart-cek" });
   }
 
-  function dismissCard(cardId: string, kind: DiscoverDismissKind) {
+  function dismissCard(cardId: string, kind: CardDrawDismissKind) {
     const card = cards.find((item) => item.id === cardId);
 
     if (!card) {
@@ -198,7 +198,7 @@ export function DiscoverWorkbench() {
       setExitingCards((current) => [...current, exitingCard]);
       const timerId = window.setTimeout(() => {
         setExitingCards((current) => current.filter((item) => item.key !== exitingCard.key));
-      }, DISCOVER_EXIT_ANIMATION_MS);
+      }, CARD_DRAW_EXIT_ANIMATION_MS);
 
       exitTimerRefs.current.push(timerId);
     }
@@ -216,7 +216,7 @@ export function DiscoverWorkbench() {
     layoutSnapshotRef.current = snapshot;
   }
 
-  function createExitingCard(card: VocabularyCard, kind: DiscoverDismissKind, exitKey: string) {
+  function createExitingCard(card: VocabularyCard, kind: CardDrawDismissKind, exitKey: string) {
     const grid = gridRef.current;
     const element = cardRefs.current.get(card.id);
 
@@ -301,9 +301,9 @@ export function DiscoverWorkbench() {
             variant="ghost"
             onClick={() => {
               setQuery("");
-              writeDiscoverPreferences(window.localStorage, DEFAULT_DISCOVER_PREFERENCES);
-              if (language === DEFAULT_DISCOVER_PREFERENCES.language && tier === DEFAULT_DISCOVER_PREFERENCES.tier) {
-                dealCards(localCardRepository.draw(5, DEFAULT_DISCOVER_PREFERENCES, [...ownedIds]));
+              writeCardDrawPreferences(window.localStorage, DEFAULT_CARD_DRAW_PREFERENCES);
+              if (language === DEFAULT_CARD_DRAW_PREFERENCES.language && tier === DEFAULT_CARD_DRAW_PREFERENCES.tier) {
+                dealCards(localCardRepository.draw(5, DEFAULT_CARD_DRAW_PREFERENCES, [...ownedIds]));
               }
             }}
           >
@@ -315,7 +315,7 @@ export function DiscoverWorkbench() {
       {showCardGrid ? (
         <div
           ref={gridRef}
-          className="discover-card-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          className="card-draw-card-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
         >
           {cards.map((card, index) => (
@@ -323,7 +323,7 @@ export function DiscoverWorkbench() {
               key={`${dealCycle}-${card.id}`}
               ref={(element) => setCardRef(card.id, element)}
               data-card-deal-index={index}
-              className="discover-card-deal"
+              className="card-draw-card-deal"
               style={{ animationDelay: `${index * 55}ms` }}
             >
               <VocabularyCardView
@@ -331,7 +331,7 @@ export function DiscoverWorkbench() {
                 owned={ownedIds.has(card.id)}
                 initialFace="back"
                 flippable
-                onAdd={() => addDiscoveredCard(card.id)}
+                onAdd={() => addDrawnCard(card.id)}
                 onSkip={() => skipCard(card.id)}
               />
             </div>
@@ -339,8 +339,8 @@ export function DiscoverWorkbench() {
           {exitingCards.map((item) => (
             <div
               key={item.key}
-              data-discover-exit-kind={item.kind}
-              className="discover-card-exit"
+              data-card-draw-exit-kind={item.kind}
+              className="card-draw-card-exit"
               style={{
                 left: `${item.rect.left}px`,
                 top: `${item.rect.top}px`,
@@ -369,13 +369,13 @@ export function DiscoverWorkbench() {
   );
 }
 
-function parseStoredPreferences(snapshot: string, fallback: typeof DEFAULT_DISCOVER_PREFERENCES) {
+function parseStoredPreferences(snapshot: string, fallback: typeof DEFAULT_CARD_DRAW_PREFERENCES) {
   if (!snapshot) {
     return fallback;
   }
 
   try {
-    return normalizeDiscoverPreferences(JSON.parse(snapshot), fallback);
+    return normalizeCardDrawPreferences(JSON.parse(snapshot), fallback);
   } catch {
     return fallback;
   }

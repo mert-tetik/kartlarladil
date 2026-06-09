@@ -33,7 +33,7 @@ Client write actions use the auth session provider before mutating inventory sta
 and inspect card details, but adding cards, recording quiz answers, and resetting inventory redirect to `/register?next=...`.
 Authenticated users write through Supabase-backed inventory actions.
 
-Discover filters are remembered in `localStorage` under `kartlarla-dil:discover-filters:v1`. The initial filter falls back to
+Card draw filters are remembered in `localStorage` under `kartlarla-dil:card-draw-filters:v1`. The initial filter falls back to
 the authenticated profile preference, then to English A1.
 
 Progress stats are derived from inventory, not stored as mutable counters. Learned cards produce tier-based points:
@@ -47,7 +47,7 @@ account menu, and `/profil` page.
 - `src/features/*/components` contains feature-specific UI.
 - `src/features/*/*.ts` contains domain behavior.
 
-Keep card visuals in `VocabularyCardView` so inventory, discovery, and previews stay consistent. `CardDetailsDialog` owns the expanded examples and grammar view so every card surface renders the same study material.
+Keep card visuals in `VocabularyCardView` so inventory, card draw, and previews stay consistent. `CardDetailsDialog` owns the expanded examples and grammar view so every card surface renders the same study material.
 
 ## Starter catalog
 

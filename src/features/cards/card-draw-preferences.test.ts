@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  DISCOVER_PREFERENCES_KEY,
-  DEFAULT_DISCOVER_PREFERENCES,
-  getDiscoverPreferenceFallback,
-  normalizeDiscoverPreferences,
-  readDiscoverPreferences,
-  writeDiscoverPreferences,
-} from "@/features/cards/discover-preferences";
+  CARD_DRAW_PREFERENCES_KEY,
+  DEFAULT_CARD_DRAW_PREFERENCES,
+  getCardDrawPreferenceFallback,
+  normalizeCardDrawPreferences,
+  readCardDrawPreferences,
+  writeCardDrawPreferences,
+} from "@/features/cards/card-draw-preferences";
 
-describe("discover preferences", () => {
+describe("card draw preferences", () => {
   it("defaults to English A1", () => {
-    expect(DEFAULT_DISCOVER_PREFERENCES).toEqual({
+    expect(DEFAULT_CARD_DRAW_PREFERENCES).toEqual({
       language: "en",
       tier: "A1",
     });
@@ -18,7 +18,7 @@ describe("discover preferences", () => {
 
   it("uses profile preferences as fallback", () => {
     expect(
-      getDiscoverPreferenceFallback({
+      getCardDrawPreferenceFallback({
         displayName: null,
         preferredLanguageCode: "de",
         preferredTier: "B2",
@@ -30,7 +30,7 @@ describe("discover preferences", () => {
   });
 
   it("normalizes invalid saved values", () => {
-    expect(normalizeDiscoverPreferences({ language: "fr", tier: "Z9" })).toEqual(DEFAULT_DISCOVER_PREFERENCES);
+    expect(normalizeCardDrawPreferences({ language: "fr", tier: "Z9" })).toEqual(DEFAULT_CARD_DRAW_PREFERENCES);
   });
 
   it("reads and writes storage values", () => {
@@ -40,9 +40,9 @@ describe("discover preferences", () => {
       setItem: (key: string, value: string) => values.set(key, value),
     };
 
-    writeDiscoverPreferences(storage, { language: "ru", tier: "C1" });
+    writeCardDrawPreferences(storage, { language: "ru", tier: "C1" });
 
-    expect(values.has(DISCOVER_PREFERENCES_KEY)).toBe(true);
-    expect(readDiscoverPreferences(storage)).toEqual({ language: "ru", tier: "C1" });
+    expect(values.has(CARD_DRAW_PREFERENCES_KEY)).toBe(true);
+    expect(readCardDrawPreferences(storage)).toEqual({ language: "ru", tier: "C1" });
   });
 });

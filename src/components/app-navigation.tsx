@@ -14,7 +14,7 @@ import { buttonClassName } from "@/components/ui/button";
 
 const navItems = [
   { href: "/", label: "Ana sayfa", icon: Sparkles },
-  { href: "/kesfet", label: "Keşfet", icon: Compass },
+  { href: "/kart-cek", label: "Kart çek", icon: Compass },
   { href: "/kartlarim", label: "Kartlarım", icon: Boxes },
   { href: "/ogren", label: "Öğren", icon: BookOpen },
   { href: "/ogrenilenler", label: "Öğrenilenler", icon: GraduationCap },
@@ -44,7 +44,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/kesfet" className={buttonClassName("secondary", "sm", "hidden md:inline-flex")}>
+            <Link href="/kart-cek" className={buttonClassName("secondary", "sm", "hidden md:inline-flex")}>
               Kart çek
             </Link>
             {user ? (

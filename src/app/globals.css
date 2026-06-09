@@ -42,17 +42,17 @@ button:disabled,
   color: #ffffff;
 }
 
-.discover-card-deal {
-  animation: discover-card-deal 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.card-draw-card-deal {
+  animation: card-draw-card-deal 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: top center;
   will-change: opacity, transform;
 }
 
-.discover-card-grid {
+.card-draw-card-grid {
   position: relative;
 }
 
-.discover-card-exit {
+.card-draw-card-exit {
   animation-duration: 380ms;
   animation-fill-mode: both;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
@@ -62,13 +62,13 @@ button:disabled,
   will-change: opacity, transform;
 }
 
-.discover-card-exit[data-discover-exit-kind="skip"] {
-  animation-name: discover-card-skip-away;
+.card-draw-card-exit[data-card-draw-exit-kind="skip"] {
+  animation-name: card-draw-card-skip-away;
   transform-origin: center;
 }
 
-.discover-card-exit[data-discover-exit-kind="add"] {
-  animation-name: discover-card-add-away;
+.card-draw-card-exit[data-card-draw-exit-kind="add"] {
+  animation-name: card-draw-card-add-away;
   transform-origin: top center;
 }
 
@@ -85,7 +85,7 @@ button:disabled,
   will-change: opacity, transform;
 }
 
-@keyframes discover-card-deal {
+@keyframes card-draw-card-deal {
   0% {
     opacity: 0;
     transform: translate3d(0, -34px, 0) rotateX(-10deg) scale(0.985);
@@ -102,7 +102,7 @@ button:disabled,
   }
 }
 
-@keyframes discover-card-skip-away {
+@keyframes card-draw-card-skip-away {
   0% {
     opacity: 1;
     transform: scale(1);
@@ -114,7 +114,7 @@ button:disabled,
   }
 }
 
-@keyframes discover-card-add-away {
+@keyframes card-draw-card-add-away {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) rotateX(0deg) scale(1);
@@ -166,13 +166,13 @@ button:disabled,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discover-card-deal {
+  .card-draw-card-deal {
     animation: none;
     transform: none;
     will-change: auto;
   }
 
-  .discover-card-exit {
+  .card-draw-card-exit {
     animation: none;
     opacity: 0;
     transform: none;

@@ -38,7 +38,7 @@ test("auth pages render public forms with password visibility toggles and prefer
   await expect(page.locator('input[name="preferredTier"][value="A1"]')).toBeChecked();
   await expect(page.getByLabel("Görünen ad")).toBeVisible();
   await expect(page.getByLabel("Şifre", { exact: true })).toHaveAttribute("type", "password");
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kesfet");
+  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
 
   await page.goto("/reset-password", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Şifreyi sıfırla" }).first()).toBeVisible();
@@ -46,14 +46,14 @@ test("auth pages render public forms with password visibility toggles and prefer
 });
 
 test("register preserves next and links back to login with the same next", async ({ page }) => {
-  await page.goto("/register?next=%2Fkesfet", { waitUntil: "domcontentloaded" });
+  await page.goto("/register?next=%2Fkart-cek", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kesfet");
-  await expect(page.locator('a[href="/login?next=%2Fkesfet"]').first()).toBeVisible();
+  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
+  await expect(page.locator('a[href="/login?next=%2Fkart-cek"]').first()).toBeVisible();
 });
 
-test("discover filters default to English A1 and remember user choices", async ({ page }) => {
-  await page.goto("/kesfet", { waitUntil: "domcontentloaded" });
+test("card draw filters default to English A1 and remember user choices", async ({ page }) => {
+  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "A1" })).toHaveAttribute("aria-pressed", "true");
@@ -79,7 +79,7 @@ test("profile redirects guests to login", async ({ page }) => {
 });
 
 test("guest add-card action redirects to register with next path", async ({ page }) => {
-  await page.goto("/kesfet", { waitUntil: "domcontentloaded" });
+  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
   await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill("apple");
   await page.getByRole("button", { name: "Ara" }).click();
@@ -92,12 +92,12 @@ test("guest add-card action redirects to register with next path", async ({ page
 
   await page.getByRole("button", { name: "Ekle" }).first().click();
 
-  await expect(page).toHaveURL(/\/register\?next=%2Fkesfet/);
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kesfet");
+  await expect(page).toHaveURL(/\/register\?next=%2Fkart-cek/);
+  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
 });
 
 test("guest quiz start redirects to register with learn path", async ({ page }) => {
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     window.localStorage.setItem(
       "kartlarla-dil:v2",
       JSON.stringify({
@@ -124,7 +124,7 @@ test("guest quiz start redirects to register with learn path", async ({ page }) 
 });
 
 test("card details show examples and grammar without auth", async ({ page }) => {
-  await page.goto("/kesfet", { waitUntil: "domcontentloaded" });
+  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
   await page.getByPlaceholder(/Kelime/).fill("apple");
   await page.getByRole("button", { name: "Ara" }).click();
@@ -148,7 +148,7 @@ test("mobile navigation exposes the main sections", async ({ page, isMobile }) =
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   const mobileNav = page.getByRole("navigation", { name: "Mobil ana menü" });
-  await expect(mobileNav.getByRole("link", { name: "Keşfet" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Kart çek" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Kartlarım" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Öğren", exact: true })).toBeVisible();
 });

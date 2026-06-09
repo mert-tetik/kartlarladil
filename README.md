@@ -50,7 +50,7 @@ src/app                 route pages and root layout
 src/components          shared layout and UI primitives
 src/data                seed languages, tiers, generated starter catalog
 src/features/auth       Supabase auth actions, forms, profile/account UI
-src/features/cards      discovery and card UI
+src/features/cards      card draw and card UI
 src/features/inventory  local/cloud inventory store, selectors, and Supabase actions
 src/features/quiz       quiz engine and practice UI
 src/lib                 utilities and Supabase helpers

@@ -28,7 +28,7 @@ export default async function RegisterPage({
   return (
     <AuthPageShell
       title="Kayıt ol"
-      description="Öğrenmek istediğin dili ve seviyeyi seç; keşfet ekranını bu tercihle başlatalım."
+      description="Öğrenmek istediğin dili ve seviyeyi seç; kart çek ekranını bu tercihle başlatalım."
       footer={
         <p>
           Zaten hesabın var mı?{" "}

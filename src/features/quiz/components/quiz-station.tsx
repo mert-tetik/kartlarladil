@@ -80,12 +80,12 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
         title={mode === "active" ? "Öğrenilecek kart yok" : "Öğrenilmiş kart yok"}
         description={
           mode === "active"
-            ? "Önce Keşfet ekranından kartları haznene ekle."
+            ? "Önce Kart çek ekranından kartları haznene ekle."
             : "Aktif kartları quiz ile tamamladığında burada tekrar yapabilirsin."
         }
         action={
-          <Link href={mode === "active" ? "/kesfet" : "/ogren"} className={buttonClassName("primary", "md")}>
-            {mode === "active" ? "Kart keşfet" : "Öğrenmeye dön"}
+          <Link href={mode === "active" ? "/kart-cek" : "/ogren"} className={buttonClassName("primary", "md")}>
+            {mode === "active" ? "Kart çek" : "Öğrenmeye dön"}
           </Link>
         }
       />

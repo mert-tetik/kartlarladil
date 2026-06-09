@@ -3,7 +3,7 @@ import { getSafeNextPath } from "@/features/auth/auth-redirects";
 
 describe("auth redirects", () => {
   it("keeps internal paths with query strings", () => {
-    expect(getSafeNextPath("/kesfet?x=1")).toBe("/kesfet?x=1");
+    expect(getSafeNextPath("/kart-cek?x=1")).toBe("/kart-cek?x=1");
   });
 
   it("rejects external URLs", () => {
