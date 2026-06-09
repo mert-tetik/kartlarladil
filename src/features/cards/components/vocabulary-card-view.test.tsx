@@ -12,6 +12,7 @@ describe("VocabularyCardView", () => {
 
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
     expect(screen.getByRole("heading", { name: "apple" })).toBeVisible();
+    expect(screen.getByLabelText("10 puan")).toBeVisible();
     expect(screen.queryByRole("button", { name: "apple kartını çevir" })).not.toBeInTheDocument();
   });
 

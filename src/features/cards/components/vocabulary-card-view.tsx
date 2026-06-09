@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Check, Info, Plus, Volume2, X } from "lucide-react";
+import { Check, Coins, Info, Plus, Volume2, X } from "lucide-react";
 import { LANGUAGE_NAMES } from "@/data/languages";
 import { TIER_LABELS, TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
+import { getPointsForTier } from "@/features/progress/progress-stats";
 import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
@@ -48,6 +49,7 @@ export function VocabularyCardView({
   }));
   const style = TIER_STYLES[card.tier];
   const requirement = TIER_REQUIREMENTS[card.tier];
+  const tierPoints = getPointsForTier(card.tier);
   const progress = inventory ? Math.min(100, (inventory.correctCount / requirement) * 100) : 0;
   const learned = inventory?.status === "learned";
   const showDetails = !compact;
@@ -133,7 +135,17 @@ export function VocabularyCardView({
               <Badge className={cn("border-transparent bg-white/80", style.text)}>
                 {card.tier} · {TIER_LABELS[card.tier]}
               </Badge>
-              <p className="mt-3 text-xs font-semibold text-slate-500">{LANGUAGE_NAMES[card.language]}</p>
+              <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500">
+                <span>{LANGUAGE_NAMES[card.language]}</span>
+                <span
+                  aria-label={`${tierPoints} puan`}
+                  className={cn("inline-flex items-center gap-1", style.text)}
+                  title={`${tierPoints} puan`}
+                >
+                  <Coins className="size-3.5" aria-hidden="true" />
+                  <span>{tierPoints}</span>
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {showDetails ? (
