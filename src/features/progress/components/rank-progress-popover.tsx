@@ -6,9 +6,12 @@ import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { cn } from "@/lib/utils";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
+const SCORE_GAIN_ANIMATION_MS = 700;
+
 export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const { displayStats, scoreGain } = useAnimatedScoreDisplay(stats);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -44,10 +47,21 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
           open && "border-slate-300 bg-white ring-2 ring-slate-200",
         )}
       >
-        <RankIcon icon={stats.rank.icon} className={cn("size-4", getRankIconTone(stats.rank.icon))} />
-        <span>{stats.rank.label}</span>
+        <RankIcon icon={displayStats.rank.icon} className={cn("size-4", getRankIconTone(displayStats.rank.icon))} />
+        <span>{displayStats.rank.label}</span>
         <span className="text-slate-400">/</span>
-        <span>{stats.totalPoints.toLocaleString("tr-TR")} puan</span>
+        <span className="relative inline-flex min-w-10 justify-start">
+          {scoreGain > 0 ? (
+            <span
+              key={scoreGain}
+              aria-live="polite"
+              className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-amber-500"
+            >
+              +{scoreGain.toLocaleString("tr-TR")}
+            </span>
+          ) : null}
+          <span>{displayStats.totalPoints.toLocaleString("tr-TR")} puan</span>
+        </span>
       </button>
 
       {open ? (
@@ -89,6 +103,51 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
       ) : null}
     </div>
   );
+}
+
+function useAnimatedScoreDisplay(stats: ProgressStats) {
+  const [displayStats, setDisplayStats] = useState(stats);
+  const [scoreGain, setScoreGain] = useState(0);
+  const displayStatsRef = useRef(stats);
+
+  useEffect(() => {
+    const previousStats = displayStatsRef.current;
+    const gainedPoints = stats.totalPoints - previousStats.totalPoints;
+
+    if (gainedPoints === 0) {
+      displayStatsRef.current = stats;
+      return;
+    }
+
+    if (gainedPoints < 0) {
+      const resetTimer = window.setTimeout(() => {
+        displayStatsRef.current = stats;
+        setDisplayStats(stats);
+        setScoreGain(0);
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
+    }
+
+    const startTimer = window.setTimeout(() => {
+      setScoreGain(gainedPoints);
+    }, 0);
+    const finishTimer = window.setTimeout(() => {
+      displayStatsRef.current = stats;
+      setDisplayStats(stats);
+      setScoreGain(0);
+    }, SCORE_GAIN_ANIMATION_MS);
+
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearTimeout(finishTimer);
+    };
+  }, [stats]);
+
+  return {
+    displayStats,
+    scoreGain,
+  };
 }
 
 function RankStep({

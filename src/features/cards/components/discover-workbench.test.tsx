@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
@@ -75,8 +75,8 @@ function renderWorkbench() {
 }
 
 async function revealAppleCard(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText(/Kelime/), "apple");
+  fireEvent.change(screen.getByPlaceholderText(/Kelime/), { target: { value: "apple" } });
   await user.click(screen.getByRole("button", { name: "Ara" }));
-  await user.click(await screen.findByRole("button", { name: /apple/ }));
+  await user.click(await screen.findByRole("button", { name: "apple kartını çevir" }));
   await screen.findByRole("heading", { name: "apple" });
 }
