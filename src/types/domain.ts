@@ -77,10 +77,23 @@ export interface QuizQuestion {
 
 export type TierPoints = Record<Tier, number>;
 
+export type RankIconId =
+  | "trophy"
+  | "medal"
+  | "book"
+  | "compass"
+  | "graduation"
+  | "star"
+  | "languages"
+  | "gem"
+  | "crown"
+  | "flame";
+
 export interface RankDefinition {
   id: string;
   label: string;
   minPoints: number;
+  icon: RankIconId;
 }
 
 export interface TierProgressStat {

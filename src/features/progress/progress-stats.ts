@@ -18,16 +18,16 @@ export const TIER_POINTS: TierPoints = {
 };
 
 export const RANKS: RankDefinition[] = [
-  { id: "baslangic", label: "Başlangıç", minPoints: 0 },
-  { id: "kart-ciragi", label: "Kart Çırağı", minPoints: 100 },
-  { id: "kelime-toplayici", label: "Kelime Toplayıcı", minPoints: 300 },
-  { id: "dil-yolcusu", label: "Dil Yolcusu", minPoints: 700 },
-  { id: "akici-ogrenci", label: "Akıcı Öğrenci", minPoints: 1400 },
-  { id: "kelime-ustasi", label: "Kelime Ustası", minPoints: 2500 },
-  { id: "cok-dilli", label: "Çok Dilli", minPoints: 4500 },
-  { id: "seckin-koleksiyoncu", label: "Seçkin Koleksiyoncu", minPoints: 7500 },
-  { id: "dil-bilgesi", label: "Dil Bilgesi", minPoints: 12000 },
-  { id: "efsane", label: "Efsane", minPoints: 18000 },
+  { id: "baslangic", label: "Başlangıç", minPoints: 0, icon: "trophy" },
+  { id: "kart-ciragi", label: "Kart Çırağı", minPoints: 100, icon: "medal" },
+  { id: "kelime-toplayici", label: "Kelime Toplayıcı", minPoints: 300, icon: "book" },
+  { id: "dil-yolcusu", label: "Dil Yolcusu", minPoints: 700, icon: "compass" },
+  { id: "akici-ogrenci", label: "Akıcı Öğrenci", minPoints: 1400, icon: "graduation" },
+  { id: "kelime-ustasi", label: "Kelime Ustası", minPoints: 2500, icon: "star" },
+  { id: "cok-dilli", label: "Çok Dilli", minPoints: 4500, icon: "languages" },
+  { id: "seckin-koleksiyoncu", label: "Seçkin Koleksiyoncu", minPoints: 7500, icon: "gem" },
+  { id: "dil-bilgesi", label: "Dil Bilgesi", minPoints: 12000, icon: "crown" },
+  { id: "efsane", label: "Efsane", minPoints: 18000, icon: "flame" },
 ];
 
 export const EMPTY_PROGRESS_STATS = calculateProgressStats([]);

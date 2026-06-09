@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, LogOut, Settings, Shield, Trophy, UserRound } from "lucide-react";
+import { BarChart3, LogOut, Settings, Shield, UserRound } from "lucide-react";
 import { TIER_LABELS, TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
 import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { cn } from "@/lib/utils";
 
 export function AccountMenu({ user }: { user: AuthShellUser }) {
@@ -59,7 +60,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
                 <p className="mt-1 font-semibold text-slate-950">{stats.rank.label}</p>
               </div>
               <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-950">
-                <Trophy className="size-4 text-amber-500" aria-hidden="true" />
+                <RankIcon icon={stats.rank.icon} className={cn("size-4", getRankIconTone(stats.rank.icon))} />
                 {stats.totalPoints}
               </div>
             </div>

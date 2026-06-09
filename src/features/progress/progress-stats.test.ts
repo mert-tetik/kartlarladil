@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import {
+  RANKS,
   TIER_POINTS,
   calculateProgressStats,
   getNextRankProgress,
@@ -46,6 +47,13 @@ describe("progress stats", () => {
     expect(progress.nextRank?.label).toBe("Kelime Toplayıcı");
     expect(progress.pointsToNextRank).toBe(50);
     expect(progress.rankProgressPercent).toBe(75);
+  });
+
+  it("assigns one stable icon id to each rank", () => {
+    const iconIds = new Set(RANKS.map((rank) => rank.icon));
+
+    expect(RANKS).toHaveLength(10);
+    expect(iconIds.size).toBe(RANKS.length);
   });
 });
 
