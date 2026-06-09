@@ -52,17 +52,30 @@ test("register preserves next and links back to login with the same next", async
   await expect(page.locator('a[href="/login?next=%2Fkart-cek"]').first()).toBeVisible();
 });
 
-test("card draw filters default to English A1 and remember user choices", async ({ page }) => {
+test("card draw filters default to English A1 and remember user choices", async ({ page, isMobile }) => {
   await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-pressed", "true");
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-haspopup", "listbox");
+  } else {
+    await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-pressed", "true");
+  }
   await expect(page.getByRole("button", { name: "A1" })).toHaveAttribute("aria-pressed", "true");
 
-  await page.getByRole("button", { name: /Almanca/ }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: /İngilizce/ }).click();
+    await page.getByRole("option", { name: /Almanca/ }).click();
+  } else {
+    await page.getByRole("button", { name: /Almanca/ }).click();
+  }
   await page.getByRole("button", { name: "B1" }).click();
   await page.reload({ waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("button", { name: /Almanca/ })).toHaveAttribute("aria-pressed", "true");
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: /Almanca/ })).toHaveAttribute("aria-haspopup", "listbox");
+  } else {
+    await expect(page.getByRole("button", { name: /Almanca/ })).toHaveAttribute("aria-pressed", "true");
+  }
   await expect(page.getByRole("button", { name: "B1" })).toHaveAttribute("aria-pressed", "true");
 });
 
