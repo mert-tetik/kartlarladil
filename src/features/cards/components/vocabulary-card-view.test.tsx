@@ -23,6 +23,8 @@ describe("VocabularyCardView", () => {
     const flipTarget = screen.getByRole("button", { name: "apple kartını çevir" });
 
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "back");
+    expect(container.querySelector('[data-card-back-tier="A1"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-card-back-medallion="true"]')).toHaveTextContent("A1");
     expect(screen.getByText("Çevirmek için tıkla")).toBeVisible();
     expect(screen.queryByRole("heading", { name: "apple" })).not.toBeInTheDocument();
 

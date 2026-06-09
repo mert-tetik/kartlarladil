@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Check, Info, Layers3, Plus, Volume2, X } from "lucide-react";
+import { Check, Info, Plus, Volume2, X } from "lucide-react";
 import { LANGUAGE_NAMES } from "@/data/languages";
 import { TIER_LABELS, TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
@@ -208,39 +208,56 @@ export function VocabularyCardView({
           aria-hidden={isFaceUp}
           inert={isFaceUp}
           className={cn(
-            "absolute inset-0 flex overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
-            compact ? "p-3 xl:p-4" : "p-4",
-            style.border,
-            style.surface,
+            "absolute inset-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
+            compact ? "p-2" : "p-2.5",
           )}
         >
-          <div className="pointer-events-none absolute inset-4 rounded-md border border-white/70" />
-          <div className="pointer-events-none absolute inset-x-8 top-20 h-px bg-slate-900/10" />
-          <div className="pointer-events-none absolute inset-x-8 bottom-20 h-px bg-slate-900/10" />
-          <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(90deg,#0f172a_1px,transparent_1px),linear-gradient(0deg,#0f172a_1px,transparent_1px)] [background-size:18px_18px]" />
+          <div
+            data-card-back-tier={card.tier}
+            className={cn(
+              "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white",
+              style.backPanel,
+              style.backBorder,
+            )}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-35"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, rgba(255,255,255,0.42) 1px, transparent 1px), linear-gradient(45deg, rgba(255,255,255,0.20) 1px, transparent 1px)",
+                backgroundSize: "18px 18px",
+              }}
+            />
+            <PlayingCardBackPattern />
 
-          <div className="relative flex flex-1 flex-col">
-            <div className="flex items-start justify-between gap-3">
-              <Badge className={cn("border-transparent bg-white/80", style.text)}>
-                {card.tier} · {TIER_LABELS[card.tier]}
-              </Badge>
-              <span className={cn("size-3 rounded-full", style.accent)} aria-hidden="true" />
-            </div>
-
-            <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className={cn("flex size-14 items-center justify-center rounded-md text-white shadow-sm", style.accent)}>
-                <Layers3 className="size-7" aria-hidden="true" />
+            <div className="relative flex flex-1 flex-col">
+              <div className="flex items-start justify-between gap-3">
+                <span className="rounded-full border border-white/45 bg-white/15 px-2.5 py-1 text-xs font-semibold text-white/95">
+                  {TIER_LABELS[card.tier]}
+                </span>
+                <span className="rounded-full border border-white/45 bg-white/15 px-2.5 py-1 text-xs font-semibold text-white/95">
+                  {LANGUAGE_NAMES[card.language]}
+                </span>
               </div>
-              <p className={cn("mt-5 font-display font-semibold leading-none", compact ? "text-5xl" : "text-6xl", style.text)}>
-                {card.tier}
-              </p>
-              <p className="mt-4 text-sm font-semibold text-slate-600">{LANGUAGE_NAMES[card.language]}</p>
-              <p className="mt-2 text-sm text-slate-500">Çevirmek için tıkla</p>
-            </div>
 
-            <div className="flex items-end justify-between gap-3 text-xs font-semibold text-slate-500">
-              <span>{TIER_LABELS[card.tier]}</span>
-              <span>Kartlarla Dil</span>
+              <div className="flex flex-1 flex-col items-center justify-center text-center">
+                <div
+                  data-card-back-medallion="true"
+                  className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm"
+                >
+                  <span className={cn("font-display text-5xl font-semibold leading-none", style.backText)}>
+                    {card.tier}
+                  </span>
+                  <span className={cn("pointer-events-none absolute inset-2 rounded-full border", style.border)} aria-hidden="true" />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-white/95">Çevirmek için tıkla</p>
+              </div>
+
+              <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75">
+                <span>Kartlarla Dil</span>
+                <span>Koleksiyon</span>
+              </div>
             </div>
           </div>
         </div>
@@ -248,5 +265,41 @@ export function VocabularyCardView({
 
       {showDetails ? <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} /> : null}
     </article>
+  );
+}
+
+function PlayingCardBackPattern() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 240 320"
+      className="pointer-events-none absolute inset-0 h-full w-full text-white/70"
+      fill="none"
+    >
+      <g stroke="currentColor" strokeWidth="1.4">
+        <path d="M120 34 206 160 120 286 34 160Z" opacity="0.58" />
+        <path d="M120 58 184 160 120 262 56 160Z" opacity="0.5" />
+        <path d="M120 82 162 160 120 238 78 160Z" opacity="0.42" />
+        <circle cx="120" cy="160" r="68" opacity="0.36" />
+        <circle cx="120" cy="160" r="48" opacity="0.34" />
+      </g>
+      <g stroke="currentColor" strokeWidth="1.2" opacity="0.52">
+        <path d="M38 46c28 10 44 27 48 52" />
+        <path d="M202 46c-28 10-44 27-48 52" />
+        <path d="M38 274c28-10 44-27 48-52" />
+        <path d="M202 274c-28-10-44-27-48-52" />
+        <path d="M72 38c5 24 21 38 48 42 27-4 43-18 48-42" />
+        <path d="M72 282c5-24 21-38 48-42 27 4 43 18 48 42" />
+      </g>
+      <g fill="currentColor" opacity="0.32">
+        <circle cx="48" cy="58" r="4" />
+        <circle cx="192" cy="58" r="4" />
+        <circle cx="48" cy="262" r="4" />
+        <circle cx="192" cy="262" r="4" />
+        <path d="M120 102 128 116 120 130 112 116Z" />
+        <path d="M120 190 128 204 120 218 112 204Z" />
+      </g>
+    </svg>
   );
 }
