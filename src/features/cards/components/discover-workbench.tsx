@@ -153,6 +153,8 @@ export function DiscoverWorkbench() {
               key={card.id}
               card={card}
               owned={ownedIds.has(card.id)}
+              initialFace="back"
+              flippable
               onAdd={() => requireAuthAction(() => addCard(card.id), { nextPath: "/kesfet" })}
               onSkip={() => skipCard(card.id)}
             />

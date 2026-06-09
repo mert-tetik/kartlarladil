@@ -83,6 +83,9 @@ test("guest add-card action redirects to register with next path", async ({ page
 
   await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill("apple");
   await page.getByRole("button", { name: "Ara" }).click();
+  await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "apple kartını çevir" }).click();
   await expect(page.getByRole("heading", { name: "apple", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Ekle" }).first().click();
@@ -123,12 +126,18 @@ test("card details show examples and grammar without auth", async ({ page }) => 
 
   await page.getByPlaceholder(/Kelime/).fill("apple");
   await page.getByRole("button", { name: "Ara" }).click();
+  await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
+  await page.getByRole("button", { name: "apple kartını çevir" }).click();
   await page.getByRole("button", { name: "apple detayları", exact: true }).click();
 
-  await expect(page.getByRole("dialog", { name: /apple detayları/ })).toBeVisible();
+  const detailsDialog = page.getByRole("dialog", { name: /apple detayları/ });
+
+  await expect(detailsDialog).toBeVisible();
   await expect(page.getByRole("heading", { name: "5 örnek kullanım" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gramer anlatımı" })).toBeVisible();
-  await expect(page.getByText('Can you explain "apple" with one example?')).toBeVisible();
+  await expect(detailsDialog.getByText('I wrote the word "apple" in my notebook.')).toBeVisible();
+  await expect(page.getByText(/is useful in a clear sentence/)).toHaveCount(0);
+  await expect(detailsDialog.getByText('Can you explain "apple" with one example?')).toBeVisible();
 });
 
 test("mobile navigation exposes the main sections", async ({ page, isMobile }) => {

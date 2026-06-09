@@ -51,13 +51,16 @@ describe("starter card catalog", () => {
 
   it("adds five varied examples to every card", () => {
     const expectedContexts = ["daily", "question", "negative", "contextual", "natural"];
+    const placeholderPattern = /is useful in a clear sentence|clear sentence|klaren Satz|açık bir cümlede/i;
     const invalidCards = VOCABULARY_CARDS.filter(
       (card) =>
         card.examples.length !== 5 ||
         card.examples.map((example) => example.context).join("|") !== expectedContexts.join("|") ||
         card.examples[0].sentence !== card.example ||
         card.examples[0].translation !== card.exampleTranslation ||
-        card.examples.some((example) => !example.sentence.trim() || !example.translation.trim()),
+        card.examples.some((example) => !example.sentence.trim() || !example.translation.trim()) ||
+        placeholderPattern.test(card.example) ||
+        placeholderPattern.test(card.examples[0].sentence),
     );
 
     expect(invalidCards).toEqual([]);

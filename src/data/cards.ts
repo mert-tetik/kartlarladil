@@ -737,23 +737,132 @@ function w(value: string): WordSeed {
 
 function buildBaseExample(language: LanguageCode, word: WordSeed) {
   if (language === "en") {
+    if (hasPartOfSpeech(word, "isim")) {
+      return {
+        sentence: `I wrote the word "${word.term}" in my notebook.`,
+        translation: `Defterime "${word.term}" kelimesini yazdım.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "fiil")) {
+      return {
+        sentence: `We can use "${word.term}" in a simple conversation.`,
+        translation: `"${word.term}" kelimesini basit bir sohbette kullanabiliriz.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "bağlaç")) {
+      return {
+        sentence: `The word "${word.term}" connects two ideas in one sentence.`,
+        translation: `"${word.term}" tek cümlede iki fikri bağlar.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "zarf")) {
+      return {
+        sentence: `The word "${word.term}" can change how the action feels.`,
+        translation: `"${word.term}" eylemin nasıl hissedildiğini değiştirebilir.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "sıfat")) {
+      return {
+        sentence: `The word "${word.term}" gives the sentence a sharper meaning.`,
+        translation: `"${word.term}" cümleye daha net bir anlam katar.`,
+      };
+    }
+
     return {
-      sentence: `"${word.term}" is useful in a clear sentence.`,
-      translation: `"${word.term}" açık bir cümlede faydalıdır.`,
+      sentence: `I practiced "${word.term}" with a short example.`,
+      translation: `"${word.term}" kelimesini kısa bir örnekle çalıştım.`,
     };
   }
 
   if (language === "de") {
+    if (hasPartOfSpeech(word, "isim")) {
+      return {
+        sentence: `Ich schreibe "${word.term}" in mein Notizbuch.`,
+        translation: `Defterime "${word.term}" kelimesini yazıyorum.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "fiil")) {
+      return {
+        sentence: `Wir verwenden "${word.term}" in einem kurzen Gespräch.`,
+        translation: `"${word.term}" kelimesini kısa bir sohbette kullanıyoruz.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "bağlaç")) {
+      return {
+        sentence: `"${word.term}" verbindet zwei Gedanken in einem Satz.`,
+        translation: `"${word.term}" tek cümlede iki fikri bağlar.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "zarf")) {
+      return {
+        sentence: `"${word.term}" verändert, wie die Handlung klingt.`,
+        translation: `"${word.term}" eylemin nasıl duyulduğunu değiştirir.`,
+      };
+    }
+
+    if (hasPartOfSpeech(word, "sıfat")) {
+      return {
+        sentence: `"${word.term}" macht den Satz genauer.`,
+        translation: `"${word.term}" cümleyi daha kesin hale getirir.`,
+      };
+    }
+
     return {
-      sentence: `"${word.term}" ist in einem klaren Satz nützlich.`,
-      translation: `"${word.term}" açık bir cümlede faydalıdır.`,
+      sentence: `Ich übe "${word.term}" mit einem kurzen Beispiel.`,
+      translation: `"${word.term}" kelimesini kısa bir örnekle çalışıyorum.`,
+    };
+  }
+
+  if (hasPartOfSpeech(word, "isim")) {
+    return {
+      sentence: `Я записал(а) «${word.term}» в тетрадь.`,
+      translation: `Defterime «${word.term}» kelimesini yazdım.`,
+    };
+  }
+
+  if (hasPartOfSpeech(word, "fiil")) {
+    return {
+      sentence: `Мы можем использовать «${word.term}» в коротком разговоре.`,
+      translation: `«${word.term}» kelimesini kısa bir sohbette kullanabiliriz.`,
+    };
+  }
+
+  if (hasPartOfSpeech(word, "bağlaç")) {
+    return {
+      sentence: `«${word.term}» соединяет две мысли в одном предложении.`,
+      translation: `«${word.term}» tek cümlede iki fikri bağlar.`,
+    };
+  }
+
+  if (hasPartOfSpeech(word, "zarf")) {
+    return {
+      sentence: `«${word.term}» меняет звучание действия.`,
+      translation: `«${word.term}» eylemin nasıl duyulduğunu değiştirir.`,
+    };
+  }
+
+  if (hasPartOfSpeech(word, "sıfat")) {
+    return {
+      sentence: `«${word.term}» делает предложение точнее.`,
+      translation: `«${word.term}» cümleyi daha kesin hale getirir.`,
     };
   }
 
   return {
-    sentence: `«${word.term}» полезно в понятном предложении.`,
-    translation: `«${word.term}» açık bir cümlede faydalıdır.`,
+    sentence: `Я повторяю «${word.term}» с коротким примером.`,
+    translation: `«${word.term}» kelimesini kısa bir örnekle tekrar ediyorum.`,
   };
+}
+
+function hasPartOfSpeech(word: WordSeed, partOfSpeech: string) {
+  return word.partOfSpeech.toLocaleLowerCase("tr").includes(partOfSpeech);
 }
 
 function buildCardExamples(
