@@ -14,16 +14,16 @@ test("landing page explains the product", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Giriş yap" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Kayıt ol" })).toBeVisible();
 
-  const showcase = page.locator("[data-landing-card-showcase]");
-  await expect(showcase.locator("[data-card-face]")).toHaveCount(3);
-  await expect(showcase.locator('[data-card-face="back"]')).toHaveCount(1);
-  const cardTops = await showcase.locator("[data-card-face]").evaluateAll((cards) =>
-    cards.map((card) => Math.round(card.getBoundingClientRect().top)),
+  const heroBackdrop = page.locator("[data-hero-card-backdrop]");
+  await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(12);
+  await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(6);
+  const firstRowTops = await heroBackdrop.locator("[data-card-face]").evaluateAll((cards) =>
+    cards.slice(0, 6).map((card) => Math.round(card.getBoundingClientRect().top)),
   );
-  expect(Math.max(...cardTops) - Math.min(...cardTops)).toBeLessThanOrEqual(2);
-  await expect(showcase.getByText("İngilizce").first()).toBeVisible();
-  await expect(showcase.getByText("Almanca").first()).toBeVisible();
-  await expect(showcase.getByText("Rusça").first()).toBeVisible();
+  expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(2);
+  await expect(heroBackdrop.getByText("İngilizce").first()).toBeVisible();
+  await expect(heroBackdrop.getByText("Almanca").first()).toBeVisible();
+  await expect(heroBackdrop.getByText("Rusça").first()).toBeVisible();
 });
 
 test("auth pages render public forms with password visibility toggles and preferences", async ({ page }) => {
