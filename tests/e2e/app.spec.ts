@@ -9,14 +9,26 @@ test.beforeEach(async ({ page }) => {
 
 test("landing page explains the product", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Kartlarla Dil" })).toBeVisible();
-  await expect(page.getByText("İlk sürüm: İngilizce, Almanca, Rusça")).toBeVisible();
+  await expect(page.getByText("İlk sürüm: İngilizce, Almanca, Rusça")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Kart çekmeye başla/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Giriş yap" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Kayıt ol" })).toBeVisible();
+  await expect(page.getByLabel("Desteklenen diller").getByLabel("İngilizce bayrağı")).toBeVisible();
+  await expect(page.getByLabel("Desteklenen diller").getByLabel("Almanca bayrağı")).toBeVisible();
+  await expect(page.getByLabel("Desteklenen diller").getByLabel("Rusça bayrağı")).toBeVisible();
+  await expect(page.getByText("450 tek kelimelik kart")).toHaveCount(0);
+  await expect(page.getByText("5 tier")).toHaveCount(0);
+  await expect(page.getByText("Otomatik öğrenme takibi")).toHaveCount(0);
 
   const heroBackdrop = page.locator("[data-hero-card-backdrop]");
   await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(12);
   await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(6);
+  const visibleBackTierLabels = await heroBackdrop.locator('[data-card-face="back"]').evaluateAll((cards) =>
+    cards.map((card) => card.querySelector("[data-card-back-tier]")?.getAttribute("data-card-back-tier")),
+  );
+  expect(visibleBackTierLabels).toHaveLength(6);
+  expect(visibleBackTierLabels.every((tier) => ["A1", "A2", "B1", "B2", "C1"].includes(tier ?? ""))).toBe(true);
+  expect(new Set(visibleBackTierLabels).size).toBeGreaterThanOrEqual(5);
   const backdropVisualStyle = await heroBackdrop.evaluate((element) => {
     const wrapper = element.parentElement;
     const style = wrapper ? getComputedStyle(wrapper) : null;

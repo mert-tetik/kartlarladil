@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getPointsForTier } from "@/features/progress/progress-stats";
-import type { InventoryCard, VocabularyCard } from "@/types/domain";
+import type { InventoryCard, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
 
@@ -21,6 +21,7 @@ interface VocabularyCardViewProps {
   compact?: boolean;
   initialFace?: CardFace;
   flippable?: boolean;
+  backDisplayTier?: Tier;
   onAdd?: () => void;
   onSkip?: () => void;
 }
@@ -38,6 +39,7 @@ export function VocabularyCardView({
   compact = false,
   initialFace = "front",
   flippable = false,
+  backDisplayTier,
   onAdd,
   onSkip,
 }: VocabularyCardViewProps) {
@@ -54,6 +56,7 @@ export function VocabularyCardView({
   const learned = inventory?.status === "learned";
   const showDetails = !compact;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
+  const visibleBackTier = backDisplayTier ?? card.tier;
   const isFaceUp =
     faceState.cardId === card.id && faceState.initialFace === initialFace
       ? faceState.isFaceUp
@@ -225,7 +228,7 @@ export function VocabularyCardView({
           )}
         >
           <div
-            data-card-back-tier={card.tier}
+            data-card-back-tier={visibleBackTier}
             className={cn(
               "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white",
               style.backPanel,
@@ -246,7 +249,7 @@ export function VocabularyCardView({
             <div className="relative flex flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
                 <span className="text-xs font-semibold text-white/75">
-                  {TIER_LABELS[card.tier]}
+                  {TIER_LABELS[visibleBackTier]}
                 </span>
                 <span className="text-xs font-semibold text-white/75">
                   {LANGUAGE_NAMES[card.language]}
@@ -259,7 +262,7 @@ export function VocabularyCardView({
                   className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm"
                 >
                   <span className={cn("font-display text-5xl font-semibold leading-none", style.backText)}>
-                    {card.tier}
+                    {visibleBackTier}
                   </span>
                   <span className={cn("pointer-events-none absolute inset-2 rounded-full border", style.border)} aria-hidden="true" />
                 </div>

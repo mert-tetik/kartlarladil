@@ -35,6 +35,14 @@ describe("VocabularyCardView", () => {
     expect(screen.getByRole("heading", { name: "apple" })).toBeVisible();
   });
 
+  it("can override the displayed tier on the card back", () => {
+    const { container } = render(<VocabularyCardView card={appleCard} initialFace="back" backDisplayTier="C1" />);
+
+    expect(container.firstElementChild).toHaveAttribute("data-card-face", "back");
+    expect(container.querySelector('[data-card-back-tier="C1"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-card-back-medallion="true"]')).toHaveTextContent("C1");
+  });
+
   it.each([
     ["Enter", "{Enter}"],
     ["Space", " "],

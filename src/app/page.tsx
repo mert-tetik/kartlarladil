@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ArrowRight, Brain, CheckCircle2, Layers3, Search, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_LABELS } from "@/data/tiers";
-import { CATALOG_REPORT, VOCABULARY_CARDS } from "@/data/cards";
+import { VOCABULARY_CARDS } from "@/data/cards";
 import { buttonClassName } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -55,12 +55,11 @@ export default function Home() {
           <CardBackdrop />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_46%,rgba(15,23,42,0.72)_0%,rgba(15,23,42,0.58)_30%,rgba(15,23,42,0.26)_62%,rgba(2,6,23,0.22)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.94)_0%,rgba(15,23,42,0.84)_30%,rgba(15,23,42,0.38)_58%,rgba(15,23,42,0.14)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)]" />
 
         <div className="relative mx-auto flex min-h-[76vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <Badge className="border-white/20 bg-white/10 text-white">İlk sürüm: İngilizce, Almanca, Rusça</Badge>
-            <h1 className="mt-6 font-display text-6xl font-semibold leading-none md:text-7xl">Kartlarla Dil</h1>
+            <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">Kartlarla Dil</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
               Kelimeleri tek tek ezberlemek yerine koleksiyon kartlarına dönüştür. Kart çek, haznene ekle, quiz çöz
               ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.
@@ -74,10 +73,10 @@ export default function Home() {
                 Envanteri gör
               </Link>
             </div>
-            <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold text-slate-300">
-              <span>{CATALOG_REPORT.total} tek kelimelik kart</span>
-              <span>5 tier</span>
-              <span>Otomatik öğrenme takibi</span>
+            <div className="mt-5 flex items-center gap-3" aria-label="Desteklenen diller">
+              {LANGUAGES.map((language) => (
+                <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-white/60" />
+              ))}
             </div>
           </div>
         </div>
@@ -177,6 +176,9 @@ export default function Home() {
 }
 
 function CardBackdrop() {
+  const randomizedBackTiers = createRandomBackTierSequence(heroBackdropCards.filter((item) => item.face === "back").length);
+  let backTierIndex = 0;
+
   return (
     <div
       data-hero-card-backdrop
@@ -184,11 +186,19 @@ function CardBackdrop() {
       inert
       className="pointer-events-none grid min-h-full min-w-[1220px] grid-cols-6 items-start gap-4 p-4 sm:p-6"
     >
-      {heroBackdropCards.map(({ card, face }) => (
-        <VocabularyCardView key={card.id} card={card} initialFace={face} />
-      ))}
+      {heroBackdropCards.map(({ card, face }) => {
+        const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
+
+        return <VocabularyCardView key={card.id} card={card} initialFace={face} backDisplayTier={backDisplayTier} />;
+      })}
     </div>
   );
+}
+
+function createRandomBackTierSequence(count: number) {
+  const shuffledTiers = [...TIERS].sort(() => Math.random() - 0.5);
+
+  return Array.from({ length: count }, (_, index) => shuffledTiers[index % shuffledTiers.length]);
 }
 
 function pickPreviewCard(language: LanguageCode, tier: Tier, term?: string) {
