@@ -456,8 +456,8 @@ function cloudError(error: unknown): CloudActionResult<never> {
 }
 
 function revalidateProgressPaths() {
-  revalidatePath("/profil");
-  revalidatePath("/kartlarim");
-  revalidatePath("/ogren");
-  revalidatePath("/ogrenilenler");
+  revalidatePath("/profile");
+  revalidatePath("/my-cards");
+  revalidatePath("/learn");
+  revalidatePath("/learned");
 }

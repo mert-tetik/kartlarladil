@@ -97,7 +97,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             </div>
           </div>
           <div className="h-px bg-slate-200" />
-          <MenuLink href="/profil" icon={BarChart3} label={t("page.profile.title")} />
+          <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} />
           <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} />
           <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} />
           <form action={logoutAction}>

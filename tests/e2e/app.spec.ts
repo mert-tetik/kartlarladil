@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 const E2E_CARD = {
-  detailsName: "from Kart detayları",
-  flipName: "from: Çevirmek için tıkla",
+  detailsName: "from Card details",
+  flipName: "from: Click to flip",
   id: "en:A1:word:from:kelime",
   searchTerm: "from",
   term: "from",
@@ -18,13 +18,15 @@ test.beforeEach(async ({ page }) => {
 test("landing page explains the product", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Kartlarla Dil" })).toBeVisible();
   await expect(page.getByText("İlk sürüm: İngilizce, Almanca, Rusça")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Kart çekmeye başla/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Giriş yap" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Kayıt ol" })).toBeVisible();
-  const supportedLanguageFlags = page.getByLabel("Desteklenen diller").getByRole("img");
+  await expect(page.getByRole("link", { name: /Start drawing cards/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
+
+  const supportedLanguages = page.getByLabel("Supported languages");
+  const supportedLanguageFlags = supportedLanguages.getByRole("img");
   await expect(supportedLanguageFlags).toHaveCount(14);
-  await expect(page.getByLabel("Desteklenen diller").getByRole("img", { name: "English" })).toBeVisible();
-  await expect(page.getByLabel("Desteklenen diller").getByRole("img", { name: "Deutsch" })).toBeVisible();
+  await expect(supportedLanguageFlags.first()).toHaveAccessibleName("English");
+  await expect(supportedLanguages.getByRole("img", { name: "Türkçe" })).toBeVisible();
   await expect(page.getByText("450 tek kelimelik kart")).toHaveCount(0);
   await expect(page.getByText("5 tier")).toHaveCount(0);
   await expect(page.getByText("Otomatik öğrenme takibi")).toHaveCount(0);
@@ -117,9 +119,9 @@ test("landing page explains the product", async ({ page }) => {
   expect(backdropLayoutMetrics.verticalCenterOffset).toBeLessThanOrEqual(2);
   expect(backdropLayoutMetrics.verticalGap).toBeGreaterThanOrEqual(14);
   expect(backdropLayoutMetrics.gapSpread).toBeLessThanOrEqual(1);
-  await expect(heroBackdrop.getByText("İngilizce").first()).toBeVisible();
-  await expect(heroBackdrop.getByText("Almanca").first()).toBeVisible();
-  await expect(heroBackdrop.getByText("Rusça").first()).toBeVisible();
+  await expect(heroBackdrop.getByText("English").first()).toBeVisible();
+  await expect(heroBackdrop.getByText("German").first()).toBeVisible();
+  await expect(heroBackdrop.getByText("Russian").first()).toBeVisible();
 
   const collectionPreviewMetrics = await page.locator("[data-collection-preview-section]").evaluate((section) => {
     const visibleCards = Array.from(section.querySelectorAll("[data-collection-preview-card]")).filter((card) => {
@@ -150,14 +152,14 @@ test("landing page explains the product", async ({ page }) => {
   expect(collectionPreviewMetrics.minCardWidth).toBeGreaterThanOrEqual(expectedCollectionCardCount === 2 ? 160 : 200);
 
   const pointsRankSection = page.locator("[data-points-rank-section]");
-  await expect(pointsRankSection.getByRole("heading", { name: "Puan kazandıkça rank atla." })).toBeVisible();
+  await expect(pointsRankSection.getByRole("heading", { name: "Earn points and rank up." })).toBeVisible();
   await expect(pointsRankSection.getByText(/^A1$/)).toBeVisible();
-  await expect(pointsRankSection.getByText(/^10 puan$/)).toBeVisible();
+  await expect(pointsRankSection.getByText(/^10 points$/)).toBeVisible();
   await expect(pointsRankSection.getByText(/^C1$/)).toBeVisible();
-  await expect(pointsRankSection.getByText(/^110 puan$/)).toBeVisible();
-  await expect(pointsRankSection.getByText("Rank yolu")).toBeVisible();
-  await expect(pointsRankSection.getByText("Başlangıç")).toBeVisible();
-  await expect(pointsRankSection.getByText("Efsane")).toBeVisible();
+  await expect(pointsRankSection.getByText(/^110 points$/)).toBeVisible();
+  await expect(pointsRankSection.getByText("Rank path")).toBeVisible();
+  await expect(pointsRankSection.getByText("Starter")).toBeVisible();
+  await expect(pointsRankSection.getByText("Legend")).toBeVisible();
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBeLessThanOrEqual(2);
 });
@@ -165,65 +167,66 @@ test("landing page explains the product", async ({ page }) => {
 test("auth pages render public forms with password visibility toggles and preferences", async ({ page }) => {
   await page.goto("/login", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: "Giriş yap" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Log in" }).first()).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
 
-  const loginPassword = page.getByLabel("Şifre", { exact: true });
+  const loginPassword = page.getByLabel("Password", { exact: true });
   await expect(loginPassword).toHaveAttribute("type", "password");
-  await page.getByRole("button", { name: "Şifreyi göster" }).click();
+  await page.getByRole("button", { name: "Show password" }).click();
   await expect(loginPassword).toHaveAttribute("type", "text");
-  await page.getByRole("button", { name: "Şifreyi gizle" }).click();
+  await page.getByRole("button", { name: "Hide password" }).click();
   await expect(loginPassword).toHaveAttribute("type", "password");
 
   await page.goto("/register", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: "Kayıt ol" }).first()).toBeVisible();
-  await expect(page.getByText("Hangi dili öğrenmek istiyorsun?")).toBeVisible();
-  await expect(page.getByText("Hangi seviyeden başlayalım?")).toBeVisible();
-  await expect(page.getByRole("img", { name: "English" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "Deutsch" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign up" }).first()).toBeVisible();
+  await expect(page.getByText("Which language do you want to learn?")).toBeVisible();
+  await expect(page.getByText("Which level should we start from?")).toBeVisible();
+  const registerMain = page.getByRole("main");
+  await expect(registerMain.getByRole("img", { name: "English" })).toBeVisible();
+  await expect(registerMain.getByRole("img", { name: "Deutsch" })).toBeVisible();
   await expect(page.locator('input[name="preferredLanguageCode"][value="en"]')).toBeChecked();
   await expect(page.locator('input[name="preferredTier"][value="A1"]')).toBeChecked();
-  await expect(page.getByLabel("Görünen ad")).toBeVisible();
-  await expect(page.getByLabel("Şifre", { exact: true })).toHaveAttribute("type", "password");
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
+  await expect(page.getByLabel("Display name")).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute("type", "password");
+  await expect(page.locator('input[name="next"]')).toHaveValue("/card-draw");
 
   await page.goto("/reset-password", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: "Şifreyi sıfırla" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reset password" }).first()).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
 });
 
 test("register preserves next and links back to login with the same next", async ({ page }) => {
-  await page.goto("/register?next=%2Fkart-cek", { waitUntil: "domcontentloaded" });
+  await page.goto("/register?next=%2Fcard-draw", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
-  await expect(page.locator('a[href="/login?next=%2Fkart-cek"]').first()).toBeVisible();
+  await expect(page.locator('input[name="next"]')).toHaveValue("/card-draw");
+  await expect(page.locator('a[href="/login?next=%2Fcard-draw"]').first()).toBeVisible();
 });
 
 test("card draw filters default to English A1 and remember user choices", async ({ page, isMobile }) => {
-  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
+  await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
 
   if (isMobile) {
-    await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-haspopup", "listbox");
+    await expect(page.getByRole("button", { name: /English/ })).toHaveAttribute("aria-haspopup", "listbox");
   } else {
-    await expect(page.getByRole("button", { name: /İngilizce/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /English/ })).toHaveAttribute("aria-pressed", "true");
   }
   await expect(page.getByRole("button", { name: "A1" })).toHaveAttribute("aria-pressed", "true");
 
   if (isMobile) {
-    await page.getByRole("button", { name: /İngilizce/ }).click();
-    await page.getByRole("option", { name: /Almanca/ }).click();
+    await page.getByRole("button", { name: /English/ }).click();
+    await page.getByRole("option", { name: /German/ }).click();
   } else {
-    await page.getByRole("button", { name: /Almanca/ }).click();
+    await page.getByRole("button", { name: /German/ }).click();
   }
   await page.getByRole("button", { name: "B1" }).click();
   await page.reload({ waitUntil: "domcontentloaded" });
 
   if (isMobile) {
-    await expect(page.getByRole("button", { name: /Almanca/ })).toHaveAttribute("aria-haspopup", "listbox");
+    await expect(page.getByRole("button", { name: /German/ })).toHaveAttribute("aria-haspopup", "listbox");
   } else {
-    await expect(page.getByRole("button", { name: /Almanca/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /German/ })).toHaveAttribute("aria-pressed", "true");
   }
   await expect(page.getByRole("button", { name: "B1" })).toHaveAttribute("aria-pressed", "true");
 });
@@ -235,27 +238,27 @@ test("account settings redirects guests to login", async ({ page }) => {
 });
 
 test("profile redirects guests to login", async ({ page }) => {
-  await page.goto("/profil", { waitUntil: "domcontentloaded" });
+  await page.goto("/profile", { waitUntil: "domcontentloaded" });
 
-  await expect(page).toHaveURL(/\/login\?next=%2Fprofil/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fprofile/);
 });
 
 test("guest add-card action redirects to register with next path", async ({ page }) => {
-  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
+  await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
 
-  await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill(E2E_CARD.searchTerm);
-  await page.getByRole("button", { name: "Ara", exact: true }).click();
+  await page.getByPlaceholder("Search word, translation, or example sentence").fill(E2E_CARD.searchTerm);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.locator('[data-card-deal-index="0"]').first()).toBeVisible();
-  await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
+  await expect(page.getByText("Click to flip").first()).toBeVisible();
   await expect(page.locator('[data-card-back-tier="A1"]').first()).toBeVisible();
 
   await page.getByRole("button", { name: E2E_CARD.flipName }).click();
   await expect(page.getByRole("heading", { name: E2E_CARD.term, exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Ekle" }).first().click();
+  await page.getByRole("button", { name: "Add" }).first().click();
 
-  await expect(page).toHaveURL(/\/register\?next=%2Fkart-cek/);
-  await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
+  await expect(page).toHaveURL(/\/register\?next=%2Fcard-draw/);
+  await expect(page.locator('input[name="next"]')).toHaveValue("/card-draw");
 });
 
 test("guest quiz start redirects to register with learn path", async ({ page }) => {
@@ -279,29 +282,29 @@ test("guest quiz start redirects to register with learn path", async ({ page }) 
     );
   }, E2E_CARD.id);
 
-  await page.goto("/ogren", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Alıştırmayı başlat" }).click();
+  await page.goto("/learn", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Start practice" }).click();
 
-  await expect(page).toHaveURL(/\/register\?next=%2Fogren/);
+  await expect(page).toHaveURL(/\/register\?next=%2Flearn/);
 });
 
 test("card details show examples and grammar without auth", async ({ page }) => {
-  await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
+  await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
 
-  await page.getByPlaceholder(/Kelime/).fill(E2E_CARD.searchTerm);
-  await page.getByRole("button", { name: "Ara", exact: true }).click();
-  await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
+  await page.getByPlaceholder(/Search word/).fill(E2E_CARD.searchTerm);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("Click to flip").first()).toBeVisible();
   await page.getByRole("button", { name: E2E_CARD.flipName }).click();
   await page.getByRole("button", { name: E2E_CARD.detailsName, exact: true }).click();
 
-  const detailsDialog = page.getByRole("dialog", { name: /from Kart detayları/ });
+  const detailsDialog = page.getByRole("dialog", { name: /from Card details/ });
 
   await expect(detailsDialog).toBeVisible();
-  await expect(page.getByRole("heading", { name: "5 örnek kullanım" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Gramer anlatımı" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "5 example uses" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Grammar guide" })).toBeVisible();
   await expect(detailsDialog.locator("article").first()).toContainText(E2E_CARD.term);
   await expect(page.getByText(/is useful in a clear sentence/)).toHaveCount(0);
-  await expect(detailsDialog.getByText('What does "from" mean in this sentence?')).toBeVisible();
+  await expect(detailsDialog.getByText('What does "from" mean in this sentence?').first()).toBeVisible();
 });
 
 test("mobile navigation exposes the main sections", async ({ page, isMobile }) => {
@@ -309,10 +312,10 @@ test("mobile navigation exposes the main sections", async ({ page, isMobile }) =
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("banner").getByRole("link", { name: "Kart çek" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Draw cards" })).toBeVisible();
 
-  const mobileNav = page.getByRole("navigation", { name: "Mobil ana menü" });
-  await expect(mobileNav.getByRole("link", { name: "Kart çek" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Kartlarım" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Öğren", exact: true })).toBeVisible();
+  const mobileNav = page.getByRole("navigation", { name: "Mobile main menu" });
+  await expect(mobileNav.getByRole("link", { name: "Draw cards" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "My cards" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Learn", exact: true })).toBeVisible();
 });

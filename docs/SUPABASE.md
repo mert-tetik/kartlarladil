@@ -25,7 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 Guest kullanıcı user-owned write action yaptığında `/register?next=...` adresine yönlendirilir. `next` sadece internal path kabul eder.
 
-Login/register default redirect hedefi `/kart-cek` sayfasıdır.
+Login/register default redirect hedefi `/card-draw` sayfasıdır.
 
 ## Schema
 

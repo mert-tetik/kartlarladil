@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProfilePage() {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
-  const user = await requireAuthUser("/profil");
+  const user = await requireAuthUser("/profile");
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

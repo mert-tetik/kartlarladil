@@ -61,7 +61,7 @@ Puan ve rank ayrı mutable sayaç olarak tutulmaz. `ProgressStats` öğrenilmiş
 - B2 = 70
 - C1 = 110
 
-Navbar, account menu ve `/profil` aynı progress kaynağını kullanır.
+Navbar, account menu ve `/profile` aynı progress kaynağını kullanır.
 
 ## UI Boundaries
 

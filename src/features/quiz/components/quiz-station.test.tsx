@@ -11,7 +11,7 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard } from "@/types/domain";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/ogren",
+  usePathname: () => "/learn",
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),

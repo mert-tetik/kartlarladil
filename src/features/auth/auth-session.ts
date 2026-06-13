@@ -104,7 +104,7 @@ export async function ensureUserProfile(
         (LANGUAGE_CODE_SET.has(metadataLanguage as LanguageCode) ? (metadataLanguage as LanguageCode) : "en"),
       preferred_ui_locale:
         preferences?.preferredUiLocale ??
-        (LOCALE_CODE_SET.has(metadataUiLocale as LocaleCode) ? (metadataUiLocale as LocaleCode) : "tr"),
+        (LOCALE_CODE_SET.has(metadataUiLocale as LocaleCode) ? (metadataUiLocale as LocaleCode) : "en"),
       preferred_tier:
         preferences?.preferredTier ?? (TIERS.has(metadataTier as Tier) ? (metadataTier as Tier) : "A1"),
     })

@@ -17,10 +17,10 @@ import type { TranslationKey } from "@/i18n/dictionaries";
 
 const navItems = [
   { href: "/", labelKey: "nav.home", icon: Sparkles },
-  { href: "/kart-cek", labelKey: "nav.cardDraw", icon: Compass },
-  { href: "/kartlarim", labelKey: "nav.inventory", icon: Boxes },
-  { href: "/ogren", labelKey: "nav.learn", icon: BookOpen },
-  { href: "/ogrenilenler", labelKey: "nav.learned", icon: GraduationCap },
+  { href: "/card-draw", labelKey: "nav.cardDraw", icon: Compass },
+  { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
+  { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
+  { href: "/learned", labelKey: "nav.learned", icon: GraduationCap },
 ] as const satisfies readonly { href: string; labelKey: TranslationKey; icon: typeof Sparkles }[];
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
@@ -48,7 +48,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/kart-cek" className={buttonClassName("secondary", "sm", "hidden min-[390px]:inline-flex")}>
+            <Link href="/card-draw" className={buttonClassName("secondary", "sm", "hidden min-[390px]:inline-flex")}>
               {t("nav.cardDraw")}
             </Link>
             {user ? (

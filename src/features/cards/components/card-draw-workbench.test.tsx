@@ -9,7 +9,7 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/kart-cek",
+  usePathname: () => "/card-draw",
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),

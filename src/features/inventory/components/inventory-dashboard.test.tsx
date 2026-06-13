@@ -7,7 +7,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/kartlarim",
+  usePathname: () => "/my-cards",
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),

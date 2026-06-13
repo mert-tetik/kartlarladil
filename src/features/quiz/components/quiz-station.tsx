@@ -59,7 +59,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   function startNextQuestionWithAuth() {
     requireAuthAction(startNextQuestion, {
-      nextPath: mode === "active" ? "/ogren" : "/ogrenilenler",
+      nextPath: mode === "active" ? "/learn" : "/learned",
     });
   }
 
@@ -85,7 +85,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
         title={mode === "active" ? t("quiz.noActiveTitle") : t("quiz.noLearnedTitle")}
         description={mode === "active" ? t("quiz.noActiveDescription") : t("quiz.noLearnedDescription")}
         action={
-          <Link href={mode === "active" ? "/kart-cek" : "/ogren"} className={buttonClassName("primary", "md")}>
+          <Link href={mode === "active" ? "/card-draw" : "/learn"} className={buttonClassName("primary", "md")}>
             {mode === "active" ? t("quiz.backToDraw") : t("quiz.backToLearn")}
           </Link>
         }
@@ -122,7 +122,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       setAnswered(true);
       setSubmitting(false);
     }, {
-      nextPath: mode === "active" ? "/ogren" : "/ogrenilenler",
+      nextPath: mode === "active" ? "/learn" : "/learned",
     });
   }
 

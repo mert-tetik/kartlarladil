@@ -73,11 +73,11 @@ export default async function Home() {
             <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
+              <Link href="/card-draw" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
                 {t("home.hero.primaryCta")}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
-              <Link href="/kartlarim" className={buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20")}>
+              <Link href="/my-cards" className={buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20")}>
                 {t("home.hero.secondaryCta")}
               </Link>
             </div>
@@ -227,7 +227,7 @@ export default async function Home() {
             </div>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{t("home.cta.description")}</p>
           </div>
-          <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
+          <Link href="/card-draw" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
             {t("nav.cardDraw")}
             <CheckCircle2 className="size-4" aria-hidden="true" />
           </Link>

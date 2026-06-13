@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   DEFAULT_LOCALE,
@@ -28,13 +28,25 @@ export function LocaleProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [locale, setLocaleState] = useState<LocaleCode>(() => {
-    if (typeof window === "undefined") {
-      return initialLocale ?? DEFAULT_LOCALE;
+  const [locale, setLocaleState] = useState<LocaleCode>(initialLocale ?? DEFAULT_LOCALE);
+
+  useEffect(() => {
+    const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+
+    if (storedLocale) {
+      const normalizedStoredLocale = normalizeLocale(storedLocale);
+
+      if (normalizedStoredLocale !== locale) {
+        document.cookie = `${LOCALE_COOKIE_NAME}=${normalizedStoredLocale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
+        router.refresh();
+      }
+
+      return;
     }
 
-    return normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY) ?? initialLocale);
-  });
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
+  }, [locale, router]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({

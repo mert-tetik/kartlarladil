@@ -181,7 +181,7 @@ export function CardDrawWorkbench() {
       skipNextOwnedRefreshRef.current = true;
       dismissCard(cardId, "add");
       void addCard(cardId);
-    }, { nextPath: "/kart-cek" });
+    }, { nextPath: "/card-draw" });
   }
 
   function dismissCard(cardId: string, kind: CardDrawDismissKind) {

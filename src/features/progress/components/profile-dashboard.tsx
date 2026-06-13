@@ -139,7 +139,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between gap-3">
             <h3 className="font-semibold text-slate-950">{t("profile.recentLearned")}</h3>
-            <Link href="/ogrenilenler" className={buttonClassName("secondary", "sm")}>
+            <Link href="/learned" className={buttonClassName("secondary", "sm")}>
               {t("common.viewAll")}
             </Link>
           </div>

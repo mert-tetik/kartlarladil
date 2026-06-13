@@ -12,7 +12,7 @@ describe("auth schemas", () => {
     const result = loginSchema.safeParse({
       email: "not-an-email",
       password: "secret1",
-      next: "/kartlarim",
+      next: "/my-cards",
     });
 
     expect(result.success).toBe(false);

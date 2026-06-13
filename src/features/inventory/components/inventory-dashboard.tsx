@@ -112,7 +112,7 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
           <div className="flex items-center justify-between">
             <Badge>{formatCards(locale, visibleCards.length)}</Badge>
             {learnedOnly ? (
-              <Link href="/ogrenilenler#alistirma" className={buttonClassName("secondary", "sm")}>
+              <Link href="/learned#practice" className={buttonClassName("secondary", "sm")}>
                 {t("inventory.repeatPractice")}
               </Link>
             ) : null}
@@ -125,7 +125,7 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
           title={learnedOnly ? t("inventory.emptyLearnedTitle") : t("inventory.emptyTitle")}
           description={t("inventory.emptyDescription")}
           action={
-            <Link href="/kart-cek" className={buttonClassName("primary", "md")}>
+            <Link href="/card-draw" className={buttonClassName("primary", "md")}>
               {t("nav.cardDraw")}
             </Link>
           }
