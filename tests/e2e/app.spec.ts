@@ -28,7 +28,6 @@ test("landing page explains the product", async ({ page }) => {
   );
   expect(visibleBackTierLabels).toHaveLength(6);
   expect(visibleBackTierLabels.every((tier) => ["A1", "A2", "B1", "B2", "C1"].includes(tier ?? ""))).toBe(true);
-  expect(new Set(visibleBackTierLabels).size).toBeGreaterThanOrEqual(5);
   const backdropVisualStyle = await heroBackdrop.evaluate((element) => {
     const wrapper = element.parentElement;
     const style = wrapper ? getComputedStyle(wrapper) : null;

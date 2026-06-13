@@ -196,9 +196,7 @@ function CardBackdrop() {
 }
 
 function createRandomBackTierSequence(count: number) {
-  const shuffledTiers = [...TIERS].sort(() => Math.random() - 0.5);
-
-  return Array.from({ length: count }, (_, index) => shuffledTiers[index % shuffledTiers.length]);
+  return Array.from({ length: count }, () => TIERS[Math.floor(Math.random() * TIERS.length)] ?? "A1");
 }
 
 function pickPreviewCard(language: LanguageCode, tier: Tier, term?: string) {
