@@ -2,18 +2,15 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  variant?: "light" | "dark";
   size?: number;
   className?: string;
   priority?: boolean;
 }
 
-export function Logo({ variant = "light", size = 40, className, priority }: LogoProps) {
-  const src = variant === "dark" ? "/logo-dark.png" : "/logo.png";
-
+export function Logo({ size = 40, className, priority }: LogoProps) {
   return (
     <Image
-      src={src}
+      src="/logo.png"
       alt="Kartlarla Dil"
       width={size}
       height={size}

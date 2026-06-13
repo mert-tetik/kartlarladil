@@ -52,7 +52,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/88 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-slate-950">
-            <Logo variant="dark" size={40} priority />
+            <Logo size={40} priority />
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
           </Link>
 

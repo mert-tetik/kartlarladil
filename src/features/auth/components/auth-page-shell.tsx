@@ -22,7 +22,7 @@ export async function AuthPageShell({
       <aside className="hidden rounded-lg bg-slate-950 p-8 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
           <Link href="/" className="inline-flex items-center gap-3 font-semibold text-white">
-            <Logo variant="dark" size={44} priority />
+            <Logo size={44} priority />
             <span className="font-display text-2xl">{APP_NAME}</span>
           </Link>
           <div className="mt-12 max-w-sm">
@@ -44,7 +44,7 @@ export async function AuthPageShell({
         <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 sm:p-8">
           <div className="lg:hidden">
             <Link href="/" className="inline-flex items-center gap-3 font-semibold text-slate-950">
-              <Logo variant="dark" size={40} priority />
+              <Logo size={40} priority />
               <span className="font-display text-xl">{APP_NAME}</span>
             </Link>
             <h1 className="mt-8 font-display text-3xl font-semibold text-slate-950">{title}</h1>
