@@ -183,14 +183,14 @@ function CardBackdrop() {
       data-hero-card-backdrop
       aria-hidden="true"
       inert
-      className="pointer-events-none h-full overflow-hidden"
+      className="hero-card-backdrop pointer-events-none h-full overflow-hidden py-4"
     >
       <div data-hero-card-backdrop-track className="hero-card-backdrop-track flex h-full w-max">
         {[0, 1].map((setIndex) => (
           <div
             key={setIndex}
             data-hero-card-backdrop-set
-            className="grid h-full w-[calc(100vw+320px)] min-w-[1220px] shrink-0 grid-cols-6 items-start gap-4 p-4 sm:p-6"
+            className="flex h-full shrink-0 items-center gap-[var(--hero-card-gap)] pr-[var(--hero-card-gap)]"
           >
             {renderHeroBackdropCards(randomizedBackTiers)}
           </div>
@@ -206,7 +206,11 @@ function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
   return heroBackdropCards.map(({ card, face }) => {
     const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
 
-    return <VocabularyCardView key={card.id} card={card} initialFace={face} backDisplayTier={backDisplayTier} />;
+    return (
+      <div key={card.id} data-hero-card-backdrop-card className="w-[var(--hero-card-width)] shrink-0">
+        <VocabularyCardView card={card} initialFace={face} backDisplayTier={backDisplayTier} />
+      </div>
+    );
   });
 }
 

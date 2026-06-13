@@ -85,6 +85,11 @@ button:disabled,
   will-change: opacity, transform;
 }
 
+.hero-card-backdrop {
+  --hero-card-gap: clamp(14px, 1.25vw, 24px);
+  --hero-card-width: clamp(240px, 17vw, 330px);
+}
+
 .hero-card-backdrop-track {
   animation: hero-card-backdrop-loop 34s linear infinite;
   transform: translate3d(-50%, 0, 0);

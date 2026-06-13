@@ -53,9 +53,29 @@ test("landing page explains the product", async ({ page }) => {
   expect(backdropVisualStyle.opacity).toBeGreaterThanOrEqual(0.7);
   expect(backdropVisualStyle.filter).toContain("brightness");
   const firstRowTops = await firstHeroBackdropSet.locator("[data-card-face]").evaluateAll((cards) =>
-    cards.slice(0, 6).map((card) => Math.round(card.getBoundingClientRect().top)),
+    cards.map((card) => Math.round(card.getBoundingClientRect().top)),
   );
   expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(2);
+  const backdropGapMetrics = await heroBackdrop.evaluate((element) => {
+    const sets = Array.from(element.querySelectorAll("[data-hero-card-backdrop-set]"));
+    const firstSetCards = Array.from(sets[0]?.querySelectorAll("[data-card-face]") ?? []);
+    const secondSetCards = Array.from(sets[1]?.querySelectorAll("[data-card-face]") ?? []);
+    const internalGaps = firstSetCards.slice(1).map((card, index) => {
+      const previousRect = firstSetCards[index].getBoundingClientRect();
+      const rect = card.getBoundingClientRect();
+
+      return Math.round(rect.left - previousRect.right);
+    });
+    const firstSetLastCard = firstSetCards.at(-1);
+    const secondSetFirstCard = secondSetCards[0];
+    const seamGap =
+      firstSetLastCard && secondSetFirstCard
+        ? Math.round(secondSetFirstCard.getBoundingClientRect().left - firstSetLastCard.getBoundingClientRect().right)
+        : 0;
+
+    return [...internalGaps, seamGap];
+  });
+  expect(Math.max(...backdropGapMetrics) - Math.min(...backdropGapMetrics)).toBeLessThanOrEqual(1);
   await expect(heroBackdrop.getByText("İngilizce").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Almanca").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Rusça").first()).toBeVisible();
