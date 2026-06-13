@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";

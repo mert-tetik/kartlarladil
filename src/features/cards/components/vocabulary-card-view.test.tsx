@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getCardTranslation } from "@/features/cards/card-localization";

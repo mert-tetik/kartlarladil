@@ -1,0 +1,81 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { LocaleProvider } from "@/i18n/locale-provider";
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
+function renderDialog(props: { open: boolean; errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"] }) {
+  const onOpenChange = vi.fn();
+  const result = render(
+    <LocaleProvider initialLocale="tr">
+      <UpgradeDialog open={props.open} errorCode={props.errorCode} onOpenChange={onOpenChange} />
+    </LocaleProvider>,
+  );
+  return { ...result, onOpenChange };
+}
+
+describe("UpgradeDialog", () => {
+  it("renders nothing when closed", () => {
+    const { container } = renderDialog({ open: false, errorCode: "free_active_card_limit" });
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders nothing when there is no error code", () => {
+    const { container } = renderDialog({ open: true, errorCode: null });
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("shows the active card limit message and a pricing link", () => {
+    renderDialog({ open: true, errorCode: "free_active_card_limit" });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart limiti/i);
+    expect(screen.getByRole("link", { name: /Planını yükselt/i })).toHaveAttribute("href", "/pricing");
+  });
+
+  it("shows the learned card limit message", () => {
+    renderDialog({ open: true, errorCode: "free_learned_card_limit" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent(/Öğrenilen kart limiti/i);
+  });
+
+  it("shows the ai daily limit message", () => {
+    renderDialog({ open: true, errorCode: "ai_daily_limit" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent(/Günlük AI mesaj limitine ulaştın/i);
+  });
+
+  it("shows the ai monthly limit message", () => {
+    renderDialog({ open: true, errorCode: "ai_monthly_limit" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent(/Aylık AI mesaj limitine ulaştın/i);
+  });
+
+  it("closes the dialog when the close button is clicked", async () => {
+    const user = userEvent.setup();
+    const { onOpenChange } = renderDialog({ open: true, errorCode: "free_active_card_limit" });
+
+    await user.click(screen.getByRole("button", { name: /Kapat/i }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes the dialog when maybe later is clicked", async () => {
+    const user = userEvent.setup();
+    const { onOpenChange } = renderDialog({ open: true, errorCode: "free_active_card_limit" });
+
+    await user.click(screen.getByRole("button", { name: /Belki sonra/i }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});

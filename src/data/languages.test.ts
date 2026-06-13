@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 
 import { LANGUAGES, matchSupportedLocale } from "@/data/languages";
 import { DEFAULT_LOCALE } from "@/i18n/config";

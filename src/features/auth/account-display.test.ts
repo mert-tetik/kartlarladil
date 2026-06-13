@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 

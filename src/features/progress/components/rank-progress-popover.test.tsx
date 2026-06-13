@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { act } from "react";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { LocaleProvider } from "@/i18n/locale-provider";

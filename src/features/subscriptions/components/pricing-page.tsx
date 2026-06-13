@@ -23,7 +23,7 @@ interface PricingPlan {
 
 export function PricingPage({ user }: PricingPageProps) {
   const t = useT();
-  const { entitlements, isLoading } = useSubscription();
+  const { entitlements } = useSubscription();
 
   const plans: PricingPlan[] = [
     { plan: "free", price: null },
@@ -50,7 +50,6 @@ export function PricingPage({ user }: PricingPageProps) {
             price={item.price}
             popular={item.popular}
             currentPlan={entitlements?.effectivePlan ?? null}
-            isLoading={isLoading}
             user={user}
           />
         ))}
@@ -64,11 +63,9 @@ function PricingCard({
   price,
   popular,
   currentPlan,
-  isLoading,
   user,
 }: PricingPlan & {
   currentPlan: SubscriptionPlan | null;
-  isLoading: boolean;
   user: AuthShellUser | null;
 }) {
   const t = useT();
@@ -102,10 +99,10 @@ function PricingCard({
       </div>
 
       <ul className="mt-6 flex flex-1 flex-col gap-3">
-        <Feature included={plan !== "free"} popular={popular}>
+        <Feature included={plan !== "free"}>
           {t("pricing.featureCards")}
         </Feature>
-        <Feature included={plan !== "free"} popular={popular}>
+        <Feature included={plan !== "free"}>
           {t("pricing.featureLearned")}
         </Feature>
         <Feature included>
@@ -142,11 +139,9 @@ function PricingCard({
 
 function Feature({
   included,
-  popular,
   children,
 }: {
   included: boolean;
-  popular?: boolean;
   children: React.ReactNode;
 }) {
   return (

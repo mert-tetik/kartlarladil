@@ -73,7 +73,7 @@ export function CardDrawWorkbench() {
   const cloudError = useInventoryStore((state) => state.cloudError);
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
-  const { entitlements, isLoading: entitlementsLoading } = useSubscription();
+  const { entitlements } = useSubscription();
   const t = useT();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
@@ -184,7 +184,7 @@ export function CardDrawWorkbench() {
     requireAuthAction(() => {
       const activeLimit = entitlements?.limits.activeCards;
 
-      if (entitlements?.effectivePlan === "free" && activeLimit !== null) {
+      if (entitlements?.effectivePlan === "free" && typeof activeLimit === "number") {
         const activeCount = inventoryCards.filter((card) => card.status === "active").length;
 
         if (activeCount >= activeLimit) {

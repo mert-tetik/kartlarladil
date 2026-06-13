@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
@@ -42,7 +43,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refreshEntitlements();
+    startTransition(() => {
+      void refreshEntitlements();
+    });
   }, [refreshEntitlements]);
 
   return (

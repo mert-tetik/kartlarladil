@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   CARD_DRAW_PREFERENCES_KEY,
   DEFAULT_CARD_DRAW_PREFERENCES,

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { LocaleProvider } from "@/i18n/locale-provider";

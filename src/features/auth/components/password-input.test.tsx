@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { PasswordInput } from "@/features/auth/components/password-input";
 import { LocaleProvider } from "@/i18n/locale-provider";
 

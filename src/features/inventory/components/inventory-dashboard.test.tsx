@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { AuthSessionProvider } from "@/features/auth/auth-client";

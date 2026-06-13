@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";

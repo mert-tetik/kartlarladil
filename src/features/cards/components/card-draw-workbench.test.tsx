@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { CardDrawWorkbench } from "@/features/cards/components/card-draw-workbench";

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { FilterControls } from "@/features/cards/components/filter-controls";
 import { LocaleProvider } from "@/i18n/locale-provider";
 

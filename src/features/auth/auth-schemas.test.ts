@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   DELETE_ACCOUNT_CONFIRMATION,
   deleteAccountSchema,

@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { getSafeNextPath } from "@/features/auth/auth-redirects";
 
 describe("auth redirects", () => {

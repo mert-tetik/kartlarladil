@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Info, Trophy, XCircle } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -68,11 +68,19 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     [activeLanguage, baseAvailableCards],
   );
 
-  function startNextQuestion() {
-    if (mode === "active" && wouldExceedLearnedLimit()) {
-      setLimitError("free_learned_card_limit");
-      setQuestion(null);
-      return;
+  const startNextQuestion = useCallback(() => {
+    if (mode === "active") {
+      const learnedLimit = entitlements?.limits.learnedCards;
+
+      if (entitlements?.effectivePlan === "free" && typeof learnedLimit === "number") {
+        const learnedCount = cards.filter((card) => card.status === "learned").length;
+
+        if (learnedCount >= learnedLimit) {
+          setLimitError("free_learned_card_limit");
+          setQuestion(null);
+          return;
+        }
+      }
     }
 
     if (availableCards.length === 0) {
@@ -86,23 +94,12 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     setAnswered(false);
     setSubmitting(false);
     setDetailsOpen(false);
-  }
+  }, [mode, availableCards, locale, entitlements, cards]);
 
   function startNextQuestionWithAuth() {
     requireAuthAction(startNextQuestion, {
       nextPath: mode === "active" ? "/learn" : "/learned",
     });
-  }
-
-  function wouldExceedLearnedLimit(): boolean {
-    const learnedLimit = entitlements?.limits.learnedCards;
-
-    if (entitlements?.effectivePlan !== "free" || learnedLimit === null) {
-      return false;
-    }
-
-    const learnedCount = cards.filter((card) => card.status === "learned").length;
-    return learnedCount >= learnedLimit;
   }
 
   if (!hydrated) {
@@ -219,9 +216,17 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       answer === currentQuestion.correctAnswer &&
       (inventoryCard?.correctCount ?? 0) + 1 >= requirement;
 
-    if (willLearn && wouldExceedLearnedLimit()) {
-      setLimitError("free_learned_card_limit");
-      return;
+    if (willLearn) {
+      const learnedLimit = entitlements?.limits.learnedCards;
+
+      if (entitlements?.effectivePlan === "free" && typeof learnedLimit === "number") {
+        const learnedCount = cards.filter((card) => card.status === "learned").length;
+
+        if (learnedCount >= learnedLimit) {
+          setLimitError("free_learned_card_limit");
+          return;
+        }
+      }
     }
 
     void requireAuthAction(async () => {

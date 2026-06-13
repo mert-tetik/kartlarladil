@@ -9,7 +9,6 @@ import { LanguageFlag } from "@/components/language-flag";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
-import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, createId } from "@/lib/utils";
@@ -82,7 +81,6 @@ export function AiPracticeChatPanel({
   const shouldSendTranscriptRef = useRef(false);
   const { locale } = useLocale();
   const t = useT();
-  const { entitlements } = useSubscription();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
 
@@ -397,6 +395,16 @@ export function AiPracticeChatPanel({
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
+      />
+
+      <UpgradeDialog
+        open={limitError !== null}
+        errorCode={limitError}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLimitError(null);
+          }
+        }}
       />
     </section>
   );

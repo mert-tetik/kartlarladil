@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";

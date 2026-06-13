@@ -52,7 +52,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
           </Button>
           <Link
             href="/pricing"
-            className={buttonClassName("primary")}
+            className={buttonClassName("primary", "md")}
             onClick={() => onOpenChange(false)}
           >
             {t("limit.upgradeButton")}
