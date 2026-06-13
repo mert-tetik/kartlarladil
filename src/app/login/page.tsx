@@ -36,7 +36,7 @@ export default async function LoginPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")}>
+    <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")} logoVariant="inverted">
       <LoginForm nextPath={nextPath} message={message} />
       <AuthFooter>
         {t("auth.login.noAccount")}{" "}
