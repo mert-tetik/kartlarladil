@@ -139,6 +139,18 @@ test("landing page explains the product", async ({ page }) => {
   expect(collectionPreviewMetrics.cardCount).toBe(expectedCollectionCardCount);
   expect(collectionPreviewMetrics.topSpread).toBeLessThanOrEqual(2);
   expect(collectionPreviewMetrics.minCardWidth).toBeGreaterThanOrEqual(expectedCollectionCardCount === 2 ? 160 : 200);
+
+  const pointsRankSection = page.locator("[data-points-rank-section]");
+  await expect(pointsRankSection.getByRole("heading", { name: "Puan kazandıkça rank atla." })).toBeVisible();
+  await expect(pointsRankSection.getByText(/^A1$/)).toBeVisible();
+  await expect(pointsRankSection.getByText(/^10 puan$/)).toBeVisible();
+  await expect(pointsRankSection.getByText(/^C1$/)).toBeVisible();
+  await expect(pointsRankSection.getByText(/^110 puan$/)).toBeVisible();
+  await expect(pointsRankSection.getByText("Rank yolu")).toBeVisible();
+  await expect(pointsRankSection.getByText("Başlangıç")).toBeVisible();
+  await expect(pointsRankSection.getByText("Efsane")).toBeVisible();
+  const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(pageOverflow).toBeLessThanOrEqual(2);
 });
 
 test("auth pages render public forms with password visibility toggles and preferences", async ({ page }) => {

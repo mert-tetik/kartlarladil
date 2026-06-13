@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Brain, CheckCircle2, Layers3, Search, Trophy } from "lucide-react";
+import { ArrowRight, Brain, CheckCircle2, Coins, Layers3, Search, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
-import { TIERS, TIER_LABELS } from "@/data/tiers";
+import { TIERS, TIER_LABELS, TIER_STYLES } from "@/data/tiers";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { buttonClassName } from "@/components/ui/button";
 import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
+import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type HeroCardFace = "front" | "back";
@@ -162,6 +164,66 @@ export default function Home() {
                 <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
+          <div>
+            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white">
+              <Coins className="size-6" aria-hidden="true" />
+            </div>
+            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950">Puan kazandıkça rank atla.</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
+              Bir kart yalnızca quiz eşiği tamamlanınca öğrenilmiş sayılır ve puan verir. Zor tier daha yüksek puan
+              kazandırır; toplam puanın arttıkça navbar, profil menüsü ve profil sayfasındaki rankın otomatik yükselir.
+            </p>
+          </div>
+
+          <div className="grid min-w-0 gap-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {TIERS.map((tier) => (
+                <div key={tier} className="rounded-lg border border-slate-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-sm font-semibold ${TIER_STYLES[tier].text}`}>{tier}</span>
+                    <span className={`size-2.5 rounded-full ${TIER_STYLES[tier].accent}`} aria-hidden="true" />
+                  </div>
+                  <p className="mt-3 text-lg font-semibold text-slate-950">{TIER_POINTS[tier]} puan</p>
+                  <p className="mt-1 text-xs text-slate-500">{TIER_LABELS[tier]}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">Rank yolu</p>
+                  <p className="mt-1 text-xs text-slate-500">10 rank, 0 puandan 18.000 puana kadar ilerler.</p>
+                </div>
+                <p className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                  Öğrenilen kartlardan hesaplanır
+                </p>
+              </div>
+
+              <div className="mt-5 min-w-0 overflow-x-auto">
+                <div className="grid min-w-[760px] grid-cols-10 gap-3 lg:min-w-0">
+                  {RANKS.map((rank) => (
+                    <div key={rank.id} className="min-w-0 text-center">
+                      <div className="mx-auto flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
+                        <RankIcon icon={rank.icon} className={`size-5 ${getRankIconTone(rank.icon)}`} />
+                      </div>
+                      <p className="mt-2 truncate text-xs font-semibold text-slate-950" title={rank.label}>
+                        {rank.label}
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                        {rank.minPoints.toLocaleString("tr-TR")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
