@@ -149,6 +149,49 @@ export interface ProgressStats {
   languageStats: LanguageProgressStat[];
 }
 
+export type SubscriptionPlan = "free" | "basic" | "pro";
+
+export type SubscriptionStatus =
+  | "free"
+  | "on_trial"
+  | "active"
+  | "paused"
+  | "past_due"
+  | "unpaid"
+  | "cancelled"
+  | "expired";
+
+export type LimitErrorCode =
+  | "free_active_card_limit"
+  | "free_learned_card_limit"
+  | "ai_daily_limit"
+  | "ai_monthly_limit";
+
+export type AiUsageEventType = "chat" | "translate";
+
+export interface PlanLimits {
+  activeCards: number | null;
+  learnedCards: number | null;
+  aiDailyMessages: number;
+  aiMonthlyMessages: number;
+}
+
+export interface UserSubscription {
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  customerPortalUrl: string | null;
+  renewsAt: string | null;
+  endsAt: string | null;
+}
+
+export interface UserEntitlements {
+  plan: SubscriptionPlan;
+  effectivePlan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  limits: PlanLimits;
+  customerPortalUrl: string | null;
+}
+
 export interface CardFilters {
   language?: LanguageCode | "all";
   tier?: Tier | "all";
