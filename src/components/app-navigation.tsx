@@ -10,12 +10,12 @@ import {
   Compass,
   CreditCard,
   GraduationCap,
-  LibraryBig,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
@@ -52,9 +52,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/88 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-slate-950">
-            <span className="flex size-10 items-center justify-center rounded-md bg-slate-950 text-white">
-              <LibraryBig className="size-5" aria-hidden="true" />
-            </span>
+            <Logo variant="dark" size={40} priority />
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
           </Link>
 
