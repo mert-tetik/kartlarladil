@@ -177,22 +177,37 @@ export default function Home() {
 
 function CardBackdrop() {
   const randomizedBackTiers = createRandomBackTierSequence(heroBackdropCards.filter((item) => item.face === "back").length);
-  let backTierIndex = 0;
 
   return (
     <div
       data-hero-card-backdrop
       aria-hidden="true"
       inert
-      className="pointer-events-none grid min-h-full min-w-[1220px] grid-cols-6 items-start gap-4 p-4 sm:p-6"
+      className="pointer-events-none h-full overflow-hidden"
     >
-      {heroBackdropCards.map(({ card, face }) => {
-        const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
-
-        return <VocabularyCardView key={card.id} card={card} initialFace={face} backDisplayTier={backDisplayTier} />;
-      })}
+      <div data-hero-card-backdrop-track className="hero-card-backdrop-track flex h-full w-max">
+        {[0, 1].map((setIndex) => (
+          <div
+            key={setIndex}
+            data-hero-card-backdrop-set
+            className="grid h-full w-[calc(100vw+320px)] min-w-[1220px] shrink-0 grid-cols-6 items-start gap-4 p-4 sm:p-6"
+          >
+            {renderHeroBackdropCards(randomizedBackTiers)}
+          </div>
+        ))}
+      </div>
     </div>
   );
+}
+
+function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
+  let backTierIndex = 0;
+
+  return heroBackdropCards.map(({ card, face }) => {
+    const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
+
+    return <VocabularyCardView key={card.id} card={card} initialFace={face} backDisplayTier={backDisplayTier} />;
+  });
 }
 
 function createRandomBackTierSequence(count: number) {

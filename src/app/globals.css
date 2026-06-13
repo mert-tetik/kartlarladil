@@ -85,6 +85,12 @@ button:disabled,
   will-change: opacity, transform;
 }
 
+.hero-card-backdrop-track {
+  animation: hero-card-backdrop-loop 34s linear infinite;
+  transform: translate3d(-50%, 0, 0);
+  will-change: transform;
+}
+
 @keyframes card-draw-card-deal {
   0% {
     opacity: 0;
@@ -165,7 +171,23 @@ button:disabled,
   }
 }
 
+@keyframes hero-card-backdrop-loop {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .hero-card-backdrop-track {
+    animation: none;
+    transform: translate3d(-50%, 0, 0);
+    will-change: auto;
+  }
+
   .card-draw-card-deal {
     animation: none;
     transform: none;

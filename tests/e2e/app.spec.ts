@@ -21,13 +21,26 @@ test("landing page explains the product", async ({ page }) => {
   await expect(page.getByText("Otomatik öğrenme takibi")).toHaveCount(0);
 
   const heroBackdrop = page.locator("[data-hero-card-backdrop]");
-  await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(12);
-  await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(6);
-  const visibleBackTierLabels = await heroBackdrop.locator('[data-card-face="back"]').evaluateAll((cards) =>
+  const heroBackdropSets = heroBackdrop.locator("[data-hero-card-backdrop-set]");
+  const firstHeroBackdropSet = heroBackdropSets.first();
+  await expect(heroBackdropSets).toHaveCount(2);
+  await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(24);
+  await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(12);
+  const visibleBackTierLabels = await firstHeroBackdropSet.locator('[data-card-face="back"]').evaluateAll((cards) =>
     cards.map((card) => card.querySelector("[data-card-back-tier]")?.getAttribute("data-card-back-tier")),
   );
   expect(visibleBackTierLabels).toHaveLength(6);
   expect(visibleBackTierLabels.every((tier) => ["A1", "A2", "B1", "B2", "C1"].includes(tier ?? ""))).toBe(true);
+  const backdropTrackAnimation = await heroBackdrop.locator("[data-hero-card-backdrop-track]").evaluate((element) => {
+    const style = getComputedStyle(element);
+
+    return {
+      animationDuration: style.animationDuration,
+      animationName: style.animationName,
+    };
+  });
+  expect(backdropTrackAnimation.animationName).toContain("hero-card-backdrop-loop");
+  expect(backdropTrackAnimation.animationDuration).toBe("34s");
   const backdropVisualStyle = await heroBackdrop.evaluate((element) => {
     const wrapper = element.parentElement;
     const style = wrapper ? getComputedStyle(wrapper) : null;
@@ -39,7 +52,7 @@ test("landing page explains the product", async ({ page }) => {
   });
   expect(backdropVisualStyle.opacity).toBeGreaterThanOrEqual(0.7);
   expect(backdropVisualStyle.filter).toContain("brightness");
-  const firstRowTops = await heroBackdrop.locator("[data-card-face]").evaluateAll((cards) =>
+  const firstRowTops = await firstHeroBackdropSet.locator("[data-card-face]").evaluateAll((cards) =>
     cards.slice(0, 6).map((card) => Math.round(card.getBoundingClientRect().top)),
   );
   expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(2);
