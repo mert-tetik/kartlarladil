@@ -3,7 +3,17 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Bot, Boxes, Compass, GraduationCap, LibraryBig, Sparkles, type LucideIcon } from "lucide-react";
+import {
+  BookOpen,
+  Bot,
+  Boxes,
+  Compass,
+  CreditCard,
+  GraduationCap,
+  LibraryBig,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { AccountMenu } from "@/features/auth/components/account-menu";
@@ -29,6 +39,7 @@ const navItems: readonly NavItem[] = [
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
   { href: "/learned", labelKey: "nav.learned", icon: GraduationCap },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: Bot },
+  { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
@@ -81,7 +92,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       </header>
 
       <nav aria-label={t("nav.mobileMenu")} className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
-        <div className="grid grid-cols-6">
+        <div className="grid grid-cols-7">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;

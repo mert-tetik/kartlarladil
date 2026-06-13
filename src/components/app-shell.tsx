@@ -4,6 +4,7 @@ import { PageTransitionShell } from "@/components/page-transition-shell";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
+import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { LocaleCode } from "@/types/domain";
 
@@ -13,12 +14,14 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
   return (
     <LocaleProvider initialLocale={locale}>
       <AuthSessionProvider user={user}>
-        <ProgressStatsProvider>
-          <div className="min-h-screen bg-slate-50 text-slate-950">
-            <AppNavigation user={user} />
-            <PageTransitionShell>{children}</PageTransitionShell>
-          </div>
-        </ProgressStatsProvider>
+        <SubscriptionProvider>
+          <ProgressStatsProvider>
+            <div className="min-h-screen bg-slate-50 text-slate-950">
+              <AppNavigation user={user} />
+              <PageTransitionShell>{children}</PageTransitionShell>
+            </div>
+          </ProgressStatsProvider>
+        </SubscriptionProvider>
       </AuthSessionProvider>
     </LocaleProvider>
   );

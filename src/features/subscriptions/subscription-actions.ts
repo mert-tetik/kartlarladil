@@ -16,7 +16,7 @@ interface EntitlementsActionResult {
 }
 
 interface CheckoutActionResult {
-  status: "success" | "error";
+  status: "idle" | "success" | "error";
   message: string;
   checkoutUrl?: string;
 }
