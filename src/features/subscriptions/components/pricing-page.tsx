@@ -130,7 +130,10 @@ function PricingCard({
             {t("pricing.ctaCurrent")}
           </Button>
         ) : (
-          <CheckoutButton plan={plan} popular={popular} />
+          <>
+            <CheckoutButton plan={plan} popular={popular} />
+            <ConsentText />
+          </>
         )}
       </div>
     </div>
@@ -202,6 +205,24 @@ function getAiDailyLimit(plan: SubscriptionPlan): number {
     case "pro":
       return 150;
   }
+}
+
+function ConsentText() {
+  const t = useT();
+
+  return (
+    <p className="mt-3 text-center text-xs text-slate-500">
+      {t("pricing.consentPrefix")}
+      <Link href="/terms" className="underline hover:text-slate-700">
+        {t("pricing.consentTerms")}
+      </Link>
+      {t("pricing.consentAnd")}
+      <Link href="/privacy" className="underline hover:text-slate-700">
+        {t("pricing.consentPrivacy")}
+      </Link>
+      {t("pricing.consentSuffix")}
+    </p>
+  );
 }
 
 function getAiMonthlyLimit(plan: SubscriptionPlan): number {

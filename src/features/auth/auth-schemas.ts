@@ -29,6 +29,9 @@ export const registerSchema = z.object({
   preferredUiLocale: localeCodeSchema.optional(),
   preferredTier: tierSchema,
   next: nextPathSchema,
+  consent: z.literal("on", {
+    message: "auth.validation.consentRequired",
+  }),
 });
 
 export const resetPasswordSchema = z.object({

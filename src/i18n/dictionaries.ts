@@ -334,6 +334,47 @@ const tr = {
   "limit.aiDailyLimitDescription": "Bugün için AI mesaj hakkın bitti. Daha fazla mesaj göndermek için planını yükselt.",
   "limit.aiMonthlyLimitTitle": "Aylık AI mesaj limitine ulaştın",
   "limit.aiMonthlyLimitDescription": "Bu ay için AI mesaj hakkın bitti. Daha fazla mesaj göndermek için planını yükselt.",
+
+  // Legal pages
+  "page.terms.title": "Kullanım Koşulları",
+  "page.terms.description": "Kartlarla Dil hizmetini kullanırken uyman gereken koşullar.",
+  "page.privacy.title": "Gizlilik Politikası",
+  "page.privacy.description": "Kartlarla Dil'in topladığı, işlediği ve sakladığı veriler.",
+  "page.refund.title": "İade Politikası",
+  "page.refund.description": "Abonelik satın alımlarında iade koşulları.",
+  "page.cookies.title": "Çerez Politikası",
+  "page.cookies.description": "Kartlarla Dil'in kullandığı çerezler ve amaçları.",
+  "page.subscriptions.title": "Abonelik Koşulları",
+  "page.subscriptions.description": "Otomatik yenileme, iptal ve plan değişikliği kuralları.",
+
+  "legal.lastUpdated": "Son güncelleme",
+  "legal.contact": "Soruların için bizimle iletişime geç: {email}",
+  "legal.contactEmail": "TODO_EMAIL",
+
+  // Footer
+  "footer.legal": "Yasal",
+  "footer.copyright": "© {year} Kartlarla Dil. Tüm hakları saklıdır.",
+  "footer.terms": "Kullanım Koşulları",
+  "footer.privacy": "Gizlilik Politikası",
+  "footer.refund": "İade Politikası",
+  "footer.cookies": "Çerezler",
+  "footer.subscriptions": "Abonelik Koşulları",
+  "footer.contact": "İletişim",
+
+  // Pricing consent
+  "pricing.consentPrefix": "Ödeme yaparak ",
+  "pricing.consentTerms": "Kullanım Koşulları",
+  "pricing.consentAnd": " ve ",
+  "pricing.consentPrivacy": "Gizlilik Politikası",
+  "pricing.consentSuffix": " kabul etmiş olursun.",
+
+  // Register consent
+  "register.consentRequired": "Kayıt olmak için Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmelisin.",
+  "register.consentPrefix": "",
+  "register.consentTerms": "Kullanım Koşulları",
+  "register.consentAnd": " ve ",
+  "register.consentPrivacy": "Gizlilik Politikası",
+  "register.consentSuffix": "'nı okudum ve kabul ediyorum.",
 } as const;
 
 type Dictionary = { [Key in keyof typeof tr]: string };
@@ -646,6 +687,47 @@ const en: Dictionary = {
   "limit.aiDailyLimitDescription": "You have used your daily AI messages. Upgrade to send more.",
   "limit.aiMonthlyLimitTitle": "Monthly AI message limit reached",
   "limit.aiMonthlyLimitDescription": "You have used your monthly AI messages. Upgrade to send more.",
+
+  // Legal pages
+  "page.terms.title": "Terms of Service",
+  "page.terms.description": "Conditions for using the Kartlarla Dil service.",
+  "page.privacy.title": "Privacy Policy",
+  "page.privacy.description": "What data Kartlarla Dil collects, processes, and stores.",
+  "page.refund.title": "Refund Policy",
+  "page.refund.description": "Refund conditions for subscription purchases.",
+  "page.cookies.title": "Cookie Policy",
+  "page.cookies.description": "Cookies used by Kartlarla Dil and their purposes.",
+  "page.subscriptions.title": "Subscription Terms",
+  "page.subscriptions.description": "Rules for automatic renewal, cancellation, and plan changes.",
+
+  "legal.lastUpdated": "Last updated",
+  "legal.contact": "Contact us with questions: {email}",
+  "legal.contactEmail": "TODO_EMAIL",
+
+  // Footer
+  "footer.legal": "Legal",
+  "footer.copyright": "© {year} Kartlarla Dil. All rights reserved.",
+  "footer.terms": "Terms of Service",
+  "footer.privacy": "Privacy Policy",
+  "footer.refund": "Refund Policy",
+  "footer.cookies": "Cookies",
+  "footer.subscriptions": "Subscription Terms",
+  "footer.contact": "Contact",
+
+  // Pricing consent
+  "pricing.consentPrefix": "By checking out, you agree to the ",
+  "pricing.consentTerms": "Terms of Service",
+  "pricing.consentAnd": " and ",
+  "pricing.consentPrivacy": "Privacy Policy",
+  "pricing.consentSuffix": ".",
+
+  // Register consent
+  "register.consentRequired": "You must accept the Terms of Service and Privacy Policy to register.",
+  "register.consentPrefix": "I have read and agree to the ",
+  "register.consentTerms": "Terms of Service",
+  "register.consentAnd": " and ",
+  "register.consentPrivacy": "Privacy Policy",
+  "register.consentSuffix": "."
 };
 
 const localeOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partial<Dictionary>> = {

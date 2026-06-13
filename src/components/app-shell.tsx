@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppNavigation } from "@/components/app-navigation";
 import { PageTransitionShell } from "@/components/page-transition-shell";
+import { SiteFooter } from "@/components/site-footer";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
@@ -16,9 +17,12 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
       <AuthSessionProvider user={user}>
         <SubscriptionProvider>
           <ProgressStatsProvider>
-            <div className="min-h-screen bg-slate-50 text-slate-950">
+            <div className="flex min-h-screen flex-col bg-slate-50 text-slate-950">
               <AppNavigation user={user} />
-              <PageTransitionShell>{children}</PageTransitionShell>
+              <div className="flex-1">
+                <PageTransitionShell>{children}</PageTransitionShell>
+              </div>
+              <SiteFooter />
             </div>
           </ProgressStatsProvider>
         </SubscriptionProvider>

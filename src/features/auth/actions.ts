@@ -96,6 +96,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
     preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
+    consent: getFormString(formData, "consent"),
   });
 
   if (!parsed.success) {
