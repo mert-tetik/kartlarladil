@@ -36,5 +36,17 @@ describe("AI practice characters", () => {
     expect(instructions).toContain("Deutsch");
     expect(instructions).toContain(character.promptProfile);
     expect(instructions).toContain("You must speak only in the target language");
+    expect(instructions).toContain("Sound as realistic and human as possible");
+    expect(instructions).toContain("do not answer like an expert");
+  });
+
+  it("adds Gen Z behavior rules for young characters", () => {
+    const youngCharacter = getAiPracticeCharacters().find((character) => character.id === "sleepy-student");
+
+    expect(youngCharacter).toBeTruthy();
+
+    const instructions = buildAiPracticeInstructions({ character: youngCharacter!, language: "en" });
+
+    expect(instructions).toContain("Use target-language Gen Z slang");
   });
 });
