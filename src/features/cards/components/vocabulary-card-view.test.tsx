@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getCardTranslation } from "@/features/cards/card-localization";
@@ -14,6 +14,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("VocabularyCardView", () => {
   it("renders the front face by default", () => {
@@ -87,6 +91,39 @@ describe("VocabularyCardView", () => {
     expect(examplePreview).toHaveClass("truncate");
     expect(container).not.toHaveTextContent("is useful in a clear sentence");
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
+  });
+
+  it("speaks the card term with the card language when the speaker button is pressed", async () => {
+    const user = userEvent.setup();
+    const speak = vi.fn();
+    const cancel = vi.fn();
+
+    class MockSpeechSynthesisUtterance {
+      lang = "";
+      rate = 1;
+      voice: SpeechSynthesisVoice | null = null;
+
+      constructor(public text: string) {}
+    }
+
+    vi.stubGlobal("SpeechSynthesisUtterance", MockSpeechSynthesisUtterance);
+    vi.stubGlobal("speechSynthesis", {
+      cancel,
+      getVoices: vi.fn(() => [{ lang: "en-US" }]),
+      speak,
+    });
+
+    renderCard(<VocabularyCardView card={testCard} />);
+    await user.click(screen.getByRole("button", { name: `${testCard.term} Seslendir` }));
+
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledTimes(1);
+
+    const utterance = speak.mock.calls[0]![0] as SpeechSynthesisUtterance;
+
+    expect(utterance.text).toBe(testCard.term);
+    expect(utterance.lang).toBe("en-US");
+    expect(utterance.rate).toBe(0.9);
   });
 });
 

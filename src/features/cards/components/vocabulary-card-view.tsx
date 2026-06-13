@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation } from "@/features/cards/card-localization";
+import { speakCardTerm } from "@/features/cards/card-speech";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -97,6 +98,11 @@ export function VocabularyCardView({
     onAdd?.();
   }
 
+  function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    speakCardTerm(card.term, card.language);
+  }
+
   const flipRoleProps =
     flippable && !isFaceUp
       ? {
@@ -175,7 +181,15 @@ export function VocabularyCardView({
 
           <div className="flex flex-1 flex-col justify-center py-6">
             <div className="flex items-center gap-2 text-slate-500">
-              <Volume2 className="size-4" aria-hidden="true" />
+              <button
+                type="button"
+                aria-label={`${card.term} ${t("cards.speak")}`}
+                title={t("cards.speak")}
+                onClick={handleSpeakClick}
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              >
+                <Volume2 className="size-4" aria-hidden="true" />
+              </button>
               <span className="text-sm">{card.pronunciation}</span>
             </div>
             <h3
