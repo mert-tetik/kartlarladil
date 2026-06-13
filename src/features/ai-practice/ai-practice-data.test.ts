@@ -38,6 +38,8 @@ describe("AI practice characters", () => {
     expect(instructions).toContain("You must speak only in the target language");
     expect(instructions).toContain("Sound as realistic and human as possible");
     expect(instructions).toContain("do not answer like an expert");
+    expect(instructions).toContain("Never demand full-sentence answers");
+    expect(instructions).toContain("Do not use em dashes");
   });
 
   it("adds Gen Z behavior rules for young characters", () => {
@@ -48,5 +50,13 @@ describe("AI practice characters", () => {
     const instructions = buildAiPracticeInstructions({ character: youngCharacter!, language: "en" });
 
     expect(instructions).toContain("Use target-language Gen Z slang");
+    expect(instructions).toContain("Small natural typos");
+    expect(instructions).toContain("Do not end messages with sentence-final punctuation");
+  });
+
+  it("does not include complete-sentence coaching in character styles", () => {
+    for (const character of getAiPracticeCharacters()) {
+      expect(character.conversationStyle.join(" ")).not.toMatch(/complete sentences|full sentence/i);
+    }
   });
 });
