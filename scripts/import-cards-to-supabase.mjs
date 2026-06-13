@@ -5,6 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 import ts from "typescript";
 
 const BATCH_SIZE = 500;
+
+loadEnvFile(".env.local");
+loadEnvFile(".env");
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -66,6 +70,47 @@ for (let index = 0; index < VOCABULARY_CARDS.length; index += BATCH_SIZE) {
 }
 
 console.log(`Tamamlandı: ${VOCABULARY_CARDS.length} kart import edildi.`);
+
+function loadEnvFile(filename) {
+  const envPath = path.resolve(filename);
+
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+
+  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const equalsIndex = trimmed.indexOf("=");
+
+    if (equalsIndex === -1) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, equalsIndex).trim();
+    const rawValue = trimmed.slice(equalsIndex + 1).trim();
+
+    if (!key || (process.env[key] !== undefined && process.env[key] !== "")) {
+      continue;
+    }
+
+    process.env[key] = stripEnvQuotes(rawValue);
+  }
+}
+
+function stripEnvQuotes(value) {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+
+  return value;
+}
 
 function loadTsModule(relativePath) {
   const filename = path.resolve(relativePath);
