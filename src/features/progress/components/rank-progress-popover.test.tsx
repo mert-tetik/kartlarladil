@@ -1,10 +1,18 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { act } from "react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
+import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats } from "@/types/domain";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
@@ -17,7 +25,7 @@ describe("RankProgressPopover", () => {
   });
 
   it("keeps the rank trigger visible for mobile navigation", () => {
-    render(<RankProgressPopover stats={makeStats(0)} />);
+    renderRank(<RankProgressPopover stats={makeStats(0)} />);
 
     expect(screen.getByRole("button", { name: "Rank ilerlemesini göster" }).parentElement).not.toHaveClass("hidden");
   });
@@ -25,7 +33,7 @@ describe("RankProgressPopover", () => {
   it("opens the rank ladder from the navbar rank display", () => {
     const rankProgress = getNextRankProgress(250);
 
-    render(
+    renderRank(
       <RankProgressPopover
         stats={{
           ...EMPTY_PROGRESS_STATS,
@@ -48,7 +56,7 @@ describe("RankProgressPopover", () => {
   it("shows a temporary score gain before updating the navbar points", () => {
     vi.useFakeTimers();
 
-    const { rerender } = render(<RankProgressPopover stats={makeStats(0)} />);
+    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(0)} />);
 
     expect(screen.getByText("0 puan")).toBeVisible();
 
@@ -74,7 +82,7 @@ describe("RankProgressPopover", () => {
     vi.useFakeTimers();
     const nextStats = makeStats(100);
 
-    const { rerender } = render(<RankProgressPopover stats={makeStats(90)} />);
+    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(90)} />);
 
     rerender(<RankProgressPopover stats={nextStats} />);
 
@@ -100,6 +108,17 @@ describe("RankProgressPopover", () => {
     expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
   });
 });
+
+function renderRank(ui: ReactElement) {
+  const result = render(<LocaleProvider initialLocale="tr">{ui}</LocaleProvider>);
+
+  return {
+    ...result,
+    rerender(nextUi: ReactElement) {
+      result.rerender(<LocaleProvider initialLocale="tr">{nextUi}</LocaleProvider>);
+    },
+  };
+}
 
 function makeStats(totalPoints: number): ProgressStats {
   return {

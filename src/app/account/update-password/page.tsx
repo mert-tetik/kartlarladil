@@ -3,30 +3,32 @@ import Link from "next/link";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
 import { UpdatePasswordForm } from "@/features/auth/components/update-password-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
+import { APP_NAME } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Şifreyi güncelle | Kartlarla Dil",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createTranslator(await getServerLocale());
+  return {
+    title: `${t("auth.updatePassword.title")} | ${APP_NAME}`,
+  };
+}
 
 export default async function UpdatePasswordPage() {
+  const t = createTranslator(await getServerLocale());
   await requireAuthUser("/account/update-password");
 
   return (
-    <AuthPageShell
-      title="Şifreyi güncelle"
-      description="Reset linkinden sonra veya oturum içindeyken yeni şifreni belirle."
-      footer={
-        <p>
-          Hesap ayarlarına dön:{" "}
-          <Link href="/account/settings" className="font-semibold text-slate-950">
-            Hesap ayarları
-          </Link>
-        </p>
-      }
-    >
+    <AuthPageShell title={t("auth.updatePassword.title")} description={t("auth.updatePassword.description")}>
       <UpdatePasswordForm />
+      <div className="mt-6 border-t border-slate-200 pt-5 text-sm text-slate-600">
+        {t("auth.updatePassword.backToSettings")}{" "}
+        <Link href="/account/settings" className="font-semibold text-slate-950">
+          {t("page.account.title")}
+        </Link>
+      </div>
     </AuthPageShell>
   );
 }

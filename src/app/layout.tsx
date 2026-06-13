@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale, getServerTextDirection } from "@/i18n/server";
 import "./globals.css";
 
@@ -15,10 +16,15 @@ const fraunces = Fraunces({
   weight: ["500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "Kartlarla Dil",
-  description: "Çok dilli kelime haznesini koleksiyon kartlarıyla geliştiren öğrenme uygulaması.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+
+  return {
+    title: "Kartlarla Dil",
+    description: t("metadata.description"),
+  };
+}
 
 export default async function RootLayout({
   children,

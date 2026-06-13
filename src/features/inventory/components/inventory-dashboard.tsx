@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { CardStatus, LanguageCode } from "@/types/domain";
 
@@ -23,6 +25,8 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
   const cloudError = useInventoryStore((state) => state.cloudError);
   const reset = useInventoryStore((state) => state.reset);
   const requireAuthAction = useRequireAuthAction();
+  const { locale } = useLocale();
+  const t = useT();
 
   const visibleCards = useMemo(
     () =>
@@ -44,7 +48,7 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
   );
 
   if (!hydrated) {
-    return <EmptyState icon={Boxes} title="Envanter hazırlanıyor" description="Kartların tarayıcı belleğinden okunuyor." />;
+    return <EmptyState icon={Boxes} title={t("inventory.loadingTitle")} description={t("inventory.loadingDescription")} />;
   }
 
   return (
@@ -70,7 +74,7 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
               >
                 <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
                   <LanguageFlag code={item.code} />
-                  {item.name}
+                  {getLanguageDisplayName(item.code, locale)}
                 </span>
                 <span className="mt-2 block text-2xl font-bold text-slate-950">{item.count}</span>
               </button>
@@ -86,14 +90,18 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
                     variant={status === item ? "primary" : "secondary"}
                     onClick={() => setStatus(item)}
                   >
-                    {item === "all" ? "Tümü" : item === "active" ? "Öğreniliyor" : "Öğrenildi"}
+                    {item === "all"
+                      ? t("common.all")
+                      : item === "active"
+                        ? t("inventory.status.active")
+                        : t("inventory.status.learned")}
                   </Button>
                 ))}
               </>
             ) : null}
             <Button variant="ghost" onClick={() => requireAuthAction(reset)}>
               <RotateCcw className="size-4" aria-hidden="true" />
-              Sıfırla
+              {t("common.reset")}
             </Button>
           </div>
         </div>
@@ -102,10 +110,10 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
       {visibleCards.length > 0 ? (
         <>
           <div className="flex items-center justify-between">
-            <Badge>{visibleCards.length} kart</Badge>
+            <Badge>{formatCards(locale, visibleCards.length)}</Badge>
             {learnedOnly ? (
               <Link href="/ogrenilenler#alistirma" className={buttonClassName("secondary", "sm")}>
-                Tekrar alıştırması
+                {t("inventory.repeatPractice")}
               </Link>
             ) : null}
           </div>
@@ -114,11 +122,11 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
       ) : (
         <EmptyState
           icon={Boxes}
-          title={learnedOnly ? "Bu dilde öğrenilmiş kart yok" : "Bu dilde kart yok"}
-          description="Kart çek ekranından kart çekerek envanterini büyütmeye başlayabilirsin."
+          title={learnedOnly ? t("inventory.emptyLearnedTitle") : t("inventory.emptyTitle")}
+          description={t("inventory.emptyDescription")}
           action={
             <Link href="/kart-cek" className={buttonClassName("primary", "md")}>
-              Kart çek
+              {t("nav.cardDraw")}
             </Link>
           }
         />

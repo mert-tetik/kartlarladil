@@ -5,7 +5,8 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "rea
 import { LANGUAGES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { LanguageFlag } from "@/components/language-flag";
-import { useT } from "@/i18n/locale-provider";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier } from "@/types/domain";
 
@@ -27,12 +28,17 @@ export function FilterControls({
   onTierChange: (tier: Tier | "all") => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const languageOptions = useMemo<LanguageOption[]>(
     () => [
       { value: "all", label: t("common.all") },
-      ...LANGUAGES.map((item) => ({ value: item.code, label: item.name, icon: <LanguageFlag code={item.code} /> })),
+      ...LANGUAGES.map((item) => ({
+        value: item.code,
+        label: getLanguageDisplayName(item.code, locale),
+        icon: <LanguageFlag code={item.code} />,
+      })),
     ],
-    [t],
+    [locale, t],
   );
 
   return (

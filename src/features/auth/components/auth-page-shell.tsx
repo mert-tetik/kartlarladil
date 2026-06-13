@@ -1,19 +1,21 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { LibraryBig, ShieldCheck } from "lucide-react";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
 
-export function AuthPageShell({
+export async function AuthPageShell({
   title,
   description,
   children,
-  footer,
 }: {
   title: string;
   description: string;
   children: ReactNode;
-  footer?: ReactNode;
 }) {
+  const t = createTranslator(await getServerLocale());
+
   return (
     <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl px-4 py-10 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
       <aside className="hidden rounded-lg bg-slate-950 p-8 text-white lg:flex lg:flex-col lg:justify-between">
@@ -33,11 +35,9 @@ export function AuthPageShell({
         <div className="rounded-lg border border-white/10 bg-white/8 p-5">
           <div className="flex items-center gap-3 text-sm font-semibold">
             <ShieldCheck className="size-5 text-emerald-300" aria-hidden="true" />
-            Supabase Auth
+            {t("auth.supabase.title")}
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Oturum cookie tabanlı SSR akışıyla tutulur. Hesap verileri sadece giriş yapan kullanıcıya açıktır.
-          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-300">{t("auth.supabase.description")}</p>
         </div>
       </aside>
 
@@ -58,7 +58,6 @@ export function AuthPageShell({
             <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
           </div>
           <div className="mt-7">{children}</div>
-          {footer ? <div className="mt-6 border-t border-slate-200 pt-5 text-sm text-slate-600">{footer}</div> : null}
         </div>
       </div>
     </section>

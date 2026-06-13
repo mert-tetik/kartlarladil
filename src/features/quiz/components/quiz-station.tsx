@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BookOpen, CheckCircle2, Info, Trophy, XCircle } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
-import { getCardExampleTranslation } from "@/features/cards/card-localization";
+import { getCardExampleTranslation, getStudyLocale } from "@/features/cards/card-localization";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { buildQuizQuestion } from "@/features/quiz/quiz-engine";
@@ -15,9 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { Progress } from "@/components/ui/progress";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
-import { useLocale } from "@/i18n/locale-provider";
 import type { PracticeMode, QuizQuestion } from "@/types/domain";
 
 export function QuizStation({ mode }: { mode: PracticeMode }) {
@@ -31,6 +32,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const requireAuthAction = useRequireAuthAction();
   const { locale } = useLocale();
+  const t = useT();
 
   const availableCards = useMemo(
     () =>
@@ -62,7 +64,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   }
 
   if (!hydrated) {
-    return <EmptyState icon={BookOpen} title="Alıştırma hazırlanıyor" description="Kart haznen okunuyor." />;
+    return <EmptyState icon={BookOpen} title={t("quiz.loadingTitle")} description={t("quiz.loadingDescription")} />;
   }
 
   if (!question) {
@@ -70,9 +72,9 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       return (
         <EmptyState
           icon={BookOpen}
-          title="Alıştırma hazır"
-          description={`${availableCards.length} kartla çalışabilirsin. Sorular çoktan seçmeli olarak hazırlanır.`}
-          action={<Button onClick={startNextQuestionWithAuth}>Alıştırmayı başlat</Button>}
+          title={t("quiz.readyTitle")}
+          description={t("quiz.readyDescription", { count: availableCards.length })}
+          action={<Button onClick={startNextQuestionWithAuth}>{t("quiz.start")}</Button>}
         />
       );
     }
@@ -80,15 +82,11 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     return (
       <EmptyState
         icon={mode === "active" ? BookOpen : Trophy}
-        title={mode === "active" ? "Öğrenilecek kart yok" : "Öğrenilmiş kart yok"}
-        description={
-          mode === "active"
-            ? "Önce Kart çek ekranından kartları haznene ekle."
-            : "Aktif kartları quiz ile tamamladığında burada tekrar yapabilirsin."
-        }
+        title={mode === "active" ? t("quiz.noActiveTitle") : t("quiz.noLearnedTitle")}
+        description={mode === "active" ? t("quiz.noActiveDescription") : t("quiz.noLearnedDescription")}
         action={
           <Link href={mode === "active" ? "/kart-cek" : "/ogren"} className={buttonClassName("primary", "md")}>
-            {mode === "active" ? "Kart çek" : "Öğrenmeye dön"}
+            {mode === "active" ? t("quiz.backToDraw") : t("quiz.backToLearn")}
           </Link>
         }
       />
@@ -96,6 +94,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   }
 
   const currentQuestion = question;
+  const answerLocale = getStudyLocale(currentQuestion.card.language, locale);
   const inventoryCard = cards.find((card) => card.cardId === currentQuestion.card.id);
   const style = TIER_STYLES[currentQuestion.card.tier];
   const requirement = TIER_REQUIREMENTS[currentQuestion.card.tier];
@@ -131,17 +130,19 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className={cn("border-transparent", style.text)}>
-          {currentQuestion.card.tier} · {mode === "active" ? "Öğreniliyor" : "Tekrar"}
+          {currentQuestion.card.tier} · {mode === "active" ? t("quiz.activeBadge") : t("quiz.reviewBadge")}
         </Badge>
         {inventoryCard ? (
           <span className="text-sm font-semibold text-slate-500">
-            {inventoryCard.correctCount}/{requirement} doğru
+            {t("quiz.correctCounter", { count: inventoryCard.correctCount, required: requirement })}
           </span>
         ) : null}
       </div>
 
       <div className="mt-8 text-center">
-        <p className="text-sm font-semibold text-slate-500">Türkçe karşılığı nedir?</p>
+        <p className="text-sm font-semibold text-slate-500">
+          {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
+        </p>
         <h2 className="mt-4 font-display text-6xl font-semibold leading-none text-slate-950">{currentQuestion.card.term}</h2>
         <p className="mt-3 text-sm text-slate-500">{currentQuestion.card.pronunciation}</p>
       </div>
@@ -184,7 +185,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
               <XCircle className="size-5 text-rose-600" aria-hidden="true" />
             )}
             <p className="font-semibold text-slate-950">
-              {correct ? "Doğru cevap" : `Doğru cevap: ${currentQuestion.correctAnswer}`}
+              {correct ? t("quiz.correctAnswer") : t("quiz.correctAnswerWithValue", { answer: currentQuestion.correctAnswer })}
             </p>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">{currentQuestion.card.examples[0].sentence}</p>
@@ -194,10 +195,10 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
             <Button variant="secondary" className="w-full sm:w-auto" onClick={() => setDetailsOpen(true)}>
               <Info className="size-4" aria-hidden="true" />
-              Detayları gör
+              {t("quiz.showDetails")}
             </Button>
             <Button className="w-full sm:w-auto" onClick={startNextQuestion}>
-              Sonraki kart
+              {t("quiz.nextCard")}
             </Button>
           </div>
         </div>

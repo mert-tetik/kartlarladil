@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import type { AuthActionState } from "@/features/auth/auth-types";
+import { translate, type TranslationKey } from "@/i18n/dictionaries";
+import type { LocaleCode } from "@/types/domain";
 
 export const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
 
@@ -10,18 +12,18 @@ const localeCodeSchema = z.enum(LOCALE_CODES);
 const tierSchema = z.enum(["A1", "A2", "B1", "B2", "C1"]);
 
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Geçerli bir email adresi gir."),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalı."),
+  email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),
+  password: z.string().min(6, "auth.validation.passwordMin"),
   next: nextPathSchema,
 });
 
 export const registerSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Geçerli bir email adresi gir."),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalı."),
+  email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),
+  password: z.string().min(6, "auth.validation.passwordMin"),
   displayName: z
     .string()
     .trim()
-    .max(80, "Görünen ad en fazla 80 karakter olabilir.")
+    .max(80, "auth.validation.displayNameMax")
     .transform((value) => (value.length > 0 ? value : null)),
   preferredLanguageCode: languageCodeSchema,
   preferredUiLocale: localeCodeSchema.optional(),
@@ -30,16 +32,16 @@ export const registerSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Geçerli bir email adresi gir."),
+  email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),
 });
 
 export const updatePasswordSchema = z
   .object({
-    password: z.string().min(6, "Yeni şifre en az 6 karakter olmalı."),
-    confirmPassword: z.string().min(6, "Şifre tekrarını gir."),
+    password: z.string().min(6, "auth.validation.newPasswordMin"),
+    confirmPassword: z.string().min(6, "auth.validation.confirmPasswordRequired"),
   })
   .refine((value) => value.password === value.confirmPassword, {
-    message: "Şifreler eşleşmiyor.",
+    message: "auth.validation.passwordMismatch",
     path: ["confirmPassword"],
   });
 
@@ -47,8 +49,8 @@ export const profileSchema = z.object({
   displayName: z
     .string()
     .trim()
-    .max(80, "Görünen ad en fazla 80 karakter olabilir.")
-    .refine((value) => value.length === 0 || value.length >= 2, "Görünen ad en az 2 karakter olmalı.")
+    .max(80, "auth.validation.displayNameMax")
+    .refine((value) => value.length === 0 || value.length >= 2, "auth.validation.displayNameMin")
     .transform((value) => (value.length > 0 ? value : null)),
   preferredLanguageCode: z
     .union([languageCodeSchema, z.literal("")])
@@ -64,7 +66,7 @@ export const deleteAccountSchema = z.object({
     .string()
     .trim()
     .refine((value) => value === DELETE_ACCOUNT_CONFIRMATION, {
-      message: `Kalıcı silme için ${DELETE_ACCOUNT_CONFIRMATION} yazmalısın.`,
+      message: "auth.validation.deleteConfirmation",
     }),
 });
 
@@ -73,10 +75,20 @@ export function getFormString(formData: FormData, key: string) {
   return typeof value === "string" ? value : "";
 }
 
-export function createValidationErrorState(error: z.ZodError): AuthActionState {
+export function createValidationErrorState(error: z.ZodError, locale: LocaleCode): AuthActionState {
+  const flattened = error.flatten((issue) => translateIssueMessage(locale, issue.message));
+
   return {
     status: "error",
-    message: "Bilgileri kontrol edip tekrar dene.",
-    fieldErrors: error.flatten().fieldErrors,
+    message: translate(locale, "auth.validation.checkFields"),
+    fieldErrors: flattened.fieldErrors,
   };
+}
+
+function translateIssueMessage(locale: LocaleCode, message: string) {
+  if (message === "auth.validation.deleteConfirmation") {
+    return translate(locale, message as TranslationKey, { confirmation: DELETE_ACCOUNT_CONFIRMATION });
+  }
+
+  return message.startsWith("auth.validation.") ? translate(locale, message as TranslationKey) : message;
 }

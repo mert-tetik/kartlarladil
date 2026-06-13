@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { LANGUAGES } from "@/data/languages";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LocaleCode } from "@/types/domain";
@@ -80,7 +81,7 @@ export function LocaleSwitcher() {
                   <LanguageFlag code={language.code} className="h-4 w-6" />
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-slate-950">{language.nativeName}</span>
-                    <span className="block truncate text-xs text-slate-500">{language.name}</span>
+                    <span className="block truncate text-xs text-slate-500">{getLanguageDisplayName(language.code, locale)}</span>
                   </span>
                 </span>
                 {selected ? <Check aria-hidden="true" className="size-4 text-slate-950" /> : null}

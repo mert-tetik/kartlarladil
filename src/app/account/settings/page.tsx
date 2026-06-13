@@ -5,24 +5,31 @@ import { buttonClassName } from "@/components/ui/button";
 import { AccountSettingsForm } from "@/features/auth/components/account-settings-form";
 import { DeleteAccountForm } from "@/features/auth/components/delete-account-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
+import { APP_NAME } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Hesap ayarları | Kartlarla Dil",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createTranslator(await getServerLocale());
+  return {
+    title: `${t("page.account.title")} | ${APP_NAME}`,
+  };
+}
 
 export default async function AccountSettingsPage() {
+  const t = createTranslator(await getServerLocale());
   const user = await requireAuthUser("/account/settings");
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <PageHeader
-        title="Hesap ayarları"
-        description="Profil bilgilerini, şifre işlemlerini ve kalıcı hesap silme akışını buradan yönet."
+        title={t("page.account.title")}
+        description={t("page.account.description")}
         action={
           <Link href="/account/update-password" className={buttonClassName("secondary", "sm")}>
-            Şifreyi güncelle
+            {t("auth.updatePassword.title")}
           </Link>
         }
       />

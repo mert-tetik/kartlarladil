@@ -31,7 +31,7 @@ export function LanguageFlag({
   return (
     <span
       role="img"
-      aria-label={`${language.name} bayrağı`}
+      aria-label={language.nativeName}
       className={cn("inline-block h-3.5 w-5 shrink-0 overflow-hidden rounded-[3px] border border-slate-900/10 bg-white", className)}
       style={{ backgroundImage: FLAG_BACKGROUNDS[language.flagCode] }}
     />

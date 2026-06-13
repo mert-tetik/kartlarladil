@@ -9,13 +9,13 @@ import {
   LOCALE_STORAGE_KEY,
   normalizeLocale,
 } from "@/i18n/config";
-import { translate, type TranslationKey } from "@/i18n/dictionaries";
+import { translate, type TranslationKey, type TranslationValues } from "@/i18n/dictionaries";
 import type { LocaleCode } from "@/types/domain";
 
 interface LocaleContextValue {
   locale: LocaleCode;
   setLocale: (locale: LocaleCode) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, values?: TranslationValues) => string;
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -52,8 +52,8 @@ export function LocaleProvider({
 
         router.refresh();
       },
-      t(key) {
-        return translate(locale, key);
+      t(key, values) {
+        return translate(locale, key, values);
       },
     }),
     [locale, router],

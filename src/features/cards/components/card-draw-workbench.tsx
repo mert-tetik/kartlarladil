@@ -253,7 +253,13 @@ export function CardDrawWorkbench() {
   }
 
   if (!hydrated) {
-    return <EmptyState icon={PackagePlus} title="Hazne hazırlanıyor" description="Kart koleksiyonun tarayıcıda açılıyor." />;
+    return (
+      <EmptyState
+        icon={PackagePlus}
+        title={t("cards.poolPreparingTitle")}
+        description={t("cards.poolPreparingDescription")}
+      />
+    );
   }
 
   return (

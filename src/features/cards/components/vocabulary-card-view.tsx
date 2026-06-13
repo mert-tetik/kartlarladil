@@ -2,8 +2,7 @@
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Check, Coins, Info, Plus, Volume2, X } from "lucide-react";
-import { LANGUAGE_NAMES } from "@/data/languages";
-import { TIER_LABELS, TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
+import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { getPointsForTier } from "@/features/progress/progress-stats";
+import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { InventoryCard, Tier, VocabularyCard } from "@/types/domain";
 
@@ -141,10 +141,10 @@ export function VocabularyCardView({
           <div className="flex items-start justify-between gap-3">
             <div>
               <Badge className={cn("border-transparent bg-white/80", style.text)}>
-                {card.tier} · {TIER_LABELS[card.tier]}
+                {card.tier} · {getTierLabel(card.tier, locale)}
               </Badge>
               <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500">
-                <span>{LANGUAGE_NAMES[card.language]}</span>
+                <span>{getLanguageDisplayName(card.language, locale)}</span>
                 <span
                   aria-label={`${tierPoints} ${t("common.points")}`}
                   className={cn("inline-flex items-center gap-1", style.text)}
@@ -186,7 +186,7 @@ export function VocabularyCardView({
             >
               {card.term}
             </h3>
-            <p className="mt-3 text-sm font-semibold text-slate-500">{card.partOfSpeech}</p>
+            <p className="mt-3 text-sm font-semibold text-slate-500">{getPartOfSpeechLabel(card.termKind, locale)}</p>
             {!compact ? <p className="mt-5 text-lg font-semibold text-slate-800">{cardTranslation}</p> : null}
           </div>
 
@@ -251,8 +251,8 @@ export function VocabularyCardView({
 
             <div className="relative flex flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
-                <span className="text-xs font-semibold text-white/75">{TIER_LABELS[visibleBackTier]}</span>
-                <span className="text-xs font-semibold text-white/75">{LANGUAGE_NAMES[card.language]}</span>
+                <span className="text-xs font-semibold text-white/75">{getTierLabel(visibleBackTier, locale)}</span>
+                <span className="text-xs font-semibold text-white/75">{getLanguageDisplayName(card.language, locale)}</span>
               </div>
 
               <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -270,7 +270,7 @@ export function VocabularyCardView({
 
               <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75">
                 <span>Kartlarla Dil</span>
-                <span>Koleksiyon</span>
+                <span>{t("cards.collection")}</span>
               </div>
             </div>
           </div>

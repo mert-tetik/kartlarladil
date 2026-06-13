@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { ensureUserProfile } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -11,13 +13,14 @@ export async function GET(request: NextRequest) {
   const origin = requestUrl.origin;
   const code = requestUrl.searchParams.get("code");
   const nextPath = getSafeNextPath(requestUrl.searchParams.get("next"), DEFAULT_AUTH_REDIRECT);
+  const t = createTranslator(await getServerLocale());
 
   if (!hasSupabaseBrowserConfig()) {
-    return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent("Supabase ortam değişkenleri eksik.")}`);
+    return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(t("auth.message.notConfigured"))}`);
   }
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent("Auth callback kodu eksik.")}`);
+    return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(t("auth.message.callbackMissingCode"))}`);
   }
 
   const supabase = await createSupabaseServerClient();

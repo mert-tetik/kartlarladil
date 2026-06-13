@@ -1,7 +1,11 @@
+"use client";
+
 import { LANGUAGES } from "@/data/languages";
-import { TIERS, TIER_LABELS } from "@/data/tiers";
+import { TIERS } from "@/data/tiers";
 import { LanguageFlag } from "@/components/language-flag";
 import { FieldError } from "@/features/auth/components/form-message";
+import { getLanguageDisplayName, getTierLabel } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier } from "@/types/domain";
 
@@ -16,10 +20,13 @@ export function PreferenceFields({
   languageError?: string;
   tierError?: string;
 }) {
+  const { locale } = useLocale();
+  const t = useT();
+
   return (
     <div className="space-y-5">
       <fieldset>
-        <legend className="text-sm font-semibold text-slate-800">Hangi dili öğrenmek istiyorsun?</legend>
+        <legend className="text-sm font-semibold text-slate-800">{t("auth.preference.language")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {LANGUAGES.map((language) => (
             <label key={language.code} className="block">
@@ -39,7 +46,7 @@ export function PreferenceFields({
                 )}
               >
                 <LanguageFlag code={language.code} />
-                {language.name}
+                {getLanguageDisplayName(language.code, locale)}
               </span>
             </label>
           ))}
@@ -48,7 +55,7 @@ export function PreferenceFields({
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-slate-800">Hangi seviyeden başlayalım?</legend>
+        <legend className="text-sm font-semibold text-slate-800">{t("auth.preference.tier")}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {TIERS.map((tier) => (
             <label key={tier} className="block">
@@ -68,7 +75,7 @@ export function PreferenceFields({
                 )}
               >
                 <span>{tier}</span>
-                <span className="text-xs font-semibold opacity-70">{TIER_LABELS[tier]}</span>
+                <span className="text-xs font-semibold opacity-70">{getTierLabel(tier, locale)}</span>
               </span>
             </label>
           ))}

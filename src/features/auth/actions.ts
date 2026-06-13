@@ -15,14 +15,27 @@ import {
 } from "@/features/auth/auth-schemas";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { ensureUserProfile, getRequestOrigin } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { LocaleCode } from "@/types/domain";
 
-const AUTH_NOT_CONFIGURED_STATE: AuthActionState = {
-  status: "error",
-  message: "Supabase ortam değişkenleri eksik. .env.local dosyasını kontrol et.",
-};
+async function getActionText() {
+  const locale = await getServerLocale();
+  return {
+    locale,
+    t: createTranslator(locale),
+  };
+}
+
+function authNotConfiguredState(locale: LocaleCode): AuthActionState {
+  return {
+    status: "error",
+    message: createTranslator(locale)("auth.message.notConfigured"),
+  };
+}
 
 async function createActionSupabaseClient() {
   if (!hasSupabaseBrowserConfig()) {
@@ -33,6 +46,7 @@ async function createActionSupabaseClient() {
 }
 
 export async function loginAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = loginSchema.safeParse({
     email: getFormString(formData, "email"),
     password: getFormString(formData, "password"),
@@ -40,13 +54,13 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const { email, password } = parsed.data;
@@ -56,7 +70,7 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
   if (error) {
     return {
       status: "error",
-      message: "Email veya şifre hatalı.",
+      message: t("auth.message.invalidCredentials"),
     };
   }
 
@@ -73,24 +87,25 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
 }
 
 export async function registerAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = registerSchema.safeParse({
     email: getFormString(formData, "email"),
     password: getFormString(formData, "password"),
     displayName: getFormString(formData, "displayName"),
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
-    preferredUiLocale: getFormString(formData, "preferredUiLocale") || undefined,
+    preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const nextPath = getSafeNextPath(parsed.data.next, DEFAULT_AUTH_REDIRECT);
@@ -128,7 +143,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
         user_id: data.user.id,
         display_name: parsed.data.displayName,
         preferred_language_code: parsed.data.preferredLanguageCode,
-        preferred_ui_locale: parsed.data.preferredUiLocale ?? "tr",
+        preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
         preferred_tier: parsed.data.preferredTier,
         updated_at: new Date().toISOString(),
       },
@@ -140,23 +155,24 @@ export async function registerAction(_state: AuthActionState, formData: FormData
 
   return {
     status: "success",
-    message: "Kayıt alındı. Email doğrulaması açıksa gelen kutundaki bağlantıyla hesabını tamamla.",
+    message: t("auth.message.registerConfirmation"),
   };
 }
 
 export async function resetPasswordAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = resetPasswordSchema.safeParse({
     email: getFormString(formData, "email"),
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const origin = await getRequestOrigin();
@@ -173,24 +189,25 @@ export async function resetPasswordAction(_state: AuthActionState, formData: For
 
   return {
     status: "success",
-    message: "Şifre sıfırlama bağlantısı gönderildi. Gelen kutunu kontrol et.",
+    message: t("auth.message.resetSent"),
   };
 }
 
 export async function updatePasswordAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = updatePasswordSchema.safeParse({
     password: getFormString(formData, "password"),
     confirmPassword: getFormString(formData, "confirmPassword"),
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const {
@@ -201,7 +218,7 @@ export async function updatePasswordAction(_state: AuthActionState, formData: Fo
   if (userError || !user) {
     return {
       status: "error",
-      message: "Şifreyi güncellemek için tekrar giriş yapmalısın.",
+      message: t("auth.message.passwordAuthRequired"),
     };
   }
 
@@ -216,26 +233,27 @@ export async function updatePasswordAction(_state: AuthActionState, formData: Fo
 
   return {
     status: "success",
-    message: "Şifren güncellendi.",
+    message: t("auth.message.passwordUpdated"),
   };
 }
 
 export async function updateProfileAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = profileSchema.safeParse({
     displayName: getFormString(formData, "displayName"),
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
-    preferredUiLocale: getFormString(formData, "preferredUiLocale"),
+    preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const {
@@ -246,7 +264,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
   if (userError || !user) {
     return {
       status: "error",
-      message: "Profilini güncellemek için giriş yapmalısın.",
+      message: t("auth.message.profileAuthRequired"),
     };
   }
 
@@ -255,7 +273,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
       user_id: user.id,
       display_name: parsed.data.displayName,
       preferred_language_code: parsed.data.preferredLanguageCode,
-      preferred_ui_locale: parsed.data.preferredUiLocale ?? "tr",
+      preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
       preferred_tier: parsed.data.preferredTier,
       updated_at: new Date().toISOString(),
     },
@@ -274,7 +292,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
 
   return {
     status: "success",
-    message: "Profil ayarların kaydedildi.",
+    message: t("auth.message.profileSaved"),
   };
 }
 
@@ -290,18 +308,19 @@ export async function logoutAction() {
 }
 
 export async function deleteAccountAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
   const parsed = deleteAccountSchema.safeParse({
     confirmation: getFormString(formData, "confirmation"),
   });
 
   if (!parsed.success) {
-    return createValidationErrorState(parsed.error);
+    return createValidationErrorState(parsed.error, locale);
   }
 
   const supabase = await createActionSupabaseClient();
 
   if (!supabase) {
-    return AUTH_NOT_CONFIGURED_STATE;
+    return authNotConfiguredState(locale);
   }
 
   const {
@@ -312,7 +331,7 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
   if (userError || !user) {
     return {
       status: "error",
-      message: "Hesabı silmek için giriş yapmalısın.",
+      message: t("auth.message.deleteAuthRequired"),
     };
   }
 
@@ -323,7 +342,7 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Hesap silme için server secret key gerekli.",
+      message: error instanceof Error ? error.message : t("auth.message.deleteNeedsSecret"),
     };
   }
 

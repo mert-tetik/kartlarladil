@@ -3,8 +3,7 @@
 import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { BookOpenText, X } from "lucide-react";
-import { LANGUAGE_NAMES } from "@/data/languages";
-import { TIER_LABELS, TIER_STYLES } from "@/data/tiers";
+import { TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,6 +12,7 @@ import {
   getCardGrammar,
   getCardTranslation,
 } from "@/features/cards/card-localization";
+import { getExampleContextLabel, getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { VocabularyCard } from "@/types/domain";
 
@@ -75,10 +75,14 @@ export function CardDetailsDialog({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className={cn("border-transparent bg-white/80", style.text)}>
-                  {card.tier} · {TIER_LABELS[card.tier]}
+                  {card.tier} · {getTierLabel(card.tier, locale)}
                 </Badge>
-                <Badge className="border-transparent bg-white/80 text-slate-700">{LANGUAGE_NAMES[card.language]}</Badge>
-                <Badge className="border-transparent bg-white/80 text-slate-700">{card.partOfSpeech}</Badge>
+                <Badge className="border-transparent bg-white/80 text-slate-700">
+                  {getLanguageDisplayName(card.language, locale)}
+                </Badge>
+                <Badge className="border-transparent bg-white/80 text-slate-700">
+                  {getPartOfSpeechLabel(card.termKind, locale)}
+                </Badge>
               </div>
               <h2 id={titleId} className="mt-4 font-display text-3xl font-semibold leading-tight text-slate-950">
                 {card.term} {t("cards.details")}
@@ -113,7 +117,7 @@ export function CardDetailsDialog({
                 {card.examples.map((example) => (
                   <article key={example.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <Badge className="border-transparent bg-white text-slate-700">
-                      {example.translations[locale] ? example.label : example.label}
+                      {getExampleContextLabel(example.context, locale)}
                     </Badge>
                     <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{example.sentence}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{getCardExampleTranslation(example, locale)}</p>

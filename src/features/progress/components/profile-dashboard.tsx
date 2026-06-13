@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { BarChart3, BookOpen, Boxes, CheckCircle2, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
-import { TIER_LABELS, TIER_STYLES } from "@/data/tiers";
+import { TIER_STYLES } from "@/data/tiers";
 import type { AuthShellUser } from "@/features/auth/auth-types";
+import { getCardTranslation } from "@/features/cards/card-localization";
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -13,11 +14,21 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import {
+  formatNumber,
+  formatPoints,
+  getLanguageDisplayName,
+  getRankLabel,
+  getTierLabel,
+} from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 
 export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const { stats, loading, error } = useProgressStats();
   const cards = useInventoryStore((state) => state.cards);
   const attempts = useInventoryStore((state) => state.attempts);
+  const { locale } = useLocale();
+  const t = useT();
   const joinedCards = joinInventoryCards(cards);
   const learnedCards = joinedCards
     .filter((item) => item.inventory.status === "learned")
@@ -26,7 +37,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const cardById = new Map(joinedCards.map((item) => [item.card.id, item.card]));
 
   if (loading) {
-    return <EmptyState icon={BarChart3} title="Profil hazırlanıyor" description="Puanların ve kart istatistiklerin okunuyor." />;
+    return <EmptyState icon={BarChart3} title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
   }
 
   return (
@@ -41,30 +52,35 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex size-16 items-center justify-center rounded-lg bg-slate-950 text-2xl font-bold text-white">
-              {(user.profile.displayName?.[0] ?? user.email[0]).toLocaleUpperCase("tr")}
+              {(user.profile.displayName?.[0] ?? user.email[0]).toLocaleUpperCase(locale)}
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-500">{user.email}</p>
               <h2 className="mt-1 font-display text-4xl font-semibold text-slate-950">
-                {user.profile.displayName || "Profil"}
+                {user.profile.displayName || t("profile.fallbackName")}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">{stats.rank.label}</p>
+              <p className="mt-2 text-sm text-slate-600">{getRankLabel(stats.rank, locale)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[520px]">
-            <StatTile icon={Trophy} label="Puan" value={stats.totalPoints.toLocaleString("tr-TR")} />
-            <StatTile icon={CheckCircle2} label="Öğrenildi" value={String(stats.learnedCards)} />
-            <StatTile icon={Boxes} label="Havuz" value={String(stats.totalCards)} />
-            <StatTile icon={BookOpen} label="Aktif" value={String(stats.activeCards)} />
+            <StatTile icon={Trophy} label={t("profile.points")} value={formatNumber(locale, stats.totalPoints)} />
+            <StatTile icon={CheckCircle2} label={t("profile.learned")} value={formatNumber(locale, stats.learnedCards)} />
+            <StatTile icon={Boxes} label={t("profile.pool")} value={formatNumber(locale, stats.totalCards)} />
+            <StatTile icon={BookOpen} label={t("profile.active")} value={formatNumber(locale, stats.activeCards)} />
           </div>
         </div>
 
         <div className="mt-6">
           <div className="flex items-center justify-between gap-3 text-sm font-semibold">
-            <span className="text-slate-700">{stats.rank.label}</span>
+            <span className="text-slate-700">{getRankLabel(stats.rank, locale)}</span>
             <span className="text-slate-500">
-              {stats.nextRank ? `${stats.nextRank.label} için ${stats.pointsToNextRank} puan` : "Son rank"}
+              {stats.nextRank
+                ? t("profile.nextRank", {
+                    rank: getRankLabel(stats.nextRank, locale),
+                    points: formatNumber(locale, stats.pointsToNextRank),
+                  })
+                : t("profile.finalRank")}
             </span>
           </div>
           <Progress value={stats.rankProgressPercent} indicatorClassName="bg-slate-950" className="mt-3" />
@@ -73,7 +89,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">Tier koleksiyonu</h3>
+          <h3 className="font-semibold text-slate-950">{t("profile.tierCollection")}</h3>
           <div className="mt-4 grid grid-cols-5 gap-2">
             {stats.tierStats.map((tier) => {
               const style = TIER_STYLES[tier.tier];
@@ -81,9 +97,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
               return (
                 <div key={tier.tier} className={cn("rounded-lg border bg-gradient-to-br p-3 text-center", style.border, style.surface)}>
                   <span className={cn("text-sm font-bold", style.text)}>{tier.tier}</span>
-                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{TIER_LABELS[tier.tier]}</p>
-                  <p className="mt-3 text-2xl font-bold text-slate-950">{tier.learned}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{tier.points} puan</p>
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{getTierLabel(tier.tier, locale)}</p>
+                  <p className="mt-3 text-2xl font-bold text-slate-950">{formatNumber(locale, tier.learned)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{formatPoints(locale, tier.points)}</p>
                 </div>
               );
             })}
@@ -91,7 +107,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">Dil ilerlemesi</h3>
+          <h3 className="font-semibold text-slate-950">{t("profile.languageProgress")}</h3>
           <div className="mt-4 space-y-3">
             {stats.languageStats.map((language) => {
               const meta = LANGUAGES.find((item) => item.code === language.language)!;
@@ -101,10 +117,15 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                 <div key={language.language} className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-950">{meta.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">{language.learned}/{language.total} kart</p>
+                      <p className="font-semibold text-slate-950">{getLanguageDisplayName(meta.code, locale)}</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        {t("profile.languageCardCount", {
+                          learned: formatNumber(locale, language.learned),
+                          total: formatNumber(locale, language.total),
+                        })}
+                      </p>
                     </div>
-                    <Badge>{language.points} puan</Badge>
+                    <Badge>{formatPoints(locale, language.points)}</Badge>
                   </div>
                   <Progress value={percent} className="mt-3" />
                 </div>
@@ -117,9 +138,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold text-slate-950">Son öğrenilen kartlar</h3>
+            <h3 className="font-semibold text-slate-950">{t("profile.recentLearned")}</h3>
             <Link href="/ogrenilenler" className={buttonClassName("secondary", "sm")}>
-              Tümünü gör
+              {t("common.viewAll")}
             </Link>
           </div>
           <div className="mt-4 space-y-2">
@@ -128,20 +149,20 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                 <div key={card.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div>
                     <p className="font-display text-xl font-semibold text-slate-950">{card.term}</p>
-                    <p className="mt-1 text-sm text-slate-500">{card.translation}</p>
+                    <p className="mt-1 text-sm text-slate-500">{getCardTranslation(card, locale)}</p>
                   </div>
                   <Badge className={TIER_STYLES[card.tier].text}>{card.tier}</Badge>
                   <span className="sr-only">{inventory.learnedAt}</span>
                 </div>
               ))
             ) : (
-              <EmptyInline message="Henüz öğrenilmiş kart yok." />
+              <EmptyInline message={t("profile.noLearned")} />
             )}
           </div>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">Son alıştırmalar</h3>
+          <h3 className="font-semibold text-slate-950">{t("profile.recentAttempts")}</h3>
           <div className="mt-4 space-y-2">
             {attempts.slice(0, 8).length > 0 ? (
               attempts.slice(0, 8).map((attempt) => {
@@ -152,15 +173,17 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-slate-950">{card?.term ?? attempt.cardId}</p>
                       <Badge className={attempt.isCorrect ? "text-emerald-700" : "text-rose-700"}>
-                        {attempt.isCorrect ? "Doğru" : "Yanlış"}
+                        {attempt.isCorrect ? t("common.correct") : t("common.incorrect")}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">Cevap: {attempt.selectedAnswer}</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {t("common.answer")}: {attempt.selectedAnswer}
+                    </p>
                   </div>
                 );
               })
             ) : (
-              <EmptyInline message="Henüz alıştırma kaydı yok." />
+              <EmptyInline message={t("profile.noAttempts")} />
             )}
           </div>
         </div>

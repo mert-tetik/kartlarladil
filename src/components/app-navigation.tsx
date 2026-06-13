@@ -39,7 +39,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
           </Link>
 
-          <nav aria-label="Üst menü" className="hidden items-center gap-1 lg:flex">
+          <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-1 lg:flex">
             {navItems.slice(1).map((item) => (
               <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
                 {t(item.labelKey)}
@@ -72,7 +72,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         </div>
       </header>
 
-      <nav aria-label="Mobil ana menü" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
+      <nav aria-label={t("nav.mobileMenu")} className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
         <div className="grid grid-cols-5">
           {navItems.map((item) => {
             const Icon = item.icon;

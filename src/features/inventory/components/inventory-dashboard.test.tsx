@@ -1,13 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { InventoryDashboard } from "@/features/inventory/components/inventory-dashboard";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { LocaleProvider } from "@/i18n/locale-provider";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/kartlarim",
   useRouter: () => ({
     push: vi.fn(),
+    refresh: vi.fn(),
   }),
 }));
 
@@ -34,13 +37,15 @@ describe("InventoryDashboard", () => {
 
   it("shows country flags in the language buttons", () => {
     render(
-      <AuthSessionProvider user={null}>
-        <InventoryDashboard />
-      </AuthSessionProvider>,
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <InventoryDashboard />
+        </AuthSessionProvider>
+      </LocaleProvider>,
     );
 
-    expect(screen.getByRole("img", { name: /İngilizce bayrağı/ })).toBeVisible();
-    expect(screen.getByRole("img", { name: /Almanca bayrağı/ })).toBeVisible();
-    expect(screen.getByRole("img", { name: /Rusça bayrağı/ })).toBeVisible();
+    expect(screen.getByRole("img", { name: LANGUAGE_BY_CODE.en.nativeName })).toBeVisible();
+    expect(screen.getByRole("img", { name: LANGUAGE_BY_CODE.de.nativeName })).toBeVisible();
+    expect(screen.getByRole("img", { name: LANGUAGE_BY_CODE.ru.nativeName })).toBeVisible();
   });
 });

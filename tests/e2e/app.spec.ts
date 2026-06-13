@@ -21,9 +21,10 @@ test("landing page explains the product", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Kart çekmeye başla/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Giriş yap" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Kayıt ol" })).toBeVisible();
-  await expect(page.getByLabel("Desteklenen diller").getByLabel("İngilizce bayrağı")).toBeVisible();
-  await expect(page.getByLabel("Desteklenen diller").getByLabel("Almanca bayrağı")).toBeVisible();
-  await expect(page.getByLabel("Desteklenen diller").getByLabel("Rusça bayrağı")).toBeVisible();
+  const supportedLanguageFlags = page.getByLabel("Desteklenen diller").getByRole("img");
+  await expect(supportedLanguageFlags).toHaveCount(14);
+  await expect(page.getByLabel("Desteklenen diller").getByRole("img", { name: "English" })).toBeVisible();
+  await expect(page.getByLabel("Desteklenen diller").getByRole("img", { name: "Deutsch" })).toBeVisible();
   await expect(page.getByText("450 tek kelimelik kart")).toHaveCount(0);
   await expect(page.getByText("5 tier")).toHaveCount(0);
   await expect(page.getByText("Otomatik öğrenme takibi")).toHaveCount(0);
@@ -179,9 +180,8 @@ test("auth pages render public forms with password visibility toggles and prefer
   await expect(page.getByRole("heading", { name: "Kayıt ol" }).first()).toBeVisible();
   await expect(page.getByText("Hangi dili öğrenmek istiyorsun?")).toBeVisible();
   await expect(page.getByText("Hangi seviyeden başlayalım?")).toBeVisible();
-  await expect(page.getByLabel("İngilizce bayrağı")).toBeVisible();
-  await expect(page.getByLabel("Almanca bayrağı")).toBeVisible();
-  await expect(page.getByLabel("Rusça bayrağı")).toBeVisible();
+  await expect(page.getByRole("img", { name: "English" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Deutsch" })).toBeVisible();
   await expect(page.locator('input[name="preferredLanguageCode"][value="en"]')).toBeChecked();
   await expect(page.locator('input[name="preferredTier"][value="A1"]')).toBeChecked();
   await expect(page.getByLabel("Görünen ad")).toBeVisible();

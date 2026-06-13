@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { ArrowRight, Brain, CheckCircle2, Coins, Layers3, Search, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
-import { TIERS, TIER_LABELS, TIER_STYLES } from "@/data/tiers";
+import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { buttonClassName } from "@/components/ui/button";
 import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
+import { createTranslator } from "@/i18n/dictionaries";
+import { formatNumber, formatPoints, getLanguageDisplayName, getRankLabel, getTierLabel } from "@/i18n/labels";
+import { getServerLocale } from "@/i18n/server";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type HeroCardFace = "front" | "back";
@@ -19,41 +22,43 @@ const previewCards = [
 ].filter((card): card is VocabularyCard => Boolean(card));
 
 const heroBackdropCards = [
-  pickPreviewCard("en", "A1", "apple"),
-  pickPreviewCard("de", "A1", "Wasser"),
+  pickPreviewCard("en", "A1"),
+  pickPreviewCard("de", "A1"),
   pickPreviewCard("ru", "A1"),
-  pickPreviewCard("en", "B1", "decision"),
-  pickPreviewCard("de", "B1"),
-  pickPreviewCard("ru", "B1"),
-  pickPreviewCard("en", "A2", "ticket"),
-  pickPreviewCard("de", "A2"),
-  pickPreviewCard("ru", "A2"),
-  pickPreviewCard("en", "C1"),
-  pickPreviewCard("de", "C1"),
-  pickPreviewCard("ru", "C1"),
+  pickPreviewCard("fr", "B1"),
+  pickPreviewCard("es", "B1"),
+  pickPreviewCard("it", "B1"),
+  pickPreviewCard("pt", "A2"),
+  pickPreviewCard("nl", "A2"),
+  pickPreviewCard("pl", "A2"),
+  pickPreviewCard("ar", "C1"),
+  pickPreviewCard("ja", "C1"),
+  pickPreviewCard("zh-CN", "C1"),
 ].filter((card): card is VocabularyCard => Boolean(card));
 
 const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
 
-const featureItems = [
-  {
-    icon: Search,
-    title: "Kelime keşfi",
-    description: "Kelime arayarak veya 5-10 kart çekerek yeni kartları haznene eklersin.",
-  },
-  {
-    icon: Layers3,
-    title: "Dil envanteri",
-    description: "İngilizce, Almanca ve Rusça kartların ayrı koleksiyonlarda düzenli kalır.",
-  },
-  {
-    icon: Brain,
-    title: "Quiz ile öğrenme",
-    description: "Kartlar sadece doğru cevap sayısı tier eşiğine ulaşınca öğrenildi olur.",
-  },
-];
+export default async function Home() {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  const featureItems = [
+    {
+      icon: Search,
+      title: t("home.feature.discovery.title"),
+      description: t("home.feature.discovery.description"),
+    },
+    {
+      icon: Layers3,
+      title: t("home.feature.inventory.title"),
+      description: t("home.feature.inventory.description"),
+    },
+    {
+      icon: Brain,
+      title: t("home.feature.quiz.title"),
+      description: t("home.feature.quiz.description"),
+    },
+  ];
 
-export default function Home() {
   return (
     <>
       <section className="relative isolate min-h-[76vh] overflow-hidden bg-slate-950 text-white">
@@ -65,21 +70,18 @@ export default function Home() {
 
         <div className="relative mx-auto flex min-h-[76vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">Kartlarla Dil</h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
-              Kelimeleri tek tek ezberlemek yerine koleksiyon kartlarına dönüştür. Kart çek, haznene ekle, quiz çöz
-              ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.
-            </p>
+            <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
-                Kart çekmeye başla
+                {t("home.hero.primaryCta")}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
               <Link href="/kartlarim" className={buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20")}>
-                Envanteri gör
+                {t("home.hero.secondaryCta")}
               </Link>
             </div>
-            <div className="mt-5 flex items-center gap-3" aria-label="Desteklenen diller">
+            <div className="mt-5 flex items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
               {LANGUAGES.map((language) => (
                 <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-white/60" />
               ))}
@@ -109,15 +111,12 @@ export default function Home() {
       <section data-collection-preview-section className="bg-slate-50">
         <div className="mx-auto grid w-full max-w-[1500px] items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-10 lg:px-8">
           <div>
-            <h2 className="font-display text-4xl font-semibold text-slate-950">Kartlar fiziksel bir koleksiyon gibi çalışır.</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Her kartın dili, seviyesi, telaffuzu, Türkçe karşılığı ve örnek cümlesi vardır. Kartlar haznene
-              eklendikten sonra doğru cevap sayısı tier eşiğine göre takip edilir.
-            </p>
+            <h2 className="font-display text-4xl font-semibold text-slate-950">{t("home.collection.title")}</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">{t("home.collection.description")}</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {LANGUAGES.map((language) => (
                 <div key={language.code} className="rounded-lg border border-slate-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-slate-950">{language.name}</p>
+                  <p className="text-sm font-semibold text-slate-950">{getLanguageDisplayName(language.code, locale)}</p>
                   <p className="mt-1 text-sm text-slate-500">{language.nativeName}</p>
                 </div>
               ))}
@@ -126,7 +125,7 @@ export default function Home() {
               {TIERS.map((tier) => (
                 <div key={tier} className="rounded-md border border-slate-200 bg-white p-3 text-center">
                   <p className="text-sm font-semibold text-slate-950">{tier}</p>
-                  <p className="mt-1 text-xs text-slate-500">{TIER_LABELS[tier]}</p>
+                  <p className="mt-1 text-xs text-slate-500">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
             </div>
@@ -135,11 +134,7 @@ export default function Home() {
           <div data-collection-preview-deck className="min-w-0 self-center overflow-x-auto lg:overflow-visible">
             <div className="grid w-full min-w-[360px] grid-cols-2 items-center gap-3 sm:min-w-[640px] sm:grid-cols-3 sm:gap-4 lg:min-w-[650px] lg:gap-5 xl:min-w-[760px]">
               {previewCards.map((card, index) => (
-                <div
-                  key={card.id}
-                  data-collection-preview-card
-                  className={index === 2 ? "hidden sm:block" : undefined}
-                >
+                <div key={card.id} data-collection-preview-card className={index === 2 ? "hidden sm:block" : undefined}>
                   <VocabularyCardView card={card} compact />
                 </div>
               ))}
@@ -152,9 +147,9 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              ["1", "Kart seç", "Arama veya rastgele çekme ile haznene yeni kartlar ekle."],
-              ["2", "Çeviriyi bil", "Öğren ekranında yabancı kelime gösterilir, Türkçe karşılığı sorulur."],
-              ["3", "Eşiği tamamla", "Tier eşiğini dolduran kart otomatik öğrenildi olur."],
+              ["1", t("home.steps.one.title"), t("home.steps.one.description")],
+              ["2", t("home.steps.two.title"), t("home.steps.two.description")],
+              ["3", t("home.steps.three.title"), t("home.steps.three.description")],
             ].map(([step, title, description]) => (
               <article key={step} className="rounded-lg border border-slate-200 bg-slate-50 p-6">
                 <div className="flex size-10 items-center justify-center rounded-md bg-slate-950 text-sm font-bold text-white">
@@ -174,11 +169,8 @@ export default function Home() {
             <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white">
               <Coins className="size-6" aria-hidden="true" />
             </div>
-            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950">Puan kazandıkça rank atla.</h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-              Bir kart yalnızca quiz eşiği tamamlanınca öğrenilmiş sayılır ve puan verir. Zor tier daha yüksek puan
-              kazandırır; toplam puanın arttıkça navbar, profil menüsü ve profil sayfasındaki rankın otomatik yükselir.
-            </p>
+            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950">{t("home.points.title")}</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">{t("home.points.description")}</p>
           </div>
 
           <div className="grid min-w-0 gap-4">
@@ -189,8 +181,8 @@ export default function Home() {
                     <span className={`text-sm font-semibold ${TIER_STYLES[tier].text}`}>{tier}</span>
                     <span className={`size-2.5 rounded-full ${TIER_STYLES[tier].accent}`} aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-lg font-semibold text-slate-950">{TIER_POINTS[tier]} puan</p>
-                  <p className="mt-1 text-xs text-slate-500">{TIER_LABELS[tier]}</p>
+                  <p className="mt-3 text-lg font-semibold text-slate-950">{formatPoints(locale, TIER_POINTS[tier])}</p>
+                  <p className="mt-1 text-xs text-slate-500">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
             </div>
@@ -198,11 +190,11 @@ export default function Home() {
             <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-950">Rank yolu</p>
-                  <p className="mt-1 text-xs text-slate-500">10 rank, 0 puandan 18.000 puana kadar ilerler.</p>
+                  <p className="text-sm font-semibold text-slate-950">{t("home.rankRoad.title")}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t("home.rankRoad.description")}</p>
                 </div>
                 <p className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
-                  Öğrenilen kartlardan hesaplanır
+                  {t("home.rankRoad.calculated")}
                 </p>
               </div>
 
@@ -213,12 +205,10 @@ export default function Home() {
                       <div className="mx-auto flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
                         <RankIcon icon={rank.icon} className={`size-5 ${getRankIconTone(rank.icon)}`} />
                       </div>
-                      <p className="mt-2 truncate text-xs font-semibold text-slate-950" title={rank.label}>
-                        {rank.label}
+                      <p className="mt-2 truncate text-xs font-semibold text-slate-950" title={getRankLabel(rank, locale)}>
+                        {getRankLabel(rank, locale)}
                       </p>
-                      <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                        {rank.minPoints.toLocaleString("tr-TR")}
-                      </p>
+                      <p className="mt-1 text-[11px] font-semibold text-slate-500">{formatNumber(locale, rank.minPoints)}</p>
                     </div>
                   ))}
                 </div>
@@ -233,14 +223,12 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-3">
               <Trophy className="size-6 text-amber-300" aria-hidden="true" />
-              <h2 className="font-display text-3xl font-semibold">Koleksiyonunu büyüt.</h2>
+              <h2 className="font-display text-3xl font-semibold">{t("home.cta.title")}</h2>
             </div>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              Giriş yapan kullanıcılar puan, rank ve kart ilerlemesini Supabase üzerinde kalıcı olarak takip eder.
-            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{t("home.cta.description")}</p>
           </div>
           <Link href="/kart-cek" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
-            Kart çek
+            {t("nav.cardDraw")}
             <CheckCircle2 className="size-4" aria-hidden="true" />
           </Link>
         </div>

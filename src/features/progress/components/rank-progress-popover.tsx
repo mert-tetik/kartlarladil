@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
+import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
@@ -14,6 +16,8 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats);
+  const { locale } = useLocale();
+  const t = useT();
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -40,7 +44,7 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
     <div ref={rootRef} className="relative block">
       <button
         type="button"
-        aria-label="Rank ilerlemesini göster"
+        aria-label={t("rank.showProgress")}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((current) => !current)}
@@ -50,7 +54,7 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
         )}
       >
         <RankIcon icon={displayStats.rank.icon} className={cn("size-4", getRankIconTone(displayStats.rank.icon))} />
-        <span className="hidden min-[390px]:inline">{displayStats.rank.label}</span>
+        <span className="hidden min-[390px]:inline">{getRankLabel(displayStats.rank, locale)}</span>
         <span className="hidden text-slate-400 min-[390px]:inline">/</span>
         <span className="relative inline-flex min-w-4 justify-start min-[390px]:min-w-10">
           {scoreGain > 0 ? (
@@ -59,11 +63,11 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
               aria-live="polite"
               className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-amber-500"
             >
-              +{scoreGain.toLocaleString("tr-TR")}
+              +{formatNumber(locale, scoreGain)}
             </span>
           ) : null}
-          <span className="min-[390px]:hidden">{displayStats.totalPoints.toLocaleString("tr-TR")}</span>
-          <span className="hidden min-[390px]:inline">{displayStats.totalPoints.toLocaleString("tr-TR")} puan</span>
+          <span className="min-[390px]:hidden">{formatNumber(locale, displayStats.totalPoints)}</span>
+          <span className="hidden min-[390px]:inline">{formatPoints(locale, displayStats.totalPoints)}</span>
         </span>
       </button>
 
@@ -80,20 +84,23 @@ export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
       ) : open ? (
         <div
           role="dialog"
-          aria-label="Rank ilerlemesi"
+          aria-label={t("rank.progress")}
           className="absolute right-0 top-11 z-50 w-[min(92vw,560px)] rounded-lg border border-slate-200 bg-white p-4 text-sm shadow-sm"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-semibold text-slate-950">{stats.rank.label}</p>
+              <p className="font-semibold text-slate-950">{getRankLabel(stats.rank, locale)}</p>
               <p className="mt-1 text-xs font-semibold text-slate-500">
                 {stats.nextRank
-                  ? `${stats.nextRank.label} için ${stats.pointsToNextRank.toLocaleString("tr-TR")} puan kaldı`
-                  : "En yüksek rank tamamlandı"}
+                  ? t("rank.next", {
+                      rank: getRankLabel(stats.nextRank, locale),
+                      points: formatNumber(locale, stats.pointsToNextRank),
+                    })
+                  : t("rank.completed")}
               </p>
             </div>
             <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-white">
-              {stats.totalPoints.toLocaleString("tr-TR")} puan
+              {formatPoints(locale, stats.totalPoints)}
             </div>
           </div>
 
@@ -183,15 +190,18 @@ function RankUpMenu({
   onClose: () => void;
   onViewRanks: () => void;
 }) {
+  const { locale } = useLocale();
+  const t = useT();
+
   return (
     <div
       role="dialog"
-      aria-label="Rank atladın"
+      aria-label={t("rank.up")}
       className="rank-up-menu absolute right-0 top-11 z-50 w-[min(92vw,340px)] rounded-lg border border-amber-200 bg-white p-4 text-sm shadow-sm"
     >
       <button
         type="button"
-        aria-label="Rank atlama menüsünü kapat"
+        aria-label={t("rank.closeUp")}
         onClick={onClose}
         className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950"
       >
@@ -203,15 +213,15 @@ function RankUpMenu({
           <RankIcon icon={rank.icon} className={cn("size-6", getRankIconTone(rank.icon))} />
         </div>
         <div>
-          <p className="font-semibold text-slate-950">Rank atladın</p>
-          <p className="mt-1 text-xs font-semibold text-slate-500">Şu anki rankin</p>
-          <p className="mt-2 text-lg font-semibold text-slate-950">{rank.label}</p>
+          <p className="font-semibold text-slate-950">{t("rank.up")}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{t("rank.current")}</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950">{getRankLabel(rank, locale)}</p>
         </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
-        <span className="text-xs font-semibold text-slate-500">Toplam puan</span>
-        <span className="text-xs font-bold text-slate-950">{points.toLocaleString("tr-TR")} puan</span>
+        <span className="text-xs font-semibold text-slate-500">{t("rank.totalPoints")}</span>
+        <span className="text-xs font-bold text-slate-950">{formatPoints(locale, points)}</span>
       </div>
 
       <button
@@ -219,7 +229,7 @@ function RankUpMenu({
         onClick={onViewRanks}
         className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
       >
-        Rankleri gör
+        {t("rank.viewRanks")}
       </button>
     </div>
   );
@@ -234,8 +244,10 @@ function RankStep({
   currentRankId: string;
   points: number;
 }) {
+  const { locale } = useLocale();
   const achieved = points >= rank.minPoints;
   const current = rank.id === currentRankId;
+  const label = getRankLabel(rank, locale);
 
   return (
     <li className="flex min-w-0 flex-col items-center text-center">
@@ -245,15 +257,15 @@ function RankStep({
           achieved ? "border-slate-950 text-slate-950" : "border-slate-200 text-slate-400",
           current && "ring-2 ring-slate-950 ring-offset-2",
         )}
-        title={`${rank.label}: ${rank.minPoints.toLocaleString("tr-TR")} puan`}
+        title={`${label}: ${formatPoints(locale, rank.minPoints)}`}
       >
         <RankIcon icon={rank.icon} className={cn("size-5", achieved && getRankIconTone(rank.icon))} />
-        <span className="sr-only">{rank.label}</span>
+        <span className="sr-only">{label}</span>
       </div>
       <p className={cn("mt-3 text-[11px] font-semibold leading-4", current ? "text-slate-950" : "text-slate-500")}>
-        {rank.label}
+        {label}
       </p>
-      <p className="mt-1 text-[11px] font-semibold text-slate-400">{rank.minPoints.toLocaleString("tr-TR")}</p>
+      <p className="mt-1 text-[11px] font-semibold text-slate-400">{formatNumber(locale, rank.minPoints)}</p>
     </li>
   );
 }

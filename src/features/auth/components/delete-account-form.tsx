@@ -7,20 +7,23 @@ import { DELETE_ACCOUNT_CONFIRMATION } from "@/features/auth/auth-schemas";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
 import { SubmitButton } from "@/features/auth/components/submit-button";
+import { useT } from "@/i18n/locale-provider";
 
 export function DeleteAccountForm({ email }: { email: string }) {
   const [confirmation, setConfirmation] = useState("");
   const [state, formAction] = useActionState(deleteAccountAction, AUTH_ACTION_IDLE_STATE);
+  const t = useT();
   const confirmationMatches = confirmation.trim() === DELETE_ACCOUNT_CONFIRMATION;
-  const label = useMemo(() => `${email} hesabını kalıcı olarak sil`, [email]);
+  const label = useMemo(
+    () => t("auth.delete.aria", { email }),
+    [email, t],
+  );
 
   return (
     <form action={formAction} className="rounded-lg border border-rose-200 bg-rose-50 p-6" aria-label={label}>
       <div>
-        <h2 className="text-xl font-semibold text-rose-950">Tehlikeli alan</h2>
-        <p className="mt-2 text-sm leading-6 text-rose-800">
-          Hesap silme kalıcıdır. Auth kullanıcısı silinince profil, envanter ve alıştırma kayıtları cascade ile temizlenir.
-        </p>
+        <h2 className="text-xl font-semibold text-rose-950">{t("auth.delete.title")}</h2>
+        <p className="mt-2 text-sm leading-6 text-rose-800">{t("auth.delete.description")}</p>
       </div>
 
       <div className="mt-6 space-y-5">
@@ -28,7 +31,7 @@ export function DeleteAccountForm({ email }: { email: string }) {
 
         <label className="block">
           <span className="text-sm font-semibold text-rose-950">
-            Onaylamak için {DELETE_ACCOUNT_CONFIRMATION} yaz
+            {t("auth.delete.confirmation", { confirmation: DELETE_ACCOUNT_CONFIRMATION })}
           </span>
           <input
             className={inputClassName}
@@ -41,8 +44,8 @@ export function DeleteAccountForm({ email }: { email: string }) {
           <FieldError message={state.fieldErrors?.confirmation?.[0]} />
         </label>
 
-        <SubmitButton variant="danger" pendingLabel="Siliniyor" disabled={!confirmationMatches}>
-          Hesabı kalıcı sil
+        <SubmitButton variant="danger" pendingLabel={t("auth.delete.pending")} disabled={!confirmationMatches}>
+          {t("auth.delete.submit")}
         </SubmitButton>
       </div>
     </form>

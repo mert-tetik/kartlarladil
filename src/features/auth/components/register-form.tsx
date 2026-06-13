@@ -7,9 +7,11 @@ import { FieldError, FormMessage, inputClassName } from "@/features/auth/compone
 import { PasswordInput } from "@/features/auth/components/password-input";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
+import { useT } from "@/i18n/locale-provider";
 
 export function RegisterForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(registerAction, AUTH_ACTION_IDLE_STATE);
+  const t = useT();
 
   return (
     <form action={formAction} className="space-y-5">
@@ -24,25 +26,25 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       />
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">Görünen ad</span>
+        <span className="text-sm font-semibold text-slate-800">{t("common.displayName")}</span>
         <input className={inputClassName} name="displayName" type="text" autoComplete="name" />
         <FieldError message={state.fieldErrors?.displayName?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">Email</span>
+        <span className="text-sm font-semibold text-slate-800">{t("common.email")}</span>
         <input className={inputClassName} name="email" type="email" autoComplete="email" required />
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">Şifre</span>
+        <span className="text-sm font-semibold text-slate-800">{t("common.password")}</span>
         <PasswordInput name="password" autoComplete="new-password" required />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </label>
 
-      <SubmitButton className="w-full" pendingLabel="Hesap açılıyor">
-        Kayıt ol
+      <SubmitButton className="w-full" pendingLabel={t("auth.register.pending")}>
+        {t("auth.register.title")}
       </SubmitButton>
     </form>
   );
