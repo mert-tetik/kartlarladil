@@ -60,6 +60,7 @@ test("landing page explains the product", async ({ page }) => {
 
         return {
           bottom: Math.round(rect.bottom),
+          face: card.getAttribute("data-card-face"),
           height: Math.round(rect.height),
           left: Math.round(rect.left),
           right: Math.round(rect.right),
@@ -90,6 +91,7 @@ test("landing page explains the product", async ({ page }) => {
       gapSpread: Math.max(...horizontalGaps) - Math.min(...horizontalGaps),
       minCardHeight: Math.min(...firstSetRects.map((rect) => rect.height)),
       minCardWidth: Math.min(...firstSetRects.map((rect) => rect.width)),
+      rowBackCounts: firstRows.map((row) => row.filter((rect) => rect.face === "back").length),
       rowCount: firstRows.length,
       rowLengths: firstRows.map((row) => row.length),
       verticalCenterOffset: Math.round(
@@ -100,6 +102,7 @@ test("landing page explains the product", async ({ page }) => {
   });
   expect(backdropLayoutMetrics.rowCount).toBe(2);
   expect(backdropLayoutMetrics.rowLengths).toEqual([12, 12]);
+  expect(backdropLayoutMetrics.rowBackCounts.every((count) => count > 0)).toBe(true);
   expect(backdropLayoutMetrics.minCardWidth).toBeGreaterThanOrEqual(240);
   expect(backdropLayoutMetrics.minCardHeight).toBeGreaterThanOrEqual(320);
   expect(backdropLayoutMetrics.verticalCenterOffset).toBeLessThanOrEqual(2);

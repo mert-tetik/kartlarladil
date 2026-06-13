@@ -8,6 +8,8 @@ import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
+type HeroCardFace = "front" | "back";
+
 const previewCards = [
   pickPreviewCard("en", "A1"),
   pickPreviewCard("en", "B1"),
@@ -15,19 +17,19 @@ const previewCards = [
 ].filter((card): card is VocabularyCard => Boolean(card));
 
 const heroBackdropCards = [
-  { card: pickPreviewCard("en", "A1", "apple"), face: "front" },
-  { card: pickPreviewCard("de", "A1", "Wasser"), face: "back" },
-  { card: pickPreviewCard("ru", "A1"), face: "front" },
-  { card: pickPreviewCard("en", "B1", "decision"), face: "back" },
-  { card: pickPreviewCard("de", "B1"), face: "front" },
-  { card: pickPreviewCard("ru", "B1"), face: "back" },
-  { card: pickPreviewCard("en", "A2", "ticket"), face: "front" },
-  { card: pickPreviewCard("de", "A2"), face: "back" },
-  { card: pickPreviewCard("ru", "A2"), face: "front" },
-  { card: pickPreviewCard("en", "C1"), face: "back" },
-  { card: pickPreviewCard("de", "C1"), face: "front" },
-  { card: pickPreviewCard("ru", "C1"), face: "back" },
-].filter((item): item is { card: VocabularyCard; face: "front" | "back" } => Boolean(item.card));
+  pickPreviewCard("en", "A1", "apple"),
+  pickPreviewCard("de", "A1", "Wasser"),
+  pickPreviewCard("ru", "A1"),
+  pickPreviewCard("en", "B1", "decision"),
+  pickPreviewCard("de", "B1"),
+  pickPreviewCard("ru", "B1"),
+  pickPreviewCard("en", "A2", "ticket"),
+  pickPreviewCard("de", "A2"),
+  pickPreviewCard("ru", "A2"),
+  pickPreviewCard("en", "C1"),
+  pickPreviewCard("de", "C1"),
+  pickPreviewCard("ru", "C1"),
+].filter((card): card is VocabularyCard => Boolean(card));
 
 const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
 
@@ -178,9 +180,8 @@ export default function Home() {
 }
 
 function CardBackdrop() {
-  const randomizedBackTiers = createRandomBackTierSequence(
-    heroBackdropCards.filter((item) => item.face === "back").length * HERO_BACKDROP_SEQUENCE_REPEATS,
-  );
+  const faceSequence = createRandomFaceSequence(heroBackdropCards.length * HERO_BACKDROP_SEQUENCE_REPEATS);
+  const randomizedBackTiers = createRandomBackTierSequence(faceSequence.filter((face) => face === "back").length);
 
   return (
     <div
@@ -196,7 +197,7 @@ function CardBackdrop() {
             data-hero-card-backdrop-set
             className="grid h-full shrink-0 auto-cols-[var(--hero-card-width)] grid-flow-col content-center gap-x-[var(--hero-card-gap)] gap-y-[var(--hero-card-row-gap)] pr-[var(--hero-card-gap)] [grid-template-rows:repeat(2,max-content)]"
           >
-            {renderHeroBackdropCards(randomizedBackTiers)}
+            {renderHeroBackdropCards(faceSequence, randomizedBackTiers)}
           </div>
         ))}
       </div>
@@ -204,11 +205,13 @@ function CardBackdrop() {
   );
 }
 
-function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
+function renderHeroBackdropCards(faceSequence: HeroCardFace[], randomizedBackTiers: Tier[]) {
   let backTierIndex = 0;
 
   return Array.from({ length: HERO_BACKDROP_SEQUENCE_REPEATS }, (_, sequenceIndex) =>
-    heroBackdropCards.map(({ card, face }) => {
+    heroBackdropCards.map((card, cardIndex) => {
+      const sequenceFaceIndex = sequenceIndex * heroBackdropCards.length + cardIndex;
+      const face = faceSequence[sequenceFaceIndex] ?? "front";
       const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
 
       return (
@@ -218,6 +221,46 @@ function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
       );
     }),
   );
+}
+
+function createRandomFaceSequence(count: number): HeroCardFace[] {
+  const targetBackCount = Math.floor(count / 2);
+  const shuffledIndexes = shuffleIndexes(count);
+  const backIndexes = new Set(shuffledIndexes.slice(0, targetBackCount));
+  const evenIndexes = Array.from({ length: count }, (_, index) => index).filter((index) => index % 2 === 0);
+  const oddIndexes = Array.from({ length: count }, (_, index) => index).filter((index) => index % 2 === 1);
+
+  ensureBackFaceInRow(backIndexes, evenIndexes, oddIndexes);
+  ensureBackFaceInRow(backIndexes, oddIndexes, evenIndexes);
+
+  return Array.from({ length: count }, (_, index) => (backIndexes.has(index) ? "back" : "front"));
+}
+
+function ensureBackFaceInRow(backIndexes: Set<number>, requiredRowIndexes: number[], oppositeRowIndexes: number[]) {
+  if (requiredRowIndexes.some((index) => backIndexes.has(index))) {
+    return;
+  }
+
+  const replacementIndex = requiredRowIndexes[Math.floor(Math.random() * requiredRowIndexes.length)];
+  const removableIndex = oppositeRowIndexes.find((index) => backIndexes.has(index));
+
+  if (replacementIndex === undefined || removableIndex === undefined) {
+    return;
+  }
+
+  backIndexes.delete(removableIndex);
+  backIndexes.add(replacementIndex);
+}
+
+function shuffleIndexes(count: number) {
+  const indexes = Array.from({ length: count }, (_, index) => index);
+
+  for (let index = indexes.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [indexes[index], indexes[swapIndex]] = [indexes[swapIndex], indexes[index]];
+  }
+
+  return indexes;
 }
 
 function createRandomBackTierSequence(count: number) {
