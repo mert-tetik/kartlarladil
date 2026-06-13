@@ -304,6 +304,7 @@ const tr = {
   "aiPractice.chat.micUnsupported": "Mikrofon desteklenmiyor",
   "aiPractice.chat.translating": "Çevriliyor...",
   "aiPractice.chat.translationError": "Çeviri alınamadı",
+  "aiPractice.chat.limitReached": "AI mesaj limitine ulaştın. Planını yükselterek daha fazla mesaj gönderebilirsin.",
   "aiPractice.chat.listening": "Dinleniyor...",
 
   "pricing.title": "Sana uygun planı seç",
@@ -615,6 +616,7 @@ const en: Dictionary = {
   "aiPractice.chat.micUnsupported": "Microphone is not supported",
   "aiPractice.chat.translating": "Translating...",
   "aiPractice.chat.translationError": "Could not translate",
+  "aiPractice.chat.limitReached": "You have reached your AI message limit. Upgrade your plan to send more messages.",
   "aiPractice.chat.listening": "Listening...",
 
   "pricing.title": "Choose your plan",

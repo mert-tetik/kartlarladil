@@ -12,6 +12,8 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { buildQuizQuestion } from "@/features/quiz/quiz-engine";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
@@ -21,7 +23,7 @@ import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
-import type { LanguageCode, PracticeMode, QuizQuestion } from "@/types/domain";
+import type { LanguageCode, LimitErrorCode, PracticeMode, QuizQuestion } from "@/types/domain";
 
 export function QuizStation({ mode }: { mode: PracticeMode }) {
   const cards = useInventoryStore((state) => state.cards);
@@ -33,7 +35,9 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [submitting, setSubmitting] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(null);
+  const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const requireAuthAction = useRequireAuthAction();
+  const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
 
@@ -65,6 +69,12 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   );
 
   function startNextQuestion() {
+    if (mode === "active" && wouldExceedLearnedLimit()) {
+      setLimitError("free_learned_card_limit");
+      setQuestion(null);
+      return;
+    }
+
     if (availableCards.length === 0) {
       setQuestion(null);
       return;
@@ -82,6 +92,17 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     requireAuthAction(startNextQuestion, {
       nextPath: mode === "active" ? "/learn" : "/learned",
     });
+  }
+
+  function wouldExceedLearnedLimit(): boolean {
+    const learnedLimit = entitlements?.limits.learnedCards;
+
+    if (entitlements?.effectivePlan !== "free" || learnedLimit === null) {
+      return false;
+    }
+
+    const learnedCount = cards.filter((card) => card.status === "learned").length;
+    return learnedCount >= learnedLimit;
   }
 
   if (!hydrated) {
@@ -192,6 +213,17 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       return;
     }
 
+    const willLearn =
+      mode === "active" &&
+      inventoryCard?.status !== "learned" &&
+      answer === currentQuestion.correctAnswer &&
+      (inventoryCard?.correctCount ?? 0) + 1 >= requirement;
+
+    if (willLearn && wouldExceedLearnedLimit()) {
+      setLimitError("free_learned_card_limit");
+      return;
+    }
+
     void requireAuthAction(async () => {
       const isCorrect = answer === currentQuestion.correctAnswer;
 
@@ -291,6 +323,16 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       ) : null}
 
       <CardDetailsDialog card={currentQuestion.card} open={detailsOpen} onOpenChange={setDetailsOpen} />
+
+      <UpgradeDialog
+        open={limitError !== null}
+        errorCode={limitError}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLimitError(null);
+          }
+        }}
+      />
     </div>
   );
 }

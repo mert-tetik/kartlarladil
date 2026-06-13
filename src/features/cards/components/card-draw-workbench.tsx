@@ -17,10 +17,12 @@ import {
 } from "@/features/cards/card-draw-preferences";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
-import type { VocabularyCard } from "@/types/domain";
+import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
 
@@ -59,6 +61,7 @@ export function CardDrawWorkbench() {
   const [dealCycle, setDealCycle] = useState(0);
   const [exitingCards, setExitingCards] = useState<ExitingCardDrawCard[]>([]);
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
+  const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
@@ -70,6 +73,7 @@ export function CardDrawWorkbench() {
   const cloudError = useInventoryStore((state) => state.cloudError);
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
+  const { entitlements, isLoading: entitlementsLoading } = useSubscription();
   const t = useT();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
@@ -178,6 +182,17 @@ export function CardDrawWorkbench() {
 
   function addDrawnCard(cardId: string) {
     requireAuthAction(() => {
+      const activeLimit = entitlements?.limits.activeCards;
+
+      if (entitlements?.effectivePlan === "free" && activeLimit !== null) {
+        const activeCount = inventoryCards.filter((card) => card.status === "active").length;
+
+        if (activeCount >= activeLimit) {
+          setLimitError("free_active_card_limit");
+          return;
+        }
+      }
+
       skipNextOwnedRefreshRef.current = true;
       dismissCard(cardId, "add");
       void addCard(cardId);
@@ -373,6 +388,16 @@ export function CardDrawWorkbench() {
           description={t("cards.emptyDrawDescription")}
         />
       )}
+
+      <UpgradeDialog
+        open={limitError !== null}
+        errorCode={limitError}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLimitError(null);
+          }
+        }}
+      />
     </div>
   );
 }

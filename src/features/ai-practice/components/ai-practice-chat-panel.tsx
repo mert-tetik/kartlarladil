@@ -8,6 +8,8 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { LanguageFlag } from "@/components/language-flag";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, createId } from "@/lib/utils";
@@ -15,6 +17,7 @@ import type {
   AiPracticeCharacter,
   AiPracticeMessage,
   LanguageCode,
+  LimitErrorCode,
   LocaleCode,
 } from "@/types/domain";
 
@@ -70,6 +73,7 @@ export function AiPracticeChatPanel({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
+  const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -78,6 +82,7 @@ export function AiPracticeChatPanel({
   const shouldSendTranscriptRef = useRef(false);
   const { locale } = useLocale();
   const t = useT();
+  const { entitlements } = useSubscription();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
 
@@ -158,6 +163,13 @@ export function AiPracticeChatPanel({
 
       if (!response.ok || !response.body) {
         const errorCode = await readErrorCode(response);
+
+        if (errorCode === "ai_daily_limit" || errorCode === "ai_monthly_limit") {
+          setLimitError(errorCode);
+          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+          return;
+        }
+
         replaceAssistantMessage(assistantMessage.id, getLocalizedErrorMessage(errorCode, t));
         return;
       }
@@ -680,6 +692,10 @@ function getLocalizedErrorMessage(errorCode: string | null, t: ReturnType<typeof
 
   if (errorCode === "invalid_request" || errorCode === "unknown_character") {
     return t("aiPractice.chat.invalidRequest");
+  }
+
+  if (errorCode === "ai_daily_limit" || errorCode === "ai_monthly_limit") {
+    return t("aiPractice.chat.limitReached");
   }
 
   return t("aiPractice.chat.error");
