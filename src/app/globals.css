@@ -42,6 +42,59 @@ button:disabled,
   color: #ffffff;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: route-view-exit 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: route-view-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-transition-shell {
+  animation: page-transition-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+.route-progress-indicator {
+  background: linear-gradient(90deg, #0f172a, #334155, #0f172a);
+  height: 2px;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  transform: scaleX(0.18);
+  transform-origin: left center;
+  transition:
+    opacity 160ms ease,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 80;
+}
+
+.route-progress-indicator.is-active {
+  opacity: 1;
+  transform: scaleX(0.82);
+}
+
+.page-loading-card {
+  animation: page-loading-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 0.5rem;
+  display: inline-flex;
+  height: 3.5rem;
+  justify-content: center;
+  width: 3.5rem;
+  will-change: opacity, transform;
+}
+
 .card-draw-card-deal {
   animation: card-draw-card-deal 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: top center;
@@ -187,7 +240,69 @@ button:disabled,
   }
 }
 
+@keyframes page-transition-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes page-loading-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.35rem, 0) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes route-view-enter {
+  0% {
+    opacity: 0.92;
+    transform: translate3d(0, 4px, 0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes route-view-exit {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.96;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  .page-transition-shell,
+  .page-loading-card {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .route-progress-indicator {
+    transition: none;
+  }
+
   .hero-card-backdrop-track {
     animation: none;
     transform: translate3d(-50%, 0, 0);

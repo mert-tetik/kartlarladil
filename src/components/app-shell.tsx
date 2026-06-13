@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppNavigation } from "@/components/app-navigation";
+import { PageTransitionShell } from "@/components/page-transition-shell";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
@@ -15,7 +16,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
         <ProgressStatsProvider>
           <div className="min-h-screen bg-slate-50 text-slate-950">
             <AppNavigation user={user} />
-            <main className="pb-24 lg:pb-0">{children}</main>
+            <PageTransitionShell>{children}</PageTransitionShell>
           </div>
         </ProgressStatsProvider>
       </AuthSessionProvider>
