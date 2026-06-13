@@ -24,12 +24,12 @@ test("landing page explains the product", async ({ page }) => {
   const heroBackdropSets = heroBackdrop.locator("[data-hero-card-backdrop-set]");
   const firstHeroBackdropSet = heroBackdropSets.first();
   await expect(heroBackdropSets).toHaveCount(2);
-  await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(24);
-  await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(12);
+  await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(48);
+  await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(24);
   const visibleBackTierLabels = await firstHeroBackdropSet.locator('[data-card-face="back"]').evaluateAll((cards) =>
     cards.map((card) => card.querySelector("[data-card-back-tier]")?.getAttribute("data-card-back-tier")),
   );
-  expect(visibleBackTierLabels).toHaveLength(6);
+  expect(visibleBackTierLabels).toHaveLength(12);
   expect(visibleBackTierLabels.every((tier) => ["A1", "A2", "B1", "B2", "C1"].includes(tier ?? ""))).toBe(true);
   const backdropTrackAnimation = await heroBackdrop.locator("[data-hero-card-backdrop-track]").evaluate((element) => {
     const style = getComputedStyle(element);
@@ -52,30 +52,45 @@ test("landing page explains the product", async ({ page }) => {
   });
   expect(backdropVisualStyle.opacity).toBeGreaterThanOrEqual(0.7);
   expect(backdropVisualStyle.filter).toContain("brightness");
-  const firstRowTops = await firstHeroBackdropSet.locator("[data-card-face]").evaluateAll((cards) =>
-    cards.map((card) => Math.round(card.getBoundingClientRect().top)),
-  );
-  expect(Math.max(...firstRowTops) - Math.min(...firstRowTops)).toBeLessThanOrEqual(2);
-  const backdropGapMetrics = await heroBackdrop.evaluate((element) => {
+  const backdropLayoutMetrics = await heroBackdrop.evaluate((element) => {
     const sets = Array.from(element.querySelectorAll("[data-hero-card-backdrop-set]"));
-    const firstSetCards = Array.from(sets[0]?.querySelectorAll("[data-card-face]") ?? []);
-    const secondSetCards = Array.from(sets[1]?.querySelectorAll("[data-card-face]") ?? []);
-    const internalGaps = firstSetCards.slice(1).map((card, index) => {
-      const previousRect = firstSetCards[index].getBoundingClientRect();
-      const rect = card.getBoundingClientRect();
+    const getRects = (set: Element | undefined) =>
+      Array.from(set?.querySelectorAll("[data-card-face]") ?? []).map((card) => {
+        const rect = card.getBoundingClientRect();
 
-      return Math.round(rect.left - previousRect.right);
+        return {
+          bottom: Math.round(rect.bottom),
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          top: Math.round(rect.top),
+        };
+      });
+    const groupRows = (rects: ReturnType<typeof getRects>) => {
+      const rowTops = Array.from(new Set(rects.map((rect) => rect.top))).sort((a, b) => a - b);
+
+      return rowTops.map((top) => rects.filter((rect) => Math.abs(rect.top - top) <= 2).sort((a, b) => a.left - b.left));
+    };
+    const firstRows = groupRows(getRects(sets[0]));
+    const secondRows = groupRows(getRects(sets[1]));
+    const horizontalGaps = firstRows.flatMap((row, rowIndex) => {
+      const internalGaps = row.slice(1).map((rect, index) => Math.round(rect.left - row[index].right));
+      const seamGap = secondRows[rowIndex]?.[0] ? Math.round(secondRows[rowIndex][0].left - row.at(-1)!.right) : 0;
+
+      return [...internalGaps, seamGap];
     });
-    const firstSetLastCard = firstSetCards.at(-1);
-    const secondSetFirstCard = secondSetCards[0];
-    const seamGap =
-      firstSetLastCard && secondSetFirstCard
-        ? Math.round(secondSetFirstCard.getBoundingClientRect().left - firstSetLastCard.getBoundingClientRect().right)
-        : 0;
+    const verticalGap = firstRows[1]?.[0] ? Math.round(firstRows[1][0].top - firstRows[0][0].bottom) : 0;
 
-    return [...internalGaps, seamGap];
+    return {
+      gapSpread: Math.max(...horizontalGaps) - Math.min(...horizontalGaps),
+      rowCount: firstRows.length,
+      rowLengths: firstRows.map((row) => row.length),
+      verticalGap,
+    };
   });
-  expect(Math.max(...backdropGapMetrics) - Math.min(...backdropGapMetrics)).toBeLessThanOrEqual(1);
+  expect(backdropLayoutMetrics.rowCount).toBe(2);
+  expect(backdropLayoutMetrics.rowLengths).toEqual([12, 12]);
+  expect(backdropLayoutMetrics.verticalGap).toBeGreaterThanOrEqual(14);
+  expect(backdropLayoutMetrics.gapSpread).toBeLessThanOrEqual(1);
   await expect(heroBackdrop.getByText("İngilizce").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Almanca").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Rusça").first()).toBeVisible();

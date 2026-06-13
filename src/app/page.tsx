@@ -29,6 +29,8 @@ const heroBackdropCards = [
   { card: pickPreviewCard("ru", "C1"), face: "back" },
 ].filter((item): item is { card: VocabularyCard; face: "front" | "back" } => Boolean(item.card));
 
+const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
+
 const featureItems = [
   {
     icon: Search,
@@ -176,7 +178,9 @@ export default function Home() {
 }
 
 function CardBackdrop() {
-  const randomizedBackTiers = createRandomBackTierSequence(heroBackdropCards.filter((item) => item.face === "back").length);
+  const randomizedBackTiers = createRandomBackTierSequence(
+    heroBackdropCards.filter((item) => item.face === "back").length * HERO_BACKDROP_SEQUENCE_REPEATS,
+  );
 
   return (
     <div
@@ -190,7 +194,7 @@ function CardBackdrop() {
           <div
             key={setIndex}
             data-hero-card-backdrop-set
-            className="flex h-full shrink-0 items-center gap-[var(--hero-card-gap)] pr-[var(--hero-card-gap)]"
+            className="grid h-full shrink-0 auto-cols-[var(--hero-card-width)] grid-flow-col grid-rows-2 content-center gap-x-[var(--hero-card-gap)] gap-y-[var(--hero-card-row-gap)] pr-[var(--hero-card-gap)]"
           >
             {renderHeroBackdropCards(randomizedBackTiers)}
           </div>
@@ -203,15 +207,17 @@ function CardBackdrop() {
 function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
   let backTierIndex = 0;
 
-  return heroBackdropCards.map(({ card, face }) => {
-    const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
+  return Array.from({ length: HERO_BACKDROP_SEQUENCE_REPEATS }, (_, sequenceIndex) =>
+    heroBackdropCards.map(({ card, face }) => {
+      const backDisplayTier = face === "back" ? randomizedBackTiers[backTierIndex++] : undefined;
 
-    return (
-      <div key={card.id} data-hero-card-backdrop-card className="w-[var(--hero-card-width)] shrink-0">
-        <VocabularyCardView card={card} initialFace={face} backDisplayTier={backDisplayTier} />
-      </div>
-    );
-  });
+      return (
+        <div key={`${sequenceIndex}-${card.id}`} data-hero-card-backdrop-card className="w-full min-w-0">
+          <VocabularyCardView card={card} initialFace={face} backDisplayTier={backDisplayTier} compact />
+        </div>
+      );
+    }),
+  );
 }
 
 function createRandomBackTierSequence(count: number) {
