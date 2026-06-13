@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("FilterControls", () => {
-  it("renders language as a mobile dropdown while keeping the desktop segmented control", () => {
+  it("renders language selection as a dropdown", () => {
     const onLanguageChange = vi.fn();
     const onTierChange = vi.fn();
 
@@ -25,18 +25,11 @@ describe("FilterControls", () => {
       </LocaleProvider>,
     );
 
-    const languageButtons = screen.getAllByRole("button", { name: /İngilizce/ });
-    const mobileDropdownButton = languageButtons.find(
-      (button) => button.getAttribute("aria-haspopup") === "listbox",
-    );
-    const desktopSegmentButton = languageButtons.find(
-      (button) => button.getAttribute("aria-pressed") === "true",
-    );
+    const languageDropdownButton = screen.getByRole("button", { name: /İngilizce/ });
 
-    expect(mobileDropdownButton).toBeDefined();
-    expect(desktopSegmentButton).toBeDefined();
+    expect(languageDropdownButton).toHaveAttribute("aria-haspopup", "listbox");
 
-    fireEvent.click(mobileDropdownButton!);
+    fireEvent.click(languageDropdownButton);
     fireEvent.click(screen.getByRole("option", { name: /Almanca/ }));
 
     expect(onLanguageChange).toHaveBeenCalledWith("de");

@@ -42,6 +42,7 @@ const testUser: AuthShellUser = {
 };
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
+const germanCard = VOCABULARY_CARDS.find((card) => card.language === "de" && card.tier === "A1")!;
 const correctAnswer = getCardTranslation(testCard, "tr");
 
 const inventoryCard: InventoryCard = {
@@ -88,6 +89,25 @@ describe("QuizStation sound feedback", () => {
     fireEvent.click(wrongOption!);
 
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+  });
+
+  it("asks for a language before starting when multiple languages are available", async () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard, { ...inventoryCard, cardId: germanCard.id }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+
+    expect(screen.getByRole("heading", { name: "Alıştırma dilini seç" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Almanca/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Alıştırmayı başlat/ }));
+
+    await screen.findByRole("heading", { name: germanCard.term });
   });
 });
 

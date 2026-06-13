@@ -204,30 +204,18 @@ test("register preserves next and links back to login with the same next", async
   await expect(page.locator('a[href="/login?next=%2Fcard-draw"]').first()).toBeVisible();
 });
 
-test("card draw filters default to English A1 and remember user choices", async ({ page, isMobile }) => {
+test("card draw filters default to English A1 and remember user choices", async ({ page }) => {
   await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
 
-  if (isMobile) {
-    await expect(page.getByRole("button", { name: /English/ })).toHaveAttribute("aria-haspopup", "listbox");
-  } else {
-    await expect(page.getByRole("button", { name: /English/ })).toHaveAttribute("aria-pressed", "true");
-  }
+  await expect(page.getByRole("button", { name: /English/ })).toHaveAttribute("aria-haspopup", "listbox");
   await expect(page.getByRole("button", { name: "A1" })).toHaveAttribute("aria-pressed", "true");
 
-  if (isMobile) {
-    await page.getByRole("button", { name: /English/ }).click();
-    await page.getByRole("option", { name: /German/ }).click();
-  } else {
-    await page.getByRole("button", { name: /German/ }).click();
-  }
+  await page.getByRole("button", { name: /English/ }).click();
+  await page.getByRole("option", { name: /German/ }).click();
   await page.getByRole("button", { name: "B1" }).click();
   await page.reload({ waitUntil: "domcontentloaded" });
 
-  if (isMobile) {
-    await expect(page.getByRole("button", { name: /German/ })).toHaveAttribute("aria-haspopup", "listbox");
-  } else {
-    await expect(page.getByRole("button", { name: /German/ })).toHaveAttribute("aria-pressed", "true");
-  }
+  await expect(page.getByRole("button", { name: /German/ })).toHaveAttribute("aria-haspopup", "listbox");
   await expect(page.getByRole("button", { name: "B1" })).toHaveAttribute("aria-pressed", "true");
 });
 

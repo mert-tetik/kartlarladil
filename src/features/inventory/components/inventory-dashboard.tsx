@@ -28,23 +28,28 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
   const { locale } = useLocale();
   const t = useT();
 
-  const visibleCards = useMemo(
-    () =>
-      filterInventoryCards({
-        cards,
-        language,
-        status: learnedOnly ? "learned" : status,
-      }),
-    [cards, language, learnedOnly, status],
-  );
-
   const languageStats = useMemo(
     () =>
       LANGUAGES.map((item) => ({
         ...item,
         count: filterInventoryCards({ cards, language: item.code, status: learnedOnly ? "learned" : "all" }).length,
-      })),
+      })).filter((item) => item.count > 0),
     [cards, learnedOnly],
+  );
+  const activeLanguage = languageStats.some((item) => item.code === language)
+    ? language
+    : languageStats[0]?.code;
+
+  const visibleCards = useMemo(
+    () =>
+      activeLanguage
+        ? filterInventoryCards({
+            cards,
+            language: activeLanguage,
+            status: learnedOnly ? "learned" : status,
+          })
+        : [],
+    [activeLanguage, cards, learnedOnly, status],
   );
 
   if (!hydrated) {
@@ -59,53 +64,55 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid gap-2 sm:grid-cols-3">
-            {languageStats.map((item) => (
-              <button
-                key={item.code}
-                type="button"
-                onClick={() => setLanguage(item.code)}
-                className={cn(
-                  "rounded-md border border-slate-200 bg-slate-50 p-4 text-left transition-colors hover:bg-white",
-                  language === item.code && "border-slate-950 bg-white",
-                )}
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-                  <LanguageFlag code={item.code} />
-                  {getLanguageDisplayName(item.code, locale)}
-                </span>
-                <span className="mt-2 block text-2xl font-bold text-slate-950">{item.count}</span>
-              </button>
-            ))}
-          </div>
+      {languageStats.length > 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {languageStats.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => setLanguage(item.code)}
+                  className={cn(
+                    "rounded-md border border-slate-200 bg-slate-50 p-4 text-left transition-colors hover:bg-white",
+                    activeLanguage === item.code && "border-slate-950 bg-white",
+                  )}
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                    <LanguageFlag code={item.code} />
+                    {getLanguageDisplayName(item.code, locale)}
+                  </span>
+                  <span className="mt-2 block text-2xl font-bold text-slate-950">{item.count}</span>
+                </button>
+              ))}
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            {!learnedOnly ? (
-              <>
-                {(["all", "active", "learned"] as const).map((item) => (
-                  <Button
-                    key={item}
-                    variant={status === item ? "primary" : "secondary"}
-                    onClick={() => setStatus(item)}
-                  >
-                    {item === "all"
-                      ? t("common.all")
-                      : item === "active"
-                        ? t("inventory.status.active")
-                        : t("inventory.status.learned")}
-                  </Button>
-                ))}
-              </>
-            ) : null}
-            <Button variant="ghost" onClick={() => requireAuthAction(reset)}>
-              <RotateCcw className="size-4" aria-hidden="true" />
-              {t("common.reset")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {!learnedOnly ? (
+                <>
+                  {(["all", "active", "learned"] as const).map((item) => (
+                    <Button
+                      key={item}
+                      variant={status === item ? "primary" : "secondary"}
+                      onClick={() => setStatus(item)}
+                    >
+                      {item === "all"
+                        ? t("common.all")
+                        : item === "active"
+                          ? t("inventory.status.active")
+                          : t("inventory.status.learned")}
+                    </Button>
+                  ))}
+                </>
+              ) : null}
+              <Button variant="ghost" onClick={() => requireAuthAction(reset)}>
+                <RotateCcw className="size-4" aria-hidden="true" />
+                {t("common.reset")}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {visibleCards.length > 0 ? (
         <>
@@ -122,8 +129,18 @@ export function InventoryDashboard({ learnedOnly = false }: { learnedOnly?: bool
       ) : (
         <EmptyState
           icon={Boxes}
-          title={learnedOnly ? t("inventory.emptyLearnedTitle") : t("inventory.emptyTitle")}
-          description={t("inventory.emptyDescription")}
+          title={
+            languageStats.length === 0
+              ? learnedOnly
+                ? t("inventory.emptyAnyLearnedTitle")
+                : t("inventory.emptyAnyTitle")
+              : learnedOnly
+                ? t("inventory.emptyLearnedTitle")
+                : t("inventory.emptyTitle")
+          }
+          description={
+            languageStats.length === 0 ? t("inventory.emptyAnyDescription") : t("inventory.emptyDescription")
+          }
           action={
             <Link href="/card-draw" className={buttonClassName("primary", "md")}>
               {t("nav.cardDraw")}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Info, Trophy, XCircle } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { LANGUAGES } from "@/data/languages";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { getCardExampleTranslation, getStudyLocale } from "@/features/cards/card-localization";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
@@ -14,12 +15,13 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { LanguageFlag } from "@/components/language-flag";
 import { Progress } from "@/components/ui/progress";
-import { getLanguageDisplayName } from "@/i18n/labels";
+import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
-import type { PracticeMode, QuizQuestion } from "@/types/domain";
+import type { LanguageCode, PracticeMode, QuizQuestion } from "@/types/domain";
 
 export function QuizStation({ mode }: { mode: PracticeMode }) {
   const cards = useInventoryStore((state) => state.cards);
@@ -30,17 +32,36 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [answered, setAnswered] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(null);
   const requireAuthAction = useRequireAuthAction();
   const { locale } = useLocale();
   const t = useT();
 
-  const availableCards = useMemo(
+  const baseAvailableCards = useMemo(
     () =>
       filterInventoryCards({
         cards,
         status: mode === "active" ? "active" : "learned",
       }),
     [cards, mode],
+  );
+  const languageStats = useMemo(
+    () =>
+      LANGUAGES.map((language) => ({
+        ...language,
+        count: baseAvailableCards.filter((item) => item.card.language === language.code).length,
+      })).filter((language) => language.count > 0),
+    [baseAvailableCards],
+  );
+  const activeLanguage = selectedLanguage && languageStats.some((language) => language.code === selectedLanguage)
+    ? selectedLanguage
+    : languageStats[0]?.code ?? null;
+  const availableCards = useMemo(
+    () =>
+      activeLanguage
+        ? baseAvailableCards.filter((item) => item.card.language === activeLanguage)
+        : [],
+    [activeLanguage, baseAvailableCards],
   );
 
   function startNextQuestion() {
@@ -69,6 +90,59 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   if (!question) {
     if (availableCards.length > 0) {
+      if (languageStats.length > 1) {
+        return (
+          <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
+            <div className="flex items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+                <BookOpen className="size-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">{t("quiz.chooseLanguageTitle")}</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+                  {t("quiz.chooseLanguageDescription")}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              {languageStats.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  aria-pressed={activeLanguage === language.code}
+                  onClick={() => {
+                    setSelectedLanguage(language.code);
+                    setQuestion(null);
+                  }}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-4 text-left transition-colors hover:bg-white",
+                    activeLanguage === language.code && "border-slate-950 bg-white",
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-950">
+                    <LanguageFlag code={language.code} />
+                    <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
+                  </span>
+                  <Badge>{formatCards(locale, language.count)}</Badge>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold text-slate-500">
+                {activeLanguage
+                  ? t("quiz.selectedLanguage", { language: getLanguageDisplayName(activeLanguage, locale) })
+                  : t("quiz.selectedLanguageEmpty")}
+              </p>
+              <Button onClick={startNextQuestionWithAuth} disabled={!activeLanguage}>
+                {t("quiz.start")}
+              </Button>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <EmptyState
           icon={BookOpen}
@@ -82,8 +156,20 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     return (
       <EmptyState
         icon={mode === "active" ? BookOpen : Trophy}
-        title={mode === "active" ? t("quiz.noActiveTitle") : t("quiz.noLearnedTitle")}
-        description={mode === "active" ? t("quiz.noActiveDescription") : t("quiz.noLearnedDescription")}
+        title={
+          cards.length === 0
+            ? t("inventory.emptyAnyTitle")
+            : mode === "active"
+              ? t("quiz.noActiveTitle")
+              : t("quiz.noLearnedTitle")
+        }
+        description={
+          cards.length === 0
+            ? t("inventory.emptyAnyDescription")
+            : mode === "active"
+              ? t("quiz.noActiveDescription")
+              : t("quiz.noLearnedDescription")
+        }
         action={
           <Link href={mode === "active" ? "/card-draw" : "/learn"} className={buttonClassName("primary", "md")}>
             {mode === "active" ? t("quiz.backToDraw") : t("quiz.backToLearn")}

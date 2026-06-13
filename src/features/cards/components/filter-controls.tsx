@@ -44,20 +44,12 @@ export function FilterControls({
   return (
     <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-2">
       <div>
-        <MobileLanguageDropdown
+        <LanguageDropdown
           label={t("cards.language")}
           options={languageOptions}
           value={language}
           onChange={(value) => onLanguageChange(value as LanguageCode | "all")}
         />
-        <div className="hidden sm:block">
-          <SegmentedControl
-            label={t("cards.language")}
-            value={language}
-            options={languageOptions}
-            onChange={(value) => onLanguageChange(value as LanguageCode | "all")}
-          />
-        </div>
       </div>
       <SegmentedControl
         label={t("cards.tier")}
@@ -72,7 +64,7 @@ export function FilterControls({
   );
 }
 
-function MobileLanguageDropdown({
+function LanguageDropdown({
   label,
   options,
   value,
@@ -108,7 +100,7 @@ function MobileLanguageDropdown({
   }, [open]);
 
   return (
-    <div ref={dropdownRef} className="sm:hidden">
+    <div ref={dropdownRef}>
       <p id={labelId} className="mb-2 text-sm font-semibold text-slate-700">
         {label}
       </p>
