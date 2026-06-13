@@ -104,8 +104,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-slate-50">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+      <section data-collection-preview-section className="bg-slate-50">
+        <div className="mx-auto grid w-full max-w-[1500px] items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-10 lg:px-8">
           <div>
             <h2 className="font-display text-4xl font-semibold text-slate-950">Kartlar fiziksel bir koleksiyon gibi çalışır.</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
@@ -130,10 +130,18 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
-            {previewCards.map((card) => (
-              <VocabularyCardView key={card.id} card={card} compact />
-            ))}
+          <div data-collection-preview-deck className="min-w-0 self-center overflow-x-auto lg:overflow-visible">
+            <div className="grid w-full min-w-[360px] grid-cols-2 items-center gap-3 sm:min-w-[640px] sm:grid-cols-3 sm:gap-4 lg:min-w-[650px] lg:gap-5 xl:min-w-[760px]">
+              {previewCards.map((card, index) => (
+                <div
+                  key={card.id}
+                  data-collection-preview-card
+                  className={index === 2 ? "hidden sm:block" : undefined}
+                >
+                  <VocabularyCardView card={card} compact />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

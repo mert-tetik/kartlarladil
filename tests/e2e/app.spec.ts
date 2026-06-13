@@ -111,6 +111,34 @@ test("landing page explains the product", async ({ page }) => {
   await expect(heroBackdrop.getByText("İngilizce").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Almanca").first()).toBeVisible();
   await expect(heroBackdrop.getByText("Rusça").first()).toBeVisible();
+
+  const collectionPreviewMetrics = await page.locator("[data-collection-preview-section]").evaluate((section) => {
+    const visibleCards = Array.from(section.querySelectorAll("[data-collection-preview-card]")).filter((card) => {
+      const rect = card.getBoundingClientRect();
+      const style = getComputedStyle(card);
+
+      return style.display !== "none" && rect.width > 0 && rect.height > 0;
+    });
+    const cardRects = visibleCards.map((card) => {
+      const rect = card.getBoundingClientRect();
+
+      return {
+        height: Math.round(rect.height),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+      };
+    });
+
+    return {
+      cardCount: cardRects.length,
+      minCardWidth: Math.min(...cardRects.map((rect) => rect.width)),
+      topSpread: Math.max(...cardRects.map((rect) => rect.top)) - Math.min(...cardRects.map((rect) => rect.top)),
+    };
+  });
+  const expectedCollectionCardCount = page.viewportSize()?.width && page.viewportSize()!.width < 640 ? 2 : 3;
+  expect(collectionPreviewMetrics.cardCount).toBe(expectedCollectionCardCount);
+  expect(collectionPreviewMetrics.topSpread).toBeLessThanOrEqual(2);
+  expect(collectionPreviewMetrics.minCardWidth).toBeGreaterThanOrEqual(expectedCollectionCardCount === 2 ? 160 : 200);
 });
 
 test("auth pages render public forms with password visibility toggles and preferences", async ({ page }) => {
