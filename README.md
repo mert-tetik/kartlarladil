@@ -11,6 +11,7 @@ Kartlarla Dil, kullanıcıların çok dilli kelime haznesini koleksiyon kartlar�
 - shadcn/ui uyumlu component yapısı
 - Zustand localStorage state
 - Supabase Auth + Supabase-ready inventory
+- OpenAI Responses API ile AI Practice
 - Vitest
 
 ## Commands
@@ -86,6 +87,8 @@ Auth için `.env.local` içinde şu değerler gerekir:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+OPENAI_AI_PRACTICE_MODEL=gpt-5-nano
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` sadece server tarafında kullanılır. Canlı inventory için migrationlar uygulanmalı ve ardından katalog import edilmelidir:
@@ -94,4 +97,6 @@ SUPABASE_SERVICE_ROLE_KEY=
 npm run supabase:import-cards
 ```
 
-Detaylar için `docs/SUPABASE.md`, mimari için `docs/ARCHITECTURE.md`, veri kaynağı için `docs/LEXICON_SOURCES.md` dosyalarına bak.
+`OPENAI_API_KEY` sadece server tarafında kullanılır. AI Practice konuşmaları kaydedilmez ve varsayılan model `gpt-5-nano` değeridir.
+
+Detaylar için `docs/SUPABASE.md`, mimari için `docs/ARCHITECTURE.md`, veri kaynağı için `docs/LEXICON_SOURCES.md`, AI Practice için `docs/AI_PRACTICE.md` dosyalarına bak.

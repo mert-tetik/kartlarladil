@@ -167,3 +167,26 @@ export interface InventoryRepository {
   has(cardId: string): boolean;
   recordAnswer(cardId: string, isCorrect: boolean, selectedAnswer: string): InventoryCard[];
 }
+
+export type AiPracticeChatRole = "user" | "assistant";
+
+export interface AiPracticeMessage {
+  role: AiPracticeChatRole;
+  content: string;
+}
+
+export interface AiPracticeChatRequest {
+  language: LanguageCode;
+  characterId: string;
+  messages: AiPracticeMessage[];
+}
+
+export interface AiPracticeCharacter {
+  id: string;
+  imageSrc: string;
+  sourcePersonality: string;
+  namesByLanguage: Record<LanguageCode, string>;
+  summaryByLocale: Record<LocaleCode, string>;
+  promptProfile: string;
+  conversationStyle: string[];
+}

@@ -231,6 +231,12 @@ test("profile redirects guests to login", async ({ page }) => {
   await expect(page).toHaveURL(/\/login\?next=%2Fprofile/);
 });
 
+test("ai practice redirects guests to login", async ({ page }) => {
+  await page.goto("/ai-practice", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveURL(/\/login\?next=%2Fai-practice/);
+});
+
 test("guest add-card action redirects to register with next path", async ({ page }) => {
   await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
 
@@ -306,4 +312,5 @@ test("mobile navigation exposes the main sections", async ({ page, isMobile }) =
   await expect(mobileNav.getByRole("link", { name: "Draw cards" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "My cards" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Learn", exact: true })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "AI", exact: true })).toBeVisible();
 });

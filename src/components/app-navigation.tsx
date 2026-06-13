@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Boxes, Compass, GraduationCap, LibraryBig, Sparkles } from "lucide-react";
+import { BookOpen, Bot, Boxes, Compass, GraduationCap, LibraryBig, Sparkles, type LucideIcon } from "lucide-react";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { AccountMenu } from "@/features/auth/components/account-menu";
@@ -15,13 +15,21 @@ import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { TranslationKey } from "@/i18n/dictionaries";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  labelKey: TranslationKey;
+  mobileLabelKey?: TranslationKey;
+  icon: LucideIcon;
+};
+
+const navItems: readonly NavItem[] = [
   { href: "/", labelKey: "nav.home", icon: Sparkles },
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: Compass },
   { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
   { href: "/learned", labelKey: "nav.learned", icon: GraduationCap },
-] as const satisfies readonly { href: string; labelKey: TranslationKey; icon: typeof Sparkles }[];
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: Bot },
+];
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
@@ -73,7 +81,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       </header>
 
       <nav aria-label={t("nav.mobileMenu")} className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
@@ -88,7 +96,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 )}
               >
                 <Icon className="size-5" aria-hidden="true" />
-                <span>{t(item.labelKey)}</span>
+                <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
               </Link>
             );
           })}

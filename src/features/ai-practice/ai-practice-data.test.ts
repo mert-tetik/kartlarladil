@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
+import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
+import { buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
+
+describe("AI practice characters", () => {
+  it("contains exactly 10 characters with clean image paths", () => {
+    const characters = getAiPracticeCharacters();
+
+    expect(characters).toHaveLength(10);
+
+    for (const character of characters) {
+      expect(character.imageSrc).toMatch(/^\/ai-characters\/[a-z0-9-]+\.png$/);
+      expect(character.imageSrc).not.toContain("ChatGPT");
+      expect(character.promptProfile.trim().length).toBeGreaterThan(80);
+      expect(character.conversationStyle.length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("has a name and localized summary for every supported language", () => {
+    for (const character of getAiPracticeCharacters()) {
+      for (const language of LANGUAGE_CODES) {
+        expect(character.namesByLanguage[language]).toBeTruthy();
+      }
+
+      for (const locale of LOCALE_CODES) {
+        expect(character.summaryByLocale[locale]).toBeTruthy();
+      }
+    }
+  });
+
+  it("builds instructions with the selected target language and character profile", () => {
+    const character = getAiPracticeCharacters()[0];
+    const instructions = buildAiPracticeInstructions({ character, language: "de" });
+
+    expect(instructions).toContain("Deutsch");
+    expect(instructions).toContain(character.promptProfile);
+    expect(instructions).toContain("You must speak only in the target language");
+  });
+});
