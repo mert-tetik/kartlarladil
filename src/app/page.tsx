@@ -51,11 +51,11 @@ export default function Home() {
   return (
     <>
       <section className="relative isolate min-h-[76vh] overflow-hidden bg-slate-950 text-white">
-        <div className="absolute inset-0 opacity-[0.34]">
+        <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />
         </div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_46%,rgba(15,23,42,0.58),rgba(15,23,42,0.82)_42%,rgba(2,6,23,0.96)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.96),rgba(15,23,42,0.76),rgba(15,23,42,0.52))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_46%,rgba(15,23,42,0.72)_0%,rgba(15,23,42,0.58)_30%,rgba(15,23,42,0.26)_62%,rgba(2,6,23,0.22)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.94)_0%,rgba(15,23,42,0.84)_30%,rgba(15,23,42,0.38)_58%,rgba(15,23,42,0.14)_100%)]" />
 
         <div className="relative mx-auto flex min-h-[76vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">

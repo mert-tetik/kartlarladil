@@ -17,6 +17,17 @@ test("landing page explains the product", async ({ page }) => {
   const heroBackdrop = page.locator("[data-hero-card-backdrop]");
   await expect(heroBackdrop.locator("[data-card-face]")).toHaveCount(12);
   await expect(heroBackdrop.locator('[data-card-face="back"]')).toHaveCount(6);
+  const backdropVisualStyle = await heroBackdrop.evaluate((element) => {
+    const wrapper = element.parentElement;
+    const style = wrapper ? getComputedStyle(wrapper) : null;
+
+    return {
+      opacity: Number(style?.opacity ?? 0),
+      filter: style?.filter ?? "",
+    };
+  });
+  expect(backdropVisualStyle.opacity).toBeGreaterThanOrEqual(0.7);
+  expect(backdropVisualStyle.filter).toContain("brightness");
   const firstRowTops = await heroBackdrop.locator("[data-card-face]").evaluateAll((cards) =>
     cards.slice(0, 6).map((card) => Math.round(card.getBoundingClientRect().top)),
   );
