@@ -78,6 +78,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
     password: getFormString(formData, "password"),
     displayName: getFormString(formData, "displayName"),
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
+    preferredUiLocale: getFormString(formData, "preferredUiLocale") || undefined,
     preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
   });
@@ -102,6 +103,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
       data: {
         display_name: parsed.data.displayName,
         preferred_language_code: parsed.data.preferredLanguageCode,
+        preferred_ui_locale: parsed.data.preferredUiLocale,
         preferred_tier: parsed.data.preferredTier,
       },
     },
@@ -118,6 +120,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
     await ensureUserProfile(supabase, data.user, {
       displayName: parsed.data.displayName,
       preferredLanguageCode: parsed.data.preferredLanguageCode,
+      preferredUiLocale: parsed.data.preferredUiLocale,
       preferredTier: parsed.data.preferredTier,
     });
     await supabase.from("user_profiles").upsert(
@@ -125,6 +128,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
         user_id: data.user.id,
         display_name: parsed.data.displayName,
         preferred_language_code: parsed.data.preferredLanguageCode,
+        preferred_ui_locale: parsed.data.preferredUiLocale ?? "tr",
         preferred_tier: parsed.data.preferredTier,
         updated_at: new Date().toISOString(),
       },
@@ -220,6 +224,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
   const parsed = profileSchema.safeParse({
     displayName: getFormString(formData, "displayName"),
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
+    preferredUiLocale: getFormString(formData, "preferredUiLocale"),
     preferredTier: getFormString(formData, "preferredTier"),
   });
 
@@ -250,6 +255,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
       user_id: user.id,
       display_name: parsed.data.displayName,
       preferred_language_code: parsed.data.preferredLanguageCode,
+      preferred_ui_locale: parsed.data.preferredUiLocale ?? "tr",
       preferred_tier: parsed.data.preferredTier,
       updated_at: new Date().toISOString(),
     },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, CheckCircle2, Info, Trophy, XCircle } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
+import { getCardExampleTranslation } from "@/features/cards/card-localization";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { buildQuizQuestion } from "@/features/quiz/quiz-engine";
@@ -16,6 +17,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { useLocale } from "@/i18n/locale-provider";
 import type { PracticeMode, QuizQuestion } from "@/types/domain";
 
 export function QuizStation({ mode }: { mode: PracticeMode }) {
@@ -28,6 +30,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [submitting, setSubmitting] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const requireAuthAction = useRequireAuthAction();
+  const { locale } = useLocale();
 
   const availableCards = useMemo(
     () =>
@@ -45,7 +48,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     }
 
     const nextIndex = Math.floor(Math.random() * availableCards.length);
-    setQuestion(buildQuizQuestion(availableCards[nextIndex].card, VOCABULARY_CARDS));
+    setQuestion(buildQuizQuestion(availableCards[nextIndex].card, VOCABULARY_CARDS, locale));
     setSelectedAnswer(null);
     setAnswered(false);
     setSubmitting(false);
@@ -185,7 +188,9 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
             </p>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">{currentQuestion.card.examples[0].sentence}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-500">{currentQuestion.card.examples[0].translation}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            {getCardExampleTranslation(currentQuestion.card.examples[0], locale)}
+          </p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
             <Button variant="secondary" className="w-full sm:w-auto" onClick={() => setDetailsOpen(true)}>
               <Info className="size-4" aria-hidden="true" />

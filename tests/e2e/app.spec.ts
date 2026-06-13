@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+const E2E_CARD = {
+  detailsName: "from Kart detayları",
+  flipName: "from: Çevirmek için tıkla",
+  id: "en:A1:word:from:kelime",
+  searchTerm: "from",
+  term: "from",
+} as const;
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
@@ -155,6 +163,7 @@ test("landing page explains the product", async ({ page }) => {
 
 test("auth pages render public forms with password visibility toggles and preferences", async ({ page }) => {
   await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "Giriş yap" }).first()).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
 
@@ -166,6 +175,7 @@ test("auth pages render public forms with password visibility toggles and prefer
   await expect(loginPassword).toHaveAttribute("type", "password");
 
   await page.goto("/register", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "Kayıt ol" }).first()).toBeVisible();
   await expect(page.getByText("Hangi dili öğrenmek istiyorsun?")).toBeVisible();
   await expect(page.getByText("Hangi seviyeden başlayalım?")).toBeVisible();
@@ -179,6 +189,7 @@ test("auth pages render public forms with password visibility toggles and prefer
   await expect(page.locator('input[name="next"]')).toHaveValue("/kart-cek");
 
   await page.goto("/reset-password", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "Şifreyi sıfırla" }).first()).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
 });
@@ -232,14 +243,14 @@ test("profile redirects guests to login", async ({ page }) => {
 test("guest add-card action redirects to register with next path", async ({ page }) => {
   await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
-  await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill("apple");
-  await page.getByRole("button", { name: "Ara" }).click();
+  await page.getByPlaceholder("Kelime, çeviri veya örnek cümle ara").fill(E2E_CARD.searchTerm);
+  await page.getByRole("button", { name: "Ara", exact: true }).click();
   await expect(page.locator('[data-card-deal-index="0"]').first()).toBeVisible();
   await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
   await expect(page.locator('[data-card-back-tier="A1"]').first()).toBeVisible();
 
-  await page.getByRole("button", { name: "apple kartını çevir" }).click();
-  await expect(page.getByRole("heading", { name: "apple", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: E2E_CARD.flipName }).click();
+  await expect(page.getByRole("heading", { name: E2E_CARD.term, exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Ekle" }).first().click();
 
@@ -248,14 +259,14 @@ test("guest add-card action redirects to register with next path", async ({ page
 });
 
 test("guest quiz start redirects to register with learn path", async ({ page }) => {
-  await page.addInitScript(() => {
+  await page.addInitScript((cardId) => {
     window.localStorage.setItem(
-      "kartlarla-dil:v2",
+      "kartlarla-dil:v3",
       JSON.stringify({
         state: {
           cards: [
             {
-              cardId: "en-a1-isim-apple",
+              cardId,
               status: "active",
               correctCount: 0,
               addedAt: new Date().toISOString(),
@@ -266,7 +277,7 @@ test("guest quiz start redirects to register with learn path", async ({ page }) 
         version: 0,
       }),
     );
-  });
+  }, E2E_CARD.id);
 
   await page.goto("/ogren", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Alıştırmayı başlat" }).click();
@@ -277,20 +288,20 @@ test("guest quiz start redirects to register with learn path", async ({ page }) 
 test("card details show examples and grammar without auth", async ({ page }) => {
   await page.goto("/kart-cek", { waitUntil: "domcontentloaded" });
 
-  await page.getByPlaceholder(/Kelime/).fill("apple");
-  await page.getByRole("button", { name: "Ara" }).click();
+  await page.getByPlaceholder(/Kelime/).fill(E2E_CARD.searchTerm);
+  await page.getByRole("button", { name: "Ara", exact: true }).click();
   await expect(page.getByText("Çevirmek için tıkla").first()).toBeVisible();
-  await page.getByRole("button", { name: "apple kartını çevir" }).click();
-  await page.getByRole("button", { name: "apple detayları", exact: true }).click();
+  await page.getByRole("button", { name: E2E_CARD.flipName }).click();
+  await page.getByRole("button", { name: E2E_CARD.detailsName, exact: true }).click();
 
-  const detailsDialog = page.getByRole("dialog", { name: /apple detayları/ });
+  const detailsDialog = page.getByRole("dialog", { name: /from Kart detayları/ });
 
   await expect(detailsDialog).toBeVisible();
   await expect(page.getByRole("heading", { name: "5 örnek kullanım" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gramer anlatımı" })).toBeVisible();
-  await expect(detailsDialog.locator("article").first()).toContainText("apple");
+  await expect(detailsDialog.locator("article").first()).toContainText(E2E_CARD.term);
   await expect(page.getByText(/is useful in a clear sentence/)).toHaveCount(0);
-  await expect(detailsDialog.getByText('Can you explain "apple" with one example?')).toBeVisible();
+  await expect(detailsDialog.getByText('What does "from" mean in this sentence?')).toBeVisible();
 });
 
 test("mobile navigation exposes the main sections", async ({ page, isMobile }) => {

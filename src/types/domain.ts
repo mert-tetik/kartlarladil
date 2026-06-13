@@ -1,4 +1,24 @@
-export type LanguageCode = "en" | "de" | "ru";
+export type LocaleCode =
+  | "tr"
+  | "en"
+  | "de"
+  | "ru"
+  | "fr"
+  | "es"
+  | "it"
+  | "pt"
+  | "nl"
+  | "pl"
+  | "ar"
+  | "ja"
+  | "ko"
+  | "zh-CN";
+
+export type LanguageCode = LocaleCode;
+
+export type TextDirection = "ltr" | "rtl";
+
+export type TermKind = "word" | "fixed_phrase";
 
 export type Tier = "A1" | "A2" | "B1" | "B2" | "C1";
 
@@ -13,6 +33,8 @@ export interface Language {
   name: string;
   nativeName: string;
   accent: string;
+  flagCode: string;
+  dir: TextDirection;
 }
 
 export interface CardExample {
@@ -21,6 +43,7 @@ export interface CardExample {
   label: string;
   sentence: string;
   translation: string;
+  translations: Record<LocaleCode, string>;
 }
 
 export interface GrammarTable {
@@ -41,14 +64,17 @@ export interface VocabularyCard {
   sourceKey: string;
   language: LanguageCode;
   tier: Tier;
+  termKind: TermKind;
   term: string;
   translation: string;
+  translations: Record<LocaleCode, string>;
   pronunciation: string;
   partOfSpeech: string;
   example: string;
   exampleTranslation: string;
   examples: CardExample[];
   grammar: GrammarGuide;
+  grammarByLocale: Record<LocaleCode, GrammarGuide>;
 }
 
 export interface InventoryCard {

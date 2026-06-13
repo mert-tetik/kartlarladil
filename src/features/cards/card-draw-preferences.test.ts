@@ -21,6 +21,7 @@ describe("card draw preferences", () => {
       getCardDrawPreferenceFallback({
         displayName: null,
         preferredLanguageCode: "de",
+        preferredUiLocale: "tr",
         preferredTier: "B2",
       }),
     ).toEqual({
@@ -30,7 +31,7 @@ describe("card draw preferences", () => {
   });
 
   it("normalizes invalid saved values", () => {
-    expect(normalizeCardDrawPreferences({ language: "fr", tier: "Z9" })).toEqual(DEFAULT_CARD_DRAW_PREFERENCES);
+    expect(normalizeCardDrawPreferences({ language: "xx", tier: "Z9" })).toEqual(DEFAULT_CARD_DRAW_PREFERENCES);
   });
 
   it("reads and writes storage values", () => {

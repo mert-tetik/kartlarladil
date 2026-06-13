@@ -1,6 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FilterControls } from "@/features/cards/components/filter-controls";
+import { LocaleProvider } from "@/i18n/locale-provider";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("FilterControls", () => {
   it("renders language as a mobile dropdown while keeping the desktop segmented control", () => {
@@ -8,12 +15,14 @@ describe("FilterControls", () => {
     const onTierChange = vi.fn();
 
     render(
-      <FilterControls
-        language="en"
-        tier="A1"
-        onLanguageChange={onLanguageChange}
-        onTierChange={onTierChange}
-      />,
+      <LocaleProvider initialLocale="tr">
+        <FilterControls
+          language="en"
+          tier="A1"
+          onLanguageChange={onLanguageChange}
+          onTierChange={onTierChange}
+        />
+      </LocaleProvider>,
     );
 
     const languageButtons = screen.getAllByRole("button", { name: /İngilizce/ });

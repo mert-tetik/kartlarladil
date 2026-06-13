@@ -1,58 +1,77 @@
 # Kartlarla Dil Architecture
 
-Kartlarla Dil is split around product domains instead of technical buckets. `cards`, `inventory`, `quiz`, and `auth` each own their behavior and expose small interfaces to the pages.
+Kartlarla Dil domain bazlı ayrılır: `cards`, `inventory`, `quiz`, `auth`, `progress` ve `i18n` kendi davranışlarını taşır. Route dosyaları mümkün olduğunca ince tutulur.
 
-## Domain model
+## Domain Model
 
-- `VocabularyCard` is immutable catalog data.
-- `VocabularyCard.sourceKey` is the stable Supabase import key; local `id` matches it until the catalog is imported and mapped to Supabase UUIDs.
-- `CardExample` stores one target-language example, Turkish translation, and usage context label.
-- `GrammarGuide` stores short grammar notes plus optional conjugation/usage tables.
-- `InventoryCard` is user-owned progress data.
-- `PracticeAttempt` is an audit record for quiz answers.
-- `Tier` controls the number of correct answers needed before a card becomes learned.
+- `LanguageCode` ve `LocaleCode` aynı 14 kodu kapsar: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`, `pl`, `ar`, `ja`, `ko`, `zh-CN`.
+- `VocabularyCard` immutable katalog verisidir.
+- `VocabularyCard.sourceKey` Supabase import için stabil anahtardır; local `id` aynı değeri kullanır.
+- `termKind` `word` veya `fixed_phrase` olabilir. Mevcut katalog 28.000 `word` kartından oluşur.
+- `translations` kart çevirilerini tüm locale’ler için tutar.
+- `CardExample.translations` örnek cümle çevirilerini tüm locale’ler için tutar.
+- `grammarByLocale` gramer anlatımını tüm locale’ler için tutar.
+- Eski `translation`, `exampleTranslation` ve `grammar` alanları Türkçe fallback olarak korunur.
 
-The learning rule lives in `src/features/quiz/quiz-engine.ts`. UI code should not duplicate the threshold or status transition logic. Card details are study material, so quiz screens must hide them before the user answers and may reveal them only in the feedback state.
+## Localization
 
-## Data flow
+`src/i18n` URL prefix kullanmadan locale yönetir.
 
-1. `localCardRepository` reads the generated starter catalog from `src/data/cards.ts`.
-2. Guest inventory persists to `localStorage` under `kartlarla-dil:v2`.
-3. Authenticated inventory uses Supabase `user_cards` and `practice_attempts`; client state is hydrated from cloud server actions.
-4. Cloud inventory maps local `VocabularyCard.sourceKey` values to Supabase `cards.id` UUID values through `cards.source_key`.
+- `getServerLocale()` cookie’den locale okur.
+- Root layout `<html lang>` ve `dir` değerlerini server tarafında ayarlar.
+- `LocaleProvider` client tarafında cookie/localStorage günceller.
+- `useT()` UI dictionary stringlerini verir.
+- Navbar’daki `LocaleSwitcher` tüm 14 locale’i listeler.
 
-## Auth flow
+Kart çevirileri `src/features/cards/card-localization.ts` üzerinden okunur. Öğrenilen dil ile UI dili aynıysa quiz cevapları için fallback çalışma dili kullanılır: UI `en` ise `tr`, diğer aynı-dil durumlarında `en`.
 
-`src/lib/supabase` owns browser, server, admin, and proxy clients. `src/features/auth/actions.ts` owns all mutations:
-login, register, password reset, password update, profile update, logout, and permanent account deletion.
+## Data Flow
 
-The root `proxy.ts` refreshes Supabase cookies before Server Components read auth state. UI components receive only serializable
-user fields: id, email, display name, and preferred language. Service role access is isolated to the server-only admin client.
+1. `src/data/card-seeds/*.ts` dosyaları kompakt seed satırlarını tutar.
+2. `src/data/cards.ts` seed satırlarından lazy `VocabularyCard` objeleri üretir.
+3. `localCardRepository` katalog üzerinde filtre, arama ve draw işlemlerini sağlar.
+4. Guest inventory `localStorage` altında `kartlarla-dil:v3` ile tutulur.
+5. Authenticated inventory Supabase `user_cards` ve `practice_attempts` tablolarından gelir.
+6. Cloud inventory local `sourceKey` değerlerini Supabase `cards.id` UUID değerlerine `cards.source_key` ile map eder.
 
-Client write actions use the auth session provider before mutating inventory state. Guests can still search, draw cards,
-and inspect card details, but adding cards, recording quiz answers, and resetting inventory redirect to `/register?next=...`.
-Authenticated users write through Supabase-backed inventory actions.
+## Catalog Generation
 
-Card draw filters are remembered in `localStorage` under `kartlarla-dil:card-draw-filters:v1`. The initial filter falls back to
-the authenticated profile preference, then to English A1.
+`scripts/generate-card-seeds-from-muse.mjs` MUSE bilingual dictionary dosyalarını indirir ve `.tmp/muse-dictionaries` altında cache’ler. Script 14 dil için strict single-word filtresi uygular, her dilde 2.000 kart seçer ve seed dosyalarını yeniden yazar.
 
-Progress stats are derived from inventory, not stored as mutable counters. Learned cards produce tier-based points:
-A1 = 10, A2 = 20, B1 = 40, B2 = 70, C1 = 110. Rank is calculated from total points and shared by the navbar,
-account menu, and `/profil` page.
+Katalog doğrulaması `npm run report:cards` ve `src/data/cards.test.ts` ile yapılır:
 
-## UI structure
+- Her dilde en az 2.000 `word` kartı.
+- Her dilde tüm tier’larda kart.
+- `word` için tek token kuralı.
+- Tüm locale’lerde kart çevirisi.
+- Her kartta 5 örnek ve tüm locale örnek çevirileri.
+- Tüm locale’lerde gramer anlatımı.
+- Duplicate `language + term` yok.
+- Deterministik ve benzersiz `sourceKey`.
 
-- `src/app` contains route shells only.
-- `src/components` contains shared UI and layout.
-- `src/features/*/components` contains feature-specific UI.
-- `src/features/*/*.ts` contains domain behavior.
+## Learning And Progress
 
-Keep card visuals in `VocabularyCardView` so inventory, card draw, and previews stay consistent. `CardDetailsDialog` owns the expanded examples and grammar view so every card surface renders the same study material.
+Öğrenme kuralı `src/features/quiz/quiz-engine.ts` içindedir. UI kodu eşik ve status geçişini tekrar yazmamalıdır.
 
-## Starter catalog
+Puan ve rank ayrı mutable sayaç olarak tutulmaz. `ProgressStats` öğrenilmiş kartlar ve tier puanlarından türetilir:
 
-The starter catalog is quality-first and single-word-only. `VocabularyCard.term` must contain one lexical item, not a phrase, sentence pattern, or generated usage context. Expressions belong in examples or future phrase-specific fields, not in the main card term.
+- A1 = 10
+- A2 = 20
+- B1 = 40
+- B2 = 70
+- C1 = 110
 
-The local catalog is built from curated seed words for English, German, and Russian. IDs and `sourceKey` values are deterministic from language, tier, term, and part of speech so Supabase imports can upsert consistently without relying on array indexes.
+Navbar, account menu ve `/profil` aynı progress kaynağını kullanır.
 
-Every card keeps `example` and `exampleTranslation` as backward-compatible first-example fields. The full detail data lives in `examples` and `grammar`; future Supabase imports should preserve that shape and upsert cards by `sourceKey`. Use `npm run report:cards` to inspect the current catalog count and validation report.
+## UI Boundaries
+
+- `VocabularyCardView` kartın tüm fiziksel/3D görünümünü sahiplenir.
+- `CardDetailsDialog` 5 örnek ve gramer detayını gösterir.
+- Quiz cevap verilmeden detay açmaz; cevap sonrası detay butonu gösterir.
+- `FilterControls` öğrenme dili/tier seçimini yapar; mobilde dil dropdown kullanır.
+
+## Auth Boundary
+
+`src/lib/supabase` browser/server/admin/proxy clientlarını içerir. `src/features/auth/actions.ts` login, register, reset password, profile update, logout ve account deletion mutationlarını sahiplenir.
+
+Client write actionları `useRequireAuthAction()` ile korunur. Guest kullanıcı kart ekleme, quiz cevabı kaydetme veya envanter sıfırlama gibi user-owned işlemlerde `/register?next=...` adresine gider.

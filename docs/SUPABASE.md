@@ -1,11 +1,10 @@
 # Supabase Notes
 
-The app keeps guest card inventory in localStorage. Authenticated inventory, quiz attempts, progress stats, points,
-and ranks are backed by Supabase tables.
+Guest kullanıcıların envanteri localStorage’da kalır. Authenticated kullanıcıların envanteri, quiz denemeleri, progress stats, puan ve rank bilgisi Supabase tablolarından türetilir.
 
-## Environment variables
+## Environment Variables
 
-Copy `.env.example` to `.env.local` when a Supabase project is available:
+`.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
@@ -13,78 +12,81 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` must stay server-side only.
+`SUPABASE_SERVICE_ROLE_KEY` sadece server tarafında kullanılır. Client dosyalarına veya `NEXT_PUBLIC_` değişkenlerine konmaz.
 
-The public URL and publishable key can be used in the browser. The service role key is only for server actions such as
-permanent account deletion and must never be prefixed with `NEXT_PUBLIC_`.
-
-## Auth routes
+## Auth Routes
 
 - `/login`: email/password login.
 - `/register`: email/password registration.
-- `/reset-password`: sends a password reset email.
-- `/account/update-password`: authenticated password update target.
-- `/account/settings`: profile settings and permanent account deletion.
-- `/auth/callback`: PKCE callback that exchanges the Supabase code for a cookie-backed session.
+- `/reset-password`: reset email gönderimi.
+- `/account/update-password`: reset linki veya oturum içi şifre güncelleme.
+- `/account/settings`: profil ve hesap yönetimi.
+- `/auth/callback`: Supabase PKCE callback.
 
-Guest users are redirected to `/register?next=...` when they attempt user-owned write actions such as adding a card,
-recording quiz progress, or resetting inventory. The `next` value is limited to internal app paths.
+Guest kullanıcı user-owned write action yaptığında `/register?next=...` adresine yönlendirilir. `next` sadece internal path kabul eder.
 
-When no `next` is provided, login/register redirect to `/kart-cek`. Registration asks for preferred language and tier;
-those values seed `user_profiles.preferred_language_code` and `user_profiles.preferred_tier`.
-
-Configure these redirect URLs in the Supabase Dashboard:
-
-```text
-http://localhost:3000/auth/callback
-http://localhost:3000/account/update-password
-```
-
-Add production equivalents before deploying.
+Login/register default redirect hedefi `/kart-cek` sayfasıdır.
 
 ## Schema
 
-The initial schema is in `supabase/migrations/0001_initial_schema.sql`.
+Migrationlar:
 
-Tables:
+- `0001_initial_schema.sql`: temel tablo, RLS ve grant yapısı.
+- `0002_user_profile_preferences.sql`: profil tercih alanları.
+- `0003_multilingual_catalog_and_locale.sql`: 14 dil, locale tercihi ve yeni kart JSONB alanları.
 
-- `languages`: public language metadata.
-- `cards`: public vocabulary catalog, including stable `source_key`, `examples jsonb`, and `grammar jsonb`.
-- `user_profiles`: private per-user profile/preferences row, including preferred language and tier.
-- `user_cards`: authenticated user inventory and progress.
-- `practice_attempts`: quiz answer history.
+Tablolar:
 
-## RLS policy
+- `languages`: public dil metadata’sı.
+- `cards`: public katalog.
+- `user_profiles`: private kullanıcı profili ve tercihleri.
+- `user_cards`: kullanıcı envanteri ve quiz progress’i.
+- `practice_attempts`: quiz cevap geçmişi.
 
-Languages and catalog cards are public read data. User profile, inventory, and attempts are private to the authenticated owner via `(select auth.uid()) = user_id`.
+`cards` için önemli alanlar:
 
-The migration also grants the expected table privileges to `anon` and `authenticated`. Supabase projects may still require checking the Data API exposure settings before the REST API can read newly created tables.
+- `source_key`: app katalog anahtarı, import upsert key.
+- `language_code`: 14 desteklenen dilden biri.
+- `term_kind`: `word` veya `fixed_phrase`.
+- `term`: ana kart terimi.
+- `translation_tr`: eski Türkçe fallback.
+- `translations jsonb`: tüm locale çevirileri.
+- `examples jsonb`: 5 örnek ve örnek çevirileri.
+- `grammar jsonb`: eski Türkçe fallback.
+- `grammar_i18n jsonb`: tüm locale gramer anlatımları.
 
-## Catalog import
+`user_profiles` için:
 
-Before authenticated inventory can work, import the local starter catalog into Supabase:
+- `preferred_language_code`: öğrenme dili.
+- `preferred_tier`: başlangıç tier’ı.
+- `preferred_ui_locale`: arayüz dili.
+
+## RLS
+
+`languages` ve `cards` public read verisidir. `user_profiles`, `user_cards` ve `practice_attempts` sadece row sahibi tarafından okunur/yazılır:
+
+```sql
+using ((select auth.uid()) = user_id)
+```
+
+Migrationlar `anon` ve `authenticated` için explicit grants içerir. Supabase Data API exposure ayarları yine dashboard’dan kontrol edilmelidir.
+
+## Catalog Import
+
+Canlı inventory kullanmadan önce katalog import edilmelidir:
 
 ```bash
 npm run supabase:import-cards
 ```
 
-The script requires `NEXT_PUBLIC_SUPABASE_URL` and server-only `SUPABASE_SERVICE_ROLE_KEY`. It upserts `languages`
-and `cards` by stable keys. If the Supabase `cards` table is empty, authenticated write actions will show:
-`Kart kataloğu Supabase’e aktarılmamış.`
+Script `NEXT_PUBLIC_SUPABASE_URL` ve `SUPABASE_SERVICE_ROLE_KEY` ister. `languages` ve `cards` tablolarını `source_key` ile upsert eder.
 
-## Card detail payloads
+Supabase `cards` tablosunda ilgili `source_key` bulunamazsa cloud action şu hatayı gösterir:
 
-`cards.source_key` is the stable import key from the app catalog, such as `en-a1-isim-apple`. Supabase keeps `cards.id` as the UUID primary key; user inventory references that UUID through `user_cards.card_id`.
+```text
+Kart kataloğu Supabase’e aktarılmamış.
+```
 
-`cards.term` should stay single-word-only. Phrases, generated usage contexts, and sentence patterns should be imported as examples or future phrase-specific data, not as vocabulary card terms.
+## Stats
 
-`cards.examples` should be an array of five objects matching `CardExample`: context, label, target-language sentence, and Turkish translation.
-
-`cards.grammar` should match `GrammarGuide`: summary, rules, details, and optional table objects. Russian verbs should include present/future and past-tense table rows when available.
-
-## Inventory and stats
-
-Authenticated user inventory uses server actions in the inventory feature. Route components do not call Supabase directly.
-The UI continues to use local catalog `sourceKey` values; server actions resolve those keys to Supabase `cards.id` UUIDs.
-
-Points and ranks are derived from `user_cards.status = 'learned'` joined with `cards.tier`; no separate mutable score table is used.
+Puan ve rank ayrı tabloya yazılmaz. Öğrenilmiş kartlar `user_cards.status = 'learned'` ve `cards.tier` üzerinden hesaplanır. Bu yapı duplicate puan ve client manipülasyonu riskini azaltır.

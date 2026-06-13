@@ -1,4 +1,5 @@
 import type { AuthProfile } from "@/features/auth/auth-types";
+import { LANGUAGE_CODES } from "@/data/languages";
 import type { LanguageCode, Tier } from "@/types/domain";
 
 export const CARD_DRAW_PREFERENCES_KEY = "kartlarla-dil:card-draw-filters:v1";
@@ -17,7 +18,7 @@ export const DEFAULT_CARD_DRAW_PREFERENCES: CardDrawPreferences = {
   tier: "A1",
 };
 
-const LANGUAGE_FILTERS = new Set<CardDrawLanguageFilter>(["all", "en", "de", "ru"]);
+const LANGUAGE_FILTERS = new Set<CardDrawLanguageFilter>(["all", ...LANGUAGE_CODES]);
 const TIER_FILTERS = new Set<CardDrawTierFilter>(["all", "A1", "A2", "B1", "B2", "C1"]);
 
 export function getCardDrawPreferenceFallback(profile?: AuthProfile | null): CardDrawPreferences {

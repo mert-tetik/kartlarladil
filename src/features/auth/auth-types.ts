@@ -1,4 +1,4 @@
-import type { LanguageCode } from "@/types/domain";
+import type { LanguageCode, LocaleCode } from "@/types/domain";
 import type { Tier } from "@/types/domain";
 
 export type AuthActionStatus = "idle" | "success" | "error";
@@ -12,6 +12,7 @@ export interface AuthActionState {
 export interface AuthProfile {
   displayName: string | null;
   preferredLanguageCode: LanguageCode | null;
+  preferredUiLocale: LocaleCode | null;
   preferredTier: Tier | null;
 }
 

@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
+import { getCardTranslation } from "@/features/cards/card-localization";
 import { getPointsForTier } from "@/features/progress/progress-stats";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import type { InventoryCard, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
@@ -49,6 +51,8 @@ export function VocabularyCardView({
     initialFace,
     isFaceUp: initialFace === "front",
   }));
+  const { locale } = useLocale();
+  const t = useT();
   const style = TIER_STYLES[card.tier];
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
@@ -57,6 +61,7 @@ export function VocabularyCardView({
   const showDetails = !compact;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
   const visibleBackTier = backDisplayTier ?? card.tier;
+  const cardTranslation = getCardTranslation(card, locale);
   const isFaceUp =
     faceState.cardId === card.id && faceState.initialFace === initialFace
       ? faceState.isFaceUp
@@ -97,7 +102,7 @@ export function VocabularyCardView({
       ? {
           role: "button",
           tabIndex: 0,
-          "aria-label": `${card.term} kartını çevir`,
+          "aria-label": `${card.term}: ${t("cards.flip")}`,
           "aria-pressed": false,
           onClick: revealFront,
           onKeyDown: handleCardKeyDown,
@@ -141,9 +146,9 @@ export function VocabularyCardView({
               <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500">
                 <span>{LANGUAGE_NAMES[card.language]}</span>
                 <span
-                  aria-label={`${tierPoints} puan`}
+                  aria-label={`${tierPoints} ${t("common.points")}`}
                   className={cn("inline-flex items-center gap-1", style.text)}
-                  title={`${tierPoints} puan`}
+                  title={`${tierPoints} ${t("common.points")}`}
                 >
                   <Coins className="size-3.5" aria-hidden="true" />
                   <span>{tierPoints}</span>
@@ -156,8 +161,8 @@ export function VocabularyCardView({
                   type="button"
                   variant="secondary"
                   size="icon"
-                  aria-label={`${card.term} detayları`}
-                  title="Kart detayları"
+                  aria-label={`${card.term} ${t("cards.details")}`}
+                  title={t("cards.details")}
                   onClick={handleDetailsClick}
                   className="size-9 border-white/70 bg-white/80"
                 >
@@ -182,9 +187,7 @@ export function VocabularyCardView({
               {card.term}
             </h3>
             <p className="mt-3 text-sm font-semibold text-slate-500">{card.partOfSpeech}</p>
-            {!compact ? (
-              <p className="mt-5 text-lg font-semibold text-slate-800">{card.translation}</p>
-            ) : null}
+            {!compact ? <p className="mt-5 text-lg font-semibold text-slate-800">{cardTranslation}</p> : null}
           </div>
 
           {!compact ? (
@@ -196,7 +199,7 @@ export function VocabularyCardView({
           {inventory ? (
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                <span>{learned ? "Öğrenildi" : "İlerleme"}</span>
+                <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
                 <span>
                   {inventory.correctCount}/{requirement}
                 </span>
@@ -209,11 +212,11 @@ export function VocabularyCardView({
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip}>
                 <X className="size-4" aria-hidden="true" />
-                Geç
+                {t("cards.skip")}
               </Button>
               <Button onClick={handleAddClick} disabled={owned || !onAdd}>
                 {owned ? <Check className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
-                {owned ? "Haznede" : "Ekle"}
+                {owned ? t("cards.owned") : t("cards.add")}
               </Button>
             </div>
           ) : null}
@@ -248,12 +251,8 @@ export function VocabularyCardView({
 
             <div className="relative flex flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
-                <span className="text-xs font-semibold text-white/75">
-                  {TIER_LABELS[visibleBackTier]}
-                </span>
-                <span className="text-xs font-semibold text-white/75">
-                  {LANGUAGE_NAMES[card.language]}
-                </span>
+                <span className="text-xs font-semibold text-white/75">{TIER_LABELS[visibleBackTier]}</span>
+                <span className="text-xs font-semibold text-white/75">{LANGUAGE_NAMES[card.language]}</span>
               </div>
 
               <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -266,7 +265,7 @@ export function VocabularyCardView({
                   </span>
                   <span className={cn("pointer-events-none absolute inset-2 rounded-full border", style.border)} aria-hidden="true" />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-white/95">Çevirmek için tıkla</p>
+                <p className="mt-4 text-sm font-semibold text-white/95">{t("cards.flip")}</p>
               </div>
 
               <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75">

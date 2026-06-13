@@ -8,6 +8,12 @@ import { TIER_LABELS, TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  getCardExampleTranslation,
+  getCardGrammar,
+  getCardTranslation,
+} from "@/features/cards/card-localization";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import type { VocabularyCard } from "@/types/domain";
 
 export function CardDetailsDialog({
@@ -21,7 +27,10 @@ export function CardDetailsDialog({
 }) {
   const titleId = useId();
   const descriptionId = useId();
+  const { locale } = useLocale();
+  const t = useT();
   const style = TIER_STYLES[card.tier];
+  const grammar = getCardGrammar(card, locale);
 
   useEffect(() => {
     if (!open) {
@@ -68,23 +77,21 @@ export function CardDetailsDialog({
                 <Badge className={cn("border-transparent bg-white/80", style.text)}>
                   {card.tier} · {TIER_LABELS[card.tier]}
                 </Badge>
-                <Badge className="border-transparent bg-white/80 text-slate-700">
-                  {LANGUAGE_NAMES[card.language]}
-                </Badge>
+                <Badge className="border-transparent bg-white/80 text-slate-700">{LANGUAGE_NAMES[card.language]}</Badge>
                 <Badge className="border-transparent bg-white/80 text-slate-700">{card.partOfSpeech}</Badge>
               </div>
               <h2 id={titleId} className="mt-4 font-display text-3xl font-semibold leading-tight text-slate-950">
-                {card.term} detayları
+                {card.term} {t("cards.details")}
               </h2>
               <p id={descriptionId} className="mt-2 text-sm leading-6 text-slate-700">
-                {card.translation} · {card.pronunciation}
+                {getCardTranslation(card, locale)} · {card.pronunciation}
               </p>
             </div>
             <Button
               type="button"
               variant="secondary"
               size="icon"
-              aria-label="Detayları kapat"
+              aria-label={t("cards.closeDetails")}
               onClick={() => onOpenChange(false)}
               className="shrink-0 bg-white/80"
             >
@@ -99,15 +106,17 @@ export function CardDetailsDialog({
               <div className="flex items-center gap-2">
                 <BookOpenText className="size-5 text-slate-700" aria-hidden="true" />
                 <h3 id={`${titleId}-examples`} className="text-base font-semibold text-slate-950">
-                  5 örnek kullanım
+                  {t("cards.examples")}
                 </h3>
               </div>
               <div className="flex flex-col gap-3">
                 {card.examples.map((example) => (
                   <article key={example.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <Badge className="border-transparent bg-white text-slate-700">{example.label}</Badge>
+                    <Badge className="border-transparent bg-white text-slate-700">
+                      {example.translations[locale] ? example.label : example.label}
+                    </Badge>
                     <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{example.sentence}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{example.translation}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{getCardExampleTranslation(example, locale)}</p>
                   </article>
                 ))}
               </div>
@@ -116,30 +125,30 @@ export function CardDetailsDialog({
             <section className="flex flex-col gap-4" aria-labelledby={`${titleId}-grammar`}>
               <div>
                 <h3 id={`${titleId}-grammar`} className="text-base font-semibold text-slate-950">
-                  Gramer anlatımı
+                  {t("cards.grammar")}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{card.grammar.summary}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{grammar.summary}</p>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-slate-950">Kurallar</h4>
+                <h4 className="text-sm font-semibold text-slate-950">{t("cards.rules")}</h4>
                 <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-slate-600">
-                  {card.grammar.rules.map((rule) => (
+                  {grammar.rules.map((rule) => (
                     <li key={rule}>{rule}</li>
                   ))}
                 </ul>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-slate-950">Notlar</h4>
+                <h4 className="text-sm font-semibold text-slate-950">{t("cards.notes")}</h4>
                 <div className="mt-3 flex flex-col gap-2 text-sm leading-6 text-slate-600">
-                  {card.grammar.details.map((detail) => (
+                  {grammar.details.map((detail) => (
                     <p key={detail}>{detail}</p>
                   ))}
                 </div>
               </div>
 
-              {card.grammar.tables?.map((table) => (
+              {grammar.tables?.map((table) => (
                 <div key={table.title} className="rounded-lg border border-slate-200 bg-white p-4">
                   <h4 className="text-sm font-semibold text-slate-950">{table.title}</h4>
                   <div className="mt-3 overflow-x-auto">

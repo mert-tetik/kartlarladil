@@ -1,7 +1,9 @@
 import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { getCardTranslation } from "@/features/cards/card-localization";
 import { createId } from "@/lib/utils";
 import type {
   InventoryCard,
+  LocaleCode,
   PracticeAttempt,
   PracticeMode,
   QuizQuestion,
@@ -55,23 +57,24 @@ function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
-export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard[]): QuizQuestion {
+export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard[], locale: LocaleCode = "tr"): QuizQuestion {
+  const correctAnswer = getCardTranslation(card, locale);
   const sameLanguageDistractors = allCards
     .filter((candidate) => candidate.language === card.language && candidate.id !== card.id)
-    .map((candidate) => candidate.translation);
+    .map((candidate) => getCardTranslation(candidate, locale));
   const fallbackDistractors = allCards
     .filter((candidate) => candidate.id !== card.id)
-    .map((candidate) => candidate.translation);
+    .map((candidate) => getCardTranslation(candidate, locale));
 
   const uniqueDistractors = Array.from(
-    new Set([...sameLanguageDistractors, ...fallbackDistractors].filter((answer) => answer !== card.translation)),
+    new Set([...sameLanguageDistractors, ...fallbackDistractors].filter((answer) => answer !== correctAnswer)),
   );
-  const options = shuffle([card.translation, ...shuffle(uniqueDistractors).slice(0, 3)]);
+  const options = shuffle([correctAnswer, ...shuffle(uniqueDistractors).slice(0, 3)]);
 
   return {
     card,
     options,
-    correctAnswer: card.translation,
+    correctAnswer,
   };
 }
 

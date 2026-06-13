@@ -1,40 +1,39 @@
-import type { LanguageCode } from "@/types/domain";
+import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { cn } from "@/lib/utils";
+import type { LanguageCode, LocaleCode } from "@/types/domain";
 
-const FLAG_LABELS: Record<LanguageCode, string> = {
-  en: "İngilizce bayrağı",
-  de: "Almanca bayrağı",
-  ru: "Rusça bayrağı",
+const FLAG_BACKGROUNDS: Record<string, string> = {
+  tr: "linear-gradient(90deg, #e30a17 0 100%)",
+  gb: "linear-gradient(90deg, #012169 0 100%)",
+  de: "linear-gradient(180deg, #111827 0 33%, #dc2626 33% 66%, #facc15 66% 100%)",
+  ru: "linear-gradient(180deg, #fff 0 33%, #2563eb 33% 66%, #dc2626 66% 100%)",
+  fr: "linear-gradient(90deg, #1d4ed8 0 33%, #fff 33% 66%, #dc2626 66% 100%)",
+  es: "linear-gradient(180deg, #c60b1e 0 25%, #ffc400 25% 75%, #c60b1e 75% 100%)",
+  it: "linear-gradient(90deg, #15803d 0 33%, #fff 33% 66%, #dc2626 66% 100%)",
+  pt: "linear-gradient(90deg, #15803d 0 42%, #dc2626 42% 100%)",
+  nl: "linear-gradient(180deg, #ae1c28 0 33%, #fff 33% 66%, #21468b 66% 100%)",
+  pl: "linear-gradient(180deg, #fff 0 50%, #dc143c 50% 100%)",
+  sa: "linear-gradient(90deg, #166534 0 100%)",
+  jp: "radial-gradient(circle at 50% 50%, #bc002d 0 32%, transparent 33%), linear-gradient(#fff 0 100%)",
+  kr: "radial-gradient(circle at 50% 50%, #cd2e3a 0 26%, #0047a0 27% 52%, transparent 53%), linear-gradient(#fff 0 100%)",
+  cn: "radial-gradient(circle at 28% 30%, #ffde00 0 10%, transparent 11%), linear-gradient(#de2910 0 100%)",
 };
 
-const FLAG_BACKGROUNDS: Record<Exclude<LanguageCode, "en">, string> = {
-  de: "linear-gradient(to bottom, #111827 0 33.3%, #dc2626 33.3% 66.6%, #facc15 66.6% 100%)",
-  ru: "linear-gradient(to bottom, #ffffff 0 33.3%, #2563eb 33.3% 66.6%, #dc2626 66.6% 100%)",
-};
-
-export function LanguageFlag({ code, className }: { code: LanguageCode; className?: string }) {
-  if (code === "en") {
-    return (
-      <span
-        role="img"
-        aria-label={FLAG_LABELS[code]}
-        className={cn(
-          "relative inline-block h-4 w-6 shrink-0 overflow-hidden rounded-[3px] border border-slate-300 bg-white",
-          className,
-        )}
-      >
-        <span className="absolute inset-y-0 left-1/2 w-[18%] -translate-x-1/2 bg-red-600" aria-hidden="true" />
-        <span className="absolute inset-x-0 top-1/2 h-[28%] -translate-y-1/2 bg-red-600" aria-hidden="true" />
-      </span>
-    );
-  }
+export function LanguageFlag({
+  code,
+  className,
+}: {
+  code: LanguageCode | LocaleCode;
+  className?: string;
+}) {
+  const language = LANGUAGE_BY_CODE[code];
 
   return (
     <span
       role="img"
-      aria-label={FLAG_LABELS[code]}
-      className={cn("inline-block h-4 w-6 shrink-0 rounded-[3px] border border-slate-300", className)}
-      style={{ background: FLAG_BACKGROUNDS[code] }}
+      aria-label={`${language.name} bayrağı`}
+      className={cn("inline-block h-3.5 w-5 shrink-0 overflow-hidden rounded-[3px] border border-slate-900/10 bg-white", className)}
+      style={{ backgroundImage: FLAG_BACKGROUNDS[language.flagCode] }}
     />
   );
 }

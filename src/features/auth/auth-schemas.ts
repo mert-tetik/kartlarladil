@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import type { AuthActionState } from "@/features/auth/auth-types";
 
 export const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
 
 const nextPathSchema = z.string().optional();
-const languageCodeSchema = z.enum(["en", "de", "ru"]);
+const languageCodeSchema = z.enum(LANGUAGE_CODES);
+const localeCodeSchema = z.enum(LOCALE_CODES);
 const tierSchema = z.enum(["A1", "A2", "B1", "B2", "C1"]);
 
 export const loginSchema = z.object({
@@ -22,6 +24,7 @@ export const registerSchema = z.object({
     .max(80, "Görünen ad en fazla 80 karakter olabilir.")
     .transform((value) => (value.length > 0 ? value : null)),
   preferredLanguageCode: languageCodeSchema,
+  preferredUiLocale: localeCodeSchema.optional(),
   preferredTier: tierSchema,
   next: nextPathSchema,
 });
@@ -49,6 +52,9 @@ export const profileSchema = z.object({
     .transform((value) => (value.length > 0 ? value : null)),
   preferredLanguageCode: z
     .union([languageCodeSchema, z.literal("")])
+    .transform((value) => (value === "" ? null : value)),
+  preferredUiLocale: z
+    .union([localeCodeSchema, z.literal("")])
     .transform((value) => (value === "" ? null : value)),
   preferredTier: z.union([tierSchema, z.literal("")]).transform((value) => (value === "" ? null : value)),
 });

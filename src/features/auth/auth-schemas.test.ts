@@ -31,6 +31,7 @@ describe("auth schemas", () => {
     const result = profileSchema.safeParse({
       displayName: "  Deniz  ",
       preferredLanguageCode: "ru",
+      preferredUiLocale: "tr",
       preferredTier: "B1",
     });
 
@@ -38,6 +39,7 @@ describe("auth schemas", () => {
     expect(result.success ? result.data : null).toEqual({
       displayName: "Deniz",
       preferredLanguageCode: "ru",
+      preferredUiLocale: "tr",
       preferredTier: "B1",
     });
   });

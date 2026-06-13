@@ -1,4 +1,5 @@
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { getSearchableCardText } from "@/features/cards/card-localization";
 import type { CardFilters, CardRepository, VocabularyCard } from "@/types/domain";
 import { normalizeSearch } from "@/lib/utils";
 
@@ -15,9 +16,7 @@ function matchesFilters(card: VocabularyCard, filters: CardFilters = {}) {
     return true;
   }
 
-  const searchableText = normalizeSearch(
-    [card.term, card.translation, card.pronunciation, card.partOfSpeech, card.example].join(" "),
-  );
+  const searchableText = normalizeSearch(getSearchableCardText(card));
 
   return searchableText.includes(query);
 }

@@ -4,7 +4,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import ts from "typescript";
 
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 500;
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -44,13 +44,16 @@ for (let index = 0; index < VOCABULARY_CARDS.length; index += BATCH_SIZE) {
     language_code: card.language,
     tier: card.tier,
     term: card.term,
-    translation_tr: card.translation,
+    term_kind: card.termKind,
+    translation_tr: card.translations.tr,
+    translations: card.translations,
     pronunciation: card.pronunciation,
     part_of_speech: card.partOfSpeech,
     example: card.example,
     example_translation_tr: card.exampleTranslation,
     examples: card.examples,
     grammar: card.grammar,
+    grammar_i18n: card.grammarByLocale,
   }));
 
   const { error } = await supabase.from("cards").upsert(batch, { onConflict: "source_key" });
@@ -66,19 +69,59 @@ console.log(`Tamamlandı: ${VOCABULARY_CARDS.length} kart import edildi.`);
 
 function loadTsModule(relativePath) {
   const filename = path.resolve(relativePath);
-  const source = fs.readFileSync(filename, "utf8");
-  const output = ts.transpileModule(source, {
-    compilerOptions: {
-      esModuleInterop: true,
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-    },
-  }).outputText;
-  const tsModule = new Module(filename);
+  const cache = new Map();
 
-  tsModule.filename = filename;
-  tsModule.paths = Module._nodeModulePaths(process.cwd());
-  tsModule._compile(output, filename);
+  function compileModule(moduleFilename) {
+    const resolvedFilename = resolveTsFilename(moduleFilename);
 
-  return tsModule.exports;
+    if (cache.has(resolvedFilename)) {
+      return cache.get(resolvedFilename).exports;
+    }
+
+    const source = fs.readFileSync(resolvedFilename, "utf8");
+    const output = ts.transpileModule(source, {
+      compilerOptions: {
+        esModuleInterop: true,
+        module: ts.ModuleKind.CommonJS,
+        moduleResolution: ts.ModuleResolutionKind.Node10,
+        target: ts.ScriptTarget.ES2022,
+        paths: { "@/*": ["src/*"] },
+        baseUrl: process.cwd(),
+      },
+      fileName: resolvedFilename,
+    }).outputText;
+    const tsModule = new Module(resolvedFilename);
+    const originalRequire = tsModule.require.bind(tsModule);
+
+    cache.set(resolvedFilename, tsModule);
+    tsModule.filename = resolvedFilename;
+    tsModule.paths = Module._nodeModulePaths(path.dirname(resolvedFilename));
+    tsModule.require = (request) => {
+      if (request.startsWith("@/")) {
+        return compileModule(path.resolve("src", request.slice(2)));
+      }
+
+      if (request.startsWith(".")) {
+        return compileModule(path.resolve(path.dirname(resolvedFilename), request));
+      }
+
+      return originalRequire(request);
+    };
+    tsModule._compile(output, resolvedFilename);
+
+    return tsModule.exports;
+  }
+
+  return compileModule(filename);
+}
+
+function resolveTsFilename(filename) {
+  const candidates = [filename, `${filename}.ts`, `${filename}.tsx`, path.join(filename, "index.ts")];
+  const resolved = candidates.find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+
+  if (!resolved) {
+    throw new Error(`Module bulunamadı: ${filename}`);
+  }
+
+  return resolved;
 }

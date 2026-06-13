@@ -19,6 +19,7 @@ import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-clien
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { useT } from "@/i18n/locale-provider";
 import type { VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
@@ -69,6 +70,7 @@ export function CardDrawWorkbench() {
   const cloudError = useInventoryStore((state) => state.cloudError);
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
+  const t = useT();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const { language, tier } = preferences;
@@ -274,15 +276,15 @@ export function CardDrawWorkbench() {
                   searchCards();
                 }
               }}
-              placeholder="Kelime, çeviri veya örnek cümle ara"
+              placeholder={t("cards.searchPlaceholder")}
               className="h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
             />
           </label>
           <Button variant="secondary" size="lg" onClick={() => drawCards(5)}>
-            5 kart çek
+            {t("cards.drawFive")}
           </Button>
           <Button size="lg" onClick={() => drawCards(10)}>
-            10 kart çek
+            {t("cards.drawTen")}
           </Button>
         </div>
         <div className="mt-4">
@@ -295,7 +297,7 @@ export function CardDrawWorkbench() {
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="ghost" onClick={searchCards}>
-            Ara
+            {t("common.search")}
           </Button>
           <Button
             variant="ghost"
@@ -307,7 +309,7 @@ export function CardDrawWorkbench() {
               }
             }}
           >
-            Filtreleri temizle
+            {t("common.clearFilters")}
           </Button>
         </div>
       </div>
@@ -361,8 +363,8 @@ export function CardDrawWorkbench() {
       ) : (
         <EmptyState
           icon={PackagePlus}
-          title="Bu filtrede yeni kart kalmadı"
-          description="Başka bir dil veya tier seçerek yeni kartlar çekebilirsin."
+          title={t("cards.emptyDrawTitle")}
+          description={t("cards.emptyDrawDescription")}
         />
       )}
     </div>

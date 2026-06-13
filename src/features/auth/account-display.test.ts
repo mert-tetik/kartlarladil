@@ -8,6 +8,7 @@ const baseUser: AuthShellUser = {
   profile: {
     displayName: null,
     preferredLanguageCode: null,
+    preferredUiLocale: null,
     preferredTier: null,
   },
 };

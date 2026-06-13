@@ -1,639 +1,103 @@
+import { CARD_SEED_MODULES } from "./card-seeds";
+import { rowToTranslations } from "./card-seeds/types";
+import { LANGUAGE_CODES, LOCALE_CODES } from "./languages";
 import type {
   CardExample,
   GrammarGuide,
-  GrammarTable,
   LanguageCode,
+  LocaleCode,
+  TermKind,
   Tier,
   VocabularyCard,
 } from "@/types/domain";
 
-type WordSeed = {
+type PartOfSpeechGroup = "word" | "phrase";
+
+interface CardBuildInput {
+  id: string;
+  sourceKey: string;
+  language: LanguageCode;
+  tier: Tier;
+  termKind: TermKind;
   term: string;
-  translation: string;
+  translations: Record<LocaleCode, string>;
   pronunciation: string;
   partOfSpeech: string;
-};
-
-type CatalogSeed = Record<LanguageCode, Record<Tier, WordSeed[]>>;
-type PartOfSpeechGroup = "noun" | "verb" | "adjective" | "adverb" | "conjunction" | "other";
-type BaseExample = Pick<CardExample, "sentence" | "translation">;
-type BaseExampleTemplate = (word: WordSeed) => BaseExample;
+}
 
 export interface CatalogReport {
   total: number;
   byLanguage: Record<LanguageCode, number>;
   byLanguageTier: Record<LanguageCode, Record<Tier, number>>;
   byPartOfSpeech: Record<string, number>;
-  invalidTerms: Array<Pick<VocabularyCard, "id" | "language" | "tier" | "term">>;
+  strictWordCountByLanguage: Record<LanguageCode, number>;
+  fixedPhraseCountByLanguage: Record<LanguageCode, number>;
+  invalidTerms: Array<Pick<VocabularyCard, "id" | "language" | "tier" | "term" | "termKind">>;
   duplicateTerms: Array<{ language: LanguageCode; term: string; ids: string[] }>;
+  missingTranslations: Array<{ id: string; locale: LocaleCode }>;
   samples: Record<LanguageCode, string[]>;
 }
 
 const TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
-const LANGUAGES: LanguageCode[] = ["en", "de", "ru"];
-const SINGLE_WORD_PATTERN = /^\p{L}+$/u;
+const SINGLE_WORD_PATTERN = /^[\p{L}\p{M}]+$/u;
+const FIXED_PHRASE_PATTERN = /^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+){1,2}$/u;
+const EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily", "question", "negative", "contextual", "natural"];
 
-const CATALOG_SEED: CatalogSeed = {
-  en: {
-    A1: [
-      w("apple|elma|ep-il|isim"),
-      w("water|su|vo-tır|isim"),
-      w("bread|ekmek|bred|isim"),
-      w("book|kitap|buk|isim"),
-      w("house|ev|haus|isim"),
-      w("room|oda|rum|isim"),
-      w("friend|arkadaş|frend|isim"),
-      w("family|aile|fe-mi-li|isim"),
-      w("school|okul|skul|isim"),
-      w("work|iş|vörk|isim"),
-      w("city|şehir|si-ti|isim"),
-      w("day|gün|dey|isim"),
-      w("night|gece|nayt|isim"),
-      w("time|zaman|taym|isim"),
-      w("money|para|ma-ni|isim"),
-      w("food|yemek|fud|isim"),
-      w("coffee|kahve|ko-fi|isim"),
-      w("tea|çay|ti|isim"),
-      w("car|araba|kar|isim"),
-      w("bus|otobüs|bas|isim"),
-      w("child|çocuk|çayld|isim"),
-      w("mother|anne|ma-dır|isim"),
-      w("father|baba|fa-dır|isim"),
-      w("name|isim|neym|isim"),
-      w("door|kapı|dor|isim"),
-      w("table|masa|tey-bıl|isim"),
-      w("chair|sandalye|çer|isim"),
-      w("phone|telefon|fon|isim"),
-      w("road|yol|rod|isim"),
-      w("language|dil|leng-gwic|isim"),
-    ],
-    A2: [
-      w("travel|seyahat|trev-ıl|fiil"),
-      w("weather|hava|ve-dır|isim"),
-      w("market|pazar|mar-kıt|isim"),
-      w("ticket|bilet|ti-kıt|isim"),
-      w("hotel|otel|ho-tel|isim"),
-      w("train|tren|treyn|isim"),
-      w("meeting|toplantı|mi-ting|isim"),
-      w("lesson|ders|le-sın|isim"),
-      w("message|mesaj|me-sıc|isim"),
-      w("doctor|doktor|dok-tır|isim"),
-      w("pharmacy|eczane|far-ma-si|isim"),
-      w("restaurant|restoran|res-tı-rant|isim"),
-      w("question|soru|kues-çın|isim"),
-      w("answer|cevap|en-sır|isim"),
-      w("plan|plan|plen|isim"),
-      w("weekend|haftasonu|vik-end|isim"),
-      w("problem|sorun|prob-lım|isim"),
-      w("choice|seçim|çoys|isim"),
-      w("bill|hesap|bil|isim"),
-      w("receipt|fiş|ri-sit|isim"),
-      w("kitchen|mutfak|ki-çın|isim"),
-      w("garden|bahçe|gar-dın|isim"),
-      w("beach|plaj|biç|isim"),
-      w("airport|havalimanı|er-port|isim"),
-      w("station|istasyon|stey-şın|isim"),
-      w("shop|dükkan|şap|isim"),
-      w("price|fiyat|prays|isim"),
-      w("clothes|kıyafet|kloz|isim"),
-      w("medicine|ilaç|me-di-sın|isim"),
-      w("address|adres|e-dres|isim"),
-    ],
-    B1: [
-      w("decision|karar|di-si-jın|isim"),
-      w("improve|geliştirmek|im-pruv|fiil"),
-      w("support|desteklemek|sı-port|fiil"),
-      w("available|mevcut|ı-vey-lı-bıl|sıfat"),
-      w("purpose|amaç|pır-pıs|isim"),
-      w("although|rağmen|ol-tho|bağlaç"),
-      w("suggest|önermek|sı-cesçt|fiil"),
-      w("compare|karşılaştırmak|kım-per|fiil"),
-      w("result|sonuç|ri-zalt|isim"),
-      w("reason|sebep|ri-zın|isim"),
-      w("opinion|fikir|ı-pin-yın|isim"),
-      w("experience|deneyim|ik-spi-ri-ıns|isim"),
-      w("condition|koşul|kın-di-şın|isim"),
-      w("continue|sürdürmek|kın-tin-yu|fiil"),
-      w("increase|artırmak|in-kris|fiil"),
-      w("reduce|azaltmak|ri-dus|fiil"),
-      w("prepare|hazırlamak|pri-per|fiil"),
-      w("explain|açıklamak|ik-spleyn|fiil"),
-      w("culture|kültür|kal-çır|isim"),
-      w("habit|alışkanlık|he-bıt|isim"),
-      w("describe|betimlemek|di-skrayb|fiil"),
-      w("achieve|başarmak|ı-çiv|fiil"),
-      w("avoid|kaçınmak|ı-voyd|fiil"),
-      w("create|oluşturmak|kri-eyt|fiil"),
-      w("depend|bağlıolmak|di-pend|fiil"),
-      w("develop|gelişmek|di-ve-lıp|fiil"),
-      w("offer|teklif|o-fır|fiil"),
-      w("produce|üretmek|pro-dus|fiil"),
-      w("remain|kalmak|ri-meyn|fiil"),
-      w("select|seçmek|sı-lekt|fiil"),
-    ],
-    B2: [
-      w("evaluate|değerlendirmek|i-val-yu-eyt|fiil"),
-      w("reliable|güvenilir|ri-lay-ı-bıl|sıfat"),
-      w("assumption|varsayım|ı-samp-şın|isim"),
-      w("contribute|katkısağlamak|kın-tri-byut|fiil"),
-      w("nevertheless|yinede|ne-vır-dı-les|zarf"),
-      w("requirement|gereksinim|ri-kuayr-mınt|isim"),
-      w("framework|çerçeve|freym-vörk|isim"),
-      w("approach|yaklaşım|ı-proç|isim"),
-      w("maintain|sürdürmek|meyn-teyn|fiil"),
-      w("constraint|kısıt|kın-streynt|isim"),
-      w("priority|öncelik|pray-or-ı-ti|isim"),
-      w("interpret|yorumlamak|in-tör-prıt|fiil"),
-      w("evidence|kanıt|e-vı-dıns|isim"),
-      w("consistent|tutarlı|kın-sis-tınt|sıfat"),
-      w("estimate|tahmin|es-tı-meyt|fiil"),
-      w("analyze|analizetmek|e-nı-layz|fiil"),
-      w("expand|genişletmek|ik-spend|fiil"),
-      w("adapt|uyumsağlamak|ı-dept|fiil"),
-      w("negotiate|müzakereetmek|ni-go-şi-eyt|fiil"),
-      w("implement|uygulamak|im-plı-ment|fiil"),
-      w("illustrate|göstermek|i-lıs-treyt|fiil"),
-      w("clarify|netleştirmek|kle-rı-fay|fiil"),
-      w("justify|gerekçelendirmek|cas-tı-fay|fiil"),
-      w("verify|doğrulamak|ve-rı-fay|fiil"),
-      w("consider|dikkatealmak|kın-si-dır|fiil"),
-      w("ensure|sağlamak|in-şur|fiil"),
-      w("imply|imaetmek|im-play|fiil"),
-      w("resolve|çözmek|ri-zalv|fiil"),
-      w("significant|önemli|sig-ni-fi-kınt|sıfat"),
-      w("complex|karmaşık|kam-pleks|sıfat"),
-    ],
-    C1: [
-      w("meticulous|titiz|mı-ti-kyu-lıs|sıfat"),
-      w("ambiguous|belirsiz|am-bi-gyu-ıs|sıfat"),
-      w("nuance|nüans|nu-ans|isim"),
-      w("scrutinize|incelemek|skru-tı-nayz|fiil"),
-      w("resilient|dayanıklı|ri-zil-yınt|sıfat"),
-      w("contemplate|düşünmek|kon-tım-pleyt|fiil"),
-      w("subtle|ince|sa-tıl|sıfat"),
-      w("coherent|tutarlı|ko-hi-rınt|sıfat"),
-      w("premise|öncül|pre-mıs|isim"),
-      w("mitigate|hafifletmek|mi-ti-geyt|fiil"),
-      w("discrepancy|uyuşmazlık|dis-kre-pın-si|isim"),
-      w("ubiquitous|her yerde|yu-bi-kui-tıs|sıfat"),
-      w("profound|derin|pro-faund|sıfat"),
-      w("alleviate|gidermek|ı-li-vi-eyt|fiil"),
-      w("intricate|karmaşık|in-trı-kıt|sıfat"),
-      w("plausible|makul|plo-zı-bıl|sıfat"),
-      w("undermine|zayıflatmak|an-dır-mayn|fiil"),
-      w("articulate|ifadeetmek|ar-ti-kyu-leyt|fiil"),
-      w("infer|çıkarım|in-fır|fiil"),
-      w("synthesize|sentezlemek|sin-thı-sayz|fiil"),
-      w("paradigm|paradigma|pe-rı-daym|isim"),
-      w("rhetoric|retorik|re-tı-rik|isim"),
-      w("empirical|ampirik|em-pi-ri-kıl|sıfat"),
-      w("inherent|içkin|in-hi-rınt|sıfat"),
-      w("scrutiny|inceleme|skru-tı-ni|isim"),
-      w("volatile|değişken|va-lı-tıl|sıfat"),
-      w("robust|sağlam|ro-bast|sıfat"),
-      w("concede|kabullenmek|kın-sid|fiil"),
-      w("foster|teşviketmek|fos-tır|fiil"),
-      w("paramount|enönemli|pe-rı-maunt|sıfat"),
-    ],
-  },
-  de: {
-    A1: [
-      w("Apfel|elma|ap-fıl|isim"),
-      w("Wasser|su|vas-ır|isim"),
-      w("Brot|ekmek|brot|isim"),
-      w("Buch|kitap|buh|isim"),
-      w("Haus|ev|haus|isim"),
-      w("Zimmer|oda|tsim-ır|isim"),
-      w("Freund|arkadaş|froynt|isim"),
-      w("Familie|aile|fa-mi-li-ye|isim"),
-      w("Schule|okul|şu-le|isim"),
-      w("Arbeit|iş|ar-bayt|isim"),
-      w("Stadt|şehir|ştat|isim"),
-      w("Tag|gün|tak|isim"),
-      w("Nacht|gece|naht|isim"),
-      w("Zeit|zaman|tsayt|isim"),
-      w("Geld|para|gelt|isim"),
-      w("Essen|yemek|es-ın|isim"),
-      w("Kaffee|kahve|ka-fe|isim"),
-      w("Tee|çay|te|isim"),
-      w("Auto|araba|av-to|isim"),
-      w("Bus|otobüs|bus|isim"),
-      w("Kind|çocuk|kint|isim"),
-      w("Mutter|anne|mu-tır|isim"),
-      w("Vater|baba|fa-tır|isim"),
-      w("Name|isim|na-me|isim"),
-      w("Tür|kapı|tür|isim"),
-      w("Tisch|masa|tiş|isim"),
-      w("Stuhl|sandalye|ştul|isim"),
-      w("Handy|telefon|hen-di|isim"),
-      w("Straße|yol|ştra-se|isim"),
-      w("Sprache|dil|şpra-he|isim"),
-    ],
-    A2: [
-      w("reisen|seyahat|ray-zın|fiil"),
-      w("Wetter|hava|ve-tır|isim"),
-      w("Markt|pazar|markt|isim"),
-      w("Fahrkarte|bilet|far-kar-te|isim"),
-      w("Hotel|otel|ho-tel|isim"),
-      w("Zug|tren|tsuk|isim"),
-      w("Besprechung|toplantı|be-şpre-hung|isim"),
-      w("Unterricht|ders|un-tır-riht|isim"),
-      w("Nachricht|mesaj|nah-riht|isim"),
-      w("Arzt|doktor|artst|isim"),
-      w("Apotheke|eczane|a-po-te-ke|isim"),
-      w("Restaurant|restoran|res-to-ran|isim"),
-      w("Frage|soru|fra-ge|isim"),
-      w("Antwort|cevap|ant-vort|isim"),
-      w("Plan|plan|plan|isim"),
-      w("Wochenende|haftasonu|vo-hen-en-de|isim"),
-      w("Problem|sorun|pro-blem|isim"),
-      w("Auswahl|seçim|aus-val|isim"),
-      w("Rechnung|hesap|reh-nung|isim"),
-      w("Quittung|fiş|kvi-tung|isim"),
-      w("Küche|mutfak|kü-he|isim"),
-      w("Garten|bahçe|gar-tın|isim"),
-      w("Strand|plaj|ştrant|isim"),
-      w("Flughafen|havalimanı|fluk-ha-fın|isim"),
-      w("Bahnhof|istasyon|ban-hof|isim"),
-      w("Geschäft|dükkan|ge-şeft|isim"),
-      w("Preis|fiyat|prays|isim"),
-      w("Kleidung|kıyafet|klay-dung|isim"),
-      w("Medizin|ilaç|me-di-tsin|isim"),
-      w("Adresse|adres|a-dre-se|isim"),
-    ],
-    B1: [
-      w("Entscheidung|karar|ent-şay-dung|isim"),
-      w("verbessern|geliştirmek|fer-be-sırn|fiil"),
-      w("unterstützen|desteklemek|un-tır-ştüt-sın|fiil"),
-      w("verfügbar|mevcut|fer-füg-bar|sıfat"),
-      w("Zweck|amaç|tsvek|isim"),
-      w("obwohl|rağmen|op-vol|bağlaç"),
-      w("vorschlagen|önermek|for-şla-gın|fiil"),
-      w("vergleichen|karşılaştırmak|fer-glay-hın|fiil"),
-      w("Ergebnis|sonuç|er-gep-nis|isim"),
-      w("Grund|sebep|grunt|isim"),
-      w("Meinung|fikir|may-nung|isim"),
-      w("Erfahrung|deneyim|er-fa-rung|isim"),
-      w("Bedingung|koşul|be-din-gung|isim"),
-      w("fortsetzen|sürdürmek|fort-zet-sın|fiil"),
-      w("erhöhen|artırmak|er-hö-ın|fiil"),
-      w("reduzieren|azaltmak|re-du-tsi-rın|fiil"),
-      w("vorbereiten|hazırlamak|for-be-ray-tın|fiil"),
-      w("erklären|açıklamak|er-kle-rın|fiil"),
-      w("Kultur|kültür|kul-tur|isim"),
-      w("Gewohnheit|alışkanlık|ge-von-hayt|isim"),
-      w("beschreiben|betimlemek|be-şray-bın|fiil"),
-      w("erreichen|başarmak|er-ray-hın|fiil"),
-      w("vermeiden|kaçınmak|fer-may-dın|fiil"),
-      w("schaffen|oluşturmak|şa-fın|fiil"),
-      w("abhängen|bağlıolmak|ap-hen-gın|fiil"),
-      w("entwickeln|geliştirmek|ent-vik-keln|fiil"),
-      w("anbieten|sunmak|an-bi-tın|fiil"),
-      w("herstellen|üretmek|her-ştel-lın|fiil"),
-      w("bleiben|kalmak|blay-bın|fiil"),
-      w("auswählen|seçmek|aus-ve-lın|fiil"),
-    ],
-    B2: [
-      w("bewerten|değerlendirmek|be-vert-ın|fiil"),
-      w("zuverlässig|güvenilir|tsu-fer-le-sih|sıfat"),
-      w("Annahme|varsayım|an-na-me|isim"),
-      w("beitragen|katkısağlamak|bay-tra-gın|fiil"),
-      w("dennoch|yinede|de-noh|zarf"),
-      w("Anforderung|gereksinim|an-for-de-rung|isim"),
-      w("Rahmen|çerçeve|ra-men|isim"),
-      w("Ansatz|yaklaşım|an-zats|isim"),
-      w("aufrechterhalten|sürdürmek|auf-reht-er-hal-tın|fiil"),
-      w("Einschränkung|kısıt|ayn-şren-kung|isim"),
-      w("Priorität|öncelik|pri-o-ri-tet|isim"),
-      w("interpretieren|yorumlamak|in-ter-pre-ti-rın|fiil"),
-      w("Beweis|kanıt|be-vays|isim"),
-      w("konsistent|tutarlı|kon-zi-stent|sıfat"),
-      w("schätzen|tahminetmek|şe-tsın|fiil"),
-      w("analysieren|analizetmek|a-na-lü-zi-rın|fiil"),
-      w("erweitern|genişletmek|er-vay-tırn|fiil"),
-      w("anpassen|uyarlamak|an-pa-sın|fiil"),
-      w("verhandeln|müzakereetmek|fer-han-deln|fiil"),
-      w("umsetzen|uygulamak|um-zet-sın|fiil"),
-      w("darstellen|göstermek|dar-ştel-lın|fiil"),
-      w("klären|netleştirmek|kle-rın|fiil"),
-      w("begründen|gerekçelendirmek|be-grün-dın|fiil"),
-      w("überprüfen|doğrulamak|ü-ber-prü-fın|fiil"),
-      w("berücksichtigen|dikkatealmak|be-rük-zih-ti-gın|fiil"),
-      w("gewährleisten|sağlamak|ge-ver-lays-tın|fiil"),
-      w("voraussetzen|varsaymak|fo-raus-zet-sın|fiil"),
-      w("bewältigen|üstesindengelmek|be-vel-ti-gın|fiil"),
-      w("vielschichtig|çokkatmanlı|fil-şihtih|sıfat"),
-      w("bedeutsam|önemli|be-doyt-zam|sıfat"),
-    ],
-    C1: [
-      w("akribisch|titiz|a-kri-biș|sıfat"),
-      w("mehrdeutig|belirsiz|mer-doy-tih|sıfat"),
-      w("Nuance|nüans|nu-an-se|isim"),
-      w("prüfen|incelemek|prü-fın|fiil"),
-      w("widerstandsfähig|dayanıklı|vi-dır-ştants-fe-hih|sıfat"),
-      w("erwägen|düşünmek|er-ve-gın|fiil"),
-      w("subtil|ince|zup-til|sıfat"),
-      w("kohärent|tutarlı|ko-he-rent|sıfat"),
-      w("Prämisse|öncül|pre-mi-se|isim"),
-      w("mindern|hafifletmek|min-dırn|fiil"),
-      w("Diskrepanz|uyuşmazlık|dis-kre-pants|isim"),
-      w("allgegenwärtig|heryerde|al-ge-gen-ver-tih|sıfat"),
-      w("tiefgründig|derin|tif-grün-dih|sıfat"),
-      w("lindern|gidermek|lin-dırn|fiil"),
-      w("komplex|karmaşık|kom-pleks|sıfat"),
-      w("plausibel|makul|plau-zi-bel|sıfat"),
-      w("untergraben|zayıflatmak|un-tır-gra-bın|fiil"),
-      w("artikulieren|ifadeetmek|ar-ti-ku-li-rın|fiil"),
-      w("folgern|çıkarım|fol-gırn|fiil"),
-      w("synthetisieren|sentezlemek|zün-te-ti-zi-rın|fiil"),
-      w("Paradigma|paradigma|pa-ra-dig-ma|isim"),
-      w("Rhetorik|retorik|re-to-rik|isim"),
-      w("empirisch|ampirik|em-pi-riş|sıfat"),
-      w("inhärent|içkin|in-he-rent|sıfat"),
-      w("Prüfung|inceleme|prü-fung|isim"),
-      w("volatil|değişken|vo-la-til|sıfat"),
-      w("robust|sağlam|ro-bust|sıfat"),
-      w("einräumen|kabullenmek|ayn-roy-mın|fiil"),
-      w("fördern|teşviketmek|för-dırn|fiil"),
-      w("vorrangig|öncelikli|for-ran-gih|sıfat"),
-    ],
-  },
-  ru: {
-    A1: [
-      w("яблоко|elma|yablaka|isim"),
-      w("вода|su|vada|isim"),
-      w("хлеб|ekmek|hleb|isim"),
-      w("книга|kitap|kniga|isim"),
-      w("дом|ev|dom|isim"),
-      w("комната|oda|komnata|isim"),
-      w("друг|arkadaş|druk|isim"),
-      w("семья|aile|semya|isim"),
-      w("школа|okul|şkola|isim"),
-      w("работа|iş|rabota|isim"),
-      w("город|şehir|gorod|isim"),
-      w("день|gün|dyen|isim"),
-      w("ночь|gece|noç|isim"),
-      w("время|zaman|vremya|isim"),
-      w("деньги|para|dyengi|isim"),
-      w("еда|yemek|yeda|isim"),
-      w("кофе|kahve|kofe|isim"),
-      w("чай|çay|çay|isim"),
-      w("машина|araba|maşina|isim"),
-      w("автобус|otobüs|avtobus|isim"),
-      w("ребёнок|çocuk|rebyonak|isim"),
-      w("мать|anne|mat|isim"),
-      w("отец|baba|atets|isim"),
-      w("имя|isim|imya|isim"),
-      w("дверь|kapı|dver|isim"),
-      w("стол|masa|stol|isim"),
-      w("стул|sandalye|stul|isim"),
-      w("телефон|telefon|telefon|isim"),
-      w("дорога|yol|daroga|isim"),
-      w("язык|dil|yazık|isim"),
-    ],
-    A2: [
-      w("путешествовать|seyahat|puteşestvavat|fiil"),
-      w("погода|hava|pagoda|isim"),
-      w("рынок|pazar|rınak|isim"),
-      w("билет|bilet|bilyet|isim"),
-      w("отель|otel|atel|isim"),
-      w("поезд|tren|poezd|isim"),
-      w("встреча|toplantı|vstreça|isim"),
-      w("урок|ders|urok|isim"),
-      w("сообщение|mesaj|saobşeniye|isim"),
-      w("врач|doktor|vraç|isim"),
-      w("аптека|eczane|apteka|isim"),
-      w("ресторан|restoran|restaran|isim"),
-      w("вопрос|soru|vapros|isim"),
-      w("ответ|cevap|atvet|isim"),
-      w("план|plan|plan|isim"),
-      w("выходной|haftasonu|vıhadnoy|isim"),
-      w("проблема|sorun|prablema|isim"),
-      w("выбор|seçim|vıbar|isim"),
-      w("счёт|hesap|şçyot|isim"),
-      w("чек|fiş|çek|isim"),
-      w("кухня|mutfak|kuhnya|isim"),
-      w("сад|bahçe|sat|isim"),
-      w("пляж|plaj|plyaj|isim"),
-      w("аэропорт|havalimanı|aeraport|isim"),
-      w("вокзал|istasyon|vagzal|isim"),
-      w("магазин|dükkan|magazin|isim"),
-      w("цена|fiyat|tsena|isim"),
-      w("одежда|kıyafet|adejda|isim"),
-      w("лекарство|ilaç|lekarstva|isim"),
-      w("адрес|adres|adres|isim"),
-    ],
-    B1: [
-      w("решение|karar|reşeniye|isim"),
-      w("улучшать|geliştirmek|uluçşat|fiil"),
-      w("поддерживать|desteklemek|padderjivat|fiil"),
-      w("доступный|mevcut|dastupnıy|sıfat"),
-      w("цель|amaç|tsel|isim"),
-      w("хотя|rağmen|hatya|bağlaç"),
-      w("предлагать|önermek|predlagat|fiil"),
-      w("сравнивать|karşılaştırmak|sravnivat|fiil"),
-      w("результат|sonuç|rezultat|isim"),
-      w("причина|sebep|priçina|isim"),
-      w("мнение|fikir|mneniye|isim"),
-      w("опыт|deneyim|opıt|isim"),
-      w("условие|koşul|usloviye|isim"),
-      w("продолжать|sürdürmek|pradaljat|fiil"),
-      w("увеличивать|artırmak|uveliçivat|fiil"),
-      w("снижать|azaltmak|snijat|fiil"),
-      w("готовить|hazırlamak|gatovit|fiil"),
-      w("объяснять|açıklamak|abyasnyat|fiil"),
-      w("культура|kültür|kultura|isim"),
-      w("привычка|alışkanlık|privıçka|isim"),
-      w("описывать|betimlemek|opisıvat|fiil"),
-      w("достигать|başarmak|dastigat|fiil"),
-      w("избегать|kaçınmak|izbegat|fiil"),
-      w("создавать|oluşturmak|sazdavat|fiil"),
-      w("зависеть|bağlıolmak|zaviset|fiil"),
-      w("развивать|geliştirmek|razvivat|fiil"),
-      w("производить|üretmek|praizvadit|fiil"),
-      w("оставаться|kalmak|astavatsya|fiil"),
-      w("выбирать|seçmek|vıbirat|fiil"),
-      w("участвовать|katılmak|uçastvavat|fiil"),
-    ],
-    B2: [
-      w("оценивать|değerlendirmek|atsenivat|fiil"),
-      w("надежный|güvenilir|nadyöjnıy|sıfat"),
-      w("предположение|varsayım|predpalojeniye|isim"),
-      w("вносить|katkısağlamak|vnasit|fiil"),
-      w("однако|ancak|adnaka|bağlaç"),
-      w("требование|gereksinim|trebavaniye|isim"),
-      w("рамка|çerçeve|ramka|isim"),
-      w("подход|yaklaşım|padhod|isim"),
-      w("сохранять|sürdürmek|sahranyat|fiil"),
-      w("ограничение|kısıt|agraniçeniye|isim"),
-      w("приоритет|öncelik|prioritet|isim"),
-      w("интерпретировать|yorumlamak|interpretiravat|fiil"),
-      w("доказательство|kanıt|dakazatelstva|isim"),
-      w("последовательный|tutarlı|pasledavatelnıy|sıfat"),
-      w("предполагать|tahminetmek|predpalagat|fiil"),
-      w("анализировать|analizetmek|analiziravat|fiil"),
-      w("расширять|genişletmek|raşşiryat|fiil"),
-      w("адаптировать|uyarlamak|adaptiravat|fiil"),
-      w("договариваться|müzakereetmek|dagavarivatsya|fiil"),
-      w("внедрять|uygulamak|vnedryat|fiil"),
-      w("иллюстрировать|göstermek|illyustriravat|fiil"),
-      w("уточнять|netleştirmek|utoçnyat|fiil"),
-      w("обосновывать|gerekçelendirmek|abasnovıvat|fiil"),
-      w("проверять|doğrulamak|praveryat|fiil"),
-      w("учитывать|dikkatealmak|uçitıvat|fiil"),
-      w("обеспечивать|sağlamak|abespeçivat|fiil"),
-      w("справляться|üstesindengelmek|spravlyatsya|fiil"),
-      w("сложный|karmaşık|slojnıy|sıfat"),
-      w("устойчивый|dayanıklı|ustoyçivıy|sıfat"),
-      w("значительный|önemli|znaçitelnıy|sıfat"),
-    ],
-    C1: [
-      w("скрупулёзный|titiz|skrupulyoznıy|sıfat"),
-      w("двусмысленный|belirsiz|dvusmıslenıy|sıfat"),
-      w("нюанс|nüans|nyuans|isim"),
-      w("изучать|incelemek|izuçat|fiil"),
-      w("стойкий|dayanıklı|stoykiy|sıfat"),
-      w("обдумывать|düşünmek|abdumıvat|fiil"),
-      w("тонкий|ince|tonkiy|sıfat"),
-      w("согласованный|tutarlı|saglasovannıy|sıfat"),
-      w("посылка|öncül|pasılka|isim"),
-      w("смягчать|hafifletmek|smyagçat|fiil"),
-      w("расхождение|uyuşmazlık|rashajdeniye|isim"),
-      w("повсеместный|heryerde|pavsemestnıy|sıfat"),
-      w("глубокий|derin|glubokiy|sıfat"),
-      w("облегчать|gidermek|ablegçat|fiil"),
-      w("запутанный|karmaşık|zaputannıy|sıfat"),
-      w("правдоподобный|makul|pravdapadobnıy|sıfat"),
-      w("подрывать|zayıflatmak|padrıvat|fiil"),
-      w("формулировать|ifadeetmek|formuliravat|fiil"),
-      w("выводить|çıkarım|vıvadit|fiil"),
-      w("синтезировать|sentezlemek|sinteziravat|fiil"),
-      w("парадигма|paradigma|paradigma|isim"),
-      w("риторика|retorik|ritorika|isim"),
-      w("эмпирический|ampirik|empiriçeskiy|sıfat"),
-      w("присущий|içkin|prisuşçiy|sıfat"),
-      w("проверка|inceleme|praverka|isim"),
-      w("изменчивый|değişken|izmençivıy|sıfat"),
-      w("прочный|sağlam|proçnıy|sıfat"),
-      w("признавать|kabullenmek|priznavat|fiil"),
-      w("способствовать|teşviketmek|spasobstvavat|fiil"),
-      w("первостепенный|öncelikli|pervastepenniy|sıfat"),
-    ],
-  },
+const EXAMPLE_LABELS: Record<CardExample["context"], Record<LocaleCode, string>> = {
+  daily: labels("Günlük kullanım", "Daily use", "Alltag", "Повседневно", "Usage quotidien", "Uso diario"),
+  question: labels("Soru", "Question", "Frage", "Вопрос", "Question", "Pregunta"),
+  negative: labels("Olumsuz", "Negative", "Negativ", "Отрицание", "Négation", "Negativo"),
+  contextual: labels("Bağlam", "Context", "Kontext", "Контекст", "Contexte", "Contexto"),
+  natural: labels("Doğal kullanım", "Natural use", "Natürliche Nutzung", "Естественное употребление", "Usage naturel", "Uso natural"),
 };
 
-type EnglishVerbForms = {
-  base: string;
-  past: string;
-  participle: string;
-  gerund: string;
-};
-
-type RussianVerbForms = {
-  note: string;
-  present: GrammarTable["rows"];
-  past: GrammarTable["rows"];
-};
-
-const ENGLISH_VERB_OVERRIDES: Record<string, EnglishVerbForms> = {
-  be: { base: "be", past: "was/were", participle: "been", gerund: "being" },
-  do: { base: "do", past: "did", participle: "done", gerund: "doing" },
-  have: { base: "have", past: "had", participle: "had", gerund: "having" },
-};
-
-const GERMAN_ARTICLE_OVERRIDES: Record<string, string> = {
-  Apfel: "der Apfel",
-  Wasser: "das Wasser",
-  Brot: "das Brot",
-  Buch: "das Buch",
-  Haus: "das Haus",
-  Zimmer: "das Zimmer",
-  Freund: "der Freund",
-  Familie: "die Familie",
-  Schule: "die Schule",
-  Arbeit: "die Arbeit",
-  Stadt: "die Stadt",
-  Tag: "der Tag",
-  Nacht: "die Nacht",
-  Zeit: "die Zeit",
-  Geld: "das Geld",
-  Essen: "das Essen",
-  Kaffee: "der Kaffee",
-  Tee: "der Tee",
-  Auto: "das Auto",
-  Bus: "der Bus",
-  Kind: "das Kind",
-  Mutter: "die Mutter",
-  Vater: "der Vater",
-  Name: "der Name",
-  Tür: "die Tür",
-  Tisch: "der Tisch",
-  Stuhl: "der Stuhl",
-  Handy: "das Handy",
-  Straße: "die Straße",
-  Sprache: "die Sprache",
-};
-
-const RUSSIAN_VERB_OVERRIDES: Record<string, RussianVerbForms> = {
-  говорить: russianVerbForms(
-    "Konuşmak fiilidir; -ить grubunda şahıs ekleriyle düzenli biçimde çekilir.",
-    ["я", "говорю"],
-    ["ты", "говоришь"],
-    ["он/она/оно", "говорит"],
-    ["мы", "говорим"],
-    ["вы", "говорите"],
-    ["они", "говорят"],
-    ["он", "говорил"],
-    ["она", "говорила"],
-    ["оно", "говорило"],
-    ["они", "говорили"],
-  ),
-  путешествовать: russianVerbForms(
-    "Seyahat etmek fiilidir; şimdiki zamanda -ствую/-ствуешь dizisini alır.",
-    ["я", "путешествую"],
-    ["ты", "путешествуешь"],
-    ["он/она/оно", "путешествует"],
-    ["мы", "путешествуем"],
-    ["вы", "путешествуете"],
-    ["они", "путешествуют"],
-    ["он", "путешествовал"],
-    ["она", "путешествовала"],
-    ["оно", "путешествовало"],
-    ["они", "путешествовали"],
-  ),
-  оставаться: russianVerbForms(
-    "Dönüşlü fiildir; -ся eki çekimden sonra korunur.",
-    ["я", "остаюсь"],
-    ["ты", "остаёшься"],
-    ["он/она/оно", "остаётся"],
-    ["мы", "остаёмся"],
-    ["вы", "остаётесь"],
-    ["они", "остаются"],
-    ["он", "оставался"],
-    ["она", "оставалась"],
-    ["оно", "оставалось"],
-    ["они", "оставались"],
-  ),
-};
-
-export function isSingleWordTerm(term: string) {
-  return SINGLE_WORD_PATTERN.test(term.trim());
+export function isSingleWordTerm(term: string): boolean {
+  return SINGLE_WORD_PATTERN.test(term.normalize("NFC"));
 }
 
-export function createCardSourceKey(language: LanguageCode, tier: Tier, term: string, partOfSpeech: string) {
-  return `${language}-${tier.toLowerCase()}-${slug(partOfSpeech)}-${slug(term)}`;
+export function isFixedPhraseTerm(term: string): boolean {
+  return FIXED_PHRASE_PATTERN.test(term.normalize("NFC"));
+}
+
+export function isValidCardTerm(term: string, termKind: TermKind): boolean {
+  return termKind === "word" ? isSingleWordTerm(term) : isFixedPhraseTerm(term);
+}
+
+export function createCardSourceKey(
+  language: LanguageCode,
+  tier: Tier,
+  term: string,
+  partOfSpeech: string,
+  termKind: TermKind = "word",
+) {
+  return [language, tier, termKind, encodeKeyPart(term), encodeKeyPart(partOfSpeech)].join(":");
 }
 
 export function getCatalogReport(cards: VocabularyCard[]): CatalogReport {
   const byLanguage = emptyLanguageCount();
   const byLanguageTier = emptyLanguageTierCount();
   const byPartOfSpeech: Record<string, number> = {};
+  const strictWordCountByLanguage = emptyLanguageCount();
+  const fixedPhraseCountByLanguage = emptyLanguageCount();
   const termMap = new Map<string, string[]>();
+  const missingTranslations: CatalogReport["missingTranslations"] = [];
 
   for (const card of cards) {
     byLanguage[card.language] += 1;
     byLanguageTier[card.language][card.tier] += 1;
     byPartOfSpeech[card.partOfSpeech] = (byPartOfSpeech[card.partOfSpeech] ?? 0) + 1;
+
+    if (card.termKind === "word") {
+      strictWordCountByLanguage[card.language] += 1;
+    } else {
+      fixedPhraseCountByLanguage[card.language] += 1;
+    }
+
+    for (const locale of LOCALE_CODES) {
+      if (!card.translations[locale]?.trim()) {
+        missingTranslations.push({ id: card.id, locale });
+      }
+    }
 
     const duplicateKey = `${card.language}:${card.term.toLocaleLowerCase("en")}`;
     termMap.set(duplicateKey, [...(termMap.get(duplicateKey) ?? []), card.id]);
@@ -653,12 +117,15 @@ export function getCatalogReport(cards: VocabularyCard[]): CatalogReport {
     byLanguage,
     byLanguageTier,
     byPartOfSpeech,
+    strictWordCountByLanguage,
+    fixedPhraseCountByLanguage,
     invalidTerms: cards
-      .filter((card) => !isSingleWordTerm(card.term))
-      .map(({ id, language, tier, term }) => ({ id, language, tier, term })),
+      .filter((card) => !isValidCardTerm(card.term, card.termKind))
+      .map(({ id, language, tier, term, termKind }) => ({ id, language, tier, term, termKind })),
     duplicateTerms,
+    missingTranslations,
     samples: Object.fromEntries(
-      LANGUAGES.map((language) => [
+      LANGUAGE_CODES.map((language) => [
         language,
         cards.filter((card) => card.language === language).slice(0, 12).map((card) => card.term),
       ]),
@@ -666,465 +133,428 @@ export function getCatalogReport(cards: VocabularyCard[]): CatalogReport {
   };
 }
 
-function buildCatalog(seed: CatalogSeed): VocabularyCard[] {
-  return LANGUAGES.flatMap((language) =>
-    TIERS.flatMap((tier) =>
-      seed[language][tier].map((word) => {
-        const sourceKey = createCardSourceKey(language, tier, word.term, word.partOfSpeech);
-        const baseExample = buildBaseExample(language, word);
+function buildCatalog(): VocabularyCard[] {
+  return CARD_SEED_MODULES.flatMap((module) =>
+    module.rows.map((row) => {
+      const [term, tier, termKind, partOfSpeech, pronunciation] = row;
+      const translations = rowToTranslations(row);
+      const sourceKey = createCardSourceKey(module.language, tier, term, partOfSpeech, termKind);
 
-        return createVocabularyCard({
-          id: sourceKey,
-          sourceKey,
-          language,
-          tier,
-          card: {
-            ...word,
-            example: baseExample.sentence,
-            exampleTranslation: baseExample.translation,
-          },
-          sourceTerm: word,
-        });
-      }),
-    ),
+      return createVocabularyCard({
+        id: sourceKey,
+        sourceKey,
+        language: module.language,
+        tier,
+        termKind,
+        term,
+        translations,
+        pronunciation,
+        partOfSpeech,
+      });
+    }),
   );
 }
 
-function createVocabularyCard({
-  id,
-  sourceKey,
-  language,
-  tier,
-  card,
-  sourceTerm,
-}: {
-  id: string;
-  sourceKey: string;
-  language: LanguageCode;
-  tier: Tier;
-  card: Omit<VocabularyCard, "id" | "sourceKey" | "language" | "tier" | "examples" | "grammar">;
-  sourceTerm: WordSeed;
-}): VocabularyCard {
+function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   let examples: CardExample[] | undefined;
-  let grammar: GrammarGuide | undefined;
+  let grammarByLocale: Record<LocaleCode, GrammarGuide> | undefined;
+
+  const firstExample = buildSourceExample(input.language, input.term, input.tier, "daily");
+  const firstExampleTranslations = buildExampleTranslations(input, "daily");
 
   return {
-    id,
-    sourceKey,
-    language,
-    tier,
-    ...card,
+    ...input,
+    translation: input.translations.tr,
+    example: firstExample,
+    exampleTranslation: firstExampleTranslations.tr,
     get examples() {
-      examples ??= buildCardExamples(language, card, tier);
+      examples ??= EXAMPLE_CONTEXTS.map((context) => ({
+        id: context,
+        context,
+        label: EXAMPLE_LABELS[context].tr,
+        sentence: buildSourceExample(input.language, input.term, input.tier, context),
+        translation: buildExampleTranslations(input, context).tr,
+        translations: buildExampleTranslations(input, context),
+      }));
       return examples;
     },
     get grammar() {
-      grammar ??= buildGrammarGuide(language, card, sourceTerm);
-      return grammar;
+      return this.grammarByLocale.tr;
+    },
+    get grammarByLocale() {
+      grammarByLocale ??= Object.fromEntries(
+        LOCALE_CODES.map((locale) => [locale, buildGrammarGuide(input, locale)]),
+      ) as Record<LocaleCode, GrammarGuide>;
+      return grammarByLocale;
     },
   };
 }
 
-function w(value: string): WordSeed {
-  const [term, translation, pronunciation, partOfSpeech] = value.split("|");
-
-  if (!term || !translation || !pronunciation || !partOfSpeech) {
-    throw new Error(`Invalid word seed: ${value}`);
+function buildSourceExample(language: LanguageCode, term: string, tier: Tier, context: CardExample["context"]) {
+  if (context === "daily") {
+    const dailyVariants = DAILY_SOURCE_VARIANTS[language] ?? DAILY_SOURCE_VARIANTS.en;
+    return dailyVariants[stableIndex(`${language}:${term}:daily`, dailyVariants.length)](term, tier);
   }
 
-  return { term, translation, pronunciation, partOfSpeech };
+  const templates = SOURCE_EXAMPLE_TEMPLATES[language] ?? SOURCE_EXAMPLE_TEMPLATES.en;
+  return templates[context](term, tier);
 }
 
-function buildBaseExample(language: LanguageCode, word: WordSeed) {
-  const group = getPartOfSpeechGroup(word);
-  const templates = BASE_EXAMPLE_TEMPLATES[language][group];
-
-  return templates[stableIndex(`${language}:${group}:${word.term}`, templates.length)](word);
+function buildExampleTranslations(input: CardBuildInput, context: CardExample["context"]): Record<LocaleCode, string> {
+  return Object.fromEntries(
+    LOCALE_CODES.map((locale) => {
+      const term = input.translations[locale] || input.term;
+      const templates = TRANSLATED_EXAMPLE_TEMPLATES[locale] ?? TRANSLATED_EXAMPLE_TEMPLATES.en;
+      return [locale, templates[context](term, input.tier)];
+    }),
+  ) as Record<LocaleCode, string>;
 }
 
-const BASE_EXAMPLE_TEMPLATES: Record<LanguageCode, Record<PartOfSpeechGroup, BaseExampleTemplate[]>> = {
-  en: {
-    noun: [
-      (word) => ({
-        sentence: `The ${word.term} is part of today's story.`,
-        translation: `${word.term} bugünkü hikayenin bir parçasıdır.`,
-      }),
-      (word) => ({
-        sentence: `I noticed the ${word.term} before the lesson began.`,
-        translation: `Ders başlamadan önce ${word.term} kelimesini fark ettim.`,
-      }),
-      (word) => ({
-        sentence: `They talked about the ${word.term} during lunch.`,
-        translation: `Öğle yemeğinde ${word.term} hakkında konuştular.`,
-      }),
-      (word) => ({
-        sentence: `She checked the ${word.term} on the list.`,
-        translation: `Listedeki ${word.term} kelimesini kontrol etti.`,
-      }),
-      (word) => ({
-        sentence: `The ${word.term} appears in a simple dialogue.`,
-        translation: `${word.term} basit bir diyalogda geçer.`,
-      }),
-      (word) => ({
-        sentence: `He remembered the ${word.term} after class.`,
-        translation: `Dersten sonra ${word.term} kelimesini hatırladı.`,
-      }),
-    ],
-    verb: [
-      (word) => ({
-        sentence: `The group practiced "${word.term}" in a short dialogue.`,
-        translation: `Grup "${word.term}" kelimesini kısa bir diyalogda çalıştı.`,
-      }),
-      (word) => ({
-        sentence: `I heard "${word.term}" during the conversation.`,
-        translation: `Konuşma sırasında "${word.term}" kelimesini duydum.`,
-      }),
-      (word) => ({
-        sentence: `She placed "${word.term}" next to a clear example.`,
-        translation: `"${word.term}" kelimesini açık bir örneğin yanına koydu.`,
-      }),
-      (word) => ({
-        sentence: `We reviewed "${word.term}" before the exercise.`,
-        translation: `Alıştırmadan önce "${word.term}" kelimesini tekrar ettik.`,
-      }),
-      (word) => ({
-        sentence: `The lesson shows how "${word.term}" changes the meaning.`,
-        translation: `Ders, "${word.term}" kelimesinin anlamı nasıl değiştirdiğini gösterir.`,
-      }),
-      (word) => ({
-        sentence: `He repeated "${word.term}" after listening to the sentence.`,
-        translation: `Cümleyi dinledikten sonra "${word.term}" kelimesini tekrar etti.`,
-      }),
-    ],
-    adjective: [
-      (word) => ({
-        sentence: `The ${word.term} answer helped the class.`,
-        translation: `${word.term} cevap sınıfa yardımcı oldu.`,
-      }),
-      (word) => ({
-        sentence: `A ${word.term} detail changed the meaning.`,
-        translation: `${word.term} bir detay anlamı değiştirdi.`,
-      }),
-      (word) => ({
-        sentence: `She chose the ${word.term} option.`,
-        translation: `${word.term} seçeneği tercih etti.`,
-      }),
-      (word) => ({
-        sentence: `The ${word.term} tone made the sentence stronger.`,
-        translation: `${word.term} ton cümleyi güçlendirdi.`,
-      }),
-      (word) => ({
-        sentence: `I marked the ${word.term} idea in the text.`,
-        translation: `Metindeki ${word.term} fikri işaretledim.`,
-      }),
-    ],
-    adverb: [
-      (word) => ({
-        sentence: `"${word.term}" changes the rhythm of the sentence.`,
-        translation: `"${word.term}" cümlenin ritmini değiştirir.`,
-      }),
-      (word) => ({
-        sentence: `The speaker used "${word.term}" to soften the point.`,
-        translation: `Konuşmacı noktayı yumuşatmak için "${word.term}" kullandı.`,
-      }),
-      (word) => ({
-        sentence: `I placed "${word.term}" near the main verb.`,
-        translation: `"${word.term}" kelimesini ana fiilin yakınına koydum.`,
-      }),
-    ],
-    conjunction: [
-      (word) => ({
-        sentence: `I used "${word.term}" to connect the two ideas.`,
-        translation: `İki fikri bağlamak için "${word.term}" kullandım.`,
-      }),
-      (word) => ({
-        sentence: `"${word.term}" keeps the sentence moving.`,
-        translation: `"${word.term}" cümlenin akışını sürdürür.`,
-      }),
-      (word) => ({
-        sentence: `The second clause begins with "${word.term}".`,
-        translation: `İkinci yan cümle "${word.term}" ile başlar.`,
-      }),
-    ],
-    other: [
-      (word) => ({
-        sentence: `I practiced "${word.term}" in a short example.`,
-        translation: `"${word.term}" kelimesini kısa bir örnekte çalıştım.`,
-      }),
-      (word) => ({
-        sentence: `The class added "${word.term}" to the board.`,
-        translation: `Sınıf "${word.term}" kelimesini tahtaya ekledi.`,
-      }),
-      (word) => ({
-        sentence: `We found "${word.term}" in the reading text.`,
-        translation: `"${word.term}" kelimesini okuma metninde bulduk.`,
-      }),
-    ],
-  },
-  de: {
-    noun: [
-      (word) => ({
-        sentence: `"${word.term}" steht im ersten Satz.`,
-        translation: `"${word.term}" ilk cümlede yer alır.`,
-      }),
-      (word) => ({
-        sentence: `Ich finde "${word.term}" im kurzen Text.`,
-        translation: `"${word.term}" kelimesini kısa metinde buluyorum.`,
-      }),
-      (word) => ({
-        sentence: `Wir besprechen "${word.term}" nach dem Unterricht.`,
-        translation: `Dersten sonra "${word.term}" hakkında konuşuyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Die Lehrerin markiert "${word.term}" an der Tafel.`,
-        translation: `Öğretmen tahtada "${word.term}" kelimesini işaretler.`,
-      }),
-      (word) => ({
-        sentence: `Im Dialog kommt "${word.term}" zweimal vor.`,
-        translation: `Diyalogda "${word.term}" iki kez geçer.`,
-      }),
-      (word) => ({
-        sentence: `Er wiederholt "${word.term}" vor der Übung.`,
-        translation: `Alıştırmadan önce "${word.term}" kelimesini tekrar eder.`,
-      }),
-    ],
-    verb: [
-      (word) => ({
-        sentence: `Im Kurs üben wir "${word.term}" gemeinsam.`,
-        translation: `Kursta "${word.term}" kelimesini birlikte çalışıyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Ich höre "${word.term}" in einem Gespräch.`,
-        translation: `"${word.term}" kelimesini bir konuşmada duyuyorum.`,
-      }),
-      (word) => ({
-        sentence: `Sie verbindet "${word.term}" mit einem Beispiel.`,
-        translation: `"${word.term}" kelimesini bir örnekle ilişkilendiriyor.`,
-      }),
-      (word) => ({
-        sentence: `Wir schreiben "${word.term}" neben den Satz.`,
-        translation: `"${word.term}" kelimesini cümlenin yanına yazıyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Der Text zeigt "${word.term}" in einem neuen Kontext.`,
-        translation: `Metin "${word.term}" kelimesini yeni bir bağlamda gösterir.`,
-      }),
-      (word) => ({
-        sentence: `Er spricht "${word.term}" langsam nach.`,
-        translation: `"${word.term}" kelimesini yavaşça tekrar eder.`,
-      }),
-    ],
-    adjective: [
-      (word) => ({
-        sentence: `"${word.term}" macht die Aussage genauer.`,
-        translation: `"${word.term}" ifadeyi daha kesin hale getirir.`,
-      }),
-      (word) => ({
-        sentence: `Ein "${word.term}" Detail verändert den Sinn.`,
-        translation: `"${word.term}" bir detay anlamı değiştirir.`,
-      }),
-      (word) => ({
-        sentence: `Sie markiert die "${word.term}" Stelle im Text.`,
-        translation: `Metindeki "${word.term}" yeri işaretler.`,
-      }),
-      (word) => ({
-        sentence: `Mit "${word.term}" klingt der Satz stärker.`,
-        translation: `"${word.term}" ile cümle daha güçlü duyulur.`,
-      }),
-      (word) => ({
-        sentence: `Das Beispiel bleibt durch "${word.term}" klar.`,
-        translation: `Örnek "${word.term}" sayesinde açık kalır.`,
-      }),
-    ],
-    adverb: [
-      (word) => ({
-        sentence: `"${word.term}" verändert den Rhythmus des Satzes.`,
-        translation: `"${word.term}" cümlenin ritmini değiştirir.`,
-      }),
-      (word) => ({
-        sentence: `Ich setze "${word.term}" vor den Hauptgedanken.`,
-        translation: `"${word.term}" kelimesini ana fikrin önüne koyuyorum.`,
-      }),
-      (word) => ({
-        sentence: `Der Sprecher nutzt "${word.term}" für den Übergang.`,
-        translation: `Konuşmacı geçiş için "${word.term}" kullanır.`,
-      }),
-    ],
-    conjunction: [
-      (word) => ({
-        sentence: `"${word.term}" verbindet zwei Satzteile.`,
-        translation: `"${word.term}" iki cümle parçasını bağlar.`,
-      }),
-      (word) => ({
-        sentence: `Der zweite Gedanke beginnt mit "${word.term}".`,
-        translation: `İkinci fikir "${word.term}" ile başlar.`,
-      }),
-      (word) => ({
-        sentence: `Ich nutze "${word.term}" für einen Gegensatz.`,
-        translation: `Bir karşıtlık için "${word.term}" kullanıyorum.`,
-      }),
-    ],
-    other: [
-      (word) => ({
-        sentence: `Ich übe "${word.term}" mit einem kurzen Beispiel.`,
-        translation: `"${word.term}" kelimesini kısa bir örnekle çalışıyorum.`,
-      }),
-      (word) => ({
-        sentence: `Die Gruppe findet "${word.term}" im Lesetext.`,
-        translation: `Grup "${word.term}" kelimesini okuma metninde bulur.`,
-      }),
-      (word) => ({
-        sentence: `Wir notieren "${word.term}" für die Wiederholung.`,
-        translation: `Tekrar için "${word.term}" kelimesini not ediyoruz.`,
-      }),
-    ],
-  },
-  ru: {
-    noun: [
-      (word) => ({
-        sentence: `«${word.term}» стоит в первом предложении.`,
-        translation: `«${word.term}» ilk cümlede yer alır.`,
-      }),
-      (word) => ({
-        sentence: `Я нахожу «${word.term}» в коротком тексте.`,
-        translation: `«${word.term}» kelimesini kısa metinde buluyorum.`,
-      }),
-      (word) => ({
-        sentence: `Мы обсуждаем «${word.term}» после урока.`,
-        translation: `Dersten sonra «${word.term}» hakkında konuşuyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Учитель пишет «${word.term}» на доске.`,
-        translation: `Öğretmen tahtaya «${word.term}» kelimesini yazar.`,
-      }),
-      (word) => ({
-        sentence: `В диалоге «${word.term}» звучит естественно.`,
-        translation: `Diyalogda «${word.term}» doğal duyulur.`,
-      }),
-      (word) => ({
-        sentence: `Он повторяет «${word.term}» перед упражнением.`,
-        translation: `Alıştırmadan önce «${word.term}» kelimesini tekrar eder.`,
-      }),
-    ],
-    verb: [
-      (word) => ({
-        sentence: `На уроке мы тренируем «${word.term}» вместе.`,
-        translation: `Derste «${word.term}» kelimesini birlikte çalışıyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Я слышу «${word.term}» в разговоре.`,
-        translation: `«${word.term}» kelimesini bir konuşmada duyuyorum.`,
-      }),
-      (word) => ({
-        sentence: `Она связывает «${word.term}» с примером.`,
-        translation: `«${word.term}» kelimesini bir örnekle ilişkilendiriyor.`,
-      }),
-      (word) => ({
-        sentence: `Мы записываем «${word.term}» рядом с фразой.`,
-        translation: `«${word.term}» kelimesini ifadenin yanına yazıyoruz.`,
-      }),
-      (word) => ({
-        sentence: `Текст показывает «${word.term}» в новом контексте.`,
-        translation: `Metin «${word.term}» kelimesini yeni bir bağlamda gösterir.`,
-      }),
-      (word) => ({
-        sentence: `Он медленно повторяет «${word.term}» вслух.`,
-        translation: `«${word.term}» kelimesini yavaşça sesli tekrar eder.`,
-      }),
-    ],
-    adjective: [
-      (word) => ({
-        sentence: `«${word.term}» делает мысль точнее.`,
-        translation: `«${word.term}» düşünceyi daha kesin hale getirir.`,
-      }),
-      (word) => ({
-        sentence: `Деталь «${word.term}» меняет смысл.`,
-        translation: `«${word.term}» detayı anlamı değiştirir.`,
-      }),
-      (word) => ({
-        sentence: `Она отмечает «${word.term}» место в тексте.`,
-        translation: `Metindeki «${word.term}» yeri işaretler.`,
-      }),
-      (word) => ({
-        sentence: `С «${word.term}» фраза звучит сильнее.`,
-        translation: `«${word.term}» ile ifade daha güçlü duyulur.`,
-      }),
-      (word) => ({
-        sentence: `Пример с «${word.term}» остается понятным.`,
-        translation: `«${word.term}» içeren örnek anlaşılır kalır.`,
-      }),
-    ],
-    adverb: [
-      (word) => ({
-        sentence: `«${word.term}» меняет ритм предложения.`,
-        translation: `«${word.term}» cümlenin ritmini değiştirir.`,
-      }),
-      (word) => ({
-        sentence: `Я ставлю «${word.term}» перед главной мыслью.`,
-        translation: `«${word.term}» kelimesini ana fikrin önüne koyuyorum.`,
-      }),
-      (word) => ({
-        sentence: `Говорящий использует «${word.term}» для перехода.`,
-        translation: `Konuşmacı geçiş için «${word.term}» kullanır.`,
-      }),
-    ],
-    conjunction: [
-      (word) => ({
-        sentence: `«${word.term}» соединяет две части предложения.`,
-        translation: `«${word.term}» cümlenin iki parçasını bağlar.`,
-      }),
-      (word) => ({
-        sentence: `Вторая мысль начинается с «${word.term}».`,
-        translation: `İkinci fikir «${word.term}» ile başlar.`,
-      }),
-      (word) => ({
-        sentence: `Я использую «${word.term}» для контраста.`,
-        translation: `Bir karşıtlık için «${word.term}» kullanıyorum.`,
-      }),
-    ],
-    other: [
-      (word) => ({
-        sentence: `Я повторяю «${word.term}» с коротким примером.`,
-        translation: `«${word.term}» kelimesini kısa bir örnekle tekrar ediyorum.`,
-      }),
-      (word) => ({
-        sentence: `Группа находит «${word.term}» в тексте.`,
-        translation: `Grup «${word.term}» kelimesini metinde bulur.`,
-      }),
-      (word) => ({
-        sentence: `Мы записываем «${word.term}» для повторения.`,
-        translation: `Tekrar için «${word.term}» kelimesini not ediyoruz.`,
-      }),
-    ],
-  },
+function buildGrammarGuide(input: CardBuildInput, locale: LocaleCode): GrammarGuide {
+  const term = input.translations[locale] || input.term;
+  const builders = GRAMMAR_BUILDERS[locale] ?? GRAMMAR_BUILDERS.en;
+  return builders(term, input.tier, getPartOfSpeechGroup(input.termKind));
+}
+
+function labels(
+  tr: string,
+  en: string,
+  de: string,
+  ru: string,
+  fr: string,
+  es: string,
+): Record<LocaleCode, string> {
+  return {
+    tr,
+    en,
+    de,
+    ru,
+    fr,
+    es,
+    it: en,
+    pt: es,
+    nl: en,
+    pl: en,
+    ar: en,
+    ja: en,
+    ko: en,
+    "zh-CN": en,
+  };
+}
+
+function getPartOfSpeechGroup(termKind: TermKind): PartOfSpeechGroup {
+  return termKind === "fixed_phrase" ? "phrase" : "word";
+}
+
+type SourceExampleTemplate = (term: string, tier: Tier) => string;
+type ContextTemplates = Record<CardExample["context"], SourceExampleTemplate>;
+
+const DAILY_SOURCE_VARIANTS: Record<LanguageCode, SourceExampleTemplate[]> = {
+  tr: [
+    (term) => `Bugünkü derste "${term}" kelimesini not ettim.`,
+    (term) => `Kısa metinde "${term}" kelimesi gözüme çarptı.`,
+    (term) => `"${term}" yeni kart destemde yerini aldı.`,
+    (term) => `Örnek konuşmada "${term}" kelimesini duydum.`,
+    (term) => `Tekrar listeme "${term}" kelimesini ekledim.`,
+  ],
+  en: [
+    (term) => `Today I added "${term}" to my study list.`,
+    (term) => `I noticed "${term}" in a short reading task.`,
+    (term) => `"${term}" now belongs to my card deck.`,
+    (term) => `The speaker used "${term}" in a simple exchange.`,
+    (term) => `I reviewed "${term}" before the next quiz.`,
+  ],
+  de: [
+    (term) => `Heute steht "${term}" auf meiner Lernliste.`,
+    (term) => `Im kurzen Text fällt mir "${term}" auf.`,
+    (term) => `"${term}" liegt jetzt in meinem Kartendeck.`,
+    (term) => `Im Gespräch höre ich "${term}" deutlich.`,
+    (term) => `Vor dem Quiz wiederhole ich "${term}".`,
+  ],
+  ru: [
+    (term) => `Сегодня я добавил «${term}» в список слов.`,
+    (term) => `В коротком тексте я заметил «${term}».`,
+    (term) => `«${term}» теперь есть в моей колоде.`,
+    (term) => `В диалоге я слышу «${term}» ясно.`,
+    (term) => `Перед quiz я повторяю «${term}».`,
+  ],
+  fr: [
+    (term) => `Aujourd'hui, j'ajoute "${term}" à ma liste.`,
+    (term) => `Je remarque "${term}" dans un texte court.`,
+    (term) => `"${term}" entre dans mon deck de cartes.`,
+    (term) => `J'entends "${term}" dans un échange simple.`,
+    (term) => `Je révise "${term}" avant le quiz.`,
+  ],
+  es: [
+    (term) => `Hoy añadí "${term}" a mi lista.`,
+    (term) => `Noté "${term}" en un texto breve.`,
+    (term) => `"${term}" ya está en mi mazo.`,
+    (term) => `Escuché "${term}" en un diálogo sencillo.`,
+    (term) => `Repasé "${term}" antes del quiz.`,
+  ],
+  it: [
+    (term) => `Oggi aggiungo "${term}" alla mia lista.`,
+    (term) => `Noto "${term}" in un testo breve.`,
+    (term) => `"${term}" entra nel mio mazzo.`,
+    (term) => `Sento "${term}" in uno scambio semplice.`,
+    (term) => `Ripasso "${term}" prima del quiz.`,
+  ],
+  pt: [
+    (term) => `Hoje adicionei "${term}" à minha lista.`,
+    (term) => `Notei "${term}" num texto curto.`,
+    (term) => `"${term}" entrou no meu baralho.`,
+    (term) => `Ouvi "${term}" numa conversa simples.`,
+    (term) => `Revi "${term}" antes do quiz.`,
+  ],
+  nl: [
+    (term) => `Vandaag zet ik "${term}" op mijn lijst.`,
+    (term) => `Ik merk "${term}" op in een korte tekst.`,
+    (term) => `"${term}" zit nu in mijn kaartendeck.`,
+    (term) => `Ik hoor "${term}" in een eenvoudig gesprek.`,
+    (term) => `Ik herhaal "${term}" voor de quiz.`,
+  ],
+  pl: [
+    (term) => `Dzisiaj dodaję "${term}" do listy.`,
+    (term) => `Zauważam "${term}" w krótkim tekście.`,
+    (term) => `"${term}" trafia do mojej talii.`,
+    (term) => `Słyszę "${term}" w prostym dialogu.`,
+    (term) => `Powtarzam "${term}" przed quizem.`,
+  ],
+  ar: [
+    (term) => `أضفت "${term}" إلى قائمة الدراسة اليوم.`,
+    (term) => `لاحظت "${term}" في نص قصير.`,
+    (term) => `أصبحت "${term}" ضمن مجموعة البطاقات.`,
+    (term) => `سمعت "${term}" في حوار بسيط.`,
+    (term) => `راجعت "${term}" قبل الاختبار.`,
+  ],
+  ja: [
+    (term) => `今日は「${term}」を学習リストに入れました。`,
+    (term) => `短い文章で「${term}」に気づきました。`,
+    (term) => `「${term}」がカードデッキに入りました。`,
+    (term) => `簡単な会話で「${term}」を聞きました。`,
+    (term) => `クイズ前に「${term}」を復習しました。`,
+  ],
+  ko: [
+    (term) => `오늘 "${term}"을 학습 목록에 넣었습니다.`,
+    (term) => `짧은 글에서 "${term}"을 확인했습니다.`,
+    (term) => `"${term}"이 카드 덱에 들어갔습니다.`,
+    (term) => `간단한 대화에서 "${term}"을 들었습니다.`,
+    (term) => `퀴즈 전에 "${term}"을 복습했습니다.`,
+  ],
+  "zh-CN": [
+    (term) => `今天我把“${term}”加入学习列表。`,
+    (term) => `我在短文里注意到“${term}”。`,
+    (term) => `“${term}”已经进入我的卡组。`,
+    (term) => `我在简单对话中听到“${term}”。`,
+    (term) => `测验前我复习了“${term}”。`,
+  ],
 };
 
-function getPartOfSpeechGroup(word: WordSeed): PartOfSpeechGroup {
-  if (hasPartOfSpeech(word, "isim")) {
-    return "noun";
-  }
+const SOURCE_EXAMPLE_TEMPLATES: Record<LanguageCode, ContextTemplates> = {
+  tr: sourceTemplates({
+    daily: (term) => `Bugünkü derste "${term}" kelimesini not ettim.`,
+    question: (term) => `"${term}" kelimesi bu cümlede ne anlama geliyor?`,
+    negative: (term) => `"${term}" kelimesini bağlam olmadan çevirmiyorum.`,
+    contextual: (term, tier) => `${tier} seviyesinde "${term}" farklı bir bağlamda görünür.`,
+    natural: (term) => `Konuşmada "${term}" doğal bir şekilde geçer.`,
+  }),
+  en: sourceTemplates({
+    daily: (term) => `Today I added "${term}" to my study list.`,
+    question: (term) => `What does "${term}" mean in this sentence?`,
+    negative: (term) => `Do not translate "${term}" without context.`,
+    contextual: (term, tier) => `At ${tier} level, "${term}" appears in a new context.`,
+    natural: (term) => `Native speakers use "${term}" naturally in conversation.`,
+  }),
+  de: sourceTemplates({
+    daily: (term) => `Heute steht "${term}" auf meiner Lernliste.`,
+    question: (term) => `Was bedeutet "${term}" in diesem Satz?`,
+    negative: (term) => `Übersetze "${term}" nicht ohne Kontext.`,
+    contextual: (term, tier) => `Auf dem Niveau ${tier} erscheint "${term}" in einem neuen Kontext.`,
+    natural: (term) => `"${term}" klingt in einem klaren Gespräch natürlich.`,
+  }),
+  ru: sourceTemplates({
+    daily: (term) => `Сегодня я добавил «${term}» в список слов.`,
+    question: (term) => `Что значит «${term}» в этом предложении?`,
+    negative: (term) => `Не переводи «${term}» без контекста.`,
+    contextual: (term, tier) => `На уровне ${tier} «${term}» появляется в новом контексте.`,
+    natural: (term) => `В живой речи «${term}» звучит естественно.`,
+  }),
+  fr: sourceTemplates({
+    daily: (term) => `Aujourd'hui, j'ajoute "${term}" à ma liste.`,
+    question: (term) => `Que signifie "${term}" dans cette phrase ?`,
+    negative: (term) => `Ne traduis pas "${term}" sans contexte.`,
+    contextual: (term, tier) => `Au niveau ${tier}, "${term}" apparaît dans un nouveau contexte.`,
+    natural: (term) => `"${term}" semble naturel dans une conversation claire.`,
+  }),
+  es: sourceTemplates({
+    daily: (term) => `Hoy añadí "${term}" a mi lista.`,
+    question: (term) => `¿Qué significa "${term}" en esta frase?`,
+    negative: (term) => `No traduzcas "${term}" sin contexto.`,
+    contextual: (term, tier) => `En el nivel ${tier}, "${term}" aparece en un contexto nuevo.`,
+    natural: (term) => `"${term}" suena natural en una conversación clara.`,
+  }),
+  it: sourceTemplates({
+    daily: (term) => `Oggi aggiungo "${term}" alla mia lista.`,
+    question: (term) => `Che cosa significa "${term}" in questa frase?`,
+    negative: (term) => `Non tradurre "${term}" senza contesto.`,
+    contextual: (term, tier) => `Al livello ${tier}, "${term}" appare in un nuovo contesto.`,
+    natural: (term) => `"${term}" suona naturale in una conversazione chiara.`,
+  }),
+  pt: sourceTemplates({
+    daily: (term) => `Hoje adicionei "${term}" à minha lista.`,
+    question: (term) => `O que significa "${term}" nesta frase?`,
+    negative: (term) => `Não traduzas "${term}" sem contexto.`,
+    contextual: (term, tier) => `No nível ${tier}, "${term}" aparece num novo contexto.`,
+    natural: (term) => `"${term}" soa natural numa conversa clara.`,
+  }),
+  nl: sourceTemplates({
+    daily: (term) => `Vandaag zet ik "${term}" op mijn lijst.`,
+    question: (term) => `Wat betekent "${term}" in deze zin?`,
+    negative: (term) => `Vertaal "${term}" niet zonder context.`,
+    contextual: (term, tier) => `Op niveau ${tier} verschijnt "${term}" in een nieuwe context.`,
+    natural: (term) => `"${term}" klinkt natuurlijk in een helder gesprek.`,
+  }),
+  pl: sourceTemplates({
+    daily: (term) => `Dzisiaj dodaję "${term}" do listy.`,
+    question: (term) => `Co znaczy "${term}" w tym zdaniu?`,
+    negative: (term) => `Nie tłumacz "${term}" bez kontekstu.`,
+    contextual: (term, tier) => `Na poziomie ${tier} "${term}" pojawia się w nowym kontekście.`,
+    natural: (term) => `"${term}" brzmi naturalnie w rozmowie.`,
+  }),
+  ar: sourceTemplates({
+    daily: (term) => `أضفت "${term}" إلى قائمة الدراسة اليوم.`,
+    question: (term) => `ماذا تعني "${term}" في هذه الجملة؟`,
+    negative: (term) => `لا تترجم "${term}" دون سياق.`,
+    contextual: (term, tier) => `في مستوى ${tier} تظهر "${term}" في سياق جديد.`,
+    natural: (term) => `تبدو "${term}" طبيعية في محادثة واضحة.`,
+  }),
+  ja: sourceTemplates({
+    daily: (term) => `今日は「${term}」を学習リストに入れました。`,
+    question: (term) => `この文で「${term}」は何を意味しますか。`,
+    negative: (term) => `文脈なしで「${term}」を訳しません。`,
+    contextual: (term, tier) => `${tier} レベルでは「${term}」が新しい文脈で出ます。`,
+    natural: (term) => `会話では「${term}」が自然に使われます。`,
+  }),
+  ko: sourceTemplates({
+    daily: (term) => `오늘 "${term}"을 학습 목록에 넣었습니다.`,
+    question: (term) => `이 문장에서 "${term}"은 무슨 뜻인가요?`,
+    negative: (term) => `문맥 없이 "${term}"을 번역하지 않습니다.`,
+    contextual: (term, tier) => `${tier} 단계에서 "${term}"은 새로운 문맥에 나옵니다.`,
+    natural: (term) => `대화에서 "${term}"은 자연스럽게 쓰입니다.`,
+  }),
+  "zh-CN": sourceTemplates({
+    daily: (term) => `今天我把“${term}”加入学习列表。`,
+    question: (term) => `“${term}”在这个句子里是什么意思？`,
+    negative: (term) => `不要脱离语境翻译“${term}”。`,
+    contextual: (term, tier) => `在 ${tier} 等级，“${term}”会出现在新语境中。`,
+    natural: (term) => `在清晰的对话中，“${term}”很自然。`,
+  }),
+};
 
-  if (hasPartOfSpeech(word, "fiil")) {
-    return "verb";
-  }
+const TRANSLATED_EXAMPLE_TEMPLATES: Record<LocaleCode, ContextTemplates> = SOURCE_EXAMPLE_TEMPLATES;
 
-  if (hasPartOfSpeech(word, "sıfat")) {
-    return "adjective";
-  }
-
-  if (hasPartOfSpeech(word, "zarf")) {
-    return "adverb";
-  }
-
-  if (hasPartOfSpeech(word, "bağlaç")) {
-    return "conjunction";
-  }
-
-  return "other";
+function sourceTemplates(templates: ContextTemplates): ContextTemplates {
+  return templates;
 }
 
-function hasPartOfSpeech(word: WordSeed, partOfSpeech: string) {
-  return word.partOfSpeech.toLocaleLowerCase("tr").includes(partOfSpeech);
+type GrammarBuilder = (term: string, tier: Tier, group: PartOfSpeechGroup) => GrammarGuide;
+
+const GRAMMAR_BUILDERS: Record<LocaleCode, GrammarBuilder> = {
+  tr: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" kartı ${tier} seviyesinde çalışılan ${group === "phrase" ? "sabit bir ifade" : "tek kelimelik bir terim"}dir.`,
+    rules: [
+      "Kelimeyi tek başına ezberlemek yerine örnek cümledeki görevine dikkat et.",
+      "Çeviri eşleştirmesi aktif arayüz diline göre gösterilir.",
+      "Tier yükseldikçe kartın öğrenildi sayılması için daha fazla doğru cevap gerekir.",
+    ],
+    details: [
+      "Bu geniş katalog otomatik sözlük seed verisiyle üretildiği için özel çekim tabloları ileride kürasyon katmanında zenginleştirilebilir.",
+    ],
+  }),
+  en: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" is a ${tier} ${group === "phrase" ? "fixed expression" : "single-word term"} card.`,
+    rules: [
+      "Read the word inside its example sentence instead of memorizing it alone.",
+      "Translations follow the selected interface language.",
+      "Higher tiers require more correct quiz answers before the card becomes learned.",
+    ],
+    details: [
+      "This large catalog is generated from dictionary seed data; hand-curated conjugation tables can be layered on top later.",
+    ],
+  }),
+  de: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" ist eine ${tier}-Karte für ${group === "phrase" ? "einen festen Ausdruck" : "ein einzelnes Wort"}.`,
+    rules: ["Lies das Wort im Beispielsatz.", "Die Übersetzung folgt der UI-Sprache.", "Höhere Tiers brauchen mehr richtige Antworten."],
+    details: ["Spezielle Deklinationen und Konjugationen können später kuratiert ergänzt werden."],
+  }),
+  ru: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `«${term}» — карточка уровня ${tier} для ${group === "phrase" ? "устойчивого выражения" : "одного слова"}.`,
+    rules: ["Смотри на слово в примере.", "Перевод зависит от выбранного языка интерфейса.", "Более высокий tier требует больше правильных ответов."],
+    details: ["Подробные таблицы склонения и спряжения можно добавить в curated-слой."],
+  }),
+  fr: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" est une carte ${tier} pour ${group === "phrase" ? "une expression fixe" : "un mot unique"}.`,
+    rules: ["Lis le mot dans sa phrase.", "La traduction suit la langue de l'interface.", "Les tiers plus élevés exigent plus de bonnes réponses."],
+    details: ["Les détails grammaticaux spécifiques peuvent être enrichis plus tard."],
+  }),
+  es: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" es una tarjeta ${tier} de ${group === "phrase" ? "expresión fija" : "una sola palabra"}.`,
+    rules: ["Lee la palabra dentro del ejemplo.", "La traducción sigue el idioma de la interfaz.", "Los tiers altos requieren más respuestas correctas."],
+    details: ["Las tablas gramaticales específicas se pueden añadir después."],
+  }),
+  it: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" è una carta ${tier} per ${group === "phrase" ? "un'espressione fissa" : "una parola singola"}.`,
+    rules: ["Leggi la parola nella frase.", "La traduzione segue la lingua dell'interfaccia.", "I tier più alti richiedono più risposte corrette."],
+    details: ["Le note grammaticali specifiche possono essere curate in seguito."],
+  }),
+  pt: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" é uma carta ${tier} de ${group === "phrase" ? "expressão fixa" : "palavra única"}.`,
+    rules: ["Lê a palavra no exemplo.", "A tradução segue o idioma da interface.", "Tiers mais altos exigem mais respostas corretas."],
+    details: ["Notas gramaticais específicas podem ser enriquecidas depois."],
+  }),
+  nl: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" is een ${tier}-kaart voor ${group === "phrase" ? "een vaste uitdrukking" : "een enkel woord"}.`,
+    rules: ["Lees het woord in de voorbeeldzin.", "De vertaling volgt de interfacetaal.", "Hogere tiers vragen meer juiste antwoorden."],
+    details: ["Specifieke grammatica kan later handmatig worden aangevuld."],
+  }),
+  pl: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" to karta ${tier} dla ${group === "phrase" ? "stałego wyrażenia" : "pojedynczego słowa"}.`,
+    rules: ["Czytaj słowo w zdaniu przykładowym.", "Tłumaczenie zależy od języka interfejsu.", "Wyższe tiery wymagają więcej poprawnych odpowiedzi."],
+    details: ["Szczegółową gramatykę można dodać później."],
+  }),
+  ar: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}" بطاقة مستوى ${tier} لـ${group === "phrase" ? "تعبير ثابت" : "كلمة مفردة"}.`,
+    rules: ["اقرأ الكلمة داخل المثال.", "الترجمة تتبع لغة الواجهة.", "المستويات الأعلى تحتاج إجابات صحيحة أكثر."],
+    details: ["يمكن إضافة جداول صرف مفصلة لاحقًا."],
+  }),
+  ja: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `「${term}」は${tier}レベルの${group === "phrase" ? "固定表現" : "単語"}カードです。`,
+    rules: ["例文の中で確認します。", "翻訳はUI言語に合わせます。", "高い tier ほど多くの正解が必要です。"],
+    details: ["詳しい活用表は後から追加できます。"],
+  }),
+  ko: (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `"${term}"은 ${tier} 단계의 ${group === "phrase" ? "고정 표현" : "단어"} 카드입니다.`,
+    rules: ["예문 안에서 단어를 확인하세요.", "번역은 UI 언어를 따릅니다.", "높은 tier일수록 더 많은 정답이 필요합니다."],
+    details: ["세부 문법표는 나중에 추가할 수 있습니다."],
+  }),
+  "zh-CN": (term, tier, group) => genericGrammar(term, tier, group, {
+    summary: `“${term}”是 ${tier} 等级的${group === "phrase" ? "固定表达" : "单词"}卡。`,
+    rules: ["在例句中理解这个词。", "翻译跟随界面语言。", "等级越高，需要的正确次数越多。"],
+    details: ["更详细的语法表可以在人工校对层补充。"],
+  }),
+};
+
+function genericGrammar(
+  _term: string,
+  _tier: Tier,
+  _group: PartOfSpeechGroup,
+  guide: Pick<GrammarGuide, "summary" | "rules" | "details">,
+): GrammarGuide {
+  return guide;
+}
+
+function encodeKeyPart(value: string) {
+  return encodeURIComponent(value.normalize("NFC").toLocaleLowerCase("en"));
 }
 
 function stableIndex(value: string, size: number) {
@@ -1137,389 +567,20 @@ function stableIndex(value: string, size: number) {
   return hash % size;
 }
 
-export const VOCABULARY_CARDS: VocabularyCard[] = buildCatalog(CATALOG_SEED);
-export const CATALOG_REPORT = getCatalogReport(VOCABULARY_CARDS);
-
-function buildCardExamples(
-  language: LanguageCode,
-  card: Pick<VocabularyCard, "term" | "translation" | "example" | "exampleTranslation">,
-  tier: Tier,
-): CardExample[] {
-  const builders = {
-    en: buildEnglishExamples,
-    de: buildGermanExamples,
-    ru: buildRussianExamples,
-  } satisfies Record<LanguageCode, typeof buildEnglishExamples>;
-
-  return builders[language](card, tier);
-}
-
-function cardExample(
-  context: CardExample["context"],
-  label: string,
-  sentence: string,
-  translation: string,
-): CardExample {
-  return {
-    id: context,
-    context,
-    label,
-    sentence,
-    translation,
-  };
-}
-
-function buildEnglishExamples(
-  card: Pick<VocabularyCard, "term" | "translation" | "example" | "exampleTranslation">,
-  tier: Tier,
-): CardExample[] {
-  return [
-    cardExample("daily", "Günlük kullanım", card.example, card.exampleTranslation),
-    cardExample("question", "Soru", `Can you explain "${card.term}" with one example?`, `"${card.term}" kelimesini bir örnekle açıklayabilir misin?`),
-    cardExample("negative", "Olumsuz", `Do not translate "${card.term}" without context.`, `"${card.term}" kelimesini bağlam olmadan çevirme.`),
-    cardExample("contextual", "Bağlam", `In a ${tier} lesson, "${card.term}" points to ${card.translation}.`, `${tier} seviyesinde "${card.term}", ${card.translation} anlamına yönlendirir.`),
-    cardExample("natural", "Doğal kullanım", `Native speakers notice the nuance of "${card.term}" quickly.`, `Ana dili İngilizce olanlar "${card.term}" nüansını hızlı fark eder.`),
-  ];
-}
-
-function buildGermanExamples(
-  card: Pick<VocabularyCard, "term" | "translation" | "example" | "exampleTranslation">,
-  tier: Tier,
-): CardExample[] {
-  return [
-    cardExample("daily", "Günlük kullanım", card.example, card.exampleTranslation),
-    cardExample("question", "Soru", `Kannst du "${card.term}" mit einem Beispiel erklären?`, `"${card.term}" kelimesini bir örnekle açıklayabilir misin?`),
-    cardExample("negative", "Olumsuz", `Übersetze "${card.term}" nicht ohne Kontext.`, `"${card.term}" kelimesini bağlam olmadan çevirme.`),
-    cardExample("contextual", "Bağlam", `Auf dem Niveau ${tier} zeigt "${card.term}" die Bedeutung ${card.translation}.`, `${tier} seviyesinde "${card.term}", ${card.translation} anlamını gösterir.`),
-    cardExample("natural", "Doğal kullanım", `"${card.term}" klingt natürlich, wenn der Satz klar ist.`, `Cümle açık olduğunda "${card.term}" doğal duyulur.`),
-  ];
-}
-
-function buildRussianExamples(
-  card: Pick<VocabularyCard, "term" | "translation" | "example" | "exampleTranslation">,
-  tier: Tier,
-): CardExample[] {
-  return [
-    cardExample("daily", "Günlük kullanım", card.example, card.exampleTranslation),
-    cardExample("question", "Soru", `Можно объяснить «${card.term}» одним примером?`, `«${card.term}» kelimesini bir örnekle açıklayabilir misin?`),
-    cardExample("negative", "Olumsuz", `Не переводи «${card.term}» без контекста.`, `«${card.term}» kelimesini bağlam olmadan çevirme.`),
-    cardExample("contextual", "Bağlam", `На уровне ${tier} «${card.term}» указывает на значение ${card.translation}.`, `${tier} seviyesinde «${card.term}», ${card.translation} anlamına yönlendirir.`),
-    cardExample("natural", "Doğal kullanım", `В живой речи «${card.term}» звучит естественно в ясной ситуации.`, `Canlı konuşmada «${card.term}» açık bir durumda doğal duyulur.`),
-  ];
-}
-
-function buildGrammarGuide(language: LanguageCode, card: Pick<VocabularyCard, "term" | "partOfSpeech">, sourceTerm: WordSeed): GrammarGuide {
-  const builders = {
-    en: buildEnglishGrammarGuide,
-    de: buildGermanGrammarGuide,
-    ru: buildRussianGrammarGuide,
-  } satisfies Record<LanguageCode, (card: Pick<VocabularyCard, "term" | "partOfSpeech">, sourceTerm: WordSeed) => GrammarGuide>;
-
-  return builders[language](card, sourceTerm);
-}
-
-function buildEnglishGrammarGuide(card: Pick<VocabularyCard, "term" | "partOfSpeech">, sourceTerm: WordSeed): GrammarGuide {
-  if (isVerb(sourceTerm)) {
-    const forms = buildEnglishVerbForms(sourceTerm.term);
-
-    return {
-      summary: `"${card.term}" İngilizcede fiil kökenli bir karttır; zaman ve yardımcı fiile göre biçim değiştirir.`,
-      rules: [
-        "Geniş zamanda üçüncü tekil şahısta genellikle -s alır.",
-        "Soru ve olumsuz yapılarda do/does/did yardımcı fiilleri anlamı taşır.",
-        "Tek kelime fiillerde çekim doğrudan ana fiil üzerinde takip edilir.",
-      ],
-      details: [
-        "İngilizce fiillerde biçim sayısı azdır; doğru yardımcı fiili seçmek Türkçe karşılıktan daha önemlidir.",
-      ],
-      tables: [
-        {
-          title: "Temel fiil formları",
-          columns: ["Form", "Kullanım"],
-          rows: [
-            [forms.base, "base / infinitive"],
-            [forms.past, "past simple"],
-            [forms.participle, "past participle"],
-            [forms.gerund, "gerund / continuous"],
-          ],
-        },
-      ],
-    };
-  }
-
-  return {
-    summary: `"${card.term}" İngilizcede ${sourceTerm.partOfSpeech} olarak kullanılan tek kelimelik bir karttır.`,
-    rules: [
-      "İngilizcede kelime sırası anlam için kritiktir.",
-      "İsimlerde tekil/çoğul ve artikel kullanımı bağlama göre değişir.",
-      "Sıfatlar çoğunlukla isimden önce gelir ve Türkçedeki gibi çekimlenmez.",
-    ],
-    details: [
-      "Kartı çalışırken kelimenin cümlede özne, nesne veya niteleyici olarak durduğu yere dikkat et.",
-    ],
-  };
-}
-
-function buildGermanGrammarGuide(card: Pick<VocabularyCard, "term" | "partOfSpeech">, sourceTerm: WordSeed): GrammarGuide {
-  if (isVerb(sourceTerm)) {
-    const infinitive = sourceTerm.term;
-    const stem = inferGermanStem(infinitive);
-
-    return {
-      summary: `"${card.term}" Almancada fiil kökenli bir karttır; şahsa göre Präsens çekimi değişir.`,
-      rules: [
-        "Çekimli fiil ana cümlede genellikle ikinci pozisyonda durur.",
-        "Ich/du/er-sie-es/wir/ihr/sie şahısları farklı ekler alır.",
-        "Ayrılabilen fiillerde ön ek cümlenin sonuna gidebilir.",
-      ],
-      details: [
-        "Almanca fiillerde cümle pozisyonu en az çekim kadar önemlidir; örneklerde fiilin yerine dikkat et.",
-      ],
-      tables: [
-        {
-          title: "Präsens çekimi",
-          columns: ["Şahıs", "Form"],
-          rows: [
-            ["ich", `${stem}e`],
-            ["du", `${stem}st`],
-            ["er/sie/es", `${stem}t`],
-            ["wir", infinitive],
-            ["ihr", `${stem}t`],
-            ["sie/Sie", infinitive],
-          ],
-        },
-      ],
-    };
-  }
-
-  const article = GERMAN_ARTICLE_OVERRIDES[sourceTerm.term];
-
-  return {
-    summary: `"${card.term}" Almancada ${sourceTerm.partOfSpeech} olarak kullanılan tek kelimelik bir karttır.`,
-    rules: [
-      article ? `Bu kelime için temel artikel: ${article}.` : "İsimlerde der/die/das artikeli ayrıca çalışılmalıdır.",
-      "Artikel, çoğul ve hal bilgisi cümlenin anlamını doğrudan etkiler.",
-      "Sıfatlar artikel ve ismin hâline göre ek alabilir.",
-    ],
-    details: [
-      "Almanca kartlarda kelimeyi tek başına değil, artikel ve örnek cümleyle birlikte çalışmak daha kalıcıdır.",
-    ],
-  };
-}
-
-function buildRussianGrammarGuide(card: Pick<VocabularyCard, "term" | "partOfSpeech">, sourceTerm: WordSeed): GrammarGuide {
-  if (isVerb(sourceTerm)) {
-    const forms = RUSSIAN_VERB_OVERRIDES[sourceTerm.term] ?? buildFallbackRussianVerbForms(sourceTerm.term);
-
-    return {
-      summary: `"${card.term}" Rusçada fiil kökenli bir karttır; şahıs, zaman ve cinsiyete göre çekim alır.`,
-      rules: [
-        "Şimdiki/geniş zamanda şahıs eki fiilin sonuna gelir.",
-        "Geçmiş zamanda öznenin cinsiyetine ve çoğulluğuna göre form değişir.",
-        "Rusçada özne düşebilir; çekim çoğu zaman kimin yaptığına dair ipucu verir.",
-      ],
-      details: [
-        forms.note,
-        "Çekim tablosu temel öğrenme içindir; gerçek kullanımda görünüş ve vurgu farkları ayrıca çalışılmalıdır.",
-      ],
-      tables: [
-        {
-          title: "Şimdiki/geniş zaman",
-          columns: ["Şahıs", "Form"],
-          rows: forms.present,
-        },
-        {
-          title: "Geçmiş zaman",
-          columns: ["Özne", "Form"],
-          rows: forms.past,
-        },
-      ],
-    };
-  }
-
-  return {
-    summary: `"${card.term}" Rusçada ${sourceTerm.partOfSpeech} olarak kullanılan tek kelimelik bir karttır.`,
-    rules: [
-      "İsim ve sıfatlarda hâl sistemi anlamı belirler.",
-      "Kelimenin cümlede özne, nesne veya yer bilgisi olmasına göre son ekler değişebilir.",
-      "Vurgu ve telaffuz, yazılı form kadar önemlidir.",
-    ],
-    details: [
-      "Rusça kartlarda örnek cümleleri özellikle hâl ekleri ve kelime sırası açısından karşılaştırarak çalış.",
-    ],
-  };
-}
-
-function buildEnglishVerbForms(term: string) {
-  const baseForm = term.toLocaleLowerCase("en");
-  const irregular = ENGLISH_VERB_OVERRIDES[baseForm];
-
-  if (irregular) {
-    return irregular;
-  }
-
-  const past = baseForm.endsWith("e")
-    ? `${baseForm}d`
-    : baseForm.endsWith("y")
-      ? `${baseForm.slice(0, -1)}ied`
-      : `${baseForm}ed`;
-  const gerund = baseForm.endsWith("e") ? `${baseForm.slice(0, -1)}ing` : `${baseForm}ing`;
-
-  return {
-    base: baseForm,
-    past,
-    participle: past,
-    gerund,
-  };
-}
-
-function russianVerbForms(
-  note: string,
-  ya: string[],
-  ty: string[],
-  third: string[],
-  my: string[],
-  vy: string[],
-  oni: string[],
-  pastMasculine: string[],
-  pastFeminine: string[],
-  pastNeuter: string[],
-  pastPlural: string[],
-): RussianVerbForms {
-  return {
-    note,
-    present: [ya, ty, third, my, vy, oni],
-    past: [pastMasculine, pastFeminine, pastNeuter, pastPlural],
-  };
-}
-
-function inferGermanStem(infinitive: string) {
-  if (infinitive.endsWith("eln") || infinitive.endsWith("ern")) {
-    return infinitive.slice(0, -1);
-  }
-
-  if (infinitive.endsWith("en")) {
-    return infinitive.slice(0, -2);
-  }
-
-  if (infinitive.endsWith("n")) {
-    return infinitive.slice(0, -1);
-  }
-
-  return infinitive;
-}
-
-function buildFallbackRussianVerbForms(term: string): RussianVerbForms {
-  const forms = inferRussianVerbForms(term);
-
-  return {
-    note: "Bu fiil için otomatik çekim tablosu gösteriliyor; Supabase'e taşınmadan önce yaygın fiiller elle zenginleştirilebilir.",
-    present: forms.present,
-    past: forms.past,
-  };
-}
-
-function inferRussianVerbForms(term: string) {
-  const reflexiveSuffix = term.endsWith("ся") || term.endsWith("сь") ? "ся" : "";
-  const bare = reflexiveSuffix ? term.slice(0, -2) : term;
-  const pastStem = inferRussianPastStem(bare);
-
-  if (bare.endsWith("ать")) {
-    const stem = bare.slice(0, -3);
-    return regularRussianForms(stem, "а", pastStem, reflexiveSuffix);
-  }
-
-  if (bare.endsWith("ять")) {
-    const stem = bare.slice(0, -3);
-    return regularRussianForms(stem, "я", pastStem, reflexiveSuffix);
-  }
-
-  if (bare.endsWith("ить")) {
-    const stem = bare.slice(0, -3);
-    return {
-      present: [
-        ["я", `${stem}ю${reflexiveSuffix}`],
-        ["ты", `${stem}ишь${reflexiveSuffix}`],
-        ["он/она/оно", `${stem}ит${reflexiveSuffix}`],
-        ["мы", `${stem}им${reflexiveSuffix}`],
-        ["вы", `${stem}ите${reflexiveSuffix}`],
-        ["они", `${stem}ят${reflexiveSuffix}`],
-      ],
-      past: buildRussianPastRows(pastStem, reflexiveSuffix),
-    };
-  }
-
-  return regularRussianForms(bare, "а", pastStem, reflexiveSuffix);
-}
-
-function regularRussianForms(stem: string, vowel: "а" | "я", pastStem: string, reflexiveSuffix: string) {
-  return {
-    present: [
-      ["я", `${stem}${vowel}ю${reflexiveSuffix}`],
-      ["ты", `${stem}${vowel}ешь${reflexiveSuffix}`],
-      ["он/она/оно", `${stem}${vowel}ет${reflexiveSuffix}`],
-      ["мы", `${stem}${vowel}ем${reflexiveSuffix}`],
-      ["вы", `${stem}${vowel}ете${reflexiveSuffix}`],
-      ["они", `${stem}${vowel}ют${reflexiveSuffix}`],
-    ],
-    past: buildRussianPastRows(pastStem, reflexiveSuffix),
-  };
-}
-
-function inferRussianPastStem(term: string) {
-  for (const ending of ["овать", "евать", "ывать", "ивать", "ать", "ять", "ить", "еть", "ти", "ть"]) {
-    if (term.endsWith(ending)) {
-      return term.slice(0, -ending.length);
-    }
-  }
-
-  return term;
-}
-
-function buildRussianPastRows(stem: string, reflexiveSuffix: string) {
-  return [
-    ["он", `${stem}л${reflexiveSuffix}`],
-    ["она", `${stem}ла${reflexiveSuffix}`],
-    ["оно", `${stem}ло${reflexiveSuffix}`],
-    ["они", `${stem}ли${reflexiveSuffix}`],
-  ];
-}
-
-function isVerb(term: WordSeed) {
-  return term.partOfSpeech === "fiil";
-}
-
-function slug(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLocaleLowerCase("en")
-    .replace(/[^\p{L}]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function emptyLanguageCount(): Record<LanguageCode, number> {
-  return {
-    en: 0,
-    de: 0,
-    ru: 0,
-  };
+  return Object.fromEntries(LANGUAGE_CODES.map((language) => [language, 0])) as Record<LanguageCode, number>;
 }
 
 function emptyLanguageTierCount(): Record<LanguageCode, Record<Tier, number>> {
-  return {
-    en: emptyTierCount(),
-    de: emptyTierCount(),
-    ru: emptyTierCount(),
-  };
+  return Object.fromEntries(LANGUAGE_CODES.map((language) => [language, emptyTierCount()])) as Record<
+    LanguageCode,
+    Record<Tier, number>
+  >;
 }
 
 function emptyTierCount(): Record<Tier, number> {
-  return {
-    A1: 0,
-    A2: 0,
-    B1: 0,
-    B2: 0,
-    C1: 0,
-  };
+  return Object.fromEntries(TIERS.map((tier) => [tier, 0])) as Record<Tier, number>;
 }
+
+export const VOCABULARY_CARDS: VocabularyCard[] = buildCatalog();
+export const CATALOG_REPORT = getCatalogReport(VOCABULARY_CARDS);

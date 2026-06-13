@@ -1,8 +1,8 @@
 # Kartlarla Dil
 
-Türk kullanıcılar için İngilizce, Almanca ve Rusça kelime kartı uygulaması. Kullanıcılar kart arar, rastgele kart çeker, kartları haznesine ekler ve quiz ile öğrenir.
+Kartlarla Dil, kullanıcıların çok dilli kelime haznesini koleksiyon kartlarıyla geliştirdiği bir Next.js uygulamasıdır. Kullanıcı kart çeker, kartı haznesine ekler, quiz çözer ve tier eşiğini tamamlayan kartlar otomatik öğrenilmiş olur.
 
-## Tech stack
+## Tech Stack
 
 - Next.js 16 App Router
 - React 19
@@ -10,8 +10,7 @@ Türk kullanıcılar için İngilizce, Almanca ve Rusça kelime kartı uygulamas
 - Tailwind CSS 4
 - shadcn/ui uyumlu component yapısı
 - Zustand localStorage state
-- Supabase-ready data layer
-- Supabase Auth SSR helpers
+- Supabase Auth + Supabase-ready inventory
 - Vitest
 
 ## Commands
@@ -28,9 +27,16 @@ npm run test:e2e
 npm run build
 ```
 
-## Product rules
+## Languages
 
-- İlk diller: İngilizce, Almanca, Rusça.
+Öğrenme dili ve arayüz dili olarak aynı 14 dil desteklenir:
+
+Türkçe, İngilizce, Almanca, Rusça, Fransızca, İspanyolca, İtalyanca, Portekizce, Felemenkçe, Lehçe, Arapça, Japonca, Korece, Basitleştirilmiş Çince.
+
+Arayüz dili navbar dil seçicisinden değiştirilir. Seçim cookie ve localStorage ile kalıcıdır; URL prefix kullanılmaz. Arapça seçilirse root `dir="rtl"` olur.
+
+## Product Rules
+
 - Kart tierları: A1, A2, B1, B2, C1.
 - Doğru cevap eşikleri: A1 = 2, A2 = 3, B1 = 4, B2 = 5, C1 = 6.
 - Kullanıcı kartı manuel olarak öğrenildi yapamaz.
@@ -38,44 +44,54 @@ npm run build
 - Eşiğe ulaşan aktif kart otomatik öğrenildi olur.
 - Öğrenilen kartlar tierına göre puan kazandırır: A1 = 10, A2 = 20, B1 = 40, B2 = 70, C1 = 110.
 - Rank, öğrenilmiş kartlardan türetilen toplam puana göre hesaplanır; ayrı bir manuel puan sayacı tutulmaz.
-- Katalog yalnızca tek kelimelik ana terimler içerir; ifade, kalıp ve cümle yapıları `term` alanına girmez.
-- Starter katalog kalite önceliklidir; dil başına sabit 5.000 kart hedefi kovalanmaz.
-- Her kartta 5 örnek kullanım ve dile/kelime türüne göre gramer anlatımı bulunur.
+- Quiz seçenekleri aktif arayüz dilinde gösterilir. Öğrenme dili ile arayüz dili aynıysa çalışma dili fallback kullanır: İngilizce için Türkçe, diğerleri için İngilizce.
 - Quiz sırasında detaylar cevap verilmeden gösterilmez; cevap sonrası öğrenme desteği olarak açılır.
 
-## Project structure
+## Catalog
+
+Katalog 14 ayrı seed dosyasından oluşur:
 
 ```text
-src/app                 route pages and root layout
-src/components          shared layout and UI primitives
-src/data                seed languages, tiers, generated starter catalog
-src/features/auth       Supabase auth actions, forms, profile/account UI
-src/features/cards      card draw and card UI
-src/features/inventory  local/cloud inventory store, selectors, and Supabase actions
-src/features/quiz       quiz engine and practice UI
-src/lib                 utilities and Supabase helpers
-src/types               domain interfaces
-supabase/migrations     Supabase-ready schema
-docs                    architecture and Supabase notes
+src/data/card-seeds/tr.ts
+src/data/card-seeds/en.ts
+...
+src/data/card-seeds/zh-CN.ts
 ```
 
-## Local data
+Her dil dosyasında en az 2.000 strict single-word kart vardır. Ana `term` alanı boşluk, tire, noktalama veya sayı içermez. Sabit ifadeler için modelde `termKind: "fixed_phrase"` desteği vardır, fakat mevcut otomatik katalog 28.000 strict word kartından oluşur.
 
-MVP data is stored in the browser under:
+Katalog MUSE bilingual dictionary seed verisinden deterministik üretilir:
+
+```bash
+node scripts/generate-card-seeds-from-muse.mjs
+```
+
+`npm run report:cards` toplam sayıyı, dil/tier dağılımını, duplicate termleri, geçersiz termleri ve eksik locale çevirilerini raporlar.
+
+## Local Data
+
+Guest/local envanter tarayıcıda tutulur:
 
 ```text
-kartlarla-dil:v2
+kartlarla-dil:v3
 ```
 
-Use the reset button in inventory to clear guest/local progress.
-
-Run `npm run report:cards` to inspect the current catalog size, language/tier distribution, part-of-speech distribution, invalid terms, duplicates, and sample words.
+Kart çek filtreleri ayrıca `kartlarla-dil:card-draw-filters:v1` altında saklanır.
 
 ## Supabase
 
-Auth uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from `.env.local`.
-Permanent account deletion additionally requires `SUPABASE_SERVICE_ROLE_KEY` on the server.
+Auth için `.env.local` içinde şu değerler gerekir:
 
-Run `npm run supabase:import-cards` with `SUPABASE_SERVICE_ROLE_KEY` before using cloud inventory. Authenticated users store inventory, quiz attempts, progress stats, points, and rank through Supabase-backed `user_cards` and `practice_attempts`; guest data remains local.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
-See `docs/SUPABASE.md` before applying the database migration to a real project.
+`SUPABASE_SERVICE_ROLE_KEY` sadece server tarafında kullanılır. Canlı inventory için migrationlar uygulanmalı ve ardından katalog import edilmelidir:
+
+```bash
+npm run supabase:import-cards
+```
+
+Detaylar için `docs/SUPABASE.md`, mimari için `docs/ARCHITECTURE.md`, veri kaynağı için `docs/LEXICON_SOURCES.md` dosyalarına bak.

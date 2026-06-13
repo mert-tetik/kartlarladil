@@ -4,25 +4,29 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Boxes, Compass, GraduationCap, LibraryBig, Sparkles } from "lucide-react";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { buttonClassName } from "@/components/ui/button";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import { useProgressStats } from "@/features/progress/progress-client";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
+import { useProgressStats } from "@/features/progress/progress-client";
+import { useT } from "@/i18n/locale-provider";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { buttonClassName } from "@/components/ui/button";
+import type { TranslationKey } from "@/i18n/dictionaries";
 
 const navItems = [
-  { href: "/", label: "Ana sayfa", icon: Sparkles },
-  { href: "/kart-cek", label: "Kart çek", icon: Compass },
-  { href: "/kartlarim", label: "Kartlarım", icon: Boxes },
-  { href: "/ogren", label: "Öğren", icon: BookOpen },
-  { href: "/ogrenilenler", label: "Öğrenilenler", icon: GraduationCap },
-];
+  { href: "/", labelKey: "nav.home", icon: Sparkles },
+  { href: "/kart-cek", labelKey: "nav.cardDraw", icon: Compass },
+  { href: "/kartlarim", labelKey: "nav.inventory", icon: Boxes },
+  { href: "/ogren", labelKey: "nav.learn", icon: BookOpen },
+  { href: "/ogrenilenler", labelKey: "nav.learned", icon: GraduationCap },
+] as const satisfies readonly { href: string; labelKey: TranslationKey; icon: typeof Sparkles }[];
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
+  const t = useT();
 
   return (
     <>
@@ -38,28 +42,30 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           <nav aria-label="Üst menü" className="hidden items-center gap-1 lg:flex">
             {navItems.slice(1).map((item) => (
               <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
-                {item.label}
+                {t(item.labelKey)}
               </DesktopNavLink>
             ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
             <Link href="/kart-cek" className={buttonClassName("secondary", "sm", "hidden min-[390px]:inline-flex")}>
-              Kart çek
+              {t("nav.cardDraw")}
             </Link>
             {user ? (
               <>
                 <RankProgressPopover stats={stats} />
                 <AccountMenu user={user} />
+                <LocaleSwitcher />
               </>
             ) : (
               <>
                 <Link href="/login" className={buttonClassName("ghost", "sm")}>
-                  Giriş yap
+                  {t("nav.login")}
                 </Link>
                 <Link href="/register" className={buttonClassName("primary", "sm")}>
-                  Kayıt ol
+                  {t("nav.signup")}
                 </Link>
+                <LocaleSwitcher />
               </>
             )}
           </div>
@@ -82,7 +88,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 )}
               >
                 <Icon className="size-5" aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
             );
           })}

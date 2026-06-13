@@ -1,9 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { VOCABULARY_CARDS } from "@/data/cards";
+import { getCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { LocaleProvider } from "@/i18n/locale-provider";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard } from "@/types/domain";
 
@@ -11,6 +14,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/ogren",
   useRouter: () => ({
     push: vi.fn(),
+    refresh: vi.fn(),
   }),
 }));
 
@@ -32,12 +36,16 @@ const testUser: AuthShellUser = {
   profile: {
     displayName: "Test User",
     preferredLanguageCode: "en",
+    preferredUiLocale: "tr",
     preferredTier: "A1",
   },
 };
 
-const appleInventoryCard: InventoryCard = {
-  cardId: "en-a1-isim-apple",
+const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
+const correctAnswer = getCardTranslation(testCard, "tr");
+
+const inventoryCard: InventoryCard = {
+  cardId: testCard.id,
   status: "active",
   correctCount: 0,
   addedAt: "2026-06-09T00:00:00.000Z",
@@ -46,7 +54,7 @@ const appleInventoryCard: InventoryCard = {
 describe("QuizStation sound feedback", () => {
   beforeEach(() => {
     useInventoryStore.setState({
-      cards: [appleInventoryCard],
+      cards: [inventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -59,7 +67,7 @@ describe("QuizStation sound feedback", () => {
   it("plays the correct-answer effect after a correct guess", async () => {
     renderQuizStation();
     await startQuiz();
-    fireEvent.click(screen.getByRole("button", { name: "elma" }));
+    fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
 
     expect(playSoundEffect).toHaveBeenCalledWith("correct");
   });
@@ -73,7 +81,7 @@ describe("QuizStation sound feedback", () => {
       .find((button) => {
         const label = button.textContent?.trim();
 
-        return label && label !== "elma";
+        return label && label !== correctAnswer;
       });
 
     expect(wrongOption).toBeDefined();
@@ -85,13 +93,15 @@ describe("QuizStation sound feedback", () => {
 
 function renderQuizStation() {
   render(
-    <AuthSessionProvider user={testUser}>
-      <QuizStation mode="active" />
-    </AuthSessionProvider>,
+    <LocaleProvider initialLocale="tr">
+      <AuthSessionProvider user={testUser}>
+        <QuizStation mode="active" />
+      </AuthSessionProvider>
+    </LocaleProvider>,
   );
 }
 
 async function startQuiz() {
   fireEvent.click(screen.getByRole("button", { name: /Alıştırmayı başlat/ }));
-  await screen.findByRole("heading", { name: "apple" });
+  await screen.findByRole("heading", { name: testCard.term });
 }
