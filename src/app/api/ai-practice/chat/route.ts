@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import OpenAI from "openai";
+import type { Response as OpenAIResponse, ResponseStreamEvent } from "openai/resources/responses/responses";
 import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
 import { buildAiPracticeInput, buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
 import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     messages: parsed.data.messages,
   });
 
-  let responseStream: AsyncIterable<{ type: string; delta?: string }>;
+  let responseStream: AsyncIterable<ResponseStreamEvent>;
 
   try {
     responseStream = (await openai.responses.create({
@@ -56,11 +57,13 @@ export async function POST(request: Request) {
       instructions,
       input,
       max_output_tokens: MAX_OUTPUT_TOKENS,
+      reasoning: { effort: "minimal" },
       stream: true,
       store: false,
+      text: { format: { type: "text" }, verbosity: "low" },
       truncation: "auto",
       safety_identifier: createSafetyIdentifier(user.id),
-    })) as AsyncIterable<{ type: string; delta?: string }>;
+    })) as AsyncIterable<ResponseStreamEvent>;
   } catch {
     return Response.json({ errorCode: "upstream_error" }, { status: 502 });
   }
@@ -70,11 +73,29 @@ export async function POST(request: Request) {
   return new Response(
     new ReadableStream({
       async start(controller) {
+        let emittedText = "";
+        let fallbackText = "";
+
         try {
           for await (const event of responseStream) {
             if (event.type === "response.output_text.delta" && event.delta) {
+              emittedText += event.delta;
               controller.enqueue(encoder.encode(event.delta));
+              continue;
             }
+
+            if (event.type === "response.output_text.done" && event.text) {
+              fallbackText = event.text;
+              continue;
+            }
+
+            if (event.type === "response.completed") {
+              fallbackText ||= extractOutputText(event.response);
+            }
+          }
+
+          if (!emittedText.trim() && fallbackText.trim()) {
+            controller.enqueue(encoder.encode(fallbackText));
           }
 
           controller.close();
@@ -94,4 +115,12 @@ export async function POST(request: Request) {
 
 function createSafetyIdentifier(userId: string) {
   return createHash("sha256").update(userId).digest("hex").slice(0, 64);
+}
+
+function extractOutputText(response: OpenAIResponse) {
+  return response.output
+    .flatMap((item) => (item.type === "message" ? item.content : []))
+    .filter((content) => content.type === "output_text")
+    .map((content) => content.text)
+    .join("");
 }
