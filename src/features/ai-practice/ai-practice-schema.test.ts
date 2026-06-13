@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
+import {
+  aiPracticeChatRequestSchema,
+  aiPracticeTranslateRequestSchema,
+} from "@/features/ai-practice/ai-practice-schema";
 
 const validRequest = {
   language: "en",
@@ -35,5 +38,25 @@ describe("aiPracticeChatRequestSchema", () => {
         messages: [{ role: "user", content: "a".repeat(901) }],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("aiPracticeTranslateRequestSchema", () => {
+  const validTranslateRequest = {
+    language: "en",
+    targetLocale: "tr",
+    text: "hello there",
+  };
+
+  it("accepts a valid translate request", () => {
+    expect(aiPracticeTranslateRequestSchema.safeParse(validTranslateRequest).success).toBe(true);
+  });
+
+  it("rejects empty translation text", () => {
+    expect(aiPracticeTranslateRequestSchema.safeParse({ ...validTranslateRequest, text: "" }).success).toBe(false);
+  });
+
+  it("rejects unsupported target locales", () => {
+    expect(aiPracticeTranslateRequestSchema.safeParse({ ...validTranslateRequest, targetLocale: "xx" }).success).toBe(false);
   });
 });

@@ -292,6 +292,14 @@ const tr = {
   "aiPractice.chat.notConfigured": "OpenAI API key ayarlı değil. .env.local dosyasını kontrol et.",
   "aiPractice.chat.invalidRequest": "Sohbet isteği geçersiz. Sayfayı yenileyip tekrar dene.",
   "aiPractice.chat.emptyResponse": "Cevap boş geldi. Yeni bir mesaj deneyebilirsin.",
+  "aiPractice.chat.translate": "Çevir",
+  "aiPractice.chat.speakMessage": "Mesajı seslendir",
+  "aiPractice.chat.startMic": "Mikrofonu başlat",
+  "aiPractice.chat.stopMic": "Kaydı durdur",
+  "aiPractice.chat.micUnsupported": "Mikrofon desteklenmiyor",
+  "aiPractice.chat.translating": "Çevriliyor...",
+  "aiPractice.chat.translationError": "Çeviri alınamadı",
+  "aiPractice.chat.listening": "Dinleniyor...",
 } as const;
 
 type Dictionary = { [Key in keyof typeof tr]: string };
@@ -562,6 +570,14 @@ const en: Dictionary = {
   "aiPractice.chat.notConfigured": "OpenAI API key is not configured. Check .env.local.",
   "aiPractice.chat.invalidRequest": "The chat request is invalid. Refresh the page and try again.",
   "aiPractice.chat.emptyResponse": "The answer was empty. You can try a new message.",
+  "aiPractice.chat.translate": "Translate",
+  "aiPractice.chat.speakMessage": "Speak message",
+  "aiPractice.chat.startMic": "Start microphone",
+  "aiPractice.chat.stopMic": "Stop recording",
+  "aiPractice.chat.micUnsupported": "Microphone is not supported",
+  "aiPractice.chat.translating": "Translating...",
+  "aiPractice.chat.translationError": "Could not translate",
+  "aiPractice.chat.listening": "Listening...",
 };
 
 const localeOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partial<Dictionary>> = {

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { LANGUAGE_CODES } from "@/data/languages";
+import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 
 const languageCodeSchema = z.enum(LANGUAGE_CODES);
+const localeCodeSchema = z.enum(LOCALE_CODES);
 
 export const aiPracticeChatRequestSchema = z
   .object({
@@ -21,3 +22,9 @@ export const aiPracticeChatRequestSchema = z
     message: "The latest message must be from the user.",
     path: ["messages"],
   });
+
+export const aiPracticeTranslateRequestSchema = z.object({
+  language: languageCodeSchema,
+  targetLocale: localeCodeSchema,
+  text: z.string().trim().min(1).max(2_000),
+});

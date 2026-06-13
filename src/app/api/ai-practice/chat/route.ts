@@ -1,7 +1,11 @@
-import { createHash } from "node:crypto";
 import OpenAI from "openai";
-import type { Response as OpenAIResponse, ResponseStreamEvent } from "openai/resources/responses/responses";
+import type { ResponseStreamEvent } from "openai/resources/responses/responses";
 import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
+import {
+  AI_PRACTICE_DEFAULT_MODEL,
+  createAiPracticeSafetyIdentifier,
+  extractResponseOutputText,
+} from "@/features/ai-practice/ai-practice-openai";
 import { buildAiPracticeInput, buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
 import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
@@ -9,7 +13,6 @@ import { getCurrentAuthUser } from "@/features/auth/auth-session";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_MODEL = "gpt-5-nano";
 const MAX_OUTPUT_TOKENS = 420;
 
 export async function POST(request: Request) {
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const openai = new OpenAI({ apiKey });
-  const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || DEFAULT_MODEL;
+  const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
   const instructions = buildAiPracticeInstructions({
     character,
     language: parsed.data.language,
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
       truncation: "auto",
-      safety_identifier: createSafetyIdentifier(user.id),
+      safety_identifier: createAiPracticeSafetyIdentifier(user.id),
     })) as AsyncIterable<ResponseStreamEvent>;
   } catch {
     return Response.json({ errorCode: "upstream_error" }, { status: 502 });
@@ -90,7 +93,7 @@ export async function POST(request: Request) {
             }
 
             if (event.type === "response.completed") {
-              fallbackText ||= extractOutputText(event.response);
+              fallbackText ||= extractResponseOutputText(event.response);
             }
           }
 
@@ -111,16 +114,4 @@ export async function POST(request: Request) {
       },
     },
   );
-}
-
-function createSafetyIdentifier(userId: string) {
-  return createHash("sha256").update(userId).digest("hex").slice(0, 64);
-}
-
-function extractOutputText(response: OpenAIResponse) {
-  return response.output
-    .flatMap((item) => (item.type === "message" ? item.content : []))
-    .filter((content) => content.type === "output_text")
-    .map((content) => content.text)
-    .join("");
 }
