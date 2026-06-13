@@ -5,9 +5,14 @@ import type { User } from "@supabase/supabase-js";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { applyAnswerProgress } from "@/features/quiz/quiz-engine";
 import { calculateProgressStats } from "@/features/progress/progress-stats";
+import {
+  checkLimit,
+  getUserEntitlements,
+} from "@/features/subscriptions/subscription-service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   InventoryCard,
+  LimitErrorCode,
   PracticeAttempt,
   PracticeMode,
   ProgressStats,
@@ -24,6 +29,7 @@ interface CloudInventoryPayload {
 interface CloudActionResult<T> {
   status: "success" | "error";
   message: string;
+  errorCode?: LimitErrorCode;
   data?: T;
 }
 
@@ -71,6 +77,20 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
   try {
     const { supabase, user } = await getAuthedSupabase();
     const card = await resolveSupabaseCard(supabase, sourceKey);
+    const entitlements = await getUserEntitlements(user.id);
+
+    if (entitlements.effectivePlan === "free") {
+      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
+      const limitError = checkLimit(activeCount, entitlements.limits.activeCards, "free_active_card_limit");
+
+      if (limitError) {
+        return {
+          status: "error",
+          message: "Free planda en fazla 20 aktif kart eklenebilir.",
+          errorCode: limitError,
+        };
+      }
+    }
 
     const { error } = await supabase.from("user_cards").upsert(
       {
@@ -113,6 +133,25 @@ export async function recordCloudPracticeAttemptAction(input: {
     const currentCard = await readUserCard(supabase, user, remoteCard.id, input.cardId);
     const nextCard =
       input.mode === "learned" ? currentCard : applyAnswerProgress(currentCard, localCard, input.isCorrect);
+
+    const entitlements = await getUserEntitlements(user.id);
+
+    if (
+      entitlements.effectivePlan === "free" &&
+      currentCard.status !== "learned" &&
+      nextCard.status === "learned"
+    ) {
+      const learnedCount = await countUserCardsByStatus(supabase, user.id, "learned");
+      const limitError = checkLimit(learnedCount, entitlements.limits.learnedCards, "free_learned_card_limit");
+
+      if (limitError) {
+        return {
+          status: "error",
+          message: "Free planda en fazla 50 kart öğrenilebilir.",
+          errorCode: limitError,
+        };
+      }
+    }
 
     const { error: updateError } = await supabase
       .from("user_cards")
@@ -446,6 +485,24 @@ function toInventoryViews(cards: InventoryCard[]) {
     const card = cardById.get(inventory.cardId);
     return card ? [{ inventory, card }] : [];
   });
+}
+
+async function countUserCardsByStatus(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  status: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("user_cards")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", status);
+
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
 }
 
 function cloudError(error: unknown): CloudActionResult<never> {

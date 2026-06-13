@@ -7,6 +7,11 @@ import {
 } from "@/features/ai-practice/ai-practice-openai";
 import { aiPracticeTranslateRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import {
+  assertCanUseAi,
+  recordAiUsageEvent,
+} from "@/features/subscriptions/ai-usage-service";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -31,6 +36,13 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+  const aiLimitError = await assertCanUseAi(user.id, entitlements.effectivePlan);
+
+  if (aiLimitError) {
+    return Response.json({ errorCode: aiLimitError }, { status: 429 });
   }
 
   const targetLocale = getTranslationTargetLocale(parsed.data.language, parsed.data.targetLocale);
@@ -62,6 +74,8 @@ export async function POST(request: Request) {
     if (!translation) {
       return Response.json({ errorCode: "empty_response" }, { status: 502 });
     }
+
+    await recordAiUsageEvent(user.id, entitlements.effectivePlan, "translate");
 
     return Response.json(
       { translation, targetLocale },

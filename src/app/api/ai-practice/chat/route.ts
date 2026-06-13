@@ -9,6 +9,11 @@ import {
 import { buildAiPracticeInput, buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
 import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import {
+  assertCanUseAi,
+  recordAiUsageEvent,
+} from "@/features/subscriptions/ai-usage-service";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +43,13 @@ export async function POST(request: Request) {
 
   if (!character) {
     return Response.json({ errorCode: "unknown_character" }, { status: 404 });
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+  const aiLimitError = await assertCanUseAi(user.id, entitlements.effectivePlan);
+
+  if (aiLimitError) {
+    return Response.json({ errorCode: aiLimitError }, { status: 429 });
   }
 
   const openai = new OpenAI({ apiKey });
@@ -104,6 +116,10 @@ export async function POST(request: Request) {
           controller.close();
         } catch (error) {
           controller.error(error);
+        } finally {
+          await recordAiUsageEvent(user.id, entitlements.effectivePlan, "chat").catch(() => {
+            // Ignore usage recording failures so the user still receives the response.
+          });
         }
       },
     }),
