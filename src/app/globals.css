@@ -87,8 +87,8 @@ button:disabled,
 
 .hero-card-backdrop {
   --hero-card-gap: clamp(14px, 1.25vw, 24px);
-  --hero-card-row-gap: clamp(16px, 2vh, 24px);
-  --hero-card-width: clamp(150px, 9.4vw, 176px);
+  --hero-card-row-gap: clamp(20px, 3vh, 32px);
+  --hero-card-width: clamp(240px, 17vw, 330px);
 }
 
 .hero-card-backdrop-track {

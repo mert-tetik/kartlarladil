@@ -187,14 +187,14 @@ function CardBackdrop() {
       data-hero-card-backdrop
       aria-hidden="true"
       inert
-      className="hero-card-backdrop pointer-events-none h-full overflow-hidden py-4"
+      className="hero-card-backdrop pointer-events-none h-full overflow-hidden"
     >
       <div data-hero-card-backdrop-track className="hero-card-backdrop-track flex h-full w-max">
         {[0, 1].map((setIndex) => (
           <div
             key={setIndex}
             data-hero-card-backdrop-set
-            className="grid h-full shrink-0 auto-cols-[var(--hero-card-width)] grid-flow-col grid-rows-2 content-center gap-x-[var(--hero-card-gap)] gap-y-[var(--hero-card-row-gap)] pr-[var(--hero-card-gap)]"
+            className="grid h-full shrink-0 auto-cols-[var(--hero-card-width)] grid-flow-col content-center gap-x-[var(--hero-card-gap)] gap-y-[var(--hero-card-row-gap)] pr-[var(--hero-card-gap)] [grid-template-rows:repeat(2,max-content)]"
           >
             {renderHeroBackdropCards(randomizedBackTiers)}
           </div>
@@ -213,7 +213,7 @@ function renderHeroBackdropCards(randomizedBackTiers: Tier[]) {
 
       return (
         <div key={`${sequenceIndex}-${card.id}`} data-hero-card-backdrop-card className="w-full min-w-0">
-          <VocabularyCardView card={card} initialFace={face} backDisplayTier={backDisplayTier} compact />
+          <VocabularyCardView card={card} initialFace={face} backDisplayTier={backDisplayTier} />
         </div>
       );
     }),
