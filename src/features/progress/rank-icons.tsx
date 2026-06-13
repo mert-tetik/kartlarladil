@@ -1,55 +1,36 @@
-import {
-  BookOpen,
-  Compass,
-  Crown,
-  Flame,
-  Gem,
-  GraduationCap,
-  Languages,
-  Medal,
-  Star,
-  Trophy,
-} from "lucide-react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 import type { RankIconId } from "@/types/domain";
 
-const RANK_ICON_TONES: Record<RankIconId, string> = {
-  trophy: "text-amber-500",
-  medal: "text-orange-500",
-  book: "text-sky-600",
-  compass: "text-teal-600",
-  graduation: "text-indigo-600",
-  star: "text-violet-600",
-  languages: "text-emerald-600",
-  gem: "text-fuchsia-600",
-  crown: "text-yellow-600",
-  flame: "text-rose-600",
+const RANK_ICON_ASSETS: Record<RankIconId, string> = {
+  trophy: "/ranks/rank1.png",
+  medal: "/ranks/rank2.png",
+  book: "/ranks/rank3.png",
+  compass: "/ranks/rank4.png",
+  graduation: "/ranks/rank5.png",
+  star: "/ranks/rank6.png",
+  languages: "/ranks/rank7.png",
+  gem: "/ranks/rank8.png",
+  crown: "/ranks/rank9.png",
+  flame: "/ranks/rank10.png",
 };
 
 export function RankIcon({ icon, className }: { icon: RankIconId; className?: string }) {
-  switch (icon) {
-    case "trophy":
-      return <Trophy className={className} aria-hidden="true" />;
-    case "medal":
-      return <Medal className={className} aria-hidden="true" />;
-    case "book":
-      return <BookOpen className={className} aria-hidden="true" />;
-    case "compass":
-      return <Compass className={className} aria-hidden="true" />;
-    case "graduation":
-      return <GraduationCap className={className} aria-hidden="true" />;
-    case "star":
-      return <Star className={className} aria-hidden="true" />;
-    case "languages":
-      return <Languages className={className} aria-hidden="true" />;
-    case "gem":
-      return <Gem className={className} aria-hidden="true" />;
-    case "crown":
-      return <Crown className={className} aria-hidden="true" />;
-    case "flame":
-      return <Flame className={className} aria-hidden="true" />;
-  }
+  return (
+    <Image
+      src={RANK_ICON_ASSETS[icon]}
+      alt=""
+      width={512}
+      height={512}
+      sizes="48px"
+      className={cn("shrink-0 object-contain", className)}
+      aria-hidden="true"
+      draggable={false}
+    />
+  );
 }
 
 export function getRankIconTone(icon: RankIconId) {
-  return RANK_ICON_TONES[icon];
+  void icon;
+  return "";
 }
