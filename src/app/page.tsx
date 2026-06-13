@@ -83,7 +83,7 @@ export default async function Home() {
             </div>
             <div className="mt-5 flex items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
               {LANGUAGES.map((language) => (
-                <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-white/45 bg-transparent" />
+                <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-0 bg-transparent" />
               ))}
             </div>
           </div>
