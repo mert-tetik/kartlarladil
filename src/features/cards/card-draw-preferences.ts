@@ -2,8 +2,8 @@ import type { AuthProfile } from "@/features/auth/auth-types";
 import { LANGUAGE_CODES } from "@/data/languages";
 import type { LanguageCode, Tier } from "@/types/domain";
 
-export const CARD_DRAW_PREFERENCES_KEY = "kartlarla-dil:card-draw-filters:v1";
-const CARD_DRAW_PREFERENCES_EVENT = "kartlarla-dil:card-draw-filters-changed";
+export const CARD_DRAW_PREFERENCES_KEY = "foxiesdeck:card-draw-filters:v1";
+const CARD_DRAW_PREFERENCES_EVENT = "foxiesdeck:card-draw-filters-changed";
 
 export type CardDrawLanguageFilter = LanguageCode | "all";
 export type CardDrawTierFilter = Tier | "all";

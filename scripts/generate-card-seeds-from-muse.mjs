@@ -61,7 +61,7 @@ async function loadDictionary(source, target) {
     await fs.access(filename);
   } catch {
     const response = await fetch(`${BASE_URL}/${source}-${target}.txt`, {
-      headers: { "User-Agent": "kartlarla-dil-seed-generator/0.1" },
+      headers: { "User-Agent": "foxiesdeck-seed-generator/0.1" },
     });
 
     if (!response.ok) {

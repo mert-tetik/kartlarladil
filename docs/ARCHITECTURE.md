@@ -1,6 +1,6 @@
-# Kartlarla Dil Architecture
+# FoxiesDeck Architecture
 
-Kartlarla Dil domain bazlı ayrılır: `cards`, `inventory`, `quiz`, `auth`, `progress` ve `i18n` kendi davranışlarını taşır. Route dosyaları mümkün olduğunca ince tutulur.
+FoxiesDeck domain bazlı ayrılır: `cards`, `inventory`, `quiz`, `auth`, `progress` ve `i18n` kendi davranışlarını taşır. Route dosyaları mümkün olduğunca ince tutulur.
 
 ## Domain Model
 
@@ -30,7 +30,7 @@ Kart çevirileri `src/features/cards/card-localization.ts` üzerinden okunur. Ö
 1. `src/data/card-seeds/*.ts` dosyaları kompakt seed satırlarını tutar.
 2. `src/data/cards.ts` seed satırlarından lazy `VocabularyCard` objeleri üretir.
 3. `localCardRepository` katalog üzerinde filtre, arama ve draw işlemlerini sağlar.
-4. Guest inventory `localStorage` altında `kartlarla-dil:v3` ile tutulur.
+4. Guest inventory `localStorage` altında `foxiesdeck:v3` ile tutulur.
 5. Authenticated inventory Supabase `user_cards` ve `practice_attempts` tablolarından gelir.
 6. Cloud inventory local `sourceKey` değerlerini Supabase `cards.id` UUID değerlerine `cards.source_key` ile map eder.
 

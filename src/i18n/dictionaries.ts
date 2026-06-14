@@ -82,7 +82,7 @@ const tr = {
   "example.contextual": "Bağlam",
   "example.natural": "Doğal kullanım",
 
-  "home.hero.title": "Kartlarla Dil",
+  "home.hero.title": "FoxiesDeck",
   "metadata.description": "Çok dilli kelime haznesini koleksiyon kartlarıyla geliştiren öğrenme uygulaması.",
   "home.hero.subtitle":
     "Kelimeleri tek tek ezberlemek yerine koleksiyon kartlarına dönüştür. Kart çek, haznene ekle, quiz çöz ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.",
@@ -337,13 +337,13 @@ const tr = {
 
   // Legal pages
   "page.terms.title": "Kullanım Koşulları",
-  "page.terms.description": "Kartlarla Dil hizmetini kullanırken uyman gereken koşullar.",
+  "page.terms.description": "FoxiesDeck hizmetini kullanırken uyman gereken koşullar.",
   "page.privacy.title": "Gizlilik Politikası",
-  "page.privacy.description": "Kartlarla Dil'in topladığı, işlediği ve sakladığı veriler.",
+  "page.privacy.description": "FoxiesDeck'in topladığı, işlediği ve sakladığı veriler.",
   "page.refund.title": "İade Politikası",
   "page.refund.description": "Abonelik satın alımlarında iade koşulları.",
   "page.cookies.title": "Çerez Politikası",
-  "page.cookies.description": "Kartlarla Dil'in kullandığı çerezler ve amaçları.",
+  "page.cookies.description": "FoxiesDeck'in kullandığı çerezler ve amaçları.",
   "page.subscriptions.title": "Abonelik Koşulları",
   "page.subscriptions.description": "Otomatik yenileme, iptal ve plan değişikliği kuralları.",
 
@@ -353,7 +353,7 @@ const tr = {
 
   // Footer
   "footer.legal": "Yasal",
-  "footer.copyright": "© {year} Kartlarla Dil. Tüm hakları saklıdır.",
+  "footer.copyright": "© {year} FoxiesDeck. Tüm hakları saklıdır.",
   "footer.terms": "Kullanım Koşulları",
   "footer.privacy": "Gizlilik Politikası",
   "footer.refund": "İade Politikası",
@@ -690,13 +690,13 @@ const en: Dictionary = {
 
   // Legal pages
   "page.terms.title": "Terms of Service",
-  "page.terms.description": "Conditions for using the Kartlarla Dil service.",
+  "page.terms.description": "Conditions for using the FoxiesDeck service.",
   "page.privacy.title": "Privacy Policy",
-  "page.privacy.description": "What data Kartlarla Dil collects, processes, and stores.",
+  "page.privacy.description": "What data FoxiesDeck collects, processes, and stores.",
   "page.refund.title": "Refund Policy",
   "page.refund.description": "Refund conditions for subscription purchases.",
   "page.cookies.title": "Cookie Policy",
-  "page.cookies.description": "Cookies used by Kartlarla Dil and their purposes.",
+  "page.cookies.description": "Cookies used by FoxiesDeck and their purposes.",
   "page.subscriptions.title": "Subscription Terms",
   "page.subscriptions.description": "Rules for automatic renewal, cancellation, and plan changes.",
 
@@ -706,7 +706,7 @@ const en: Dictionary = {
 
   // Footer
   "footer.legal": "Legal",
-  "footer.copyright": "© {year} Kartlarla Dil. All rights reserved.",
+  "footer.copyright": "© {year} FoxiesDeck. All rights reserved.",
   "footer.terms": "Terms of Service",
   "footer.privacy": "Privacy Policy",
   "footer.refund": "Refund Policy",

@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("landing page explains the product", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Kartlarla Dil" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "FoxiesDeck" })).toBeVisible();
   await expect(page.getByText("İlk sürüm: İngilizce, Almanca, Rusça")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Start drawing cards/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
@@ -258,7 +258,7 @@ test("guest add-card action redirects to register with next path", async ({ page
 test("guest quiz start redirects to register with learn path", async ({ page }) => {
   await page.addInitScript((cardId) => {
     window.localStorage.setItem(
-      "kartlarla-dil:v3",
+      "foxiesdeck:v3",
       JSON.stringify({
         state: {
           cards: [

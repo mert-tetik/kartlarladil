@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = createTranslator(locale);
 
   return {
-    title: "Kartlarla Dil",
+    title: "FoxiesDeck",
     description: t("metadata.description"),
   };
 }

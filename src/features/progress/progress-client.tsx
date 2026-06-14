@@ -18,7 +18,7 @@ import {
 } from "@/features/progress/progress-stats";
 import type { ProgressStats } from "@/types/domain";
 
-const CLOUD_MIGRATION_KEY = "kartlarla-dil:cloud-migrated:v1";
+const CLOUD_MIGRATION_KEY = "foxiesdeck:cloud-migrated:v1";
 
 interface ProgressStatsContextValue {
   stats: ProgressStats;

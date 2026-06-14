@@ -1,3 +1,3 @@
-export const STORAGE_KEY = "kartlarla-dil:v3";
+export const STORAGE_KEY = "foxiesdeck:v3";
 
-export const APP_NAME = "Kartlarla Dil";
+export const APP_NAME = "FoxiesDeck";

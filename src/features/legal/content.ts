@@ -5,10 +5,10 @@ export const legalContent: Record<
   tr: {
     terms: `
 <h2>1. Giriş ve Kabul</h2>
-<p>Bu Kullanım Koşulları ("Koşullar"), [YAYINLAYICI_ADI] ("biz", "bize", "bizim") tarafından işletilen Kartlarla Dil web uygulaması ve hizmetlerinin ("Hizmet") kullanımını düzenler. Hizmete erişerek veya kullanarak bu Koşulları okuduğunu, anladığını ve bağlı olduğunu kabul etmiş olursun. Bu Koşulları kabul etmiyorsan, lütfen Hizmeti kullanma.</p>
+<p>Bu Kullanım Koşulları ("Koşullar"), [YAYINLAYICI_ADI] ("biz", "bize", "bizim") tarafından işletilen FoxiesDeck web uygulaması ve hizmetlerinin ("Hizmet") kullanımını düzenler. Hizmete erişerek veya kullanarak bu Koşulları okuduğunu, anladığını ve bağlı olduğunu kabul etmiş olursun. Bu Koşulları kabul etmiyorsan, lütfen Hizmeti kullanma.</p>
 
 <h2>2. Hizmet Tanımı</h2>
-<p>Kartlarla Dil, kullanıcıların çok dilli kelime haznesini koleksiyon kartları, quiz ve yapay zeka destekli pratik sohbetleri ile geliştirmesine olanak tanıyan bir öğrenme platformudur. Hizmet, ücretsiz ve ücretli abonelik planlarıyla sunulur.</p>
+<p>FoxiesDeck, kullanıcıların çok dilli kelime haznesini koleksiyon kartları, quiz ve yapay zeka destekli pratik sohbetleri ile geliştirmesine olanak tanıyan bir öğrenme platformudur. Hizmet, ücretsiz ve ücretli abonelik planlarıyla sunulur.</p>
 
 <h2>3. Kullanıcı Hesabı</h2>
 <p>Hizmetin bazı özellikleri için hesap oluşturman gerekir. Kayıt sırasında doğru, güncel ve eksiksiz bilgi vermeyi kabul edersin. Hesap bilgilerinin gizliliğini korumak ve hesabın altındaki tüm faaliyetlerden sorumlu olmak sana aittir. Hesabının izinsiz kullanıldığını fark edersen derhal bizimle iletişime geçmelisin.</p>
@@ -46,7 +46,7 @@ export const legalContent: Record<
 
     privacy: `
 <h2>1. Giriş</h2>
-<p>Kartlarla Dil olarak gizliliğine saygı duyuyoruz. Bu Gizlilik Politikası, Hizmeti kullanırken hangi verileri topladığımızı, nasıl kullandığımızı ve haklarını nasıl koruduğumuzu açıklar.</p>
+<p>FoxiesDeck olarak gizliliğine saygı duyuyoruz. Bu Gizlilik Politikası, Hizmeti kullanırken hangi verileri topladığımızı, nasıl kullandığımızı ve haklarını nasıl koruduğumuzu açıklar.</p>
 
 <h2>2. Toplanan Veriler</h2>
 <p>Hizmeti sağlamak için aşağıdaki verileri toplayabiliriz:</p>
@@ -95,7 +95,7 @@ export const legalContent: Record<
 
     refund: `
 <h2>1. Genel</h2>
-<p>Bu İade Politikası, Kartlarla Dil üzerinden satın alınan abonelikler için geçerlidir. Ödemeler LemonSqueezy ödeme işlemcisi aracılığıyla yapılır ve iade talepleri de bu politika çerçevesinde değerlendirilir.</p>
+<p>Bu İade Politikası, FoxiesDeck üzerinden satın alınan abonelikler için geçerlidir. Ödemeler LemonSqueezy ödeme işlemcisi aracılığıyla yapılır ve iade talepleri de bu politika çerçevesinde değerlendirilir.</p>
 
 <h2>2. Abonelik İptali</h2>
 <p>Aboneliğini istediğin zaman hesap ayarlarından veya LemonSqueezy müşteri portalından iptal edebilirsin. İptal işlemi, mevcut fatura döneminin sonunda geçerli olur. İptal edildikten sonra, o dönemin sonuna kadar ücretli özelliklere erişmeye devam edersin.</p>
@@ -115,7 +115,7 @@ export const legalContent: Record<
 <p>Çerezler, ziyaret ettiğin web siteleri tarafından tarayıcına yerleştirilen küçük metin dosyalarıdır. Bu dosyalar, siteyi kullanırken tercihlerini hatırlamak ve deneyimini iyileştirmek için kullanılır.</p>
 
 <h2>2. Kullanılan Çerezler</h2>
-<p>Kartlarla Dil şu çerezleri kullanır:</p>
+<p>FoxiesDeck şu çerezleri kullanır:</p>
 <ul>
 <li><strong>Dil tercihi çerezi:</strong> Seçtiğin arayüz dilini hatırlamak için kullanılır. Bu çerez, Hizmetin düzgün çalışması için gereklidir.</li>
 </ul>
@@ -151,10 +151,10 @@ export const legalContent: Record<
   en: {
     terms: `
 <h2>1. Introduction and Acceptance</h2>
-<p>These Terms of Service ("Terms") govern your use of the Kartlarla Dil web application and services (the "Service") operated by [YAYINLAYICI_ADI] ("we", "us", "our"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
+<p>These Terms of Service ("Terms") govern your use of the FoxiesDeck web application and services (the "Service") operated by [YAYINLAYICI_ADI] ("we", "us", "our"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
 
 <h2>2. Description of Service</h2>
-<p>Kartlarla Dil is a language learning platform that helps users expand their multilingual vocabulary through collectible cards, quizzes, and AI-powered practice conversations. The Service is offered through free and paid subscription plans.</p>
+<p>FoxiesDeck is a language learning platform that helps users expand their multilingual vocabulary through collectible cards, quizzes, and AI-powered practice conversations. The Service is offered through free and paid subscription plans.</p>
 
 <h2>3. User Account</h2>
 <p>Some features require you to create an account. You agree to provide accurate, current, and complete information during registration. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. Contact us immediately if you suspect unauthorized use.</p>
@@ -192,7 +192,7 @@ export const legalContent: Record<
 
     privacy: `
 <h2>1. Introduction</h2>
-<p>At Kartlarla Dil, we respect your privacy. This Privacy Policy explains what data we collect, how we use it, and how we protect your rights when you use the Service.</p>
+<p>At FoxiesDeck, we respect your privacy. This Privacy Policy explains what data we collect, how we use it, and how we protect your rights when you use the Service.</p>
 
 <h2>2. Data We Collect</h2>
 <p>To provide the Service, we may collect the following data:</p>
@@ -241,7 +241,7 @@ export const legalContent: Record<
 
     refund: `
 <h2>1. General</h2>
-<p>This Refund Policy applies to subscriptions purchased through Kartlarla Dil. Payments are processed by LemonSqueezy, and refund requests are evaluated under this policy.</p>
+<p>This Refund Policy applies to subscriptions purchased through FoxiesDeck. Payments are processed by LemonSqueezy, and refund requests are evaluated under this policy.</p>
 
 <h2>2. Subscription Cancellation</h2>
 <p>You may cancel your subscription at any time from your account settings or the LemonSqueezy customer portal. Cancellation takes effect at the end of the current billing period. You will continue to access paid features until the end of that period.</p>
@@ -261,7 +261,7 @@ export const legalContent: Record<
 <p>Cookies are small text files placed on your browser by websites you visit. They are used to remember your preferences and improve your experience.</p>
 
 <h2>2. Cookies We Use</h2>
-<p>Kartlarla Dil uses the following cookies:</p>
+<p>FoxiesDeck uses the following cookies:</p>
 <ul>
 <li><strong>Language preference cookie:</strong> remembers your selected interface language. This cookie is necessary for the Service to function correctly.</li>
 </ul>

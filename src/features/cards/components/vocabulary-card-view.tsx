@@ -283,7 +283,7 @@ export function VocabularyCardView({
               </div>
 
               <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75">
-                <span>Kartlarla Dil</span>
+                <span>FoxiesDeck</span>
                 <span>{t("cards.collection")}</span>
               </div>
             </div>

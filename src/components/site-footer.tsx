@@ -22,7 +22,7 @@ export async function SiteFooter() {
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
             <Logo size={36} />
-            <span className="font-display text-lg font-semibold text-slate-950">Kartlarla Dil</span>
+            <span className="font-display text-lg font-semibold text-slate-950">FoxiesDeck</span>
           </div>
           <nav aria-label={t("footer.legal")} className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
             {legalLinks.map((link) => (

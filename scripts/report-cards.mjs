@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const { CATALOG_REPORT } = loadTsModule("src/data/cards.ts");
 
-console.log("Kartlarla Dil katalog raporu");
+console.log("FoxiesDeck katalog raporu");
 console.log("============================");
 console.log(`Toplam kart: ${CATALOG_REPORT.total}`);
 console.log("");

@@ -14,7 +14,7 @@ export function Logo({ variant = "default", size = 40, className, priority }: Lo
   return (
     <Image
       src={src}
-      alt="Kartlarla Dil"
+      alt="FoxiesDeck"
       width={size}
       height={size}
       className={cn("rounded-md object-contain", className)}

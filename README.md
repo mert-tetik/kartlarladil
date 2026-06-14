@@ -1,6 +1,6 @@
-# Kartlarla Dil
+# FoxiesDeck
 
-Kartlarla Dil, kullanıcıların çok dilli kelime haznesini koleksiyon kartlarıyla geliştirdiği bir Next.js uygulamasıdır. Kullanıcı kart çeker, kartı haznesine ekler, quiz çözer ve tier eşiğini tamamlayan kartlar otomatik öğrenilmiş olur.
+FoxiesDeck, kullanıcıların çok dilli kelime haznesini koleksiyon kartlarıyla geliştirdiği bir Next.js uygulamasıdır. Kullanıcı kart çeker, kartı haznesine ekler, quiz çözer ve tier eşiğini tamamlayan kartlar otomatik öğrenilmiş olur.
 
 ## Tech Stack
 
@@ -74,10 +74,10 @@ node scripts/generate-card-seeds-from-muse.mjs
 Guest/local envanter tarayıcıda tutulur:
 
 ```text
-kartlarla-dil:v3
+foxiesdeck:v3
 ```
 
-Kart çek filtreleri ayrıca `kartlarla-dil:card-draw-filters:v1` altında saklanır.
+Kart çek filtreleri ayrıca `foxiesdeck:card-draw-filters:v1` altında saklanır.
 
 ## Supabase
 
