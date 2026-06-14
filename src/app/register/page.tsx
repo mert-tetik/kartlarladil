@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import { RegisterForm } from "@/features/auth/components/register-form";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath, getSearchParamValue } from "@/features/auth/auth-redirects";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
@@ -35,6 +36,12 @@ export default async function RegisterPage({
   return (
     <AuthPageShell title={t("auth.register.title")} description={t("auth.register.description")}>
       <RegisterForm nextPath={nextPath} />
+      <div className="relative flex items-center py-4">
+        <div className="grow border-t border-slate-200" />
+        <span className="mx-3 text-xs font-medium text-slate-500">{t("common.or")}</span>
+        <div className="grow border-t border-slate-200" />
+      </div>
+      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signUp")} />
       <div className="mt-6 border-t border-slate-200 pt-5 text-sm text-slate-600">
         {t("auth.register.hasAccount")}{" "}
         <Link href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-slate-950">

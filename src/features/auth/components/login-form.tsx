@@ -6,7 +6,6 @@ import { loginAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
 import { PasswordInput } from "@/features/auth/components/password-input";
-import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
 
@@ -41,14 +40,6 @@ export function LoginForm({ nextPath, message }: { nextPath: string; message?: s
       <SubmitButton className="w-full" pendingLabel={t("auth.login.pending")}>
         {t("auth.login.title")}
       </SubmitButton>
-
-      <div className="relative flex items-center py-2">
-        <div className="grow border-t border-slate-200" />
-        <span className="mx-3 text-xs font-medium text-slate-500">{t("common.or")}</span>
-        <div className="grow border-t border-slate-200" />
-      </div>
-
-      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signIn")} />
     </form>
   );
 }

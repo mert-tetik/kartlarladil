@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath, getSearchParamValue } from "@/features/auth/auth-redirects";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
@@ -38,6 +39,12 @@ export default async function LoginPage({
   return (
     <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")} logoVariant="inverted">
       <LoginForm nextPath={nextPath} message={message} />
+      <div className="relative flex items-center py-4">
+        <div className="grow border-t border-slate-200" />
+        <span className="mx-3 text-xs font-medium text-slate-500">{t("common.or")}</span>
+        <div className="grow border-t border-slate-200" />
+      </div>
+      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signIn")} />
       <AuthFooter>
         {t("auth.login.noAccount")}{" "}
         <Link href={`/register?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-slate-950">
