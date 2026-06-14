@@ -37,7 +37,7 @@ export default async function LoginPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")} logoVariant="inverted">
+    <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")}>
       <LoginForm nextPath={nextPath} message={message} />
       <div className="relative flex items-center py-4">
         <div className="grow border-t border-slate-200" />

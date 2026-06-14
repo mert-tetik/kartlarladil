@@ -2,18 +2,15 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  variant?: "default" | "inverted";
   size?: number;
   className?: string;
   priority?: boolean;
 }
 
-export function Logo({ variant = "default", size = 40, className, priority }: LogoProps) {
-  const src = variant === "inverted" ? "/logo-inverted.png" : "/logo.png";
-
+export function Logo({ size = 40, className, priority }: LogoProps) {
   return (
     <Image
-      src={src}
+      src="/logo.png"
       alt="FoxiesDeck"
       width={size}
       height={size}
