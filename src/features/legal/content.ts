@@ -5,7 +5,7 @@ export const legalContent: Record<
   tr: {
     terms: `
 <h2>1. Giriş ve Kabul</h2>
-<p>Bu Kullanım Koşulları ("Koşullar"), [YAYINLAYICI_ADI] ("biz", "bize", "bizim") tarafından işletilen FoxiesDeck web uygulaması ve hizmetlerinin ("Hizmet") kullanımını düzenler. Hizmete erişerek veya kullanarak bu Koşulları okuduğunu, anladığını ve bağlı olduğunu kabul etmiş olursun. Bu Koşulları kabul etmiyorsan, lütfen Hizmeti kullanma.</p>
+<p>Bu Kullanım Koşulları ("Koşullar"), Mert Tetik ("biz", "bize", "bizim") tarafından işletilen FoxiesDeck web uygulaması ve hizmetlerinin ("Hizmet") kullanımını düzenler. Hizmete erişerek veya kullanarak bu Koşulları okuduğunu, anladığını ve bağlı olduğunu kabul etmiş olursun. Bu Koşulları kabul etmiyorsan, lütfen Hizmeti kullanma.</p>
 
 <h2>2. Hizmet Tanımı</h2>
 <p>FoxiesDeck, kullanıcıların çok dilli kelime haznesini koleksiyon kartları, quiz ve yapay zeka destekli pratik sohbetleri ile geliştirmesine olanak tanıyan bir öğrenme platformudur. Hizmet, ücretsiz ve ücretli abonelik planlarıyla sunulur.</p>
@@ -38,10 +38,10 @@ export const legalContent: Record<
 <p>Bu Koşulları ihlal etmen durumunda hesabını askıya alabilir veya sonlandırabiliriz. Ayrıca istediğin zaman hesabını silebilirsin.</p>
 
 <h2>10. Uygulanacak Hukuk</h2>
-<p>Bu Koşullar, [YAYINLAYICI_ADRES] yasalarına tabidir ve bu yasalara göre yorumlanır.</p>
+<p>Bu Koşullar, Türkiye Kayseri yasalarına tabidir ve bu yasalara göre yorumlanır.</p>
 
 <h2>11. İletişim</h2>
-<p>Soruların için bizimle iletişime geç: <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Soruların için bizimle iletişime geç: <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     privacy: `
@@ -84,13 +84,13 @@ export const legalContent: Record<
 <p>Verilerini korumak için endüstri standardı önlemler kullanıyoruz. Ancak internet üzerinden hiçbir veri iletiminin %100 güvenli olmadığını unutma.</p>
 
 <h2>7. Kullanıcı Hakları</h2>
-<p>Verilerinle ilgili olarak erişim, düzeltme, silme ve işlemeye itiraz etme haklarına sahip olabilirsin. Taleplerin için <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a> adresinden bize ulaşabilirsin.</p>
+<p>Verilerinle ilgili olarak erişim, düzeltme, silme ve işlemeye itiraz etme haklarına sahip olabilirsin. Taleplerin için <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a> adresinden bize ulaşabilirsin.</p>
 
 <h2>8. Çerezler</h2>
 <p>Çerezler hakkında daha fazla bilgi için <a href="/cookies">Çerez Politikası</a> sayfamızı incele.</p>
 
 <h2>9. İletişim</h2>
-<p>Gizlilikle ilgili soruların için bizimle iletişime geç: <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Gizlilikle ilgili soruların için bizimle iletişime geç: <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     refund: `
@@ -104,10 +104,10 @@ export const legalContent: Record<
 <p>Abonelik satın alındıktan sonra, mevcut fatura dönemi için kalan süre üzerinden iade yapılmaz. Abonelik iptali sonrası kalan günler için para iadesi yapılmaz. Teknik olarak Hizmetin uzun süre erişilemez olması gibi istisnai durumlarda iade talebinde bulunabilirsin.</p>
 
 <h2>4. İade Süreci</h2>
-<p>İade taleplerin için <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a> adresinden bize ulaş. Talepler LemonSqueezy platformu üzerinden işleme alınır ve genellikle 5-10 iş günü içinde değerlendirilir.</p>
+<p>İade taleplerin için <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a> adresinden bize ulaş. Talepler LemonSqueezy platformu üzerinden işleme alınır ve genellikle 5-10 iş günü içinde değerlendirilir.</p>
 
 <h2>5. İletişim</h2>
-<p>İade ve ödeme konularında bizimle iletişime geç: <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>İade ve ödeme konularında bizimle iletişime geç: <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     cookies: `
@@ -144,14 +144,14 @@ export const legalContent: Record<
 <p>Fiyatlarda değişiklik yapılması durumunda, değişiklik mevcut aboneliğin bir sonraki yenileme tarihinde geçerli olur. Kullanıcılar önemli fiyat değişikliklerinden önce bilgilendirilir.</p>
 
 <h2>6. İletişim</h2>
-<p>Abonelik konularında bizimle iletişime geç: <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Abonelik konularında bizimle iletişime geç: <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
   },
 
   en: {
     terms: `
 <h2>1. Introduction and Acceptance</h2>
-<p>These Terms of Service ("Terms") govern your use of the FoxiesDeck web application and services (the "Service") operated by [YAYINLAYICI_ADI] ("we", "us", "our"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
+<p>These Terms of Service ("Terms") govern your use of the FoxiesDeck web application and services (the "Service") operated by Mert Tetik ("we", "us", "our"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
 
 <h2>2. Description of Service</h2>
 <p>FoxiesDeck is a language learning platform that helps users expand their multilingual vocabulary through collectible cards, quizzes, and AI-powered practice conversations. The Service is offered through free and paid subscription plans.</p>
@@ -184,10 +184,10 @@ export const legalContent: Record<
 <p>We may suspend or terminate your account if you violate these Terms. You may also delete your account at any time.</p>
 
 <h2>10. Governing Law</h2>
-<p>These Terms are governed by the laws of [YAYINLAYICI_ADRES].</p>
+<p>These Terms are governed by the laws of Türkiye Kayseri.</p>
 
 <h2>11. Contact</h2>
-<p>Contact us with questions at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Contact us with questions at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     privacy: `
@@ -230,13 +230,13 @@ export const legalContent: Record<
 <p>We use industry-standard measures to protect your data. However, no transmission over the internet is 100% secure.</p>
 
 <h2>7. Your Rights</h2>
-<p>You may have rights to access, correct, delete, or object to the processing of your data. Contact us at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a> for requests.</p>
+<p>You may have rights to access, correct, delete, or object to the processing of your data. Contact us at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a> for requests.</p>
 
 <h2>8. Cookies</h2>
 <p>For more information, see our <a href="/cookies">Cookie Policy</a>.</p>
 
 <h2>9. Contact</h2>
-<p>Contact us with privacy questions at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Contact us with privacy questions at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     refund: `
@@ -250,10 +250,10 @@ export const legalContent: Record<
 <p>After a subscription is purchased, no refund is provided for the remaining time in the current billing period. No partial refunds are issued upon cancellation. Refunds may be considered only in exceptional cases, such as prolonged technical unavailability of the Service.</p>
 
 <h2>4. Refund Process</h2>
-<p>To request a refund, contact us at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>. Requests are processed through LemonSqueezy and typically reviewed within 5-10 business days.</p>
+<p>To request a refund, contact us at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>. Requests are processed through LemonSqueezy and typically reviewed within 5-10 business days.</p>
 
 <h2>5. Contact</h2>
-<p>Contact us with refund and billing questions at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Contact us with refund and billing questions at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
 
     cookies: `
@@ -290,9 +290,9 @@ export const legalContent: Record<
 <p>If prices change, the new price applies at your next renewal date. Users will be notified of significant price changes in advance.</p>
 
 <h2>6. Contact</h2>
-<p>Contact us with subscription questions at <a href="mailto:[İLETİŞİM_EMAIL]">[İLETİŞİM_EMAIL]</a>.</p>
+<p>Contact us with subscription questions at <a href="mailto:foxiesdeck@outlook.com">foxiesdeck@outlook.com</a>.</p>
 `,
   },
 };
 
-export const LEGAL_LAST_UPDATED = "2025-06-14";
+export const LEGAL_LAST_UPDATED = "2026-06-14";

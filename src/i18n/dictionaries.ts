@@ -358,7 +358,7 @@ const tr = {
 
   "legal.lastUpdated": "Son güncelleme",
   "legal.contact": "Soruların için bizimle iletişime geç: {email}",
-  "legal.contactEmail": "TODO_EMAIL",
+  "legal.contactEmail": "foxiesdeck@outlook.com",
 
   // Footer
   "footer.legal": "Yasal",
@@ -720,7 +720,7 @@ const en: Dictionary = {
 
   "legal.lastUpdated": "Last updated",
   "legal.contact": "Contact us with questions: {email}",
-  "legal.contactEmail": "TODO_EMAIL",
+  "legal.contactEmail": "foxiesdeck@outlook.com",
 
   // Footer
   "footer.legal": "Legal",
