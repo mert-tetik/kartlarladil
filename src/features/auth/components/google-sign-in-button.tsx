@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogleAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
@@ -15,12 +15,6 @@ interface GoogleSignInButtonProps {
 export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps) {
   const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
-
-  useEffect(() => {
-    if (state.status === "success" && "url" in state && typeof state.url === "string") {
-      window.location.href = state.url;
-    }
-  }, [state]);
 
   return (
     <form action={formAction} className="w-full">

@@ -281,7 +281,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
 export async function signInWithGoogleAction(
   _state: AuthActionState,
   formData: FormData,
-): Promise<AuthActionState & { url?: string }> {
+): Promise<AuthActionState> {
   const { locale, t } = await getActionText();
   const supabase = await createActionSupabaseClient();
 
@@ -317,11 +317,7 @@ export async function signInWithGoogleAction(
     };
   }
 
-  return {
-    status: "success",
-    message: "",
-    url: data.url,
-  };
+  redirect(data.url);
 }
 
 export async function logoutAction() {
