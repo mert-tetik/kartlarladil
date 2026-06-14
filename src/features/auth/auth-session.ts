@@ -19,6 +19,7 @@ interface ProfileRow {
   preferred_language_code: string | null;
   preferred_ui_locale: string | null;
   preferred_tier: string | null;
+  onboarding_completed: boolean | null;
 }
 
 function normalizeProfile(row?: ProfileRow | null): AuthProfile {
@@ -58,7 +59,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed")
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -83,11 +84,14 @@ export async function ensureUserProfile(
     preferredUiLocale?: LocaleCode | null;
     preferredTier?: Tier | null;
   },
-) {
+): Promise<{ profile: AuthProfile; onboardingCompleted: boolean }> {
   const existingProfile = await readProfile(supabase, user.id);
 
   if (existingProfile) {
-    return normalizeProfile(existingProfile);
+    return {
+      profile: normalizeProfile(existingProfile),
+      onboardingCompleted: existingProfile.onboarding_completed ?? true,
+    };
   }
 
   const metadataLanguage = getMetadataString(user, "preferred_language_code");
@@ -107,15 +111,19 @@ export async function ensureUserProfile(
         (LOCALE_CODE_SET.has(metadataUiLocale as LocaleCode) ? (metadataUiLocale as LocaleCode) : "en"),
       preferred_tier:
         preferences?.preferredTier ?? (TIERS.has(metadataTier as Tier) ? (metadataTier as Tier) : "A1"),
+      onboarding_completed: false,
     })
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed")
     .maybeSingle<ProfileRow>();
 
   if (error) {
-    return normalizeProfile();
+    return { profile: normalizeProfile(), onboardingCompleted: false };
   }
 
-  return normalizeProfile(data);
+  return {
+    profile: normalizeProfile(data),
+    onboardingCompleted: data?.onboarding_completed ?? false,
+  };
 }
 
 export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {

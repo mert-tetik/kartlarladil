@@ -7,7 +7,6 @@ import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
 import { PasswordInput } from "@/features/auth/components/password-input";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
-import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
 
@@ -19,13 +18,6 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="next" value={nextPath} />
       <FormMessage state={state} />
-
-      <PreferenceFields
-        defaultLanguage="en"
-        defaultTier="A1"
-        languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
-        tierError={state.fieldErrors?.preferredTier?.[0]}
-      />
 
       <label className="block">
         <span className="text-sm font-semibold text-slate-800">{t("common.displayName")}</span>

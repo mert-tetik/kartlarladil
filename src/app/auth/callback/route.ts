@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    await ensureUserProfile(supabase, user);
+    const { onboardingCompleted } = await ensureUserProfile(supabase, user);
+
+    if (!onboardingCompleted) {
+      return NextResponse.redirect(`${origin}/register/preferences?next=${encodeURIComponent(nextPath)}`);
+    }
   }
 
   return NextResponse.redirect(`${origin}${nextPath}`);

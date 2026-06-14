@@ -8,6 +8,7 @@ import {
   deleteAccountSchema,
   getFormString,
   loginSchema,
+  onboardingSchema,
   profileSchema,
   registerSchema,
   resetPasswordSchema,
@@ -79,7 +80,11 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
   } = await supabase.auth.getUser();
 
   if (user) {
-    await ensureUserProfile(supabase, user);
+    const { onboardingCompleted } = await ensureUserProfile(supabase, user);
+
+    if (!onboardingCompleted) {
+      redirect(`/register/preferences?next=${encodeURIComponent(nextPath)}`);
+    }
   }
 
   revalidatePath("/", "layout");
@@ -92,9 +97,6 @@ export async function registerAction(_state: AuthActionState, formData: FormData
     email: getFormString(formData, "email"),
     password: getFormString(formData, "password"),
     displayName: getFormString(formData, "displayName"),
-    preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
-    preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
-    preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
     consent: getFormString(formData, "consent"),
   });
@@ -116,12 +118,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
     password: parsed.data.password,
     options: {
       emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-      data: {
-        display_name: parsed.data.displayName,
-        preferred_language_code: parsed.data.preferredLanguageCode,
-        preferred_ui_locale: parsed.data.preferredUiLocale,
-        preferred_tier: parsed.data.preferredTier,
-      },
+      data: { display_name: parsed.data.displayName },
     },
   });
 
@@ -133,25 +130,9 @@ export async function registerAction(_state: AuthActionState, formData: FormData
   }
 
   if (data.session && data.user) {
-    await ensureUserProfile(supabase, data.user, {
-      displayName: parsed.data.displayName,
-      preferredLanguageCode: parsed.data.preferredLanguageCode,
-      preferredUiLocale: parsed.data.preferredUiLocale,
-      preferredTier: parsed.data.preferredTier,
-    });
-    await supabase.from("user_profiles").upsert(
-      {
-        user_id: data.user.id,
-        display_name: parsed.data.displayName,
-        preferred_language_code: parsed.data.preferredLanguageCode,
-        preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
-        preferred_tier: parsed.data.preferredTier,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+    await ensureUserProfile(supabase, data.user, { displayName: parsed.data.displayName });
     revalidatePath("/", "layout");
-    redirect(nextPath);
+    redirect(`/register/preferences?next=${encodeURIComponent(nextPath)}`);
   }
 
   return {
@@ -338,6 +319,7 @@ export async function signInWithGoogleAction(
 
   return {
     status: "success",
+    message: "",
     url: data.url,
   };
 }
@@ -351,6 +333,64 @@ export async function logoutAction() {
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function completeOnboardingAction(
+  _state: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
+  const parsed = onboardingSchema.safeParse({
+    preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
+    preferredUiLocale: locale,
+    preferredTier: getFormString(formData, "preferredTier"),
+    next: getFormString(formData, "next"),
+  });
+
+  if (!parsed.success) {
+    return createValidationErrorState(parsed.error, locale);
+  }
+
+  const supabase = await createActionSupabaseClient();
+
+  if (!supabase) {
+    return authNotConfiguredState(locale);
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      status: "error",
+      message: t("auth.message.profileAuthRequired"),
+    };
+  }
+
+  const nextPath = getSafeNextPath(parsed.data.next, DEFAULT_AUTH_REDIRECT);
+  const { error } = await supabase.from("user_profiles").upsert(
+    {
+      user_id: user.id,
+      preferred_language_code: parsed.data.preferredLanguageCode,
+      preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
+      preferred_tier: parsed.data.preferredTier,
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    return {
+      status: "error",
+      message: error.message,
+    };
+  }
+
+  revalidatePath("/", "layout");
+  redirect(nextPath);
 }
 
 export async function deleteAccountAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {

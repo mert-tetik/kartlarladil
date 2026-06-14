@@ -25,13 +25,17 @@ export const registerSchema = z.object({
     .trim()
     .max(80, "auth.validation.displayNameMax")
     .transform((value) => (value.length > 0 ? value : null)),
-  preferredLanguageCode: languageCodeSchema,
-  preferredUiLocale: localeCodeSchema.optional(),
-  preferredTier: tierSchema,
   next: nextPathSchema,
   consent: z.literal("on", {
     message: "auth.validation.consentRequired",
   }),
+});
+
+export const onboardingSchema = z.object({
+  preferredLanguageCode: languageCodeSchema,
+  preferredUiLocale: localeCodeSchema.optional(),
+  preferredTier: tierSchema,
+  next: nextPathSchema,
 });
 
 export const resetPasswordSchema = z.object({
