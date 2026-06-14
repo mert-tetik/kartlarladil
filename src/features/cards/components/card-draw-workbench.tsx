@@ -18,6 +18,7 @@ import {
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
@@ -182,9 +183,10 @@ export function CardDrawWorkbench() {
 
   function addDrawnCard(cardId: string) {
     requireAuthAction(() => {
-      const activeLimit = entitlements?.limits.activeCards;
+      const effectivePlan = entitlements?.effectivePlan ?? "free";
+      const activeLimit = PLAN_LIMITS[effectivePlan].activeCards;
 
-      if (entitlements?.effectivePlan === "free" && typeof activeLimit === "number") {
+      if (effectivePlan === "free" && typeof activeLimit === "number") {
         const activeCount = inventoryCards.filter((card) => card.status === "active").length;
 
         if (activeCount >= activeLimit) {

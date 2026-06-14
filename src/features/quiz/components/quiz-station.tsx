@@ -13,6 +13,7 @@ import { buildQuizQuestion } from "@/features/quiz/quiz-engine";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -70,9 +71,10 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   const startNextQuestion = useCallback(() => {
     if (mode === "active") {
-      const learnedLimit = entitlements?.limits.learnedCards;
+      const effectivePlan = entitlements?.effectivePlan ?? "free";
+      const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
 
-      if (entitlements?.effectivePlan === "free" && typeof learnedLimit === "number") {
+      if (effectivePlan === "free" && typeof learnedLimit === "number") {
         const learnedCount = cards.filter((card) => card.status === "learned").length;
 
         if (learnedCount >= learnedLimit) {
@@ -217,9 +219,10 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       (inventoryCard?.correctCount ?? 0) + 1 >= requirement;
 
     if (willLearn) {
-      const learnedLimit = entitlements?.limits.learnedCards;
+      const effectivePlan = entitlements?.effectivePlan ?? "free";
+      const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
 
-      if (entitlements?.effectivePlan === "free" && typeof learnedLimit === "number") {
+      if (effectivePlan === "free" && typeof learnedLimit === "number") {
         const learnedCount = cards.filter((card) => card.status === "learned").length;
 
         if (learnedCount >= learnedLimit) {

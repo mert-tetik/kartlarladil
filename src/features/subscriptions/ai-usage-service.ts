@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AiUsageEventType, LimitErrorCode, SubscriptionPlan } from "@/types/domain";
-import { PLAN_LIMITS } from "./subscription-service";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 
 export async function assertCanUseAi(
   userId: string,

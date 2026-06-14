@@ -1,10 +1,10 @@
 import { vi } from "vitest";
 import {
-  PLAN_LIMITS,
   checkLimit,
   getEffectivePlan,
   getUserEntitlements,
 } from "@/features/subscriptions/subscription-service";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import type { SubscriptionStatus, UserSubscription } from "@/types/domain";
 
 const mockSingle = vi.fn();
