@@ -6,6 +6,7 @@ import { registerAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
 import { PasswordInput } from "@/features/auth/components/password-input";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
@@ -69,6 +70,14 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       <SubmitButton className="w-full" pendingLabel={t("auth.register.pending")}>
         {t("auth.register.title")}
       </SubmitButton>
+
+      <div className="relative flex items-center py-2">
+        <div className="grow border-t border-slate-200" />
+        <span className="mx-3 text-xs font-medium text-slate-500">{t("common.or")}</span>
+        <div className="grow border-t border-slate-200" />
+      </div>
+
+      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signUp")} />
     </form>
   );
 }

@@ -297,6 +297,51 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
   };
 }
 
+export async function signInWithGoogleAction(
+  _state: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState & { url?: string }> {
+  const { locale, t } = await getActionText();
+  const supabase = await createActionSupabaseClient();
+
+  if (!supabase) {
+    return authNotConfiguredState(locale);
+  }
+
+  const nextPath = getSafeNextPath(getFormString(formData, "next"), DEFAULT_AUTH_REDIRECT);
+  const origin = await getRequestOrigin();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: error.message,
+    };
+  }
+
+  if (!data.url) {
+    return {
+      status: "error",
+      message: t("auth.message.googleNoUrl"),
+    };
+  }
+
+  return {
+    status: "success",
+    url: data.url,
+  };
+}
+
 export async function logoutAction() {
   const supabase = await createActionSupabaseClient();
 
