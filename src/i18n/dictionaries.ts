@@ -83,7 +83,7 @@ const tr = {
   "example.contextual": "Bağlam",
   "example.natural": "Doğal kullanım",
 
-  "home.hero.title": "FoxiesDeck",
+  "home.hero.title": "Kartlarla Dil",
   "metadata.description": "Çok dilli kelime haznesini koleksiyon kartlarıyla geliştiren öğrenme uygulaması.",
   "home.hero.subtitle":
     "Kelimeleri tek tek ezberlemek yerine koleksiyon kartlarına dönüştür. Kart çek, haznene ekle, quiz çöz ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.",
@@ -422,6 +422,7 @@ export type TranslationKey = keyof Dictionary;
 
 const en: Dictionary = {
   ...tr,
+  "home.hero.title": "Language with Cards",
   "nav.home": "Home",
   "nav.pricing": "Pricing",
   "nav.cardDraw": "Draw cards",
