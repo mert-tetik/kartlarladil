@@ -8,7 +8,6 @@ import {
   Bot,
   Boxes,
   CreditCard,
-  GraduationCap,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -37,7 +36,6 @@ const navItems: readonly NavItem[] = [
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
   { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
-  { href: "/learned", labelKey: "nav.learned", icon: GraduationCap },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: Bot },
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
@@ -49,7 +47,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/88 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-slate-950">
             <Logo size={40} priority />
