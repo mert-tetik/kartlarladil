@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 
@@ -15,7 +17,34 @@ interface RequireAuthActionOptions {
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
-export function AuthSessionProvider({ user, children }: { user: AuthShellUser | null; children: ReactNode }) {
+export function AuthSessionProvider({
+  user: initialUser,
+  children,
+}: {
+  user: AuthShellUser | null;
+  children: ReactNode;
+}) {
+  const [user, setUser] = useState(initialUser);
+  const client = useMemo(() => (hasSupabaseBrowserConfig() ? createSupabaseBrowserClient() : null), []);
+
+  useEffect(() => {
+    if (!client) {
+      return;
+    }
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [client]);
+
   return <AuthSessionContext.Provider value={{ user }}>{children}</AuthSessionContext.Provider>;
 }
 

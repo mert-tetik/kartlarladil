@@ -31,6 +31,13 @@ export async function updateSupabaseSession(request: NextRequest) {
         });
       },
     },
+    cookieOptions: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    },
   });
 
   await supabase.auth.getClaims();

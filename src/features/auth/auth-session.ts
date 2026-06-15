@@ -152,12 +152,22 @@ export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
 
-  if (error || !user?.email) {
+  // The middleware already verifies and refreshes the session, so we can read
+  // the current session locally instead of calling getUser() on every render.
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session?.user?.email) {
+    return null;
+  }
+
+  const user = session.user;
+  const email = user.email;
+
+  if (!email) {
     return null;
   }
 
@@ -165,7 +175,7 @@ export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {
 
   return {
     id: user.id,
-    email: user.email,
+    email,
     profile,
   };
 }

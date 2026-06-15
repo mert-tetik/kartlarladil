@@ -19,9 +19,17 @@ export async function createSupabaseServerClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Server Components cannot write cookies. Proxy/Route Handlers will persist refreshed sessions.
+          // Server Components cannot write cookies. Middleware and Route Handlers
+          // are responsible for persisting refreshed sessions.
         }
       },
+    },
+    cookieOptions: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
     },
   });
 }
