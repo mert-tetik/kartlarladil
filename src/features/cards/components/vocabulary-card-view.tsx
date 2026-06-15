@@ -23,6 +23,7 @@ interface VocabularyCardViewProps {
   owned?: boolean;
   compact?: boolean;
   initialFace?: CardFace;
+  face?: CardFace;
   flippable?: boolean;
   backDisplayTier?: Tier;
   onAdd?: () => void;
@@ -41,6 +42,7 @@ export function VocabularyCardView({
   owned,
   compact = false,
   initialFace = "front",
+  face,
   flippable = false,
   backDisplayTier,
   onAdd,
@@ -63,13 +65,15 @@ export function VocabularyCardView({
   const examplePreview = card.examples[0]?.sentence ?? card.example;
   const visibleBackTier = backDisplayTier ?? card.tier;
   const cardTranslation = getCardTranslation(card, locale);
-  const isFaceUp =
-    faceState.cardId === card.id && faceState.initialFace === initialFace
+  const isControlled = face !== undefined;
+  const isFaceUp = isControlled
+    ? face === "front"
+    : faceState.cardId === card.id && faceState.initialFace === initialFace
       ? faceState.isFaceUp
       : initialFace === "front";
 
   function revealFront() {
-    if (flippable && !isFaceUp) {
+    if (!isControlled && flippable && !isFaceUp) {
       setFaceState({ cardId: card.id, initialFace, isFaceUp: true });
     }
   }
@@ -104,7 +108,7 @@ export function VocabularyCardView({
   }
 
   const flipRoleProps =
-    flippable && !isFaceUp
+    !isControlled && flippable && !isFaceUp
       ? {
           role: "button",
           tabIndex: 0,
