@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, LogOut, Settings, Shield, UserRound } from "lucide-react";
+import { BarChart3, CreditCard, LogOut, Settings, Shield, UserRound } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
 import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
@@ -106,6 +106,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
           <div className="h-px bg-slate-200" />
           <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} />
           <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} />
+          <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} />
           <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} />
           <form action={logoutAction}>
             <button
