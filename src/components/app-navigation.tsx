@@ -55,14 +55,26 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </Link>
 
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-1 lg:flex">
-            {navItems.slice(1).map((item) => (
-              <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
-                {t(item.labelKey)}
-              </DesktopNavLink>
-            ))}
+            {navItems
+              .filter((item) => item.href !== "/pricing")
+              .slice(1)
+              .map((item) => (
+                <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
+                  {t(item.labelKey)}
+                </DesktopNavLink>
+              ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/pricing"
+              className={cn(
+                buttonClassName("primary", "sm"),
+                "hidden bg-[#f76808] text-white hover:bg-[#e05d00] focus-visible:outline-[#f76808] lg:inline-flex",
+              )}
+            >
+              {t("nav.pricing")}
+            </Link>
             {user ? (
               <>
                 <RankProgressPopover stats={stats} />
