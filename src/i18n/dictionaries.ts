@@ -86,7 +86,7 @@ const tr = {
   "home.hero.title": "Kartlarla Dil",
   "metadata.description": "Çok dilli kelime haznesini koleksiyon kartlarıyla geliştiren öğrenme uygulaması.",
   "home.hero.subtitle":
-    "Kelimeleri tek tek ezberlemek yerine koleksiyon kartlarına dönüştür. Kart çek, haznene ekle, quiz çöz ve tier eşiğini tamamladığında kartı gerçekten öğrenilmiş say.",
+    "Kartlarla kelime öğren ve onları koleksiyonuna kat. Kartları öğrendikçe puan kazan, seviye atla ve yabancı dil öğrenmeyi bir oyuna çevir!",
   "home.hero.primaryCta": "Kart çekmeye başla",
   "home.hero.secondaryCta": "Envanteri gör",
   "home.hero.supportedLanguages": "Desteklenen diller",
@@ -495,7 +495,7 @@ const en: Dictionary = {
   "example.contextual": "Context",
   "example.natural": "Natural use",
   "home.hero.subtitle":
-    "Turn vocabulary into collectible cards instead of memorizing lists. Draw cards, add them to your pool, solve quizzes, and count a card as learned only after its tier threshold is complete.",
+    "Learn words with cards and add them to your collection. Earn points and level up as you master cards, and turn language learning into a game!",
   "metadata.description": "A multilingual vocabulary learning app built around collectible cards.",
   "home.hero.primaryCta": "Start drawing cards",
   "home.hero.secondaryCta": "View inventory",
