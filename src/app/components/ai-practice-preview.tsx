@@ -6,6 +6,8 @@ import {
   getAiPracticeCharacters,
   getCharacterName,
 } from "@/features/ai-practice/ai-practice-data";
+import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { LANGUAGE_CODES } from "@/data/languages";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { cn } from "@/lib/utils";
@@ -15,6 +17,23 @@ export async function AiPracticePreview() {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
   const characters = getAiPracticeCharacters();
+  const user = await getCurrentAuthUser();
+
+  const language: LanguageCode =
+    user?.profile?.preferredLanguageCode &&
+    LANGUAGE_CODES.includes(user.profile.preferredLanguageCode)
+      ? user.profile.preferredLanguageCode
+      : "en";
+
+  function getCharacterHref(characterId: string) {
+    const target = `/ai-practice/${language}/${characterId}`;
+
+    if (!user) {
+      return `/login?next=${encodeURIComponent(target)}`;
+    }
+
+    return target;
+  }
 
   return (
     <section className="bg-white">
@@ -42,22 +61,23 @@ export async function AiPracticePreview() {
           </Link>
         </div>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
           {characters.map((character) => {
             const characterName = getCharacterName(character, locale as LanguageCode);
 
             return (
-              <div
+              <Link
                 key={character.id}
-                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+                href={getCharacterHref(character.id)}
+                className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
               >
                 <div className="relative aspect-square overflow-hidden bg-slate-100">
                   <Image
                     src={character.imageSrc}
                     alt={characterName}
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-                    className="object-cover"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   />
                 </div>
                 <div className="p-4">
@@ -68,7 +88,7 @@ export async function AiPracticePreview() {
                     {character.summaryByLocale[locale]}
                   </p>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
