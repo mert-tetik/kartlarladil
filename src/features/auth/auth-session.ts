@@ -43,15 +43,26 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
 
 export async function getRequestOrigin() {
   const headerStore = await headers();
-  const origin = headerStore.get("origin");
 
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+
+  if (forwardedHost && forwardedProto) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) {
+    return `https://${vercelUrl}`;
+  }
+
+  const origin = headerStore.get("origin");
   if (origin) {
     return origin;
   }
 
-  const forwardedHost = headerStore.get("x-forwarded-host");
-  const host = forwardedHost ?? headerStore.get("host") ?? "localhost:3000";
-  const protocol = headerStore.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const host = headerStore.get("host") ?? "localhost:3000";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
 
   return `${protocol}://${host}`;
 }

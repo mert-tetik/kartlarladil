@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -42,6 +43,7 @@ export default async function RootLayout({
     <html lang={locale} dir={direction} className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full">
         <AppShell locale={locale}>{children}</AppShell>
+        <LemonSqueezyScript />
       </body>
     </html>
   );

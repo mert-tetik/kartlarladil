@@ -4,6 +4,7 @@ import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { buttonClassName } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
@@ -72,16 +73,28 @@ export default async function Home() {
           <div className="max-w-3xl">
             <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/card-draw" className={buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200")}>
+            <div className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
+              <Link
+                href="/card-draw"
+                className={cn(
+                  buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200"),
+                  "w-full justify-center sm:w-auto",
+                )}
+              >
                 {t("home.hero.primaryCta")}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
-              <Link href="/my-cards" className={buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20")}>
+              <Link
+                href="/my-cards"
+                className={cn(
+                  buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20"),
+                  "w-full justify-center sm:w-auto",
+                )}
+              >
                 {t("home.hero.secondaryCta")}
               </Link>
             </div>
-            <div className="mt-5 flex items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
+            <div className="mt-5 flex flex-wrap items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
               {LANGUAGES.map((language) => (
                 <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-0 bg-transparent" />
               ))}

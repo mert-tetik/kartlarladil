@@ -244,7 +244,12 @@ function CheckoutButton({
 
   useEffect(() => {
     if (state.status === "success" && state.checkoutUrl) {
-      window.location.href = state.checkoutUrl;
+      if (typeof window !== "undefined" && window.LemonSqueezy?.Url?.Open) {
+        window.createLemonSqueezy?.();
+        window.LemonSqueezy.Url.Open(state.checkoutUrl);
+      } else {
+        window.location.href = state.checkoutUrl;
+      }
     }
   }, [state]);
 
