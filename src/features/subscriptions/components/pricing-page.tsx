@@ -90,7 +90,7 @@ function BillingCycleToggle({
         className={cn(
           "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
           cycle === "monthly"
-            ? "bg-white text-slate-950 shadow-sm"
+            ? "bg-[#f76808] text-white shadow-sm"
             : "text-slate-600 hover:text-slate-950",
         )}
         aria-pressed={cycle === "monthly"}
@@ -103,7 +103,7 @@ function BillingCycleToggle({
         className={cn(
           "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
           cycle === "yearly"
-            ? "bg-white text-slate-950 shadow-sm"
+            ? "bg-[#f76808] text-white shadow-sm"
             : "text-slate-600 hover:text-slate-950",
         )}
         aria-pressed={cycle === "yearly"}
@@ -140,7 +140,7 @@ function PricingCard({
       className={cn(
         "relative flex flex-col rounded-xl border p-6",
         popular
-          ? "border-slate-950 bg-slate-950 text-white"
+          ? "border-[#f76808] bg-[#f76808] text-white"
           : "border-slate-200 bg-white text-slate-950",
       )}
     >
@@ -257,7 +257,15 @@ function CheckoutButton({
     <form action={formAction}>
       <input type="hidden" name="plan" value={plan} />
       <input type="hidden" name="cycle" value={cycle} />
-      <Button type="submit" variant={popular ? "secondary" : "primary"} className="w-full" disabled={pending}>
+      <Button
+        type="submit"
+        variant={popular ? "secondary" : "primary"}
+        className={cn(
+          "w-full border-0",
+          plan === "basic" && "bg-[#f76808] text-slate-950 hover:bg-[#e05d00]",
+        )}
+        disabled={pending}
+      >
         {pending ? t("common.loading") : t("pricing.ctaUpgrade")}
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
