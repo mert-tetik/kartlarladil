@@ -8,13 +8,13 @@ import { getSearchableCardText } from "@/features/cards/card-localization";
 import { FilterControls } from "@/features/cards/components/filter-controls";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
-  DEFAULT_CARD_DRAW_PREFERENCES,
   CARD_DRAW_PREFERENCES_KEY,
   getCardDrawPreferenceFallback,
   normalizeCardDrawPreferences,
   subscribeCardDrawPreferences,
   writeCardDrawPreferences,
   type CardDrawLanguageFilter,
+  type CardDrawPreferences,
   type CardDrawTierFilter,
 } from "@/features/cards/card-draw-preferences";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
@@ -337,69 +337,69 @@ export function CardDrawWorkbench() {
   }
 
   return (
-    <div className="space-y-6">
-      {cloudError ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-          {cloudError}
-        </div>
-      ) : null}
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setIsDropdownOpen(true);
-              }}
-              onFocus={() => {
-                if (suggestions.length > 0) setIsDropdownOpen(true);
-              }}
-              placeholder={t("cards.searchPlaceholder")}
-              className="relative h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
-            />
-            {isDropdownOpen ? (
-              <div
-                ref={dropdownRef}
-                className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+    <div
+      className="max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-16 max-lg:flex max-lg:flex-col max-lg:bg-slate-50"
+      data-card-draw-workbench
+    >
+      {/* Controls - sticky bottom on mobile, normal card on desktop */}
+      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-200 max-lg:bg-white max-lg:p-3 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white lg:p-4">
+        <div className="mx-auto max-w-7xl space-y-3">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setIsDropdownOpen(true);
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setIsDropdownOpen(true);
+                }}
+                placeholder={t("cards.searchPlaceholder")}
+                className="relative h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
+              />
+              {isDropdownOpen ? (
+                <div
+                  ref={dropdownRef}
+                  className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
+                >
+                  {suggestions.length > 0 ? (
+                    suggestions.map((card) => {
+                      const style = TIER_STYLES[card.tier];
+                      return (
+                        <button
+                          key={card.id}
+                          type="button"
+                          onClick={() => selectSuggestion(card)}
+                          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                        >
+                          <span className="font-semibold text-slate-950">{card.term}</span>
+                          <span className={`rounded px-2 py-0.5 text-xs font-semibold text-white ${style.accent}`}>
+                            {card.tier}
+                          </span>
+                        </button>
+                      );
+                    })
+                  ) : query.trim() ? (
+                    <div className="px-3 py-2.5 text-sm text-slate-500">{t("cards.noSearchResults")}</div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:contents">
+              <Button
+                size="lg"
+                onClick={() => drawCards(5)}
+                className="border-0 bg-[#f76808] text-white hover:bg-[#e05d00] focus-visible:outline-[#f76808]"
               >
-                {suggestions.length > 0 ? (
-                  suggestions.map((card) => {
-                    const style = TIER_STYLES[card.tier];
-                    return (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => selectSuggestion(card)}
-                        className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
-                      >
-                        <span className="font-semibold text-slate-950">{card.term}</span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold text-white ${style.accent}`}>
-                          {card.tier}
-                        </span>
-                      </button>
-                    );
-                  })
-                ) : query.trim() ? (
-                  <div className="px-3 py-2.5 text-sm text-slate-500">{t("cards.noSearchResults")}</div>
-                ) : null}
-              </div>
-            ) : null}
+                {t("cards.drawFive")}
+              </Button>
+              <Button size="lg" onClick={() => drawCards(10)}>
+                {t("cards.drawTen")}
+              </Button>
+            </div>
           </div>
-          <Button
-            size="lg"
-            onClick={() => drawCards(5)}
-            className="border-0 bg-[#f76808] text-white hover:bg-[#e05d00] focus-visible:outline-[#f76808]"
-          >
-            {t("cards.drawFive")}
-          </Button>
-          <Button size="lg" onClick={() => drawCards(10)}>
-            {t("cards.drawTen")}
-          </Button>
-        </div>
-        <div className="mt-4">
           <FilterControls
             language={language}
             tier={tier}
@@ -407,77 +407,87 @@ export function CardDrawWorkbench() {
             onTierChange={(nextTier) => updatePreferences({ tier: nextTier })}
           />
         </div>
-
       </div>
 
-      {showCardGrid ? (
-        <div
-          ref={gridRef}
-          className="card-draw-card-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
-        >
-          {cards.map((card, index) => (
-            <div
-              key={`${dealCycle}-${card.id}`}
-              ref={(element) => setCardRef(card.id, element)}
-              data-card-deal-index={index}
-              className="card-draw-card-deal"
-              style={{ animationDelay: `${index * 55}ms` }}
-            >
-              <VocabularyCardView
-                card={card}
-                owned={ownedIds.has(card.id)}
-                initialFace="back"
-                flippable
-                onAdd={() => addDrawnCard(card.id)}
-                onSkip={() => skipCard(card.id)}
-              />
+      {/* Cards area - scrollable on mobile */}
+      <div className="max-lg:order-1 max-lg:flex-1 max-lg:overflow-y-auto">
+        <div className="mx-auto max-w-7xl max-lg:px-4 max-lg:py-4 lg:px-0">
+          {cloudError ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+              {cloudError}
             </div>
-          ))}
-          {exitingCards.map((item) => (
-            <div
-              key={item.key}
-              data-card-draw-exit-kind={item.kind}
-              className="card-draw-card-exit"
-              style={{
-                left: `${item.rect.left}px`,
-                top: `${item.rect.top}px`,
-                width: `${item.rect.width}px`,
-                height: `${item.rect.height}px`,
-              }}
-            >
-              <VocabularyCardView
-                card={item.card}
-                owned={item.kind === "add"}
-                initialFace="front"
-                onAdd={() => undefined}
-                onSkip={() => undefined}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={PackagePlus}
-          title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
-          description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
-        />
-      )}
+          ) : null}
 
-      <UpgradeDialog
-        open={limitError !== null}
-        errorCode={limitError}
-        onOpenChange={(open) => {
-          if (!open) {
-            setLimitError(null);
-          }
-        }}
-      />
+          {showCardGrid ? (
+            <div
+              ref={gridRef}
+              className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
+              style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
+            >
+              {cards.map((card, index) => (
+                <div
+                  key={`${dealCycle}-${card.id}`}
+                  ref={(element) => setCardRef(card.id, element)}
+                  data-card-deal-index={index}
+                  className="card-draw-card-deal"
+                  style={{ animationDelay: `${index * 55}ms` }}
+                >
+                  <VocabularyCardView
+                    card={card}
+                    owned={ownedIds.has(card.id)}
+                    initialFace="back"
+                    flippable
+                    onAdd={() => addDrawnCard(card.id)}
+                    onSkip={() => skipCard(card.id)}
+                  />
+                </div>
+              ))}
+              {exitingCards.map((item) => (
+                <div
+                  key={item.key}
+                  data-card-draw-exit-kind={item.kind}
+                  className="card-draw-card-exit"
+                  style={{
+                    left: `${item.rect.left}px`,
+                    top: `${item.rect.top}px`,
+                    width: `${item.rect.width}px`,
+                    height: `${item.rect.height}px`,
+                  }}
+                >
+                  <VocabularyCardView
+                    card={item.card}
+                    owned={item.kind === "add"}
+                    initialFace="front"
+                    onAdd={() => undefined}
+                    onSkip={() => undefined}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={PackagePlus}
+              title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
+              description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
+            />
+          )}
+
+          <UpgradeDialog
+            open={limitError !== null}
+            errorCode={limitError}
+            onOpenChange={(open) => {
+              if (!open) {
+                setLimitError(null);
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-function parseStoredPreferences(snapshot: string, fallback: typeof DEFAULT_CARD_DRAW_PREFERENCES) {
+function parseStoredPreferences(snapshot: string, fallback: CardDrawPreferences) {
   if (!snapshot) {
     return fallback;
   }

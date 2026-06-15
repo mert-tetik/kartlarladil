@@ -3,17 +3,18 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { LANGUAGES } from "@/data/languages";
-import { TIERS } from "@/data/tiers";
+import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { LanguageFlag } from "@/components/language-flag";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier } from "@/types/domain";
 
-type LanguageOption = {
-  value: LanguageCode | "all";
+type SelectOption = {
+  value: string;
   label: string;
   icon?: ReactNode;
+  className?: string;
 };
 
 export function FilterControls({
@@ -29,7 +30,7 @@ export function FilterControls({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const languageOptions = useMemo<LanguageOption[]>(
+  const languageOptions = useMemo<SelectOption[]>(
     () => [
       { value: "all", label: t("common.all") },
       ...LANGUAGES.map((item) => ({
@@ -41,38 +42,49 @@ export function FilterControls({
     [locale, t],
   );
 
+  const tierOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "all", label: t("common.all") },
+      ...TIERS.map((item) => ({
+        value: item,
+        label: item,
+        className: TIER_STYLES[item].text,
+      })),
+    ],
+    [t],
+  );
+
   return (
-    <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-2">
+    <div className="grid gap-3 md:grid-cols-2">
       <div>
-        <LanguageDropdown
+        <SelectDropdown
           label={t("cards.language")}
           options={languageOptions}
           value={language}
           onChange={(value) => onLanguageChange(value as LanguageCode | "all")}
         />
       </div>
-      <SegmentedControl
-        label={t("cards.tier")}
-        value={tier}
-        options={[
-          { value: "all", label: t("common.all") },
-          ...TIERS.map((item) => ({ value: item, label: item })),
-        ]}
-        onChange={(value) => onTierChange(value as Tier | "all")}
-      />
+      <div>
+        <SelectDropdown
+          label={t("cards.tier")}
+          options={tierOptions}
+          value={tier}
+          onChange={(value) => onTierChange(value as Tier | "all")}
+        />
+      </div>
     </div>
   );
 }
 
-function LanguageDropdown({
+function SelectDropdown({
   label,
   options,
   value,
   onChange,
 }: {
   label: string;
-  options: LanguageOption[];
-  value: LanguageCode | "all";
+  options: SelectOption[];
+  value: string;
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -122,7 +134,7 @@ function LanguageDropdown({
         >
           <span id={valueId} className="flex min-w-0 items-center gap-2">
             {selectedOption.icon}
-            <span className="truncate">{selectedOption.label}</span>
+            <span className={cn("truncate", selectedOption.className)}>{selectedOption.label}</span>
           </span>
           <ChevronDown
             aria-hidden="true"
@@ -157,7 +169,7 @@ function LanguageDropdown({
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     {option.icon}
-                    <span className="truncate">{option.label}</span>
+                    <span className={cn("truncate", option.className)}>{option.label}</span>
                   </span>
                   {selected ? <Check aria-hidden="true" className="size-4 text-slate-950" /> : null}
                 </button>
@@ -165,45 +177,6 @@ function LanguageDropdown({
             })}
           </div>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-function SegmentedControl({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string; icon?: ReactNode }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-2 text-sm font-semibold text-slate-700">{label}</p>
-      <div className="flex gap-1 overflow-x-auto rounded-md bg-slate-100 p-1">
-        {options.map((option) => {
-          const selected = option.value === value;
-
-          return (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onChange(option.value)}
-              className={cn(
-                "inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-slate-600 transition-colors",
-                selected && "bg-white text-slate-950 shadow-sm",
-              )}
-            >
-              {option.icon}
-              {option.label}
-            </button>
-          );
-        })}
       </div>
     </div>
   );
