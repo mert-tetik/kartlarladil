@@ -23,7 +23,7 @@ export function CollectionPreviewCard({ card, index }: { card: VocabularyCard; i
           timer = setTimeout(() => {
             setFace("front");
             setRevealed(true);
-          }, 1000);
+          }, 2000);
           observer.disconnect();
         }
       },
