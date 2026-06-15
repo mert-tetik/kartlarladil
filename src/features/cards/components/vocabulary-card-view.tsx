@@ -136,13 +136,13 @@ export function VocabularyCardView({
           inert={!isFaceUp}
           className={cn(
             "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
-            compact ? "p-3 xl:p-4" : "p-4",
+            compact ? "p-2 sm:p-3 xl:p-4" : "p-4",
             style.border,
             style.surface,
           )}
         >
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-3 top-12 xl:inset-x-4 xl:top-14" : "inset-x-4 top-14")} />
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-3 bottom-14 xl:inset-x-4 xl:bottom-20" : "inset-x-4 bottom-20")} />
+          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 top-10 sm:inset-x-3 sm:top-12 xl:inset-x-4 xl:top-14" : "inset-x-4 top-14")} />
+          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 bottom-12 sm:inset-x-3 sm:bottom-14 xl:inset-x-4 xl:bottom-20" : "inset-x-4 bottom-20")} />
 
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -195,7 +195,7 @@ export function VocabularyCardView({
             <h3
               className={cn(
                 "mt-3 font-display font-semibold leading-none text-slate-950",
-                compact ? "text-2xl xl:text-3xl" : "text-4xl",
+                compact ? "text-xl sm:text-2xl xl:text-3xl" : "text-4xl",
               )}
             >
               {card.term}

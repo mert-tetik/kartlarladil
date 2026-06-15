@@ -67,7 +67,8 @@ export default async function Home() {
           <CardBackdrop />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_46%,rgba(15,23,42,0.72)_0%,rgba(15,23,42,0.58)_30%,rgba(15,23,42,0.26)_62%,rgba(2,6,23,0.22)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)]" />
+        <div className="absolute inset-0 bg-slate-950/55 sm:hidden" />
+        <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)] sm:block" />
 
         <div className="relative mx-auto flex min-h-[76vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
@@ -144,8 +145,8 @@ export default async function Home() {
             </div>
           </div>
 
-          <div data-collection-preview-deck className="min-w-0 self-center overflow-x-auto lg:overflow-visible">
-            <div className="grid w-full min-w-[360px] grid-cols-2 items-center gap-3 sm:min-w-[640px] sm:grid-cols-3 sm:gap-4 lg:min-w-[650px] lg:gap-5 xl:min-w-[760px]">
+          <div data-collection-preview-deck className="min-w-0 self-center">
+            <div className="grid w-full grid-cols-2 items-center gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-5">
               {previewCards.map((card, index) => (
                 <div key={card.id} data-collection-preview-card className={index === 2 ? "hidden sm:block" : undefined}>
                   <VocabularyCardView card={card} compact />
