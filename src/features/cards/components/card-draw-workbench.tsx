@@ -200,7 +200,7 @@ export function CardDrawWorkbench() {
     );
   }
 
-  function drawCards(count: 5 | 10) {
+  function drawCards(count: number) {
     dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
   }
 
