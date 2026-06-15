@@ -405,6 +405,13 @@ const tr = {
   "register.consentAnd": " ve ",
   "register.consentPrivacy": "Gizlilik Politikası",
   "register.consentSuffix": "'nı okudum ve kabul ediyorum.",
+
+  // Google consent
+  "auth.google.consentPrefix": "Google ile devam ederek ",
+  "auth.google.consentTerms": "Kullanım Koşulları",
+  "auth.google.consentAnd": " ve ",
+  "auth.google.consentPrivacy": "Gizlilik Politikası",
+  "auth.google.consentSuffix": " kabul etmiş olursun.",
 } as const;
 
 type Dictionary = { [Key in keyof typeof tr]: string };
@@ -787,7 +794,14 @@ const en: Dictionary = {
   "register.consentTerms": "Terms of Service",
   "register.consentAnd": " and ",
   "register.consentPrivacy": "Privacy Policy",
-  "register.consentSuffix": "."
+  "register.consentSuffix": ".",
+
+  // Google consent
+  "auth.google.consentPrefix": "By continuing with Google, you agree to the ",
+  "auth.google.consentTerms": "Terms of Service",
+  "auth.google.consentAnd": " and ",
+  "auth.google.consentPrivacy": "Privacy Policy",
+  "auth.google.consentSuffix": "."
 };
 
 const localeOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partial<Dictionary>> = {

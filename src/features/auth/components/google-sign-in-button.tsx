@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogleAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
@@ -28,6 +29,17 @@ export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps)
         <GoogleLogo />
         {isPending ? t("auth.google.pending") : label}
       </Button>
+      <p className="mt-3 text-center text-xs text-slate-500">
+        {t("auth.google.consentPrefix")}
+        <Link href="/terms" className="underline hover:text-slate-700">
+          {t("auth.google.consentTerms")}
+        </Link>
+        {t("auth.google.consentAnd")}
+        <Link href="/privacy" className="underline hover:text-slate-700">
+          {t("auth.google.consentPrivacy")}
+        </Link>
+        {t("auth.google.consentSuffix")}
+      </p>
     </form>
   );
 }

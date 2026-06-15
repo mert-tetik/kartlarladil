@@ -86,8 +86,13 @@ export function CardDrawWorkbench() {
   const prevPreferencesRef = useRef(preferences);
 
   useEffect(() => {
-    const preferencesChanged = prevPreferencesRef.current !== preferences;
-    prevPreferencesRef.current = preferences;
+    const preferencesChanged =
+      prevPreferencesRef.current.language !== preferences.language ||
+      prevPreferencesRef.current.tier !== preferences.tier;
+
+    if (preferencesChanged) {
+      prevPreferencesRef.current = preferences;
+    }
 
     const ownedIdsChanged = !setsAreEqual(prevOwnedIdsRef.current, ownedIds);
     if (ownedIdsChanged) {
