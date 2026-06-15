@@ -85,7 +85,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       </header>
 
       <nav aria-label={t("nav.mobileMenu")} className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
