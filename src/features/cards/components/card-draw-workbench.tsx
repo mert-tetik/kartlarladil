@@ -388,7 +388,11 @@ export function CardDrawWorkbench() {
               </div>
             ) : null}
           </div>
-          <Button variant="secondary" size="lg" onClick={() => drawCards(5)}>
+          <Button
+            size="lg"
+            onClick={() => drawCards(5)}
+            className="border-0 bg-[#f76808] text-white hover:bg-[#e05d00] focus-visible:outline-[#f76808]"
+          >
             {t("cards.drawFive")}
           </Button>
           <Button size="lg" onClick={() => drawCards(10)}>
@@ -403,17 +407,7 @@ export function CardDrawWorkbench() {
             onTierChange={(nextTier) => updatePreferences({ tier: nextTier })}
           />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setQuery("");
-              writeCardDrawPreferences(window.localStorage, DEFAULT_CARD_DRAW_PREFERENCES);
-            }}
-          >
-            {t("common.clearFilters")}
-          </Button>
-        </div>
+
       </div>
 
       {showCardGrid ? (

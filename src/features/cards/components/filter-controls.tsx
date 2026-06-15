@@ -35,7 +35,7 @@ export function FilterControls({
       ...LANGUAGES.map((item) => ({
         value: item.code,
         label: getLanguageDisplayName(item.code, locale),
-        icon: <LanguageFlag code={item.code} />,
+        icon: <LanguageFlag code={item.code} className="h-5 w-7" />,
       })),
     ],
     [locale, t],
