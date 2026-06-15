@@ -56,9 +56,8 @@ export function CardDrawWorkbench() {
     [profileFallback, storedPreferenceSnapshot],
   );
   const [query, setQuery] = useState("");
-  const [cards, setCards] = useState<VocabularyCard[]>(() =>
-    localCardRepository.draw(5, profileFallback),
-  );
+  const [cards, setCards] = useState<VocabularyCard[]>([]);
+  const [hasDrawn, setHasDrawn] = useState(false);
   const [dealCycle, setDealCycle] = useState(0);
   const [exitingCards, setExitingCards] = useState<ExitingCardDrawCard[]>([]);
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
@@ -86,45 +85,28 @@ export function CardDrawWorkbench() {
   const prevPreferencesRef = useRef(preferences);
 
   useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
     const preferencesChanged =
       prevPreferencesRef.current.language !== preferences.language ||
       prevPreferencesRef.current.tier !== preferences.tier;
 
     if (preferencesChanged) {
       prevPreferencesRef.current = preferences;
+      prevOwnedIdsRef.current = new Set(ownedIds);
+      setCards([]);
+      setHasDrawn(false);
+      return;
     }
 
     const ownedIdsChanged = !setsAreEqual(prevOwnedIdsRef.current, ownedIds);
     if (ownedIdsChanged) {
       prevOwnedIdsRef.current = new Set(ownedIds);
+      setCards((current) => current.filter((card) => !ownedIds.has(card.id)));
     }
-
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
-
-    if (!preferencesChanged && !ownedIdsChanged) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      if (preferencesChanged) {
-        dealCards(localCardRepository.draw(5, preferences, [...ownedIds]));
-        return;
-      }
-
-      setCards((current) => {
-        const kept = current.filter((card) => !ownedIds.has(card.id));
-        const needed = Math.max(0, current.length - kept.length);
-        if (needed === 0) return kept;
-        const existingIds = new Set([...kept.map((card) => card.id), ...ownedIds]);
-        const fresh = localCardRepository.draw(needed, preferences, [...existingIds]);
-        return [...kept, ...fresh];
-      });
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
   }, [ownedIds, preferences]);
 
   useEffect(() => {
@@ -180,6 +162,7 @@ export function CardDrawWorkbench() {
     setExitingCards([]);
     setExitGridHeight(null);
     setCards(nextCards);
+    setHasDrawn(true);
     setDealCycle((cycle) => cycle + 1);
   }
 
@@ -358,9 +341,6 @@ export function CardDrawWorkbench() {
             onClick={() => {
               setQuery("");
               writeCardDrawPreferences(window.localStorage, DEFAULT_CARD_DRAW_PREFERENCES);
-              if (language === DEFAULT_CARD_DRAW_PREFERENCES.language && tier === DEFAULT_CARD_DRAW_PREFERENCES.tier) {
-                dealCards(localCardRepository.draw(5, DEFAULT_CARD_DRAW_PREFERENCES, [...ownedIds]));
-              }
             }}
           >
             {t("common.clearFilters")}
@@ -417,8 +397,8 @@ export function CardDrawWorkbench() {
       ) : (
         <EmptyState
           icon={PackagePlus}
-          title={t("cards.emptyDrawTitle")}
-          description={t("cards.emptyDrawDescription")}
+          title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
+          description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
         />
       )}
 

@@ -239,6 +239,8 @@ const tr = {
   "cards.collection": "Koleksiyon",
   "cards.emptyDrawTitle": "Bu filtrede yeni kart kalmadı",
   "cards.emptyDrawDescription": "Başka bir dil veya tier seçerek yeni kartlar çekebilirsin.",
+  "cards.drawPromptTitle": "Kart çekmeye hazırsın",
+  "cards.drawPromptDescription": "Draw 5 veya Draw 10 butonuna basarak yeni kartlar çek.",
   "cards.poolPreparingTitle": "Hazne hazırlanıyor",
   "cards.poolPreparingDescription": "Kart koleksiyonun tarayıcıda açılıyor.",
 
@@ -634,6 +636,8 @@ const en: Dictionary = {
   "cards.collection": "Collection",
   "cards.emptyDrawTitle": "No new cards for this filter",
   "cards.emptyDrawDescription": "Choose another language or tier to draw more cards.",
+  "cards.drawPromptTitle": "Ready to draw cards",
+  "cards.drawPromptDescription": "Click Draw 5 or Draw 10 to pull new cards.",
   "cards.poolPreparingTitle": "Pool is getting ready",
   "cards.poolPreparingDescription": "Your card collection is opening in the browser.",
   "inventory.loadingTitle": "Inventory is getting ready",
