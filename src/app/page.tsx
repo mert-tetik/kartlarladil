@@ -64,7 +64,7 @@ export default async function Home() {
 
   return (
     <>
-      <section className="relative isolate min-h-[76vh] overflow-hidden bg-slate-950 text-white">
+      <section className="relative isolate min-h-[88vh] overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />
         </div>
@@ -72,7 +72,7 @@ export default async function Home() {
         <div className="absolute inset-0 bg-slate-950/55 sm:hidden" />
         <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)] sm:block" />
 
-        <div className="relative mx-auto flex min-h-[76vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
