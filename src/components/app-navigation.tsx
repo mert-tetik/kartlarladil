@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
-  Bot,
   Boxes,
   CreditCard,
-  Sparkles,
+  Home,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -32,11 +32,11 @@ type NavItem = {
 };
 
 const navItems: readonly NavItem[] = [
-  { href: "/", labelKey: "nav.home", icon: Sparkles },
+  { href: "/", labelKey: "nav.home", icon: Home },
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
   { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
-  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: Bot },
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
 
@@ -96,7 +96,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 href={item.href}
                 className={cn(
                   "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-slate-500 transition-colors hover:text-slate-950",
-                  active && "text-slate-950",
+                  active && "bg-[#f76808] text-white hover:text-white",
                 )}
               >
                 <Icon className="size-5" aria-hidden="true" />

@@ -9,7 +9,7 @@ const tr = {
   "nav.learn": "Öğren",
   "nav.learned": "Öğrenilenler",
   "nav.aiPractice": "AI Practice",
-  "nav.aiPracticeShort": "AI",
+  "nav.aiPracticeShort": "Practice",
   "nav.pricing": "Fiyatlandırma",
   "nav.login": "Giriş yap",
   "nav.signup": "Kayıt ol",
@@ -454,7 +454,7 @@ const en: Dictionary = {
   "nav.learn": "Learn",
   "nav.learned": "Learned",
   "nav.aiPractice": "AI Practice",
-  "nav.aiPracticeShort": "AI",
+  "nav.aiPracticeShort": "Practice",
   "nav.login": "Log in",
   "nav.signup": "Sign up",
   "nav.topMenu": "Top menu",
@@ -1507,7 +1507,7 @@ function aiPracticeCore(labels: {
 }): Partial<Dictionary> {
   return {
     "nav.aiPractice": labels.title,
-    "nav.aiPracticeShort": "AI",
+    "nav.aiPracticeShort": "Practice",
     "page.aiPractice.title": labels.title,
     "page.aiPractice.description": labels.description,
     "page.aiPractice.charactersTitle": labels.chooseCharacter,
