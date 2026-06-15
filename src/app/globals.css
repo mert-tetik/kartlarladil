@@ -315,3 +315,13 @@ button:disabled,
     display: none;
   }
 }
+
+@media (max-width: 1023px) {
+  body:has([data-my-cards-page]) footer {
+    display: none;
+  }
+
+  body:has([data-my-cards-page]) {
+    overflow: hidden;
+  }
+}

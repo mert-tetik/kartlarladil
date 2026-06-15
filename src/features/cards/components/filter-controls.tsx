@@ -76,7 +76,7 @@ export function FilterControls({
   );
 }
 
-function SelectDropdown({
+export function SelectDropdown({
   label,
   options,
   value,
