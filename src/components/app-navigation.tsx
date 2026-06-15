@@ -1,18 +1,18 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Bot,
   Boxes,
-  Compass,
   CreditCard,
   GraduationCap,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import { CardsIcon } from "@/components/icons/cards-icon";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -29,12 +29,12 @@ type NavItem = {
   href: string;
   labelKey: TranslationKey;
   mobileLabelKey?: TranslationKey;
-  icon: LucideIcon;
+  icon: LucideIcon | ComponentType<SVGProps<SVGSVGElement>>;
 };
 
 const navItems: readonly NavItem[] = [
   { href: "/", labelKey: "nav.home", icon: Sparkles },
-  { href: "/card-draw", labelKey: "nav.cardDraw", icon: Compass },
+  { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
   { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
   { href: "/learned", labelKey: "nav.learned", icon: GraduationCap },
