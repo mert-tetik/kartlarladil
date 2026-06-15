@@ -41,8 +41,10 @@ export function AccountSettingsForm({ user }: { user: AuthShellUser }) {
 
         <PreferenceFields
           defaultLanguage={user.profile.preferredLanguageCode ?? "en"}
+          defaultUiLocale={user.profile.preferredUiLocale ?? "en"}
           defaultTier={user.profile.preferredTier ?? "A1"}
           languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
+          uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
           tierError={state.fieldErrors?.preferredTier?.[0]}
         />
 

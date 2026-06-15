@@ -170,18 +170,18 @@ function SouthKoreaFlag() {
     <>
       <rect width="64" height="48" fill="#ffffff" />
       <g transform="translate(32 24)">
-        <path d="M-10 0a10 10 0 0 1 20 0 5 5 0 0 1-10 0 5 5 0 0 0-10 0z" fill="#cd2e3a" />
-        <path d="M-10 0a10 10 0 0 0 20 0 5 5 0 0 0-10 0 5 5 0 0 1-10 0z" fill="#0047a0" />
+        <path d="M-12 0a12 12 0 0 1 24 0 6 6 0 0 1-12 0 6 6 0 0 0-12 0z" fill="#cd2e3a" />
+        <path d="M-12 0a12 12 0 0 0 24 0 6 6 0 0 0-12 0 6 6 0 0 1-12 0z" fill="#0047a0" />
       </g>
-      <Trigram x={17} y={11} rotate={-32} pattern="solid-solid-solid" />
-      <Trigram x={43} y={11} rotate={32} pattern="broken-solid-broken" />
-      <Trigram x={17} y={34} rotate={32} pattern="solid-broken-solid" />
-      <Trigram x={43} y={34} rotate={-32} pattern="broken-broken-broken" />
+      <KoreanTrigram x={13} y={12} rotate={-45} pattern="solid-solid-solid" />
+      <KoreanTrigram x={51} y={12} rotate={45} pattern="broken-solid-broken" />
+      <KoreanTrigram x={13} y={36} rotate={45} pattern="solid-broken-solid" />
+      <KoreanTrigram x={51} y={36} rotate={-45} pattern="broken-broken-broken" />
     </>
   );
 }
 
-function Trigram({
+function KoreanTrigram({
   x,
   y,
   rotate,
@@ -193,19 +193,24 @@ function Trigram({
   pattern: "solid-solid-solid" | "broken-solid-broken" | "solid-broken-solid" | "broken-broken-broken";
 }) {
   const rows = pattern.split("-") as Array<"solid" | "broken">;
+  const rowHeight = 2.2;
+  const rowGap = 0.9;
+  const step = rowHeight + rowGap;
 
   return (
-    <g transform={`translate(${x - 5} ${y - 4}) rotate(${rotate} 5 4)`} fill="#111827">
-      {rows.map((row, index) =>
-        row === "solid" ? (
-          <rect key={index} x="0" y={index * 3} width="10" height="1.5" />
+    <g transform={`translate(${x} ${y}) rotate(${rotate})`} fill="#111827">
+      {rows.map((row, index) => {
+        const yOffset = (index - 1) * step;
+
+        return row === "solid" ? (
+          <rect key={index} x="-4" y={yOffset} width="8" height={rowHeight} rx="0.3" />
         ) : (
           <g key={index}>
-            <rect x="0" y={index * 3} width="4" height="1.5" />
-            <rect x="6" y={index * 3} width="4" height="1.5" />
+            <rect x="-4" y={yOffset} width="3.4" height={rowHeight} rx="0.3" />
+            <rect x="0.6" y={yOffset} width="3.4" height={rowHeight} rx="0.3" />
           </g>
-        ),
-      )}
+        );
+      })}
     </g>
   );
 }

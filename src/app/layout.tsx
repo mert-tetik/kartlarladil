@@ -24,8 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "FoxiesDeck",
     description: t("metadata.description"),
     icons: {
-      icon: "/logo.png",
-      apple: "/logo.png",
+      icon: "/icon.png",
+      apple: "/apple-icon.png",
     },
   };
 }

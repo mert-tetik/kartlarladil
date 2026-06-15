@@ -75,6 +75,15 @@ function getMetadataString(user: User, key: string) {
   return typeof value === "string" ? value : null;
 }
 
+function getDisplayNameFromUser(user: User): string | null {
+  return (
+    getMetadataString(user, "display_name") ||
+    getMetadataString(user, "full_name") ||
+    getMetadataString(user, "name") ||
+    null
+  );
+}
+
 export async function ensureUserProfile(
   supabase: SupabaseClient,
   user: User,
@@ -102,7 +111,7 @@ export async function ensureUserProfile(
     .from("user_profiles")
     .insert({
       user_id: user.id,
-      display_name: preferences?.displayName?.trim() || getMetadataString(user, "display_name") || null,
+      display_name: preferences?.displayName?.trim() || getDisplayNameFromUser(user) || null,
       preferred_language_code:
         preferences?.preferredLanguageCode ??
         (LANGUAGE_CODE_SET.has(metadataLanguage as LanguageCode) ? (metadataLanguage as LanguageCode) : "en"),

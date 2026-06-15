@@ -65,9 +65,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/card-draw" className={buttonClassName("secondary", "sm", "hidden min-[390px]:inline-flex")}>
-              {t("nav.cardDraw")}
-            </Link>
             {user ? (
               <>
                 <RankProgressPopover stats={stats} />

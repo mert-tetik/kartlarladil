@@ -57,11 +57,19 @@ export async function createCheckoutAction(
 ): Promise<CheckoutActionResult> {
   try {
     const plan = formData.get("plan") as SubscriptionPlan;
+    const cycle = formData.get("cycle") as "monthly" | "yearly";
 
     if (plan !== "basic" && plan !== "pro") {
       return {
         status: "error",
         message: "Geçersiz plan seçildi.",
+      };
+    }
+
+    if (cycle !== "monthly" && cycle !== "yearly") {
+      return {
+        status: "error",
+        message: "Geçersiz fatura dönemi seçildi.",
       };
     }
 
@@ -79,7 +87,7 @@ export async function createCheckoutAction(
     }
 
     const origin = await getRequestOrigin();
-    const variantId = getVariantIdForPlan(plan);
+    const variantId = getVariantIdForPlan(plan, cycle);
     const checkoutUrl = await createCheckoutUrl({
       userId: user.id,
       email: user.email,

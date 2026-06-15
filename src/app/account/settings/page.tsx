@@ -5,6 +5,8 @@ import { buttonClassName } from "@/components/ui/button";
 import { AccountSettingsForm } from "@/features/auth/components/account-settings-form";
 import { DeleteAccountForm } from "@/features/auth/components/delete-account-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { SubscriptionSettings } from "@/features/subscriptions/components/subscription-settings";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
@@ -21,6 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AccountSettingsPage() {
   const t = createTranslator(await getServerLocale());
   const user = await requireAuthUser("/account/settings");
+  const entitlements = await getUserEntitlements(user.id);
+  const hasActiveSubscription = entitlements.effectivePlan !== "free";
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -36,7 +40,11 @@ export default async function AccountSettingsPage() {
 
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
-        <DeleteAccountForm email={user.email} />
+        <SubscriptionSettings
+          plan={entitlements.effectivePlan}
+          customerPortalUrl={entitlements.customerPortalUrl}
+        />
+        <DeleteAccountForm email={user.email} hasActiveSubscription={hasActiveSubscription} />
       </div>
     </section>
   );

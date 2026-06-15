@@ -57,7 +57,9 @@ describe("CardDrawWorkbench", () => {
     await revealTestCard(user);
     await user.click(screen.getByRole("button", { name: "Geç" }));
 
-    expect(container.querySelector('[data-card-draw-exit-kind="skip"]')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(container.querySelector('[data-card-draw-exit-kind="skip"]')).toBeInTheDocument();
+    });
   }, 20_000);
 
   it("moves an added card upward before writing it to the inventory", async () => {

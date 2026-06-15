@@ -102,11 +102,17 @@ function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpd
 }
 
 function resolvePlanFromVariant(variantId: string): SubscriptionPlan {
-  if (variantId === process.env.LEMONSQUEEZY_PRO_VARIANT_ID) {
+  if (
+    variantId === process.env.LEMONSQUEEZY_PRO_VARIANT_ID ||
+    variantId === process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID
+  ) {
     return "pro";
   }
 
-  if (variantId === process.env.LEMONSQUEEZY_BASIC_VARIANT_ID) {
+  if (
+    variantId === process.env.LEMONSQUEEZY_BASIC_VARIANT_ID ||
+    variantId === process.env.LEMONSQUEEZY_BASIC_YEARLY_VARIANT_ID
+  ) {
     return "basic";
   }
 

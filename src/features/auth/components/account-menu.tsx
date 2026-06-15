@@ -8,6 +8,7 @@ import { logoutAction } from "@/features/auth/actions";
 import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { formatNumber, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -34,19 +35,22 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-label={t("auth.accountMenu")}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className={cn(
-          "flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-950 text-sm font-bold text-white transition-colors hover:bg-slate-800",
-          open && "ring-2 ring-slate-300",
-        )}
-      >
-        {initial}
-      </button>
+      <div className="relative">
+        <button
+          type="button"
+          aria-label={t("auth.accountMenu")}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          className={cn(
+            "relative flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-950 text-sm font-bold text-white transition-colors hover:bg-slate-800",
+            open && "ring-2 ring-slate-300",
+          )}
+        >
+          {initial}
+          <PlanBadge className="absolute -bottom-2 left-1/2 z-10 -translate-x-1/2 border-2 border-white px-1.5 py-0 text-[10px] shadow-sm" />
+        </button>
+      </div>
 
       {open ? (
         <div
@@ -56,6 +60,9 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
           <div className="px-3 py-3">
             <p className="font-semibold text-slate-950">{getAccountLabel(user)}</p>
             <p className="mt-1 truncate text-slate-500">{user.email}</p>
+            <div className="mt-2">
+              <PlanBadge />
+            </div>
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center justify-between gap-3">

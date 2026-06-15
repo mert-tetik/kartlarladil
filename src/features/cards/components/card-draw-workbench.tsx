@@ -68,7 +68,7 @@ export function CardDrawWorkbench() {
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
   const exitTimerRefs = useRef<number[]>([]);
   const exitSequenceRef = useRef(0);
-  const skipNextOwnedRefreshRef = useRef(false);
+
   const inventoryCards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudError = useInventoryStore((state) => state.cloudError);
@@ -81,15 +81,42 @@ export function CardDrawWorkbench() {
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
 
+  const isFirstRenderRef = useRef(true);
+  const prevOwnedIdsRef = useRef<Set<string>>(new Set());
+  const prevPreferencesRef = useRef(preferences);
+
   useEffect(() => {
-    if (skipNextOwnedRefreshRef.current) {
-      skipNextOwnedRefreshRef.current = false;
+    const preferencesChanged = prevPreferencesRef.current !== preferences;
+    prevPreferencesRef.current = preferences;
+
+    const ownedIdsChanged = !setsAreEqual(prevOwnedIdsRef.current, ownedIds);
+    if (ownedIdsChanged) {
+      prevOwnedIdsRef.current = new Set(ownedIds);
+    }
+
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
+    if (!preferencesChanged && !ownedIdsChanged) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setCards(localCardRepository.draw(5, preferences, [...ownedIds]));
-      setDealCycle((cycle) => cycle + 1);
+      if (preferencesChanged) {
+        dealCards(localCardRepository.draw(5, preferences, [...ownedIds]));
+        return;
+      }
+
+      setCards((current) => {
+        const kept = current.filter((card) => !ownedIds.has(card.id));
+        const needed = Math.max(0, current.length - kept.length);
+        if (needed === 0) return kept;
+        const existingIds = new Set([...kept.map((card) => card.id), ...ownedIds]);
+        const fresh = localCardRepository.draw(needed, preferences, [...existingIds]);
+        return [...kept, ...fresh];
+      });
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -195,7 +222,6 @@ export function CardDrawWorkbench() {
         }
       }
 
-      skipNextOwnedRefreshRef.current = true;
       dismissCard(cardId, "add");
       void addCard(cardId);
     }, { nextPath: "/card-draw" });
@@ -422,4 +448,12 @@ function shouldReduceMotion() {
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+function setsAreEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const value of a) {
+    if (!b.has(value)) return false;
+  }
+  return true;
 }

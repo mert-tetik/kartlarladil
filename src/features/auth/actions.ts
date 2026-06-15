@@ -338,7 +338,7 @@ export async function completeOnboardingAction(
   const { locale, t } = await getActionText();
   const parsed = onboardingSchema.safeParse({
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
-    preferredUiLocale: locale,
+    preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
   });

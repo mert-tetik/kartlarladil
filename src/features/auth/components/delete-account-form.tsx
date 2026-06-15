@@ -9,7 +9,13 @@ import { FieldError, FormMessage, inputClassName } from "@/features/auth/compone
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
 
-export function DeleteAccountForm({ email }: { email: string }) {
+export function DeleteAccountForm({
+  email,
+  hasActiveSubscription,
+}: {
+  email: string;
+  hasActiveSubscription?: boolean;
+}) {
   const [confirmation, setConfirmation] = useState("");
   const [state, formAction] = useActionState(deleteAccountAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
@@ -29,6 +35,12 @@ export function DeleteAccountForm({ email }: { email: string }) {
       <div className="mt-6 space-y-5">
         <FormMessage state={state} />
 
+        {hasActiveSubscription ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+            {t("auth.delete.activeSubscription")}
+          </div>
+        ) : null}
+
         <label className="block">
           <span className="text-sm font-semibold text-rose-950">
             {t("auth.delete.confirmation", { confirmation: DELETE_ACCOUNT_CONFIRMATION })}
@@ -44,7 +56,11 @@ export function DeleteAccountForm({ email }: { email: string }) {
           <FieldError message={state.fieldErrors?.confirmation?.[0]} />
         </label>
 
-        <SubmitButton variant="danger" pendingLabel={t("auth.delete.pending")} disabled={!confirmationMatches}>
+        <SubmitButton
+          variant="danger"
+          pendingLabel={t("auth.delete.pending")}
+          disabled={!confirmationMatches || hasActiveSubscription}
+        >
           {t("auth.delete.submit")}
         </SubmitButton>
       </div>

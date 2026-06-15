@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -11,25 +11,29 @@ import { cn } from "@/lib/utils";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { SubscriptionPlan } from "@/types/domain";
 
+type BillingCycle = "monthly" | "yearly";
+
 interface PricingPageProps {
   user: AuthShellUser | null;
 }
 
 interface PricingPlan {
   plan: SubscriptionPlan;
-  price: number | null;
+  monthlyPrice: number | null;
+  yearlyPrice: number | null;
   popular?: boolean;
 }
+
+const PLANS: PricingPlan[] = [
+  { plan: "free", monthlyPrice: null, yearlyPrice: null },
+  { plan: "basic", monthlyPrice: 3, yearlyPrice: 30 },
+  { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true },
+];
 
 export function PricingPage({ user }: PricingPageProps) {
   const t = useT();
   const { entitlements } = useSubscription();
-
-  const plans: PricingPlan[] = [
-    { plan: "free", price: null },
-    { plan: "basic", price: 3 },
-    { plan: "pro", price: 9, popular: true },
-  ];
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -42,34 +46,94 @@ export function PricingPage({ user }: PricingPageProps) {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {plans.map((item) => (
+      <div className="mt-8 flex justify-center">
+        <BillingCycleToggle cycle={cycle} onChange={setCycle} />
+      </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-3">
+        {PLANS.map((item) => (
           <PricingCard
             key={item.plan}
             plan={item.plan}
-            price={item.price}
+            monthlyPrice={item.monthlyPrice}
+            yearlyPrice={item.yearlyPrice}
             popular={item.popular}
+            cycle={cycle}
             currentPlan={entitlements?.effectivePlan ?? null}
             user={user}
           />
         ))}
       </div>
+
+      <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-slate-500">
+        <p>{t("pricing.paymentProvider")}</p>
+        <p>{t("pricing.cancelAnytime")}</p>
+      </div>
+    </div>
+  );
+}
+
+function BillingCycleToggle({
+  cycle,
+  onChange,
+}: {
+  cycle: BillingCycle;
+  onChange: (cycle: BillingCycle) => void;
+}) {
+  const t = useT();
+
+  return (
+    <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 p-1">
+      <button
+        type="button"
+        onClick={() => onChange("monthly")}
+        className={cn(
+          "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+          cycle === "monthly"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-slate-600 hover:text-slate-950",
+        )}
+        aria-pressed={cycle === "monthly"}
+      >
+        {t("pricing.billingMonthly")}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("yearly")}
+        className={cn(
+          "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+          cycle === "yearly"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-slate-600 hover:text-slate-950",
+        )}
+        aria-pressed={cycle === "yearly"}
+      >
+        {t("pricing.billingYearly")}
+      </button>
     </div>
   );
 }
 
 function PricingCard({
   plan,
-  price,
+  monthlyPrice,
+  yearlyPrice,
   popular,
+  cycle,
   currentPlan,
   user,
 }: PricingPlan & {
+  cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   user: AuthShellUser | null;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
+  const price = cycle === "yearly" ? yearlyPrice : monthlyPrice;
+  const discountRate = useMemo(() => {
+    if (monthlyPrice == null || yearlyPrice == null) return null;
+    return Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
+  }, [monthlyPrice, yearlyPrice]);
 
   return (
     <div
@@ -93,24 +157,28 @@ function PricingCard({
         </span>
         {price !== null ? (
           <span className={cn("text-sm", popular ? "text-slate-300" : "text-slate-500")}>
-            {t("pricing.perMonth")}
+            {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
           </span>
         ) : null}
       </div>
 
+      {cycle === "yearly" && price !== null && discountRate != null ? (
+        <p className={cn("mt-1 text-xs font-medium", popular ? "text-emerald-400" : "text-emerald-600")}>
+          {t("pricing.yearlyDiscount", { rate: discountRate })}
+        </p>
+      ) : null}
+
+      {cycle === "yearly" && monthlyPrice != null && yearlyPrice != null ? (
+        <p className={cn("mt-1 text-xs", popular ? "text-slate-400" : "text-slate-500")}>
+          {t("pricing.monthlyEquivalent", { price: (yearlyPrice / 12).toFixed(2) })}
+        </p>
+      ) : null}
+
       <ul className="mt-6 flex flex-1 flex-col gap-3">
-        <Feature included={plan !== "free"}>
-          {t("pricing.featureCards")}
-        </Feature>
-        <Feature included={plan !== "free"}>
-          {t("pricing.featureLearned")}
-        </Feature>
-        <Feature included>
-          {t("pricing.featureAiDaily", { count: getAiDailyLimit(plan) })}
-        </Feature>
-        <Feature included>
-          {t("pricing.featureAiMonthly", { count: getAiMonthlyLimit(plan) })}
-        </Feature>
+        <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
+        <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
+        <Feature included>{t("pricing.featureAiDaily", { count: getAiDailyLimit(plan) })}</Feature>
+        <Feature included>{t("pricing.featureAiMonthly", { count: getAiMonthlyLimit(plan) })}</Feature>
       </ul>
 
       <div className="mt-8">
@@ -131,7 +199,7 @@ function PricingCard({
           </Button>
         ) : (
           <>
-            <CheckoutButton plan={plan} popular={popular} />
+            <CheckoutButton plan={plan} popular={popular} cycle={cycle} />
             <ConsentText />
           </>
         )}
@@ -162,9 +230,11 @@ function Feature({
 function CheckoutButton({
   plan,
   popular,
+  cycle,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   popular?: boolean;
+  cycle: BillingCycle;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCheckoutAction, {
@@ -181,30 +251,13 @@ function CheckoutButton({
   return (
     <form action={formAction}>
       <input type="hidden" name="plan" value={plan} />
-      <Button
-        type="submit"
-        variant={popular ? "secondary" : "primary"}
-        className="w-full"
-        disabled={pending}
-      >
+      <input type="hidden" name="cycle" value={cycle} />
+      <Button type="submit" variant={popular ? "secondary" : "primary"} className="w-full" disabled={pending}>
         {pending ? t("common.loading") : t("pricing.ctaUpgrade")}
       </Button>
-      {state.status === "error" ? (
-        <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p>
-      ) : null}
+      {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>
   );
-}
-
-function getAiDailyLimit(plan: SubscriptionPlan): number {
-  switch (plan) {
-    case "free":
-      return 10;
-    case "basic":
-      return 30;
-    case "pro":
-      return 150;
-  }
 }
 
 function ConsentText() {
@@ -223,6 +276,17 @@ function ConsentText() {
       {t("pricing.consentSuffix")}
     </p>
   );
+}
+
+function getAiDailyLimit(plan: SubscriptionPlan): number {
+  switch (plan) {
+    case "free":
+      return 10;
+    case "basic":
+      return 30;
+    case "pro":
+      return 150;
+  }
 }
 
 function getAiMonthlyLimit(plan: SubscriptionPlan): number {

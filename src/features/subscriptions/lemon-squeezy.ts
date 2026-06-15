@@ -5,14 +5,23 @@ import type { SubscriptionPlan } from "@/types/domain";
 
 const LEMON_SQUEEZY_API_BASE = "https://api.lemonsqueezy.com/v1";
 
-export function getVariantIdForPlan(plan: Exclude<SubscriptionPlan, "free">): string {
-  const variantId =
+export function getVariantIdForPlan(
+  plan: Exclude<SubscriptionPlan, "free">,
+  cycle: "monthly" | "yearly" = "monthly",
+): string {
+  const envKey =
     plan === "basic"
-      ? process.env.LEMONSQUEEZY_BASIC_VARIANT_ID
-      : process.env.LEMONSQUEEZY_PRO_VARIANT_ID;
+      ? cycle === "yearly"
+        ? "LEMONSQUEEZY_BASIC_YEARLY_VARIANT_ID"
+        : "LEMONSQUEEZY_BASIC_VARIANT_ID"
+      : cycle === "yearly"
+        ? "LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID"
+        : "LEMONSQUEEZY_PRO_VARIANT_ID";
+
+  const variantId = process.env[envKey];
 
   if (!variantId) {
-    throw new Error(`LEMONSQUEEZY_${plan.toUpperCase()}_VARIANT_ID is not configured.`);
+    throw new Error(`${envKey} is not configured.`);
   }
 
   return variantId;

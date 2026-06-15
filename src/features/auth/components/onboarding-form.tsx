@@ -6,11 +6,12 @@ import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 
 export function OnboardingForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
+  const { locale } = useLocale();
 
   return (
     <form action={formAction} className="space-y-6">
@@ -19,8 +20,10 @@ export function OnboardingForm({ nextPath }: { nextPath: string }) {
 
       <PreferenceFields
         defaultLanguage="en"
+        defaultUiLocale={locale}
         defaultTier="A1"
         languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
+        uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
         tierError={state.fieldErrors?.preferredTier?.[0]}
       />
 

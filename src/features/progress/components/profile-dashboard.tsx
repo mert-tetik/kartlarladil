@@ -9,6 +9,8 @@ import { getCardTranslation } from "@/features/cards/card-localization";
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
@@ -25,6 +27,8 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 
 export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const { stats, loading, error } = useProgressStats();
+  const { entitlements } = useSubscription();
+  const effectivePlan = entitlements?.effectivePlan ?? "free";
   const cards = useInventoryStore((state) => state.cards);
   const attempts = useInventoryStore((state) => state.attempts);
   const { locale } = useLocale();
@@ -59,15 +63,28 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
               <h2 className="mt-1 font-display text-4xl font-semibold text-slate-950">
                 {user.profile.displayName || t("profile.fallbackName")}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">{getRankLabel(stats.rank, locale)}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <PlanBadge />
+                <span className="text-sm text-slate-600">{getRankLabel(stats.rank, locale)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[520px]">
-            <StatTile icon={Trophy} label={t("profile.points")} value={formatNumber(locale, stats.totalPoints)} />
-            <StatTile icon={CheckCircle2} label={t("profile.learned")} value={formatNumber(locale, stats.learnedCards)} />
-            <StatTile icon={Boxes} label={t("profile.pool")} value={formatNumber(locale, stats.totalCards)} />
-            <StatTile icon={BookOpen} label={t("profile.active")} value={formatNumber(locale, stats.activeCards)} />
+          <div className="flex flex-col gap-3">
+            {effectivePlan !== "pro" ? (
+              <Link
+                href="/pricing"
+                className={buttonClassName("primary", "sm", "w-full text-center")}
+              >
+                {t("profile.upgradePlan")}
+              </Link>
+            ) : null}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[520px]">
+              <StatTile icon={Trophy} label={t("profile.points")} value={formatNumber(locale, stats.totalPoints)} />
+              <StatTile icon={CheckCircle2} label={t("profile.learned")} value={formatNumber(locale, stats.learnedCards)} />
+              <StatTile icon={Boxes} label={t("profile.pool")} value={formatNumber(locale, stats.totalCards)} />
+              <StatTile icon={BookOpen} label={t("profile.active")} value={formatNumber(locale, stats.activeCards)} />
+            </div>
           </div>
         </div>
 
