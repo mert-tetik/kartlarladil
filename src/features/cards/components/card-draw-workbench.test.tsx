@@ -86,7 +86,7 @@ function renderWorkbench() {
 
 async function revealTestCard(user: ReturnType<typeof userEvent.setup>) {
   fireEvent.change(screen.getByPlaceholderText(/Kelime/), { target: { value: testCard.term } });
-  await user.click(screen.getByRole("button", { name: "Ara" }));
+  await user.click(await screen.findByRole("button", { name: new RegExp(testCard.term) }));
   await user.click(await screen.findByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` }));
   await screen.findByRole("heading", { name: testCard.term });
 }

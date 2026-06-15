@@ -2,7 +2,9 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { PackagePlus, Search } from "lucide-react";
+import { TIER_STYLES } from "@/data/tiers";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { getSearchableCardText } from "@/features/cards/card-localization";
 import { FilterControls } from "@/features/cards/components/filter-controls";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
@@ -22,7 +24,8 @@ import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { normalizeSearch } from "@/lib/utils";
 import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
@@ -62,7 +65,9 @@ export function CardDrawWorkbench() {
   const [exitingCards, setExitingCards] = useState<ExitingCardDrawCard[]>([]);
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
   const exitTimerRefs = useRef<number[]>([]);
@@ -74,11 +79,41 @@ export function CardDrawWorkbench() {
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
   const { entitlements } = useSubscription();
+  const { locale } = useLocale();
   const t = useT();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
+
+  const suggestions = useMemo(() => {
+    if (!query.trim()) return [];
+    const normalizedQuery = normalizeSearch(query);
+    const candidates = localCardRepository
+      .list({ query, language, tier })
+      .filter((card) => !ownedIds.has(card.id));
+
+    const scored = candidates.map((card) => {
+      const normalizedTerm = normalizeSearch(card.term);
+      let score = 0;
+      if (normalizedTerm.startsWith(normalizedQuery)) {
+        score += 100;
+      } else if (normalizedTerm.includes(normalizedQuery)) {
+        score += 80;
+      } else {
+        const text = normalizeSearch(getSearchableCardText(card, locale));
+        if (text.startsWith(normalizedQuery)) {
+          score += 60;
+        } else if (text.includes(normalizedQuery)) {
+          score += 40;
+        }
+      }
+      return { card, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 5).map((item) => item.card);
+  }, [query, language, tier, ownedIds, locale]);
 
   const isFirstRenderRef = useRef(true);
   const prevOwnedIdsRef = useRef<Set<string>>(new Set());
@@ -117,6 +152,17 @@ export function CardDrawWorkbench() {
         window.clearTimeout(timerId);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useLayoutEffect(() => {
@@ -179,13 +225,10 @@ export function CardDrawWorkbench() {
     writeCardDrawPreferences(window.localStorage, updatedPreferences);
   }
 
-  function searchCards() {
-    dealCards(
-      localCardRepository
-        .list({ query, language, tier })
-        .filter((card) => !ownedIds.has(card.id))
-        .slice(0, 18),
-    );
+  function selectSuggestion(card: VocabularyCard) {
+    setQuery("");
+    setIsDropdownOpen(false);
+    dealCards([card]);
   }
 
   function drawCards(count: number) {
@@ -303,20 +346,48 @@ export function CardDrawWorkbench() {
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  searchCards();
-                }
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsDropdownOpen(true);
+              }}
+              onFocus={() => {
+                if (suggestions.length > 0) setIsDropdownOpen(true);
               }}
               placeholder={t("cards.searchPlaceholder")}
-              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
+              className="relative h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
             />
-          </label>
+            {isDropdownOpen ? (
+              <div
+                ref={dropdownRef}
+                className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+              >
+                {suggestions.length > 0 ? (
+                  suggestions.map((card) => {
+                    const style = TIER_STYLES[card.tier];
+                    return (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => selectSuggestion(card)}
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                      >
+                        <span className="font-semibold text-slate-950">{card.term}</span>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold text-white ${style.accent}`}>
+                          {card.tier}
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : query.trim() ? (
+                  <div className="px-3 py-2.5 text-sm text-slate-500">{t("cards.noSearchResults")}</div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <Button variant="secondary" size="lg" onClick={() => drawCards(5)}>
             {t("cards.drawFive")}
           </Button>
@@ -333,9 +404,6 @@ export function CardDrawWorkbench() {
           />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={searchCards}>
-            {t("common.search")}
-          </Button>
           <Button
             variant="ghost"
             onClick={() => {
