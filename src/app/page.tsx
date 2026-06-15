@@ -7,10 +7,12 @@ import { buttonClassName } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { AiPracticePreview } from "@/app/components/ai-practice-preview";
+import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { createTranslator } from "@/i18n/dictionaries";
-import { formatNumber, formatPoints, getLanguageDisplayName, getRankLabel, getTierLabel } from "@/i18n/labels";
+import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -104,14 +106,14 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-white">
+      <section className="bg-[#f76808]">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
           {featureItems.map((item) => {
             const Icon = item.icon;
 
             return (
-              <article key={item.title} className="rounded-lg border border-slate-200 bg-white p-6">
-                <div className="flex size-12 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+              <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="flex size-12 items-center justify-center rounded-md bg-orange-100 text-[#f76808]">
                   <Icon className="size-6" aria-hidden="true" />
                 </div>
                 <h2 className="mt-5 text-xl font-semibold text-slate-950">{item.title}</h2>
@@ -127,19 +129,26 @@ export default async function Home() {
           <div>
             <h2 className="font-display text-4xl font-semibold text-slate-950">{t("home.collection.title")}</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">{t("home.collection.description")}</p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {LANGUAGES.map((language) => (
-                <div key={language.code} className="rounded-lg border border-slate-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-slate-950">{getLanguageDisplayName(language.code, locale)}</p>
-                  <p className="mt-1 text-sm text-slate-500">{language.nativeName}</p>
-                </div>
-              ))}
+            <div className="mt-8">
+              <p className="text-sm font-semibold tracking-wide text-slate-950 uppercase">For 14 Languages</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {LANGUAGES.map((language) => (
+                  <LanguageFlag
+                    key={language.code}
+                    code={language.code}
+                    className="h-6 w-9 border-0 bg-transparent rounded-none"
+                  />
+                ))}
+              </div>
             </div>
-            <div className="mt-4 grid grid-cols-5 gap-2">
+            <div className="mt-6 grid grid-cols-5 gap-2">
               {TIERS.map((tier) => (
-                <div key={tier} className="rounded-md border border-slate-200 bg-white p-3 text-center">
-                  <p className="text-sm font-semibold text-slate-950">{tier}</p>
-                  <p className="mt-1 text-xs text-slate-500">{getTierLabel(tier, locale)}</p>
+                <div
+                  key={tier}
+                  className={cn("rounded-md border-0 p-3 text-center", TIER_STYLES[tier].accent)}
+                >
+                  <p className="text-sm font-bold text-white">{tier}</p>
+                  <p className="mt-1 text-xs font-semibold text-white/90">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
             </div>
@@ -149,7 +158,7 @@ export default async function Home() {
             <div className="grid w-full grid-cols-2 items-center gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-5">
               {previewCards.map((card, index) => (
                 <div key={card.id} data-collection-preview-card className={index === 2 ? "hidden sm:block" : undefined}>
-                  <VocabularyCardView card={card} compact />
+                  <CollectionPreviewCard card={card} index={index} />
                 </div>
               ))}
             </div>
@@ -231,6 +240,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <AiPracticePreview />
 
       <section className="bg-slate-950 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
