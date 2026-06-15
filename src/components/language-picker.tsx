@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
@@ -21,6 +21,10 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<LanguageCode>(value);
   const { locale } = useLocale();
+
+  useEffect(() => {
+    setSelected(value);
+  }, [value]);
   const t = useT();
 
   function handleSelect(code: LanguageCode) {

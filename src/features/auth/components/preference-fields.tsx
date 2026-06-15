@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LanguagePicker } from "@/components/language-picker";
 import { TIERS } from "@/data/tiers";
 import { FieldError } from "@/features/auth/components/form-message";
@@ -28,6 +28,14 @@ export function PreferenceFields({
   const t = useT();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(defaultLanguage ?? "en");
   const [selectedUiLocale, setSelectedUiLocale] = useState<LocaleCode>(defaultUiLocale ?? "en");
+
+  useEffect(() => {
+    if (defaultUiLocale && defaultUiLocale !== selectedUiLocale) {
+      setSelectedUiLocale(defaultUiLocale);
+      setLocale(defaultUiLocale);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultUiLocale]);
 
   function handleUiLocaleChange(code: LocaleCode) {
     setSelectedUiLocale(code);
