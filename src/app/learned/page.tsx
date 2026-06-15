@@ -1,10 +1,12 @@
 import { PageHeader } from "@/components/page-header";
 import { InventoryDashboard } from "@/features/inventory/components/inventory-dashboard";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
+import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 
 export default async function LearnedPage() {
+  await requireAuthUser("/learned");
   const t = createTranslator(await getServerLocale());
 
   return (
