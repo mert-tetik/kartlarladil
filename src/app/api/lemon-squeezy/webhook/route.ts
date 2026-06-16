@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  fetchSubscription,
-  verifyWebhookSignature,
-} from "@/features/subscriptions/lemon-squeezy";
+import { verifyWebhookSignature } from "@/features/subscriptions/lemon-squeezy";
 import {
   processWebhookEvent,
   type LemonSqueezyWebhookEvent,
@@ -25,58 +22,62 @@ const SUBSCRIPTION_EVENTS = [
 ];
 
 export async function POST(request: Request) {
-  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  try {
+    const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
 
-  if (!secret) {
-    return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
-  }
+    if (!secret) {
+      return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+    }
 
-  const signature = request.headers.get("x-signature") ?? "";
-  const payload = await request.text();
+    const signature = request.headers.get("x-signature") ?? "";
+    const payload = await request.text();
 
-  if (!verifyWebhookSignature(payload, signature, secret)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
+    if (!verifyWebhookSignature(payload, signature, secret)) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
 
-  const event = parseWebhookPayload(payload);
+    const event = parseWebhookPayload(payload);
 
-  if (!event) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
+    if (!event) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
 
-  const eventName = event.meta?.event_name;
+    const eventName = event.meta?.event_name;
 
-  if (!eventName || !SUBSCRIPTION_EVENTS.includes(eventName)) {
+    if (!eventName || !SUBSCRIPTION_EVENTS.includes(eventName)) {
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+
+    const userId = event.meta?.custom_data?.user_id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Missing user_id in custom data" }, { status: 400 });
+    }
+
+    // Invoice events do not carry the subscription attributes we need.
+    // The actual subscription state is updated by subscription_created/updated/cancelled/expired.
+    if (event.data?.type === "subscription-invoices") {
+      return NextResponse.json({ received: true, skipped: true }, { status: 200 });
+    }
+
+    const update = mapSubscriptionUpdate(event);
+    const adminClient = createSupabaseAdminClient();
+    const result = await processWebhookEvent(adminClient, event, update, userId);
+
+    if (result.status === "duplicate") {
+      return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+    }
+
+    if (result.status === "error") {
+      return NextResponse.json({ error: result.message }, { status: 500 });
+    }
+
     return NextResponse.json({ received: true }, { status: 200 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected webhook error";
+    console.error("Lemon Squeezy webhook error:", error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const userId = event.meta?.custom_data?.user_id;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Missing user_id in custom data" }, { status: 400 });
-  }
-
-  const update = await resolveSubscriptionUpdate(event);
-
-  if (!update) {
-    return NextResponse.json(
-      { received: true, skipped: true, reason: "Could not resolve subscription update" },
-      { status: 200 },
-    );
-  }
-
-  const adminClient = createSupabaseAdminClient();
-  const result = await processWebhookEvent(adminClient, event, update, userId);
-
-  if (result.status === "duplicate") {
-    return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
-  }
-
-  if (result.status === "error") {
-    return NextResponse.json({ error: result.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ received: true }, { status: 200 });
 }
 
 function parseWebhookPayload(payload: string): LemonSqueezyWebhookEvent | null {
@@ -85,34 +86,6 @@ function parseWebhookPayload(payload: string): LemonSqueezyWebhookEvent | null {
   } catch {
     return null;
   }
-}
-
-async function resolveSubscriptionUpdate(
-  event: LemonSqueezyWebhookEvent,
-): Promise<SubscriptionUpdate | null> {
-  const dataType = event.data?.type;
-  const attributes = event.data?.attributes ?? {};
-
-  if (dataType === "subscriptions" || attributes.variant_id !== undefined) {
-    return mapSubscriptionUpdate(event);
-  }
-
-  const subscriptionId = attributes.subscription_id;
-
-  if (subscriptionId) {
-    const subscription = await fetchSubscription(String(subscriptionId));
-
-    if (subscription) {
-      return mapSubscriptionUpdate({
-        data: {
-          id: subscription.id,
-          attributes: subscription.attributes,
-        },
-      });
-    }
-  }
-
-  return null;
 }
 
 function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpdate {

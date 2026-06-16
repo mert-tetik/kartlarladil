@@ -109,16 +109,25 @@ export async function processWebhookEvent(
     return { status: "error", message: "Missing event metadata" };
   }
 
-  const existing = await findWebhookEvent(client, webhookId);
-  if (existing?.processed_at) {
-    return { status: "duplicate" };
+  let isDuplicate = false;
+  try {
+    const existing = await findWebhookEvent(client, webhookId);
+    if (existing?.processed_at) {
+      isDuplicate = true;
+    } else {
+      await upsertWebhookEvent(
+        client,
+        { webhookId, eventName, payload: event, userId },
+        { processedAt: null },
+      );
+    }
+  } catch (logError) {
+    console.error("Webhook event logging failed:", logError);
   }
 
-  await upsertWebhookEvent(
-    client,
-    { webhookId, eventName, payload: event, userId },
-    { processedAt: null },
-  );
+  if (isDuplicate) {
+    return { status: "duplicate" };
+  }
 
   const { error } = await client.from("user_subscriptions").upsert(
     {
@@ -138,19 +147,27 @@ export async function processWebhookEvent(
   );
 
   if (error) {
-    await upsertWebhookEvent(
-      client,
-      { webhookId, eventName, payload: event, userId },
-      { errorMessage: error.message },
-    );
+    try {
+      await upsertWebhookEvent(
+        client,
+        { webhookId, eventName, payload: event, userId },
+        { errorMessage: error.message },
+      );
+    } catch (logError) {
+      console.error("Webhook event logging failed:", logError);
+    }
     return { status: "error", message: error.message };
   }
 
-  await upsertWebhookEvent(
-    client,
-    { webhookId, eventName, payload: event, userId },
-    { processedAt: new Date().toISOString() },
-  );
+  try {
+    await upsertWebhookEvent(
+      client,
+      { webhookId, eventName, payload: event, userId },
+      { processedAt: new Date().toISOString() },
+    );
+  } catch (logError) {
+    console.error("Webhook event logging failed:", logError);
+  }
 
   return { status: "success" };
 }
