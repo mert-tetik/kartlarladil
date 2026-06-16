@@ -125,7 +125,7 @@ export function VocabularyCardView({
       {...flipRoleProps}
       className={cn(
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
-        compact ? "" : "min-h-[320px]",
+        compact ? "" : "min-h-[320px] max-sm:min-h-0",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900",
       )}
     >
@@ -140,20 +140,20 @@ export function VocabularyCardView({
           inert={!isFaceUp}
           className={cn(
             "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
-            compact ? "p-2 sm:p-3 xl:p-4" : "p-4",
+            compact ? "p-2 sm:p-3 xl:p-4" : "p-2.5 sm:p-4",
             style.border,
             style.surface,
           )}
         >
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 top-10 sm:inset-x-3 sm:top-12 xl:inset-x-4 xl:top-14" : "inset-x-4 top-14")} />
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 bottom-12 sm:inset-x-3 sm:bottom-14 xl:inset-x-4 xl:bottom-20" : "inset-x-4 bottom-20")} />
+          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 top-10 sm:inset-x-3 sm:top-12 xl:inset-x-4 xl:top-14" : "inset-x-4 top-14 max-sm:inset-x-2.5 max-sm:top-9")} />
+          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 bottom-12 sm:inset-x-3 sm:bottom-14 xl:inset-x-4 xl:bottom-20" : "inset-x-4 bottom-20 max-sm:inset-x-2.5 max-sm:bottom-12")} />
 
           <div className="flex items-start justify-between gap-3">
             <div>
-              <Badge className={cn("border-transparent bg-white/80", style.text)}>
+              <Badge className={cn("border-transparent bg-white/80 max-sm:text-[10px]", style.text)}>
                 {card.tier} · {getTierLabel(card.tier, locale)}
               </Badge>
-              <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500">
+              <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
                 <span>{getLanguageDisplayName(card.language, locale)}</span>
                 <span
                   aria-label={`${tierPoints} ${t("common.points")}`}
@@ -174,42 +174,42 @@ export function VocabularyCardView({
                   aria-label={`${card.term} ${t("cards.details")}`}
                   title={t("cards.details")}
                   onClick={handleDetailsClick}
-                  className="size-9 border-white/70 bg-white/80"
+                  className="size-9 border-white/70 bg-white/80 max-sm:size-7"
                 >
                   <Info className="size-4" aria-hidden="true" />
                 </Button>
               ) : null}
-              <span className={cn("size-3 rounded-full", style.accent)} aria-hidden="true" />
+              <span className={cn("size-3 rounded-full max-sm:size-2.5", style.accent)} aria-hidden="true" />
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col justify-center py-6">
+          <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-initial max-sm:justify-start max-sm:py-1">
             <div className="flex items-center gap-2 text-slate-500">
               <button
                 type="button"
                 aria-label={`${card.term} ${t("cards.speak")}`}
                 title={t("cards.speak")}
                 onClick={handleSpeakClick}
-                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 max-sm:size-6"
               >
-                <Volume2 className="size-4" aria-hidden="true" />
+                <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
               </button>
-              <span className="text-sm">{card.pronunciation}</span>
+              <span className="text-sm max-sm:text-xs">{card.pronunciation}</span>
             </div>
             <h3
               className={cn(
-                "mt-3 font-display font-semibold leading-none text-slate-950",
-                compact ? "text-xl sm:text-2xl xl:text-3xl" : "text-4xl",
+                "mt-3 font-display font-semibold leading-none text-slate-950 max-sm:mt-1",
+                compact ? "text-xl sm:text-2xl xl:text-3xl" : "text-2xl sm:text-4xl",
               )}
             >
               {card.term}
             </h3>
-            <p className="mt-3 text-sm font-semibold text-slate-500">{getPartOfSpeechLabel(card.termKind, locale)}</p>
-            {!compact ? <p className="mt-5 text-lg font-semibold text-slate-800">{cardTranslation}</p> : null}
+            <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">{getPartOfSpeechLabel(card.termKind, locale)}</p>
+            {!compact ? <p className="mt-5 text-lg font-semibold text-slate-800 max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">{cardTranslation}</p> : null}
           </div>
 
           {!compact ? (
-            <p className="truncate text-sm leading-6 text-slate-700" title={examplePreview}>
+            <p className="truncate text-sm leading-6 text-slate-700 max-sm:mt-1 max-sm:text-xs max-sm:leading-4" title={examplePreview}>
               {examplePreview}
             </p>
           ) : null}
@@ -227,13 +227,13 @@ export function VocabularyCardView({
           ) : null}
 
           {onAdd || onSkip ? (
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip}>
-                <X className="size-4" aria-hidden="true" />
+            <div className="mt-4 grid grid-cols-2 gap-2 max-sm:mt-2 max-sm:gap-1.5">
+              <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
+                <X className="size-3" aria-hidden="true" />
                 {t("cards.skip")}
               </Button>
-              <Button onClick={handleAddClick} disabled={owned || !onAdd}>
-                {owned ? <Check className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
+              <Button onClick={handleAddClick} disabled={owned || !onAdd} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
+                {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
                 {owned ? t("cards.owned") : t("cards.add")}
               </Button>
             </div>
@@ -245,13 +245,13 @@ export function VocabularyCardView({
           inert={isFaceUp}
           className={cn(
             "absolute inset-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
-            compact ? "p-2" : "p-2.5",
+            compact ? "p-2" : "p-1.5 sm:p-2.5",
           )}
         >
           <div
             data-card-back-tier={visibleBackTier}
             className={cn(
-              "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white",
+              "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white max-sm:p-2.5",
               style.backPanel,
               style.backBorder,
             )}
@@ -269,24 +269,24 @@ export function VocabularyCardView({
 
             <div className="relative flex flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
-                <span className="text-xs font-semibold text-white/75">{getTierLabel(visibleBackTier, locale)}</span>
-                <span className="text-xs font-semibold text-white/75">{getLanguageDisplayName(card.language, locale)}</span>
+                <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getTierLabel(visibleBackTier, locale)}</span>
+                <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getLanguageDisplayName(card.language, locale)}</span>
               </div>
 
               <div className="flex flex-1 flex-col items-center justify-center text-center">
                 <div
                   data-card-back-medallion="true"
-                  className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm"
+                  className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm max-sm:size-16"
                 >
-                  <span className={cn("font-display text-5xl font-semibold leading-none", style.backText)}>
+                  <span className={cn("font-display text-5xl font-semibold leading-none max-sm:text-3xl", style.backText)}>
                     {visibleBackTier}
                   </span>
-                  <span className={cn("pointer-events-none absolute inset-2 rounded-full border", style.border)} aria-hidden="true" />
+                  <span className={cn("pointer-events-none absolute inset-2 rounded-full border max-sm:inset-1", style.border)} aria-hidden="true" />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-white/95">{t("cards.flip")}</p>
+                <p className="mt-4 text-sm font-semibold text-white/95 max-sm:mt-2 max-sm:text-xs">{t("cards.flip")}</p>
               </div>
 
-              <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75">
+              <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75 max-sm:text-[10px]">
                 <span>FoxiesDeck</span>
                 <span>{t("cards.collection")}</span>
               </div>

@@ -422,7 +422,7 @@ export function CardDrawWorkbench() {
             {showCardGrid ? (
               <div
                 ref={gridRef}
-                className="card-draw-card-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
                 style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
               >
                 {cards.map((card, index) => (
