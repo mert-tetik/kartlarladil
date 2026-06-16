@@ -6,9 +6,11 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
+import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
 
 interface AuthSessionContextValue {
   user: AuthShellUser | null;
+  refreshProfile: () => Promise<void>;
 }
 
 interface RequireAuthActionOptions {
@@ -16,6 +18,52 @@ interface RequireAuthActionOptions {
 }
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
+
+const LANGUAGE_CODES: LanguageCode[] = [
+  "tr",
+  "en",
+  "de",
+  "ru",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "pl",
+  "ar",
+  "ja",
+  "ko",
+  "zh-CN",
+];
+const LOCALE_CODES: LocaleCode[] = LANGUAGE_CODES;
+const TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
+
+function normalizeClientProfile(row: {
+  display_name: string | null;
+  preferred_language_code: string | null;
+  preferred_ui_locale: string | null;
+  preferred_tier: string | null;
+  ai_practice_points: number | null;
+}): AuthShellUser["profile"] {
+  const preferredLanguageCode = row.preferred_language_code;
+  const preferredUiLocale = row.preferred_ui_locale;
+  const preferredTier = row.preferred_tier;
+
+  return {
+    displayName: row.display_name ?? null,
+    preferredLanguageCode:
+      preferredLanguageCode && LANGUAGE_CODES.includes(preferredLanguageCode as LanguageCode)
+        ? (preferredLanguageCode as LanguageCode)
+        : null,
+    preferredUiLocale:
+      preferredUiLocale && LOCALE_CODES.includes(preferredUiLocale as LocaleCode)
+        ? (preferredUiLocale as LocaleCode)
+        : null,
+    preferredTier:
+      preferredTier && TIERS.includes(preferredTier as Tier) ? (preferredTier as Tier) : null,
+    aiPracticePoints: row.ai_practice_points ?? 0,
+  };
+}
 
 export function AuthSessionProvider({
   user: initialUser,
@@ -45,7 +93,48 @@ export function AuthSessionProvider({
     };
   }, [client]);
 
-  return <AuthSessionContext.Provider value={{ user }}>{children}</AuthSessionContext.Provider>;
+  const refreshProfile = useCallback(async () => {
+    if (!client || !user) {
+      return;
+    }
+
+    const {
+      data: { session },
+    } = await client.auth.getSession();
+
+    if (!session) {
+      return;
+    }
+
+    const { data, error } = await client
+      .from("user_profiles")
+      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, ai_practice_points")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (error || !data) {
+      return;
+    }
+
+    setUser((current) =>
+      current
+        ? {
+            ...current,
+            profile: normalizeClientProfile(data),
+          }
+        : current,
+    );
+  }, [client, user]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      refreshProfile,
+    }),
+    [user, refreshProfile],
+  );
+
+  return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
 }
 
 export function useAuthSession() {

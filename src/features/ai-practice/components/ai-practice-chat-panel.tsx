@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Languages, Loader2, Mic, MicOff, RotateCcw, SendHorizonal, Volume2 } from "lucide-react";
+import { ArrowLeft, Coins, Languages, Loader2, Mic, MicOff, RotateCcw, SendHorizonal, Volume2 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { LanguageFlag } from "@/components/language-flag";
 import { getCharacterName, getRandomOpeningLine } from "@/features/ai-practice/ai-practice-data";
@@ -12,6 +12,8 @@ import { AudioVisualizer } from "@/features/ai-practice/components/audio-visuali
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
+import { useProgressStats } from "@/features/progress/progress-client";
 import { cn, createId } from "@/lib/utils";
 import type {
   AiPracticeCharacter,
@@ -25,6 +27,7 @@ type TranslationStatus = "idle" | "loading" | "ready" | "error";
 
 interface ClientMessage extends AiPracticeMessage {
   id: string;
+  score?: number;
   translation?: {
     status: TranslationStatus;
     text?: string;
@@ -90,6 +93,7 @@ export function AiPracticeChatPanel({
   const shouldSendTranscriptRef = useRef(false);
   const { locale } = useLocale();
   const t = useT();
+  const { refreshStats } = useProgressStats();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
 
@@ -195,6 +199,8 @@ export function AiPracticeChatPanel({
 
       if (streamedText.trim().length === 0) {
         replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.emptyResponse"));
+      } else {
+        await scoreUserMessage(userMessage, streamedText);
       }
     } catch {
       replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.error"));
@@ -202,6 +208,44 @@ export function AiPracticeChatPanel({
       setPending(false);
       textareaRef.current?.focus();
     }
+  }
+
+  async function scoreUserMessage(userMessage: ClientMessage, assistantText: string) {
+    try {
+      const response = await fetch("/api/ai-practice/score", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language,
+          characterId: character.id,
+          userMessage: userMessage.content,
+          assistantMessage: assistantText,
+        }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as { points?: unknown };
+      const points = Number(payload.points);
+
+      if (points !== 5 && points !== 10) {
+        return;
+      }
+
+      updateMessageScore(userMessage.id, points);
+      playSoundEffect("points");
+      void refreshStats();
+    } catch {
+      // Scoring is best-effort; never block the chat flow.
+    }
+  }
+
+  function updateMessageScore(messageId: string, score: number) {
+    setMessages((current) => current.map((message) => (message.id === messageId ? { ...message, score } : message)));
   }
 
   async function translateMessage(message: ClientMessage) {
@@ -580,6 +624,7 @@ function ChatMessage({
           </div>
           {!pending && message.content ? (
             <>
+              {isUser && message.score ? <ScoreBadge score={message.score} /> : null}
               <MessageActions message={message} onTranslate={onTranslate} onSpeak={onSpeak} />
               <TranslationView translation={message.translation} />
             </>
@@ -623,6 +668,19 @@ function MessageActions({
       >
         <Volume2 className="size-4" aria-hidden="true" />
       </button>
+    </div>
+  );
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const t = useT();
+  const label = score === 10 ? t("aiPractice.chat.perfectAnswer") : t("aiPractice.chat.niceAnswer");
+
+  return (
+    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600">
+      <Coins className="size-3.5" aria-hidden="true" />
+      <span>{label}</span>
+      <span>+{score}</span>
     </div>
   );
 }

@@ -116,6 +116,21 @@ export function calculateProgressStats(items: InventoryCardView[]): ProgressStat
   };
 }
 
+export function mergeAiPracticePoints(stats: ProgressStats, aiPracticePoints: number): ProgressStats {
+  if (aiPracticePoints <= 0) {
+    return stats;
+  }
+
+  const totalPoints = stats.totalPoints + aiPracticePoints;
+  const rankProgress = getNextRankProgress(totalPoints);
+
+  return {
+    ...stats,
+    totalPoints,
+    ...rankProgress,
+  };
+}
+
 function uniqueInventoryCards(items: InventoryCardView[]) {
   const seen = new Set<string>();
 

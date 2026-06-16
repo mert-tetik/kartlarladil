@@ -114,6 +114,7 @@ const tr = {
   "home.aiPractice.title": "AI ile konuşma pratiği",
   "home.aiPractice.description":
     "10 farklı karakterle hedef dilinde sohbet et; hatalarını nazikçe düzeltir ve akıcı konuşmana yardımcı olur.",
+  "home.aiPractice.highlight": "Konuştukça puan kazan!",
   "home.aiPractice.cta": "Şimdi pratik yap!",
 
   "home.cta.title": "Koleksiyonunu büyüt.",
@@ -365,6 +366,8 @@ const tr = {
   "aiPractice.chat.translationError": "Çeviri alınamadı",
   "aiPractice.chat.limitReached": "AI mesaj limitine ulaştın. Planını yükselterek daha fazla mesaj gönderebilirsin.",
   "aiPractice.chat.listening": "Dinleniyor...",
+  "aiPractice.chat.niceAnswer": "Güzel Cevap!",
+  "aiPractice.chat.perfectAnswer": "Mükemmel Cevap!",
 
   "pricing.title": "Sana uygun planı seç",
   "pricing.description": "Kart limitlerini kaldır ve AI Practice'te daha fazla mesaj hakkı kazan.",
@@ -558,6 +561,7 @@ const en: Dictionary = {
   "home.aiPractice.title": "Practice real conversation with AI",
   "home.aiPractice.description":
     "Chat in your target language with 10 unique characters. They correct mistakes gently and keep the conversation flowing.",
+  "home.aiPractice.highlight": "Earn points as you chat!",
   "home.aiPractice.cta": "Practice Now!",
 
   "home.cta.title": "Grow your collection.",
@@ -793,6 +797,8 @@ const en: Dictionary = {
   "aiPractice.chat.translationError": "Could not translate",
   "aiPractice.chat.limitReached": "You have reached your AI message limit. Upgrade your plan to send more messages.",
   "aiPractice.chat.listening": "Listening...",
+  "aiPractice.chat.niceAnswer": "Nice Answer!",
+  "aiPractice.chat.perfectAnswer": "Perfect Answer!",
 
   "pricing.title": "Choose your plan",
   "pricing.description": "Remove card limits and get more AI Practice messages.",
@@ -1253,6 +1259,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Dieser Chat wird nicht gespeichert; Neuladen löscht den Verlauf.",
     error: "Im Moment kam keine Antwort. Versuche es später erneut.",
     emptyResponse: "Die Antwort war leer. Versuche eine neue Nachricht.",
+    niceAnswer: "Gute Antwort!",
+    perfectAnswer: "Perfekte Antwort!",
+    highlight: "Sammle Punkte beim Chatten!",
   }),
   ru: aiPracticeCore({
     title: "AI Practice",
@@ -1268,6 +1277,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Этот чат не сохраняется; обновление страницы очищает историю.",
     error: "Сейчас не удалось получить ответ. Попробуйте позже.",
     emptyResponse: "Ответ пустой. Попробуйте новое сообщение.",
+    niceAnswer: "Хороший ответ!",
+    perfectAnswer: "Отличный ответ!",
+    highlight: "Зарабатывайте баллы, общаясь!",
   }),
   fr: aiPracticeCore({
     title: "AI Practice",
@@ -1283,6 +1295,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Ce chat n'est pas enregistré; recharger la page efface l'historique.",
     error: "Impossible d'obtenir une réponse maintenant. Réessaie plus tard.",
     emptyResponse: "La réponse était vide. Essaie un nouveau message.",
+    niceAnswer: "Bonne réponse !",
+    perfectAnswer: "Réponse parfaite !",
+    highlight: "Gagne des points en discutant !",
   }),
   es: aiPracticeCore({
     title: "AI Practice",
@@ -1298,6 +1313,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Este chat no se guarda; al recargar la página se borra el historial.",
     error: "No se pudo obtener respuesta ahora. Inténtalo de nuevo pronto.",
     emptyResponse: "La respuesta llegó vacía. Puedes probar con otro mensaje.",
+    niceAnswer: "¡Buena respuesta!",
+    perfectAnswer: "¡Respuesta perfecta!",
+    highlight: "¡Gana puntos conversando!",
   }),
   it: aiPracticeCore({
     title: "AI Practice",
@@ -1313,6 +1331,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Questa chat non viene salvata; aggiornare la pagina cancella la cronologia.",
     error: "Non è stato possibile ottenere una risposta. Riprova tra poco.",
     emptyResponse: "La risposta era vuota. Prova un nuovo messaggio.",
+    niceAnswer: "Buona risposta!",
+    perfectAnswer: "Risposta perfetta!",
+    highlight: "Guadagna punti chattando!",
   }),
   pt: aiPracticeCore({
     title: "AI Practice",
@@ -1328,6 +1349,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Este chat não é guardado; atualizar a página limpa o histórico.",
     error: "Não foi possível obter resposta agora. Tenta novamente em breve.",
     emptyResponse: "A resposta veio vazia. Podes tentar outra mensagem.",
+    niceAnswer: "Boa resposta!",
+    perfectAnswer: "Resposta perfeita!",
+    highlight: "Ganha pontos ao conversar!",
   }),
   nl: aiPracticeCore({
     title: "AI Practice",
@@ -1343,6 +1367,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Deze chat wordt niet opgeslagen; herladen wist de geschiedenis.",
     error: "Er kwam nu geen antwoord. Probeer het later opnieuw.",
     emptyResponse: "Het antwoord was leeg. Probeer een nieuw bericht.",
+    niceAnswer: "Goed antwoord!",
+    perfectAnswer: "Perfect antwoord!",
+    highlight: "Verdien punten door te chatten!",
   }),
   pl: aiPracticeCore({
     title: "AI Practice",
@@ -1358,6 +1385,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "Ten czat nie jest zapisywany; odświeżenie strony czyści historię.",
     error: "Nie udało się teraz uzyskać odpowiedzi. Spróbuj ponownie później.",
     emptyResponse: "Odpowiedź była pusta. Spróbuj nowej wiadomości.",
+    niceAnswer: "Dobra odpowiedź!",
+    perfectAnswer: "Perfekcyjna odpowiedź!",
+    highlight: "Zdobywaj punkty rozmawiając!",
   }),
   ar: aiPracticeCore({
     title: "تدريب AI",
@@ -1373,6 +1403,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "لا يتم حفظ هذه المحادثة؛ تحديث الصفحة يمسح السجل.",
     error: "تعذر الحصول على رد الآن. حاول لاحقًا.",
     emptyResponse: "كان الرد فارغًا. يمكنك تجربة رسالة جديدة.",
+    niceAnswer: "إجابة جيدة!",
+    perfectAnswer: "إجابة ممتازة!",
+    highlight: "اكسب نقاط وأنت تتحدث!",
   }),
   ja: aiPracticeCore({
     title: "AI Practice",
@@ -1388,6 +1421,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "このチャットは保存されません。ページを更新すると履歴は消えます。",
     error: "今は回答を取得できませんでした。少し後で試してください。",
     emptyResponse: "回答が空でした。別のメッセージを試せます。",
+    niceAnswer: "ナイスアンサー！",
+    perfectAnswer: "パーフェクトアンサー！",
+    highlight: "チャットでポイントをゲット！",
   }),
   ko: aiPracticeCore({
     title: "AI Practice",
@@ -1403,6 +1439,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "이 채팅은 저장되지 않으며 페이지를 새로고침하면 기록이 사라집니다.",
     error: "지금은 답변을 받을 수 없습니다. 잠시 후 다시 시도하세요.",
     emptyResponse: "응답이 비어 있습니다. 새 메시지를 시도해 보세요.",
+    niceAnswer: "좋은 답변!",
+    perfectAnswer: "완벽한 답변!",
+    highlight: "대화하며 포인트를 획득하세요!",
   }),
   "zh-CN": aiPracticeCore({
     title: "AI Practice",
@@ -1418,6 +1457,9 @@ const aiPracticeLocaleOverrides: Record<Exclude<LocaleCode, "tr" | "en">, Partia
     privacy: "此聊天不会保存；刷新页面会清除历史。",
     error: "现在无法获取回复。请稍后再试。",
     emptyResponse: "回复为空。你可以尝试新的消息。",
+    niceAnswer: "答得不错！",
+    perfectAnswer: "完美回答！",
+    highlight: "聊天赚积分！",
   }),
 };
 
@@ -1524,6 +1566,9 @@ function aiPracticeCore(labels: {
   privacy: string;
   error: string;
   emptyResponse: string;
+  niceAnswer: string;
+  perfectAnswer: string;
+  highlight: string;
 }): Partial<Dictionary> {
   return {
     "nav.aiPractice": labels.title,
@@ -1544,5 +1589,8 @@ function aiPracticeCore(labels: {
     "aiPractice.chat.notConfigured": labels.error,
     "aiPractice.chat.invalidRequest": labels.error,
     "aiPractice.chat.emptyResponse": labels.emptyResponse,
+    "aiPractice.chat.niceAnswer": labels.niceAnswer,
+    "aiPractice.chat.perfectAnswer": labels.perfectAnswer,
+    "home.aiPractice.highlight": labels.highlight,
   };
 }

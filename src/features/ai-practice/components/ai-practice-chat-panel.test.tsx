@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -22,6 +23,14 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+}));
+
+vi.mock("@/lib/sound-effects", () => ({
+  playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/features/progress/progress-client", () => ({
+  useProgressStats: () => ({ refreshStats: vi.fn() }),
 }));
 
 const testCharacter = getAiPracticeCharacters()[0]!;
@@ -129,6 +138,19 @@ describe("AiPracticeChatPanel", () => {
     expect(await screen.findByText("spoken hello")).toBeVisible();
     expect(await screen.findByText("voice answer")).toBeVisible();
   });
+
+  it("shows a score badge and plays a sound when the message earns points", async () => {
+    const user = userEvent.setup();
+
+    vi.stubGlobal("fetch", makeFetchMock({ chatText: "great answer", score: 5 }));
+
+    renderPanel();
+    await sendMessage(user, "hello");
+
+    expect(await screen.findByText("great answer")).toBeVisible();
+    expect(await screen.findByText("Nice Answer!")).toBeVisible();
+    expect(playSoundEffect).toHaveBeenCalledWith("points");
+  });
 });
 
 function renderPanel() {
@@ -147,15 +169,21 @@ async function sendMessage(user: ReturnType<typeof userEvent.setup>, text: strin
 function makeFetchMock({
   chatText,
   translation = "translated text",
+  score = 0,
 }: {
   chatText: string;
   translation?: string;
+  score?: number;
 }) {
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input);
 
     if (url.includes("/api/ai-practice/translate")) {
       return Promise.resolve(Response.json({ translation, targetLocale: "tr" }));
+    }
+
+    if (url.includes("/api/ai-practice/score")) {
+      return Promise.resolve(Response.json({ points: score }));
     }
 
     return Promise.resolve(new Response(chatText));

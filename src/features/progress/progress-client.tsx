@@ -15,6 +15,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   EMPTY_PROGRESS_STATS,
   calculateProgressStats,
+  mergeAiPracticePoints,
 } from "@/features/progress/progress-stats";
 import type { ProgressStats } from "@/types/domain";
 
@@ -30,7 +31,7 @@ interface ProgressStatsContextValue {
 const ProgressStatsContext = createContext<ProgressStatsContextValue | null>(null);
 
 export function ProgressStatsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuthSession();
+  const { user, refreshProfile } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -96,14 +97,18 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       return EMPTY_PROGRESS_STATS;
     }
 
-    return calculateProgressStats(joinInventoryCards(cards));
-  }, [cards, hydrated]);
+    const baseStats = calculateProgressStats(joinInventoryCards(cards));
+    const aiPracticePoints = user?.profile.aiPracticePoints ?? 0;
+
+    return mergeAiPracticePoints(baseStats, aiPracticePoints);
+  }, [cards, hydrated, user?.profile.aiPracticePoints]);
 
   const refreshStats = useCallback(async () => {
     if (user) {
+      await refreshProfile();
       await loadCloudInventory();
     }
-  }, [loadCloudInventory, user]);
+  }, [loadCloudInventory, refreshProfile, user]);
 
   const value = useMemo(
     () => ({

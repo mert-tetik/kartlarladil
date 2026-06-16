@@ -6,6 +6,7 @@ import {
   getNextRankProgress,
   getPointsForTier,
   getRankForPoints,
+  mergeAiPracticePoints,
 } from "@/features/progress/progress-stats";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
 
@@ -53,6 +54,19 @@ describe("progress stats", () => {
 
     expect(RANKS).toHaveLength(10);
     expect(iconIds.size).toBe(RANKS.length);
+  });
+
+  it("adds AI practice points to total points and recalculates rank", () => {
+    const stats = calculateProgressStats([]);
+
+    expect(stats.totalPoints).toBe(0);
+    expect(stats.rank.label).toBe("Başlangıç");
+
+    const merged = mergeAiPracticePoints(stats, 150);
+
+    expect(merged.totalPoints).toBe(150);
+    expect(merged.rank.label).toBe("Kart Çırağı");
+    expect(merged.pointsToNextRank).toBe(150);
   });
 });
 

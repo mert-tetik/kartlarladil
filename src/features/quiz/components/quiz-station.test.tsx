@@ -38,6 +38,7 @@ const testUser: AuthShellUser = {
     preferredLanguageCode: "en",
     preferredUiLocale: "tr",
     preferredTier: "A1",
+    aiPracticePoints: 0,
   },
 };
 

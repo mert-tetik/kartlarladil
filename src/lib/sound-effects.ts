@@ -1,4 +1,4 @@
-export type SoundEffectName = "correct" | "incorrect" | "rank-up";
+export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points";
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
@@ -8,6 +8,11 @@ interface BrowserAudioWindow extends Window {
 let audioContext: AudioContext | null = null;
 
 export function playSoundEffect(effect: SoundEffectName) {
+  if (effect === "points") {
+    playPointsEffect();
+    return;
+  }
+
   const context = getAudioContext();
 
   if (!context) {
@@ -32,6 +37,20 @@ export function playSoundEffect(effect: SoundEffectName) {
     playRankUpEffect(context);
   } catch {
     // Audio feedback should never block quiz or navigation interactions.
+  }
+}
+
+function playPointsEffect() {
+  if (typeof window === "undefined" || typeof Audio === "undefined") {
+    return;
+  }
+
+  try {
+    const audio = new Audio("/sounds/points.mp3");
+    audio.volume = 0.35;
+    void audio.play();
+  } catch {
+    // Ignore audio playback errors.
   }
 }
 

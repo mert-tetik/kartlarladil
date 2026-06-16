@@ -28,3 +28,10 @@ export const aiPracticeTranslateRequestSchema = z.object({
   targetLocale: localeCodeSchema,
   text: z.string().trim().min(1).max(2_000),
 });
+
+export const aiPracticeScoreRequestSchema = z.object({
+  language: languageCodeSchema,
+  characterId: z.string().min(1).max(80),
+  userMessage: z.string().trim().min(1).max(900),
+  assistantMessage: z.string().trim().min(1).max(900),
+});

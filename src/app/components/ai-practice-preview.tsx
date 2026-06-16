@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Coins } from "lucide-react";
 
 import { buttonClassName } from "@/components/ui/button";
 import {
@@ -46,6 +47,10 @@ export async function AiPracticePreview() {
             <p className="mt-4 text-base leading-7 text-slate-600">
               {t("home.aiPractice.description")}
             </p>
+            <div className="mt-4 inline-flex items-center gap-2 font-bold text-amber-500">
+              <Coins className="size-5" aria-hidden="true" />
+              {t("home.aiPractice.highlight")}
+            </div>
           </div>
           <Link
             href="/ai-practice"
