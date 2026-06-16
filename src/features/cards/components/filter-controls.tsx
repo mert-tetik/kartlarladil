@@ -55,7 +55,7 @@ export function FilterControls({
   );
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid grid-cols-2 gap-2 md:gap-3">
       <div>
         <SelectDropdown
           label={t("cards.language")}
