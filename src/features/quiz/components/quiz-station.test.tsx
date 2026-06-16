@@ -78,13 +78,9 @@ describe("QuizStation sound feedback", () => {
     renderQuizStation();
     await startQuiz();
 
-    const wrongOption = screen
-      .getAllByRole("button")
-      .find((button) => {
-        const label = button.textContent?.trim();
-
-        return label && label !== correctAnswer;
-      });
+    const wrongOption = Array.from(document.querySelectorAll("[data-quiz-option]")).find(
+      (button) => button.textContent?.trim() !== correctAnswer,
+    );
 
     expect(wrongOption).toBeDefined();
     fireEvent.click(wrongOption!);

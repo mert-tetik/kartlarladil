@@ -325,3 +325,9 @@ button:disabled,
     overflow: hidden;
   }
 }
+
+/* Hide the Learn page header and site footer while a quiz is active */
+body:has([data-learn-quiz-page="quiz"]) [data-learn-page-header],
+body:has([data-learn-quiz-page="quiz"]) footer {
+  display: none;
+}

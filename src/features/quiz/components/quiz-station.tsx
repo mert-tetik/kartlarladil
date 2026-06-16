@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   GraduationCap,
   Languages,
+  Lock,
   RotateCcw,
   Trophy,
   Volume2,
@@ -47,6 +48,8 @@ import type {
 
 const COUNT_OPTIONS = [10, 20, 30, 40, 50, 75, 100];
 
+const CHOICE_OPTION_COLORS = ["bg-red-500", "bg-blue-500", "bg-amber-400", "bg-emerald-500"] as const;
+
 interface QuizItem {
   card: VocabularyCard;
   inventoryCard: InventoryCard;
@@ -77,13 +80,15 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [textResult, setTextResult] = useState<"idle" | "correct" | "incorrect">("idle");
   const [results, setResults] = useState<QuizResult>({ correct: [], incorrect: [], learned: [] });
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">("back");
+  const [mobileCardOpen, setMobileCardOpen] = useState(false);
+  const [mobileCardFace, setMobileCardFace] = useState<"front" | "back">("back");
 
   const languageStats = useMemo(
     () =>
@@ -133,7 +138,6 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       setDeck(items);
       setCurrentIndex(0);
       setShowingAnswer(false);
-      setSelectedOption(null);
       setTextAnswer("");
       setTextResult("idle");
       setResults({ correct: [], incorrect: [], learned: [] });
@@ -207,8 +211,11 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       }
 
       setShowingAnswer(true);
-      setSelectedOption(answer);
       setTextResult(isCorrect ? "correct" : "incorrect");
+      setDesktopCardFace("front");
+      if (mobileCardOpen) {
+        setMobileCardFace("front");
+      }
     }, {
       nextPath: "/learn",
     });
@@ -227,9 +234,11 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
     setCurrentIndex((current) => current + 1);
     setShowingAnswer(false);
-    setSelectedOption(null);
     setTextAnswer("");
     setTextResult("idle");
+    setDesktopCardFace("back");
+    setMobileCardFace("back");
+    setMobileCardOpen(false);
   }
 
   function handleContinueFromCelebration() {
@@ -249,9 +258,11 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
     setCurrentIndex((current) => current + 1);
     setShowingAnswer(false);
-    setSelectedOption(null);
     setTextAnswer("");
     setTextResult("idle");
+    setDesktopCardFace("back");
+    setMobileCardFace("back");
+    setMobileCardOpen(false);
   }
 
   function handleRestart() {
@@ -351,21 +362,24 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   return (
     <>
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-5xl" data-learn-quiz-page={phase === "quiz" ? "quiz" : undefined}>
         <QuizProgressHeader
           item={item}
           currentIndex={currentIndex}
           total={deck.length}
           showingAnswer={showingAnswer}
+          onShowCard={() => {
+            setMobileCardOpen(true);
+            setMobileCardFace(showingAnswer ? "front" : "back");
+          }}
         />
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div className="order-2 lg:order-1">
+          <div className="order-2 flex flex-col lg:order-1">
             {item.questionType === "choice" ? (
               <ChoiceQuestion
                 item={item}
                 showingAnswer={showingAnswer}
-                selectedOption={selectedOption}
                 onAnswer={handleAnswer}
                 onNext={handleNext}
               />
@@ -382,21 +396,92 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
             )}
           </div>
 
-          <div className="order-1 lg:order-2">
-            <div className="mx-auto max-w-xs lg:max-w-none">
+          <div className="order-1 hidden h-full min-h-0 items-center justify-center lg:order-2 lg:flex">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setDesktopCardFace((current) => (current === "front" ? "back" : "front"))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setDesktopCardFace((current) => (current === "front" ? "back" : "front"));
+                }
+              }}
+              className="h-full w-auto cursor-pointer focus:outline-none"
+              aria-label={t("cards.flip")}
+            >
               <VocabularyCardView
                 card={item.card}
                 inventory={item.inventoryCard}
                 owned
                 initialFace="back"
-                face={showingAnswer ? "front" : "back"}
+                face={desktopCardFace}
                 flippable={false}
                 compact
+                className="h-full w-auto max-w-full !min-h-0"
               />
             </div>
           </div>
         </div>
       </div>
+
+      {mobileCardOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 lg:hidden"
+          onClick={() => setMobileCardOpen(false)}
+        >
+          <div className="relative w-full max-w-xs" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setMobileCardOpen(false)}
+              className="absolute -top-12 right-0 inline-flex size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-sm focus:outline-none"
+              aria-label={t("common.close")}
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+
+            <div
+              role="button"
+              tabIndex={showingAnswer ? 0 : -1}
+              aria-disabled={!showingAnswer}
+              onClick={() => {
+                if (showingAnswer) {
+                  setMobileCardFace((current) => (current === "front" ? "back" : "front"));
+                }
+              }}
+              onKeyDown={(event) => {
+                if (showingAnswer && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  setMobileCardFace((current) => (current === "front" ? "back" : "front"));
+                }
+              }}
+              className={cn(
+                "w-full focus:outline-none",
+                showingAnswer ? "cursor-pointer" : "cursor-default",
+              )}
+              aria-label={t("cards.flip")}
+            >
+              <VocabularyCardView
+                card={item.card}
+                inventory={item.inventoryCard}
+                owned
+                initialFace="back"
+                face={mobileCardFace}
+                flippable={false}
+                compact
+                className="w-full"
+              />
+            </div>
+
+            {!showingAnswer ? (
+              <div className="mt-5 flex flex-col items-center text-white">
+                <Lock className="size-8" aria-hidden="true" />
+                <p className="mt-2 text-center text-sm font-semibold">{t("quiz.showCardLocked")}</p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <CardDetailsDialog card={item.card} open={detailsOpen} onOpenChange={setDetailsOpen} />
 
@@ -535,11 +620,13 @@ function QuizProgressHeader({
   currentIndex,
   total,
   showingAnswer,
+  onShowCard,
 }: {
   item: QuizItem;
   currentIndex: number;
   total: number;
   showingAnswer: boolean;
+  onShowCard: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -552,8 +639,20 @@ function QuizProgressHeader({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Badge className={cn("border-transparent", style.text)}>
-            {item.card.tier} · {item.questionType === "text" ? t("quiz.learningQuizBadge") : t("quiz.activeBadge")}
+            {item.questionType === "text"
+              ? t("quiz.learningQuizBadge")
+              : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
           </Badge>
+          <button
+            type="button"
+            onClick={onShowCard}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
+              style.accent,
+            )}
+          >
+            {t("quiz.showCard")}
+          </button>
           {item.questionType === "text" ? (
             <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
           ) : null}
@@ -588,13 +687,11 @@ function QuizProgressHeader({
 function ChoiceQuestion({
   item,
   showingAnswer,
-  selectedOption,
   onAnswer,
   onNext,
 }: {
   item: QuizItem;
   showingAnswer: boolean;
-  selectedOption: string | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onNext: () => void;
 }) {
@@ -613,20 +710,22 @@ function ChoiceQuestion({
       </h2>
 
       <div className="mt-8 grid gap-3">
-        {question.options.map((option) => {
-          const chosen = selectedOption === option;
+        {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
+          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
             <button
               key={option}
               type="button"
+              data-quiz-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "min-h-14 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-white disabled:cursor-default",
-                showingAnswer && isCorrectOption && "border-emerald-500 bg-emerald-50 text-emerald-900",
-                showingAnswer && chosen && !isCorrectOption && "border-rose-500 bg-rose-50 text-rose-900",
+                "min-h-14 rounded-md px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-default",
+                optionColor,
+                showingAnswer && isCorrectOption && "bg-emerald-500 hover:brightness-100",
+                showingAnswer && !isCorrectOption && "bg-slate-950 hover:brightness-100",
               )}
             >
               {option}

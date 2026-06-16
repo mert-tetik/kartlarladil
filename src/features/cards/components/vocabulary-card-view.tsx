@@ -26,6 +26,7 @@ interface VocabularyCardViewProps {
   face?: CardFace;
   flippable?: boolean;
   backDisplayTier?: Tier;
+  className?: string;
   onAdd?: () => void;
   onSkip?: () => void;
 }
@@ -45,6 +46,7 @@ export function VocabularyCardView({
   face,
   flippable = false,
   backDisplayTier,
+  className,
   onAdd,
   onSkip,
 }: VocabularyCardViewProps) {
@@ -127,6 +129,7 @@ export function VocabularyCardView({
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
         compact ? "" : "min-h-[320px] max-sm:min-h-0",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900",
+        className,
       )}
     >
       <div
