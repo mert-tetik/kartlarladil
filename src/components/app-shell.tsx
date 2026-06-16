@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CookieNotice } from "@/components/cookie-notice";
 import { AppNavigation } from "@/components/app-navigation";
 import { PageTransitionShell } from "@/components/page-transition-shell";
 import { SiteFooter } from "@/components/site-footer";
@@ -23,6 +24,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
                 <PageTransitionShell>{children}</PageTransitionShell>
               </div>
               <SiteFooter />
+              <CookieNotice />
             </div>
           </ProgressStatsProvider>
         </SubscriptionProvider>

@@ -21,7 +21,6 @@ interface VocabularyCardViewProps {
   card: VocabularyCard;
   inventory?: InventoryCard;
   owned?: boolean;
-  compact?: boolean;
   initialFace?: CardFace;
   face?: CardFace;
   flippable?: boolean;
@@ -41,7 +40,6 @@ export function VocabularyCardView({
   card,
   inventory,
   owned,
-  compact = false,
   initialFace = "front",
   face,
   flippable = false,
@@ -56,17 +54,9 @@ export function VocabularyCardView({
     initialFace,
     isFaceUp: initialFace === "front",
   }));
-  const { locale } = useLocale();
+
   const t = useT();
-  const style = TIER_STYLES[card.tier];
-  const requirement = TIER_REQUIREMENTS[card.tier];
-  const tierPoints = getPointsForTier(card.tier);
-  const progress = inventory ? Math.min(100, (inventory.correctCount / requirement) * 100) : 0;
-  const learned = inventory?.status === "learned";
-  const showDetails = !compact;
-  const examplePreview = card.examples[0]?.sentence ?? card.example;
-  const visibleBackTier = backDisplayTier ?? card.tier;
-  const cardTranslation = getCardTranslation(card, locale);
+
   const isControlled = face !== undefined;
   const isFaceUp = isControlled
     ? face === "front"
@@ -89,26 +79,6 @@ export function VocabularyCardView({
     revealFront();
   }
 
-  function handleDetailsClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    setDetailsOpen(true);
-  }
-
-  function handleSkipClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    onSkip?.();
-  }
-
-  function handleAddClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    onAdd?.();
-  }
-
-  function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    speakCardTerm(card.term, card.language);
-  }
-
   const flipRoleProps =
     !isControlled && flippable && !isFaceUp
       ? {
@@ -127,7 +97,7 @@ export function VocabularyCardView({
       {...flipRoleProps}
       className={cn(
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
-        compact ? "" : "min-h-[320px] max-sm:min-h-0",
+        "min-h-[320px] max-sm:min-h-0",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900",
         className,
       )}
@@ -138,168 +108,241 @@ export function VocabularyCardView({
           isFaceUp ? "[transform:rotateY(0deg)]" : "[transform:rotateY(180deg)]",
         )}
       >
-        <div
-          aria-hidden={!isFaceUp}
-          inert={!isFaceUp}
-          className={cn(
-            "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
-            compact ? "p-2 sm:p-3 xl:p-4" : "p-2.5 sm:p-4",
-            style.border,
-            style.surface,
-          )}
-        >
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 top-10 sm:inset-x-3 sm:top-12 xl:inset-x-4 xl:top-14" : "inset-x-4 top-14 max-sm:inset-x-2.5 max-sm:top-9")} />
-          <div className={cn("pointer-events-none absolute h-px bg-slate-900/10", compact ? "inset-x-2 bottom-12 sm:inset-x-3 sm:bottom-14 xl:inset-x-4 xl:bottom-20" : "inset-x-4 bottom-20 max-sm:inset-x-2.5 max-sm:bottom-12")} />
+        <CardFront
+          card={card}
+          inventory={inventory}
+          owned={owned}
+          isFaceUp={isFaceUp}
+          onShowDetails={() => setDetailsOpen(true)}
+          onAdd={onAdd}
+          onSkip={onSkip}
+        />
+        <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} />
+      </div>
 
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <Badge className={cn("border-transparent bg-white/80 max-sm:text-[10px]", style.text)}>
-                {card.tier} · {getTierLabel(card.tier, locale)}
-              </Badge>
-              <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
-                <span>{getLanguageDisplayName(card.language, locale)}</span>
-                <span
-                  aria-label={`${tierPoints} ${t("common.points")}`}
-                  className={cn("inline-flex items-center gap-1", style.text)}
-                  title={`${tierPoints} ${t("common.points")}`}
-                >
-                  <Coins className="size-3.5" aria-hidden="true" />
-                  <span>{tierPoints}</span>
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {showDetails ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  aria-label={`${card.term} ${t("cards.details")}`}
-                  title={t("cards.details")}
-                  onClick={handleDetailsClick}
-                  className="size-9 border-white/70 bg-white/80 max-sm:size-7"
-                >
-                  <Info className="size-4" aria-hidden="true" />
-                </Button>
-              ) : null}
-              <span className={cn("size-3 rounded-full max-sm:size-2.5", style.accent)} aria-hidden="true" />
-            </div>
-          </div>
+      <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} />
+    </article>
+  );
+}
 
-          <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-initial max-sm:justify-start max-sm:py-1">
-            <div className="flex items-center gap-2 text-slate-500">
-              <button
-                type="button"
-                aria-label={`${card.term} ${t("cards.speak")}`}
-                title={t("cards.speak")}
-                onClick={handleSpeakClick}
-                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 max-sm:size-6"
-              >
-                <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
-              </button>
-              <span className="text-sm max-sm:text-xs">{card.pronunciation}</span>
-            </div>
-            <h3
-              className={cn(
-                "mt-3 font-display font-semibold leading-none text-slate-950 max-sm:mt-1",
-                compact ? "text-xl sm:text-2xl xl:text-3xl" : "text-2xl sm:text-4xl",
-              )}
+function CardFront({
+  card,
+  inventory,
+  owned,
+  isFaceUp,
+  onShowDetails,
+  onAdd,
+  onSkip,
+}: {
+  card: VocabularyCard;
+  inventory?: InventoryCard;
+  owned?: boolean;
+  isFaceUp: boolean;
+  onShowDetails: () => void;
+  onAdd?: () => void;
+  onSkip?: () => void;
+}) {
+  const { locale } = useLocale();
+  const t = useT();
+  const style = TIER_STYLES[card.tier];
+  const requirement = TIER_REQUIREMENTS[card.tier];
+  const tierPoints = getPointsForTier(card.tier);
+  const progress = inventory ? Math.min(100, (inventory.correctCount / requirement) * 100) : 0;
+  const learned = inventory?.status === "learned";
+  const examplePreview = card.examples[0]?.sentence ?? card.example;
+  const cardTranslation = getCardTranslation(card, locale);
+
+  function handleDetailsClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onShowDetails();
+  }
+
+  function handleSkipClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onSkip?.();
+  }
+
+  function handleAddClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onAdd?.();
+  }
+
+  function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    speakCardTerm(card.term, card.language);
+  }
+
+  return (
+    <div
+      aria-hidden={!isFaceUp}
+      inert={!isFaceUp}
+      className={cn(
+        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
+        "p-2.5 sm:p-4",
+        style.border,
+        style.surface,
+      )}
+    >
+      <div className="pointer-events-none absolute inset-x-4 top-14 h-px bg-slate-900/10 max-sm:inset-x-2.5 max-sm:top-9" />
+      <div className="pointer-events-none absolute inset-x-4 bottom-20 h-px bg-slate-900/10 max-sm:inset-x-2.5 max-sm:bottom-12" />
+
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Badge className={cn("border-transparent bg-white/80 max-sm:text-[10px]", style.text)}>
+            {card.tier} · {getTierLabel(card.tier, locale)}
+          </Badge>
+          <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
+            <span>{getLanguageDisplayName(card.language, locale)}</span>
+            <span
+              aria-label={`${tierPoints} ${t("common.points")}`}
+              className={cn("inline-flex items-center gap-1", style.text)}
+              title={`${tierPoints} ${t("common.points")}`}
             >
-              {card.term}
-            </h3>
-            <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">{getPartOfSpeechLabel(card.termKind, locale)}</p>
-            {!compact ? <p className="mt-5 text-lg font-semibold text-slate-800 max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">{cardTranslation}</p> : null}
+              <Coins className="size-3.5" aria-hidden="true" />
+              <span>{tierPoints}</span>
+            </span>
           </div>
-
-          {!compact ? (
-            <p className="truncate text-sm leading-6 text-slate-700 max-sm:mt-1 max-sm:text-xs max-sm:leading-4" title={examplePreview}>
-              {examplePreview}
-            </p>
-          ) : null}
-
-          {inventory ? (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
-                <span>
-                  {inventory.correctCount}/{requirement}
-                </span>
-              </div>
-              <Progress value={progress} indicatorClassName={style.accent} />
-            </div>
-          ) : null}
-
-          {onAdd || onSkip ? (
-            <div className="mt-4 grid grid-cols-2 gap-2 max-sm:mt-2 max-sm:gap-1.5">
-              <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
-                <X className="size-3" aria-hidden="true" />
-                {t("cards.skip")}
-              </Button>
-              <Button onClick={handleAddClick} disabled={owned || !onAdd} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
-                {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
-                {owned ? t("cards.owned") : t("cards.add")}
-              </Button>
-            </div>
-          ) : null}
         </div>
-
-        <div
-          aria-hidden={isFaceUp}
-          inert={isFaceUp}
-          className={cn(
-            "absolute inset-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
-            compact ? "p-2" : "p-1.5 sm:p-2.5",
-          )}
-        >
-          <div
-            data-card-back-tier={visibleBackTier}
-            className={cn(
-              "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white max-sm:p-2.5",
-              style.backPanel,
-              style.backBorder,
-            )}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            aria-label={`${card.term} ${t("cards.details")}`}
+            title={t("cards.details")}
+            onClick={handleDetailsClick}
+            className="size-9 border-white/70 bg-white/80 max-sm:size-7"
           >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 opacity-35"
-              style={{
-                backgroundImage:
-                  "linear-gradient(135deg, rgba(255,255,255,0.42) 1px, transparent 1px), linear-gradient(45deg, rgba(255,255,255,0.20) 1px, transparent 1px)",
-                backgroundSize: "18px 18px",
-              }}
-            />
-            <PlayingCardBackPattern />
-
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getTierLabel(visibleBackTier, locale)}</span>
-                <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getLanguageDisplayName(card.language, locale)}</span>
-              </div>
-
-              <div className="flex flex-1 flex-col items-center justify-center text-center">
-                <div
-                  data-card-back-medallion="true"
-                  className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm max-sm:size-16"
-                >
-                  <span className={cn("font-display text-5xl font-semibold leading-none max-sm:text-3xl", style.backText)}>
-                    {visibleBackTier}
-                  </span>
-                  <span className={cn("pointer-events-none absolute inset-2 rounded-full border max-sm:inset-1", style.border)} aria-hidden="true" />
-                </div>
-                <p className="mt-4 text-sm font-semibold text-white/95 max-sm:mt-2 max-sm:text-xs">{t("cards.flip")}</p>
-              </div>
-
-              <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75 max-sm:text-[10px]">
-                <span>FoxiesDeck</span>
-                <span>{t("cards.collection")}</span>
-              </div>
-            </div>
-          </div>
+            <Info className="size-4" aria-hidden="true" />
+          </Button>
+          <span className={cn("size-3 rounded-full max-sm:size-2.5", style.accent)} aria-hidden="true" />
         </div>
       </div>
 
-      {showDetails ? <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} /> : null}
-    </article>
+      <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-initial max-sm:justify-start max-sm:py-1">
+        <div className="flex items-center gap-2 text-slate-500">
+          <button
+            type="button"
+            aria-label={`${card.term} ${t("cards.speak")}`}
+            title={t("cards.speak")}
+            onClick={handleSpeakClick}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 max-sm:size-6"
+          >
+            <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
+          </button>
+          <span className="text-sm max-sm:text-xs">{card.pronunciation}</span>
+        </div>
+        <h3 className="mt-3 font-display text-2xl font-semibold leading-none text-slate-950 max-sm:mt-1 sm:text-4xl">
+          {card.term}
+        </h3>
+        <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
+          {getPartOfSpeechLabel(card.termKind, locale)}
+        </p>
+        <p className="mt-5 text-lg font-semibold text-slate-800 max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">
+          {cardTranslation}
+        </p>
+      </div>
+
+      <p
+        className="truncate text-sm leading-6 text-slate-700 max-sm:mt-1 max-sm:text-xs max-sm:leading-4"
+        title={examplePreview}
+      >
+        {examplePreview}
+      </p>
+
+      {inventory ? (
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+            <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
+            <span>
+              {inventory.correctCount}/{requirement}
+            </span>
+          </div>
+          <Progress value={progress} indicatorClassName={style.accent} />
+        </div>
+      ) : null}
+
+      {onAdd || onSkip ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 max-sm:mt-2 max-sm:gap-1.5">
+          <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
+            <X className="size-3" aria-hidden="true" />
+            {t("cards.skip")}
+          </Button>
+          <Button onClick={handleAddClick} disabled={owned || !onAdd} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
+            {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
+            {owned ? t("cards.owned") : t("cards.add")}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CardBack({
+  card,
+  isFaceUp,
+  backDisplayTier,
+}: {
+  card: VocabularyCard;
+  isFaceUp: boolean;
+  backDisplayTier?: Tier;
+}) {
+  const { locale } = useLocale();
+  const t = useT();
+  const style = TIER_STYLES[card.tier];
+  const visibleBackTier = backDisplayTier ?? card.tier;
+
+  return (
+    <div
+      aria-hidden={isFaceUp}
+      inert={isFaceUp}
+      className={cn(
+        "absolute inset-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
+        "p-1.5 sm:p-2.5",
+      )}
+    >
+      <div
+        data-card-back-tier={visibleBackTier}
+        className={cn(
+          "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white max-sm:p-2.5",
+          style.backPanel,
+          style.backBorder,
+        )}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-35"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, rgba(255,255,255,0.42) 1px, transparent 1px), linear-gradient(45deg, rgba(255,255,255,0.20) 1px, transparent 1px)",
+            backgroundSize: "18px 18px",
+          }}
+        />
+        <PlayingCardBackPattern />
+
+        <div className="relative flex flex-1 flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getTierLabel(visibleBackTier, locale)}</span>
+            <span className="text-xs font-semibold text-white/75 max-sm:text-[10px]">{getLanguageDisplayName(card.language, locale)}</span>
+          </div>
+
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <div data-card-back-medallion="true" className="relative flex size-24 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm max-sm:size-16">
+              <span className={cn("font-display text-5xl font-semibold leading-none max-sm:text-3xl", style.backText)}>
+                {visibleBackTier}
+              </span>
+              <span className={cn("pointer-events-none absolute inset-2 rounded-full border max-sm:inset-1", style.border)} aria-hidden="true" />
+            </div>
+            <p className="mt-4 text-sm font-semibold text-white/95 max-sm:mt-2 max-sm:text-xs">{t("cards.flip")}</p>
+          </div>
+
+          <div className="flex items-end justify-between gap-3 text-xs font-semibold text-white/75 max-sm:text-[10px]">
+            <span>FoxiesDeck</span>
+            <span>{t("cards.collection")}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

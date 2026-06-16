@@ -432,6 +432,12 @@ const tr = {
   "footer.subscriptions": "Abonelik Koşulları",
   "footer.contact": "İletişim",
 
+  // Cookie notice
+  "cookies.notice":
+    "Bu site, oturum yönetimi ve dil tercihi için gerekli çerezleri kullanır.",
+  "cookies.policy": "Çerez Politikası",
+  "cookies.accept": "Anladım",
+
   // Pricing consent
   "pricing.consentPrefix": "Ödeme yaparak ",
   "pricing.consentTerms": "Kullanım Koşulları",
@@ -865,6 +871,12 @@ const en: Dictionary = {
   "footer.cookies": "Cookies",
   "footer.subscriptions": "Subscription Terms",
   "footer.contact": "Contact",
+
+  // Cookie notice
+  "cookies.notice":
+    "This site uses essential cookies for session management and language preference.",
+  "cookies.policy": "Cookie Policy",
+  "cookies.accept": "Got it",
 
   // Pricing consent
   "pricing.consentPrefix": "By checking out, you agree to the ",

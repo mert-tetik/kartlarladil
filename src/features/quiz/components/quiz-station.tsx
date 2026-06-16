@@ -417,7 +417,6 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
                 initialFace="back"
                 face={desktopCardFace}
                 flippable={false}
-                compact
                 className="h-full w-auto max-w-full !min-h-0"
               />
             </div>
@@ -468,7 +467,6 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
                 initialFace="back"
                 face={mobileCardFace}
                 flippable={false}
-                compact
                 className="w-full"
               />
             </div>
@@ -851,7 +849,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
       <p className="mt-2 text-sm leading-6 text-slate-600">{t("quiz.learnedDescription")}</p>
 
       <div className="mt-6">
-        <VocabularyCardView card={card} owned initialFace="front" flippable={false} compact />
+        <VocabularyCardView card={card} owned initialFace="front" flippable={false} />
       </div>
 
       <Button className="mt-8 w-full" onClick={onContinue}>

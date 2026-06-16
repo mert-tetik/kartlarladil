@@ -62,7 +62,7 @@ export function CollectionPreviewCard({ card, index }: { card: VocabularyCard; i
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <VocabularyCardView card={card} compact face={face} flippable={false} />
+      <VocabularyCardView card={card} face={face} flippable={false} />
     </div>
   );
 }
