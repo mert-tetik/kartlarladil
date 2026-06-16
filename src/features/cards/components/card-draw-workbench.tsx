@@ -342,8 +342,8 @@ export function CardDrawWorkbench() {
       data-card-draw-workbench
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
-      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-200 max-lg:bg-white max-lg:p-3 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white lg:p-4">
-        <div className="mx-auto max-w-7xl max-lg:space-y-2 space-y-3">
+      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-200 max-lg:bg-white max-lg:p-2 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white lg:p-4">
+        <div className="mx-auto max-w-7xl max-lg:space-y-1 space-y-3">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
@@ -357,7 +357,7 @@ export function CardDrawWorkbench() {
                   if (suggestions.length > 0) setIsDropdownOpen(true);
                 }}
                 placeholder={t("cards.searchPlaceholder")}
-                className="relative h-12 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
+                className="relative h-12 max-lg:h-11 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
               />
               {isDropdownOpen ? (
                 <div
@@ -422,7 +422,7 @@ export function CardDrawWorkbench() {
             {showCardGrid ? (
               <div
                 ref={gridRef}
-                className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
+                className="card-draw-card-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
               >
                 {cards.map((card, index) => (
