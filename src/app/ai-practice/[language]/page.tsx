@@ -41,7 +41,7 @@ export default async function AiPracticeCharacterPage({ params }: AiPracticeChar
         }
       />
       <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
-        <LanguageFlag code={rawLanguage} />
+        <LanguageFlag code={rawLanguage} className="h-5 w-7" />
         {languageName}
       </div>
       <div className="mt-6">

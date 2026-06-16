@@ -61,7 +61,12 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             <p className="font-semibold text-slate-950">{getAccountLabel(user)}</p>
             <p className="mt-1 truncate text-slate-500">{user.email}</p>
             <div className="mt-2">
-              <PlanBadge />
+              <Link
+                href="/pricing"
+                className="inline-block cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+              >
+                <PlanBadge />
+              </Link>
             </div>
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">

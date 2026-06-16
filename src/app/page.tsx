@@ -113,9 +113,7 @@ export default async function Home() {
 
             return (
               <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm">
-                <div className="flex size-12 items-center justify-center rounded-md bg-orange-100 text-[#f76808]">
-                  <Icon className="size-6" aria-hidden="true" />
-                </div>
+                <Icon className="size-7 text-[#f76808]" aria-hidden="true" />
                 <h2 className="mt-5 text-xl font-semibold text-slate-950">{item.title}</h2>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
               </article>
@@ -213,7 +211,11 @@ export default async function Home() {
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-5">
               {RANKS.map((rank) => (
                 <div key={rank.id} className="flex flex-col items-center text-center">
-                  <RankIcon icon={rank.icon} className="size-24 sm:size-28 md:size-32" />
+                  <RankIcon
+                    icon={rank.icon}
+                    className="size-24 sm:size-28 md:size-32"
+                    sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
+                  />
                   <p
                     className="mt-3 max-w-full truncate px-1 text-sm font-semibold text-slate-950"
                     title={getRankLabel(rank, locale)}

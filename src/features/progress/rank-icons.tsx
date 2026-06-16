@@ -15,14 +15,22 @@ const RANK_ICON_ASSETS: Record<RankIconId, string> = {
   flame: "/ranks/rank10.png",
 };
 
-export function RankIcon({ icon, className }: { icon: RankIconId; className?: string }) {
+export function RankIcon({
+  icon,
+  className,
+  sizes = "48px",
+}: {
+  icon: RankIconId;
+  className?: string;
+  sizes?: string;
+}) {
   return (
     <Image
       src={RANK_ICON_ASSETS[icon]}
       alt=""
       width={512}
       height={512}
-      sizes="48px"
+      sizes={sizes}
       className={cn("shrink-0 object-contain", className)}
       aria-hidden="true"
       draggable={false}

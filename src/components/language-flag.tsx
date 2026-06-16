@@ -16,7 +16,7 @@ export function LanguageFlag({
   return (
     <span
       className={cn(
-        "relative inline-block shrink-0 overflow-hidden rounded-[3px] border border-slate-900/10 bg-white",
+        "relative inline-block h-4 w-6 shrink-0 overflow-hidden rounded-[3px] border border-slate-900/10 bg-white",
         className,
       )}
     >

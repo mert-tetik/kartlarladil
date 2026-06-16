@@ -114,7 +114,7 @@ const tr = {
   "home.aiPractice.title": "AI ile konuşma pratiği",
   "home.aiPractice.description":
     "10 farklı karakterle hedef dilinde sohbet et; hatalarını nazikçe düzeltir ve akıcı konuşmana yardımcı olur.",
-  "home.aiPractice.cta": "Practice Now!",
+  "home.aiPractice.cta": "Şimdi pratik yap!",
 
   "home.cta.title": "Koleksiyonunu büyüt.",
   "home.cta.description":
