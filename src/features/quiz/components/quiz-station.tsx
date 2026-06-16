@@ -335,11 +335,18 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   if (phase === "result") {
     return (
-      <ResultView
-        results={results}
-        onRestart={handleRestart}
-        onExit={handleExit}
-      />
+      <div
+        data-learn-quiz-page="result"
+        className="fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-slate-50 p-4"
+      >
+        <div className="w-full max-w-3xl">
+          <ResultView
+            results={results}
+            onRestart={handleRestart}
+            onExit={handleExit}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -734,7 +741,7 @@ function ChoiceQuestion({
 
       {showingAnswer ? (
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Button className="w-full" onClick={onNext}>
+          <Button className="w-full bg-[#f76808] hover:bg-[#e05d07]" onClick={onNext}>
             {t("quiz.nextCard")}
           </Button>
         </div>
@@ -822,7 +829,7 @@ function TextQuestion({
             <p className="text-sm leading-6 text-slate-500">
               {getCardExampleTranslation(item.card.examples[0], locale)}
             </p>
-            <Button className="w-full" onClick={onNext}>
+            <Button className="w-full bg-[#f76808] hover:bg-[#e05d07]" onClick={onNext}>
               {t("quiz.nextCard")}
             </Button>
           </div>
@@ -910,7 +917,6 @@ function ResultView({
 
       {results.learned.length > 0 ? <ResultList title={t("quiz.resultLearned")} cards={results.learned} /> : null}
       {results.correct.length > 0 ? <ResultList title={t("quiz.resultCorrect")} cards={results.correct} /> : null}
-      {results.incorrect.length > 0 ? <ResultList title={t("quiz.resultIncorrect")} cards={results.incorrect} /> : null}
     </div>
   );
 }
