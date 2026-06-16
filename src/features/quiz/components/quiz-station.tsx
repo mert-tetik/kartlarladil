@@ -121,7 +121,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
             card,
             inventoryCard,
             questionType: "text",
-            question: { correctAnswer: getCardTranslation(card, getStudyLocale(card.language, locale)) },
+            question: { correctAnswer: card.term },
             willLearn: true,
           };
         }
@@ -188,25 +188,18 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       }
     }
 
-    await requireAuthAction(async () => {
-      playSoundEffect(isCorrect ? "correct" : "incorrect");
-      const result = await recordAnswer({
-        cardId: item.card.id,
-        selectedAnswer: answer,
-        correctAnswer,
-        isCorrect,
-        mode,
-      });
+    requireAuthAction(() => {
+      const willLearn = item.willLearn && isCorrect;
 
-      const learned = result?.inventoryCard?.status === "learned";
+      playSoundEffect(isCorrect ? "correct" : "incorrect");
 
       setResults((current) => ({
         correct: isCorrect ? [...current.correct, item.card] : current.correct,
         incorrect: !isCorrect ? [...current.incorrect, item.card] : current.incorrect,
-        learned: learned ? [...current.learned, item.card] : current.learned,
+        learned: willLearn ? [...current.learned, item.card] : current.learned,
       }));
 
-      if (learned) {
+      if (willLearn) {
         setLastLearned(item.card);
       }
 
@@ -216,6 +209,14 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       if (mobileCardOpen) {
         setMobileCardFace("front");
       }
+
+      void recordAnswer({
+        cardId: item.card.id,
+        selectedAnswer: answer,
+        correctAnswer,
+        isCorrect,
+        mode,
+      });
     }, {
       nextPath: "/learn",
     });
@@ -301,26 +302,30 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   if (phase === "language") {
     return (
-      <LanguageSelection
-        languageStats={languageStats}
-        selectedLanguage={selectedLanguage}
-        onSelect={handleSelectLanguage}
-      />
+      <div className="flex flex-1 flex-col items-center justify-center">
+        <LanguageSelection
+          languageStats={languageStats}
+          selectedLanguage={selectedLanguage}
+          onSelect={handleSelectLanguage}
+        />
+      </div>
     );
   }
 
   if (phase === "count" && selectedLanguage) {
     return (
-      <CountSelection
-        language={selectedLanguage}
-        availableCount={availableCards.length}
-        selectedCount={selectedCount}
-        onSelect={(count) => {
-          setSelectedCount(count);
-          handleStartCount(count);
-        }}
-        onBack={() => setPhase("language")}
-      />
+      <div className="flex flex-1 flex-col items-center justify-center">
+        <CountSelection
+          language={selectedLanguage}
+          availableCount={availableCards.length}
+          selectedCount={selectedCount}
+          onSelect={(count) => {
+            setSelectedCount(count);
+            handleStartCount(count);
+          }}
+          onBack={() => setPhase("language")}
+        />
+      </div>
     );
   }
 
@@ -381,7 +386,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
           }}
         />
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="mt-6 max-sm:mt-3 grid gap-6 max-sm:gap-3 lg:grid-cols-2">
           <div className="order-2 flex flex-col lg:order-1">
             {item.questionType === "choice" ? (
               <ChoiceQuestion
@@ -640,7 +645,7 @@ function QuizProgressHeader({
   const progress = Math.min(100, (item.inventoryCard.correctCount / requirement) * 100);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 max-sm:p-2 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Badge className={cn("border-transparent", style.text)}>
@@ -706,15 +711,15 @@ function ChoiceQuestion({
   const answerLocale = getStudyLocale(item.card.language, locale);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 max-sm:p-3 sm:p-8">
       <p className="text-sm font-semibold text-slate-500">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
-      <h2 className="mt-4 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
         {item.card.term}
       </h2>
 
-      <div className="mt-8 grid gap-3">
+      <div className="mt-8 max-sm:mt-4 grid gap-3">
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
           const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
@@ -740,7 +745,7 @@ function ChoiceQuestion({
       </div>
 
       {showingAnswer ? (
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 max-sm:mt-3 flex flex-col gap-3 sm:flex-row">
           <Button className="w-full bg-[#f76808] hover:bg-[#e05d07]" onClick={onNext}>
             {t("quiz.nextCard")}
           </Button>
@@ -770,7 +775,6 @@ function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question as { correctAnswer: string };
-  const answerLocale = getStudyLocale(item.card.language, locale);
 
   function handleSubmit() {
     if (showingAnswer) return;
@@ -779,20 +783,20 @@ function TextQuestion({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 max-sm:p-3 sm:p-8">
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
       </div>
 
-      <p className="mt-4 text-sm font-semibold text-slate-500">
-        {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
+      <p className="mt-4 max-sm:mt-2 text-sm font-semibold text-slate-500">
+        {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <h2 className="mt-4 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
-        {item.card.term}
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
+        {getCardTranslation(item.card, locale)}
       </h2>
 
-      <div className="mt-8">
+      <div className="mt-8 max-sm:mt-4">
         <input
           type="text"
           value={textAnswer}
@@ -812,7 +816,7 @@ function TextQuestion({
         />
 
         {showingAnswer ? (
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 max-sm:mt-2 space-y-3">
             <div className="flex items-center gap-3">
               {textResult === "correct" ? (
                 <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
@@ -834,7 +838,7 @@ function TextQuestion({
             </Button>
           </div>
         ) : (
-          <Button className="mt-4 w-full" onClick={handleSubmit} disabled={textAnswer.trim().length === 0}>
+          <Button className="mt-4 max-sm:mt-2 w-full" onClick={handleSubmit} disabled={textAnswer.trim().length === 0}>
             {t("quiz.submitAnswer")}
           </Button>
         )}

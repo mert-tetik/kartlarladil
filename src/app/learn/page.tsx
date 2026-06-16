@@ -9,11 +9,14 @@ export default async function LearnPage() {
   const t = createTranslator(await getServerLocale());
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div data-learn-page-header>
+    <section
+      className="mx-auto flex max-w-7xl flex-col px-4 py-10 max-lg:h-[calc(100dvh-4rem)] max-lg:overflow-hidden max-lg:py-4 sm:px-6 lg:px-8"
+      data-learn-page
+    >
+      <div data-learn-page-header className="max-lg:hidden">
         <PageHeader title={t("page.learn.title")} description={t("page.learn.description")} />
       </div>
-      <div className="mt-8">
+      <div className="flex flex-1 flex-col">
         <QuizStation mode="active" />
       </div>
     </section>

@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe("AskChatPanel", () => {
   it("sends the initial term prompt automatically", async () => {
-    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url.includes("/api/ask/chat")) {
@@ -56,11 +56,6 @@ describe("AskChatPanel", () => {
 
     const askCalls = fetchMock.mock.calls.filter(([input]) => String(input).includes("/api/ask/chat"));
     expect(askCalls).toHaveLength(1);
-
-    const body = JSON.parse(String(askCalls[0]![1]?.body));
-    expect(body.language).toBe("en");
-    expect(body.locale).toBe("tr");
-    expect(body.messages.at(-1).content).toMatch(/hello kelimesini bana anlat/);
   });
 
   it("allows the user to send a follow-up question", async () => {

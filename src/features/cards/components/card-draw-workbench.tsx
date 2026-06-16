@@ -410,7 +410,7 @@ export function CardDrawWorkbench() {
       </div>
 
       {/* Cards area - fills the space above controls on mobile */}
-      <div className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
+      <div className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto lg:mt-6">
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">
           {cloudError ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">

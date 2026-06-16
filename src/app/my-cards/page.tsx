@@ -10,14 +10,15 @@ export default async function MyCardsPage() {
 
   return (
     <section
-      className="mx-auto max-w-7xl px-4 py-10 max-lg:px-0 max-lg:py-0 sm:px-6 lg:px-8"
+      className="mx-auto max-w-7xl px-4 py-10 max-lg:px-4 max-lg:py-4 sm:px-6 lg:px-8"
       data-my-cards-page
     >
-      <div className="max-lg:hidden">
-        <PageHeader title={t("page.inventory.title")} description={t("page.inventory.description")} />
-      </div>
-      <div className="mt-8 max-lg:mt-0">
-        <InventoryDashboard mobileSheet />
+      <PageHeader
+        title={t("page.inventory.title")}
+        description={t("page.inventory.description")}
+      />
+      <div className="mt-8 max-lg:mt-4">
+        <InventoryDashboard />
       </div>
     </section>
   );

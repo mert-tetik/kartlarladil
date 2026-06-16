@@ -9,7 +9,7 @@ const tr = {
   "nav.learn": "Öğren",
   "nav.learned": "Öğrenilenler",
   "nav.aiPractice": "AI Practice",
-  "nav.aiPracticeShort": "Practice",
+  "nav.aiPracticeShort": "Pratik",
   "nav.pricing": "Fiyatlandırma",
   "nav.login": "Giriş yap",
   "nav.signup": "Kayıt ol",
@@ -113,7 +113,7 @@ const tr = {
   "home.rankRoad.calculated": "Öğrenilen kartlardan hesaplanır",
   "home.aiPractice.title": "AI ile konuşma pratiği",
   "home.aiPractice.description":
-    "10 farklı karakterle hedef dilinde sohbet et; hatalarını nazikçe düzeltir ve akıcı konuşmana yardımcı olur.",
+    "10 farklı karakterle hedef dilinde doğal bir sohbet et; konuşma pratiği yaparken arkadaşın gibi akıcı kal.",
   "home.aiPractice.highlight": "Konuştukça puan kazan!",
   "home.aiPractice.cta": "Şimdi pratik yap!",
 
@@ -154,10 +154,11 @@ const tr = {
   "account.subscription.noWebhookEvents": "Henüz webhook kaydı yok.",
   "page.aiPractice.title": "AI Practice",
   "page.aiPractice.description":
-    "Pratik yapmak istediğin dili seç, bir karakter belirle ve hedef dilde kaydedilmeyen canlı bir sohbet başlat.",
+    "Pratik yapmak istediğin dili ve seviyeyi seç, bir karakter belirle ve hedef dilde kaydedilmeyen canlı bir sohbet başlat.",
   "page.aiPractice.charactersTitle": "Karakter seç",
   "page.aiPractice.charactersDescription": "{language} pratiği için konuşma stilini seç.",
   "page.aiPractice.tierTitle": "Seviye seç",
+  "page.aiPractice.tierSelectionTitle": "Hangi seviyede pratik yapmak istersin",
   "page.ask.title": "Sor & Öğren",
   "page.ask.description": "Seçtiğin kelime veya dil konusunda soru sor.",
   "page.pricing.title": "Planlar",
@@ -309,8 +310,8 @@ const tr = {
   "quiz.chooseCountDescription": "{language} haznende {count} kart var. Bu sefer kaç kartla çalışmak istersin?",
   "quiz.learningQuizBadge": "Öğrenme sorusu",
   "quiz.learningQuizTitle": "Bu kartı öğrenmek üzeresin",
-  "quiz.learningQuizPrompt": "{language} karşılığını yaz",
-  "quiz.learningQuizPlaceholder": "Anlamı yaz...",
+  "quiz.learningQuizPrompt": "{language} kelimesini yaz",
+  "quiz.learningQuizPlaceholder": "Kelimeyi yaz...",
   "quiz.submitAnswer": "Cevabı kontrol et",
   "quiz.learnedTitle": "Yeni kart öğrendin!",
   "quiz.learnedDescription": "Tebrikler, bu kart artık öğrenildi olarak kaydedildi.",
@@ -592,7 +593,7 @@ const en: Dictionary = {
   "home.rankRoad.calculated": "Calculated from learned cards",
   "home.aiPractice.title": "Practice real conversation with AI",
   "home.aiPractice.description":
-    "Chat in your target language with 10 unique characters. They correct mistakes gently and keep the conversation flowing.",
+    "Chat naturally in your target language with 10 unique characters. They talk like a friend and keep the conversation flowing.",
   "home.aiPractice.highlight": "Earn points as you chat!",
   "home.aiPractice.cta": "Practice Now!",
 
@@ -630,10 +631,11 @@ const en: Dictionary = {
   "account.subscription.noWebhookEvents": "No webhook events yet.",
   "page.aiPractice.title": "AI Practice",
   "page.aiPractice.description":
-    "Choose a practice language, pick a character, and start a live unsaved chat in the target language.",
+    "Choose a practice language and level, pick a character, and start a live unsaved chat in the target language.",
   "page.aiPractice.charactersTitle": "Choose a character",
   "page.aiPractice.charactersDescription": "Choose a conversation style for {language} practice.",
   "page.aiPractice.tierTitle": "Choose level",
+  "page.aiPractice.tierSelectionTitle": "Which level do you want to practice at?",
   "page.ask.title": "Ask & Learn",
   "page.ask.description": "Ask about a word or language topic.",
   "page.pricing.title": "Pricing",
@@ -775,8 +777,8 @@ const en: Dictionary = {
   "quiz.chooseCountDescription": "You have {count} {language} cards. How many do you want to practice this time?",
   "quiz.learningQuizBadge": "Learning question",
   "quiz.learningQuizTitle": "You're about to learn this card",
-  "quiz.learningQuizPrompt": "Type the {language} meaning",
-  "quiz.learningQuizPlaceholder": "Type the meaning...",
+  "quiz.learningQuizPrompt": "Type the {language} word",
+  "quiz.learningQuizPlaceholder": "Type the word...",
   "quiz.submitAnswer": "Check answer",
   "quiz.learnedTitle": "Card learned!",
   "quiz.learnedDescription": "Great job — this card is now marked as learned.",
@@ -1633,14 +1635,17 @@ function aiPracticeCore(labels: {
   niceAnswer: string;
   perfectAnswer: string;
   highlight: string;
+  shortTitle?: string;
+  chooseTier?: string;
 }): Partial<Dictionary> {
   return {
     "nav.aiPractice": labels.title,
-    "nav.aiPracticeShort": "Practice",
+    "nav.aiPracticeShort": labels.shortTitle ?? "Practice",
     "page.aiPractice.title": labels.title,
     "page.aiPractice.description": labels.description,
     "page.aiPractice.charactersTitle": labels.chooseCharacter,
     "page.aiPractice.charactersDescription": labels.characterDescription,
+    "page.aiPractice.tierSelectionTitle": labels.chooseTier ?? "Choose level",
     "aiPractice.chat.characters": labels.characters,
     "aiPractice.chat.reset": labels.reset,
     "aiPractice.chat.emptyTitle": labels.emptyTitle,

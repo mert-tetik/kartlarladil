@@ -189,12 +189,12 @@ function CardFront({
       className={cn(
         "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
         "p-2.5 sm:p-4",
+        "max-sm:justify-between",
         style.border,
         style.surface,
       )}
     >
       <div className="pointer-events-none absolute inset-x-4 top-14 h-px bg-slate-900/10 max-sm:inset-x-2.5 max-sm:top-9" />
-      <div className="pointer-events-none absolute inset-x-4 bottom-20 h-px bg-slate-900/10 max-sm:inset-x-2.5 max-sm:bottom-12" />
 
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -240,7 +240,7 @@ function CardFront({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-initial max-sm:justify-start max-sm:py-1">
+      <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-1 max-sm:justify-center max-sm:py-1">
         <div className="flex items-center gap-2 text-slate-500">
           <button
             type="button"
