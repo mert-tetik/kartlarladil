@@ -2,14 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SubscriptionPlan, SubscriptionStatus } from "@/types/domain";
 
 export interface WebhookEventRow {
-  event_id: string;
+  webhook_id: string;
   processed_at: string | null;
   error_message: string | null;
 }
 
 export interface LemonSqueezyWebhookEvent {
   meta?: {
-    event_id?: string;
+    webhook_id?: string;
     event_name?: string;
     custom_data?: {
       user_id?: string;
@@ -17,11 +17,13 @@ export interface LemonSqueezyWebhookEvent {
   };
   data?: {
     id?: string | number;
+    type?: string;
     attributes?: {
       status?: string;
       variant_id?: string | number;
       product_id?: string | number;
       customer_id?: string | number;
+      subscription_id?: string | number;
       urls?: {
         customer_portal?: string;
       };
@@ -50,12 +52,12 @@ export type WebhookProcessResult =
 
 export async function findWebhookEvent(
   client: SupabaseClient,
-  eventId: string,
+  webhookId: string,
 ): Promise<WebhookEventRow | null> {
   const { data, error } = await client
     .from("webhook_events")
-    .select("event_id, processed_at, error_message")
-    .eq("event_id", eventId)
+    .select("webhook_id, processed_at, error_message")
+    .eq("webhook_id", webhookId)
     .maybeSingle<WebhookEventRow>();
 
   if (error) {
@@ -66,7 +68,7 @@ export async function findWebhookEvent(
 }
 
 interface UpsertWebhookEventInput {
-  eventId: string;
+  webhookId: string;
   eventName: string;
   payload: unknown;
   userId: string;
@@ -79,14 +81,14 @@ export async function upsertWebhookEvent(
 ): Promise<void> {
   const { error } = await client.from("webhook_events").upsert(
     {
-      event_id: input.eventId,
+      webhook_id: input.webhookId,
       event_name: input.eventName,
       payload: input.payload,
       user_id: input.userId,
       processed_at: state.processedAt ?? null,
       error_message: state.errorMessage ?? null,
     },
-    { onConflict: "event_id" },
+    { onConflict: "webhook_id" },
   );
 
   if (error) {
@@ -100,19 +102,23 @@ export async function processWebhookEvent(
   subscriptionUpdate: SubscriptionUpdate,
   userId: string,
 ): Promise<WebhookProcessResult> {
-  const eventId = event.meta?.event_id;
+  const webhookId = event.meta?.webhook_id;
   const eventName = event.meta?.event_name;
 
-  if (!eventId || !eventName) {
+  if (!webhookId || !eventName) {
     return { status: "error", message: "Missing event metadata" };
   }
 
-  const existing = await findWebhookEvent(client, eventId);
+  const existing = await findWebhookEvent(client, webhookId);
   if (existing?.processed_at) {
     return { status: "duplicate" };
   }
 
-  await upsertWebhookEvent(client, { eventId, eventName, payload: event, userId }, { processedAt: null });
+  await upsertWebhookEvent(
+    client,
+    { webhookId, eventName, payload: event, userId },
+    { processedAt: null },
+  );
 
   const { error } = await client.from("user_subscriptions").upsert(
     {
@@ -134,7 +140,7 @@ export async function processWebhookEvent(
   if (error) {
     await upsertWebhookEvent(
       client,
-      { eventId, eventName, payload: event, userId },
+      { webhookId, eventName, payload: event, userId },
       { errorMessage: error.message },
     );
     return { status: "error", message: error.message };
@@ -142,7 +148,7 @@ export async function processWebhookEvent(
 
   await upsertWebhookEvent(
     client,
-    { eventId, eventName, payload: event, userId },
+    { webhookId, eventName, payload: event, userId },
     { processedAt: new Date().toISOString() },
   );
 

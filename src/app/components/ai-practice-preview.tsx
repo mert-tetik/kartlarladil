@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Bot } from "lucide-react";
+
 import { buttonClassName } from "@/components/ui/button";
 import {
   getAiPracticeCharacters,
@@ -40,10 +40,7 @@ export async function AiPracticePreview() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white">
-              <Bot className="size-6" aria-hidden="true" />
-            </div>
-            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950">
+            <h2 className="font-display text-4xl font-semibold text-slate-950">
               {t("home.aiPractice.title")}
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600">

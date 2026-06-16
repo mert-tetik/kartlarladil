@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { verifyWebhookSignature } from "@/features/subscriptions/lemon-squeezy";
+import {
+  fetchSubscription,
+  verifyWebhookSignature,
+} from "@/features/subscriptions/lemon-squeezy";
 import {
   processWebhookEvent,
   type LemonSqueezyWebhookEvent,
@@ -53,7 +56,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing user_id in custom data" }, { status: 400 });
   }
 
-  const update = mapSubscriptionUpdate(event);
+  const update = await resolveSubscriptionUpdate(event);
+
+  if (!update) {
+    return NextResponse.json(
+      { received: true, skipped: true, reason: "Could not resolve subscription update" },
+      { status: 200 },
+    );
+  }
+
   const adminClient = createSupabaseAdminClient();
   const result = await processWebhookEvent(adminClient, event, update, userId);
 
@@ -74,6 +85,34 @@ function parseWebhookPayload(payload: string): LemonSqueezyWebhookEvent | null {
   } catch {
     return null;
   }
+}
+
+async function resolveSubscriptionUpdate(
+  event: LemonSqueezyWebhookEvent,
+): Promise<SubscriptionUpdate | null> {
+  const dataType = event.data?.type;
+  const attributes = event.data?.attributes ?? {};
+
+  if (dataType === "subscriptions" || attributes.variant_id !== undefined) {
+    return mapSubscriptionUpdate(event);
+  }
+
+  const subscriptionId = attributes.subscription_id;
+
+  if (subscriptionId) {
+    const subscription = await fetchSubscription(String(subscriptionId));
+
+    if (subscription) {
+      return mapSubscriptionUpdate({
+        data: {
+          id: subscription.id,
+          attributes: subscription.attributes,
+        },
+      });
+    }
+  }
+
+  return null;
 }
 
 function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpdate {
@@ -131,5 +170,3 @@ function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
 
   return "free";
 }
-
-

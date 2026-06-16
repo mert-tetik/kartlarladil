@@ -51,13 +51,14 @@ function createMockClient(responses: MockResponse[]) {
 function makeEvent(overrides: Partial<LemonSqueezyWebhookEvent["meta"]> = {}): LemonSqueezyWebhookEvent {
   return {
     meta: {
-      event_id: "evt_123",
+      webhook_id: "evt_123",
       event_name: "subscription_created",
       custom_data: { user_id: "user-1" },
       ...overrides,
     },
     data: {
       id: "sub_1",
+      type: "subscriptions",
       attributes: {
         status: "active",
         variant_id: 123,
@@ -86,13 +87,17 @@ const subscriptionUpdate: SubscriptionUpdate = {
 describe("findWebhookEvent", () => {
   it("returns the existing row when found", async () => {
     const { client } = createMockClient([
-      { table: "webhook_events", method: "select", data: { event_id: "evt_123", processed_at: "2026-06-16T00:00:00Z", error_message: null } },
+      {
+        table: "webhook_events",
+        method: "select",
+        data: { webhook_id: "evt_123", processed_at: "2026-06-16T00:00:00Z", error_message: null },
+      },
     ]);
 
     const result = await findWebhookEvent(client, "evt_123");
 
     expect(result).toEqual({
-      event_id: "evt_123",
+      webhook_id: "evt_123",
       processed_at: "2026-06-16T00:00:00Z",
       error_message: null,
     });
@@ -115,7 +120,7 @@ describe("processWebhookEvent", () => {
       {
         table: "webhook_events",
         method: "select",
-        data: { event_id: "evt_123", processed_at: "2026-06-16T00:00:00Z", error_message: null },
+        data: { webhook_id: "evt_123", processed_at: "2026-06-16T00:00:00Z", error_message: null },
       },
     ]);
 

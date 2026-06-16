@@ -1,6 +1,6 @@
 create table if not exists public.webhook_events (
   id uuid primary key default gen_random_uuid(),
-  event_id text not null unique,
+  webhook_id text not null unique,
   event_name text not null,
   payload jsonb not null,
   user_id uuid references auth.users(id) on delete set null,
@@ -12,8 +12,8 @@ create table if not exists public.webhook_events (
 create index if not exists webhook_events_user_created_idx
   on public.webhook_events(user_id, created_at desc);
 
-create index if not exists webhook_events_event_id_idx
-  on public.webhook_events(event_id);
+create index if not exists webhook_events_webhook_id_idx
+  on public.webhook_events(webhook_id);
 
 grant all on public.webhook_events to service_role;
 grant select on public.webhook_events to authenticated;

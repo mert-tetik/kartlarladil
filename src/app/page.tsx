@@ -10,7 +10,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
-import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
+import { RankIcon } from "@/features/progress/rank-icons";
 import { createTranslator } from "@/i18n/dictionaries";
 import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
@@ -166,7 +166,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-white">
+      <section className="bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-3">
             {[
@@ -174,12 +174,12 @@ export default async function Home() {
               ["2", t("home.steps.two.title"), t("home.steps.two.description")],
               ["3", t("home.steps.three.title"), t("home.steps.three.description")],
             ].map(([step, title, description]) => (
-              <article key={step} className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-                <div className="flex size-10 items-center justify-center rounded-md bg-slate-950 text-sm font-bold text-white">
+              <article key={step} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+                <div className="flex size-10 items-center justify-center rounded-md bg-[#f76808] text-sm font-bold text-white">
                   {step}
                 </div>
-                <h2 className="mt-5 text-xl font-semibold text-slate-950">{title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+                <h2 className="mt-5 text-xl font-semibold text-white">{title}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
               </article>
             ))}
           </div>
@@ -210,32 +210,19 @@ export default async function Home() {
               ))}
             </div>
 
-            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-950">{t("home.rankRoad.title")}</p>
-                  <p className="mt-1 text-xs text-slate-500">{t("home.rankRoad.description")}</p>
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-5">
+              {RANKS.map((rank) => (
+                <div key={rank.id} className="flex flex-col items-center text-center">
+                  <RankIcon icon={rank.icon} className="size-24 sm:size-28 md:size-32" />
+                  <p
+                    className="mt-3 max-w-full truncate px-1 text-sm font-semibold text-slate-950"
+                    title={getRankLabel(rank, locale)}
+                  >
+                    {getRankLabel(rank, locale)}
+                  </p>
+                  <p className="text-sm font-medium text-slate-500">{formatNumber(locale, rank.minPoints)}</p>
                 </div>
-                <p className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {t("home.rankRoad.calculated")}
-                </p>
-              </div>
-
-              <div className="mt-5 min-w-0 overflow-x-auto">
-                <div className="grid min-w-[760px] grid-cols-10 gap-3 lg:min-w-0">
-                  {RANKS.map((rank) => (
-                    <div key={rank.id} className="min-w-0 text-center">
-                      <div className="mx-auto flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
-                        <RankIcon icon={rank.icon} className={`size-5 ${getRankIconTone(rank.icon)}`} />
-                      </div>
-                      <p className="mt-2 truncate text-xs font-semibold text-slate-950" title={getRankLabel(rank, locale)}>
-                        {getRankLabel(rank, locale)}
-                      </p>
-                      <p className="mt-1 text-[11px] font-semibold text-slate-500">{formatNumber(locale, rank.minPoints)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

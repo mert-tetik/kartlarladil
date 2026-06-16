@@ -100,6 +100,39 @@ export async function createCheckoutUrl(input: CreateCheckoutInput): Promise<str
   return url;
 }
 
+export async function fetchSubscription(subscriptionId: string): Promise<LemonSqueezySubscriptionData | null> {
+  const apiKey = process.env.LEMONSQUEEZY_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("LEMONSQUEEZY_API_KEY is not configured.");
+  }
+
+  const response = await fetch(`${LEMON_SQUEEZY_API_BASE}/subscriptions/${subscriptionId}`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "Unknown error");
+    throw new Error(`LemonSqueezy subscription fetch failed: ${response.status} ${body}`);
+  }
+
+  const payload = (await response.json()) as LemonSqueezySubscriptionResponse;
+  const data = payload.data;
+
+  if (!data?.attributes) {
+    return null;
+  }
+
+  return {
+    id: String(data.id),
+    attributes: data.attributes,
+  };
+}
+
 export function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
   const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
@@ -115,5 +148,27 @@ interface LemonSqueezyCheckoutResponse {
     attributes?: {
       url?: string;
     };
+  };
+}
+
+export interface LemonSqueezySubscriptionData {
+  id: string;
+  attributes: {
+    status?: string;
+    variant_id?: string | number;
+    product_id?: string | number;
+    customer_id?: string | number;
+    urls?: {
+      customer_portal?: string;
+    };
+    renews_at?: string;
+    ends_at?: string;
+  };
+}
+
+interface LemonSqueezySubscriptionResponse {
+  data?: {
+    id?: string | number;
+    attributes?: LemonSqueezySubscriptionData["attributes"];
   };
 }
