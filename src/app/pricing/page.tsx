@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { PricingPage } from "@/features/subscriptions/components/pricing-page";
+
+export const dynamic = "force-dynamic";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";

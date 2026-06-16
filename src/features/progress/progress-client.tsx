@@ -32,10 +32,12 @@ const ProgressStatsContext = createContext<ProgressStatsContextValue | null>(nul
 export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
+  const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
   const cloudError = useInventoryStore((state) => state.cloudError);
   const setCloudEnabled = useInventoryStore((state) => state.setCloudEnabled);
+  const clearLocalInventory = useInventoryStore((state) => state.clearLocalInventory);
   const loadCloudInventory = useInventoryStore((state) => state.loadCloudInventory);
   const migrateLocalInventoryToCloud = useInventoryStore((state) => state.migrateLocalInventoryToCloud);
   const migrationStartedRef = useRef(false);
@@ -45,8 +47,12 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       migrationStartedRef.current = false;
+
+      if (ownerUserId) {
+        clearLocalInventory();
+      }
     }
-  }, [setCloudEnabled, user]);
+  }, [setCloudEnabled, user, ownerUserId, clearLocalInventory]);
 
   useEffect(() => {
     if (!user || !hydrated || migrationStartedRef.current) {
@@ -57,20 +63,33 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     const migrationKey = `${CLOUD_MIGRATION_KEY}:${user.id}`;
 
     void (async () => {
+      const state = useInventoryStore.getState();
+
+      if (ownerUserId && ownerUserId !== user.id) {
+        state.clearLocalInventory();
+        window.localStorage.removeItem(migrationKey);
+        await loadCloudInventory();
+        state.setOwnerUserId(user.id);
+        window.localStorage.setItem(migrationKey, "1");
+        return;
+      }
+
       if (!window.localStorage.getItem(migrationKey) && cards.length > 0) {
         await migrateLocalInventoryToCloud();
 
         if (!useInventoryStore.getState().cloudError) {
           window.localStorage.setItem(migrationKey, "1");
+          state.setOwnerUserId(user.id);
         }
 
         return;
       }
 
       await loadCloudInventory();
+      state.setOwnerUserId(user.id);
       window.localStorage.setItem(migrationKey, "1");
     })();
-  }, [cards.length, hydrated, loadCloudInventory, migrateLocalInventoryToCloud, user]);
+  }, [cards.length, hydrated, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
 
   const stats = useMemo(() => {
     if (!hydrated) {

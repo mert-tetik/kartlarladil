@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { LanguageFlag } from "@/components/language-flag";
 import { buttonClassName } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { isLanguageCode } from "@/data/languages";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { AiPracticeCharacterSelection } from "@/features/ai-practice/components/ai-practice-character-selection";
@@ -34,6 +35,7 @@ export default async function AiPracticeCharacterPage({ params }: AiPracticeChar
         description={t("page.aiPractice.charactersDescription", { language: languageName })}
         action={
           <Link href="/ai-practice" className={buttonClassName("secondary", "sm")}>
+            <ArrowLeft className="size-4" aria-hidden="true" />
             {t("common.back")}
           </Link>
         }

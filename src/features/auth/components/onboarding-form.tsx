@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { completeOnboardingAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
@@ -13,11 +13,7 @@ import type { LocaleCode } from "@/types/domain";
 export function OnboardingForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
-  const [deviceLocale, setDeviceLocale] = useState<LocaleCode>("en");
-
-  useEffect(() => {
-    setDeviceLocale(matchSupportedLocale(navigator.language) ?? "en");
-  }, []);
+  const [deviceLocale] = useState<LocaleCode>(() => matchSupportedLocale(navigator.language) ?? "en");
 
   return (
     <form action={formAction} className="space-y-6">

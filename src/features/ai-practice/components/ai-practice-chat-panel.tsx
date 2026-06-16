@@ -6,8 +6,9 @@ import Link from "next/link";
 import { ArrowLeft, Languages, Loader2, Mic, MicOff, RotateCcw, SendHorizonal, Volume2 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { LanguageFlag } from "@/components/language-flag";
-import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import { getCharacterName, getRandomOpeningLine } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
+import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -66,7 +67,13 @@ export function AiPracticeChatPanel({
   character: AiPracticeCharacter;
   language: LanguageCode;
 }) {
-  const [messages, setMessages] = useState<ClientMessage[]>([]);
+  const [messages, setMessages] = useState<ClientMessage[]>(() => [
+    {
+      id: createId("ai-opening"),
+      role: "assistant",
+      content: getRandomOpeningLine(character, language),
+    },
+  ]);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -75,8 +82,10 @@ export function AiPracticeChatPanel({
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const shouldAutoScrollRef = useRef(true);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const { locale } = useLocale();
@@ -96,10 +105,6 @@ export function AiPracticeChatPanel({
   }, []);
 
   useEffect(() => {
-    if (!shouldAutoScrollRef.current) {
-      return;
-    }
-
     const frameId = window.requestAnimationFrame(() => {
       const list = listRef.current;
 
@@ -140,7 +145,6 @@ export function AiPracticeChatPanel({
         content: message.content,
       }));
 
-    shouldAutoScrollRef.current = true;
     setMessages((current) => [...current, userMessage, assistantMessage]);
     setDraft("");
     setInterimTranscript("");
@@ -262,16 +266,6 @@ export function AiPracticeChatPanel({
     );
   }
 
-  function handleListScroll() {
-    const list = listRef.current;
-
-    if (!list) {
-      return;
-    }
-
-    shouldAutoScrollRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 64;
-  }
-
   function handleSpeakMessage(message: ClientMessage) {
     speakText(message.content, language);
   }
@@ -289,6 +283,7 @@ export function AiPracticeChatPanel({
     if (isRecording) {
       shouldSendTranscriptRef.current = true;
       recognitionRef.current?.stop();
+      stopAudioVisualizer();
       return;
     }
 
@@ -338,6 +333,7 @@ export function AiPracticeChatPanel({
       setIsRecording(false);
       setInterimTranscript("");
       recognitionRef.current = null;
+      stopAudioVisualizer();
     };
     recognition.onend = () => {
       const transcript = finalTranscriptRef.current.trim();
@@ -346,6 +342,7 @@ export function AiPracticeChatPanel({
       setIsRecording(false);
       setInterimTranscript("");
       recognitionRef.current = null;
+      stopAudioVisualizer();
 
       if (shouldSend && transcript) {
         void submitContent(transcript);
@@ -357,11 +354,41 @@ export function AiPracticeChatPanel({
 
     try {
       recognition.start();
+      void startAudioVisualizer();
     } catch {
       shouldSendTranscriptRef.current = false;
       setIsRecording(false);
       recognitionRef.current = null;
+      stopAudioVisualizer();
     }
+  }
+
+  async function startAudioVisualizer() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices) {
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microphoneStreamRef.current = stream;
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+    } catch {
+      // Ignore visualizer errors; speech recognition can still work.
+    }
+  }
+
+  function stopAudioVisualizer() {
+    microphoneStreamRef.current?.getTracks().forEach((track) => track.stop());
+    microphoneStreamRef.current = null;
+    void audioContextRef.current?.close();
+    audioContextRef.current = null;
+    analyserRef.current = null;
   }
 
   return (
@@ -372,7 +399,15 @@ export function AiPracticeChatPanel({
         language={language}
         languageName={languageName}
         canReset={!pending && messages.length > 0}
-        onReset={() => setMessages([])}
+        onReset={() =>
+          setMessages([
+            {
+              id: createId("ai-opening"),
+              role: "assistant",
+              content: getRandomOpeningLine(character, language),
+            },
+          ])
+        }
       />
       <MessageList
         refObject={listRef}
@@ -381,7 +416,6 @@ export function AiPracticeChatPanel({
         characterName={characterName}
         languageName={languageName}
         pending={pending}
-        onScroll={handleListScroll}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
       />
@@ -391,6 +425,7 @@ export function AiPracticeChatPanel({
         isRecording={isRecording}
         microphoneSupported={microphoneSupported}
         textareaRef={textareaRef}
+        analyser={analyserRef.current}
         onChange={setDraft}
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
@@ -462,7 +497,6 @@ function MessageList({
   characterName,
   languageName,
   pending,
-  onScroll,
   onTranslate,
   onSpeak,
 }: {
@@ -472,14 +506,13 @@ function MessageList({
   characterName: string;
   languageName: string;
   pending: boolean;
-  onScroll: () => void;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
 }) {
   const t = useT();
 
   return (
-    <div ref={refObject} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ai-chat-scroll="true">
+    <div ref={refObject} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ai-chat-scroll="true">
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24 overflow-hidden rounded-full bg-slate-100">
@@ -529,10 +562,12 @@ function ChatMessage({
   const isUser = message.role === "user";
 
   return (
-    <article className="flex gap-3">
-      <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:size-9">
-        <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" />
-      </div>
+    <article className={cn("flex gap-3", isUser && "flex-row-reverse")}>
+      {!isUser && (
+        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:size-9">
+          <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" />
+        </div>
+      )}
       <div className={cn("min-w-0 flex-1", isUser ? "items-end" : "items-start")}>
         <div className={cn("flex max-w-[86%] flex-col", isUser ? "ml-auto items-end" : "items-start")}>
           <div
@@ -620,6 +655,7 @@ function ChatComposer({
   isRecording,
   microphoneSupported,
   textareaRef,
+  analyser,
   onChange,
   onKeyDown,
   onSubmit,
@@ -630,6 +666,7 @@ function ChatComposer({
   isRecording: boolean;
   microphoneSupported: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  analyser: AnalyserNode | null;
   onChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -644,22 +681,29 @@ function ChatComposer({
 
   return (
     <form onSubmit={onSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4">
-      <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 focus-within:border-slate-950">
-        <textarea
-          ref={textareaRef}
-          value={draft}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-          maxLength={900}
-          placeholder={isRecording ? t("aiPractice.chat.listening") : t("aiPractice.chat.placeholder")}
-          className={cn(
-            "max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-slate-950 outline-none placeholder:text-slate-400",
-            isRecording && "text-slate-500",
-          )}
-          disabled={pending}
-          readOnly={isRecording}
-        />
+      <div
+        className={cn(
+          "flex gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 focus-within:border-slate-950",
+          isRecording ? "items-center" : "items-end",
+        )}
+      >
+        {isRecording ? (
+          <div className="flex min-h-10 flex-1 items-center px-2">
+            <AudioVisualizer analyser={analyser} />
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={onKeyDown}
+            rows={1}
+            maxLength={900}
+            placeholder={t("aiPractice.chat.placeholder")}
+            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-slate-950 outline-none placeholder:text-slate-400"
+            disabled={pending}
+          />
+        )}
         <Button
           type="button"
           size="icon"

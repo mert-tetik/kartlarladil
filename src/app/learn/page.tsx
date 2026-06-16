@@ -1,9 +1,11 @@
 import { PageHeader } from "@/components/page-header";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
+import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 
 export default async function LearnPage() {
+  await requireAuthUser("/learn");
   const t = createTranslator(await getServerLocale());
 
   return (

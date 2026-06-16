@@ -26,12 +26,15 @@ interface RecordAnswerResult {
 interface InventoryState {
   cards: InventoryCard[];
   attempts: PracticeAttempt[];
+  ownerUserId: string | null;
   hydrated: boolean;
   cloudEnabled: boolean;
   cloudLoading: boolean;
   cloudError: string;
   setHydrated: (hydrated: boolean) => void;
   setCloudEnabled: (enabled: boolean) => void;
+  setOwnerUserId: (userId: string | null) => void;
+  clearLocalInventory: () => void;
   loadCloudInventory: () => Promise<void>;
   migrateLocalInventoryToCloud: () => Promise<void>;
   addCard: (cardId: string) => Promise<void>;
@@ -51,6 +54,7 @@ export const useInventoryStore = create<InventoryState>()(
     (set, get) => ({
       cards: [],
       attempts: [],
+      ownerUserId: null,
       hydrated: false,
       cloudEnabled: false,
       cloudLoading: false,
@@ -62,6 +66,14 @@ export const useInventoryStore = create<InventoryState>()(
 
       setCloudEnabled(enabled) {
         set({ cloudEnabled: enabled, cloudError: enabled ? get().cloudError : "" });
+      },
+
+      setOwnerUserId(userId) {
+        set({ ownerUserId: userId });
+      },
+
+      clearLocalInventory() {
+        set({ cards: [], attempts: [], ownerUserId: null });
       },
 
       async loadCloudInventory() {
@@ -208,6 +220,7 @@ export const useInventoryStore = create<InventoryState>()(
         set({
           cards: [],
           attempts: [],
+          ownerUserId: null,
         });
       },
     }),
@@ -217,6 +230,7 @@ export const useInventoryStore = create<InventoryState>()(
       partialize: (state) => ({
         cards: state.cards,
         attempts: state.attempts,
+        ownerUserId: state.ownerUserId,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

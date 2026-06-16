@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
+import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
 import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getLanguageDisplayName } from "@/i18n/labels";
@@ -49,7 +50,10 @@ export function AiPracticeCharacterSelection({
                 />
               </div>
               <div className="mt-4 flex items-center justify-between gap-2">
-                <Badge>{languageName}</Badge>
+                <Badge className="gap-1.5">
+                  <LanguageFlag code={language} className="size-3.5" />
+                  {languageName}
+                </Badge>
                 <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
                   <MessageCircle className="size-3.5" aria-hidden="true" />
                   Chat

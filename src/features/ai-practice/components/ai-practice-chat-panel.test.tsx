@@ -95,7 +95,7 @@ describe("AiPracticeChatPanel", () => {
     renderPanel();
     await sendMessage(user, "hello");
     await screen.findByText("hi there");
-    await user.click(screen.getAllByRole("button", { name: "Speak message" })[1]!);
+    await user.click(screen.getAllByRole("button", { name: "Speak message" })[2]!);
 
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(speak).toHaveBeenCalledTimes(1);

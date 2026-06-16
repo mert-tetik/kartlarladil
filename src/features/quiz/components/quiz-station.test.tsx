@@ -105,7 +105,6 @@ describe("QuizStation sound feedback", () => {
 
     expect(screen.getByRole("heading", { name: "Alıştırma dilini seç" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Almanca/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Alıştırmayı başlat/ }));
 
     await screen.findByRole("heading", { name: germanCard.term });
   });
@@ -122,6 +121,6 @@ function renderQuizStation() {
 }
 
 async function startQuiz() {
-  fireEvent.click(screen.getByRole("button", { name: /Alıştırmayı başlat/ }));
+  fireEvent.click(screen.getByRole("button", { name: /İngilizce/ }));
   await screen.findByRole("heading", { name: testCard.term });
 }

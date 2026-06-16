@@ -230,6 +230,7 @@ export interface AiPracticeCharacter {
   sourcePersonality: string;
   namesByLanguage: Record<LanguageCode, string>;
   summaryByLocale: Record<LocaleCode, string>;
+  openingLinesByLanguage: Partial<Record<LanguageCode, string[]>>;
   promptProfile: string;
   conversationStyle: string[];
 }

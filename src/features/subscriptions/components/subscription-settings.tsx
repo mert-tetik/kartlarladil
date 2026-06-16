@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, buttonClassName } from "@/components/ui/button";
+import Link from "next/link";
+import { buttonClassName } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "@/types/domain";
@@ -44,9 +45,12 @@ export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSe
           )}
         </div>
 
-        {isPaid ? (
-          <div className="mt-4">
-            {customerPortalUrl ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link href="/account/subscription" className={buttonClassName("secondary", "sm")}>
+            {t("account.subscription.viewDetails")}
+          </Link>
+          {isPaid ? (
+            customerPortalUrl ? (
               <a
                 href={customerPortalUrl}
                 target="_blank"
@@ -59,9 +63,9 @@ export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSe
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 {t("account.subscription.customerPortalMissing")}
               </div>
-            )}
-          </div>
-        ) : null}
+            )
+          ) : null}
+        </div>
       </div>
     </div>
   );

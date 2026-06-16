@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
@@ -19,16 +19,10 @@ interface LanguagePickerProps {
 
 export function LanguagePicker({ name, label, value, onChange, error }: LanguagePickerProps) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<LanguageCode>(value);
   const { locale } = useLocale();
-
-  useEffect(() => {
-    setSelected(value);
-  }, [value]);
   const t = useT();
 
   function handleSelect(code: LanguageCode) {
-    setSelected(code);
     onChange?.(code);
     setOpen(false);
   }
@@ -45,12 +39,12 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
         )}
       >
         <span className="flex items-center gap-2">
-          <LanguageFlag code={selected} />
-          {getLanguageDisplayName(selected, locale)}
+          <LanguageFlag code={value} />
+          {getLanguageDisplayName(value, locale)}
         </span>
         <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
       </button>
-      <input type="hidden" name={name} value={selected} />
+      <input type="hidden" name={name} value={value} />
       {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
 
       {open ? (
@@ -86,7 +80,7 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
                   onClick={() => handleSelect(language.code)}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition-colors",
-                    selected === language.code
+                    value === language.code
                       ? "bg-slate-950 text-white"
                       : "text-slate-700 hover:bg-slate-100",
                   )}

@@ -78,6 +78,58 @@ export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard
   };
 }
 
+export function isAnswerSimilarEnough(input: string, correctAnswer: string, threshold = 0.75) {
+  const normalizedInput = normalizeQuizAnswer(input);
+  const normalizedCorrect = normalizeQuizAnswer(correctAnswer);
+
+  if (normalizedInput.length === 0 || normalizedCorrect.length === 0) {
+    return false;
+  }
+
+  if (normalizedInput === normalizedCorrect) {
+    return true;
+  }
+
+  const distance = levenshteinDistance(normalizedInput, normalizedCorrect);
+  const similarity = 1 - distance / Math.max(normalizedInput.length, normalizedCorrect.length);
+
+  return similarity >= threshold;
+}
+
+function normalizeQuizAnswer(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim();
+}
+
+function levenshteinDistance(a: string, b: string) {
+  const matrix: number[][] = [];
+
+  for (let rowIndex = 0; rowIndex <= b.length; rowIndex += 1) {
+    matrix[rowIndex] = [rowIndex];
+  }
+
+  for (let columnIndex = 1; columnIndex <= a.length; columnIndex += 1) {
+    matrix[0][columnIndex] = columnIndex;
+  }
+
+  for (let rowIndex = 1; rowIndex <= b.length; rowIndex += 1) {
+    for (let columnIndex = 1; columnIndex <= a.length; columnIndex += 1) {
+      const cost = a[columnIndex - 1] === b[rowIndex - 1] ? 0 : 1;
+      matrix[rowIndex][columnIndex] = Math.min(
+        matrix[rowIndex - 1][columnIndex] + 1,
+        matrix[rowIndex][columnIndex - 1] + 1,
+        matrix[rowIndex - 1][columnIndex - 1] + cost,
+      );
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
 export function createPracticeAttempt(input: {
   cardId: string;
   selectedAnswer: string;

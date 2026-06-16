@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/features/subscriptions/lemon-squeezy";
+import {
+  processWebhookEvent,
+  type LemonSqueezyWebhookEvent,
+  type SubscriptionUpdate,
+} from "@/features/subscriptions/webhook-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { SubscriptionPlan, SubscriptionStatus } from "@/types/domain";
 
@@ -50,26 +55,14 @@ export async function POST(request: Request) {
 
   const update = mapSubscriptionUpdate(event);
   const adminClient = createSupabaseAdminClient();
+  const result = await processWebhookEvent(adminClient, event, update, userId);
 
-  const { error } = await adminClient.from("user_subscriptions").upsert(
-    {
-      user_id: userId,
-      plan: update.plan,
-      status: update.status,
-      lemon_squeezy_customer_id: update.customerId,
-      lemon_squeezy_subscription_id: update.subscriptionId,
-      lemon_squeezy_variant_id: update.variantId,
-      lemon_squeezy_product_id: update.productId,
-      customer_portal_url: update.customerPortalUrl,
-      renews_at: update.renewsAt,
-      ends_at: update.endsAt,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+  if (result.status === "duplicate") {
+    return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+  }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (result.status === "error") {
+    return NextResponse.json({ error: result.message }, { status: 500 });
   }
 
   return NextResponse.json({ received: true }, { status: 200 });
@@ -139,37 +132,4 @@ function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
   return "free";
 }
 
-interface SubscriptionUpdate {
-  plan: SubscriptionPlan;
-  status: SubscriptionStatus;
-  customerId: string | null;
-  subscriptionId: string | null;
-  variantId: string | null;
-  productId: string | null;
-  customerPortalUrl: string | null;
-  renewsAt: string | null;
-  endsAt: string | null;
-}
 
-interface LemonSqueezyWebhookEvent {
-  meta?: {
-    event_name?: string;
-    custom_data?: {
-      user_id?: string;
-    };
-  };
-  data?: {
-    id?: string | number;
-    attributes?: {
-      status?: string;
-      variant_id?: string | number;
-      product_id?: string | number;
-      customer_id?: string | number;
-      urls?: {
-        customer_portal?: string;
-      };
-      renews_at?: string;
-      ends_at?: string;
-    };
-  };
-}

@@ -95,6 +95,11 @@ function getDisplayNameFromUser(user: User): string | null {
   );
 }
 
+function getEmailLocalPart(email: string): string | null {
+  const localPart = email.split("@")[0]?.trim();
+  return localPart && localPart.length > 0 ? localPart : null;
+}
+
 export async function ensureUserProfile(
   supabase: SupabaseClient,
   user: User,
@@ -122,7 +127,8 @@ export async function ensureUserProfile(
     .from("user_profiles")
     .insert({
       user_id: user.id,
-      display_name: preferences?.displayName?.trim() || getDisplayNameFromUser(user) || null,
+      display_name:
+        preferences?.displayName?.trim() || getDisplayNameFromUser(user) || getEmailLocalPart(user.email ?? "") || null,
       preferred_language_code:
         preferences?.preferredLanguageCode ??
         (LANGUAGE_CODE_SET.has(metadataLanguage as LanguageCode) ? (metadataLanguage as LanguageCode) : "en"),

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
@@ -37,6 +38,9 @@ export function PricingPage({ user }: PricingPageProps) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <Suspense fallback={null}>
+        <CheckoutSuccessPoller />
+      </Suspense>
       <div className="text-center">
         <h1 className="font-display text-4xl font-semibold text-slate-950 md:text-5xl">
           {t("pricing.title")}
@@ -270,6 +274,56 @@ function CheckoutButton({
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>
+  );
+}
+
+function CheckoutSuccessPoller() {
+  const t = useT();
+  const searchParams = useSearchParams();
+  const { refreshEntitlements } = useSubscription();
+  const isCheckoutSuccess = searchParams.get("checkout") === "success";
+  const [visible, setVisible] = useState(isCheckoutSuccess);
+
+  useEffect(() => {
+    if (!isCheckoutSuccess) {
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    void refreshEntitlements();
+
+    const interval = setInterval(() => {
+      void refreshEntitlements();
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    const hideTimeout = setTimeout(() => setVisible(false), 8000);
+
+    if (typeof window !== "undefined" && window.history.replaceState) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("checkout");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(hideTimeout);
+    };
+  }, [isCheckoutSuccess, refreshEntitlements]);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-800">
+      {t("pricing.checkoutSuccess")}
+    </div>
   );
 }
 

@@ -31,6 +31,7 @@ export function PreferenceFields({
 
   useEffect(() => {
     if (defaultUiLocale && defaultUiLocale !== selectedUiLocale) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedUiLocale(defaultUiLocale);
       setLocale(defaultUiLocale);
     }
