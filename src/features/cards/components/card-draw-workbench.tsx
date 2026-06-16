@@ -338,12 +338,12 @@ export function CardDrawWorkbench() {
 
   return (
     <div
-      className="max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-16 max-lg:flex max-lg:flex-col max-lg:bg-slate-50"
+      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100dvh-8rem)] max-lg:flex-col max-lg:bg-slate-50"
       data-card-draw-workbench
     >
-      {/* Controls - sticky bottom on mobile, normal card on desktop */}
+      {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-200 max-lg:bg-white max-lg:p-3 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white lg:p-4">
-        <div className="mx-auto max-w-7xl space-y-3">
+        <div className="mx-auto max-w-7xl max-lg:space-y-2 space-y-3">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
@@ -409,68 +409,72 @@ export function CardDrawWorkbench() {
         </div>
       </div>
 
-      {/* Cards area - scrollable on mobile */}
-      <div className="max-lg:order-1 max-lg:flex-1 max-lg:overflow-y-auto">
-        <div className="mx-auto max-w-7xl max-lg:px-4 max-lg:py-4 lg:px-0">
+      {/* Cards area - fills the space above controls on mobile */}
+      <div className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
+        <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">
           {cloudError ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
               {cloudError}
             </div>
           ) : null}
 
-          {showCardGrid ? (
-            <div
-              ref={gridRef}
-              className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
-              style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
-            >
-              {cards.map((card, index) => (
-                <div
-                  key={`${dealCycle}-${card.id}`}
-                  ref={(element) => setCardRef(card.id, element)}
-                  data-card-deal-index={index}
-                  className="card-draw-card-deal"
-                  style={{ animationDelay: `${index * 55}ms` }}
-                >
-                  <VocabularyCardView
-                    card={card}
-                    owned={ownedIds.has(card.id)}
-                    initialFace="back"
-                    flippable
-                    onAdd={() => addDrawnCard(card.id)}
-                    onSkip={() => skipCard(card.id)}
-                  />
-                </div>
-              ))}
-              {exitingCards.map((item) => (
-                <div
-                  key={item.key}
-                  data-card-draw-exit-kind={item.kind}
-                  className="card-draw-card-exit"
-                  style={{
-                    left: `${item.rect.left}px`,
-                    top: `${item.rect.top}px`,
-                    width: `${item.rect.width}px`,
-                    height: `${item.rect.height}px`,
-                  }}
-                >
-                  <VocabularyCardView
-                    card={item.card}
-                    owned={item.kind === "add"}
-                    initialFace="front"
-                    onAdd={() => undefined}
-                    onSkip={() => undefined}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={PackagePlus}
-              title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
-              description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
-            />
-          )}
+          <div className="max-lg:flex max-lg:flex-1 max-lg:flex-col">
+            {showCardGrid ? (
+              <div
+                ref={gridRef}
+                className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
+                style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
+              >
+                {cards.map((card, index) => (
+                  <div
+                    key={`${dealCycle}-${card.id}`}
+                    ref={(element) => setCardRef(card.id, element)}
+                    data-card-deal-index={index}
+                    className="card-draw-card-deal"
+                    style={{ animationDelay: `${index * 55}ms` }}
+                  >
+                    <VocabularyCardView
+                      card={card}
+                      owned={ownedIds.has(card.id)}
+                      initialFace="back"
+                      flippable
+                      onAdd={() => addDrawnCard(card.id)}
+                      onSkip={() => skipCard(card.id)}
+                    />
+                  </div>
+                ))}
+                {exitingCards.map((item) => (
+                  <div
+                    key={item.key}
+                    data-card-draw-exit-kind={item.kind}
+                    className="card-draw-card-exit"
+                    style={{
+                      left: `${item.rect.left}px`,
+                      top: `${item.rect.top}px`,
+                      width: `${item.rect.width}px`,
+                      height: `${item.rect.height}px`,
+                    }}
+                  >
+                    <VocabularyCardView
+                      card={item.card}
+                      owned={item.kind === "add"}
+                      initialFace="front"
+                      onAdd={() => undefined}
+                      onSkip={() => undefined}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="max-lg:flex max-lg:flex-1 max-lg:items-center max-lg:justify-center">
+                <EmptyState
+                  icon={PackagePlus}
+                  title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
+                  description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
+                />
+              </div>
+            )}
+          </div>
 
           <UpgradeDialog
             open={limitError !== null}
