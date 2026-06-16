@@ -57,6 +57,7 @@ export async function POST(request: Request) {
   const instructions = buildAiPracticeInstructions({
     character,
     language: parsed.data.language,
+    tier: parsed.data.tier,
   });
   const input = buildAiPracticeInput({
     character,

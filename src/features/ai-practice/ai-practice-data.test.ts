@@ -41,6 +41,14 @@ describe("AI practice characters", () => {
     expect(instructions).toContain("Do not use em dashes");
   });
 
+  it("includes tier guidance when a proficiency level is provided", () => {
+    const character = getAiPracticeCharacters()[0];
+    const instructions = buildAiPracticeInstructions({ character, language: "en", tier: "B1" });
+
+    expect(instructions).toContain("Learner proficiency level: B1");
+    expect(instructions).toContain("connected sentences");
+  });
+
   it("adds Gen Z behavior rules for young characters", () => {
     const youngCharacter = getAiPracticeCharacters().find((character) => character.id === "sleepy-student");
 
@@ -49,7 +57,7 @@ describe("AI practice characters", () => {
     const instructions = buildAiPracticeInstructions({ character: youngCharacter!, language: "en" });
 
     expect(instructions).toContain("Use target-language Gen Z slang");
-    expect(instructions).toContain("Small natural typos");
+    expect(instructions).toContain("do not make spelling or grammar mistakes");
     expect(instructions).toContain("Do not end messages with sentence-final punctuation");
   });
 

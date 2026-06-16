@@ -21,6 +21,7 @@ import type {
   LanguageCode,
   LimitErrorCode,
   LocaleCode,
+  Tier,
 } from "@/types/domain";
 
 type TranslationStatus = "idle" | "loading" | "ready" | "error";
@@ -66,9 +67,11 @@ interface SpeechRecognitionResultLike {
 export function AiPracticeChatPanel({
   character,
   language,
+  tier = "A1",
 }: {
   character: AiPracticeCharacter;
   language: LanguageCode;
+  tier?: Tier;
 }) {
   const [messages, setMessages] = useState<ClientMessage[]>(() => [
     {
@@ -163,6 +166,7 @@ export function AiPracticeChatPanel({
         body: JSON.stringify({
           language,
           characterId: character.id,
+          tier,
           messages: [...requestMessages, { role: userMessage.role, content: userMessage.content }],
         }),
       });
@@ -442,6 +446,7 @@ export function AiPracticeChatPanel({
         characterName={characterName}
         language={language}
         languageName={languageName}
+        tier={tier}
         canReset={!pending && messages.length > 0}
         onReset={() =>
           setMessages([
@@ -494,6 +499,7 @@ function ChatHeader({
   characterName,
   language,
   languageName,
+  tier,
   canReset,
   onReset,
 }: {
@@ -501,6 +507,7 @@ function ChatHeader({
   characterName: string;
   language: LanguageCode;
   languageName: string;
+  tier: Tier;
   canReset: boolean;
   onReset: () => void;
 }) {
@@ -517,6 +524,9 @@ function ChatHeader({
           <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
             <LanguageFlag code={language} />
             <span className="truncate">{languageName}</span>
+            <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
+              {tier}
+            </span>
           </p>
         </div>
       </div>

@@ -14,6 +14,21 @@ describe("aiPracticeChatRequestSchema", () => {
     expect(aiPracticeChatRequestSchema.safeParse(validRequest).success).toBe(true);
   });
 
+  it("defaults the tier to A1 when omitted", () => {
+    const result = aiPracticeChatRequestSchema.safeParse(validRequest);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.tier).toBe("A1");
+  });
+
+  it("accepts a valid tier", () => {
+    expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, tier: "B2" }).success).toBe(true);
+  });
+
+  it("rejects invalid tiers", () => {
+    expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, tier: "C2" }).success).toBe(false);
+  });
+
   it("rejects unsupported languages", () => {
     expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, language: "xx" }).success).toBe(false);
   });

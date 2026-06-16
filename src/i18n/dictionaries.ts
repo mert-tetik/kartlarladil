@@ -157,6 +157,7 @@ const tr = {
     "Pratik yapmak istediğin dili seç, bir karakter belirle ve hedef dilde kaydedilmeyen canlı bir sohbet başlat.",
   "page.aiPractice.charactersTitle": "Karakter seç",
   "page.aiPractice.charactersDescription": "{language} pratiği için konuşma stilini seç.",
+  "page.aiPractice.tierTitle": "Seviye seç",
   "page.pricing.title": "Planlar",
   "page.pricing.description": "Kart ve AI Practice limitlerini kaldıran sana uygun planı seç.",
 
@@ -610,6 +611,7 @@ const en: Dictionary = {
     "Choose a practice language, pick a character, and start a live unsaved chat in the target language.",
   "page.aiPractice.charactersTitle": "Choose a character",
   "page.aiPractice.charactersDescription": "Choose a conversation style for {language} practice.",
+  "page.aiPractice.tierTitle": "Choose level",
   "page.pricing.title": "Pricing",
   "page.pricing.description": "Choose the plan that fits your card and AI Practice needs.",
   "auth.login.title": "Log in",

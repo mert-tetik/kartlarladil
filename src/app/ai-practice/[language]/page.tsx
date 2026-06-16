@@ -22,7 +22,7 @@ export default async function AiPracticeCharacterPage({ params }: AiPracticeChar
     redirect("/ai-practice");
   }
 
-  await requireAuthUser(`/ai-practice/${rawLanguage}`);
+  const user = await requireAuthUser(`/ai-practice/${rawLanguage}`);
 
   const locale = await getServerLocale();
   const t = createTranslator(locale);
@@ -45,7 +45,11 @@ export default async function AiPracticeCharacterPage({ params }: AiPracticeChar
         {languageName}
       </div>
       <div className="mt-6">
-        <AiPracticeCharacterSelection language={rawLanguage} locale={locale} />
+        <AiPracticeCharacterSelection
+          language={rawLanguage}
+          locale={locale}
+          defaultTier={user.profile.preferredTier ?? "A1"}
+        />
       </div>
     </section>
   );

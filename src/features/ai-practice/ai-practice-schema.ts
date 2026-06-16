@@ -3,11 +3,13 @@ import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 
 const languageCodeSchema = z.enum(LANGUAGE_CODES);
 const localeCodeSchema = z.enum(LOCALE_CODES);
+const tierSchema = z.enum(["A1", "A2", "B1", "B2", "C1"]);
 
 export const aiPracticeChatRequestSchema = z
   .object({
     language: languageCodeSchema,
     characterId: z.string().min(1).max(80),
+    tier: tierSchema.optional().default("A1"),
     messages: z
       .array(
         z.object({
