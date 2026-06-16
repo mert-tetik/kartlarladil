@@ -24,13 +24,17 @@ vi.mock("@/lib/supabase/server", () => ({
   ),
 }));
 
-function makeSubscription(plan: string, status: SubscriptionStatus): UserSubscription {
+function makeSubscription(
+  plan: string,
+  status: SubscriptionStatus,
+  endsAt: string | null = null,
+): UserSubscription {
   return {
     plan: plan as UserSubscription["plan"],
     status,
     customerPortalUrl: null,
     renewsAt: null,
-    endsAt: null,
+    endsAt,
   };
 }
 
@@ -59,15 +63,17 @@ describe("PLAN_LIMITS", () => {
 
 describe("getEffectivePlan", () => {
   it.each([
-    ["free", "active", "free"],
-    ["basic", "active", "basic"],
-    ["pro", "active", "pro"],
-    ["pro", "cancelled", "free"],
-    ["basic", "expired", "free"],
-    ["pro", "on_trial", "pro"],
-    ["basic", "past_due", "basic"],
-  ] as const)("for plan %s with status %s returns %s", (plan, status, expected) => {
-    expect(getEffectivePlan(makeSubscription(plan, status))).toBe(expected);
+    ["free", "active", null, "free"],
+    ["basic", "active", null, "basic"],
+    ["pro", "active", null, "pro"],
+    ["pro", "cancelled", null, "free"],
+    ["pro", "cancelled", "2000-01-01T00:00:00Z", "free"],
+    ["basic", "cancelled", "2099-12-31T23:59:59Z", "basic"],
+    ["basic", "expired", null, "free"],
+    ["pro", "on_trial", null, "pro"],
+    ["basic", "past_due", null, "basic"],
+  ] as const)("for plan %s with status %s and endsAt %s returns %s", (plan, status, endsAt, expected) => {
+    expect(getEffectivePlan(makeSubscription(plan, status, endsAt))).toBe(expected);
   });
 });
 

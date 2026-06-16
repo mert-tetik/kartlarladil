@@ -49,6 +49,14 @@ export function getEffectivePlan(subscription: UserSubscription): SubscriptionPl
     return subscription.plan;
   }
 
+  if (
+    subscription.status === "cancelled" &&
+    subscription.endsAt &&
+    new Date(subscription.endsAt) > new Date()
+  ) {
+    return subscription.plan;
+  }
+
   return "free";
 }
 
