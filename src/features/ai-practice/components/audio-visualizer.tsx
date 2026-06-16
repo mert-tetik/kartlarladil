@@ -3,12 +3,16 @@
 import { useEffect, useRef } from "react";
 
 export function AudioVisualizer({ analyser }: { analyser: AnalyserNode | null }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const heightsRef = useRef<number[]>([]);
+  const timeRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    const container = containerRef.current;
 
-    if (!canvas || !analyser) {
+    if (!canvas || !container) {
       return;
     }
 
@@ -18,51 +22,100 @@ export function AudioVisualizer({ analyser }: { analyser: AnalyserNode | null })
       return;
     }
 
-    const currentCanvas = canvas;
-    const currentCtx = ctx;
-    const currentAnalyser = analyser;
-    const bufferLength = currentAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    const dataArray = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
     let animationId = 0;
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = container!.clientWidth;
+      const height = container!.clientHeight;
+
+      canvas!.width = Math.max(1, Math.floor(width * dpr));
+      canvas!.height = Math.max(1, Math.floor(height * dpr));
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    const barCount = 36;
+    const gap = 3;
 
     function draw() {
       animationId = requestAnimationFrame(draw);
-      currentAnalyser.getByteFrequencyData(dataArray);
 
-      const width = currentCanvas.width;
-      const height = currentCanvas.height;
-      const barCount = 24;
+      const width = container!.clientWidth;
+      const height = container!.clientHeight;
+
+      if (width === 0 || height === 0) {
+        return;
+      }
+
+      ctx!.clearRect(0, 0, width, height);
+
+      let averageVolume = 0;
+
+      if (dataArray && analyser) {
+        analyser.getByteFrequencyData(dataArray);
+
+        for (let index = 0; index < dataArray.length; index += 1) {
+          averageVolume += dataArray[index] ?? 0;
+        }
+
+        averageVolume /= dataArray.length;
+      }
+
+      const isSilent = averageVolume < 12;
       const barWidth = width / barCount;
-      const step = Math.floor(bufferLength / barCount);
+      const maxBarHeight = height * 0.92;
+      const minIdleHeight = height * 0.18;
 
-      currentCtx.clearRect(0, 0, width, height);
-      currentCtx.fillStyle = "#0f172a";
+      if (heightsRef.current.length !== barCount) {
+        heightsRef.current = new Array(barCount).fill(minIdleHeight);
+      }
+
+      timeRef.current += 0.06;
 
       for (let index = 0; index < barCount; index += 1) {
-        const value = dataArray[index * step] ?? 0;
-        const barHeight = (value / 255) * height * 0.9;
-        const x = index * barWidth + barWidth * 0.15;
-        const y = height - barHeight;
-        const roundedBarWidth = barWidth * 0.7;
+        let targetHeight = 0;
 
-        currentCtx.beginPath();
-        currentCtx.roundRect(x, y, roundedBarWidth, barHeight, roundedBarWidth / 2);
-        currentCtx.fill();
+        if (dataArray && analyser && !isSilent) {
+          const step = Math.max(1, Math.floor(dataArray.length / barCount));
+          const value = dataArray[index * step] ?? 0;
+          const amplified = (value / 255) * 1.7;
+          targetHeight = Math.min(maxBarHeight, amplified * maxBarHeight);
+        } else {
+          const wave = Math.sin(timeRef.current + index * 0.35);
+          const normalized = (wave + 1) / 2;
+          targetHeight = minIdleHeight + normalized * (maxBarHeight - minIdleHeight) * 0.55;
+        }
+
+        const previousHeight = heightsRef.current[index] ?? targetHeight;
+        const smoothedHeight = previousHeight + (targetHeight - previousHeight) * 0.18;
+        heightsRef.current[index] = smoothedHeight;
+
+        const x = index * barWidth + gap / 2;
+        const drawWidth = barWidth - gap;
+        const y = height - smoothedHeight;
+
+        ctx!.fillStyle = "#0f172a";
+        ctx!.beginPath();
+        ctx!.roundRect(x, y, drawWidth, smoothedHeight, drawWidth / 2);
+        ctx!.fill();
       }
     }
 
     draw();
 
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", resize);
+    };
   }, [analyser]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={240}
-      height={40}
-      className="h-10 w-full max-w-[15rem]"
-      aria-hidden="true"
-    />
+    <div ref={containerRef} className="h-10 w-full">
+      <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
+    </div>
   );
 }

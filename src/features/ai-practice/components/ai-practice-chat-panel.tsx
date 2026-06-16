@@ -715,9 +715,11 @@ function ChatComposer({
         >
           {isRecording ? <MicOff className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
         </Button>
-        <Button type="submit" size="icon" disabled={pending || draft.trim().length === 0 || isRecording} aria-label={t("aiPractice.chat.send")}>
-          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
-        </Button>
+        {!isRecording ? (
+          <Button type="submit" size="icon" disabled={pending || draft.trim().length === 0} aria-label={t("aiPractice.chat.send")}>
+            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
+          </Button>
+        ) : null}
       </div>
       <p className="mt-2 text-xs text-slate-500">{t("aiPractice.chat.privacy")}</p>
     </form>
