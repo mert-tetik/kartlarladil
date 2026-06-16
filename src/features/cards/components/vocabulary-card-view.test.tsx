@@ -7,10 +7,17 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const mockPush = vi.fn();
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: vi.fn(),
+    push: mockPush,
   }),
+}));
+
+vi.mock("@/features/auth/auth-client", () => ({
+  useRequireAuthAction: () => (action: () => void) => action(),
 }));
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
@@ -91,6 +98,15 @@ describe("VocabularyCardView", () => {
     expect(examplePreview).toHaveClass("truncate");
     expect(container).not.toHaveTextContent("is useful in a clear sentence");
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
+  });
+
+  it("navigates to the ask page when the ask button is pressed", async () => {
+    const user = userEvent.setup();
+
+    renderCard(<VocabularyCardView card={testCard} />);
+    await user.click(screen.getByRole("button", { name: `${testCard.term} Sor` }));
+
+    expect(mockPush).toHaveBeenCalledWith(`/ask/${testCard.language}?term=${encodeURIComponent(testCard.term)}`);
   });
 
   it("speaks the card term with the card language when the speaker button is pressed", async () => {

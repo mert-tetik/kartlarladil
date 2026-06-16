@@ -167,7 +167,7 @@ export type LimitErrorCode =
   | "ai_daily_limit"
   | "ai_monthly_limit";
 
-export type AiUsageEventType = "chat" | "translate";
+export type AiUsageEventType = "chat" | "translate" | "ask";
 
 export interface PlanLimits {
   activeCards: number | null;

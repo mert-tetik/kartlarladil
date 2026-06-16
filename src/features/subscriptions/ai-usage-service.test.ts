@@ -83,4 +83,14 @@ describe("recordAiUsageEvent", () => {
       plan: "free",
     });
   });
+
+  it("supports the ask event type", async () => {
+    await recordAiUsageEvent("user-1", "basic", "ask");
+
+    expect(mockInsert).toHaveBeenCalledWith({
+      user_id: "user-1",
+      event_type: "ask",
+      plan: "basic",
+    });
+  });
 });

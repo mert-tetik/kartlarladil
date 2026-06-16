@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Check, Coins, Info, Plus, Volume2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Coins, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
+import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -144,6 +146,8 @@ function CardFront({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const router = useRouter();
+  const requireAuth = useRequireAuthAction();
   const style = TIER_STYLES[card.tier];
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
@@ -165,6 +169,12 @@ function CardFront({
   function handleAddClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
     onAdd?.();
+  }
+
+  function handleAskClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
+    requireAuth(() => router.push(askPath), { nextPath: askPath });
   }
 
   function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {
@@ -214,6 +224,17 @@ function CardFront({
             className="size-9 border-white/70 bg-white/80 max-sm:size-7"
           >
             <Info className="size-4" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            aria-label={`${card.term} ${t("cards.ask")}`}
+            title={t("cards.ask")}
+            onClick={handleAskClick}
+            className="size-9 border-white/70 bg-white/80 max-sm:size-7"
+          >
+            <MessageCircleQuestion className="size-4" aria-hidden="true" />
           </Button>
           <span className={cn("size-3 rounded-full max-sm:size-2.5", style.accent)} aria-hidden="true" />
         </div>
