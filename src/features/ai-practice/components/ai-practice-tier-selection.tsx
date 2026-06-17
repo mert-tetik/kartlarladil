@@ -20,21 +20,21 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
   const { locale } = useLocale();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold text-foreground">
+    <div className="relative w-full">
+      <Link
+        href="/ai-practice"
+        aria-label={t("common.back")}
+        className="absolute right-0 top-0 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      >
+        <ArrowLeft className="size-5" aria-hidden="true" />
+      </Link>
+
+      <div className="flex flex-col items-center justify-center gap-6 pt-14">
+        <h1 className="text-center font-display text-3xl font-semibold text-foreground">
           {t("page.aiPractice.tierSelectionTitle")}
         </h1>
-        <Link
-          href="/ai-practice"
-          aria-label={t("common.back")}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Link>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {TIERS.map((tier) => {
           const Icon = TIER_ICONS[tier];
 
@@ -57,5 +57,6 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
         })}
       </div>
     </div>
-  );
+  </div>
+);
 }

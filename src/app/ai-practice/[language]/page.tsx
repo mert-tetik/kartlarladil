@@ -17,7 +17,7 @@ export default async function AiPracticeTierPage({ params }: AiPracticeTierPageP
   await requireAuthUser(`/ai-practice/${rawLanguage}`);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
+    <section className="mx-auto flex min-h-full w-full max-w-7xl flex-col items-center justify-center px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
       <AiPracticeTierSelection language={rawLanguage} />
     </section>
   );

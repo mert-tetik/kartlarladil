@@ -130,6 +130,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
           </div>
         </div>
       ) : null}
+      <LoadingOverlay show={isPending} />
     </div>,
     document.body,
   );
@@ -146,6 +147,7 @@ interface ThemeButtonProps {
 
 function ThemeButton({ item, selected, locked, pending, disabled, onSelect }: ThemeButtonProps) {
   const t = useT();
+  const isDark = item.mode === "dark";
 
   return (
     <button
@@ -155,8 +157,11 @@ function ThemeButton({ item, selected, locked, pending, disabled, onSelect }: Th
       className={cn(
         "relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
         selected
-          ? "border-brand bg-background-muted ring-1 ring-brand"
-          : "border-border bg-background-card hover:border-brand",
+          ? "border-brand ring-1 ring-brand"
+          : isDark
+            ? "border-slate-700 hover:border-brand"
+            : "border-border hover:border-brand",
+        isDark ? "bg-slate-900" : "bg-background-card",
         pending && "opacity-70",
       )}
     >
@@ -168,13 +173,28 @@ function ThemeButton({ item, selected, locked, pending, disabled, onSelect }: Th
       </span>
 
       <span className="flex-1 min-w-0">
-        <span className="block truncate text-sm font-semibold text-foreground">{item.name}</span>
-        <span className="block text-xs text-foreground-secondary">
-          {item.mode === "dark" ? t("theme.dark") : t("theme.light")}
+        <span className={cn("block truncate text-sm font-semibold", isDark ? "text-white" : "text-foreground")}>
+          {item.name}
+        </span>
+        <span className={cn("block text-xs", isDark ? "text-slate-300" : "text-foreground-secondary")}>
+          {isDark ? t("theme.dark") : t("theme.light")}
         </span>
       </span>
 
       {selected ? <span className="size-2 shrink-0 rounded-full bg-brand" aria-hidden="true" /> : null}
     </button>
+  );
+}
+
+function LoadingOverlay({ show }: { show: boolean }) {
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+        show ? "opacity-100" : "pointer-events-none opacity-0",
+      )}
+    >
+      <div className="size-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+    </div>
   );
 }

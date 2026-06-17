@@ -33,7 +33,7 @@ export const TIER_STYLES: Record<
 > = {
   A1: {
     border: "border-emerald-500/70 dark:border-emerald-400/70",
-    surface: "from-emerald-50 via-white to-slate-50 dark:from-emerald-950 dark:via-slate-900 dark:to-emerald-950",
+    surface: "from-emerald-50 via-white to-slate-50 dark:from-emerald-950 dark:via-[#171717] dark:to-emerald-950",
     accent: "bg-emerald-500 dark:bg-emerald-400",
     text: "text-emerald-800 dark:text-white",
     progress: "bg-emerald-500 dark:bg-white",
@@ -43,7 +43,7 @@ export const TIER_STYLES: Record<
   },
   A2: {
     border: "border-sky-500/70 dark:border-sky-400/70",
-    surface: "from-sky-50 via-white to-slate-50 dark:from-sky-950 dark:via-slate-900 dark:to-sky-950",
+    surface: "from-sky-50 via-white to-slate-50 dark:from-sky-950 dark:via-[#171717] dark:to-sky-950",
     accent: "bg-sky-500 dark:bg-sky-400",
     text: "text-sky-800 dark:text-white",
     progress: "bg-sky-500 dark:bg-white",
@@ -53,7 +53,7 @@ export const TIER_STYLES: Record<
   },
   B1: {
     border: "border-violet-500/70 dark:border-violet-400/70",
-    surface: "from-violet-50 via-white to-slate-50 dark:from-violet-950 dark:via-slate-900 dark:to-violet-950",
+    surface: "from-violet-50 via-white to-slate-50 dark:from-violet-950 dark:via-[#171717] dark:to-violet-950",
     accent: "bg-violet-500 dark:bg-violet-400",
     text: "text-violet-800 dark:text-white",
     progress: "bg-violet-500 dark:bg-white",
@@ -63,7 +63,7 @@ export const TIER_STYLES: Record<
   },
   B2: {
     border: "border-amber-500/70 dark:border-amber-400/70",
-    surface: "from-amber-50 via-white to-slate-50 dark:from-amber-950 dark:via-slate-900 dark:to-amber-950",
+    surface: "from-amber-50 via-white to-slate-50 dark:from-amber-950 dark:via-[#171717] dark:to-amber-950",
     accent: "bg-amber-500 dark:bg-amber-400",
     text: "text-amber-800 dark:text-white",
     progress: "bg-amber-500 dark:bg-white",
@@ -73,7 +73,7 @@ export const TIER_STYLES: Record<
   },
   C1: {
     border: "border-rose-500/70 dark:border-rose-400/70",
-    surface: "from-rose-50 via-white to-slate-50 dark:from-rose-950 dark:via-slate-900 dark:to-rose-950",
+    surface: "from-rose-50 via-white to-slate-50 dark:from-rose-950 dark:via-[#171717] dark:to-rose-950",
     accent: "bg-rose-500 dark:bg-rose-400",
     text: "text-rose-800 dark:text-white",
     progress: "bg-rose-500 dark:bg-white",

@@ -114,27 +114,27 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-[#f76808]">
+      <section className="bg-brand">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
           {featureItems.map((item) => {
             const Icon = item.icon;
 
             return (
-              <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-950">
-                <Icon className="size-7 text-[#f76808] dark:text-white" aria-hidden="true" />
+              <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm dark:bg-background">
+                <Icon className="size-7 text-brand dark:text-white" aria-hidden="true" />
                 <h2 className="mt-5 text-xl font-semibold text-slate-950 dark:text-white">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{item.description}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-foreground-secondary">{item.description}</p>
               </article>
             );
           })}
         </div>
       </section>
 
-      <section data-collection-preview-section className="bg-slate-50 dark:bg-slate-950">
+      <section data-collection-preview-section className="bg-slate-50 dark:bg-background">
         <div className="mx-auto grid w-full max-w-[1500px] items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-10 lg:px-8">
           <div>
             <h2 className="font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.collection.title")}</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{t("home.collection.description")}</p>
+            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.collection.description")}</p>
             <div className="mt-8">
               <p className="text-sm font-semibold tracking-wide text-slate-950 uppercase dark:text-white">For 14 Languages</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -181,7 +181,7 @@ export default async function Home() {
               ["3", t("home.steps.three.title"), t("home.steps.three.description")],
             ].map(([step, title, description]) => (
               <article key={step} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
-                <div className="flex size-10 items-center justify-center rounded-md bg-[#f76808] text-sm font-bold text-white">
+                <div className="flex size-10 items-center justify-center rounded-md bg-brand text-sm font-bold text-brand-foreground">
                   {step}
                 </div>
                 <h2 className="mt-5 text-xl font-semibold text-white">{title}</h2>
@@ -192,26 +192,26 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
+      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-border dark:bg-background">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
-            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white dark:bg-slate-800">
+            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white dark:bg-background-card">
               <Coins className="size-6" aria-hidden="true" />
             </div>
             <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.points.title")}</h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">{t("home.points.description")}</p>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.points.description")}</p>
           </div>
 
           <div className="grid min-w-0 gap-4">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {TIERS.map((tier) => (
-                <div key={tier} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                <div key={tier} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-border dark:bg-background-card">
                   <div className="flex items-center justify-between gap-2">
                     <span className={`text-sm font-semibold ${TIER_STYLES[tier].text}`}>{tier}</span>
                     <span className={`size-2.5 rounded-full ${TIER_STYLES[tier].accent}`} aria-hidden="true" />
                   </div>
                   <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{formatPoints(locale, TIER_POINTS[tier])}</p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{getTierLabel(tier, locale)}</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-foreground-muted">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
             </div>
@@ -230,7 +230,7 @@ export default async function Home() {
                   >
                     {getRankLabel(rank, locale)}
                   </p>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{formatNumber(locale, rank.minPoints)}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-foreground-muted">{formatNumber(locale, rank.minPoints)}</p>
                 </div>
               ))}
             </div>

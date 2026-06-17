@@ -366,6 +366,16 @@ body:has([data-card-draw-page]) footer {
   display: none;
 }
 
+/* Hide the site footer on AI practice pages */
+body:has([data-ai-practice-page]) footer {
+  display: none;
+}
+
+/* Hide the site footer on Ask pages */
+body:has([data-ask-page]) footer {
+  display: none;
+}
+
 /* Theme overrides */
 [data-theme="default"] {
   --brand: #f76808;
@@ -377,17 +387,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #f76808;
   --brand-foreground: #ffffff;
   --ring-brand: #f76808;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="ocean"] {
@@ -400,17 +410,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #0ea5e9;
   --brand-foreground: #ffffff;
   --ring-brand: #0ea5e9;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="emerald"] {
@@ -423,17 +433,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #10b981;
   --brand-foreground: #ffffff;
   --ring-brand: #10b981;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="violet"] {
@@ -446,17 +456,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #8b5cf6;
   --brand-foreground: #ffffff;
   --ring-brand: #8b5cf6;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="rose"] {
@@ -469,17 +479,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #f43f5e;
   --brand-foreground: #ffffff;
   --ring-brand: #f43f5e;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="amber"] {
@@ -492,17 +502,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #f59e0b;
   --brand-foreground: #0f172a;
   --ring-brand: #f59e0b;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="teal"] {
@@ -515,17 +525,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #14b8a6;
   --brand-foreground: #ffffff;
   --ring-brand: #14b8a6;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="indigo"] {
@@ -538,17 +548,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #6366f1;
   --brand-foreground: #ffffff;
   --ring-brand: #6366f1;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="crimson"] {
@@ -561,17 +571,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #dc2626;
   --brand-foreground: #ffffff;
   --ring-brand: #dc2626;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 [data-theme="lime"] {
@@ -584,17 +594,17 @@ body:has([data-card-draw-page]) footer {
   --brand: #84cc16;
   --brand-foreground: #0f172a;
   --ring-brand: #84cc16;
-  --background: #0f172a;
-  --background-card: #1e293b;
-  --background-muted: #334155;
-  --background-inverse: #f8fafc;
-  --foreground: #f8fafc;
-  --foreground-secondary: #cbd5e1;
-  --foreground-muted: #64748b;
-  --foreground-inverse: #0f172a;
-  --foreground-inverse-secondary: #475569;
-  --foreground-inverse-muted: #64748b;
-  --border: #334155;
+  --background: #171717;
+  --background-card: #262626;
+  --background-muted: #404040;
+  --background-inverse: #fafafa;
+  --foreground: #fafafa;
+  --foreground-secondary: #d4d4d4;
+  --foreground-muted: #737373;
+  --foreground-inverse: #171717;
+  --foreground-inverse-secondary: #525252;
+  --foreground-inverse-muted: #737373;
+  --border: #404040;
 }
 
 
