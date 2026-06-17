@@ -146,10 +146,7 @@ function PricingCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-xl border p-6",
-        popular
-          ? "border-brand bg-brand text-brand-foreground"
-          : "border-border bg-background-card text-foreground",
+        "relative flex flex-col rounded-xl border border-border bg-background-card p-6 text-foreground",
       )}
     >
       {popular ? (

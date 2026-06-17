@@ -167,7 +167,7 @@ export default async function Home() {
               alt=""
               width={140}
               height={140}
-              className="h-auto w-24"
+              className="h-auto w-20"
             />
           </div>
           <div>
@@ -233,8 +233,8 @@ export default async function Home() {
       <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-border dark:bg-background">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
-            <div className="relative h-24 w-24">
-              <Image src="/mascots/mascot9.png" alt="" fill sizes="96px" className="object-contain" />
+            <div className="relative h-36 w-36">
+              <Image src="/mascots/mascot9.png" alt="" fill sizes="144px" className="object-contain" />
             </div>
             <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.points.title")}</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.points.description")}</p>

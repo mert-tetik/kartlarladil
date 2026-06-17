@@ -384,7 +384,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
           }}
         />
 
-        <div className="mt-6 max-sm:mt-3 grid gap-6 max-sm:gap-3 lg:grid-cols-2">
+        <div className="mt-6 max-sm:mt-2 grid gap-6 max-sm:gap-2 lg:grid-cols-2">
           <div className="order-2 flex flex-col lg:order-1">
             {item.questionType === "choice" ? (
               <ChoiceQuestion
