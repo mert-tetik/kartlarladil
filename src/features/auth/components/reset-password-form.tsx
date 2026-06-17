@@ -16,7 +16,7 @@ export function ResetPasswordForm() {
       <FormMessage state={state} />
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.email")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.email")}</span>
         <input className={inputClassName} name="email" type="email" autoComplete="email" required />
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </label>

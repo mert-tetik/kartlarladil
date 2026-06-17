@@ -113,7 +113,7 @@ export function SelectDropdown({
 
   return (
     <div ref={dropdownRef}>
-      <p id={labelId} className="mb-2 text-sm font-semibold text-slate-700">
+      <p id={labelId} className="mb-2 text-sm font-semibold text-foreground-secondary">
         {label}
       </p>
       <div className="relative">
@@ -130,7 +130,7 @@ export function SelectDropdown({
               setOpen(false);
             }
           }}
-          className="flex h-11 w-full cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-950 outline-none transition-colors hover:border-slate-300 focus:border-slate-950"
+          className="flex h-11 w-full cursor-pointer items-center justify-between rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none transition-colors hover:border-border focus:border-foreground"
         >
           <span id={valueId} className="flex min-w-0 items-center gap-2">
             {selectedOption.icon}
@@ -138,7 +138,7 @@ export function SelectDropdown({
           </span>
           <ChevronDown
             aria-hidden="true"
-            className={cn("size-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")}
+            className={cn("size-4 shrink-0 text-foreground-muted transition-transform", open && "rotate-180")}
           />
         </button>
 
@@ -147,7 +147,7 @@ export function SelectDropdown({
             id={listboxId}
             role="listbox"
             aria-labelledby={buttonId}
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-sm"
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-72 overflow-y-auto rounded-md border border-border bg-background-card p-1 shadow-sm"
           >
             {options.map((option) => {
               const selected = option.value === value;
@@ -163,15 +163,15 @@ export function SelectDropdown({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex h-10 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50",
-                    selected && "bg-slate-100 text-slate-950",
+                    "flex h-10 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm font-semibold text-foreground-secondary transition-colors hover:bg-background",
+                    selected && "bg-background-muted text-foreground",
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     {option.icon}
                     <span className={cn("truncate", option.className)}>{option.label}</span>
                   </span>
-                  {selected ? <Check aria-hidden="true" className="size-4 text-slate-950" /> : null}
+                  {selected ? <Check aria-hidden="true" className="size-4 text-foreground" /> : null}
                 </button>
               );
             })}

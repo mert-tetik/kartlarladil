@@ -61,8 +61,8 @@ export default async function AccountSubscriptionPage() {
           customerPortalUrl={entitlements.customerPortalUrl}
         />
 
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-950">
+        <div className="rounded-lg border border-border bg-background-card p-6">
+          <h2 className="text-lg font-semibold text-foreground">
             {t("account.subscription.webhookEventsTitle")}
           </h2>
 
@@ -70,19 +70,19 @@ export default async function AccountSubscriptionPage() {
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-slate-500">
+                  <tr className="border-b border-border text-left text-foreground-muted">
                     <th className="pb-2 font-medium">{t("account.subscription.eventName")}</th>
                     <th className="pb-2 font-medium">{t("account.subscription.eventTime")}</th>
                     <th className="pb-2 font-medium">{t("account.subscription.processedAt")}</th>
                     <th className="pb-2 font-medium">{t("account.subscription.error")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {events.map((event) => (
                     <tr key={event.event_id}>
-                      <td className="py-3 font-medium text-slate-900">{event.event_name}</td>
-                      <td className="py-3 text-slate-600">{formatDate(event.created_at, locale)}</td>
-                      <td className="py-3 text-slate-600">
+                      <td className="py-3 font-medium text-foreground">{event.event_name}</td>
+                      <td className="py-3 text-foreground-secondary">{formatDate(event.created_at, locale)}</td>
+                      <td className="py-3 text-foreground-secondary">
                         {event.processed_at ? formatDate(event.processed_at, locale) : "-"}
                       </td>
                       <td className="py-3 text-rose-600">{event.error_message ?? "-"}</td>
@@ -92,7 +92,7 @@ export default async function AccountSubscriptionPage() {
               </table>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-slate-500">{t("account.subscription.noWebhookEvents")}</p>
+            <p className="mt-4 text-sm text-foreground-muted">{t("account.subscription.noWebhookEvents")}</p>
           )}
         </div>
       </div>

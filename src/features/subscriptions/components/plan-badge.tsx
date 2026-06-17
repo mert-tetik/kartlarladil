@@ -13,7 +13,7 @@ interface PlanBadgeProps {
 }
 
 const PLAN_STYLES: Record<SubscriptionPlan, string> = {
-  free: "border-slate-200 bg-slate-100 text-slate-600",
+  free: "border-border bg-background-muted text-foreground-secondary",
   basic: "border-blue-200 bg-blue-50 text-blue-700",
   pro: "border-amber-200 bg-amber-50 text-amber-700",
 };
@@ -27,11 +27,11 @@ export function PlanBadge({ plan, className }: PlanBadgeProps) {
     return (
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5",
+          "inline-flex items-center justify-center rounded-full border border-border bg-background-muted px-2 py-0.5",
           className,
         )}
       >
-        <Loader2 className="size-3 animate-spin text-slate-500" aria-hidden="true" />
+        <Loader2 className="size-3 animate-spin text-foreground-muted" aria-hidden="true" />
       </span>
     );
   }

@@ -40,14 +40,14 @@ export default async function LoginPage({
     <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")}>
       <LoginForm nextPath={nextPath} message={message} />
       <div className="relative flex items-center py-4">
-        <div className="grow border-t border-slate-200" />
-        <span className="mx-3 text-xs font-medium text-slate-500">{t("common.or")}</span>
-        <div className="grow border-t border-slate-200" />
+        <div className="grow border-t border-border" />
+        <span className="mx-3 text-xs font-medium text-foreground-muted">{t("common.or")}</span>
+        <div className="grow border-t border-border" />
       </div>
       <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signIn")} />
       <AuthFooter>
         {t("auth.login.noAccount")}{" "}
-        <Link href={`/register?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-slate-950">
+        <Link href={`/register?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-foreground">
           {t("auth.register.title")}
         </Link>
       </AuthFooter>
@@ -56,5 +56,5 @@ export default async function LoginPage({
 }
 
 function AuthFooter({ children }: { children: ReactNode }) {
-  return <div className="mt-6 border-t border-slate-200 pt-5 text-sm text-slate-600">{children}</div>;
+  return <div className="mt-6 border-t border-border pt-5 text-sm text-foreground-secondary">{children}</div>;
 }

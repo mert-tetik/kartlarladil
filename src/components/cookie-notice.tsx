@@ -40,14 +40,14 @@ export function CookieNotice() {
     <div
       role="region"
       aria-label={t("cookies.policy")}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-sm"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background-card/95 p-4 shadow-lg backdrop-blur-sm"
     >
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
-        <p className="text-center text-sm text-slate-700 sm:text-left">
+        <p className="text-center text-sm text-foreground-secondary sm:text-left">
           {t("cookies.notice")}{" "}
           <Link
             href="/cookies"
-            className="font-medium text-slate-950 underline underline-offset-2 hover:text-slate-700"
+            className="font-medium text-foreground underline underline-offset-2 hover:text-foreground-secondary"
           >
             {t("cookies.policy")}
           </Link>

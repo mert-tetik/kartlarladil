@@ -49,7 +49,7 @@ export function LocaleSwitcher() {
         className="h-9 gap-1.5 px-2"
       >
         <LanguageFlag code={locale} className="h-4 w-6" />
-        <ChevronDown aria-hidden="true" className={cn("size-3.5 text-slate-500 transition-transform", open && "rotate-180")} />
+        <ChevronDown aria-hidden="true" className={cn("size-3.5 text-foreground-muted transition-transform", open && "rotate-180")} />
       </Button>
 
       {open ? (
@@ -57,7 +57,7 @@ export function LocaleSwitcher() {
           id={listboxId}
           role="listbox"
           aria-labelledby={buttonId}
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-sm"
+          className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-sm"
         >
           {LANGUAGES.map((language) => {
             const selected = language.code === locale;
@@ -73,18 +73,18 @@ export function LocaleSwitcher() {
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-slate-50",
-                  selected && "bg-slate-100",
+                  "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
+                  selected && "bg-background-muted",
                 )}
               >
                 <span className="flex min-w-0 items-center gap-3">
                   <LanguageFlag code={language.code} className="h-4 w-6" />
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold text-slate-950">{language.nativeName}</span>
-                    <span className="block truncate text-xs text-slate-500">{getLanguageDisplayName(language.code, locale)}</span>
+                    <span className="block truncate font-semibold text-foreground">{language.nativeName}</span>
+                    <span className="block truncate text-xs text-foreground-muted">{getLanguageDisplayName(language.code, locale)}</span>
                   </span>
                 </span>
-                {selected ? <Check aria-hidden="true" className="size-4 text-slate-950" /> : null}
+                {selected ? <Check aria-hidden="true" className="size-4 text-foreground" /> : null}
               </button>
             );
           })}

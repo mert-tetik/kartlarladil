@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Coins, Languages, Loader2, Mic, MicOff, RotateCcw, SendHorizonal, Volume2 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { LanguageFlag } from "@/components/language-flag";
+import { InlineLanguagePicker } from "@/components/inline-language-picker";
 import { getCharacterName, getRandomOpeningLine } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
@@ -440,12 +441,11 @@ export function AiPracticeChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card">
       <ChatHeader
         character={character}
         characterName={characterName}
         language={language}
-        languageName={languageName}
         tier={tier}
         canReset={!pending && messages.length > 0}
         onReset={() =>
@@ -498,7 +498,6 @@ function ChatHeader({
   character,
   characterName,
   language,
-  languageName,
   tier,
   canReset,
   onReset,
@@ -506,25 +505,27 @@ function ChatHeader({
   character: AiPracticeCharacter;
   characterName: string;
   language: LanguageCode;
-  languageName: string;
   tier: Tier;
   canReset: boolean;
   onReset: () => void;
 }) {
   const t = useT();
+  const router = useRouter();
 
   return (
-    <header className="flex shrink-0 flex-col gap-3 border-b border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+    <header className="flex shrink-0 flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-slate-100">
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
           <Image src={character.imageSrc} alt={characterName} fill sizes="48px" className="object-cover" priority />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-slate-950 sm:text-lg">{characterName}</h1>
-          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
-            <LanguageFlag code={language} />
-            <span className="truncate">{languageName}</span>
-            <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
+          <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{characterName}</h1>
+          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-foreground-muted">
+            <InlineLanguagePicker
+              value={language}
+              onChange={(code) => router.push(`/ai-practice/${code}/${character.id}?tier=${tier}`)}
+            />
+            <span className="shrink-0 rounded bg-background-muted px-1.5 py-0.5 text-xs font-semibold text-foreground-secondary">
               {tier}
             </span>
           </p>
@@ -569,13 +570,13 @@ function MessageList({
     <div ref={refObject} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ai-chat-scroll="true">
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
-          <div className="relative size-24 overflow-hidden rounded-full bg-slate-100">
+          <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
             <Image src={character.imageSrc} alt="" fill sizes="96px" className="object-cover" />
           </div>
-          <h2 className="mt-5 text-xl font-semibold text-slate-950">
+          <h2 className="mt-5 text-xl font-semibold text-foreground">
             {t("aiPractice.chat.emptyTitle", { name: characterName })}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm leading-6 text-foreground-secondary">
             {t("aiPractice.chat.emptyDescription", { language: languageName })}
           </p>
         </div>
@@ -618,7 +619,7 @@ function ChatMessage({
   return (
     <article className={cn("flex gap-3", isUser && "flex-row-reverse")}>
       {!isUser && (
-        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:size-9">
+        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-background-muted sm:size-9">
           <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" />
         </div>
       )}
@@ -627,10 +628,10 @@ function ChatMessage({
           <div
             className={cn(
               "rounded-lg px-4 py-3 text-sm leading-6",
-              isUser ? "bg-slate-950 text-white" : "border border-slate-200 bg-slate-50 text-slate-800",
+              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground",
             )}
           >
-            {pending ? <Loader2 className="size-4 animate-spin text-slate-500" aria-hidden="true" /> : message.content}
+            {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}
           </div>
           {!pending && message.content ? (
             <>
@@ -658,14 +659,14 @@ function MessageActions({
   const isTranslating = message.translation?.status === "loading";
 
   return (
-    <div className="mt-1.5 flex items-center gap-1.5 text-slate-500">
+    <div className="mt-1.5 flex items-center gap-1.5 text-foreground-muted">
       <button
         type="button"
         onClick={onTranslate}
         disabled={isTranslating}
         aria-label={t("aiPractice.chat.translate")}
         title={t("aiPractice.chat.translate")}
-        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-slate-100 hover:text-slate-950 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-background-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         {isTranslating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Languages className="size-4" aria-hidden="true" />}
       </button>
@@ -674,7 +675,7 @@ function MessageActions({
         onClick={onSpeak}
         aria-label={t("aiPractice.chat.speakMessage")}
         title={t("aiPractice.chat.speakMessage")}
-        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         <Volume2 className="size-4" aria-hidden="true" />
       </button>
@@ -703,7 +704,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "loading") {
-    return <p className="mt-1.5 text-xs text-slate-500">{t("aiPractice.chat.translating")}</p>;
+    return <p className="mt-1.5 text-xs text-foreground-muted">{t("aiPractice.chat.translating")}</p>;
   }
 
   if (translation.status === "error") {
@@ -711,7 +712,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   return (
-    <p className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
+    <p className="mt-2 rounded-md border border-border bg-background-card px-3 py-2 text-xs leading-5 text-foreground-secondary">
       {translation.text}
     </p>
   );
@@ -748,10 +749,10 @@ function ChatComposer({
     : t("aiPractice.chat.micUnsupported");
 
   return (
-    <form onSubmit={onSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4">
+    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-3 sm:p-4">
       <div
         className={cn(
-          "flex gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 focus-within:border-slate-950",
+          "flex gap-2 rounded-lg border border-border bg-background p-2 focus-within:border-foreground",
           isRecording ? "items-center" : "items-end",
         )}
       >
@@ -768,7 +769,7 @@ function ChatComposer({
             rows={1}
             maxLength={900}
             placeholder={t("aiPractice.chat.placeholder")}
-            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-slate-950 outline-none placeholder:text-slate-400"
+            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-foreground-muted"
             disabled={pending}
           />
         )}
@@ -789,7 +790,7 @@ function ChatComposer({
           </Button>
         ) : null}
       </div>
-      <p className="mt-2 text-xs text-slate-500">{t("aiPractice.chat.privacy")}</p>
+      <p className="mt-2 text-xs text-foreground-muted">{t("aiPractice.chat.privacy")}</p>
     </form>
   );
 }

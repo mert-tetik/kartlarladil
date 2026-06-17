@@ -12,8 +12,8 @@ import type { InventoryCardView } from "@/features/inventory/inventory-selectors
 
 describe("progress stats", () => {
   it("returns the configured tier points", () => {
-    expect(TIER_POINTS).toEqual({ A1: 10, A2: 20, B1: 40, B2: 70, C1: 110 });
-    expect(getPointsForTier("C1")).toBe(110);
+    expect(TIER_POINTS).toEqual({ A1: 10, A2: 20, B1: 40, B2: 50, C1: 100 });
+    expect(getPointsForTier("C1")).toBe(100);
   });
 
   it("calculates points only from learned cards and ignores duplicate card ids", () => {
@@ -31,10 +31,10 @@ describe("progress stats", () => {
     expect(stats.totalCards).toBe(3);
     expect(stats.learnedCards).toBe(2);
     expect(stats.activeCards).toBe(1);
-    expect(stats.totalPoints).toBe(120);
+    expect(stats.totalPoints).toBe(110);
     expect(stats.tierStats.find((tier) => tier.tier === "A1")?.learned).toBe(1);
     expect(stats.tierStats.find((tier) => tier.tier === "B1")?.points).toBe(0);
-    expect(stats.languageStats.find((language) => language.language === "de")?.points).toBe(110);
+    expect(stats.languageStats.find((language) => language.language === "de")?.points).toBe(100);
   });
 
   it("selects rank and next-rank progress from total points", () => {

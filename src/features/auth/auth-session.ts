@@ -21,6 +21,7 @@ interface ProfileRow {
   preferred_tier: string | null;
   onboarding_completed: boolean | null;
   ai_practice_points: number | null;
+  theme: string | null;
 }
 
 function normalizeProfile(row?: ProfileRow | null): AuthProfile {
@@ -40,6 +41,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
         : null,
     preferredTier: preferredTier && TIERS.has(preferredTier as Tier) ? (preferredTier as Tier) : null,
     aiPracticePoints: row?.ai_practice_points ?? 0,
+    theme: row?.theme ?? null,
   };
 }
 
@@ -72,7 +74,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, theme")
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -141,7 +143,7 @@ export async function ensureUserProfile(
         preferences?.preferredTier ?? (TIERS.has(metadataTier as Tier) ? (metadataTier as Tier) : "A1"),
       onboarding_completed: false,
     })
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, theme")
     .maybeSingle<ProfileRow>();
 
   if (error) {

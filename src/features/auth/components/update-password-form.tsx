@@ -17,13 +17,13 @@ export function UpdatePasswordForm() {
       <FormMessage state={state} />
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.newPassword")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.newPassword")}</span>
         <PasswordInput name="password" autoComplete="new-password" required />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.confirmNewPassword")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.confirmNewPassword")}</span>
         <PasswordInput name="confirmPassword" autoComplete="new-password" required />
         <FieldError message={state.fieldErrors?.confirmPassword?.[0]} />
       </label>

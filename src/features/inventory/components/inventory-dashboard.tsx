@@ -104,7 +104,7 @@ export function InventoryDashboard({
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="rounded-lg border border-border bg-background-card p-4">
         <div className="grid gap-2 sm:grid-cols-3">
           {languageStats.map((item) => (
             <button
@@ -112,15 +112,15 @@ export function InventoryDashboard({
               type="button"
               onClick={() => setLanguage(item.code)}
               className={cn(
-                "rounded-md border border-slate-200 bg-slate-50 p-4 text-left transition-colors hover:bg-white",
-                activeLanguage === item.code && "border-slate-950 bg-white",
+                "rounded-md border border-border bg-background p-4 text-left transition-colors hover:bg-background-card",
+                activeLanguage === item.code && "border-foreground bg-background-card",
               )}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <LanguageFlag code={item.code} className="h-5 w-7" />
                 {getLanguageDisplayName(item.code, locale)}
               </span>
-              <span className="mt-2 block text-2xl font-bold text-slate-950">
+              <span className="mt-2 block text-2xl font-bold text-foreground">
                 {item.count}
               </span>
             </button>
@@ -131,7 +131,7 @@ export function InventoryDashboard({
       {!learnedOnly ? (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-foreground">
               {t("inventory.status.active")}
             </h2>
             {activeCards.length > 0 ? (
@@ -144,7 +144,7 @@ export function InventoryDashboard({
           {activeCards.length > 0 ? (
             <InventoryCardGrid cards={activeCards} />
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-foreground-muted">
               {t("inventory.emptyActiveDescription")}
             </p>
           )}
@@ -152,13 +152,13 @@ export function InventoryDashboard({
       ) : null}
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-950">
+        <h2 className="text-lg font-semibold text-foreground">
           {t("inventory.status.learned")}
         </h2>
         {learnedCards.length > 0 ? (
           <InventoryCardGrid cards={learnedCards} />
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-foreground-muted">
             {t("inventory.emptyLearnedDescription")}
           </p>
         )}

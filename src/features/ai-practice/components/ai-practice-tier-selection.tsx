@@ -22,13 +22,13 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold text-slate-950">
+        <h1 className="font-display text-3xl font-semibold text-foreground">
           {t("page.aiPractice.tierSelectionTitle")}
         </h1>
         <Link
           href="/ai-practice"
           aria-label={t("common.back")}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-950 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
@@ -42,14 +42,14 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
             <Link
               key={tier}
               href={`/ai-practice/${language}/character?tier=${tier}`}
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-background-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
               <Icon
-                className="size-7 text-slate-700 transition-colors group-hover:text-slate-950"
+                className="size-7 text-foreground-secondary transition-colors group-hover:text-foreground"
                 aria-hidden="true"
               />
-              <span className="text-center text-sm font-semibold text-slate-950">{tier}</span>
-              <span className="text-center text-xs font-semibold text-slate-500">
+              <span className="text-center text-sm font-semibold text-foreground">{tier}</span>
+              <span className="text-center text-xs font-semibold text-foreground-muted">
                 {getTierLabel(tier, locale)}
               </span>
             </Link>

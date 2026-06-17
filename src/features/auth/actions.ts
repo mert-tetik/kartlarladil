@@ -18,9 +18,11 @@ import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-red
 import { ensureUserProfile, getRequestOrigin } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { THEMES, isThemePaid } from "@/lib/themes";
 import type { LocaleCode } from "@/types/domain";
 
 async function getActionText() {
@@ -318,6 +320,69 @@ export async function signInWithGoogleAction(
   }
 
   redirect(data.url);
+}
+
+export async function updateThemeAction(themeId: string): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
+  const supabase = await createActionSupabaseClient();
+
+  if (!supabase) {
+    return authNotConfiguredState(locale);
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      status: "error",
+      message: t("auth.message.themeAuthRequired"),
+    };
+  }
+
+  const validTheme = THEMES.find((theme) => theme.id === themeId);
+
+  if (!validTheme) {
+    return {
+      status: "error",
+      message: t("auth.message.invalidTheme"),
+    };
+  }
+
+  if (isThemePaid(validTheme.id)) {
+    const entitlements = await getUserEntitlements(user.id);
+
+    if (entitlements.effectivePlan === "free") {
+      return {
+        status: "error",
+        message: t("theme.upgradeDescription"),
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      theme: validTheme.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    return {
+      status: "error",
+      message: error.message,
+    };
+  }
+
+  revalidatePath("/", "layout");
+
+  return {
+    status: "success",
+    message: t("auth.message.themeSaved"),
+  };
 }
 
 export async function logoutAction() {

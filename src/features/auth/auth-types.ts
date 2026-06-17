@@ -15,6 +15,7 @@ export interface AuthProfile {
   preferredUiLocale: LocaleCode | null;
   preferredTier: Tier | null;
   aiPracticePoints: number;
+  theme?: string | null;
 }
 
 export interface AuthShellUser {

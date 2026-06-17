@@ -13,22 +13,22 @@ export function AccountSettingsForm({ user }: { user: AuthShellUser }) {
   const t = useT();
 
   return (
-    <form action={formAction} className="rounded-lg border border-slate-200 bg-white p-6">
+    <form action={formAction} className="rounded-lg border border-border bg-background-card p-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-950">{t("auth.profile.title")}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{t("auth.profile.description")}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t("auth.profile.title")}</h2>
+        <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("auth.profile.description")}</p>
       </div>
 
       <div className="mt-6 space-y-5">
         <FormMessage state={state} />
 
         <label className="block">
-          <span className="text-sm font-semibold text-slate-800">{t("common.email")}</span>
+          <span className="text-sm font-semibold text-foreground">{t("common.email")}</span>
           <input className={inputClassName} value={user.email} disabled readOnly />
         </label>
 
         <label className="block">
-          <span className="text-sm font-semibold text-slate-800">{t("common.displayName")}</span>
+          <span className="text-sm font-semibold text-foreground">{t("common.displayName")}</span>
           <input
             className={inputClassName}
             name="displayName"

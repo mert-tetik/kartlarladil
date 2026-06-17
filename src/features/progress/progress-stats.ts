@@ -13,8 +13,8 @@ export const TIER_POINTS: TierPoints = {
   A1: 10,
   A2: 20,
   B1: 40,
-  B2: 70,
-  C1: 110,
+  B2: 50,
+  C1: 100,
 };
 
 export const RANKS: RankDefinition[] = [

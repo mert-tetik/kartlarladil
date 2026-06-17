@@ -20,19 +20,19 @@ export function LoginForm({ nextPath, message }: { nextPath: string; message?: s
       <FormMessage state={state} />
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.email")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.email")}</span>
         <input className={inputClassName} name="email" type="email" autoComplete="email" required />
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.password")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.password")}</span>
         <PasswordInput name="password" autoComplete="current-password" required />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </label>
 
       <div className="flex items-center justify-between gap-3 text-sm">
-        <Link href="/reset-password" className="font-semibold text-slate-700 hover:text-slate-950">
+        <Link href="/reset-password" className="font-semibold text-foreground-secondary hover:text-foreground">
           {t("auth.login.forgotPassword")}
         </Link>
       </div>

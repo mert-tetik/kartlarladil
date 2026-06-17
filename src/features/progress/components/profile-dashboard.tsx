@@ -52,20 +52,20 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
         </div>
       ) : null}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 sm:p-6">
+      <section className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 items-center justify-center rounded-lg bg-slate-950 text-2xl font-bold text-white">
+            <div className="flex size-16 items-center justify-center rounded-lg bg-background-inverse text-2xl font-bold text-foreground-inverse">
               {(user.profile.displayName?.[0] ?? user.email[0]).toLocaleUpperCase(locale)}
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-500">{user.email}</p>
-              <h2 className="mt-1 font-display text-4xl font-semibold text-slate-950">
+              <p className="text-sm font-semibold text-foreground-muted">{user.email}</p>
+              <h2 className="mt-1 font-display text-4xl font-semibold text-foreground">
                 {user.profile.displayName || t("profile.fallbackName")}
               </h2>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PlanBadge />
-                <span className="text-sm text-slate-600">{getRankLabel(stats.rank, locale)}</span>
+                <span className="text-sm text-foreground-secondary">{getRankLabel(stats.rank, locale)}</span>
               </div>
             </div>
           </div>
@@ -90,8 +90,8 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
 
         <div className="mt-6">
           <div className="flex items-center justify-between gap-3 text-sm font-semibold">
-            <span className="text-slate-700">{getRankLabel(stats.rank, locale)}</span>
-            <span className="text-slate-500">
+            <span className="text-foreground-secondary">{getRankLabel(stats.rank, locale)}</span>
+            <span className="text-foreground-muted">
               {stats.nextRank
                 ? t("profile.nextRank", {
                     rank: getRankLabel(stats.nextRank, locale),
@@ -100,13 +100,13 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                 : t("profile.finalRank")}
             </span>
           </div>
-          <Progress value={stats.rankProgressPercent} indicatorClassName="bg-slate-950" className="mt-3" />
+          <Progress value={stats.rankProgressPercent} indicatorClassName="bg-background-inverse" className="mt-3" />
         </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">{t("profile.tierCollection")}</h3>
+        <div className="rounded-lg border border-border bg-background-card p-5">
+          <h3 className="font-semibold text-foreground">{t("profile.tierCollection")}</h3>
           <div className="mt-4 grid grid-cols-5 gap-2">
             {stats.tierStats.map((tier) => {
               const style = TIER_STYLES[tier.tier];
@@ -114,28 +114,28 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
               return (
                 <div key={tier.tier} className={cn("rounded-lg border bg-gradient-to-br p-3 text-center", style.border, style.surface)}>
                   <span className={cn("text-sm font-bold", style.text)}>{tier.tier}</span>
-                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{getTierLabel(tier.tier, locale)}</p>
-                  <p className="mt-3 text-2xl font-bold text-slate-950">{formatNumber(locale, tier.learned)}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{formatPoints(locale, tier.points)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted">{getTierLabel(tier.tier, locale)}</p>
+                  <p className="mt-3 text-2xl font-bold text-foreground">{formatNumber(locale, tier.learned)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted">{formatPoints(locale, tier.points)}</p>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">{t("profile.languageProgress")}</h3>
+        <div className="rounded-lg border border-border bg-background-card p-5">
+          <h3 className="font-semibold text-foreground">{t("profile.languageProgress")}</h3>
           <div className="mt-4 space-y-3">
             {stats.languageStats.map((language) => {
               const meta = LANGUAGES.find((item) => item.code === language.language)!;
               const percent = language.total > 0 ? Math.round((language.learned / language.total) * 100) : 0;
 
               return (
-                <div key={language.language} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div key={language.language} className="rounded-md border border-border bg-background p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-950">{getLanguageDisplayName(meta.code, locale)}</p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                      <p className="font-semibold text-foreground">{getLanguageDisplayName(meta.code, locale)}</p>
+                      <p className="mt-1 text-xs font-semibold text-foreground-muted">
                         {t("profile.languageCardCount", {
                           learned: formatNumber(locale, language.learned),
                           total: formatNumber(locale, language.total),
@@ -153,9 +153,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-lg border border-border bg-background-card p-5">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold text-slate-950">{t("profile.recentLearned")}</h3>
+            <h3 className="font-semibold text-foreground">{t("profile.recentLearned")}</h3>
             <Link href="/learned" className={buttonClassName("secondary", "sm")}>
               {t("common.viewAll")}
             </Link>
@@ -163,10 +163,10 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
           <div className="mt-4 space-y-2">
             {learnedCards.length > 0 ? (
               learnedCards.map(({ card, inventory }) => (
-                <div key={card.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div key={card.id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-background p-3">
                   <div>
-                    <p className="font-display text-xl font-semibold text-slate-950">{card.term}</p>
-                    <p className="mt-1 text-sm text-slate-500">{getCardTranslation(card, locale)}</p>
+                    <p className="font-display text-xl font-semibold text-foreground">{card.term}</p>
+                    <p className="mt-1 text-sm text-foreground-muted">{getCardTranslation(card, locale)}</p>
                   </div>
                   <Badge className={TIER_STYLES[card.tier].text}>{card.tier}</Badge>
                   <span className="sr-only">{inventory.learnedAt}</span>
@@ -178,22 +178,22 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="font-semibold text-slate-950">{t("profile.recentAttempts")}</h3>
+        <div className="rounded-lg border border-border bg-background-card p-5">
+          <h3 className="font-semibold text-foreground">{t("profile.recentAttempts")}</h3>
           <div className="mt-4 space-y-2">
             {attempts.slice(0, 8).length > 0 ? (
               attempts.slice(0, 8).map((attempt) => {
                 const card = cardById.get(attempt.cardId);
 
                 return (
-                  <div key={attempt.id} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div key={attempt.id} className="rounded-md border border-border bg-background p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold text-slate-950">{card?.term ?? attempt.cardId}</p>
+                      <p className="font-semibold text-foreground">{card?.term ?? attempt.cardId}</p>
                       <Badge className={attempt.isCorrect ? "text-emerald-700" : "text-rose-700"}>
                         {attempt.isCorrect ? t("common.correct") : t("common.incorrect")}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-foreground-muted">
                       {t("common.answer")}: {attempt.selectedAnswer}
                     </p>
                   </div>
@@ -219,14 +219,14 @@ function StatTile({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <Icon className="size-4 text-slate-500" aria-hidden="true" />
-      <p className="mt-3 text-xs font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-950">{value}</p>
+    <div className="rounded-lg border border-border bg-background p-3">
+      <Icon className="size-4 text-foreground-muted" aria-hidden="true" />
+      <p className="mt-3 text-xs font-semibold text-foreground-muted">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
     </div>
   );
 }
 
 function EmptyInline({ message }: { message: string }) {
-  return <p className="rounded-md border border-dashed border-slate-200 p-4 text-sm font-semibold text-slate-500">{message}</p>;
+  return <p className="rounded-md border border-dashed border-border p-4 text-sm font-semibold text-foreground-muted">{message}</p>;
 }

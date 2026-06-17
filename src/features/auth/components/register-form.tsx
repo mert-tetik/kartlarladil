@@ -19,19 +19,19 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       <FormMessage state={state} />
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.displayName")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.displayName")}</span>
         <input className={inputClassName} name="displayName" type="text" autoComplete="name" />
         <FieldError message={state.fieldErrors?.displayName?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.email")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.email")}</span>
         <input className={inputClassName} name="email" type="email" autoComplete="email" required />
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-slate-800">{t("common.password")}</span>
+        <span className="text-sm font-semibold text-foreground">{t("common.password")}</span>
         <PasswordInput name="password" autoComplete="new-password" required />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </label>
@@ -42,15 +42,15 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
           name="consent"
           value="on"
           required
-          className="mt-1 size-4 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
+          className="mt-1 size-4 rounded border-border text-foreground focus:ring-foreground"
         />
-        <span className="text-sm leading-6 text-slate-600">
+        <span className="text-sm leading-6 text-foreground-secondary">
           {t("register.consentPrefix")}
-          <Link href="/terms" className="font-semibold text-slate-950 underline hover:no-underline">
+          <Link href="/terms" className="font-semibold text-foreground underline hover:no-underline">
             {t("register.consentTerms")}
           </Link>
           {t("register.consentAnd")}
-          <Link href="/privacy" className="font-semibold text-slate-950 underline hover:no-underline">
+          <Link href="/privacy" className="font-semibold text-foreground underline hover:no-underline">
             {t("register.consentPrivacy")}
           </Link>
           {t("register.consentSuffix")}

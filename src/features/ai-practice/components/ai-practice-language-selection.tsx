@@ -11,10 +11,10 @@ export function AiPracticeLanguageSelection({ locale }: { locale: LocaleCode }) 
         <Link
           key={language.code}
           href={`/ai-practice/${language.code}`}
-          className="group flex flex-col items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="group flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           <LanguageFlag code={language.code} className="h-10 w-14" />
-          <span className="text-center text-sm font-semibold text-slate-950">
+          <span className="text-center text-sm font-semibold text-foreground">
             {getLanguageDisplayName(language.code, locale)}
           </span>
         </Link>

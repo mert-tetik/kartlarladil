@@ -23,16 +23,16 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background-inverse/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="upgrade-dialog-title"
     >
-      <div className="relative w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
+      <div className="relative w-full max-w-md rounded-lg border border-border bg-background-card p-6 shadow-lg">
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950"
+          className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground"
           aria-label={t("common.close")}
         >
           <X className="size-4" aria-hidden="true" />
@@ -40,11 +40,11 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
 
         <h2
           id="upgrade-dialog-title"
-          className="pr-8 text-lg font-semibold text-slate-950"
+          className="pr-8 text-lg font-semibold text-foreground"
         >
           {content.title}
         </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{content.description}</p>
+        <p className="mt-2 text-sm leading-6 text-foreground-secondary">{content.description}</p>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

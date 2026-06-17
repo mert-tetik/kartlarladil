@@ -3,6 +3,7 @@ import { CookieNotice } from "@/components/cookie-notice";
 import { AppNavigation } from "@/components/app-navigation";
 import { PageTransitionShell } from "@/components/page-transition-shell";
 import { SiteFooter } from "@/components/site-footer";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
@@ -18,14 +19,16 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
       <AuthSessionProvider user={user}>
         <SubscriptionProvider>
           <ProgressStatsProvider>
-            <div className="flex min-h-screen flex-col bg-slate-50 text-slate-950">
-              <AppNavigation user={user} />
-              <div className="flex-1">
-                <PageTransitionShell>{children}</PageTransitionShell>
+            <ThemeProvider initialTheme={user?.profile.theme}>
+              <div className="flex min-h-screen flex-col bg-background text-foreground">
+                <AppNavigation user={user} />
+                <div className="flex-1">
+                  <PageTransitionShell>{children}</PageTransitionShell>
+                </div>
+                <SiteFooter />
+                <CookieNotice />
               </div>
-              <SiteFooter />
-              <CookieNotice />
-            </div>
+            </ThemeProvider>
           </ProgressStatsProvider>
         </SubscriptionProvider>
       </AuthSessionProvider>

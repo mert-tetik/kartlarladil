@@ -30,9 +30,9 @@ export function AiPracticeCharacterSelection({
           <Link
             key={character.id}
             href={`/ai-practice/${language}/${character.id}?tier=${tier}`}
-            className="group overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+            className="group overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
-            <div className="relative aspect-square overflow-hidden bg-slate-100">
+            <div className="relative aspect-square overflow-hidden bg-background-muted">
               <Image
                 src={character.imageSrc}
                 alt={characterName}
@@ -44,13 +44,13 @@ export function AiPracticeCharacterSelection({
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate text-base font-semibold text-slate-950">{characterName}</h2>
-                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">
+                  <h2 className="truncate text-base font-semibold text-foreground">{characterName}</h2>
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-foreground-secondary">
                     {character.summaryByLocale[locale]}
                   </p>
                 </div>
                 <ArrowRight
-                  className="mt-1 size-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-slate-950"
+                  className="mt-1 size-4 shrink-0 text-foreground-muted transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground"
                   aria-hidden="true"
                 />
               </div>
@@ -59,7 +59,7 @@ export function AiPracticeCharacterSelection({
                   <LanguageFlag code={language} className="size-3.5" />
                   {languageName}
                 </Badge>
-                <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+                <span className="flex items-center gap-1 text-xs font-semibold text-foreground-muted">
                   <MessageCircle className="size-3.5" aria-hidden="true" />
                   Chat
                 </span>

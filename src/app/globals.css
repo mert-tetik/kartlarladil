@@ -1,13 +1,50 @@
 @import "tailwindcss";
 
 :root {
+  --brand: #f76808;
+  --brand-hover: color-mix(in oklab, var(--brand) 85%, black);
+  --brand-foreground: #ffffff;
   --background: #f8fafc;
+  --background-card: #ffffff;
+  --background-muted: #f1f5f9;
+  --background-inverse: #0f172a;
   --foreground: #0f172a;
+  --foreground-secondary: #475569;
+  --foreground-muted: #94a3b8;
+  --foreground-inverse: #ffffff;
+  --foreground-inverse-secondary: #cbd5e1;
+  --foreground-inverse-muted: #94a3b8;
+  --border: #e2e8f0;
+  --ring-brand: #f76808;
 }
 
 @theme inline {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-foreground: var(--brand-foreground);
   --color-background: var(--background);
+  --color-background-card: var(--background-card);
+  --color-background-muted: var(--background-muted);
+  --color-background-inverse: var(--background-inverse);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-inverse: var(--foreground-inverse);
+  --color-foreground-inverse-secondary: var(--foreground-inverse-secondary);
+  --color-foreground-inverse-muted: var(--foreground-inverse-muted);
+  --color-border: var(--border);
+  --color-ring-brand: var(--ring-brand);
+  --color-slate-50: var(--background);
+  --color-slate-100: var(--background-muted);
+  --color-slate-200: var(--border);
+  --color-slate-300: var(--border);
+  --color-slate-400: var(--foreground-muted);
+  --color-slate-500: var(--foreground-muted);
+  --color-slate-600: var(--foreground-secondary);
+  --color-slate-700: var(--foreground-secondary);
+  --color-slate-800: var(--background-inverse);
+  --color-slate-900: var(--background-inverse);
+  --color-slate-950: var(--background-inverse);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-fraunces);
 }
@@ -337,3 +374,236 @@ body:has([data-learn-page]) footer {
 body:has([data-card-draw-page]) footer {
   display: none;
 }
+
+/* Theme overrides */
+[data-theme="default"] {
+  --brand: #f76808;
+  --brand-foreground: #ffffff;
+  --ring-brand: #f76808;
+}
+
+[data-theme="default-dark"] {
+  --brand: #f76808;
+  --brand-foreground: #ffffff;
+  --ring-brand: #f76808;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="ocean"] {
+  --brand: #0ea5e9;
+  --brand-foreground: #ffffff;
+  --ring-brand: #0ea5e9;
+}
+
+[data-theme="ocean-dark"] {
+  --brand: #0ea5e9;
+  --brand-foreground: #ffffff;
+  --ring-brand: #0ea5e9;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="emerald"] {
+  --brand: #10b981;
+  --brand-foreground: #ffffff;
+  --ring-brand: #10b981;
+}
+
+[data-theme="emerald-dark"] {
+  --brand: #10b981;
+  --brand-foreground: #ffffff;
+  --ring-brand: #10b981;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="violet"] {
+  --brand: #8b5cf6;
+  --brand-foreground: #ffffff;
+  --ring-brand: #8b5cf6;
+}
+
+[data-theme="violet-dark"] {
+  --brand: #8b5cf6;
+  --brand-foreground: #ffffff;
+  --ring-brand: #8b5cf6;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="rose"] {
+  --brand: #f43f5e;
+  --brand-foreground: #ffffff;
+  --ring-brand: #f43f5e;
+}
+
+[data-theme="rose-dark"] {
+  --brand: #f43f5e;
+  --brand-foreground: #ffffff;
+  --ring-brand: #f43f5e;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="amber"] {
+  --brand: #f59e0b;
+  --brand-foreground: #0f172a;
+  --ring-brand: #f59e0b;
+}
+
+[data-theme="amber-dark"] {
+  --brand: #f59e0b;
+  --brand-foreground: #0f172a;
+  --ring-brand: #f59e0b;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="teal"] {
+  --brand: #14b8a6;
+  --brand-foreground: #ffffff;
+  --ring-brand: #14b8a6;
+}
+
+[data-theme="teal-dark"] {
+  --brand: #14b8a6;
+  --brand-foreground: #ffffff;
+  --ring-brand: #14b8a6;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="indigo"] {
+  --brand: #6366f1;
+  --brand-foreground: #ffffff;
+  --ring-brand: #6366f1;
+}
+
+[data-theme="indigo-dark"] {
+  --brand: #6366f1;
+  --brand-foreground: #ffffff;
+  --ring-brand: #6366f1;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="crimson"] {
+  --brand: #dc2626;
+  --brand-foreground: #ffffff;
+  --ring-brand: #dc2626;
+}
+
+[data-theme="crimson-dark"] {
+  --brand: #dc2626;
+  --brand-foreground: #ffffff;
+  --ring-brand: #dc2626;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+[data-theme="lime"] {
+  --brand: #84cc16;
+  --brand-foreground: #0f172a;
+  --ring-brand: #84cc16;
+}
+
+[data-theme="lime-dark"] {
+  --brand: #84cc16;
+  --brand-foreground: #0f172a;
+  --ring-brand: #84cc16;
+  --background: #0f172a;
+  --background-card: #1e293b;
+  --background-muted: #334155;
+  --background-inverse: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #64748b;
+  --foreground-inverse: #0f172a;
+  --foreground-inverse-secondary: #475569;
+  --foreground-inverse-muted: #64748b;
+  --border: #334155;
+}
+
+

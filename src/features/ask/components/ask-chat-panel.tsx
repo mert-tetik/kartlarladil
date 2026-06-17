@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Languages,
   Loader2,
   Mic,
@@ -13,12 +12,12 @@ import {
   SendHorizonal,
   Volume2,
 } from "lucide-react";
-import { Button, buttonClassName } from "@/components/ui/button";
-import { LanguageFlag } from "@/components/language-flag";
+import { Button } from "@/components/ui/button";
+import { InlineLanguagePicker } from "@/components/inline-language-picker";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
-import { getLanguageDisplayName } from "@/i18n/labels";
+
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
@@ -73,7 +72,7 @@ export function AskChatPanel({
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
-  const languageName = getLanguageDisplayName(language, currentLocale);
+
 
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -404,10 +403,9 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card">
       <ChatHeader
         language={language}
-        languageName={languageName}
         canReset={!pending && messages.length > 0}
         onReset={() => {
           initialSentRef.current = true;
@@ -449,36 +447,33 @@ export function AskChatPanel({
 
 function ChatHeader({
   language,
-  languageName,
   canReset,
   onReset,
 }: {
   language: LanguageCode;
-  languageName: string;
   canReset: boolean;
   onReset: () => void;
 }) {
   const t = useT();
+  const router = useRouter();
 
   return (
-    <header className="flex shrink-0 flex-col gap-3 border-b border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+    <header className="flex shrink-0 flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-slate-100">
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
           <Image src="/logo.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain p-1" priority />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-slate-950 sm:text-lg">{t("page.ask.title")}</h1>
-          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
-            <LanguageFlag code={language} />
-            <span className="truncate">{languageName}</span>
+          <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
+          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
+            <InlineLanguagePicker
+              value={language}
+              onChange={(code) => router.push(`/ask/${code}`)}
+            />
           </p>
         </div>
       </div>
       <div className="flex shrink-0 gap-2">
-        <Link href="/my-cards" className={buttonClassName("secondary", "sm")}>
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {t("aiPractice.chat.characters")}
-        </Link>
         <Button type="button" variant="ghost" size="sm" onClick={onReset} disabled={!canReset}>
           <RotateCcw className="size-4" aria-hidden="true" />
           {t("ask.reset")}
@@ -507,11 +502,11 @@ function MessageList({
     <div ref={refObject} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ask-chat-scroll="true">
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
-          <div className="relative size-24 overflow-hidden rounded-full bg-slate-100">
+          <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
             <Image src="/logo.png" alt="" fill sizes="96px" className="object-contain p-2" />
           </div>
-          <h2 className="mt-5 text-xl font-semibold text-slate-950">{t("page.ask.title")}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{t("page.ask.description")}</p>
+          <h2 className="mt-5 text-xl font-semibold text-foreground">{t("page.ask.title")}</h2>
+          <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
         </div>
       ) : (
         <div className="space-y-5 pb-2">
@@ -546,7 +541,7 @@ function ChatMessage({
   return (
     <article className={cn("flex gap-3", isUser && "flex-row-reverse")}>
       {!isUser && (
-        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:size-9">
+        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-background-muted sm:size-9">
           <Image src="/logo.png" alt="" fill sizes="36px" className="object-contain p-1" />
         </div>
       )}
@@ -555,10 +550,10 @@ function ChatMessage({
           <div
             className={cn(
               "rounded-lg px-4 py-3 text-sm leading-6",
-              isUser ? "bg-slate-950 text-white" : "border border-slate-200 bg-slate-50 text-slate-800",
+              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground",
             )}
           >
-            {pending ? <Loader2 className="size-4 animate-spin text-slate-500" aria-hidden="true" /> : message.content}
+            {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}
           </div>
           {!pending && message.content ? (
             <>
@@ -585,14 +580,14 @@ function MessageActions({
   const isTranslating = message.translation?.status === "loading";
 
   return (
-    <div className="mt-1.5 flex items-center gap-1.5 text-slate-500">
+    <div className="mt-1.5 flex items-center gap-1.5 text-foreground-muted">
       <button
         type="button"
         onClick={onTranslate}
         disabled={isTranslating}
         aria-label={t("ask.translate")}
         title={t("ask.translate")}
-        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-slate-100 hover:text-slate-950 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-background-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         {isTranslating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Languages className="size-4" aria-hidden="true" />}
       </button>
@@ -601,7 +596,7 @@ function MessageActions({
         onClick={onSpeak}
         aria-label={t("ask.speakMessage")}
         title={t("ask.speakMessage")}
-        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+        className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         <Volume2 className="size-4" aria-hidden="true" />
       </button>
@@ -617,7 +612,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "loading") {
-    return <p className="mt-1.5 text-xs text-slate-500">{t("ask.translating")}</p>;
+    return <p className="mt-1.5 text-xs text-foreground-muted">{t("ask.translating")}</p>;
   }
 
   if (translation.status === "error") {
@@ -625,7 +620,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   return (
-    <p className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
+    <p className="mt-2 rounded-md border border-border bg-background-card px-3 py-2 text-xs leading-5 text-foreground-secondary">
       {translation.text}
     </p>
   );
@@ -662,10 +657,10 @@ function ChatComposer({
     : t("ask.micUnsupported");
 
   return (
-    <form onSubmit={onSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4">
+    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-3 sm:p-4">
       <div
         className={cn(
-          "flex gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 focus-within:border-slate-950",
+          "flex gap-2 rounded-lg border border-border bg-background p-2 focus-within:border-foreground",
           isRecording ? "items-center" : "items-end",
         )}
       >
@@ -682,7 +677,7 @@ function ChatComposer({
             rows={1}
             maxLength={900}
             placeholder={t("ask.placeholder")}
-            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-slate-950 outline-none placeholder:text-slate-400"
+            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-foreground-muted"
             disabled={pending}
           />
         )}
@@ -703,7 +698,7 @@ function ChatComposer({
           </Button>
         ) : null}
       </div>
-      <p className="mt-2 text-xs text-slate-500">{t("ask.privacy")}</p>
+      <p className="mt-2 text-xs text-foreground-muted">{t("ask.privacy")}</p>
     </form>
   );
 }

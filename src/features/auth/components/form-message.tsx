@@ -2,10 +2,10 @@ import type { AuthActionState } from "@/features/auth/auth-types";
 import { cn } from "@/lib/utils";
 
 export const inputClassName =
-  "h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200";
+  "h-11 w-full rounded-md border border-border bg-background-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground-muted focus:ring-2 focus:ring-border";
 
 export const selectClassName =
-  "h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-slate-400 focus:ring-2 focus:ring-slate-200";
+  "h-11 w-full rounded-md border border-border bg-background-card px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground-muted focus:ring-2 focus:ring-border";
 
 export function FieldError({ message }: { message?: string }) {
   if (!message) {

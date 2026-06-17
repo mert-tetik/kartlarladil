@@ -342,7 +342,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     return (
       <div
         data-learn-quiz-page="result"
-        className="fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-slate-50 p-4"
+        className="fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-background p-4"
       >
         <div className="w-full max-w-3xl">
           <ResultView
@@ -445,7 +445,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
             <button
               type="button"
               onClick={() => setMobileCardOpen(false)}
-              className="absolute -top-12 right-0 inline-flex size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-sm focus:outline-none"
+              className="absolute -top-12 right-0 inline-flex size-10 items-center justify-center rounded-full bg-background-card text-foreground shadow-sm focus:outline-none"
               aria-label={t("common.close")}
             >
               <X className="size-5" aria-hidden="true" />
@@ -484,7 +484,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
             </div>
 
             {!showingAnswer ? (
-              <div className="mt-5 flex flex-col items-center text-white">
+              <div className="mt-5 flex flex-col items-center text-foreground-inverse">
                 <Lock className="size-8" aria-hidden="true" />
                 <p className="mt-2 text-center text-sm font-semibold">{t("quiz.showCardLocked")}</p>
               </div>
@@ -525,14 +525,14 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
+    <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
           <Languages className="size-6" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">{t("quiz.chooseLanguageTitle")}</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{t("quiz.chooseLanguageDescription")}</p>
+          <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">{t("quiz.chooseLanguageDescription")}</p>
         </div>
       </div>
 
@@ -544,11 +544,11 @@ function LanguageSelection({
             aria-pressed={selectedLanguage === language.code}
             onClick={() => onSelect(language.code)}
             className={cn(
-              "flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-4 text-left transition-colors hover:bg-white",
-              selectedLanguage === language.code && "border-slate-950 bg-white",
+              "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background p-4 text-left transition-colors hover:bg-background-card",
+              selectedLanguage === language.code && "border-foreground bg-background-card",
             )}
           >
-            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-950">
+            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
               <LanguageFlag code={language.code} />
               <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
             </span>
@@ -577,14 +577,14 @@ function CountSelection({
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
+    <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
           <BookOpen className="size-6" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">{t("quiz.chooseCountTitle")}</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+          <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
             {t("quiz.chooseCountDescription", {
               language: getLanguageDisplayName(language, locale),
               count: availableCount,
@@ -606,8 +606,8 @@ function CountSelection({
               className={cn(
                 "rounded-md border px-3 py-3 text-sm font-semibold transition-colors",
                 selectedCount === count
-                  ? "border-slate-950 bg-slate-950 text-white"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white disabled:opacity-40",
+                  ? "border-foreground bg-background-inverse text-foreground-inverse"
+                  : "border-border bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
               )}
             >
               {count}
@@ -645,7 +645,7 @@ function QuizProgressHeader({
   const progress = Math.min(100, (item.inventoryCard.correctCount / requirement) * 100);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 max-sm:p-2 sm:p-5">
+    <div className="rounded-lg border border-border bg-background-card p-3 max-sm:p-2 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Badge className={cn("border-transparent", style.text)}>
@@ -657,7 +657,7 @@ function QuizProgressHeader({
             type="button"
             onClick={onShowCard}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
+              "rounded-md px-3 py-1.5 text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
               style.accent,
             )}
           >
@@ -667,14 +667,14 @@ function QuizProgressHeader({
             <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
           ) : null}
         </div>
-        <span className="text-sm font-semibold text-slate-500">
+        <span className="text-sm font-semibold text-foreground-muted">
           {currentIndex + 1} / {total}
         </span>
       </div>
 
       {item.questionType === "choice" ? (
         <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600">
+          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-foreground-secondary">
             <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("cards.progress")}</span>
             <span>
               {item.inventoryCard.correctCount}/{requirement}
@@ -685,7 +685,7 @@ function QuizProgressHeader({
       ) : null}
 
       {showingAnswer ? (
-        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
+        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-foreground-muted">
           <Volume2 className="size-4" aria-hidden="true" />
           <span>{item.card.pronunciation}</span>
         </div>
@@ -711,11 +711,11 @@ function ChoiceQuestion({
   const answerLocale = getStudyLocale(item.card.language, locale);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 max-sm:p-3 sm:p-8">
-      <p className="text-sm font-semibold text-slate-500">
+    <div className="rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+      <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground sm:text-6xl">
         {item.card.term}
       </h2>
 
@@ -732,10 +732,10 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "min-h-14 rounded-md px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-default",
+                "min-h-14 rounded-md px-4 py-3 text-left text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default",
                 optionColor,
                 showingAnswer && isCorrectOption && "bg-emerald-500 hover:brightness-100",
-                showingAnswer && !isCorrectOption && "bg-slate-950 hover:brightness-100",
+                showingAnswer && !isCorrectOption && "bg-background-inverse hover:brightness-100",
               )}
             >
               {option}
@@ -746,7 +746,7 @@ function ChoiceQuestion({
 
       {showingAnswer ? (
         <div className="mt-6 max-sm:mt-3 flex flex-col gap-3 sm:flex-row">
-          <Button className="w-full bg-[#f76808] hover:bg-[#e05d07]" onClick={onNext}>
+          <Button className="w-full bg-brand hover:bg-brand-hover" onClick={onNext}>
             {t("quiz.nextCard")}
           </Button>
         </div>
@@ -783,16 +783,16 @@ function TextQuestion({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 max-sm:p-3 sm:p-8">
+    <div className="rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
       </div>
 
-      <p className="mt-4 max-sm:mt-2 text-sm font-semibold text-slate-500">
+      <p className="mt-4 max-sm:mt-2 text-sm font-semibold text-foreground-muted">
         {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-slate-950 sm:text-6xl">
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground sm:text-6xl">
         {getCardTranslation(item.card, locale)}
       </h2>
 
@@ -809,7 +809,7 @@ function TextQuestion({
           disabled={showingAnswer}
           placeholder={t("quiz.learningQuizPlaceholder")}
           className={cn(
-            "w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950",
+            "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground",
             showingAnswer && textResult === "correct" && "border-emerald-500 bg-emerald-50",
             showingAnswer && textResult === "incorrect" && "border-rose-500 bg-rose-50",
           )}
@@ -823,17 +823,17 @@ function TextQuestion({
               ) : (
                 <XCircle className="size-5 text-rose-600" aria-hidden="true" />
               )}
-              <p className="font-semibold text-slate-950">
+              <p className="font-semibold text-foreground">
                 {textResult === "correct"
                   ? t("quiz.correctAnswer")
                   : t("quiz.correctAnswerWithValue", { answer: question.correctAnswer })}
               </p>
             </div>
-            <p className="text-sm leading-6 text-slate-600">{item.card.examples[0]?.sentence}</p>
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-sm leading-6 text-foreground-secondary">{item.card.examples[0]?.sentence}</p>
+            <p className="text-sm leading-6 text-foreground-muted">
               {getCardExampleTranslation(item.card.examples[0], locale)}
             </p>
-            <Button className="w-full bg-[#f76808] hover:bg-[#e05d07]" onClick={onNext}>
+            <Button className="w-full bg-brand hover:bg-brand-hover" onClick={onNext}>
               {t("quiz.nextCard")}
             </Button>
           </div>
@@ -852,12 +852,12 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center sm:p-10">
+    <div className="mx-auto max-w-md rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
       <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
         <Trophy className="size-10" aria-hidden="true" />
       </div>
-      <h2 className="mt-5 text-2xl font-semibold text-slate-950">{t("quiz.learnedTitle")}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{t("quiz.learnedDescription")}</p>
+      <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.learnedTitle")}</h2>
+      <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("quiz.learnedDescription")}</p>
 
       <div className="mt-6">
         <VocabularyCardView card={card} owned initialFace="front" flippable={false} />
@@ -883,8 +883,8 @@ function ResultView({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
-        <h2 className="text-center text-2xl font-semibold text-slate-950">{t("quiz.resultTitle")}</h2>
+      <div className="rounded-lg border border-border bg-background-card p-5 sm:p-8">
+        <h2 className="text-center text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <ResultCard
@@ -956,13 +956,13 @@ function ResultList({ title, cards }: { title: string; cards: VocabularyCard[] }
   const t = useT();
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
-      <ul className="mt-3 divide-y divide-slate-100">
+    <div className="rounded-lg border border-border bg-background-card p-5">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <ul className="mt-3 divide-y divide-border">
         {cards.map((card) => (
           <li key={card.id} className="flex items-center justify-between py-2">
-            <span className="font-semibold text-slate-800">{card.term}</span>
-            <span className="text-sm text-slate-500">{getCardTranslation(card, locale)}</span>
+            <span className="font-semibold text-foreground">{card.term}</span>
+            <span className="text-sm text-foreground-muted">{getCardTranslation(card, locale)}</span>
           </li>
         ))}
       </ul>

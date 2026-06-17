@@ -39,17 +39,17 @@ export default async function AiPracticeCharacterSelectionPage({
   return (
     <section className="mx-auto max-w-7xl px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold text-slate-950">{t("page.aiPractice.charactersTitle")}</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("page.aiPractice.charactersTitle")}</h1>
         <Link
           href={`/ai-practice/${rawLanguage}`}
           aria-label={t("common.back")}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-950 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
       </div>
 
-      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
+      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background-card px-3 py-1.5 text-sm font-semibold text-foreground-secondary">
         <LanguageFlag code={rawLanguage} className="h-5 w-7" />
         {languageName}
       </div>

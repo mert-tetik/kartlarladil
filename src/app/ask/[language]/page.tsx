@@ -23,8 +23,10 @@ export async function generateMetadata({ params }: AskPageProps) {
 export default async function AskPage({ params, searchParams }: AskPageProps) {
   const { language: rawLanguage } = await params;
 
+  const locale = await getServerLocale();
+
   if (!isLanguageCode(rawLanguage)) {
-    redirect("/");
+    redirect(`/ask/${locale}`);
   }
 
   await requireAuthUser(`/ask/${rawLanguage}`);

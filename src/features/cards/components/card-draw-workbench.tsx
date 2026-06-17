@@ -338,15 +338,15 @@ export function CardDrawWorkbench() {
 
   return (
     <div
-      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100dvh-8rem)] max-lg:flex-col max-lg:bg-slate-50"
+      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100dvh-8rem)] max-lg:flex-col max-lg:bg-background"
       data-card-draw-workbench
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
-      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-200 max-lg:bg-white max-lg:p-2 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white lg:p-4">
+      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4">
         <div className="mx-auto max-w-7xl max-lg:space-y-1 space-y-3">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
               <input
                 value={query}
                 onChange={(event) => {
@@ -357,12 +357,12 @@ export function CardDrawWorkbench() {
                   if (suggestions.length > 0) setIsDropdownOpen(true);
                 }}
                 placeholder={t("cards.searchPlaceholder")}
-                className="relative h-12 max-lg:h-11 w-full rounded-md border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-950"
+                className="relative h-12 max-lg:h-11 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground"
               />
               {isDropdownOpen ? (
                 <div
                   ref={dropdownRef}
-                  className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
+                  className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
                 >
                   {suggestions.length > 0 ? (
                     suggestions.map((card) => {
@@ -372,17 +372,17 @@ export function CardDrawWorkbench() {
                           key={card.id}
                           type="button"
                           onClick={() => selectSuggestion(card)}
-                          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-background-muted focus:bg-background-muted focus:outline-none"
                         >
-                          <span className="font-semibold text-slate-950">{card.term}</span>
-                          <span className={`rounded px-2 py-0.5 text-xs font-semibold text-white ${style.accent}`}>
+                          <span className="font-semibold text-foreground">{card.term}</span>
+                          <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
                             {card.tier}
                           </span>
                         </button>
                       );
                     })
                   ) : query.trim() ? (
-                    <div className="px-3 py-2.5 text-sm text-slate-500">{t("cards.noSearchResults")}</div>
+                    <div className="px-3 py-2.5 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
                   ) : null}
                 </div>
               ) : null}
@@ -391,7 +391,7 @@ export function CardDrawWorkbench() {
               <Button
                 size="lg"
                 onClick={() => drawCards(5)}
-                className="border-0 bg-[#f76808] text-white hover:bg-[#e05d00] focus-visible:outline-[#f76808]"
+                className="border-0 bg-brand text-brand-foreground hover:bg-brand-hover focus-visible:outline-brand"
               >
                 {t("cards.drawFive")}
               </Button>

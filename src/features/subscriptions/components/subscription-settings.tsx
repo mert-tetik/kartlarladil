@@ -12,7 +12,7 @@ interface SubscriptionSettingsProps {
 }
 
 const PLAN_STYLES: Record<SubscriptionPlan, string> = {
-  free: "border-slate-200 bg-slate-100 text-slate-600",
+  free: "border-border bg-background-muted text-foreground-secondary",
   basic: "border-blue-200 bg-blue-50 text-blue-700",
   pro: "border-amber-200 bg-amber-50 text-amber-700",
 };
@@ -22,10 +22,10 @@ export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSe
   const isPaid = plan !== "free";
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6">
+    <div className="rounded-lg border border-border bg-background-card p-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-950">{t("account.subscription.title")}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{t("account.subscription.description")}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t("account.subscription.title")}</h2>
+        <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("account.subscription.description")}</p>
       </div>
 
       <div className="mt-6">
@@ -39,9 +39,9 @@ export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSe
             {t(`pricing.${plan}`)}
           </span>
           {isPaid ? (
-            <span className="text-sm text-slate-500">{t("account.subscription.cancelDescription")}</span>
+            <span className="text-sm text-foreground-muted">{t("account.subscription.cancelDescription")}</span>
           ) : (
-            <span className="text-sm text-slate-500">{t("account.subscription.noActive")}</span>
+            <span className="text-sm text-foreground-muted">{t("account.subscription.noActive")}</span>
           )}
         </div>
 

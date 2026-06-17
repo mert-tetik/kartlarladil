@@ -19,40 +19,40 @@ export async function AuthPageShell({
 
   return (
     <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl px-4 py-10 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-      <aside className="hidden rounded-lg bg-slate-950 p-8 text-white lg:flex lg:flex-col lg:justify-between">
+      <aside className="hidden rounded-lg bg-background-inverse p-8 text-foreground-inverse lg:flex lg:flex-col lg:justify-between">
         <div>
-          <Link href="/" className="inline-flex items-center gap-3 font-semibold text-white">
+          <Link href="/" className="inline-flex items-center gap-3 font-semibold text-foreground-inverse">
             <Logo size={44} priority />
             <span className="font-display text-2xl">{APP_NAME}</span>
           </Link>
           <div className="mt-12 max-w-sm">
             <h1 className="font-display text-4xl font-semibold leading-tight">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-slate-300">{description}</p>
+            <p className="mt-4 text-sm leading-7 text-foreground-muted">{description}</p>
           </div>
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-white/8 p-5">
+        <div className="rounded-lg border border-foreground-inverse/10 bg-background-card/8 p-5">
           <div className="flex items-center gap-3 text-sm font-semibold">
             <ShieldCheck className="size-5 text-emerald-300" aria-hidden="true" />
             {t("auth.supabase.title")}
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{t("auth.supabase.description")}</p>
+          <p className="mt-3 text-sm leading-6 text-foreground-muted">{t("auth.supabase.description")}</p>
         </div>
       </aside>
 
       <div className="flex items-center justify-center lg:pl-10">
-        <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 sm:p-8">
+        <div className="w-full max-w-md rounded-lg border border-border bg-background-card p-6 sm:p-8">
           <div className="lg:hidden">
-            <Link href="/" className="inline-flex items-center gap-3 font-semibold text-slate-950">
+            <Link href="/" className="inline-flex items-center gap-3 font-semibold text-foreground">
               <Logo size={40} priority />
               <span className="font-display text-xl">{APP_NAME}</span>
             </Link>
-            <h1 className="mt-8 font-display text-3xl font-semibold text-slate-950">{title}</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+            <h1 className="mt-8 font-display text-3xl font-semibold text-foreground">{title}</h1>
+            <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p>
           </div>
           <div className="hidden lg:block">
-            <h2 className="font-display text-3xl font-semibold text-slate-950">{title}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+            <h2 className="font-display text-3xl font-semibold text-foreground">{title}</h2>
+            <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p>
           </div>
           <div className="mt-7">{children}</div>
         </div>

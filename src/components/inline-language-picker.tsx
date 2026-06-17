@@ -9,52 +9,41 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
-interface LanguagePickerProps {
-  name: string;
-  label: string;
+interface InlineLanguagePickerProps {
   value: LanguageCode;
-  onChange?: (code: LanguageCode) => void;
-  error?: string;
+  onChange: (code: LanguageCode) => void;
 }
 
-export function LanguagePicker({ name, label, value, onChange, error }: LanguagePickerProps) {
+export function InlineLanguagePicker({ value, onChange }: InlineLanguagePickerProps) {
   const [open, setOpen] = useState(false);
   const { locale } = useLocale();
   const t = useT();
 
   function handleSelect(code: LanguageCode) {
-    onChange?.(code);
+    onChange(code);
     setOpen(false);
   }
 
   return (
-    <div>
-      <label className="text-sm font-semibold text-foreground">{label}</label>
+    <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn(
-          "mt-2 flex h-12 w-full items-center justify-between rounded-md border border-border bg-background-card px-3 text-sm font-semibold text-foreground-secondary transition-colors hover:border-foreground-muted",
-          error && "border-rose-300 ring-1 ring-rose-300",
-        )}
+        className="group inline-flex cursor-pointer items-center gap-2 rounded-md text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
       >
-        <span className="flex items-center gap-2">
-          <LanguageFlag code={value} />
-          {getLanguageDisplayName(value, locale)}
-        </span>
-        <ChevronDown className="size-4 text-foreground-muted" aria-hidden="true" />
+        <LanguageFlag code={value} className="h-4 w-6" />
+        <span className="truncate font-medium">{getLanguageDisplayName(value, locale)}</span>
+        <ChevronDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
       </button>
-      <input type="hidden" name={name} value={value} />
-      {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
 
       {open ? (
         <>
           <button
             type="button"
             aria-hidden="true"
+            tabIndex={-1}
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 bg-background-inverse/50"
-            tabIndex={-1}
           />
           <div
             role="dialog"
@@ -85,7 +74,7 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
                       : "text-foreground-secondary hover:bg-background-muted",
                   )}
                 >
-                  <LanguageFlag code={language.code} />
+                  <LanguageFlag code={language.code} className="h-5 w-7" />
                   {getLanguageDisplayName(language.code, locale)}
                 </button>
               ))}
@@ -93,6 +82,6 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
           </div>
         </>
       ) : null}
-    </div>
+    </>
   );
 }

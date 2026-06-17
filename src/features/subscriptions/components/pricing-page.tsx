@@ -42,10 +42,10 @@ export function PricingPage({ user }: PricingPageProps) {
         <CheckoutSuccessPoller />
       </Suspense>
       <div className="text-center">
-        <h1 className="font-display text-4xl font-semibold text-slate-950 md:text-5xl">
+        <h1 className="font-display text-4xl font-semibold text-foreground md:text-5xl">
           {t("pricing.title")}
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">
           {t("pricing.description")}
         </p>
       </div>
@@ -69,7 +69,7 @@ export function PricingPage({ user }: PricingPageProps) {
         ))}
       </div>
 
-      <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-slate-500">
+      <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-foreground-muted">
         <p>{t("pricing.paymentProvider")}</p>
         <p>{t("pricing.cancelAnytime")}</p>
       </div>
@@ -87,15 +87,15 @@ function BillingCycleToggle({
   const t = useT();
 
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 p-1">
+    <div className="inline-flex items-center rounded-full border border-border bg-background-muted p-1">
       <button
         type="button"
         onClick={() => onChange("monthly")}
         className={cn(
           "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
           cycle === "monthly"
-            ? "bg-[#f76808] text-white shadow-sm"
-            : "text-slate-600 hover:text-slate-950",
+            ? "bg-brand text-brand-foreground shadow-sm"
+            : "text-foreground-secondary hover:text-foreground",
         )}
         aria-pressed={cycle === "monthly"}
       >
@@ -107,8 +107,8 @@ function BillingCycleToggle({
         className={cn(
           "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
           cycle === "yearly"
-            ? "bg-[#f76808] text-white shadow-sm"
-            : "text-slate-600 hover:text-slate-950",
+            ? "bg-brand text-brand-foreground shadow-sm"
+            : "text-foreground-secondary hover:text-foreground",
         )}
         aria-pressed={cycle === "yearly"}
       >
@@ -144,12 +144,12 @@ function PricingCard({
       className={cn(
         "relative flex flex-col rounded-xl border p-6",
         popular
-          ? "border-[#f76808] bg-[#f76808] text-white"
-          : "border-slate-200 bg-white text-slate-950",
+          ? "border-brand bg-brand text-brand-foreground"
+          : "border-border bg-background-card text-foreground",
       )}
     >
       {popular ? (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-950">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-background-card px-3 py-1 text-xs font-semibold text-foreground">
           {t("pricing.mostPopular")}
         </span>
       ) : null}
@@ -160,7 +160,7 @@ function PricingCard({
           {price === null ? t("pricing.priceFree") : `$${price}`}
         </span>
         {price !== null ? (
-          <span className={cn("text-sm", popular ? "text-slate-300" : "text-slate-500")}>
+          <span className={cn("text-sm", popular ? "text-foreground-muted" : "text-foreground-muted")}>
             {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
           </span>
         ) : null}
@@ -173,7 +173,7 @@ function PricingCard({
       ) : null}
 
       {cycle === "yearly" && monthlyPrice != null && yearlyPrice != null ? (
-        <p className={cn("mt-1 text-xs", popular ? "text-slate-400" : "text-slate-500")}>
+        <p className={cn("mt-1 text-xs", popular ? "text-foreground-muted" : "text-foreground-muted")}>
           {t("pricing.monthlyEquivalent", { price: (yearlyPrice / 12).toFixed(2) })}
         </p>
       ) : null}
@@ -181,6 +181,7 @@ function PricingCard({
       <ul className="mt-6 flex flex-1 flex-col gap-3">
         <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
+        <Feature included={plan !== "free"}>{t("pricing.featureThemes")}</Feature>
         <Feature included>{t("pricing.featureAiDaily", { count: getAiDailyLimit(plan) })}</Feature>
         <Feature included>{t("pricing.featureAiMonthly", { count: getAiMonthlyLimit(plan) })}</Feature>
       </ul>
@@ -224,9 +225,9 @@ function Feature({
       {included ? (
         <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden="true" />
       ) : (
-        <X className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+        <X className="mt-0.5 size-4 shrink-0 text-foreground-muted" aria-hidden="true" />
       )}
-      <span className={included ? "" : "text-slate-500 line-through"}>{children}</span>
+      <span className={included ? "" : "text-foreground-muted line-through"}>{children}</span>
     </li>
   );
 }
@@ -266,7 +267,7 @@ function CheckoutButton({
         variant={popular ? "secondary" : "primary"}
         className={cn(
           "w-full border-0",
-          plan === "basic" && "bg-[#f76808] text-slate-950 hover:bg-[#e05d00]",
+          plan === "basic" && "bg-brand text-foreground hover:bg-brand-hover",
         )}
         disabled={pending}
       >
@@ -331,13 +332,13 @@ function ConsentText() {
   const t = useT();
 
   return (
-    <p className="mt-3 text-center text-xs text-slate-500">
+    <p className="mt-3 text-center text-xs text-foreground-muted">
       {t("pricing.consentPrefix")}
-      <Link href="/terms" className="underline hover:text-slate-700">
+      <Link href="/terms" className="underline hover:text-foreground-secondary">
         {t("pricing.consentTerms")}
       </Link>
       {t("pricing.consentAnd")}
-      <Link href="/privacy" className="underline hover:text-slate-700">
+      <Link href="/privacy" className="underline hover:text-foreground-secondary">
         {t("pricing.consentPrivacy")}
       </Link>
       {t("pricing.consentSuffix")}

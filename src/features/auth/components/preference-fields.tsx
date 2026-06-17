@@ -62,7 +62,7 @@ export function PreferenceFields({
       />
 
       <fieldset>
-        <legend className="text-sm font-semibold text-slate-800">{t("auth.preference.tier")}</legend>
+        <legend className="text-sm font-semibold text-foreground">{t("auth.preference.tier")}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {TIERS.map((tier) => (
             <label key={tier} className="block">
@@ -76,9 +76,9 @@ export function PreferenceFields({
               />
               <span
                 className={cn(
-                  "flex h-12 flex-col justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors",
-                  "peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white",
-                  "hover:border-slate-400",
+                  "flex h-12 flex-col justify-center rounded-md border border-border bg-background-card px-3 text-sm font-semibold text-foreground-secondary transition-colors",
+                  "peer-checked:border-foreground peer-checked:bg-background-inverse peer-checked:text-foreground-inverse",
+                  "hover:border-foreground-muted",
                 )}
               >
                 <span>{tier}</span>

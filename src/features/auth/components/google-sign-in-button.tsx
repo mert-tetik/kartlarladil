@@ -23,19 +23,19 @@ export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps)
       <FormMessage state={state} />
       <Button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+        className="flex w-full items-center justify-center gap-2 border border-border bg-background-card text-foreground-secondary hover:bg-background hover:text-foreground"
         disabled={isPending}
       >
         <GoogleLogo />
         {isPending ? t("auth.google.pending") : label}
       </Button>
-      <p className="mt-3 text-center text-xs text-slate-500">
+      <p className="mt-3 text-center text-xs text-foreground-muted">
         {t("auth.google.consentPrefix")}
-        <Link href="/terms" className="underline hover:text-slate-700">
+        <Link href="/terms" className="underline hover:text-foreground-secondary">
           {t("auth.google.consentTerms")}
         </Link>
         {t("auth.google.consentAnd")}
-        <Link href="/privacy" className="underline hover:text-slate-700">
+        <Link href="/privacy" className="underline hover:text-foreground-secondary">
           {t("auth.google.consentPrivacy")}
         </Link>
         {t("auth.google.consentSuffix")}

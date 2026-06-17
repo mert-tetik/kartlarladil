@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Brain, CheckCircle2, Coins, Layers3, Search, Trophy } from "lucide-react";
+import { AskSection } from "@/app/components/ask-section";
+import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -9,12 +12,15 @@ import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
+import { ReviewSection } from "@/features/reviews/components/review-section";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { createTranslator } from "@/i18n/dictionaries";
 import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+
+export const dynamic = "force-dynamic";
 
 type HeroCardFace = "front" | "back";
 
@@ -44,6 +50,8 @@ const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
 export default async function Home() {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
+  const user = await getCurrentAuthUser();
+  const existingReview = user ? await fetchExistingReview(user.id) : null;
   const featureItems = [
     {
       icon: Search,
@@ -232,6 +240,13 @@ export default async function Home() {
 
       <AiPracticePreview />
 
+      <AskSection
+        title={t("home.ask.title")}
+        description={t("home.ask.description")}
+        cta={t("home.ask.cta")}
+        href={`/ask/${locale}`}
+      />
+
       <section className="bg-slate-950 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <div>
@@ -247,8 +262,45 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+
+      <ReviewSection
+        user={user}
+        existingReview={existingReview}
+        t={{
+          title: t("home.review.title"),
+          description: t("home.review.description"),
+          ratingLabel: t("home.review.ratingLabel"),
+          commentLabel: t("home.review.commentLabel"),
+          commentPlaceholder: t("home.review.commentPlaceholder"),
+          submit: t("home.review.submit"),
+          loginRequired: t("home.review.loginRequired"),
+          login: t("home.review.login"),
+          success: t("home.review.success"),
+          error: t("home.review.error"),
+          invalidRating: t("home.review.invalidRating"),
+        }}
+      />
     </>
   );
+}
+
+async function fetchExistingReview(userId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("rating, comment")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    rating: data.rating as number,
+    comment: (data.comment as string) ?? "",
+  };
 }
 
 function CardBackdrop() {

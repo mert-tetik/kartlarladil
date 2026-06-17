@@ -12,24 +12,31 @@ import type { InventoryCard } from "@/types/domain";
 
 describe("quiz engine", () => {
   it("exposes the planned tier requirements", () => {
-    expect(getTierRequirement("A1")).toBe(2);
-    expect(getTierRequirement("A2")).toBe(3);
-    expect(getTierRequirement("B1")).toBe(4);
-    expect(getTierRequirement("B2")).toBe(5);
-    expect(getTierRequirement("C1")).toBe(6);
-    expect(TIER_REQUIREMENTS).toEqual({ A1: 2, A2: 3, B1: 4, B2: 5, C1: 6 });
+    expect(getTierRequirement("A1")).toBe(4);
+    expect(getTierRequirement("A2")).toBe(4);
+    expect(getTierRequirement("B1")).toBe(6);
+    expect(getTierRequirement("B2")).toBe(6);
+    expect(getTierRequirement("C1")).toBe(8);
+    expect(TIER_REQUIREMENTS).toEqual({ A1: 4, A2: 4, B1: 6, B2: 6, C1: 8 });
   });
 
   it("increments correct answers and marks a card learned at its tier threshold", () => {
     const card = VOCABULARY_CARDS.find((item) => item.tier === "A1");
     expect(card).toBeDefined();
 
-    const firstAnswer = applyAnswerProgress(createInventoryCard(card!.id), card!, true, "2026-01-01T00:00:00.000Z");
-    const secondAnswer = applyAnswerProgress(firstAnswer, card!, true, "2026-01-02T00:00:00.000Z");
+    let state = createInventoryCard(card!.id);
+    for (let step = 1; step <= 4; step += 1) {
+      state = applyAnswerProgress(
+        state,
+        card!,
+        true,
+        `2026-01-0${step}T00:00:00.000Z`,
+      );
+    }
 
-    expect(secondAnswer.correctCount).toBe(2);
-    expect(secondAnswer.status).toBe("learned");
-    expect(secondAnswer.learnedAt).toBe("2026-01-02T00:00:00.000Z");
+    expect(state.correctCount).toBe(4);
+    expect(state.status).toBe("learned");
+    expect(state.learnedAt).toBe("2026-01-04T00:00:00.000Z");
   });
 
   it("decrements wrong answers without going below zero", () => {
