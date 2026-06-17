@@ -1,15 +1,40 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isLanguageCode } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
-import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeCharacter, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import { getServerLocale } from "@/i18n/server";
+import { buildMetadata } from "@/lib/seo/metadata";
 import type { Tier } from "@/types/domain";
 
 type AiPracticeChatPageProps = {
   params: Promise<{ language: string; character: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({ params }: AiPracticeChatPageProps): Promise<Metadata> {
+  const { language: rawLanguage, character: characterId } = await params;
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  const languageName = isLanguageCode(rawLanguage) ? getLanguageDisplayName(rawLanguage, locale) : undefined;
+  const character = getAiPracticeCharacter(characterId);
+  const characterName =
+    character && isLanguageCode(rawLanguage) ? getCharacterName(character, rawLanguage) : undefined;
+
+  return buildMetadata({
+    locale,
+    title: characterName
+      ? `${characterName} — ${languageName ?? t("page.aiPractice.title")}`
+      : t("page.aiPractice.title"),
+    description: t("page.aiPractice.description"),
+    pathname: `/ai-practice/${rawLanguage}/${characterId}`,
+    noIndex: true,
+  });
+}
 
 export default async function AiPracticeChatPage({ params, searchParams }: AiPracticeChatPageProps) {
   const { language: rawLanguage, character: characterId } = await params;

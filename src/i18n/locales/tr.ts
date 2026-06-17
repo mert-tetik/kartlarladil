@@ -178,6 +178,7 @@ const dictionary = {
   "common.reset": "Sıfırla",
   "common.save": "Kaydet",
   "common.search": "Ara",
+  "common.skipToContent": "Ana içeriğe atla",
   "common.viewAll": "Tümünü gör",
   "cookies.accept": "Anladım",
   "cookies.notice": "Bu site, oturum yönetimi ve dil tercihi için gerekli çerezleri kullanır.",

@@ -3,15 +3,17 @@ import { LegalPage } from "@/features/legal/components/legal-page";
 import { legalContent, LEGAL_LAST_UPDATED } from "@/features/legal/content";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
-import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
-  return {
-    title: `${t("page.subscriptions.title")} | ${APP_NAME}`,
+  return buildMetadata({
+    locale,
+    title: t("page.subscriptions.title"),
     description: t("page.subscriptions.description"),
-  };
+    pathname: "/subscriptions",
+  });
 }
 
 export default async function SubscriptionsPage() {

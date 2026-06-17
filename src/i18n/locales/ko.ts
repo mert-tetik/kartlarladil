@@ -178,6 +178,7 @@ const dictionary = {
   "common.reset": "재설정",
   "common.save": "저장",
   "common.search": "검색",
+  "common.skipToContent": "주요 콘텐츠로 걸러뛰기",
   "common.viewAll": "모두 보기",
   "cookies.accept": "알겠습니다",
   "cookies.notice": "이 사이트는 세션 관리 및 언어 선호를 위한 필수 쿠키를 사용합니다.",

@@ -1,8 +1,22 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { InventoryDashboard } from "@/features/inventory/components/inventory-dashboard";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { buildMetadata } from "@/lib/seo/metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("page.inventory.title"),
+    description: t("page.inventory.description"),
+    pathname: "/my-cards",
+    noIndex: true,
+  });
+}
 
 export default async function MyCardsPage() {
   await requireAuthUser("/my-cards");

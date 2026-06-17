@@ -9,15 +9,20 @@ import { DEFAULT_AUTH_REDIRECT, getSafeNextPath, getSearchParamValue } from "@/f
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
-import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = createTranslator(await getServerLocale());
-  return {
-    title: `${t("auth.login.title")} | ${APP_NAME}`,
-  };
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("auth.login.title"),
+    description: t("auth.login.description"),
+    pathname: "/login",
+    noIndex: true,
+  });
 }
 
 export default async function LoginPage({

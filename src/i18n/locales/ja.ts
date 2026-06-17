@@ -178,6 +178,7 @@ const dictionary = {
   "common.reset": "リセット",
   "common.save": "保存",
   "common.search": "検索",
+  "common.skipToContent": "メインコンテンツにスキップ",
   "common.viewAll": "すべて表示",
   "cookies.accept": "了解しました",
   "cookies.notice": "このサイトはセッション管理と言語設定のために必須のクッキーを使用しています。",

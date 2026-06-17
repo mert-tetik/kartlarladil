@@ -4,6 +4,8 @@ import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale, getServerTextDirection } from "@/i18n/server";
+import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -21,14 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
 
-  return {
-    title: "FoxiesDeck",
+  return buildMetadata({
+    locale,
+    title: APP_NAME,
     description: t("metadata.description"),
-    icons: {
-      icon: "/icon.png",
-      apple: "/apple-icon.png",
-    },
-  };
+  });
 }
 
 export default async function RootLayout({

@@ -9,6 +9,7 @@ import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { cn } from "@/lib/utils";
 import type { LocaleCode } from "@/types/domain";
 
 export async function AppShell({ children, locale }: { children: ReactNode; locale: LocaleCode }) {
@@ -22,9 +23,13 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
             <ThemeProvider initialTheme={user?.profile.theme}>
               <div className="flex min-h-screen flex-col bg-background text-foreground">
                 <AppNavigation user={user} />
-                <div className="flex-1">
+                <main
+                  id="main-content"
+                  className={cn("flex-1", "outline-none")}
+                  tabIndex={-1}
+                >
                   <PageTransitionShell>{children}</PageTransitionShell>
-                </div>
+                </main>
                 <SiteFooter />
                 <CookieNotice />
               </div>

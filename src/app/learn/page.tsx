@@ -1,8 +1,22 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { buildMetadata } from "@/lib/seo/metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("page.learn.title"),
+    description: t("page.learn.description"),
+    pathname: "/learn",
+    noIndex: true,
+  });
+}
 
 export default async function LearnPage() {
   await requireAuthUser("/learn");

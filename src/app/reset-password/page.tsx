@@ -4,15 +4,20 @@ import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
-import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = createTranslator(await getServerLocale());
-  return {
-    title: `${t("auth.reset.title")} | ${APP_NAME}`,
-  };
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("auth.reset.title"),
+    description: t("auth.reset.description"),
+    pathname: "/reset-password",
+    noIndex: true,
+  });
 }
 
 export default async function ResetPasswordPage() {

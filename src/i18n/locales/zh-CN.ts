@@ -178,6 +178,7 @@ const dictionary = {
   "common.reset": "重置",
   "common.save": "保存",
   "common.search": "搜索",
+  "common.skipToContent": "跳转到主要内容",
   "common.viewAll": "查看全部",
   "cookies.accept": "知道了",
   "cookies.notice": "本网站使用必要的Cookies进行会话管理和语言偏好。",

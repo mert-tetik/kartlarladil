@@ -19,7 +19,7 @@ export async function LegalPage({ titleKey, descriptionKey, lastUpdated, childre
   const t = createTranslator(locale);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="font-display text-3xl font-semibold text-foreground">{t(titleKey)}</h1>
       <p className="mt-2 text-foreground-secondary">{t(descriptionKey)}</p>
       <div className="mt-8 [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-foreground [&_p]:mb-4 [&_p]:leading-7 [&_p]:text-foreground-secondary [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-2 [&_li]:text-foreground-secondary [&_a]:font-semibold [&_a]:text-foreground [&_a]:underline [&_a]:hover:no-underline [&_strong]:font-semibold [&_strong]:text-foreground">
@@ -28,6 +28,6 @@ export async function LegalPage({ titleKey, descriptionKey, lastUpdated, childre
       <p className="mt-12 text-sm text-foreground-muted">
         {t("legal.lastUpdated")}: {lastUpdated}
       </p>
-    </main>
+    </section>
   );
 }

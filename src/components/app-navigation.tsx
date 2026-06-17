@@ -47,6 +47,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
   return (
     <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
+      >
+        {t("common.skipToContent")}
+      </a>
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background-card">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-foreground">

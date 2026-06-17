@@ -178,6 +178,7 @@ const dictionary = {
   "common.reset": "Zurücksetzen",
   "common.save": "Speichern",
   "common.search": "Suchen",
+  "common.skipToContent": "Zum Hauptinhalt springen",
   "common.viewAll": "Alle anzeigen",
   "cookies.accept": "Verstanden",
   "cookies.notice": "Diese Seite verwendet essentielle Cookies für das Sitzungsmanagement und die Sprachpräferenz.",

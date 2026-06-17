@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Brain, CheckCircle2, Layers3, Search, Trophy } from "lucide-react";
+import { JsonLd } from "@/components/seo/json-ld";
 import { AskSection } from "@/app/components/ask-section";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -19,9 +21,22 @@ import { RankIcon } from "@/features/progress/rank-icons";
 import { createTranslator } from "@/i18n/dictionaries";
 import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
+import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { createOrganizationSchema, createWebSiteSchema } from "@/lib/seo/schema";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: APP_NAME,
+    description: t("metadata.description"),
+  });
+}
 
 type HeroCardFace = "front" | "back";
 
@@ -73,6 +88,7 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
       <section className="relative isolate min-h-[88vh] overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />

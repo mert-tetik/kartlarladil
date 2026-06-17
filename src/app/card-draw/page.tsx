@@ -1,4 +1,19 @@
+import type { Metadata } from "next";
 import { CardDrawWorkbench } from "@/features/cards/components/card-draw-workbench";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
+import { buildMetadata } from "@/lib/seo/metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("page.cardDraw.title"),
+    description: t("page.cardDraw.description"),
+    pathname: "/card-draw",
+  });
+}
 
 export default async function CardDrawPage() {
   return (

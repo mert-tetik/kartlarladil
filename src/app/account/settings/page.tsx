@@ -9,15 +9,20 @@ import { SubscriptionSettings } from "@/features/subscriptions/components/subscr
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
-import { APP_NAME } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = createTranslator(await getServerLocale());
-  return {
-    title: `${t("page.account.title")} | ${APP_NAME}`,
-  };
+  const locale = await getServerLocale();
+  const t = createTranslator(locale);
+  return buildMetadata({
+    locale,
+    title: t("page.account.title"),
+    description: t("page.account.description"),
+    pathname: "/account/settings",
+    noIndex: true,
+  });
 }
 
 export default async function AccountSettingsPage() {
