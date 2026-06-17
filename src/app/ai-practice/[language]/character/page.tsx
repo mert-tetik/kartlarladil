@@ -37,7 +37,7 @@ export default async function AiPracticeCharacterSelectionPage({
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
+    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-semibold text-foreground">{t("page.aiPractice.charactersTitle")}</h1>
         <Link

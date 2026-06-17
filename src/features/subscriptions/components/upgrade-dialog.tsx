@@ -28,7 +28,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
       aria-modal="true"
       aria-labelledby="upgrade-dialog-title"
     >
-      <div className="relative w-full max-w-md rounded-lg border border-border bg-background-card p-6 shadow-lg">
+      <div className="animate-menu-pop origin-center relative w-full max-w-md rounded-lg border border-border bg-background-card p-6 shadow-lg">
         <button
           type="button"
           onClick={() => onOpenChange(false)}

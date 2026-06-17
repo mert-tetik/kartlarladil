@@ -56,7 +56,7 @@ describe("InventoryDashboard", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("img", { name: LANGUAGE_BY_CODE.en.nativeName })).toBeVisible();
+    expect(screen.getAllByRole("img", { name: LANGUAGE_BY_CODE.en.nativeName })).toHaveLength(2);
     expect(screen.getByRole("img", { name: LANGUAGE_BY_CODE.de.nativeName })).toBeVisible();
     expect(screen.queryByRole("img", { name: LANGUAGE_BY_CODE.ru.nativeName })).not.toBeInTheDocument();
   });

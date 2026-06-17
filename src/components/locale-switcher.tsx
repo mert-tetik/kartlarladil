@@ -57,7 +57,7 @@ export function LocaleSwitcher() {
           id={listboxId}
           role="listbox"
           aria-labelledby={buttonId}
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-sm"
+          className="animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg"
         >
           {LANGUAGES.map((language) => {
             const selected = language.code === locale;

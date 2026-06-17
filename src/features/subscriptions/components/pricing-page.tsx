@@ -39,7 +39,7 @@ export function PricingPage({ user }: PricingPageProps) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
       </Suspense>
@@ -171,20 +171,20 @@ function PricingCard({
           {price === null ? t("pricing.priceFree") : `$${price}`}
         </span>
         {price !== null ? (
-          <span className={cn("text-sm", popular ? "text-foreground-muted" : "text-foreground-muted")}>
+          <span className={cn("text-sm", "text-foreground-muted")}>
             {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
           </span>
         ) : null}
       </div>
 
       {cycle === "yearly" && price !== null && discountRate != null ? (
-        <p className={cn("mt-1 text-xs font-medium", popular ? "text-emerald-400" : "text-emerald-600")}>
+        <p className={cn("mt-1 text-xs font-medium", "text-emerald-600")}>
           {t("pricing.yearlyDiscount", { rate: discountRate })}
         </p>
       ) : null}
 
       {cycle === "yearly" && monthlyPrice != null && yearlyPrice != null ? (
-        <p className={cn("mt-1 text-xs", popular ? "text-foreground-muted" : "text-foreground-muted")}>
+        <p className={cn("mt-1 text-xs", "text-foreground-muted")}>
           {t("pricing.monthlyEquivalent", { price: (yearlyPrice / 12).toFixed(2) })}
         </p>
       ) : null}
@@ -205,7 +205,7 @@ function PricingCard({
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName(popular ? "secondary" : "primary", "md", "w-full")}
+            className={buttonClassName("primary", "md", "w-full")}
           >
             {t("pricing.ctaFree")}
           </Link>
@@ -215,7 +215,7 @@ function PricingCard({
           </Button>
         ) : (
           <>
-            <CheckoutButton plan={plan} popular={popular} cycle={cycle} />
+            <CheckoutButton plan={plan} cycle={cycle} />
             <ConsentText />
           </>
         )}
@@ -245,11 +245,9 @@ function Feature({
 
 function CheckoutButton({
   plan,
-  popular,
   cycle,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
-  popular?: boolean;
   cycle: BillingCycle;
 }) {
   const t = useT();
@@ -275,10 +273,10 @@ function CheckoutButton({
       <input type="hidden" name="cycle" value={cycle} />
       <Button
         type="submit"
-        variant={popular ? "secondary" : "primary"}
+        variant="primary"
         className={cn(
           "w-full border-0",
-          plan === "basic" && "bg-brand text-foreground hover:bg-brand-hover",
+          (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
         )}
         disabled={pending}
       >

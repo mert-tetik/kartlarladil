@@ -119,7 +119,7 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
 
       <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 items-center justify-center p-0 md:p-4">
         <div
-          className="pointer-events-auto relative z-10 flex max-h-full w-full flex-col bg-background-card md:max-h-[90vh] md:max-w-[90vw] md:rounded-2xl md:shadow-2xl"
+          className="animate-menu-pop origin-center pointer-events-auto relative z-10 flex max-h-full w-full flex-col bg-background-card md:max-h-[90vh] md:max-w-[90vw] md:rounded-2xl md:shadow-2xl"
           onMouseDown={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border bg-background-card px-4 py-4 md:px-8 md:py-6">

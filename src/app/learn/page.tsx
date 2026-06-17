@@ -10,7 +10,7 @@ export default async function LearnPage() {
 
   return (
     <section
-      className="mx-auto flex max-w-7xl flex-col px-4 py-10 max-lg:h-[calc(100dvh-4rem)] max-lg:overflow-hidden max-lg:py-4 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 max-lg:h-[calc(100dvh-8rem)] max-lg:overflow-hidden max-lg:py-4 sm:px-6 lg:px-8"
       data-learn-page
     >
       <div data-learn-page-header className="max-lg:hidden">
@@ -18,9 +18,10 @@ export default async function LearnPage() {
           title={t("page.learn.title")}
           description={t("page.learn.description")}
           mascot="/mascots/mascot5.png"
+          mascotSize="lg"
         />
       </div>
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col justify-center overflow-y-auto">
         <QuizStation mode="active" />
       </div>
     </section>

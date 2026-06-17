@@ -25,7 +25,7 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { normalizeSearch } from "@/lib/utils";
+import { cn, normalizeSearch } from "@/lib/utils";
 import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
@@ -66,8 +66,10 @@ export function CardDrawWorkbench() {
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const suggestionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
   const exitTimerRefs = useRef<number[]>([]);
@@ -114,6 +116,8 @@ export function CardDrawWorkbench() {
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, 5).map((item) => item.card);
   }, [query, language, tier, ownedIds, locale]);
+
+  const highlightedIndex = rawHighlightedIndex >= 0 && rawHighlightedIndex < suggestions.length ? rawHighlightedIndex : -1;
 
   const isFirstRenderRef = useRef(true);
   const prevOwnedIdsRef = useRef<Set<string>>(new Set());
@@ -228,8 +232,55 @@ export function CardDrawWorkbench() {
   function selectSuggestion(card: VocabularyCard) {
     setQuery("");
     setIsDropdownOpen(false);
+    setRawHighlightedIndex(-1);
     dealCards([card]);
   }
+
+  function handleSuggestionKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (!isDropdownOpen) {
+      if ((event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length > 0) {
+        event.preventDefault();
+        setIsDropdownOpen(true);
+        setRawHighlightedIndex(0);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsDropdownOpen(false);
+      setRawHighlightedIndex(-1);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setRawHighlightedIndex((current) => (current + 1) % suggestions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setRawHighlightedIndex((current) => (current <= 0 ? suggestions.length - 1 : current - 1));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const index = highlightedIndex >= 0 ? highlightedIndex : 0;
+      const card = suggestions[index];
+      if (card) {
+        selectSuggestion(card);
+      }
+    }
+  }
+
+  useEffect(() => {
+    const element = suggestionRefs.current[highlightedIndex];
+    if (element && typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
 
   function drawCards(count: number) {
     dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
@@ -355,23 +406,32 @@ export function CardDrawWorkbench() {
                 onFocus={() => {
                   if (suggestions.length > 0) setIsDropdownOpen(true);
                 }}
+                onKeyDown={handleSuggestionKeyDown}
                 placeholder={t("cards.searchPlaceholder")}
                 className="relative h-12 max-lg:h-11 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground"
               />
               {isDropdownOpen ? (
                 <div
                   ref={dropdownRef}
-                  className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
+                  className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
                 >
                   {suggestions.length > 0 ? (
-                    suggestions.map((card) => {
+                    suggestions.map((card, index) => {
                       const style = TIER_STYLES[card.tier];
+                      const highlighted = index === highlightedIndex;
                       return (
                         <button
                           key={card.id}
+                          ref={(element) => {
+                            suggestionRefs.current[index] = element;
+                          }}
                           type="button"
                           onClick={() => selectSuggestion(card)}
-                          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-background-muted focus:bg-background-muted focus:outline-none"
+                          onMouseEnter={() => setRawHighlightedIndex(index)}
+                          className={cn(
+                            "flex w-full items-center justify-between px-3 py-2.5 text-left text-sm outline-none",
+                            highlighted ? "bg-background-muted" : "hover:bg-background-muted",
+                          )}
                         >
                           <span className="font-semibold text-foreground">{card.term}</span>
                           <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>

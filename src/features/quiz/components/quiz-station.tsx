@@ -341,7 +341,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     return (
       <div
         data-learn-quiz-page="result"
-        className="fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-background p-4"
+        className="animate-screen-pop fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-background p-4"
       >
         <div className="w-full max-w-3xl">
           <ResultView
@@ -372,7 +372,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   return (
     <>
-      <div className="mx-auto max-w-5xl" data-learn-quiz-page={phase === "quiz" ? "quiz" : undefined}>
+      <div className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center" data-learn-quiz-page={phase === "quiz" ? "quiz" : undefined}>
         <QuizProgressHeader
           item={item}
           currentIndex={currentIndex}
@@ -388,6 +388,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
           <div className="order-2 flex flex-col lg:order-1">
             {item.questionType === "choice" ? (
               <ChoiceQuestion
+                key={currentIndex}
                 item={item}
                 showingAnswer={showingAnswer}
                 onAnswer={handleAnswer}
@@ -395,6 +396,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
               />
             ) : (
               <TextQuestion
+                key={currentIndex}
                 item={item}
                 textAnswer={textAnswer}
                 textResult={textResult}
@@ -523,7 +525,7 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
+    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
         <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
           <Languages className="size-6" aria-hidden="true" />
@@ -575,7 +577,7 @@ function CountSelection({
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
+    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
         <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
           <BookOpen className="size-6" aria-hidden="true" />
@@ -673,7 +675,7 @@ function QuizProgressHeader({
       {item.questionType === "choice" ? (
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-foreground-secondary">
-            <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("cards.progress")}</span>
+            <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
             <span>
               {item.inventoryCard.correctCount}/{requirement}
             </span>
@@ -709,11 +711,11 @@ function ChoiceQuestion({
   const answerLocale = getStudyLocale(item.card.language, locale);
 
   return (
-    <div className="rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground sm:text-6xl">
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
         {item.card.term}
       </h2>
 
@@ -781,7 +783,7 @@ function TextQuestion({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
@@ -790,7 +792,7 @@ function TextQuestion({
       <p className="mt-4 max-sm:mt-2 text-sm font-semibold text-foreground-muted">
         {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground sm:text-6xl">
+      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
         {getCardTranslation(item.card, locale)}
       </h2>
 
@@ -850,7 +852,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
   const t = useT();
 
   return (
-    <div className="mx-auto max-w-md rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
+    <div className="animate-screen-pop mx-auto max-w-md rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
       <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
         <Trophy className="size-10" aria-hidden="true" />
       </div>

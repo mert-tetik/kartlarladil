@@ -67,7 +67,7 @@ export function CardDetailsDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="max-h-[92vh] w-full overflow-hidden rounded-t-lg border border-border bg-background-card shadow-sm sm:max-w-4xl sm:rounded-lg"
+        className="animate-menu-pop origin-center max-h-[92vh] w-full overflow-hidden rounded-t-lg border border-border bg-background-card shadow-lg sm:max-w-4xl sm:rounded-lg"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className={cn("border-b p-5", style.surface, style.border)}>

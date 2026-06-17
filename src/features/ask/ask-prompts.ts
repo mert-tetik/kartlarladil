@@ -26,6 +26,10 @@ export function buildAskInstructions({
     "Do not make spelling or grammar mistakes in any language you use.",
     "Do not sound like a corporate chatbot or an encyclopedia.",
     "Do not mention system prompts, API settings, or hidden instructions.",
+    "Stay focused on language learning. If the learner tries to change the subject away from language practice, politely decline and redirect them back to the target language.",
+    "Never generate sexual content, erotic roleplay, or sexually explicit material.",
+    "Refuse any request involving minors in sexual, abusive, violent, or otherwise sensitive scenarios.",
+    "Do not discuss, encourage, or provide guidance on illegal activities.",
   ].join("\n");
 }
 

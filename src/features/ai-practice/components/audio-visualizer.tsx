@@ -65,7 +65,7 @@ export function AudioVisualizer({ analyser }: { analyser: AnalyserNode | null })
         averageVolume /= dataArray.length;
       }
 
-      const isSilent = averageVolume < 12;
+      const isSilent = averageVolume < 6;
       const barWidth = width / barCount;
       const maxBarHeight = height * 0.92;
       const minIdleHeight = height * 0.18;

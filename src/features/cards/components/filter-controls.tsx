@@ -147,7 +147,7 @@ export function SelectDropdown({
             id={listboxId}
             role="listbox"
             aria-labelledby={buttonId}
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-72 overflow-y-auto rounded-md border border-border bg-background-card p-1 shadow-sm"
+            className="animate-menu-pop absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-72 origin-top overflow-y-auto rounded-md border border-border bg-background-card p-1 shadow-lg"
           >
             {options.map((option) => {
               const selected = option.value === value;

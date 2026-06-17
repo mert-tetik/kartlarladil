@@ -11,7 +11,7 @@ export default async function AiPracticePage() {
   const t = createTranslator(locale);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <PageHeader title={t("page.aiPractice.title")} description={t("page.aiPractice.description")} />
       <div className="mt-8">
         <AiPracticeLanguageSelection locale={locale} />

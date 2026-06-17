@@ -10,14 +10,16 @@ export default async function MyCardsPage() {
 
   return (
     <section
-      className="mx-auto max-w-7xl px-4 py-10 max-lg:px-4 max-lg:py-4 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto flex max-w-7xl flex-col px-4 py-10 max-lg:h-[calc(100dvh-8rem)] max-lg:px-4 max-lg:py-0 sm:px-6 lg:px-8"
       data-my-cards-page
     >
       <PageHeader
         title={t("page.inventory.title")}
         mascot="/mascots/mascot10.png"
+        mascotSize="lg"
+        className="max-lg:hidden"
       />
-      <div className="mt-8 max-lg:mt-4">
+      <div className="mt-8 flex-1 max-lg:mt-2">
         <InventoryDashboard />
       </div>
     </section>

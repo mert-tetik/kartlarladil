@@ -70,7 +70,7 @@ export function ReviewSection({ user, existingReview, t }: ReviewSectionProps) {
           className="object-cover object-center brightness-[0.35]"
         />
       </div>
-      <div className="absolute inset-0 -z-10 bg-background/25" />
+      <div className="absolute inset-0 -z-10 bg-black/25" />
       <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="font-display text-3xl font-semibold text-foreground sm:text-4xl">{t.title}</h2>

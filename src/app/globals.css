@@ -258,13 +258,65 @@ button:disabled,
 @keyframes page-transition-enter {
   0% {
     opacity: 0;
-    transform: translate3d(0, 10px, 0);
+    transform: translate3d(0, 18px, 0) scale(0.995);
   }
 
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
+}
+
+@keyframes menu-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes message-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes screen-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.99);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-menu-pop {
+  animation: menu-pop-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top right;
+  will-change: opacity, transform;
+}
+
+.animate-message-pop {
+  animation: message-pop-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-screen-pop {
+  animation: screen-pop-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes route-view-enter {
@@ -295,7 +347,10 @@ button:disabled,
     animation: none;
   }
 
-  .page-transition-shell {
+  .page-transition-shell,
+  .animate-menu-pop,
+  .animate-message-pop,
+  .animate-screen-pop {
     animation: none;
     transform: none;
     will-change: auto;
