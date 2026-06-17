@@ -54,27 +54,15 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
           </Link>
 
-          <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-1 lg:flex">
-            {navItems
-              .filter((item) => item.href !== "/pricing")
-              .slice(1)
-              .map((item) => (
-                <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
-                  {t(item.labelKey)}
-                </DesktopNavLink>
-              ))}
+          <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
+            {navItems.map((item) => (
+              <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
+                {t(item.labelKey)}
+              </DesktopNavLink>
+            ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link
-              href="/pricing"
-              className={cn(
-                buttonClassName("primary", "sm"),
-                "hidden bg-brand text-brand-foreground hover:bg-brand-hover focus-visible:outline-brand lg:inline-flex",
-              )}
-            >
-              {t("nav.pricing")}
-            </Link>
             {user ? (
               <>
                 <RankProgressPopover stats={stats} />
