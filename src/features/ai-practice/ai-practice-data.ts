@@ -1,5 +1,10 @@
 import { LANGUAGE_CODES } from "@/data/languages";
 import type { AiPracticeCharacter, LanguageCode, LocaleCode } from "@/types/domain";
+import {
+  CONVERSATION_STYLES_BY_LOCALE,
+  OPENING_LINES_BY_LANGUAGE,
+  PROMPT_PROFILES_BY_LOCALE,
+} from "./ai-practice-localization";
 
 export const AI_PRACTICE_CHARACTER_IDS = [
   "gentle-companion",
@@ -60,6 +65,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Correct one important mistake at a time without interrupting the flow.",
       "Prefer everyday topics: routines, food, plans, family, weather, hobbies.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["gentle-companion"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["gentle-companion"],
   },
   {
     id: "gothic-calm",
@@ -104,6 +111,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Ask reflective questions that still suit language practice.",
       "Use gentle corrections after answering the learner's message.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["gothic-calm"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["gothic-calm"],
   },
   {
     id: "campus-friend",
@@ -148,6 +157,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Ask the learner to describe plans, preferences, and opinions.",
       "Offer compact corrections and one better phrase when useful.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["campus-friend"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["campus-friend"],
   },
   {
     id: "soft-artist",
@@ -192,6 +203,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Invite descriptive language and emotional vocabulary.",
       "Keep the conversation relaxed and precise.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["soft-artist"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["soft-artist"],
   },
   {
     id: "skater-coach",
@@ -236,6 +249,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Nudge the learner to say a little more without demanding formal answers.",
       "Use quick corrections and small challenges.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["skater-coach"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["skater-coach"],
   },
   {
     id: "study-buddy",
@@ -280,6 +295,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Ask the learner to rephrase, compare, or explain.",
       "Point out patterns in simple target-language terms.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["study-buddy"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["study-buddy"],
   },
   {
     id: "sleepy-student",
@@ -324,6 +341,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Keep replies short and conversational.",
       "Ask simple follow-up questions that are easy to answer.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["sleepy-student"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["sleepy-student"],
   },
   {
     id: "friendly-worker",
@@ -368,6 +387,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Use practical workplace and daily-life scenarios.",
       "Correct clearly and offer one useful alternative phrase.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["friendly-worker"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["friendly-worker"],
   },
   {
     id: "warm-grandmother",
@@ -412,6 +433,8 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Ask about memories, preferences, and small personal stories.",
       "Use simple corrections in a kind tone.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["warm-grandmother"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["warm-grandmother"],
   },
   {
     id: "wise-elder",
@@ -456,135 +479,14 @@ const AI_PRACTICE_CHARACTER_DATA = [
       "Ask one thoughtful question per response.",
       "Correct gently and connect corrections to meaning.",
     ],
+    promptProfileByLocale: PROMPT_PROFILES_BY_LOCALE["wise-elder"],
+    conversationStyleByLocale: CONVERSATION_STYLES_BY_LOCALE["wise-elder"],
   },
 ];
 
-const OPENING_LINES: Record<string, Partial<Record<LanguageCode, string[]>>> = {
-  "gentle-companion": {
-    tr: [
-      "Merhaba! Bugün kendini nasıl hissediyorsun?",
-      "Selam, günlük bir şeyler konuşalım mı?",
-      "Hey, bugün neler yaptın?",
-    ],
-    en: [
-      "Hi there! How are you feeling today?",
-      "Hey, want to chat about your day?",
-      "Hello! What have you been up to today?",
-    ],
-  },
-  "gothic-calm": {
-    tr: [
-      "Selam. Gece yürüyüşüne çıkmak ister misin?",
-      "Merhaba. Bugün hava biraz melankolik.",
-      "Hey, sessizce oturup konuşalım mı?",
-    ],
-    en: [
-      "Hey. Want to go for a night walk?",
-      "Hi. The weather feels a bit melancholic today.",
-      "Hey, shall we sit quietly and talk?",
-    ],
-  },
-  "campus-friend": {
-    tr: [
-      "Selam! Dersler nasıl gidiyor?",
-      "Hey, kampüste bugün neler oldu?",
-      "Merhaba, hafta sonu için planın var mı?",
-    ],
-    en: [
-      "Hey! How are classes going?",
-      "Hi, what's happening on campus today?",
-      "Hello, do you have any weekend plans?",
-    ],
-  },
-  "soft-artist": {
-    tr: [
-      "Merhaba. Bugün ne çizdin ya da dinledin?",
-      "Selam, en sevdiğin renk hangisi?",
-      "Hey, sanatla ilgili bir şeyler konuşalım mı?",
-    ],
-    en: [
-      "Hi. What did you draw or listen to today?",
-      "Hey, what's your favorite color?",
-      "Hello, want to talk about something artistic?",
-    ],
-  },
-  "skater-coach": {
-    tr: [
-      "Selam! Bugün hareket ettin mi?",
-      "Hey, yeni bir müzik keşfettin mi?",
-      "Merhaba, sokakta neler oluyor?",
-    ],
-    en: [
-      "Hey! Did you move around today?",
-      "Hi, discovered any new music?",
-      "Hello, what's happening out on the streets?",
-    ],
-  },
-  "study-buddy": {
-    tr: [
-      "Merhaba! Bugün ne çalıştın?",
-      "Selam, hedeflerin neler?",
-      "Hey, kısa bir pratik yapalım mı?",
-    ],
-    en: [
-      "Hi! What did you study today?",
-      "Hey, what are your goals?",
-      "Hello, want to do a quick practice?",
-    ],
-  },
-  "sleepy-student": {
-    tr: [
-      "Selam... uykum var ama konuşurum.",
-      "Hey, kafam biraz dağınık ama sorun değil.",
-      "Merhaba, bugün biraz yorgunum.",
-    ],
-    en: [
-      "Hey... I'm sleepy but I'll chat.",
-      "Hi, my head's a bit scattered but it's fine.",
-      "Hello, I'm a little tired today.",
-    ],
-  },
-  "friendly-worker": {
-    tr: [
-      "Merhaba! İşler nasıl gidiyor?",
-      "Selam, bugün nelere baktın?",
-      "Hey, pratik bir konuşma yapalım mı?",
-    ],
-    en: [
-      "Hi! How's work going?",
-      "Hey, what did you take care of today?",
-      "Hello, want to have a practical chat?",
-    ],
-  },
-  "warm-grandmother": {
-    tr: [
-      "Merhaba canım, bugün nasılsın?",
-      "Selam, bana bir şeyler anlat.",
-      "Hey, akşam yemeğinde ne var?",
-    ],
-    en: [
-      "Hello dear, how are you today?",
-      "Hi, tell me something about your day.",
-      "Hey, what's for dinner tonight?",
-    ],
-  },
-  "wise-elder": {
-    tr: [
-      "Merhaba genç dostum, bugün neler öğrendin?",
-      "Selam, sana bir soru sormama izin ver.",
-      "Hey, hayattan bir ders paylaşmak ister misin?",
-    ],
-    en: [
-      "Hello young friend, what did you learn today?",
-      "Hi, let me ask you something.",
-      "Hey, would you like to share a life lesson?",
-    ],
-  },
-};
-
 export const AI_PRACTICE_CHARACTERS: AiPracticeCharacter[] = AI_PRACTICE_CHARACTER_DATA.map((character) => ({
   ...character,
-  openingLinesByLanguage: OPENING_LINES[character.id] ?? {},
+  openingLinesByLanguage: OPENING_LINES_BY_LANGUAGE[character.id] ?? {},
 }));
 
 export function getAiPracticeCharacters() {

@@ -284,13 +284,12 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   }
 
   if (!hydrated) {
-    return <EmptyState icon={BookOpen} title={t("quiz.loadingTitle")} description={t("quiz.loadingDescription")} />;
+    return <EmptyState title={t("quiz.loadingTitle")} description={t("quiz.loadingDescription")} />;
   }
 
   if (languageStats.length === 0) {
     return (
       <EmptyState
-        icon={BookOpen}
         title={t("inventory.emptyAnyTitle")}
         description={t("inventory.emptyAnyDescription")}
         action={
@@ -360,7 +359,6 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   if (!item) {
     return (
       <EmptyState
-        icon={BookOpen}
         title={t("quiz.noActiveTitle")}
         description={t("quiz.noActiveDescription")}
         action={

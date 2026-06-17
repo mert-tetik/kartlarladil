@@ -14,7 +14,11 @@ export default async function LearnPage() {
       data-learn-page
     >
       <div data-learn-page-header className="max-lg:hidden">
-        <PageHeader title={t("page.learn.title")} description={t("page.learn.description")} />
+        <PageHeader
+          title={t("page.learn.title")}
+          description={t("page.learn.description")}
+          mascot="/mascots/mascot5.png"
+        />
       </div>
       <div className="flex flex-1 flex-col">
         <QuizStation mode="active" />

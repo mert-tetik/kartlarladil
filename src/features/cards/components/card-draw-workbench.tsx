@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { PackagePlus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { getSearchableCardText } from "@/features/cards/card-localization";
@@ -329,7 +329,6 @@ export function CardDrawWorkbench() {
   if (!hydrated) {
     return (
       <EmptyState
-        icon={PackagePlus}
         title={t("cards.poolPreparingTitle")}
         description={t("cards.poolPreparingDescription")}
       />
@@ -468,7 +467,7 @@ export function CardDrawWorkbench() {
             ) : (
               <div className="max-lg:flex max-lg:flex-1 max-lg:items-center max-lg:justify-center">
                 <EmptyState
-                  icon={PackagePlus}
+                  mascot="/mascots/mascot17.png"
                   title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
                   description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
                 />

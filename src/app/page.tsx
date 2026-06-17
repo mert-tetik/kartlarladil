@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Brain, CheckCircle2, Coins, Layers3, Search, Trophy } from "lucide-react";
+import { ArrowRight, Brain, CheckCircle2, Layers3, Search, Trophy } from "lucide-react";
 import { AskSection } from "@/app/components/ask-section";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -81,8 +82,19 @@ export default async function Home() {
         <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)] sm:block" />
 
         <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
+          <div className="flex w-full flex-col items-center gap-8 lg:flex-row">
+            <div className="order-1 flex shrink-0 items-center justify-center lg:order-none lg:w-[360px]">
+              <Image
+                src="/mascots/mascot1.png"
+                alt=""
+                width={360}
+                height={380}
+                className="h-auto w-56 sm:w-64 lg:w-80"
+                priority
+              />
+            </div>
+            <div className="order-2 max-w-3xl lg:order-none">
+              <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
             <div className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
               <Link
@@ -111,6 +123,7 @@ export default async function Home() {
               ))}
             </div>
           </div>
+          </div>
         </div>
       </section>
 
@@ -131,7 +144,16 @@ export default async function Home() {
       </section>
 
       <section data-collection-preview-section className="bg-slate-50 dark:bg-background">
-        <div className="mx-auto grid w-full max-w-[1500px] items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-10 lg:px-8">
+        <div className="mx-auto grid w-full max-w-[1500px] items-center gap-6 px-4 py-16 sm:px-6 lg:grid-cols-[140px_minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-8 lg:px-8">
+          <div className="hidden lg:flex lg:items-center lg:justify-center">
+            <Image
+              src="/mascots/mascot16.png"
+              alt=""
+              width={140}
+              height={140}
+              className="h-auto w-28"
+            />
+          </div>
           <div>
             <h2 className="font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.collection.title")}</h2>
             <p className="mt-4 text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.collection.description")}</p>
@@ -176,13 +198,13 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              ["1", t("home.steps.one.title"), t("home.steps.one.description")],
-              ["2", t("home.steps.two.title"), t("home.steps.two.description")],
-              ["3", t("home.steps.three.title"), t("home.steps.three.description")],
-            ].map(([step, title, description]) => (
-              <article key={step} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
-                <div className="flex size-10 items-center justify-center rounded-md bg-brand text-sm font-bold text-brand-foreground">
-                  {step}
+              ["/mascots/mascot6.png", t("home.steps.one.title"), t("home.steps.one.description")],
+              ["/mascots/mascot7.png", t("home.steps.two.title"), t("home.steps.two.description")],
+              ["/mascots/mascot8.png", t("home.steps.three.title"), t("home.steps.three.description")],
+            ].map(([mascot, title, description]) => (
+              <article key={mascot} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+                <div className="relative h-14 w-14">
+                  <Image src={mascot} alt="" fill sizes="56px" className="object-contain" />
                 </div>
                 <h2 className="mt-5 text-xl font-semibold text-white">{title}</h2>
                 <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
@@ -195,8 +217,8 @@ export default async function Home() {
       <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-border dark:bg-background">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
-            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white dark:bg-background-card">
-              <Coins className="size-6" aria-hidden="true" />
+            <div className="relative h-16 w-16">
+              <Image src="/mascots/mascot9.png" alt="" fill sizes="64px" className="object-contain" />
             </div>
             <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.points.title")}</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.points.description")}</p>

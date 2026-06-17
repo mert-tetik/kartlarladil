@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { X } from "lucide-react";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
@@ -122,18 +123,29 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
           onMouseDown={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border bg-background-card px-4 py-4 md:px-8 md:py-6">
-            <div>
-              <p className="text-lg font-semibold text-foreground md:text-2xl">
-                {getRankLabel(stats.rank, locale)}
-              </p>
-              <p className="mt-1 text-sm text-foreground-muted md:text-base">
-                {stats.nextRank
-                  ? t("rank.next", {
-                      rank: getRankLabel(stats.nextRank, locale),
-                      points: formatNumber(locale, stats.pointsToNextRank),
-                    })
-                  : t("rank.completed")}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="relative hidden h-16 w-16 shrink-0 md:block">
+                <Image
+                  src="/mascots/mascot9.png"
+                  alt=""
+                  fill
+                  sizes="64px"
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-foreground md:text-2xl">
+                  {getRankLabel(stats.rank, locale)}
+                </p>
+                <p className="mt-1 text-sm text-foreground-muted md:text-base">
+                  {stats.nextRank
+                    ? t("rank.next", {
+                        rank: getRankLabel(stats.nextRank, locale),
+                        points: formatNumber(locale, stats.pointsToNextRank),
+                      })
+                    : t("rank.completed")}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-background-inverse px-3 py-1 text-sm font-bold text-foreground-inverse md:px-4 md:py-1.5 md:text-base">

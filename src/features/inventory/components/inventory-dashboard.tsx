@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Boxes, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { InventoryCardGrid } from "@/features/cards/components/card-grid";
 
@@ -70,7 +70,6 @@ export function InventoryDashboard({
   if (!hydrated) {
     return (
       <EmptyState
-        icon={Boxes}
         title={t("inventory.loadingTitle")}
         description={t("inventory.loadingDescription")}
       />
@@ -80,7 +79,6 @@ export function InventoryDashboard({
   if (languageStats.length === 0) {
     return (
       <EmptyState
-        icon={Boxes}
         title={t(
           learnedOnly
             ? "inventory.emptyAnyLearnedTitle"

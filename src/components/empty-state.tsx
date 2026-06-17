@@ -1,14 +1,14 @@
-import type { LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export function EmptyState({
-  icon: Icon,
+  mascot,
   title,
   description,
   action,
   className,
 }: {
-  icon: LucideIcon;
+  mascot?: string;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -16,8 +16,14 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("rounded-lg border border-dashed border-border bg-background-card p-8 text-center", className)}>
-      <div className="mx-auto flex size-12 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
-        <Icon className="size-6" aria-hidden="true" />
+      <div className="relative mx-auto h-32 w-32">
+        <Image
+          src={mascot ?? "/mascots/mascot12.png"}
+          alt=""
+          fill
+          sizes="128px"
+          className="object-contain"
+        />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-foreground">{title}</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground-secondary">{description}</p>

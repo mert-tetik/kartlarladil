@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Coins } from "lucide-react";
 
 import { buttonClassName } from "@/components/ui/button";
 import {
@@ -39,8 +38,17 @@ export async function AiPracticePreview() {
   return (
     <section className="bg-white dark:bg-background">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
+        <div className="flex flex-col items-center gap-6 lg:flex-row lg:justify-between">
+          <div className="flex shrink-0 items-center justify-center">
+            <Image
+              src="/mascots/mascot4.png"
+              alt=""
+              width={180}
+              height={180}
+              className="h-auto w-36"
+            />
+          </div>
+          <div className="max-w-2xl text-center lg:text-left">
             <h2 className="font-display text-4xl font-semibold text-slate-950 dark:text-white">
               {t("home.aiPractice.title")}
             </h2>
@@ -48,7 +56,6 @@ export async function AiPracticePreview() {
               {t("home.aiPractice.description")}
             </p>
             <div className="mt-4 inline-flex items-center gap-2 font-bold text-amber-500 dark:text-white">
-              <Coins className="size-5" aria-hidden="true" />
               {t("home.aiPractice.highlight")}
             </div>
           </div>

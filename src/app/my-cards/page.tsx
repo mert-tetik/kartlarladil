@@ -15,7 +15,7 @@ export default async function MyCardsPage() {
     >
       <PageHeader
         title={t("page.inventory.title")}
-        description={t("page.inventory.description")}
+        mascot="/mascots/mascot10.png"
       />
       <div className="mt-8 max-lg:mt-4">
         <InventoryDashboard />

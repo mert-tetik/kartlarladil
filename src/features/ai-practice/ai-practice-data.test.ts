@@ -33,7 +33,7 @@ describe("AI practice characters", () => {
     const instructions = buildAiPracticeInstructions({ character, language: "de" });
 
     expect(instructions).toContain("Deutsch");
-    expect(instructions).toContain(character.promptProfile);
+    expect(instructions).toContain(character.promptProfileByLocale?.de ?? character.promptProfile);
     expect(instructions).toContain("You must speak only in the target language");
     expect(instructions).toContain("Sound as realistic and human as possible");
     expect(instructions).toContain("do not answer like an expert");

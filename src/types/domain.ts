@@ -233,4 +233,6 @@ export interface AiPracticeCharacter {
   openingLinesByLanguage: Partial<Record<LanguageCode, string[]>>;
   promptProfile: string;
   conversationStyle: string[];
+  promptProfileByLocale: Partial<Record<LocaleCode, string>>;
+  conversationStyleByLocale: Partial<Record<LocaleCode, string[]>>;
 }

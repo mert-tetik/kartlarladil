@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
@@ -23,12 +24,13 @@ interface PricingPlan {
   monthlyPrice: number | null;
   yearlyPrice: number | null;
   popular?: boolean;
+  mascot?: string;
 }
 
 const PLANS: PricingPlan[] = [
-  { plan: "free", monthlyPrice: null, yearlyPrice: null },
-  { plan: "basic", monthlyPrice: 3, yearlyPrice: 30 },
-  { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true },
+  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
+  { plan: "basic", monthlyPrice: 3, yearlyPrice: 30, mascot: "/mascots/mascot15.png" },
+  { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.png" },
 ];
 
 export function PricingPage({ user }: PricingPageProps) {
@@ -62,6 +64,7 @@ export function PricingPage({ user }: PricingPageProps) {
             monthlyPrice={item.monthlyPrice}
             yearlyPrice={item.yearlyPrice}
             popular={item.popular}
+            mascot={item.mascot}
             cycle={cycle}
             currentPlan={entitlements?.effectivePlan ?? null}
             user={user}
@@ -123,6 +126,7 @@ function PricingCard({
   monthlyPrice,
   yearlyPrice,
   popular,
+  mascot,
   cycle,
   currentPlan,
   user,
@@ -149,12 +153,19 @@ function PricingCard({
       )}
     >
       {popular ? (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-background-card px-3 py-1 text-xs font-semibold text-foreground">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">
           {t("pricing.mostPopular")}
         </span>
       ) : null}
 
-      <h2 className="text-lg font-semibold">{t(`pricing.${plan}`)}</h2>
+      <div className="flex items-center gap-3">
+        {mascot ? (
+          <div className="relative h-12 w-12">
+            <Image src={mascot} alt="" fill sizes="48px" className="object-contain" />
+          </div>
+        ) : null}
+        <h2 className="text-lg font-semibold">{t(`pricing.${plan}`)}</h2>
+      </div>
       <div className="mt-4 flex items-baseline gap-1">
         <span className="font-display text-4xl font-semibold">
           {price === null ? t("pricing.priceFree") : `$${price}`}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Send } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
 import { submitReviewAction } from "@/features/reviews/actions";
@@ -59,8 +60,18 @@ export function ReviewSection({ user, existingReview, t }: ReviewSectionProps) {
   };
 
   return (
-    <section className="bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+    <section className="relative isolate overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.5]">
+        <Image
+          src="/mascots/mascot13.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-center brightness-[0.35]"
+        />
+      </div>
+      <div className="absolute inset-0 -z-10 bg-background/25" />
+      <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="font-display text-3xl font-semibold text-foreground sm:text-4xl">{t.title}</h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-foreground-secondary">{t.description}</p>

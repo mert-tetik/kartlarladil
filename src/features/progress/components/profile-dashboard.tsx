@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, BookOpen, Boxes, CheckCircle2, Trophy } from "lucide-react";
+import { BookOpen, Boxes, CheckCircle2, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIER_STYLES } from "@/data/tiers";
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -41,7 +41,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const cardById = new Map(joinedCards.map((item) => [item.card.id, item.card]));
 
   if (loading) {
-    return <EmptyState icon={BarChart3} title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
+    return <EmptyState title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
   }
 
   return (
