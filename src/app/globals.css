@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *));
+
 :root {
   --brand: #f76808;
   --brand-hover: color-mix(in oklab, var(--brand) 85%, black);
@@ -34,17 +36,6 @@
   --color-foreground-inverse-muted: var(--foreground-inverse-muted);
   --color-border: var(--border);
   --color-ring-brand: var(--ring-brand);
-  --color-slate-50: var(--background);
-  --color-slate-100: var(--background-muted);
-  --color-slate-200: var(--border);
-  --color-slate-300: var(--border);
-  --color-slate-400: var(--foreground-muted);
-  --color-slate-500: var(--foreground-muted);
-  --color-slate-600: var(--foreground-secondary);
-  --color-slate-700: var(--foreground-secondary);
-  --color-slate-800: var(--background-inverse);
-  --color-slate-900: var(--background-inverse);
-  --color-slate-950: var(--background-inverse);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-fraunces);
 }

@@ -25,7 +25,7 @@ const THEME_IDS = [
 
 const PAGES = [
   { name: "card-draw", path: "/card-draw" },
-  { name: "learn", path: "/learn" },
+  { name: "pricing", path: "/pricing" },
 ];
 
 test.describe("theme visual regression", () => {
@@ -34,9 +34,12 @@ test.describe("theme visual regression", () => {
       test(`${name} renders with ${themeId} theme`, async ({ page }) => {
         await page.goto(path, { waitUntil: "domcontentloaded" });
         await page.waitForLoadState("networkidle");
+        await page.waitForSelector("body", { state: "attached" });
+        await page.evaluate((id) => document.body.setAttribute("data-theme", id), themeId);
+        await page.waitForTimeout(500);
         await page.evaluate((id) => document.body.setAttribute("data-theme", id), themeId);
         await page.screenshot({
-          path: `test-results/themes/${name}-${themeId}.png`,
+          path: `test-results/themes/${name}-${themeId}-${test.info().project.name}.png`,
           fullPage: false,
         });
       });

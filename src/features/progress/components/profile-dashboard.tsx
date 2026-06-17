@@ -114,9 +114,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
               return (
                 <div key={tier.tier} className={cn("rounded-lg border bg-gradient-to-br p-3 text-center", style.border, style.surface)}>
                   <span className={cn("text-sm font-bold", style.text)}>{tier.tier}</span>
-                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted">{getTierLabel(tier.tier, locale)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted dark:text-foreground-inverse/70">{getTierLabel(tier.tier, locale)}</p>
                   <p className="mt-3 text-2xl font-bold text-foreground">{formatNumber(locale, tier.learned)}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted">{formatPoints(locale, tier.points)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted dark:text-foreground-inverse/70">{formatPoints(locale, tier.points)}</p>
                 </div>
               );
             })}

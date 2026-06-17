@@ -201,7 +201,7 @@ function CardFront({
           <Badge className={cn("border-transparent bg-background-card/80 max-sm:text-[10px]", style.text)}>
             {card.tier} · {getTierLabel(card.tier, locale)}
           </Badge>
-          <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-foreground-muted max-sm:mt-1 max-sm:text-[10px]">
+          <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-foreground-muted dark:text-foreground-inverse/70 max-sm:mt-1 max-sm:text-[10px]">
             <span>{getLanguageDisplayName(card.language, locale)}</span>
             <span
               aria-label={`${tierPoints} ${t("common.points")}`}
@@ -247,25 +247,25 @@ function CardFront({
             aria-label={`${card.term} ${t("cards.speak")}`}
             title={t("cards.speak")}
             onClick={handleSpeakClick}
-            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-card/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-6"
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-card/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-foreground-inverse dark:hover:bg-background-inverse/50 dark:hover:text-foreground-inverse max-sm:size-6"
           >
             <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
           </button>
-          <span className="text-sm max-sm:text-xs">{card.pronunciation}</span>
+          <span className="text-sm text-foreground-muted dark:text-foreground-inverse/80 max-sm:text-xs">{card.pronunciation}</span>
         </div>
-        <h3 className="mt-3 font-display text-2xl font-semibold leading-none text-foreground max-sm:mt-1 sm:text-4xl">
+        <h3 className="mt-3 font-display text-2xl font-semibold leading-none text-foreground dark:text-foreground-inverse max-sm:mt-1 sm:text-4xl">
           {card.term}
         </h3>
-        <p className="mt-3 text-sm font-semibold text-foreground-muted max-sm:mt-1 max-sm:text-[10px]">
+        <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-foreground-inverse/70 max-sm:mt-1 max-sm:text-[10px]">
           {getPartOfSpeechLabel(card.termKind, locale)}
         </p>
-        <p className="mt-5 text-lg font-semibold text-foreground max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">
+        <p className="mt-5 text-lg font-semibold text-foreground dark:text-foreground-inverse max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">
           {cardTranslation}
         </p>
       </div>
 
       <p
-        className="truncate text-sm leading-6 text-foreground-secondary max-sm:mt-1 max-sm:text-xs max-sm:leading-4"
+        className="truncate text-sm leading-6 text-foreground-secondary dark:text-foreground-inverse/80 max-sm:mt-1 max-sm:text-xs max-sm:leading-4"
         title={examplePreview}
       >
         {examplePreview}
@@ -273,7 +273,7 @@ function CardFront({
 
       {inventory ? (
         <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground-secondary">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground-secondary dark:text-foreground-inverse/70">
             <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
             <span>
               {inventory.correctCount}/{requirement}
