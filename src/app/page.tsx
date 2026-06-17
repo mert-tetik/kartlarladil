@@ -120,10 +120,10 @@ export default async function Home() {
             const Icon = item.icon;
 
             return (
-              <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm">
-                <Icon className="size-7 text-[#f76808]" aria-hidden="true" />
-                <h2 className="mt-5 text-xl font-semibold text-slate-950">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+              <article key={item.title} className="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-950">
+                <Icon className="size-7 text-[#f76808] dark:text-white" aria-hidden="true" />
+                <h2 className="mt-5 text-xl font-semibold text-slate-950 dark:text-white">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{item.description}</p>
               </article>
             );
           })}
@@ -192,26 +192,26 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50">
+      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
-            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white">
+            <div className="flex size-12 items-center justify-center rounded-md bg-slate-950 text-white dark:bg-slate-800">
               <Coins className="size-6" aria-hidden="true" />
             </div>
-            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950">{t("home.points.title")}</h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">{t("home.points.description")}</p>
+            <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.points.title")}</h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">{t("home.points.description")}</p>
           </div>
 
           <div className="grid min-w-0 gap-4">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {TIERS.map((tier) => (
-                <div key={tier} className="rounded-lg border border-slate-200 bg-white p-3">
+                <div key={tier} className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-center justify-between gap-2">
                     <span className={`text-sm font-semibold ${TIER_STYLES[tier].text}`}>{tier}</span>
                     <span className={`size-2.5 rounded-full ${TIER_STYLES[tier].accent}`} aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-lg font-semibold text-slate-950">{formatPoints(locale, TIER_POINTS[tier])}</p>
-                  <p className="mt-1 text-xs text-slate-500">{getTierLabel(tier, locale)}</p>
+                  <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{formatPoints(locale, TIER_POINTS[tier])}</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
             </div>
@@ -225,12 +225,12 @@ export default async function Home() {
                     sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
                   />
                   <p
-                    className="mt-3 max-w-full truncate px-1 text-sm font-semibold text-slate-950"
+                    className="mt-3 max-w-full truncate px-1 text-sm font-semibold text-slate-950 dark:text-white"
                     title={getRankLabel(rank, locale)}
                   >
                     {getRankLabel(rank, locale)}
                   </p>
-                  <p className="text-sm font-medium text-slate-500">{formatNumber(locale, rank.minPoints)}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{formatNumber(locale, rank.minPoints)}</p>
                 </div>
               ))}
             </div>

@@ -13,7 +13,7 @@ interface AskSectionProps {
 
 export function AskSection({ title, description, cta, href }: AskSectionProps) {
   return (
-    <section className="border-y border-slate-200 bg-white">
+    <section className="border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
           <div className="flex items-center gap-5">
@@ -24,8 +24,8 @@ export function AskSection({ title, description, cta, href }: AskSectionProps) {
               </div>
             </div>
             <div>
-              <h2 className="font-display text-2xl font-semibold text-slate-950 sm:text-3xl">{title}</h2>
-              <p className="mt-2 max-w-xl text-base leading-7 text-slate-600">{description}</p>
+              <h2 className="font-display text-2xl font-semibold text-slate-950 dark:text-white sm:text-3xl">{title}</h2>
+              <p className="mt-2 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">{description}</p>
             </div>
           </div>
           <Link

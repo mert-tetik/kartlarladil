@@ -37,17 +37,17 @@ export async function AiPracticePreview() {
   }
 
   return (
-    <section className="bg-white">
+    <section className="bg-white dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <h2 className="font-display text-4xl font-semibold text-slate-950">
+            <h2 className="font-display text-4xl font-semibold text-slate-950 dark:text-white">
               {t("home.aiPractice.title")}
             </h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
+            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
               {t("home.aiPractice.description")}
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 font-bold text-amber-500">
+            <div className="mt-4 inline-flex items-center gap-2 font-bold text-amber-500 dark:text-white">
               <Coins className="size-5" aria-hidden="true" />
               {t("home.aiPractice.highlight")}
             </div>
@@ -71,9 +71,9 @@ export async function AiPracticePreview() {
               <Link
                 key={character.id}
                 href={getCharacterHref(character.id)}
-                className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
+                className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:focus-visible:outline-white"
               >
-                <div className="relative aspect-square overflow-hidden bg-slate-100">
+                <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
                   <Image
                     src={character.imageSrc}
                     alt={characterName}
@@ -83,10 +83,10 @@ export async function AiPracticePreview() {
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="truncate text-base font-semibold text-slate-950">
+                  <h3 className="truncate text-base font-semibold text-slate-950 dark:text-white">
                     {characterName}
                   </h3>
-                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600 dark:text-slate-300">
                     {character.summaryByLocale[locale]}
                   </p>
                 </div>
