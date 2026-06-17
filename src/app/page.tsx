@@ -130,13 +130,13 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-collection-preview-section className="bg-slate-50">
+      <section data-collection-preview-section className="bg-slate-50 dark:bg-slate-950">
         <div className="mx-auto grid w-full max-w-[1500px] items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-10 lg:px-8">
           <div>
-            <h2 className="font-display text-4xl font-semibold text-slate-950">{t("home.collection.title")}</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">{t("home.collection.description")}</p>
+            <h2 className="font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.collection.title")}</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{t("home.collection.description")}</p>
             <div className="mt-8">
-              <p className="text-sm font-semibold tracking-wide text-slate-950 uppercase">For 14 Languages</p>
+              <p className="text-sm font-semibold tracking-wide text-slate-950 uppercase dark:text-white">For 14 Languages</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {LANGUAGES.map((language) => (
                   <LanguageFlag
