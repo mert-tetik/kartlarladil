@@ -22,7 +22,7 @@ export function CardGrid({
 
 export function InventoryCardGrid({ cards, flippable }: { cards: InventoryCardView[]; flippable?: boolean }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {cards.map(({ card, inventory }) => (
         <VocabularyCardView key={card.id} card={card} inventory={inventory} flippable={flippable} />
       ))}

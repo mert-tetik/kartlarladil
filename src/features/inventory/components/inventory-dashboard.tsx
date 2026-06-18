@@ -112,7 +112,7 @@ export function InventoryDashboard({
   }
 
   return (
-    <div className="max-lg:h-[calc(100dvh-8rem)] max-lg:overflow-hidden lg:space-y-6">
+    <div className="max-lg:flex-1 max-lg:overflow-hidden lg:space-y-6">
       {cloudError ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
           {cloudError}
@@ -169,7 +169,7 @@ export function InventoryDashboard({
           </section>
         ) : null}
 
-        <section className="space-y-4">
+        <section className="mt-8 space-y-4">
           <div className="w-full bg-black px-4 py-3">
             <h2 className="text-lg font-semibold text-white">
               {t("inventory.status.learned")}
