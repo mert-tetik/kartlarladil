@@ -71,7 +71,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
               <>
-                <RankProgressPopover stats={stats} />
+                <RankProgressPopover stats={stats} userId={user.id} />
                 <AccountMenu user={user} />
                 <LocaleSwitcher />
               </>

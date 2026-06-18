@@ -14,10 +14,10 @@ import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
 
-export function RankProgressPopover({ stats }: { stats: ProgressStats }) {
+export function RankProgressPopover({ stats, userId }: { stats: ProgressStats; userId?: string }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats);
+  const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
   const { locale } = useLocale();
   const t = useT();
 
@@ -204,11 +204,40 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
   );
 }
 
-function useAnimatedScoreDisplay(stats: ProgressStats) {
+const LAST_RANK_STORAGE_KEY = "foxiesdeck:last-rank-id";
+
+function getRankStorageKey(userId: string) {
+  return `${LAST_RANK_STORAGE_KEY}:${userId}`;
+}
+
+function readLastAcknowledgedRank(userId: string | undefined): string | null {
+  if (typeof window === "undefined" || !userId) return null;
+  return window.localStorage.getItem(getRankStorageKey(userId));
+}
+
+function writeLastAcknowledgedRank(userId: string | undefined, rankId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  window.localStorage.setItem(getRankStorageKey(userId), rankId);
+}
+
+function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   const [displayStats, setDisplayStats] = useState(stats);
   const [scoreGain, setScoreGain] = useState(0);
   const [rankUpRank, setRankUpRank] = useState<RankDefinition | null>(null);
   const displayStatsRef = useRef(stats);
+  const hasInitializedRank = useRef(false);
+
+  // On first meaningful render, ensure the current rank is considered acknowledged
+  // so a refresh does not replay an old rank-up celebration.
+  useEffect(() => {
+    if (hasInitializedRank.current) return;
+    hasInitializedRank.current = true;
+
+    const lastAcknowledged = readLastAcknowledgedRank(userId);
+    if (lastAcknowledged === null) {
+      writeLastAcknowledgedRank(userId, stats.rank.id);
+    }
+  }, [stats.rank.id, userId]);
 
   useEffect(() => {
     const previousStats = displayStatsRef.current;
@@ -238,9 +267,14 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
       displayStatsRef.current = stats;
       setDisplayStats(stats);
       setScoreGain(0);
+
       if (didRankUp) {
-        playSoundEffect("rank-up");
-        setRankUpRank(stats.rank);
+        const lastAcknowledged = readLastAcknowledgedRank(userId);
+        if (lastAcknowledged !== stats.rank.id) {
+          playSoundEffect("rank-up");
+          setRankUpRank(stats.rank);
+          writeLastAcknowledgedRank(userId, stats.rank.id);
+        }
       }
     }, SCORE_GAIN_ANIMATION_MS);
 
@@ -248,7 +282,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats) {
       window.clearTimeout(startTimer);
       window.clearTimeout(finishTimer);
     };
-  }, [stats]);
+  }, [stats, userId]);
 
   return {
     displayStats,
