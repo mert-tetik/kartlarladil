@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
-  Boxes,
   CircleHelp,
   CreditCard,
   MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
+import { CardDecksIcon } from "@/components/icons/card-decks-icon";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -33,7 +33,7 @@ type NavItem = {
 
 const navItems: readonly NavItem[] = [
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
-  { href: "/my-cards", labelKey: "nav.inventory", icon: Boxes },
+  { href: "/my-cards", labelKey: "nav.inventory", icon: CardDecksIcon },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
   { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },

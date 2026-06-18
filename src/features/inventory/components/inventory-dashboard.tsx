@@ -203,14 +203,8 @@ export function InventoryDashboard({
             title={t("inventory.status.active")}
             count={activeCards.length}
             tierCounts={tierCounts.active}
-            action={
-              activeCards.length > 0 ? (
-                <Link href="/learn" className={buttonClassName("primary", "sm")}>
-                  <GraduationCap className="size-4" aria-hidden="true" />
-                  {t("inventory.learn")}
-                </Link>
-              ) : null
-            }
+            variant="active"
+            learnHref="/learn"
             onView={() => setMobileMenu("active")}
           />
         ) : null}
@@ -219,6 +213,7 @@ export function InventoryDashboard({
           title={t("inventory.status.learned")}
           count={learnedCards.length}
           tierCounts={tierCounts.learned}
+          variant="learned"
           onView={() => setMobileMenu("learned")}
         />
       </div>
@@ -319,34 +314,53 @@ function MobileSectionBlock({
   title,
   count,
   tierCounts,
-  action,
+  variant,
+  learnHref,
   onView,
 }: {
   title: string;
   count: number;
   tierCounts: Record<string, number>;
-  action?: React.ReactNode;
+  variant: "active" | "learned";
+  learnHref?: string;
   onView: () => void;
 }) {
   const t = useT();
+  const isActive = variant === "active";
+  const barClass = isActive ? "bg-emerald-500" : "bg-sky-500";
+  const buttonTextClass = isActive ? "text-emerald-500" : "text-sky-500";
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onView}
-      className="flex w-full flex-col gap-4 rounded-lg border border-border bg-background-card p-4 text-left transition-colors hover:bg-background-muted"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onView();
+        }
+      }}
+      className="flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-background-card text-left transition-colors hover:bg-background-muted"
     >
-      <div className="flex items-center justify-between">
+      <div className={cn("flex items-center justify-between px-4 py-3 text-white", barClass)}>
         <div>
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <p className="text-sm text-foreground-muted">
-            {t("common.cardsWithCount", { count })}
-          </p>
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <p className="text-sm text-white/90">{t("common.cardsWithCount", { count })}</p>
         </div>
-        {action ? <div onClick={(event) => event.stopPropagation()}>{action}</div> : null}
+        {learnHref && count > 0 ? (
+          <Link
+            href={learnHref}
+            onClick={(event) => event.stopPropagation()}
+            className={buttonClassName("primary", "sm", cn("bg-white hover:bg-white/90", buttonTextClass))}
+          >
+            <GraduationCap className="size-4" aria-hidden="true" />
+            {t("inventory.learn")}
+          </Link>
+        ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 p-4">
         {TIERS.map((tier) => {
           const style = TIER_STYLES[tier];
           const tierCount = tierCounts[tier] ?? 0;
@@ -368,10 +382,12 @@ function MobileSectionBlock({
         })}
       </div>
 
-      <span className="self-start rounded-md bg-background px-3 py-1.5 text-xs font-semibold text-foreground-secondary">
-        {t("inventory.viewCards")}
-      </span>
-    </button>
+      <div className="px-4 pb-4">
+        <span className="inline-flex rounded-md bg-background px-3 py-1.5 text-xs font-semibold text-foreground-secondary">
+          {t("inventory.viewCards")}
+        </span>
+      </div>
+    </div>
   );
 }
 
