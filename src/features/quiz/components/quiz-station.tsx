@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -37,6 +37,7 @@ import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import confetti from "canvas-confetti";
 import type {
   InventoryCard,
   LanguageCode,
@@ -547,18 +548,17 @@ function LanguageSelection({
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
-          <Languages className="size-6" aria-hidden="true" />
-        </div>
+        <Languages className="size-6 shrink-0 text-foreground-secondary" aria-hidden="true" />
         <div>
           <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">{t("quiz.chooseLanguageDescription")}</p>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
-        {languageStats.map((language) => (
-          <button
+      <div className="mt-6 h-[180px] overflow-y-auto pr-1 sm:h-[240px]">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {languageStats.map((language) => (
+            <button
             key={language.code}
             type="button"
             aria-pressed={selectedLanguage === language.code}
@@ -575,6 +575,7 @@ function LanguageSelection({
             <Badge>{formatCards(locale, language.count)}</Badge>
           </button>
         ))}
+        </div>
       </div>
     </div>
   );
@@ -599,9 +600,7 @@ function CountSelection({
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
       <div className="flex items-start gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-background-muted text-foreground-secondary">
-          <BookOpen className="size-6" aria-hidden="true" />
-        </div>
+        <BookOpen className="size-6 shrink-0 text-foreground-secondary" aria-hidden="true" />
         <div>
           <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
@@ -887,8 +886,36 @@ function TextQuestion({
 }
 
 function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinue: () => void }) {
-  const { locale } = useLocale();
   const t = useT();
+  const [cardFace, setCardFace] = useState<"front" | "back">("back");
+  const hasTriggered = useRef(false);
+
+  useEffect(() => {
+    if (hasTriggered.current) return;
+    hasTriggered.current = true;
+
+    playSoundEffect("learned");
+
+    const flipTimer = setTimeout(() => {
+      setCardFace("front");
+    }, 1500);
+
+    const confettiTimer = setTimeout(() => {
+      playSoundEffect("confetti");
+      void confetti({
+        particleCount: 140,
+        spread: 80,
+        origin: { y: 0.55 },
+        colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
+        disableForReducedMotion: true,
+      });
+    }, 1750);
+
+    return () => {
+      clearTimeout(flipTimer);
+      clearTimeout(confettiTimer);
+    };
+  }, []);
 
   return (
     <div className="animate-screen-pop mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
@@ -899,7 +926,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
       <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("quiz.learnedDescription")}</p>
 
       <div className="mt-6">
-        <VocabularyCardView card={card} owned initialFace="front" flippable={false} />
+        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} />
       </div>
 
       <Button className="mt-8 w-full" onClick={onContinue}>
@@ -944,43 +971,25 @@ function ResultView({
             label={t("quiz.resultCorrect")}
             count={results.correct.length}
             tone="emerald"
+            disabled={results.correct.length === 0}
+            onClick={() => setOpenMenu("correct")}
           />
           <ResultCard
             icon={XCircle}
             label={t("quiz.resultIncorrect")}
             count={results.incorrect.length}
             tone="rose"
+            disabled={results.incorrect.length === 0}
+            onClick={() => setOpenMenu("incorrect")}
           />
           <ResultCard
             icon={Trophy}
             label={t("quiz.resultLearned")}
             count={results.learned.length}
             tone="amber"
-          />
-        </div>
-
-        <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <Button
-            variant="secondary"
-            onClick={() => setOpenMenu("correct")}
-            disabled={results.correct.length === 0}
-          >
-            {t("quiz.seeCorrectCards")}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setOpenMenu("incorrect")}
-            disabled={results.incorrect.length === 0}
-          >
-            {t("quiz.seeIncorrectCards")}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setOpenMenu("learned")}
             disabled={results.learned.length === 0}
-          >
-            {t("quiz.seeLearnedCards")}
-          </Button>
+            onClick={() => setOpenMenu("learned")}
+          />
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -1011,11 +1020,15 @@ function ResultCard({
   label,
   count,
   tone,
+  disabled,
+  onClick,
 }: {
   icon: typeof CheckCircle2;
   label: string;
   count: number;
   tone: "emerald" | "rose" | "amber";
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
   const toneClasses = {
     emerald: "bg-emerald-50 text-emerald-700",
@@ -1024,11 +1037,20 @@ function ResultCard({
   };
 
   return (
-    <div className={cn("rounded-lg p-4 text-center", toneClasses[tone])}>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "rounded-lg p-4 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+        toneClasses[tone],
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+      )}
+    >
       <Icon className="mx-auto size-6" aria-hidden="true" />
       <p className="mt-2 text-2xl font-bold">{count}</p>
       <p className="text-xs font-semibold opacity-80">{label}</p>
-    </div>
+    </button>
   );
 }
 
@@ -1058,9 +1080,9 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
           {cards.length === 0 ? (
             <p className="py-8 text-center text-sm text-foreground-secondary">No cards</p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {cards.map((card) => (
-                <VocabularyCardView key={card.id} card={card} owned={false} />
+                <VocabularyCardView key={card.id} card={card} owned={false} className="h-full min-h-[320px] w-full" />
               ))}
             </div>
           )}

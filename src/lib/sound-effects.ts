@@ -1,4 +1,4 @@
-export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points";
+export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti";
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
@@ -31,6 +31,16 @@ export function playSoundEffect(effect: SoundEffectName) {
 
     if (effect === "incorrect") {
       playIncorrectEffect(context);
+      return;
+    }
+
+    if (effect === "learned") {
+      playLearnedEffect(context);
+      return;
+    }
+
+    if (effect === "confetti") {
+      playConfettiEffect(context);
       return;
     }
 
@@ -98,6 +108,45 @@ function playRankUpEffect(context: AudioContext) {
       type: index % 2 === 0 ? "triangle" : "sine",
     });
   });
+}
+
+function playLearnedEffect(context: AudioContext) {
+  const now = context.currentTime;
+  // Short, crisp "chess piece snap" style thock: low-mid click + higher harmonic.
+  playTone(context, { frequency: 420, startTime: now, duration: 0.06, gain: 0.12, type: "triangle" });
+  playTone(context, { frequency: 840, startTime: now + 0.015, duration: 0.05, gain: 0.08, type: "sine" });
+  playTone(context, { frequency: 1260, startTime: now + 0.03, duration: 0.04, gain: 0.05, type: "sine" });
+}
+
+function playConfettiEffect(context: AudioContext) {
+  const now = context.currentTime;
+  const duration = 0.18;
+  const bufferSize = Math.max(1, Math.floor(context.sampleRate * duration));
+  const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2.5);
+  }
+
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+
+  const bandpass = context.createBiquadFilter();
+  bandpass.type = "bandpass";
+  bandpass.frequency.value = 2800;
+  bandpass.Q.value = 0.8;
+
+  const gainNode = context.createGain();
+  gainNode.gain.setValueAtTime(0.0001, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.06, now + 0.015);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  source.connect(bandpass);
+  bandpass.connect(gainNode);
+  gainNode.connect(context.destination);
+  source.start(now);
+  source.stop(now + duration);
 }
 
 function playTone(
