@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type R
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Coins, Languages, Loader2, Mic, MicOff, RotateCcw, SendHorizonal, Volume2 } from "lucide-react";
-import { Button, buttonClassName } from "@/components/ui/button";
+import { ArrowLeft, Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { InlineLanguagePicker } from "@/components/inline-language-picker";
 import { getCharacterName, getRandomOpeningLine } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
@@ -441,22 +441,12 @@ export function AiPracticeChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card">
+    <section className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:h-[calc(100dvh-8rem)] max-lg:max-h-[calc(100dvh-8rem)] max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader
         character={character}
         characterName={characterName}
         language={language}
         tier={tier}
-        canReset={!pending && messages.length > 0}
-        onReset={() =>
-          setMessages([
-            {
-              id: createId("ai-opening"),
-              role: "assistant",
-              content: getRandomOpeningLine(character, language),
-            },
-          ])
-        }
       />
       <MessageList
         refObject={listRef}
@@ -499,48 +489,39 @@ function ChatHeader({
   characterName,
   language,
   tier,
-  canReset,
-  onReset,
 }: {
   character: AiPracticeCharacter;
   characterName: string;
   language: LanguageCode;
   tier: Tier;
-  canReset: boolean;
-  onReset: () => void;
 }) {
   const t = useT();
   const router = useRouter();
 
   return (
-    <header className="flex shrink-0 flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
-          <Image src={character.imageSrc} alt={characterName} fill sizes="48px" className="object-cover" priority />
-        </div>
-        <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{characterName}</h1>
-          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-foreground-muted">
-            <InlineLanguagePicker
-              value={language}
-              onChange={(code) => router.push(`/ai-practice/${code}/${character.id}?tier=${tier}`)}
-            />
-            <span className="shrink-0 rounded bg-background-muted px-1.5 py-0.5 text-xs font-semibold text-foreground-secondary">
-              {tier}
-            </span>
-          </p>
-        </div>
+    <header className="relative flex shrink-0 items-center gap-3 border-b border-border p-3 pr-14 sm:p-4 sm:pr-16">
+      <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
+        <Image src={character.imageSrc} alt={characterName} fill sizes="48px" className="object-cover" priority />
       </div>
-      <div className="flex shrink-0 gap-2">
-        <Link href={`/ai-practice/${language}`} className={buttonClassName("secondary", "sm")}>
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {t("aiPractice.chat.characters")}
-        </Link>
-        <Button type="button" variant="ghost" size="sm" onClick={onReset} disabled={!canReset}>
-          <RotateCcw className="size-4" aria-hidden="true" />
-          {t("aiPractice.chat.reset")}
-        </Button>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{characterName}</h1>
+        <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-foreground-muted">
+          <InlineLanguagePicker
+            value={language}
+            onChange={(code) => router.push(`/ai-practice/${code}/${character.id}?tier=${tier}`)}
+          />
+          <span className="shrink-0 rounded bg-background-muted px-1.5 py-0.5 text-xs font-semibold text-foreground-secondary">
+            {tier}
+          </span>
+        </p>
       </div>
+      <Link
+        href={`/ai-practice/${language}`}
+        aria-label={t("aiPractice.chat.characters")}
+        className="absolute right-2 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+      </Link>
     </header>
   );
 }
@@ -749,15 +730,15 @@ function ChatComposer({
     : t("aiPractice.chat.micUnsupported");
 
   return (
-    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-3 sm:p-4">
+    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-2 sm:p-3">
       <div
         className={cn(
-          "flex gap-2 rounded-lg border border-border bg-background p-2 focus-within:border-foreground",
+          "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
           isRecording ? "items-center" : "items-end",
         )}
       >
         {isRecording ? (
-          <div className="flex min-h-10 flex-1 items-center px-2">
+          <div className="flex min-h-9 flex-1 items-center px-2">
             <AudioVisualizer analyser={analyser} />
           </div>
         ) : (
@@ -769,28 +750,35 @@ function ChatComposer({
             rows={1}
             maxLength={900}
             placeholder={t("aiPractice.chat.placeholder")}
-            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-foreground-muted"
+            className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
             disabled={pending}
           />
         )}
-        <Button
+        <button
           type="button"
-          size="icon"
-          variant={isRecording ? "danger" : "secondary"}
           onClick={onToggleRecording}
           disabled={pending || !microphoneSupported}
           aria-label={micLabel}
           title={micLabel}
+          className={cn(
+            "inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+            isRecording ? "text-rose-600 animate-pulse" : "text-foreground-muted hover:bg-background-muted hover:text-foreground",
+          )}
         >
-          {isRecording ? <MicOff className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
-        </Button>
+          {isRecording ? <Pause className="size-5" aria-hidden="true" /> : <Mic className="size-5" aria-hidden="true" />}
+        </button>
         {!isRecording ? (
-          <Button type="submit" size="icon" disabled={pending || draft.trim().length === 0} aria-label={t("aiPractice.chat.send")}>
+          <Button
+            type="submit"
+            size="icon"
+            disabled={pending || draft.trim().length === 0}
+            aria-label={t("aiPractice.chat.send")}
+            className="size-9 rounded-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+          >
             {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
           </Button>
         ) : null}
       </div>
-      <p className="mt-2 text-xs text-foreground-muted">{t("aiPractice.chat.privacy")}</p>
     </form>
   );
 }

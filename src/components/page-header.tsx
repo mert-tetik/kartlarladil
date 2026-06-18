@@ -26,6 +26,7 @@ export function PageHeader({
   mascotSize = "md",
   className,
   titleClassName,
+  descriptionClassName,
 }: {
   title: string;
   description?: string;
@@ -34,6 +35,7 @@ export function PageHeader({
   mascotSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
   titleClassName?: string;
+  descriptionClassName?: string;
 }) {
   return (
     <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
@@ -47,7 +49,7 @@ export function PageHeader({
           <h1 className={cn("font-display font-semibold text-foreground", titleClassName ?? "text-4xl md:text-5xl")}>{title}</h1>
         </div>
         {description ? (
-          <p className="mt-3 max-w-2xl text-base leading-7 text-foreground-secondary">{description}</p>
+          <p className={cn("mt-3 max-w-2xl text-base leading-7 text-foreground-secondary", descriptionClassName)}>{description}</p>
         ) : null}
       </div>
       {action}

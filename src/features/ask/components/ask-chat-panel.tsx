@@ -7,8 +7,7 @@ import {
   Languages,
   Loader2,
   Mic,
-  MicOff,
-  RotateCcw,
+  Pause,
   SendHorizonal,
   Volume2,
 } from "lucide-react";
@@ -403,15 +402,8 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card">
-      <ChatHeader
-        language={language}
-        canReset={!pending && messages.length > 0}
-        onReset={() => {
-          initialSentRef.current = true;
-          setMessages([]);
-        }}
-      />
+    <section className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:h-[calc(100dvh-8rem)] max-lg:max-h-[calc(100dvh-8rem)] max-lg:rounded-none max-lg:border-x-0">
+      <ChatHeader language={language} />
       <MessageList
         refObject={listRef}
         messages={messages}
@@ -447,37 +439,25 @@ export function AskChatPanel({
 
 function ChatHeader({
   language,
-  canReset,
-  onReset,
 }: {
   language: LanguageCode;
-  canReset: boolean;
-  onReset: () => void;
 }) {
   const t = useT();
   const router = useRouter();
 
   return (
-    <header className="flex shrink-0 flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
-          <Image src="/logo.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain p-1" priority />
-        </div>
-        <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
-          <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
-            <InlineLanguagePicker
-              value={language}
-              onChange={(code) => router.push(`/ask/${code}`)}
-            />
-          </p>
-        </div>
+    <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
+      <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
+        <Image src="/logo.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain p-1" priority />
       </div>
-      <div className="flex shrink-0 gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onReset} disabled={!canReset}>
-          <RotateCcw className="size-4" aria-hidden="true" />
-          {t("ask.reset")}
-        </Button>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
+        <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
+          <InlineLanguagePicker
+            value={language}
+            onChange={(code) => router.push(`/ask/${code}`)}
+          />
+        </p>
       </div>
     </header>
   );
@@ -657,15 +637,15 @@ function ChatComposer({
     : t("ask.micUnsupported");
 
   return (
-    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-3 sm:p-4">
+    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-2 sm:p-3">
       <div
         className={cn(
-          "flex gap-2 rounded-lg border border-border bg-background p-2 focus-within:border-foreground",
+          "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
           isRecording ? "items-center" : "items-end",
         )}
       >
         {isRecording ? (
-          <div className="flex min-h-10 flex-1 items-center px-2">
+          <div className="flex min-h-9 flex-1 items-center px-2">
             <AudioVisualizer analyser={analyser} />
           </div>
         ) : (
@@ -677,28 +657,35 @@ function ChatComposer({
             rows={1}
             maxLength={900}
             placeholder={t("ask.placeholder")}
-            className="max-h-36 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-foreground-muted"
+            className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
             disabled={pending}
           />
         )}
-        <Button
+        <button
           type="button"
-          size="icon"
-          variant={isRecording ? "danger" : "secondary"}
           onClick={onToggleRecording}
           disabled={pending || !microphoneSupported}
           aria-label={micLabel}
           title={micLabel}
+          className={cn(
+            "inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+            isRecording ? "text-rose-600 animate-pulse" : "text-foreground-muted hover:bg-background-muted hover:text-foreground",
+          )}
         >
-          {isRecording ? <MicOff className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
-        </Button>
+          {isRecording ? <Pause className="size-5" aria-hidden="true" /> : <Mic className="size-5" aria-hidden="true" />}
+        </button>
         {!isRecording ? (
-          <Button type="submit" size="icon" disabled={pending || draft.trim().length === 0} aria-label={t("ask.send")}>
+          <Button
+            type="submit"
+            size="icon"
+            disabled={pending || draft.trim().length === 0}
+            aria-label={t("ask.send")}
+            className="size-9 rounded-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+          >
             {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
           </Button>
         ) : null}
       </div>
-      <p className="mt-2 text-xs text-foreground-muted">{t("ask.privacy")}</p>
     </form>
   );
 }

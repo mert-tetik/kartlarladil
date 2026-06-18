@@ -148,7 +148,7 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-background-inverse px-3 py-1 text-sm font-bold text-foreground-inverse md:px-4 md:py-1.5 md:text-base">
+              <div className="px-3 py-1 text-sm font-bold text-brand md:px-4 md:py-1.5 md:text-base">
                 {formatPoints(locale, stats.totalPoints)}
               </div>
               <button
@@ -333,9 +333,9 @@ function RankUpMenu({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2">
+        <div className="mt-4 flex items-center justify-between gap-3 px-3 py-2">
           <span className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</span>
-          <span className="text-xs font-bold text-foreground">{formatPoints(locale, points)}</span>
+          <span className="text-xs font-bold text-brand">{formatPoints(locale, points)}</span>
         </div>
 
         <button
@@ -370,7 +370,7 @@ function RankStepDesktop({
         className={cn(
           "flex size-20 items-center justify-center rounded-full border bg-background-card shadow-sm md:size-24 lg:size-28",
           achieved ? "border-foreground text-foreground" : "border-border text-foreground-muted",
-          current && "ring-4 ring-foreground ring-offset-4",
+          current && "border-brand ring-4 ring-brand ring-offset-4",
         )}
         title={`${label}: ${formatPoints(locale, rank.minPoints)}`}
       >
@@ -384,12 +384,12 @@ function RankStepDesktop({
       <p
         className={cn(
           "mt-4 text-sm font-semibold leading-4 md:text-base",
-          current ? "text-foreground" : "text-foreground-muted",
+          current ? "text-brand" : "text-foreground-muted",
         )}
       >
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-foreground-muted md:text-base">
+      <p className={cn("mt-1 text-sm font-semibold md:text-base", current ? "text-brand" : "text-foreground-muted")}>
         {formatNumber(locale, rank.minPoints)}
       </p>
     </li>
@@ -413,12 +413,12 @@ function RankStepMobile({
   const label = getRankLabel(rank, locale);
 
   return (
-    <li ref={ref} className="flex items-center gap-5">
+    <li ref={ref} className={cn("flex items-center gap-5", current && "rounded-2xl bg-brand p-4 text-brand-foreground")}>
       <div
         className={cn(
           "relative flex size-24 shrink-0 items-center justify-center rounded-full border bg-background-card shadow-sm",
           achieved ? "border-foreground text-foreground" : "border-border text-foreground-muted",
-          current && "border-brand bg-brand ring-4 ring-brand/30 ring-offset-4",
+          current && "border-brand bg-transparent shadow-none ring-0",
         )}
       >
         <RankIcon
@@ -430,13 +430,13 @@ function RankStepMobile({
       <div className="min-w-0">
         <p
           className={cn(
-            "text-lg font-semibold text-foreground",
-            current ? "text-foreground" : "text-foreground-muted",
+            "text-lg font-semibold",
+            current ? "text-brand-foreground" : "text-foreground",
           )}
         >
           {label}
         </p>
-        <p className="text-base font-semibold text-foreground-muted">
+        <p className={cn("text-base font-semibold", current ? "text-brand-foreground" : "text-foreground-muted")}>
           {formatNumber(locale, rank.minPoints)} puan
         </p>
 

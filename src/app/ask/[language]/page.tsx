@@ -43,7 +43,7 @@ export default async function AskPage({ params, searchParams }: AskPageProps) {
   const initialTerm = typeof rawTerm === "string" ? rawTerm.trim() : "";
 
   return (
-    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-6 max-lg:px-0 max-lg:py-0 sm:px-6 lg:px-8">
       <AskChatPanel language={rawLanguage} initialTerm={initialTerm} />
     </section>
   );

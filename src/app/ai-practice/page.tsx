@@ -26,7 +26,7 @@ export default async function AiPracticePage() {
 
   return (
     <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <PageHeader title={t("page.aiPractice.title")} description={t("page.aiPractice.description")} />
+      <PageHeader title={t("page.aiPractice.title")} description={t("page.aiPractice.description")} descriptionClassName="max-lg:hidden" />
       <div className="mt-8">
         <AiPracticeLanguageSelection locale={locale} />
       </div>

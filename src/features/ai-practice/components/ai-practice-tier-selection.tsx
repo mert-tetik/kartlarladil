@@ -42,7 +42,7 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
             <Link
               key={tier}
               href={`/ai-practice/${language}/character?tier=${tier}`}
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-background-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-background-card p-4 transition-colors hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
               <Icon
                 className="size-7 text-foreground-secondary transition-colors group-hover:text-foreground"
