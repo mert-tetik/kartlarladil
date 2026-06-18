@@ -15,23 +15,42 @@ const openai = new OpenAI();
 
 const entries = JSON.parse(fs.readFileSync(INPUT_PATH, "utf8"));
 
+let existingResults = [];
+if (fs.existsSync(OUTPUT_PATH)) {
+  existingResults = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
+  console.log(`Mevcut AI çevirisi yüklendi: ${existingResults.length} kayıt.`);
+}
+
+const existingByWord = new Map(existingResults.map((entry) => [entry.word, entry]));
+
 let results = [];
 if (fs.existsSync(PARTIAL_PATH)) {
   results = JSON.parse(fs.readFileSync(PARTIAL_PATH, "utf8"));
   console.log(`Kaldığı yerden devam ediliyor: ${results.length} kayıt yüklendi.`);
 }
 
-const remaining = entries.slice(results.length);
+const processedWords = new Set(results.map((entry) => entry.word));
+
+const remaining = entries.filter((entry) => {
+  if (processedWords.has(entry.word)) return false;
+  const existing = existingByWord.get(entry.word);
+  if (existing?.aiTranslations) {
+    results.push({ ...entry, aiTranslations: existing.aiTranslations });
+    return false;
+  }
+  return true;
+});
+
 const batches = chunk(remaining, BATCH_SIZE);
 
-console.log(`Toplam: ${entries.length} kelime, kalan: ${remaining.length}, batch: ${batches.length}`);
+console.log(`Toplam: ${entries.length} kelime, mevcut AI: ${existingResults.length}, çevrilecek: ${remaining.length}, batch: ${batches.length}`);
 
 for (let batchIndex = 0; batchIndex < batches.length; batchIndex += CONCURRENCY) {
   const currentBatches = batches.slice(batchIndex, batchIndex + CONCURRENCY);
 
   const promises = currentBatches.map(async (batch, offset) => {
     const globalIndex = results.length + batchIndex * BATCH_SIZE + offset * BATCH_SIZE;
-    const start = globalIndex + 1;
+    const start = Math.min(globalIndex + 1, entries.length);
     const end = Math.min(globalIndex + BATCH_SIZE, entries.length);
     const words = batch.map((entry) => ({ word: entry.word, type: entry.type }));
     const hintsByWord = Object.fromEntries(batch.map((entry) => [entry.word, entry.translations]));
