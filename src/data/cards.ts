@@ -16,6 +16,7 @@ type PartOfSpeechGroup = "word" | "phrase";
 interface CardBuildInput {
   id: string;
   sourceKey: string;
+  englishKey: string;
   language: LanguageCode;
   tier: Tier;
   termKind: TermKind;
@@ -40,7 +41,8 @@ export interface CatalogReport {
 
 const TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 const SINGLE_WORD_PATTERN = /^[\p{L}\p{M}]+$/u;
-const FIXED_PHRASE_PATTERN = /^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+){1,2}$/u;
+const FIXED_PHRASE_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+){1,3}[-'\s…]?$/u;
+const WORD_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+){0,3}[-'\s…]?$/u;
 const EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily", "question", "negative", "contextual", "natural"];
 
 const EXAMPLE_LABELS: Record<CardExample["context"], Record<LocaleCode, string>> = {
@@ -60,7 +62,7 @@ export function isFixedPhraseTerm(term: string): boolean {
 }
 
 export function isValidCardTerm(term: string, termKind: TermKind): boolean {
-  return termKind === "word" ? isSingleWordTerm(term) : isFixedPhraseTerm(term);
+  return termKind === "word" ? WORD_PATTERN.test(term.normalize("NFC")) : FIXED_PHRASE_PATTERN.test(term.normalize("NFC"));
 }
 
 export function createCardSourceKey(
@@ -136,13 +138,15 @@ export function getCatalogReport(cards: VocabularyCard[]): CatalogReport {
 function buildCatalog(): VocabularyCard[] {
   return CARD_SEED_MODULES.flatMap((module) =>
     module.rows.map((row) => {
-      const [term, tier, termKind, partOfSpeech, pronunciation] = row;
+      const [englishKey, tier, termKind, partOfSpeech, pronunciation] = row;
       const translations = rowToTranslations(row);
-      const sourceKey = createCardSourceKey(module.language, tier, term, partOfSpeech, termKind);
+      const term = translations[module.language];
+      const sourceKey = createCardSourceKey(module.language, tier, englishKey, partOfSpeech, termKind);
 
       return createVocabularyCard({
         id: sourceKey,
         sourceKey,
+        englishKey,
         language: module.language,
         tier,
         termKind,

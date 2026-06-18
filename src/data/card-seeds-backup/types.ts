@@ -1,4 +1,4 @@
-import type { LanguageCode, LocaleCode, Tier, TermKind } from "@/types/domain";
+import type { LanguageCode, LocaleCode, TermKind, Tier } from "@/types/domain";
 
 export const CARD_SEED_LOCALE_ORDER = [
   "tr",

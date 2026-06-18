@@ -62,6 +62,7 @@ export interface GrammarGuide {
 export interface VocabularyCard {
   id: string;
   sourceKey: string;
+  englishKey: string;
   language: LanguageCode;
   tier: Tier;
   termKind: TermKind;
