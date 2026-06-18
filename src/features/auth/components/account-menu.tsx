@@ -67,6 +67,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             <div className="mt-2">
               <Link
                 href="/pricing"
+                onClick={() => setOpen(false)}
                 className="inline-block cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <PlanBadge />
@@ -113,8 +114,8 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             </div>
           </div>
           <div className="h-px bg-border" />
-          <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} />
-          <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} />
+          <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} onClick={() => setOpen(false)} />
+          <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
           <button
             type="button"
             role="menuitem"
@@ -127,8 +128,8 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             <Palette className="size-4" aria-hidden="true" />
             {t("theme.title")}
           </button>
-          <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} />
-          <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} />
+          <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} onClick={() => setOpen(false)} />
+          <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
           {vibrationSupported ? (
             <button
               type="button"
@@ -163,6 +164,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
             <button
               type="submit"
               role="menuitem"
+              onClick={() => setOpen(false)}
               className="mt-1 flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-left font-semibold text-foreground-inverse transition-colors hover:bg-red-700 focus-visible:outline-none"
             >
               <LogOut className="size-4" aria-hidden="true" />
@@ -180,15 +182,18 @@ function MenuLink({
   href,
   icon: Icon,
   label,
+  onClick,
 }: {
   href: string;
   icon: typeof UserRound;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
       role="menuitem"
+      onClick={onClick}
       className="mt-1 flex items-center gap-3 rounded-md px-3 py-2 font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
     >
       <Icon className="size-4" aria-hidden="true" />
