@@ -100,7 +100,7 @@ export function VocabularyCardView({
       {...flipRoleProps}
       className={cn(
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
-        "min-h-[320px] max-sm:min-h-0",
+        "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
         className,
       )}
