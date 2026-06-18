@@ -23,7 +23,7 @@ export default async function LearnPage() {
 
   return (
     <section
-      className="animate-screen-pop mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 max-lg:h-[calc(100dvh-4rem)] max-lg:overflow-hidden max-lg:py-0 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 max-lg:h-[calc(100dvh-8rem)] max-lg:overflow-hidden max-lg:py-0 sm:px-6 lg:px-8"
       data-learn-page
     >
       <LearnQuizShell

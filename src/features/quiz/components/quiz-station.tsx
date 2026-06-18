@@ -21,6 +21,7 @@ import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getCardExampleTranslation, getCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
+import { speakCardTerm } from "@/features/cards/card-speech";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { buildQuizQuestion, getTierRequirement, isAnswerSimilarEnough } from "@/features/quiz/quiz-engine";
@@ -396,7 +397,7 @@ export function QuizStation({
     <>
       <div className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center" data-learn-quiz-page="quiz">
         <div className="grid gap-6 max-sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="order-2 flex flex-col justify-center gap-4 overflow-y-auto lg:order-1 lg:h-[440px]">
+          <div className="order-2 flex flex-col justify-center gap-4 lg:order-1">
             <QuizCounter currentIndex={currentIndex} total={deck.length} showingAnswer={showingAnswer} />
             <QuizProgressHeader
               item={item}
@@ -667,26 +668,21 @@ function QuizProgressHeader({
   return (
     <div className="rounded-lg border border-border bg-background-card p-3 max-sm:p-2 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Badge className={cn("border-transparent", style.text)}>
-            {item.questionType === "text"
-              ? t("quiz.learningQuizBadge")
-              : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
-          </Badge>
-          <button
-            type="button"
-            onClick={onShowCard}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
-              style.accent,
-            )}
-          >
-            {t("quiz.showCard")}
-          </button>
-          {item.questionType === "text" ? (
-            <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
-          ) : null}
-        </div>
+        <Badge className={cn("border-transparent", style.text)}>
+          {item.questionType === "text"
+            ? t("quiz.learningQuizBadge")
+            : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
+        </Badge>
+        <button
+          type="button"
+          onClick={onShowCard}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
+            style.accent,
+          )}
+        >
+          {t("quiz.showCard")}
+        </button>
       </div>
 
       {item.questionType === "choice" ? (
@@ -701,12 +697,6 @@ function QuizProgressHeader({
         </div>
       ) : null}
 
-      {showingAnswer ? (
-        <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-foreground-muted">
-          <Volume2 className="size-4" aria-hidden="true" />
-          <span>{item.card.pronunciation}</span>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -724,7 +714,7 @@ function QuizCounter({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-2xl font-bold text-foreground">
+      <span className="text-2xl font-bold text-foreground max-lg:hidden">
         {currentIndex + 1} / {total}
       </span>
       <div className="w-full max-w-xs">
@@ -755,9 +745,20 @@ function ChoiceQuestion({
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
-      <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
-        {item.card.term}
-      </h2>
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => speakCardTerm(item.card.term, item.card.language)}
+          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
+          aria-label={`${item.card.term} ${t("cards.speak")}`}
+          title={t("cards.speak")}
+        >
+          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
+        </button>
+        <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
+          {item.card.term}
+        </h2>
+      </div>
 
       <div className="grid gap-3">
         {question.options.map((option, index) => {
@@ -832,9 +833,20 @@ function TextQuestion({
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
-        {getCardTranslation(item.card, locale)}
-      </h2>
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => speakCardTerm(item.card.term, item.card.language)}
+          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
+          aria-label={`${item.card.term} ${t("cards.speak")}`}
+          title={t("cards.speak")}
+        >
+          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
+        </button>
+        <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
+          {getCardTranslation(item.card, locale)}
+        </h2>
+      </div>
 
       <div>
         <input
@@ -929,8 +941,8 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
       <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.learnedTitle")}</h2>
       <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("quiz.learnedDescription")}</p>
 
-      <div className="mt-6">
-        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} />
+      <div className="mt-6 h-[280px] w-auto max-sm:h-[240px]">
+        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} className="h-full w-auto" />
       </div>
 
       <Button className="mt-8 w-full" onClick={onContinue}>
