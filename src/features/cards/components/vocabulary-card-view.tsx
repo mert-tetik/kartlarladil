@@ -295,7 +295,7 @@ function CardFront({
               variant="secondary"
               onClick={handleSkipClick}
               disabled={!onSkip}
-              className="h-8 border-0 bg-white/20 px-2 text-xs text-white hover:bg-white/30 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
+              className="h-8 border-0 bg-rose-500 px-2 text-xs text-white hover:bg-rose-600 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
             >
               <X className="size-3" aria-hidden="true" />
               {t("cards.skip")}
