@@ -71,19 +71,31 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
               <>
-                <RankProgressPopover stats={stats} userId={user.id} />
-                <AccountMenu user={user} />
-                <LocaleSwitcher />
+                <div className="order-2 lg:order-1">
+                  <RankProgressPopover stats={stats} userId={user.id} />
+                </div>
+                <div className="order-3 lg:order-2">
+                  <AccountMenu user={user} />
+                </div>
+                <div className="order-1 lg:order-3">
+                  <LocaleSwitcher />
+                </div>
               </>
             ) : (
               <>
-                <Link href="/login" className={buttonClassName("ghost", "sm")}>
-                  {t("nav.login")}
-                </Link>
-                <Link href="/register" className={buttonClassName("primary", "sm")}>
-                  {t("nav.signup")}
-                </Link>
-                <LocaleSwitcher />
+                <div className="order-2">
+                  <Link href="/login" className={buttonClassName("ghost", "sm")}>
+                    {t("nav.login")}
+                  </Link>
+                </div>
+                <div className="order-3">
+                  <Link href="/register" className={buttonClassName("primary", "sm")}>
+                    {t("nav.signup")}
+                  </Link>
+                </div>
+                <div className="order-1 lg:order-3">
+                  <LocaleSwitcher />
+                </div>
               </>
             )}
           </div>

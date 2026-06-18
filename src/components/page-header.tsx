@@ -25,6 +25,7 @@ export function PageHeader({
   mascot,
   mascotSize = "md",
   className,
+  titleClassName,
 }: {
   title: string;
   description?: string;
@@ -32,6 +33,7 @@ export function PageHeader({
   mascot?: string;
   mascotSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
+  titleClassName?: string;
 }) {
   return (
     <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
@@ -42,7 +44,7 @@ export function PageHeader({
               <Image src={mascot} alt="" fill sizes={MASCOT_IMAGE_SIZES[mascotSize]} className="object-contain" />
             </div>
           ) : null}
-          <h1 className="font-display text-4xl font-semibold text-foreground md:text-5xl">{title}</h1>
+          <h1 className={cn("font-display font-semibold text-foreground", titleClassName ?? "text-4xl md:text-5xl")}>{title}</h1>
         </div>
         {description ? (
           <p className="mt-3 max-w-2xl text-base leading-7 text-foreground-secondary">{description}</p>

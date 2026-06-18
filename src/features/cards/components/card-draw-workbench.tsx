@@ -388,7 +388,7 @@ export function CardDrawWorkbench() {
 
   return (
     <div
-      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100dvh-8rem)] max-lg:flex-col max-lg:bg-background"
+      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100svh-8rem)] max-lg:flex-col max-lg:bg-background"
       data-card-draw-workbench
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
@@ -477,11 +477,11 @@ export function CardDrawWorkbench() {
             </div>
           ) : null}
 
-          <div className="max-lg:flex max-lg:flex-1 max-lg:flex-col">
+          <div className="max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col">
             {showCardGrid ? (
               <div
                 ref={gridRef}
-                className="card-draw-card-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
+                className="card-draw-card-grid grid min-h-0 grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
                 style={exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : undefined}
               >
                 {cards.map((card, index) => (

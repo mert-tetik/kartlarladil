@@ -218,17 +218,16 @@ export function InventoryDashboard({
         />
       </div>
 
-      {mobileMenu ? (
-        <MobileCardMenu
-          title={
-            mobileMenu === "active"
-              ? t("inventory.status.active")
-              : t("inventory.status.learned")
-          }
-          cards={mobileMenu === "active" ? activeCards : learnedCards}
-          onClose={() => setMobileMenu(null)}
-        />
-      ) : null}
+      <MobileCardMenu
+        isOpen={mobileMenu !== null}
+        title={
+          mobileMenu === "active"
+            ? t("inventory.status.active")
+            : t("inventory.status.learned")
+        }
+        cards={mobileMenu === "active" ? activeCards : learnedCards}
+        onClose={() => setMobileMenu(null)}
+      />
     </div>
   );
 }
@@ -269,43 +268,48 @@ function MobileLanguageSelector({
         />
       </button>
 
-      {isOpen ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background">
-          <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
-            <h2 className="text-base font-semibold text-foreground">{t("inventory.selectLanguage")}</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t("common.close")}
-              className="inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-            >
-              <X className="size-5" aria-hidden="true" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-2 gap-4">
-              {languages.map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => onSelect(item.code)}
-                  className={cn(
-                    "flex flex-col items-center gap-3 rounded-lg border border-border bg-background-card p-4 transition-colors",
-                    activeLanguage === item.code
-                      ? "border-foreground bg-background-muted"
-                      : "hover:bg-background-muted",
-                  )}
-                >
-                  <LanguageFlag code={item.code} className="h-20 w-32" />
-                  <span className="text-center text-sm font-semibold text-foreground">
-                    {getLanguageDisplayName(item.code, locale)}
-                  </span>
-                </button>
-              ))}
-            </div>
+      <div
+        className={cn(
+          "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out",
+          isOpen ? "translate-x-0" : "translate-x-full",
+        )}
+        inert={!isOpen}
+        aria-hidden={!isOpen}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
+          <h2 className="text-base font-semibold text-foreground">{t("inventory.selectLanguage")}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("common.close")}
+            className="inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-2 gap-4">
+            {languages.map((item) => (
+              <button
+                key={item.code}
+                type="button"
+                onClick={() => onSelect(item.code)}
+                className={cn(
+                  "flex flex-col items-center gap-3 rounded-lg border border-border bg-background-card p-4 transition-colors",
+                  activeLanguage === item.code
+                    ? "border-foreground bg-background-muted"
+                    : "hover:bg-background-muted",
+                )}
+              >
+                <LanguageFlag code={item.code} className="h-20 w-32" />
+                <span className="text-center text-sm font-semibold text-foreground">
+                  {getLanguageDisplayName(item.code, locale)}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
-      ) : null}
+      </div>
     </>
   );
 }
@@ -392,10 +396,12 @@ function MobileSectionBlock({
 }
 
 function MobileCardMenu({
+  isOpen,
   title,
   cards,
   onClose,
 }: {
+  isOpen: boolean;
   title: string;
   cards: InventoryCardView[];
   onClose: () => void;
@@ -403,7 +409,14 @@ function MobileCardMenu({
   const t = useT();
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out",
+        isOpen ? "translate-x-0" : "translate-x-full",
+      )}
+      inert={!isOpen}
+      aria-hidden={!isOpen}
+    >
       <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
         <h2 className="text-base font-semibold text-foreground">{title}</h2>
         <button

@@ -160,14 +160,14 @@ export default async function Home() {
       </section>
 
       <section data-collection-preview-section className="bg-slate-50 dark:bg-background">
-        <div className="mx-auto grid w-full max-w-[1500px] items-center gap-6 px-4 py-16 sm:px-6 lg:grid-cols-[140px_minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-8 lg:px-8">
-          <div className="hidden lg:flex lg:items-center lg:justify-center">
+        <div className="mx-auto grid w-full max-w-[1500px] items-center justify-items-center gap-6 px-4 py-16 text-center sm:px-6 max-lg:grid-cols-1 lg:grid-cols-[140px_minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-8 lg:px-8 lg:text-left">
+          <div className="order-first flex items-center justify-center lg:order-none">
             <Image
               src="/mascots/mascot16.png"
               alt=""
               width={140}
               height={140}
-              className="h-auto w-16"
+              className="h-auto w-8 lg:w-16"
             />
           </div>
           <div>

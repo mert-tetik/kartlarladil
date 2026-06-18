@@ -30,7 +30,8 @@ export default async function MyCardsPage() {
       <PageHeader
         title={t("page.inventory.title")}
         mascot="/mascots/mascot10.png"
-        mascotSize="2xl"
+        mascotSize="lg"
+        titleClassName="text-3xl md:text-4xl"
       />
       <div className="mt-8 flex flex-1 flex-col max-lg:mt-4">
         <InventoryDashboard />
