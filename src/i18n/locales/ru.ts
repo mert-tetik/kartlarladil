@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Вход в систему",
   "auth.login.title": "Войти",
   "auth.logout": "Выйти",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Код обратного вызова Auth отсутствует.",
   "auth.message.deleteAuthRequired": "Вы должны войти в систему, чтобы удалить аккаунт.",
   "auth.message.deleteNeedsSecret": "Для удаления аккаунта требуется серверный ключ.",

@@ -1,4 +1,4 @@
-export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti";
+export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti" | "quiz-complete";
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
@@ -41,6 +41,11 @@ export function playSoundEffect(effect: SoundEffectName) {
 
     if (effect === "confetti") {
       playConfettiEffect(context);
+      return;
+    }
+
+    if (effect === "quiz-complete") {
+      playQuizCompleteEffect(context);
       return;
     }
 
@@ -116,6 +121,21 @@ function playLearnedEffect(context: AudioContext) {
   playTone(context, { frequency: 420, startTime: now, duration: 0.06, gain: 0.12, type: "triangle" });
   playTone(context, { frequency: 840, startTime: now + 0.015, duration: 0.05, gain: 0.08, type: "sine" });
   playTone(context, { frequency: 1260, startTime: now + 0.03, duration: 0.04, gain: 0.05, type: "sine" });
+}
+
+function playQuizCompleteEffect(context: AudioContext) {
+  const now = context.currentTime;
+  // Short, satisfying success fanfare.
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((frequency, index) => {
+    playTone(context, {
+      frequency,
+      startTime: now + index * 0.08,
+      duration: 0.18,
+      gain: index === notes.length - 1 ? 0.1 : 0.07,
+      type: index % 2 === 0 ? "triangle" : "sine",
+    });
+  });
 }
 
 function playConfettiEffect(context: AudioContext) {

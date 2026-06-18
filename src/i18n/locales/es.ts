@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Iniciando sesión",
   "auth.login.title": "Iniciar sesión",
   "auth.logout": "Cerrar sesión",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Falta el código de callback de Auth.",
   "auth.message.deleteAuthRequired": "Debes iniciar sesión para eliminar la cuenta.",
   "auth.message.deleteNeedsSecret": "Se requiere una clave de servidor para la eliminación de la cuenta.",

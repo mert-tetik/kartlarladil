@@ -37,6 +37,7 @@ import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import confetti from "canvas-confetti";
 import type {
   InventoryCard,
@@ -209,6 +210,7 @@ export function QuizStation({
       const willLearn = item.willLearn && isCorrect;
 
       playSoundEffect(isCorrect ? "correct" : "incorrect");
+      vibrate(isCorrect ? "correct" : "incorrect");
 
       setResults((current) => ({
         correct: isCorrect ? [...current.correct, item.card] : current.correct,
@@ -895,6 +897,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
     hasTriggered.current = true;
 
     playSoundEffect("learned");
+    vibrate("learned");
 
     const flipTimer = setTimeout(() => {
       setCardFace("front");
@@ -902,6 +905,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
 
     const confettiTimer = setTimeout(() => {
       playSoundEffect("confetti");
+      vibrate("confetti");
       void confetti({
         particleCount: 140,
         spread: 80,
@@ -947,6 +951,15 @@ function ResultView({
 }) {
   const t = useT();
   const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
+  const hasTriggeredResult = useRef(false);
+
+  useEffect(() => {
+    if (hasTriggeredResult.current) return;
+    hasTriggeredResult.current = true;
+
+    playSoundEffect("quiz-complete");
+    vibrate("result");
+  }, []);
   const total = results.correct.length + results.incorrect.length + results.learned.length;
   const accuracy = total > 0 ? Math.round(((results.correct.length + results.learned.length) / total) * 100) : 0;
 

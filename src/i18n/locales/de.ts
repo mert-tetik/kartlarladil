@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Anmeldung",
   "auth.login.title": "Anmelden",
   "auth.logout": "Ausloggen",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Auth-Callback-Code fehlt.",
   "auth.message.deleteAuthRequired": "Du musst dich anmelden, um das Konto zu löschen.",
   "auth.message.deleteNeedsSecret": "Ein Server-Schlüssel ist für die Kontolöschung erforderlich.",

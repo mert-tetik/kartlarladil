@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Connexion en cours",
   "auth.login.title": "Connexion",
   "auth.logout": "Se déconnecter",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Le code de rappel Auth est manquant.",
   "auth.message.deleteAuthRequired": "Vous devez vous connecter pour supprimer le compte.",
   "auth.message.deleteNeedsSecret": "Une clé serveur est requise pour la suppression du compte.",

@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "正在登录",
   "auth.login.title": "登录",
   "auth.logout": "登出",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "缺少Auth回调代码。",
   "auth.message.deleteAuthRequired": "您必须登录才能删除账户。",
   "auth.message.deleteNeedsSecret": "删除账户需要服务器密钥。",

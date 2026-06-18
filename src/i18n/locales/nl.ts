@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Inloggen",
   "auth.login.title": "Inloggen",
   "auth.logout": "Uitloggen",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Auth callback-code ontbreekt.",
   "auth.message.deleteAuthRequired": "Je moet inloggen om het account te verwijderen.",
   "auth.message.deleteNeedsSecret": "Een server sleutel is vereist voor accountverwijdering.",

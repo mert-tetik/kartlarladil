@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "ログイン中",
   "auth.login.title": "ログイン",
   "auth.logout": "ログアウト",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Authコールバックコードがありません。",
   "auth.message.deleteAuthRequired": "アカウントを削除するにはログインする必要があります。",
   "auth.message.deleteNeedsSecret": "アカウント削除にはサーバーキーが必要です。",

@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "جارٍ تسجيل الدخول",
   "auth.login.title": "تسجيل الدخول",
   "auth.logout": "تسجيل الخروج",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "رمز رد الاتصال مفقود.",
   "auth.message.deleteAuthRequired": "يجب عليك تسجيل الدخول لحذف الحساب.",
   "auth.message.deleteNeedsSecret": "مفتاح خادم مطلوب لحذف الحساب.",

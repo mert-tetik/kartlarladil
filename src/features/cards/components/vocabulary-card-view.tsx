@@ -7,6 +7,7 @@ import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
@@ -67,6 +68,7 @@ export function VocabularyCardView({
 
   function revealFront() {
     if (!isControlled && flippable && !isFaceUp) {
+      vibrate("flip");
       setFaceState({ cardId: card.id, initialFace, isFaceUp: true });
     }
   }

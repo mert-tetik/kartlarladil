@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Accesso in corso",
   "auth.login.title": "Accedi",
   "auth.logout": "Esci",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Il codice di callback Auth è mancante.",
   "auth.message.deleteAuthRequired": "Devi accedere per eliminare l'account.",
   "auth.message.deleteNeedsSecret": "È necessaria una chiave del server per l'eliminazione dell'account.",

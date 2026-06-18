@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Logging in",
   "auth.login.title": "Log in",
   "auth.logout": "Log out",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Auth callback code is missing.",
   "auth.message.deleteAuthRequired": "You must log in to delete the account.",
   "auth.message.deleteNeedsSecret": "A server key is required for account deletion.",

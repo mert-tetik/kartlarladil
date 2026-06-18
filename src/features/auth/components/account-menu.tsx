@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, CreditCard, LogOut, Palette, Settings, Shield, UserRound } from "lucide-react";
+import { BarChart3, CreditCard, LogOut, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
 import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
@@ -14,6 +14,7 @@ import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialo
 import { formatNumber, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { useVibration } from "@/lib/vibration";
 
 export function AccountMenu({ user }: { user: AuthShellUser }) {
   const [open, setOpen] = useState(false);
@@ -23,6 +24,7 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
   const { stats } = useProgressStats();
   const { locale } = useLocale();
   const t = useT();
+  const { supported: vibrationSupported, enabled: vibrationEnabled, toggle: toggleVibration } = useVibration();
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -127,6 +129,36 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
           </button>
           <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} />
           <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} />
+          {vibrationSupported ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                toggleVibration();
+              }}
+              className="mt-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-left font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+            >
+              <span className="flex items-center gap-3">
+                <Vibrate className="size-4" aria-hidden="true" />
+                {t("auth.vibration")}
+              </span>
+              <span
+                role="switch"
+                aria-checked={vibrationEnabled}
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                  vibrationEnabled ? "bg-emerald-500" : "bg-background-muted",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-3.5 transform rounded-full bg-white transition-transform",
+                    vibrationEnabled ? "translate-x-[18px]" : "translate-x-0.5",
+                  )}
+                />
+              </span>
+            </button>
+          ) : null}
           <form action={logoutAction}>
             <button
               type="submit"

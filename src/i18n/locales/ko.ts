@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "로그인 중",
   "auth.login.title": "로그인",
   "auth.logout": "로그아웃",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Auth 콜백 코드가 누락되었습니다.",
   "auth.message.deleteAuthRequired": "계정을 삭제하려면 로그인해야 합니다.",
   "auth.message.deleteNeedsSecret": "계정 삭제를 위해 서버 키가 필요합니다.",

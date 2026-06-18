@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Fazendo login",
   "auth.login.title": "Entrar",
   "auth.logout": "Sair",
+  "auth.vibration": "Vibration",
   "auth.message.callbackMissingCode": "Código de retorno de autenticação está faltando.",
   "auth.message.deleteAuthRequired": "Você deve fazer login para excluir a conta.",
   "auth.message.deleteNeedsSecret": "Uma chave de servidor é necessária para a exclusão da conta.",

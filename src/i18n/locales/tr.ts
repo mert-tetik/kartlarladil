@@ -77,6 +77,7 @@ const dictionary = {
   "auth.login.pending": "Giriş yapılıyor",
   "auth.login.title": "Giriş yap",
   "auth.logout": "Çıkış yap",
+  "auth.vibration": "Titreşim",
   "auth.message.callbackMissingCode": "Auth callback kodu eksik.",
   "auth.message.deleteAuthRequired": "Hesabı silmek için giriş yapmalısın.",
   "auth.message.deleteNeedsSecret": "Hesap silme için server secret key gerekli.",
