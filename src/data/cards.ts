@@ -44,6 +44,7 @@ const SINGLE_WORD_PATTERN = /^[\p{L}\p{M}]+$/u;
 const FIXED_PHRASE_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+){1,3}[-'\s…]?$/u;
 const WORD_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+){0,3}[-'\s…]?$/u;
 const EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily", "question", "negative", "contextual", "natural"];
+const A1_EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily"];
 
 const EXAMPLE_LABELS: Record<CardExample["context"], Record<LocaleCode, string>> = {
   daily: labels("Günlük kullanım", "Daily use", "Alltag", "Повседневно", "Usage quotidien", "Uso diario"),
@@ -162,6 +163,7 @@ function buildCatalog(): VocabularyCard[] {
 function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   let examples: CardExample[] | undefined;
   let grammarByLocale: Record<LocaleCode, GrammarGuide> | undefined;
+  const exampleContexts = input.tier === "A1" ? A1_EXAMPLE_CONTEXTS : EXAMPLE_CONTEXTS;
 
   const firstExample = buildSourceExample(input.language, input.term, input.tier, "daily");
   const firstExampleTranslations = buildExampleTranslations(input, "daily");
@@ -172,7 +174,7 @@ function createVocabularyCard(input: CardBuildInput): VocabularyCard {
     example: firstExample,
     exampleTranslation: firstExampleTranslations.tr,
     get examples() {
-      examples ??= EXAMPLE_CONTEXTS.map((context) => ({
+      examples ??= exampleContexts.map((context) => ({
         id: context,
         context,
         label: EXAMPLE_LABELS[context].tr,

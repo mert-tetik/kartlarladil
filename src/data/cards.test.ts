@@ -64,24 +64,30 @@ describe("multilingual card catalog", () => {
     }
   });
 
-  it("adds five varied examples to every card", () => {
+  it("uses a single example for A1 cards and five varied examples for higher tiers", () => {
     const expectedContexts = ["daily", "question", "negative", "contextual", "natural"];
     const placeholderPattern = /is useful in a clear sentence|I wrote the word|clear sentence/i;
     const invalidCards = VOCABULARY_CARDS.filter(
-      (card) =>
-        card.examples.length !== 5 ||
-        card.examples.map((example) => example.context).join("|") !== expectedContexts.join("|") ||
-        card.examples[0].sentence !== card.example ||
-        card.examples[0].translation !== card.exampleTranslation ||
-        card.examples.some((example) => {
-          if (!example.sentence.trim() || !example.translation.trim()) {
-            return true;
-          }
+      (card) => {
+        const expectedLength = card.tier === "A1" ? 1 : 5;
+        const expectedContextList = card.tier === "A1" ? ["daily"] : expectedContexts;
 
-          return LOCALE_CODES.some((locale) => !example.translations[locale]?.trim());
-        }) ||
-        placeholderPattern.test(card.example) ||
-        placeholderPattern.test(card.examples[0].sentence),
+        return (
+          card.examples.length !== expectedLength ||
+          card.examples.map((example) => example.context).join("|") !== expectedContextList.join("|") ||
+          card.examples[0].sentence !== card.example ||
+          card.examples[0].translation !== card.exampleTranslation ||
+          card.examples.some((example) => {
+            if (!example.sentence.trim() || !example.translation.trim()) {
+              return true;
+            }
+
+            return LOCALE_CODES.some((locale) => !example.translations[locale]?.trim());
+          }) ||
+          placeholderPattern.test(card.example) ||
+          placeholderPattern.test(card.examples[0].sentence)
+        );
+      },
     );
 
     expect(invalidCards).toEqual([]);
