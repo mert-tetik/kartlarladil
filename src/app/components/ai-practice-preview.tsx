@@ -38,7 +38,7 @@ export async function AiPracticePreview() {
   return (
     <section className="bg-white dark:bg-background">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center gap-4 lg:gap-2 lg:flex-row lg:justify-between">
+        <div className="flex flex-col items-center gap-2 lg:gap-1 lg:flex-row lg:justify-between">
           <div className="flex shrink-0 items-center justify-center">
             <Image
               src="/mascots/mascot4.png"

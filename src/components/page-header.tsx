@@ -7,6 +7,7 @@ const MASCOT_SIZE_CLASSES = {
   md: "h-16 w-16",
   lg: "h-24 w-24",
   xl: "h-32 w-32",
+  "2xl": "h-40 w-40",
 } as const;
 
 export function PageHeader({
@@ -21,7 +22,7 @@ export function PageHeader({
   description?: string;
   action?: ReactNode;
   mascot?: string;
-  mascotSize?: "sm" | "md" | "lg" | "xl";
+  mascotSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
 }) {
   return (

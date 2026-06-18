@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/page-header";
-import { QuizStation } from "@/features/quiz/components/quiz-station";
+import { LearnQuizShell } from "@/app/learn/components/learn-quiz-shell";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -27,17 +26,10 @@ export default async function LearnPage() {
       className="animate-screen-pop mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 max-lg:h-[calc(100dvh-4rem)] max-lg:overflow-hidden max-lg:py-0 sm:px-6 lg:px-8"
       data-learn-page
     >
-      <div data-learn-page-header className="max-lg:hidden">
-        <PageHeader
-          title={t("page.learn.title")}
-          description={t("page.learn.description")}
-          mascot="/mascots/mascot5.png"
-          mascotSize="xl"
-        />
-      </div>
-      <div className="flex flex-1 flex-col justify-center overflow-y-auto">
-        <QuizStation mode="active" />
-      </div>
+      <LearnQuizShell
+        title={t("page.learn.title")}
+        description={t("page.learn.description")}
+      />
     </section>
   );
 }

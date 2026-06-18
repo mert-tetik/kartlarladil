@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -46,6 +46,10 @@ import type {
   VocabularyCard,
 } from "@/types/domain";
 
+type QuizPhase = "language" | "count" | "quiz" | "celebration" | "result";
+
+export type { QuizPhase };
+
 const COUNT_OPTIONS = [10, 20, 30, 40, 50, 75, 100];
 
 const CHOICE_OPTION_COLORS = ["bg-red-500", "bg-blue-500", "bg-amber-400", "bg-emerald-500"] as const;
@@ -64,7 +68,13 @@ interface QuizResult {
   learned: VocabularyCard[];
 }
 
-export function QuizStation({ mode }: { mode: PracticeMode }) {
+export function QuizStation({
+  mode,
+  onPhaseChange,
+}: {
+  mode: PracticeMode;
+  onPhaseChange?: (phase: QuizPhase) => void;
+}) {
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const recordAnswer = useInventoryStore((state) => state.recordAnswer);
@@ -74,7 +84,11 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
 
-  const [phase, setPhase] = useState<"language" | "count" | "quiz" | "celebration" | "result">("language");
+  const [phase, setPhase] = useState<QuizPhase>("language");
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(null);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
@@ -82,6 +96,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
   const [showingAnswer, setShowingAnswer] = useState(false);
   const [textAnswer, setTextAnswer] = useState("");
   const [textResult, setTextResult] = useState<"idle" | "correct" | "incorrect">("idle");
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(null);
   const [results, setResults] = useState<QuizResult>({ correct: [], incorrect: [], learned: [] });
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
@@ -140,6 +155,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
       setShowingAnswer(false);
       setTextAnswer("");
       setTextResult("idle");
+      setLastAnswerCorrect(null);
       setResults({ correct: [], incorrect: [], learned: [] });
       setPhase("quiz");
     },
@@ -205,6 +221,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
       setShowingAnswer(true);
       setTextResult(isCorrect ? "correct" : "incorrect");
+      setLastAnswerCorrect(isCorrect);
       setDesktopCardFace("front");
       if (mobileCardOpen) {
         setMobileCardFace("front");
@@ -237,6 +254,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     setShowingAnswer(false);
     setTextAnswer("");
     setTextResult("idle");
+    setLastAnswerCorrect(null);
     setDesktopCardFace("back");
     setMobileCardFace("back");
     setMobileCardOpen(false);
@@ -261,6 +279,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
     setShowingAnswer(false);
     setTextAnswer("");
     setTextResult("idle");
+    setLastAnswerCorrect(null);
     setDesktopCardFace("back");
     setMobileCardFace("back");
     setMobileCardOpen(false);
@@ -372,43 +391,44 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
 
   return (
     <>
-      <div className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center" data-learn-quiz-page={phase === "quiz" ? "quiz" : undefined}>
-        <QuizProgressHeader
-          item={item}
-          currentIndex={currentIndex}
-          total={deck.length}
-          showingAnswer={showingAnswer}
-          onShowCard={() => {
-            setMobileCardOpen(true);
-            setMobileCardFace(showingAnswer ? "front" : "back");
-          }}
-        />
-
-        <div className="mt-6 max-sm:mt-2 grid gap-6 max-sm:gap-2 lg:grid-cols-2">
-          <div className="order-2 flex flex-col lg:order-1">
-            {item.questionType === "choice" ? (
-              <ChoiceQuestion
-                key={currentIndex}
-                item={item}
-                showingAnswer={showingAnswer}
-                onAnswer={handleAnswer}
-                onNext={handleNext}
-              />
-            ) : (
-              <TextQuestion
-                key={currentIndex}
-                item={item}
-                textAnswer={textAnswer}
-                textResult={textResult}
-                showingAnswer={showingAnswer}
-                onChange={setTextAnswer}
-                onSubmit={handleAnswer}
-                onNext={handleNext}
-              />
-            )}
+      <div className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center" data-learn-quiz-page="quiz">
+        <div className="grid gap-6 max-sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="order-2 flex flex-col justify-center gap-4 overflow-y-auto lg:order-1 lg:h-[440px]">
+            <QuizCounter currentIndex={currentIndex} total={deck.length} showingAnswer={showingAnswer} />
+            <QuizProgressHeader
+              item={item}
+              showingAnswer={showingAnswer}
+              lastAnswerCorrect={lastAnswerCorrect}
+              onShowCard={() => {
+                setMobileCardOpen(true);
+                setMobileCardFace(showingAnswer ? "front" : "back");
+              }}
+            />
+            <div className="flex flex-1 flex-col justify-center">
+              {item.questionType === "choice" ? (
+                <ChoiceQuestion
+                  key={currentIndex}
+                  item={item}
+                  showingAnswer={showingAnswer}
+                  onAnswer={handleAnswer}
+                  onNext={handleNext}
+                />
+              ) : (
+                <TextQuestion
+                  key={currentIndex}
+                  item={item}
+                  textAnswer={textAnswer}
+                  textResult={textResult}
+                  showingAnswer={showingAnswer}
+                  onChange={setTextAnswer}
+                  onSubmit={handleAnswer}
+                  onNext={handleNext}
+                />
+              )}
+            </div>
           </div>
 
-          <div className="order-1 hidden h-full min-h-0 items-center justify-center lg:order-2 lg:flex">
+          <div className="order-1 hidden items-center justify-center lg:order-2 lg:flex lg:h-[440px]">
             <div
               role="button"
               tabIndex={0}
@@ -419,7 +439,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
                   setDesktopCardFace((current) => (current === "front" ? "back" : "front"));
                 }
               }}
-              className="h-full w-auto cursor-pointer focus:outline-none"
+              className="h-[440px] w-auto cursor-pointer focus:outline-none"
               aria-label={t("cards.flip")}
             >
               <VocabularyCardView
@@ -429,7 +449,7 @@ export function QuizStation({ mode }: { mode: PracticeMode }) {
                 initialFace="back"
                 face={desktopCardFace}
                 flippable={false}
-                className="h-full w-auto max-w-full !min-h-0"
+                className="h-full w-auto min-h-0 max-w-full"
               />
             </div>
           </div>
@@ -627,22 +647,21 @@ function CountSelection({
 
 function QuizProgressHeader({
   item,
-  currentIndex,
-  total,
   showingAnswer,
+  lastAnswerCorrect,
   onShowCard,
 }: {
   item: QuizItem;
-  currentIndex: number;
-  total: number;
   showingAnswer: boolean;
+  lastAnswerCorrect: boolean | null;
   onShowCard: () => void;
 }) {
-  const { locale } = useLocale();
   const t = useT();
   const style = TIER_STYLES[item.card.tier];
   const requirement = TIER_REQUIREMENTS[item.card.tier];
-  const progress = Math.min(100, (item.inventoryCard.correctCount / requirement) * 100);
+  const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
+  const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
+  const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
 
   return (
     <div className="rounded-lg border border-border bg-background-card p-3 max-sm:p-2 sm:p-5">
@@ -667,9 +686,6 @@ function QuizProgressHeader({
             <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
           ) : null}
         </div>
-        <span className="text-sm font-semibold text-foreground-muted">
-          {currentIndex + 1} / {total}
-        </span>
       </div>
 
       {item.questionType === "choice" ? (
@@ -677,7 +693,7 @@ function QuizProgressHeader({
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-foreground-secondary">
             <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
             <span>
-              {item.inventoryCard.correctCount}/{requirement}
+              {displayCorrectCount}/{requirement}
             </span>
           </div>
           <Progress value={progress} indicatorClassName={style.accent} />
@@ -690,6 +706,29 @@ function QuizProgressHeader({
           <span>{item.card.pronunciation}</span>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function QuizCounter({
+  currentIndex,
+  total,
+  showingAnswer,
+}: {
+  currentIndex: number;
+  total: number;
+  showingAnswer: boolean;
+}) {
+  const progress = Math.min(100, ((currentIndex + (showingAnswer ? 1 : 0)) / total) * 100);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-2xl font-bold text-foreground">
+        {currentIndex + 1} / {total}
+      </span>
+      <div className="w-full max-w-xs">
+        <Progress value={progress} indicatorClassName="bg-rose-500" />
+      </div>
     </div>
   );
 }
@@ -711,15 +750,15 @@ function ChoiceQuestion({
   const answerLocale = getStudyLocale(item.card.language, locale);
 
   return (
-    <div className="animate-screen-pop rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
+      <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
         {item.card.term}
       </h2>
 
-      <div className="mt-8 max-sm:mt-4 grid gap-3">
+      <div className="grid gap-3">
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
           const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
@@ -783,20 +822,20 @@ function TextQuestion({
   }
 
   return (
-    <div className="animate-screen-pop rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
       </div>
 
-      <p className="mt-4 max-sm:mt-2 text-sm font-semibold text-foreground-muted">
+      <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <h2 className="mt-4 max-sm:mt-2 font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
+      <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
         {getCardTranslation(item.card, locale)}
       </h2>
 
-      <div className="mt-8 max-sm:mt-4">
+      <div>
         <input
           type="text"
           value={textAnswer}
@@ -852,7 +891,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
   const t = useT();
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-md rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
+    <div className="animate-screen-pop mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
       <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
         <Trophy className="size-10" aria-hidden="true" />
       </div>
@@ -880,11 +919,24 @@ function ResultView({
   onExit: () => void;
 }) {
   const t = useT();
+  const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
+  const total = results.correct.length + results.incorrect.length + results.learned.length;
+  const accuracy = total > 0 ? Math.round(((results.correct.length + results.learned.length) / total) * 100) : 0;
+
+  const menuConfig = {
+    correct: { title: t("quiz.resultCorrect"), cards: results.correct },
+    incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect },
+    learned: { title: t("quiz.resultLearned"), cards: results.learned },
+  };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-lg border border-border bg-background-card p-5 sm:p-8">
-        <h2 className="text-center text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4">
+      <div className="w-full rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm sm:p-10">
+        <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-brand/10 text-brand">
+          <Trophy className="size-10" aria-hidden="true" />
+        </div>
+        <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
+        <p className="mt-2 text-5xl font-bold text-foreground">{accuracy}%</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <ResultCard
@@ -907,7 +959,31 @@ function ResultView({
           />
         </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <Button
+            variant="secondary"
+            onClick={() => setOpenMenu("correct")}
+            disabled={results.correct.length === 0}
+          >
+            {t("quiz.seeCorrectCards")}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setOpenMenu("incorrect")}
+            disabled={results.incorrect.length === 0}
+          >
+            {t("quiz.seeIncorrectCards")}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setOpenMenu("learned")}
+            disabled={results.learned.length === 0}
+          >
+            {t("quiz.seeLearnedCards")}
+          </Button>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button variant="secondary" onClick={onRestart}>
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}
@@ -919,8 +995,13 @@ function ResultView({
         </div>
       </div>
 
-      {results.learned.length > 0 ? <ResultList title={t("quiz.resultLearned")} cards={results.learned} /> : null}
-      {results.correct.length > 0 ? <ResultList title={t("quiz.resultCorrect")} cards={results.correct} /> : null}
+      {openMenu ? (
+        <ResultMenu
+          title={menuConfig[openMenu].title}
+          cards={menuConfig[openMenu].cards}
+          onClose={() => setOpenMenu(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -951,21 +1032,40 @@ function ResultCard({
   );
 }
 
-function ResultList({ title, cards }: { title: string; cards: VocabularyCard[] }) {
-  const { locale } = useLocale();
+function ResultMenu({ title, cards, onClose }: { title: string; cards: VocabularyCard[]; onClose: () => void }) {
   const t = useT();
-
   return (
-    <div className="rounded-lg border border-border bg-background-card p-5">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <ul className="mt-3 divide-y divide-border">
-        {cards.map((card) => (
-          <li key={card.id} className="flex items-center justify-between py-2">
-            <span className="font-semibold text-foreground">{card.term}</span>
-            <span className="text-sm text-foreground-muted">{getCardTranslation(card, locale)}</span>
-          </li>
-        ))}
-      </ul>
+    <div
+      className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border bg-background-card p-4">
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+            aria-label={t("common.close")}
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+          {cards.length === 0 ? (
+            <p className="py-8 text-center text-sm text-foreground-secondary">No cards</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {cards.map((card) => (
+                <VocabularyCardView key={card.id} card={card} owned={false} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

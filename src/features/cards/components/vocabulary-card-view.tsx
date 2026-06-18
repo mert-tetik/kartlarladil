@@ -4,7 +4,6 @@ import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Coins, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -187,34 +186,23 @@ function CardFront({
       aria-hidden={!isFaceUp}
       inert={!isFaceUp}
       className={cn(
-        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-gradient-to-br shadow-sm [backface-visibility:hidden]",
+        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-background-card [backface-visibility:hidden]",
         "p-2.5 sm:p-4",
         "max-sm:justify-between",
         "dark:text-white",
         style.border,
-        style.surface,
       )}
     >
-      <div className="pointer-events-none absolute inset-x-4 top-14 h-px bg-background-inverse/10 max-sm:inset-x-2.5 max-sm:top-9" />
-
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <Badge className={cn("border-transparent bg-background-card/80 max-sm:text-[10px]", style.text)}>
-            {card.tier} · {getTierLabel(card.tier, locale)}
-          </Badge>
-          <div className="mt-3 flex translate-y-1 items-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
-            <span>{getLanguageDisplayName(card.language, locale)}</span>
-            <span
-              aria-label={`${tierPoints} ${t("common.points")}`}
-              className={cn("inline-flex items-center gap-1", style.text)}
-              title={`${tierPoints} ${t("common.points")}`}
-            >
-              <Coins className="size-3.5" aria-hidden="true" />
-              <span>{tierPoints}</span>
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      <div
+        className={cn(
+          "-mx-2.5 -mt-2.5 flex items-center justify-between gap-2 px-3 py-2 text-white sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
+          style.accent,
+        )}
+      >
+        <span className="text-sm font-bold sm:text-base">
+          {card.tier} · {getTierLabel(card.tier, locale)}
+        </span>
+        <div className="flex items-center gap-1">
           <Button
             type="button"
             variant="secondary"
@@ -222,7 +210,7 @@ function CardFront({
             aria-label={`${card.term} ${t("cards.details")}`}
             title={t("cards.details")}
             onClick={handleDetailsClick}
-            className="size-9 border-foreground-inverse/70 bg-background-card/80 dark:border-white/70 max-sm:size-7"
+            className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
           >
             <Info className="size-4" aria-hidden="true" />
           </Button>
@@ -233,22 +221,33 @@ function CardFront({
             aria-label={`${card.term} ${t("cards.ask")}`}
             title={t("cards.ask")}
             onClick={handleAskClick}
-            className="size-9 border-foreground-inverse/70 bg-background-card/80 dark:border-white/70 max-sm:size-7"
+            className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
           >
             <MessageCircleQuestion className="size-4" aria-hidden="true" />
           </Button>
-          <span className={cn("size-3 rounded-full max-sm:size-2.5", style.accent)} aria-hidden="true" />
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-6 max-sm:flex-1 max-sm:justify-center max-sm:py-1">
-        <div className="flex items-center gap-2 text-foreground-muted">
+      <div className="flex flex-1 flex-col justify-center py-4 text-center max-sm:py-2">
+        <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
+          <span>{getLanguageDisplayName(card.language, locale)}</span>
+          <span
+            aria-label={`${tierPoints} ${t("common.points")}`}
+            className={cn("inline-flex items-center gap-1", style.text)}
+            title={`${tierPoints} ${t("common.points")}`}
+          >
+            <Coins className="size-3.5" aria-hidden="true" />
+            <span>{tierPoints}</span>
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-foreground-muted">
           <button
             type="button"
             aria-label={`${card.term} ${t("cards.speak")}`}
             title={t("cards.speak")}
             onClick={handleSpeakClick}
-            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-card/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-white dark:hover:bg-white/20 dark:hover:text-white max-sm:size-6"
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-white dark:hover:bg-white/20 dark:hover:text-white max-sm:size-6"
           >
             <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
           </button>
@@ -265,37 +264,53 @@ function CardFront({
         </p>
       </div>
 
-      <p
-        className="truncate text-sm leading-6 text-foreground-secondary dark:text-white/80 max-sm:mt-1 max-sm:text-xs max-sm:leading-4"
-        title={examplePreview}
+      <div
+        className={cn(
+          "-mx-2.5 -mb-2.5 space-y-2 px-3 py-2 text-white sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
+          style.accent,
+        )}
       >
-        {examplePreview}
-      </p>
+        <p
+          className="truncate text-sm font-medium leading-5 max-sm:text-xs"
+          title={examplePreview}
+        >
+          {examplePreview}
+        </p>
 
-      {inventory ? (
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground-secondary dark:text-white/70">
-            <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
-            <span>
-              {inventory.correctCount}/{requirement}
-            </span>
+        {inventory ? (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
+              <span>
+                {inventory.correctCount}/{requirement}
+              </span>
+            </div>
+            <Progress value={progress} className="bg-white/30" indicatorClassName="bg-white" />
           </div>
-          <Progress value={progress} indicatorClassName={style.progress} />
-        </div>
-      ) : null}
+        ) : null}
 
-      {onAdd || onSkip ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 max-sm:mt-2 max-sm:gap-1.5">
-          <Button variant="secondary" onClick={handleSkipClick} disabled={!onSkip} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
-            <X className="size-3" aria-hidden="true" />
-            {t("cards.skip")}
-          </Button>
-          <Button onClick={handleAddClick} disabled={owned || !onAdd} className="h-8 px-2 text-xs max-sm:h-7 max-sm:px-1 max-sm:text-[10px]">
-            {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
-            {owned ? t("cards.owned") : t("cards.add")}
-          </Button>
-        </div>
-      ) : null}
+        {onAdd || onSkip ? (
+          <div className="grid grid-cols-2 gap-2 max-sm:gap-1.5">
+            <Button
+              variant="secondary"
+              onClick={handleSkipClick}
+              disabled={!onSkip}
+              className="h-8 border-0 bg-white/20 px-2 text-xs text-white hover:bg-white/30 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
+            >
+              <X className="size-3" aria-hidden="true" />
+              {t("cards.skip")}
+            </Button>
+            <Button
+              onClick={handleAddClick}
+              disabled={owned || !onAdd}
+              className="h-8 bg-white px-2 text-xs text-emerald-600 hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
+            >
+              {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
+              {owned ? t("cards.owned") : t("cards.add")}
+            </Button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
