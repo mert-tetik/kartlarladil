@@ -1,5 +1,6 @@
 import { CARD_SEED_MODULES } from "./card-seeds";
 import { rowToTranslations } from "./card-seeds/types";
+import { CARD_EXAMPLE_SENTENCES } from "./card-examples.generated";
 import { LANGUAGE_CODES, LOCALE_CODES } from "./languages";
 import type {
   CardExample,
@@ -161,28 +162,25 @@ function buildCatalog(): VocabularyCard[] {
 }
 
 function createVocabularyCard(input: CardBuildInput): VocabularyCard {
-  let examples: CardExample[] | undefined;
   let grammarByLocale: Record<LocaleCode, GrammarGuide> | undefined;
-  const exampleContexts = input.tier === "A1" ? A1_EXAMPLE_CONTEXTS : EXAMPLE_CONTEXTS;
-
-  const firstExample = buildSourceExample(input.language, input.term, input.tier, "daily");
-  const firstExampleTranslations = buildExampleTranslations(input, "daily");
+  const example = getVocabularyCardExample(input);
 
   return {
     ...input,
     translation: input.translations.tr,
-    example: firstExample,
-    exampleTranslation: firstExampleTranslations.tr,
+    example: example.sentence,
+    exampleTranslation: example.translation,
     get examples() {
-      examples ??= exampleContexts.map((context) => ({
-        id: context,
-        context,
-        label: EXAMPLE_LABELS[context].tr,
-        sentence: buildSourceExample(input.language, input.term, input.tier, context),
-        translation: buildExampleTranslations(input, context).tr,
-        translations: buildExampleTranslations(input, context),
-      }));
-      return examples;
+      return [
+        {
+          id: "daily",
+          context: "daily" as const,
+          label: EXAMPLE_LABELS.daily.tr,
+          sentence: example.sentence,
+          translation: example.translation,
+          translations: example.translations,
+        },
+      ];
     },
     get grammar() {
       return this.grammarByLocale.tr;
@@ -193,6 +191,20 @@ function createVocabularyCard(input: CardBuildInput): VocabularyCard {
       ) as Record<LocaleCode, GrammarGuide>;
       return grammarByLocale;
     },
+  };
+}
+
+function getVocabularyCardExample(
+  input: CardBuildInput,
+): { sentence: string; translation: string; translations: Record<LocaleCode, string> } {
+  const generatedSentence = CARD_EXAMPLE_SENTENCES[input.sourceKey];
+  const sentence = generatedSentence ?? buildSourceExample(input.language, input.term, input.tier, "daily");
+  const translations = buildExampleTranslations(input, "daily");
+
+  return {
+    sentence,
+    translation: translations.tr,
+    translations,
   };
 }
 

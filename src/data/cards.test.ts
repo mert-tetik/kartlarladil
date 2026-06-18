@@ -64,48 +64,26 @@ describe("multilingual card catalog", () => {
     }
   });
 
-  it("uses a single example for A1 cards and five varied examples for higher tiers", () => {
-    const expectedContexts = ["daily", "question", "negative", "contextual", "natural"];
+  it("uses a single example for every card", () => {
     const placeholderPattern = /is useful in a clear sentence|I wrote the word|clear sentence/i;
     const invalidCards = VOCABULARY_CARDS.filter(
-      (card) => {
-        const expectedLength = card.tier === "A1" ? 1 : 5;
-        const expectedContextList = card.tier === "A1" ? ["daily"] : expectedContexts;
+      (card) =>
+        card.examples.length !== 1 ||
+        card.examples[0].context !== "daily" ||
+        card.examples[0].sentence !== card.example ||
+        card.examples[0].translation !== card.exampleTranslation ||
+        card.examples.some((example) => {
+          if (!example.sentence.trim() || !example.translation.trim()) {
+            return true;
+          }
 
-        return (
-          card.examples.length !== expectedLength ||
-          card.examples.map((example) => example.context).join("|") !== expectedContextList.join("|") ||
-          card.examples[0].sentence !== card.example ||
-          card.examples[0].translation !== card.exampleTranslation ||
-          card.examples.some((example) => {
-            if (!example.sentence.trim() || !example.translation.trim()) {
-              return true;
-            }
-
-            return LOCALE_CODES.some((locale) => !example.translations[locale]?.trim());
-          }) ||
-          placeholderPattern.test(card.example) ||
-          placeholderPattern.test(card.examples[0].sentence)
-        );
-      },
+          return LOCALE_CODES.some((locale) => !example.translations[locale]?.trim());
+        }) ||
+        placeholderPattern.test(card.example) ||
+        placeholderPattern.test(card.examples[0].sentence),
     );
 
     expect(invalidCards).toEqual([]);
-  });
-
-  it("keeps the first example sentences distributed across multiple patterns", () => {
-    for (const language of LANGUAGES) {
-      const patternCounts = new Map<string, number>();
-      const cards = VOCABULARY_CARDS.filter((card) => card.language === language.code);
-
-      for (const card of cards) {
-        const pattern = normalizeExamplePattern(card.example, card.term);
-        patternCounts.set(pattern, (patternCounts.get(pattern) ?? 0) + 1);
-      }
-
-      expect(patternCounts.size).toBeGreaterThanOrEqual(5);
-      expect(Math.max(...patternCounts.values())).toBeLessThan(cards.length / 2);
-    }
   });
 
   it("adds grammar guidance for every locale on every card", () => {
@@ -120,7 +98,3 @@ describe("multilingual card catalog", () => {
     expect(invalidCards).toEqual([]);
   });
 });
-
-function normalizeExamplePattern(sentence: string, term: string) {
-  return sentence.split(term).join("{term}");
-}
