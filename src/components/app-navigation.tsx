@@ -54,7 +54,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         {t("common.skipToContent")}
       </a>
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background-card">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-0">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-foreground">
             <Logo size={40} priority />
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
@@ -71,27 +71,25 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             })}
           </nav>
 
-          <div className="flex shrink-0 flex-1 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="mr-auto lg:order-last lg:mr-0">
               <LocaleSwitcher />
             </div>
-            <div className="flex items-center gap-2">
-              {user ? (
-                <>
-                  <RankProgressPopover stats={stats} userId={user.id} />
-                  <AccountMenu user={user} />
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className={buttonClassName("ghost", "sm")}>
-                    {t("nav.login")}
-                  </Link>
-                  <Link href="/register" className={buttonClassName("primary", "sm")}>
-                    {t("nav.signup")}
-                  </Link>
-                </>
-              )}
-            </div>
+            {user ? (
+              <>
+                <RankProgressPopover stats={stats} userId={user.id} />
+                <AccountMenu user={user} />
+              </>
+            ) : (
+              <>
+                <Link href="/login" className={buttonClassName("ghost", "sm")}>
+                  {t("nav.login")}
+                </Link>
+                <Link href="/register" className={buttonClassName("primary", "sm")}>
+                  {t("nav.signup")}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
