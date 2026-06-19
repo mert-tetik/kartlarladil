@@ -335,7 +335,10 @@ function CardFront({
             <Button
               onClick={handleAddClick}
               disabled={owned || !onAdd}
-              className="h-8 bg-white px-2 text-xs text-emerald-600 hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
+              className={cn(
+                "h-8 bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
+                style.text,
+              )}
             >
               {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
               {owned ? t("cards.owned") : t("cards.add")}

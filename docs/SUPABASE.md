@@ -33,27 +33,16 @@ Migrationlar:
 
 - `0001_initial_schema.sql`: temel tablo, RLS ve grant yapısı.
 - `0002_user_profile_preferences.sql`: profil tercih alanları.
-- `0003_multilingual_catalog_and_locale.sql`: 14 dil, locale tercihi ve yeni kart JSONB alanları.
+- `0003_multilingual_catalog_and_locale.sql`: 14 dil ve locale tercihi.
+- `0013_card_source_key_compat.sql`: `card_source_key` uyumluluk kolonları ve backfill.
+- `0014_remove_cards_catalog.sql`: `public.cards` kaldırımı ve source key cleanup'ı.
 
 Tablolar:
 
-- `languages`: public dil metadata’sı.
-- `cards`: public katalog.
+- `languages`: public dil metadata'sı.
 - `user_profiles`: private kullanıcı profili ve tercihleri.
-- `user_cards`: kullanıcı envanteri ve quiz progress’i.
-- `practice_attempts`: quiz cevap geçmişi.
-
-`cards` için önemli alanlar:
-
-- `source_key`: app katalog anahtarı, import upsert key.
-- `language_code`: 14 desteklenen dilden biri.
-- `term_kind`: `word` veya `fixed_phrase`.
-- `term`: ana kart terimi.
-- `translation_tr`: eski Türkçe fallback.
-- `translations jsonb`: tüm locale çevirileri.
-- `examples jsonb`: 5 örnek ve örnek çevirileri.
-- `grammar jsonb`: eski Türkçe fallback.
-- `grammar_i18n jsonb`: tüm locale gramer anlatımları.
+- `user_cards`: kullanıcı envanteri ve quiz progress’i (`card_source_key` ile local katalog kartına bağlanır).
+- `practice_attempts`: quiz cevap geçmişi (`card_source_key` ile local katalog kartına bağlanır).
 
 `user_profiles` için:
 
@@ -63,7 +52,7 @@ Tablolar:
 
 ## RLS
 
-`languages` ve `cards` public read verisidir. `user_profiles`, `user_cards` ve `practice_attempts` sadece row sahibi tarafından okunur/yazılır:
+`languages` public read verisidir. `user_profiles`, `user_cards` ve `practice_attempts` sadece row sahibi tarafından okunur/yazılır:
 
 ```sql
 using ((select auth.uid()) = user_id)
@@ -71,22 +60,10 @@ using ((select auth.uid()) = user_id)
 
 Migrationlar `anon` ve `authenticated` için explicit grants içerir. Supabase Data API exposure ayarları yine dashboard’dan kontrol edilmelidir.
 
-## Catalog Import
+## Catalog Contract
 
-Canlı inventory kullanmadan önce katalog import edilmelidir:
-
-```bash
-npm run supabase:import-cards
-```
-
-Script `NEXT_PUBLIC_SUPABASE_URL` ve `SUPABASE_SERVICE_ROLE_KEY` ister. `languages` ve `cards` tablolarını `source_key` ile upsert eder.
-
-Supabase `cards` tablosunda ilgili `source_key` bulunamazsa cloud action şu hatayı gösterir:
-
-```text
-Kart kataloğu Supabase’e aktarılmamış.
-```
+Kart kataloğu artık uygulama bundle'ında yaşar. Supabase sadece kullanıcı state'ini tutar. Cloud action'lar gelen `sourceKey` değerini server bundle içindeki local katalog ile doğrular ve sadece `card_source_key` yazar.
 
 ## Stats
 
-Puan ve rank ayrı tabloya yazılmaz. Öğrenilmiş kartlar `user_cards.status = 'learned'` ve `cards.tier` üzerinden hesaplanır. Bu yapı duplicate puan ve client manipülasyonu riskini azaltır.
+Puan ve rank ayrı tabloya yazılmaz. Öğrenilmiş kartlar `user_cards.status = 'learned'` ve app içindeki local katalog tier bilgisi üzerinden hesaplanır. Bu yapı duplicate puan ve client manipülasyonu riskini azaltır.

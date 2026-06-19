@@ -42,19 +42,9 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
   }
 
   function handleTap() {
-    if (phase === "appearing" || phase === "revealed" || phase === "disappearing") return;
+    if (phase === "appearing" || phase === "opening" || phase === "revealed" || phase === "disappearing") return;
 
-    const nextTap = tapCount + 1;
-    setTapCount(nextTap);
-
-    if (nextTap < 3) {
-      setPhase("shake");
-      playSoundEffect("chest-tap");
-      vibrate("chest-tap");
-      setTimeout(() => setPhase("idle"), 260);
-      return;
-    }
-
+    setTapCount(1);
     setPhase("opening");
     playSoundEffect("chest-open");
     vibrate("chest-open");

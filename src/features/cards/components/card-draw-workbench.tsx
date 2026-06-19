@@ -120,34 +120,15 @@ export function CardDrawWorkbench() {
 
   const highlightedIndex = rawHighlightedIndex >= 0 && rawHighlightedIndex < suggestions.length ? rawHighlightedIndex : -1;
 
-  const isFirstRenderRef = useRef(true);
   const prevOwnedIdsRef = useRef<Set<string>>(new Set());
-  const prevPreferencesRef = useRef(preferences);
 
   useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
-
-    const preferencesChanged =
-      prevPreferencesRef.current.language !== preferences.language ||
-      prevPreferencesRef.current.tier !== preferences.tier;
-
-    if (preferencesChanged) {
-      prevPreferencesRef.current = preferences;
-      prevOwnedIdsRef.current = new Set(ownedIds);
-      setCards([]);
-      setHasDrawn(false);
-      return;
-    }
-
     const ownedIdsChanged = !setsAreEqual(prevOwnedIdsRef.current, ownedIds);
     if (ownedIdsChanged) {
       prevOwnedIdsRef.current = new Set(ownedIds);
       setCards((current) => current.filter((card) => !ownedIds.has(card.id)));
     }
-  }, [ownedIds, preferences]);
+  }, [ownedIds]);
 
   useEffect(() => {
     const exitTimers = exitTimerRefs.current;

@@ -56,7 +56,7 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
 
   return (
-    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-6 max-lg:px-0 max-lg:py-0 sm:px-6 lg:px-8">
+    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8">
       <AiPracticeChatPanel character={character} language={rawLanguage} tier={tier} />
     </section>
   );

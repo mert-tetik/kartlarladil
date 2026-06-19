@@ -6,7 +6,7 @@ FoxiesDeck domain bazlı ayrılır: `cards`, `inventory`, `quiz`, `auth`, `progr
 
 - `LanguageCode` ve `LocaleCode` aynı 14 kodu kapsar: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`, `pl`, `ar`, `ja`, `ko`, `zh-CN`.
 - `VocabularyCard` immutable katalog verisidir.
-- `VocabularyCard.sourceKey` Supabase import için stabil anahtardır; local `id` aynı değeri kullanır.
+- `VocabularyCard.sourceKey` app ve cloud save için stabil anahtardır; local `id` aynı değeri kullanır.
 - `termKind` `word` veya `fixed_phrase` olabilir. Mevcut katalog 28.000 `word` kartından oluşur.
 - `translations` kart çevirilerini tüm locale’ler için tutar.
 - `CardExample.translations` örnek cümle çevirilerini tüm locale’ler için tutar.
@@ -32,7 +32,7 @@ Kart çevirileri `src/features/cards/card-localization.ts` üzerinden okunur. Ö
 3. `localCardRepository` katalog üzerinde filtre, arama ve draw işlemlerini sağlar.
 4. Guest inventory `localStorage` altında `foxiesdeck:v3` ile tutulur.
 5. Authenticated inventory Supabase `user_cards` ve `practice_attempts` tablolarından gelir.
-6. Cloud inventory local `sourceKey` değerlerini Supabase `cards.id` UUID değerlerine `cards.source_key` ile map eder.
+6. Cloud inventory `sourceKey` değerlerini doğrudan Supabase `user_cards.card_source_key` ve `practice_attempts.card_source_key` alanlarında tutar.
 
 ## Catalog Generation
 

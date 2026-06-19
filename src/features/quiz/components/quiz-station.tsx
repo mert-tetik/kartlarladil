@@ -1130,7 +1130,7 @@ export function ResultView({
             disabled={results.incorrect.length === 0}
             onClick={() => setOpenMenu("incorrect")}
           />
-          <div className="col-span-2 sm:col-span-1">
+          <div className="col-span-1 sm:col-span-1">
             <ResultCard
               icon={Trophy}
               label={t("quiz.resultLearned")}

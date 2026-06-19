@@ -19,8 +19,6 @@ import type {
   VocabularyCard,
 } from "@/types/domain";
 
-const CATALOG_NOT_IMPORTED_MESSAGE = "Kart kataloğu Supabase’e aktarılmamış.";
-
 interface CloudInventoryPayload {
   cards: InventoryCard[];
   attempts: PracticeAttempt[];
@@ -34,29 +32,22 @@ interface CloudActionResult<T> {
 }
 
 interface UserCardRow {
+  card_source_key: string;
   status: string;
   correct_count: number;
   added_at: string;
   learned_at: string | null;
-  cards: NestedCardRow;
 }
 
 interface AttemptRow {
   id: string;
+  card_source_key: string;
   mode: string;
   selected_answer: string;
   correct_answer: string;
   is_correct: boolean;
   created_at: string;
-  cards: NestedCardRow;
 }
-
-interface SupabaseCardRow {
-  id: string;
-  source_key: string;
-}
-
-type NestedCardRow = { source_key: string } | Array<{ source_key: string }> | null;
 
 export async function listCloudInventoryAction(): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
@@ -76,7 +67,7 @@ export async function listCloudInventoryAction(): Promise<CloudActionResult<Clou
 export async function addCloudInventoryCardAction(sourceKey: string): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
-    const card = await resolveSupabaseCard(supabase, sourceKey);
+    const card = resolveLocalCard(sourceKey);
     const entitlements = await getUserEntitlements(user.id);
 
     if (entitlements.effectivePlan === "free") {
@@ -95,11 +86,11 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
     const { error } = await supabase.from("user_cards").upsert(
       {
         user_id: user.id,
-        card_id: card.id,
+        card_source_key: card.sourceKey,
       },
       {
         ignoreDuplicates: true,
-        onConflict: "user_id,card_id",
+        onConflict: "user_id,card_source_key",
       },
     );
 
@@ -129,8 +120,7 @@ export async function recordCloudPracticeAttemptAction(input: {
   try {
     const { supabase, user } = await getAuthedSupabase();
     const localCard = resolveLocalCard(input.cardId);
-    const remoteCard = await resolveSupabaseCard(supabase, input.cardId);
-    const currentCard = await readUserCard(supabase, user, remoteCard.id, input.cardId);
+    const currentCard = await readUserCard(supabase, user, localCard.sourceKey);
     const nextCard =
       input.mode === "learned" ? currentCard : applyAnswerProgress(currentCard, localCard, input.isCorrect);
 
@@ -161,7 +151,7 @@ export async function recordCloudPracticeAttemptAction(input: {
         learned_at: nextCard.learnedAt ?? null,
       })
       .eq("user_id", user.id)
-      .eq("card_id", remoteCard.id);
+      .eq("card_source_key", localCard.sourceKey);
 
     if (updateError) {
       throw updateError;
@@ -169,7 +159,7 @@ export async function recordCloudPracticeAttemptAction(input: {
 
     const { error: attemptError } = await supabase.from("practice_attempts").insert({
       user_id: user.id,
-      card_id: remoteCard.id,
+      card_source_key: localCard.sourceKey,
       mode: input.mode,
       selected_answer: input.selectedAnswer,
       correct_answer: input.correctAnswer,
@@ -235,31 +225,16 @@ export async function migrateLocalInventoryToCloudAction(
       };
     }
 
-    const { data, error } = await supabase
-      .from("cards")
-      .select("id, source_key")
-      .in("source_key", sourceKeys)
-      .returns<SupabaseCardRow[]>();
-
-    if (error) {
-      throw error;
+    for (const sourceKey of sourceKeys) {
+      resolveLocalCard(sourceKey);
     }
 
-    if (!data || data.length === 0) {
-      throw new Error(CATALOG_NOT_IMPORTED_MESSAGE);
-    }
-
-    const cardBySourceKey = new Map(data.map((card) => [card.source_key, card.id]));
-    const rows = localCards.flatMap((card) => {
-      const remoteCardId = cardBySourceKey.get(card.cardId);
-
-      if (!remoteCardId) {
-        return [];
-      }
+    const rows = localCards.map((card) => {
+      resolveLocalCard(card.cardId);
 
       return {
         user_id: user.id,
-        card_id: remoteCardId,
+        card_source_key: card.cardId,
         status: card.status,
         correct_count: card.correctCount,
         added_at: card.addedAt,
@@ -269,7 +244,7 @@ export async function migrateLocalInventoryToCloudAction(
 
     if (rows.length > 0) {
       const { error: upsertError } = await supabase.from("user_cards").upsert(rows, {
-        onConflict: "user_id,card_id",
+        onConflict: "user_id,card_source_key",
       });
 
       if (upsertError) {
@@ -324,7 +299,7 @@ async function listCloudInventory(
 ): Promise<CloudInventoryPayload> {
   const { data: cardRows, error: cardsError } = await supabase
     .from("user_cards")
-    .select("status, correct_count, added_at, learned_at, cards!inner(source_key)")
+    .select("card_source_key, status, correct_count, added_at, learned_at")
     .eq("user_id", user.id)
     .order("added_at", { ascending: false })
     .returns<UserCardRow[]>();
@@ -335,7 +310,7 @@ async function listCloudInventory(
 
   const { data: attemptRows, error: attemptsError } = await supabase
     .from("practice_attempts")
-    .select("id, mode, selected_answer, correct_answer, is_correct, created_at, cards!inner(source_key)")
+    .select("id, card_source_key, mode, selected_answer, correct_answer, is_correct, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100)
@@ -351,38 +326,16 @@ async function listCloudInventory(
   };
 }
 
-async function resolveSupabaseCard(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  sourceKey: string,
-) {
-  const { data, error } = await supabase
-    .from("cards")
-    .select("id, source_key")
-    .eq("source_key", sourceKey)
-    .maybeSingle<SupabaseCardRow>();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data) {
-    throw new Error(CATALOG_NOT_IMPORTED_MESSAGE);
-  }
-
-  return data;
-}
-
 async function readUserCard(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   user: User,
-  remoteCardId: string,
   sourceKey: string,
 ): Promise<InventoryCard> {
   const { data, error } = await supabase
     .from("user_cards")
     .select("status, correct_count, added_at, learned_at")
     .eq("user_id", user.id)
-    .eq("card_id", remoteCardId)
+    .eq("card_source_key", sourceKey)
     .maybeSingle<{
       status: string;
       correct_count: number;
@@ -397,7 +350,7 @@ async function readUserCard(
   if (!data) {
     const inserted = {
       user_id: user.id,
-      card_id: remoteCardId,
+      card_source_key: sourceKey,
     };
     const { error: insertError } = await supabase.from("user_cards").insert(inserted);
 
@@ -423,15 +376,9 @@ async function readUserCard(
 }
 
 function mapUserCardRow(row: UserCardRow): InventoryCard[] {
-  const card = getNestedCard(row.cards);
-
-  if (!card) {
-    return [];
-  }
-
   return [
     {
-      cardId: card.source_key,
+      cardId: row.card_source_key,
       status: row.status === "learned" ? "learned" : "active",
       correctCount: row.correct_count,
       addedAt: row.added_at,
@@ -441,16 +388,10 @@ function mapUserCardRow(row: UserCardRow): InventoryCard[] {
 }
 
 function mapAttemptRow(row: AttemptRow): PracticeAttempt[] {
-  const card = getNestedCard(row.cards);
-
-  if (!card) {
-    return [];
-  }
-
   return [
     {
       id: row.id,
-      cardId: card.source_key,
+      cardId: row.card_source_key,
       selectedAnswer: row.selected_answer,
       correctAnswer: row.correct_answer,
       isCorrect: row.is_correct,
@@ -460,16 +401,8 @@ function mapAttemptRow(row: AttemptRow): PracticeAttempt[] {
   ];
 }
 
-function getNestedCard(cards: NestedCardRow) {
-  if (Array.isArray(cards)) {
-    return cards[0] ?? null;
-  }
-
-  return cards;
-}
-
 function resolveLocalCard(sourceKey: string): VocabularyCard {
-  const card = VOCABULARY_CARDS.find((item) => item.id === sourceKey);
+  const card = VOCABULARY_CARDS.find((item) => item.sourceKey === sourceKey || item.id === sourceKey);
 
   if (!card) {
     throw new Error("Kart yerel katalogda bulunamadı.");

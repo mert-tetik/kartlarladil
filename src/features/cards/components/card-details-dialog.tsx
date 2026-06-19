@@ -74,6 +74,10 @@ export function CardDetailsDialog({
           type="button"
           aria-label={t("cards.closeDetails")}
           onClick={() => onOpenChange(false)}
+          onMouseDown={(event) => {
+            event.stopPropagation();
+            onOpenChange(false);
+          }}
           className="absolute right-3 top-3 z-10 inline-flex size-8 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           <X className="size-5" aria-hidden="true" />

@@ -110,7 +110,7 @@ Aynı mapping `src/features/auth/auth-redirects.ts` içindeki `getSafeNextPath()
 2. `src/data/cards.ts` seed satırlarından lazy `VocabularyCard` nesneleri oluşturur.
 3. `localCardRepository` (`src/features/cards/card-repository.ts`) katalog üzerinde filtre, arama ve draw işlemleri yapar.
 4. Misafir envanteri tarayıcıda `localStorage` anahtarı `foxiesdeck:v3` altında tutulur.
-5. Giriş yapmış kullanıcı envanteri Supabase `user_cards` ve `practice_attempts` tablolarından gelir; local `sourceKey` değerleri `cards.source_key` ile eşleştirilir.
+5. Giriş yapmış kullanıcı envanteri Supabase `user_cards` ve `practice_attempts` tablolarından gelir; kart kimliği olarak local `sourceKey` doğrudan `card_source_key` alanlarında tutulur.
 
 ## Build ve Test Komutları
 
@@ -143,13 +143,11 @@ npm run test:e2e
 # Katalog raporu
 npm run report:cards
 
-# Supabase'e katalog importu
-npm run supabase:import-cards
 ```
 
 Build için `next build` çalışır. E2E testleri Playwright çalıştırır; `playwright.config.ts` otomatik olarak `npm run start` ile `http://127.0.0.1:3000` üzerinde bir sunucu başlatır. `pretest:e2e` script'i `next build` çalıştırır.
 
-Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse.mjs`, `report-cards.mjs`, `import-cards-to-supabase.mjs`, `translate-*.ts`, `generate-localization-report.ts`, `analyze-missing-translations.ts`, `validate-translations.ts`, `generate-icons.mjs`, `visual-check.mjs`, `create-test-user.mjs`.
+Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse.mjs`, `report-cards.mjs`, `translate-*.ts`, `generate-localization-report.ts`, `analyze-missing-translations.ts`, `validate-translations.ts`, `generate-icons.mjs`, `visual-check.mjs`, `create-test-user.mjs`.
 
 ## Geliştirme Konvansiyonları
 
@@ -278,14 +276,16 @@ NEXT_PUBLIC_SITE_URL=https://foxiesdeck.vercel.app
   - `0009_add_ask_usage_event.sql`
   - `0010_reviews.sql`
   - `0011_themes.sql`
+  - `0012_chest_points.sql`
+  - `0013_card_source_key_compat.sql`
+  - `0014_remove_cards_catalog.sql`
 
 Temel tablolar:
 
 - `languages` — public dil metadata'sı.
-- `cards` — public katalog (`source_key`, `language_code`, `term_kind`, `term`, `translations jsonb`, `examples jsonb`, `grammar_i18n jsonb`).
 - `user_profiles` — kullanıcı profili ve tercihleri (`preferred_language_code`, `preferred_tier`, `preferred_ui_locale`, `onboarding_completed`, `theme`, `ai_practice_points`).
-- `user_cards` — kullanıcı envanteri ve quiz progress'i.
-- `practice_attempts` — quiz cevap geçmişi.
+- `user_cards` — kullanıcı envanteri ve quiz progress'i (`card_source_key` ile local katalog kartını referanslar).
+- `practice_attempts` — quiz cevap geçmişi (`card_source_key` ile local katalog kartını referanslar).
 - `user_subscriptions` — abonelik durumu.
 - `ai_usage_events` — AI kullanım kayıtları.
 - `ai_practice_scores` — AI pratik puanlama kayıtları.
@@ -294,18 +294,12 @@ Temel tablolar:
 
 RLS:
 
-- `languages` ve `cards` public read verisidir (`anon` + `authenticated`).
+- `languages` public read verisidir (`anon` + `authenticated`).
 - `user_profiles`, `user_cards`, `practice_attempts`, `ai_usage_events`, `user_subscriptions`, `ai_practice_scores` sadece satır sahibi tarafından okunur/yazılır (`auth.uid() = user_id`).
 - `webhook_events` service role yazma; kullanıcı kendi satırlarını okuyabilir.
 - `reviews` public read; authenticated kullanıcı kendi satırını insert/update edebilir.
 
-Canlı envanter kullanmadan önce katalog Supabase'e aktarılmalıdır:
-
-```bash
-npm run supabase:import-cards
-```
-
-Eğer `cards` tablosunda ilgili `source_key` bulunamazsa cloud action şu hatayı döner: "Kart kataloğu Supabase'e aktarılmamış."
+Kart kataloğu uygulama bundle'ında tutulur. Supabase sadece kullanıcı state'ini saklar; cloud action'lar gelen `sourceKey` değerini local katalog üzerinden doğrular.
 
 ## Güvenlik Dikkatleri
 

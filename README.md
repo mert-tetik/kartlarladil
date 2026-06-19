@@ -22,7 +22,6 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run report:cards
-npm run supabase:import-cards
 npm run test
 npm run test:e2e
 npm run build
@@ -91,11 +90,7 @@ OPENAI_API_KEY=
 OPENAI_AI_PRACTICE_MODEL=gpt-5-nano
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` sadece server tarafında kullanılır. Canlı inventory için migrationlar uygulanmalı ve ardından katalog import edilmelidir:
-
-```bash
-npm run supabase:import-cards
-```
+`SUPABASE_SERVICE_ROLE_KEY` sadece server tarafında kullanılır. Canlı inventory için migrationların uygulanması yeterlidir; kart kataloğu uygulama içinde tutulur ve cloud save sadece `card_source_key` bazlı kullanıcı state'ini yazar.
 
 `OPENAI_API_KEY` sadece server tarafında kullanılır. AI Practice konuşmaları kaydedilmez ve varsayılan model `gpt-5-nano` değeridir.
 
