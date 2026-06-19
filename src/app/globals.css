@@ -350,6 +350,25 @@ button:disabled,
   }
 }
 
+@keyframes card-draw-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  25% {
+    transform: translate3d(-5px, 0, 0);
+  }
+
+  75% {
+    transform: translate3d(5px, 0, 0);
+  }
+}
+
+.animate-card-draw-shake {
+  animation: card-draw-shake 90ms ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
@@ -396,6 +415,12 @@ button:disabled,
   }
 
   .rank-up-menu {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .animate-card-draw-shake {
     animation: none;
     transform: none;
     will-change: auto;
