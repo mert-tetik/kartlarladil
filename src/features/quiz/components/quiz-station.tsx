@@ -33,7 +33,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import { getChestTierByCount, CHEST_TIER_TEXT_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { getChestTierByCount, CHEST_TIER_TEXT_CLASSES, CHEST_TIER_BORDER_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -613,11 +613,11 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-3xl origin-center rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:scale-110">
-      <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
+    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:p-10">
+      <h2 className="text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
 
       <div className="mt-6">
-        <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px]">
+        <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px] lg:h-[480px]">
           <div className="grid grid-cols-1 gap-2">
             {languageStats.map((language) => (
               <button
@@ -626,7 +626,7 @@ function LanguageSelection({
                 aria-pressed={selectedLanguage === language.code}
                 onClick={() => onSelect(language.code)}
                 className={cn(
-                  "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted",
+                  "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left text-sm font-semibold transition-colors hover:bg-background-muted lg:p-4 lg:text-base",
                   selectedLanguage === language.code && "border-foreground bg-background-muted",
                 )}
               >
@@ -682,10 +682,11 @@ function CountSelection({
               disabled={disabled}
               onClick={() => onSelect(count)}
               className={cn(
-                "flex flex-col items-center justify-center rounded-md border px-2 py-2 text-sm font-semibold transition-colors sm:py-3",
+                "flex flex-col items-center justify-center rounded-md border-2 px-2 py-2 text-sm font-semibold transition-colors sm:py-3",
                 selectedCount === count
-                  ? "border-foreground bg-background-inverse text-foreground-inverse"
-                  : "border-border bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
+                  ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
+                  : "bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
+                chestTier && CHEST_TIER_BORDER_CLASSES[chestTier.tier],
               )}
             >
               <span>{count}</span>

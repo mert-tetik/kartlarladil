@@ -36,7 +36,7 @@ export function LearnQuizShell({ title, description: _description }: LearnQuizSh
           />
         </div>
       </div>
-      <div className="mt-8 flex flex-1 flex-col justify-center overflow-hidden">
+      <div className="mt-8 flex flex-1 flex-col items-center justify-center">
         <QuizStation mode="active" onPhaseChange={setPhase} />
       </div>
     </>

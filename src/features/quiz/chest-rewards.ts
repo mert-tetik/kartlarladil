@@ -18,6 +18,16 @@ export const CHEST_TIER_TEXT_CLASSES: Record<ChestTier, string> = {
   legendary: "text-purple-500",
 };
 
+export const CHEST_TIER_BORDER_CLASSES: Record<ChestTier, string> = {
+  wood: "border-amber-800",
+  iron: "border-slate-500",
+  bronze: "border-orange-700",
+  silver: "border-gray-400",
+  gold: "border-yellow-500",
+  diamond: "border-cyan-400",
+  legendary: "border-purple-500",
+};
+
 export const CHEST_TIERS: ChestTierDefinition[] = [
   { tier: "wood", count: 10, points: 20, filter: "none", labelKey: "chest.tierWood" },
   { tier: "iron", count: 20, points: 40, filter: "grayscale(60%) brightness(1.1)", labelKey: "chest.tierIron" },
