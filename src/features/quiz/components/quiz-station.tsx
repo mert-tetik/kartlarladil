@@ -613,7 +613,7 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
+    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem]">
       <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
 
       <div className="mt-6">
