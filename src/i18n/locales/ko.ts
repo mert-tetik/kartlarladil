@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "구독 세부정보",
   "page.aiPractice.charactersDescription": "{language} 연습을 위한 대화 스타일을 선택하세요.",
   "page.aiPractice.charactersTitle": "캐릭터 선택",
+  "page.aiPractice.chooseLanguagePrompt": "연습하고 싶은 언어를 선택하세요",
   "page.aiPractice.description": "연습할 언어와 캐릭터를 고르고 저장되지 않는 목표 언어 채팅을 시작하세요.",
   "page.aiPractice.tierSelectionTitle": "Choose level",
   "page.aiPractice.tierTitle": "레벨 선택",

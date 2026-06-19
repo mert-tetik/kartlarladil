@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "订阅详情",
   "page.aiPractice.charactersDescription": "为 {language} 练习选择一种对话风格。",
   "page.aiPractice.charactersTitle": "选择角色",
+  "page.aiPractice.chooseLanguagePrompt": "选择你想练习的语言",
   "page.aiPractice.description": "选择练习语言和角色，然后开始一段不会保存的目标语言聊天。",
   "page.aiPractice.tierSelectionTitle": "Choose level",
   "page.aiPractice.tierTitle": "选择级别",

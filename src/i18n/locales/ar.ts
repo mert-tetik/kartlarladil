@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "تفاصيل الاشتراك",
   "page.aiPractice.charactersDescription": "اختر أسلوب المحادثة لتدريب {language}.",
   "page.aiPractice.charactersTitle": "اختر شخصية",
+  "page.aiPractice.chooseLanguagePrompt": "اختر اللغة التي تريد ممارستها",
   "page.aiPractice.description": "اختر لغة التدريب وشخصية، ثم ابدأ محادثة غير محفوظة باللغة الهدف.",
   "page.aiPractice.tierSelectionTitle": "Choose level",
   "page.aiPractice.tierTitle": "اختر المستوى",

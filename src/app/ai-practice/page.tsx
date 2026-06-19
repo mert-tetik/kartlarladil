@@ -25,10 +25,16 @@ export default async function AiPracticePage() {
   const t = createTranslator(locale);
 
   return (
-    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <PageHeader title={t("page.aiPractice.title")} description={t("page.aiPractice.description")} descriptionClassName="max-lg:hidden" />
-      <div className="mt-8">
-        <AiPracticeLanguageSelection locale={locale} />
+    <section className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-8rem)] max-w-7xl flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <div className="w-full">
+        <PageHeader
+          title={t("page.aiPractice.title")}
+          description={t("page.aiPractice.chooseLanguagePrompt")}
+          descriptionClassName="text-sm sm:text-base"
+        />
+        <div className="mt-8">
+          <AiPracticeLanguageSelection locale={locale} />
+        </div>
       </div>
     </section>
   );

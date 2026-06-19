@@ -124,6 +124,20 @@ export function AiPracticeChatPanel({
     return () => window.cancelAnimationFrame(frameId);
   }, [messages]);
 
+  useEffect(() => {
+    function handleResize() {
+      const list = listRef.current;
+      if (list) {
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    viewport.addEventListener("resize", handleResize);
+    return () => viewport.removeEventListener("resize", handleResize);
+  }, []);
+
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     await submitContent(draft);
@@ -469,6 +483,12 @@ export function AiPracticeChatPanel({
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
+        onTextareaFocus={() => {
+          const list = listRef.current;
+          if (list) {
+            list.scrollTop = list.scrollHeight;
+          }
+        }}
       />
 
       <UpgradeDialog
@@ -710,6 +730,7 @@ function ChatComposer({
   onKeyDown,
   onSubmit,
   onToggleRecording,
+  onTextareaFocus,
 }: {
   draft: string;
   pending: boolean;
@@ -721,6 +742,7 @@ function ChatComposer({
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
+  onTextareaFocus?: () => void;
 }) {
   const t = useT();
   const micLabel = microphoneSupported
@@ -747,6 +769,7 @@ function ChatComposer({
             value={draft}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={onKeyDown}
+            onFocus={onTextareaFocus}
             rows={1}
             maxLength={900}
             placeholder={t("aiPractice.chat.placeholder")}

@@ -58,25 +58,27 @@ export default async function AiPracticeCharacterSelectionPage({
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
 
   return (
-    <section className="animate-screen-pop mx-auto max-w-7xl px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold text-foreground">{t("page.aiPractice.charactersTitle")}</h1>
-        <Link
-          href={`/ai-practice/${rawLanguage}`}
-          aria-label={t("common.back")}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Link>
-      </div>
+    <section className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-8rem)] max-w-7xl flex-col items-center justify-center px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
+      <div className="w-full">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="font-display text-3xl font-semibold text-foreground">{t("page.aiPractice.charactersTitle")}</h1>
+          <Link
+            href={`/ai-practice/${rawLanguage}`}
+            aria-label={t("common.back")}
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </Link>
+        </div>
 
-      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background-card px-3 py-1.5 text-sm font-semibold text-foreground-secondary">
-        <LanguageFlag code={rawLanguage} className="h-5 w-7" />
-        {languageName}
-      </div>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background-card px-3 py-1.5 text-sm font-semibold text-foreground-secondary">
+          <LanguageFlag code={rawLanguage} className="h-5 w-7" />
+          {languageName}
+        </div>
 
-      <div className="mt-6">
-        <AiPracticeCharacterSelection language={rawLanguage} locale={locale} tier={tier} />
+        <div className="mt-6">
+          <AiPracticeCharacterSelection language={rawLanguage} locale={locale} tier={tier} />
+        </div>
       </div>
     </section>
   );

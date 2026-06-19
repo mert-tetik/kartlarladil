@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "Abonelik detayları",
   "page.aiPractice.charactersDescription": "{language} pratiği için konuşma stilini seç.",
   "page.aiPractice.charactersTitle": "Karakter seç",
+  "page.aiPractice.chooseLanguagePrompt": "Pratik yapmak istediğin dili seç",
   "page.aiPractice.description": "Pratik yapmak istediğin dili ve seviyeyi seç, bir karakter belirle ve hedef dilde kaydedilmeyen canlı bir sohbet başlat.",
   "page.aiPractice.tierSelectionTitle": "Hangi seviyede pratik yapmak istersin",
   "page.aiPractice.tierTitle": "Seviye seç",

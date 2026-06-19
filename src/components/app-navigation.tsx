@@ -61,11 +61,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </Link>
 
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
-            {navItems.map((item) => (
-              <DesktopNavLink key={item.href} href={item.href} active={pathname === item.href}>
-                {t(item.labelKey)}
-              </DesktopNavLink>
-            ))}
+            {navItems.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <DesktopNavLink key={item.href} href={item.href} active={active}>
+                  {t(item.labelKey)}
+                </DesktopNavLink>
+              );
+            })}
           </nav>
 
           <div className="flex shrink-0 flex-1 items-center gap-2">
@@ -97,7 +100,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link

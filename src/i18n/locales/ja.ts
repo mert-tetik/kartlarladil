@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "サブスクリプションの詳細",
   "page.aiPractice.charactersDescription": "{language} の練習に使う会話スタイルを選びます。",
   "page.aiPractice.charactersTitle": "キャラクターを選ぶ",
+  "page.aiPractice.chooseLanguagePrompt": "練習したい言語を選んでください",
   "page.aiPractice.description": "練習する言語とキャラクターを選び、保存されないチャットを始めます。",
   "page.aiPractice.tierSelectionTitle": "Choose level",
   "page.aiPractice.tierTitle": "レベルを選択",

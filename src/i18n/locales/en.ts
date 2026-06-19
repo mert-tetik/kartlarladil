@@ -308,6 +308,7 @@ const dictionary = {
   "page.accountSubscription.title": "Subscription details",
   "page.aiPractice.charactersDescription": "Choose a conversation style for {language} practice.",
   "page.aiPractice.charactersTitle": "Choose a character",
+  "page.aiPractice.chooseLanguagePrompt": "Choose the language you want to practice",
   "page.aiPractice.description": "Choose a practice language and level, pick a character, and start a live unsaved chat in the target language.",
   "page.aiPractice.tierSelectionTitle": "Which level do you want to practice at?",
   "page.aiPractice.tierTitle": "Choose level",

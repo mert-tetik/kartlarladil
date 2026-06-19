@@ -115,6 +115,20 @@ export function AskChatPanel({
   }, [messages]);
 
   useEffect(() => {
+    function handleResize() {
+      const list = listRef.current;
+      if (list) {
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    viewport.addEventListener("resize", handleResize);
+    return () => viewport.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!initialTerm || initialSentRef.current || pending) {
       return;
     }
@@ -422,6 +436,12 @@ export function AskChatPanel({
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
+        onTextareaFocus={() => {
+          const list = listRef.current;
+          if (list) {
+            list.scrollTop = list.scrollHeight;
+          }
+        }}
       />
 
       <UpgradeDialog
@@ -448,7 +468,7 @@ function ChatHeader({
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
       <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
-        <Image src="/logo.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain p-1" priority />
+        <Image src="/mascots/mascot14.png" alt="FoxiesDeck" fill sizes="48px" className="object-cover" priority />
       </div>
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
@@ -483,7 +503,7 @@ function MessageList({
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
-            <Image src="/logo.png" alt="" fill sizes="96px" className="object-contain p-2" />
+            <Image src="/mascots/mascot14.png" alt="" fill sizes="96px" className="object-cover" />
           </div>
           <h2 className="mt-5 text-xl font-semibold text-foreground">{t("page.ask.title")}</h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
@@ -522,7 +542,7 @@ function ChatMessage({
     <article className={cn("flex gap-3 animate-message-pop", isUser && "flex-row-reverse")}>
       {!isUser && (
         <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-background-muted sm:size-9">
-          <Image src="/logo.png" alt="" fill sizes="36px" className="object-contain p-1" />
+          <Image src="/mascots/mascot14.png" alt="" fill sizes="36px" className="object-cover" />
         </div>
       )}
       <div className={cn("min-w-0 flex-1", isUser ? "items-end" : "items-start")}>
@@ -617,6 +637,7 @@ function ChatComposer({
   onKeyDown,
   onSubmit,
   onToggleRecording,
+  onTextareaFocus,
 }: {
   draft: string;
   pending: boolean;
@@ -628,6 +649,7 @@ function ChatComposer({
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
+  onTextareaFocus?: () => void;
 }) {
   const t = useT();
   const micLabel = microphoneSupported
@@ -654,6 +676,7 @@ function ChatComposer({
             value={draft}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={onKeyDown}
+            onFocus={onTextareaFocus}
             rows={1}
             maxLength={900}
             placeholder={t("ask.placeholder")}
