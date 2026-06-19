@@ -29,9 +29,9 @@ export function LearnQuizShell({ title, description: _description }: LearnQuizSh
             title={title}
             description=" "
             mascot="/mascots/mascot5.png"
-            mascotSize="md"
+            mascotSize="lg"
             centered
-            titleClassName="text-white text-6xl md:text-7xl lg:text-8xl"
+            titleClassName="text-white text-5xl md:text-6xl lg:text-7xl"
             descriptionClassName="invisible"
           />
         </div>
