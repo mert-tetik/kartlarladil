@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { CookieNotice } from "@/components/cookie-notice";
 import { AppNavigation } from "@/components/app-navigation";
 import { PageTransitionShell } from "@/components/page-transition-shell";
@@ -17,6 +18,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
 
   return (
     <LocaleProvider initialLocale={locale}>
+      <BodyScrollLock />
       <AuthSessionProvider user={user}>
         <SubscriptionProvider>
           <ProgressStatsProvider>

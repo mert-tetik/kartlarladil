@@ -1,10 +1,14 @@
 import fs from "node:fs";
 import { Module } from "node:module";
 import path from "node:path";
+import util from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import ts from "typescript";
 
 const BATCH_SIZE = 500;
+
+process.on("unhandledRejection", logFatalError);
+process.on("uncaughtException", logFatalError);
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
@@ -17,8 +21,17 @@ if (!url || !serviceRoleKey) {
   process.exit(1);
 }
 
+console.log("Kart katalog modulu yukleniyor...");
 const { VOCABULARY_CARDS } = loadTsModule("src/data/cards.ts");
 const { LANGUAGES } = loadTsModule("src/data/languages.ts");
+console.log(`Kart katalog modulu yuklendi: ${VOCABULARY_CARDS.length} kart.`);
+const importStartIndex = readIndexEnv("CARD_IMPORT_START_INDEX", 0);
+const importEndIndex = Math.min(readIndexEnv("CARD_IMPORT_END_INDEX", VOCABULARY_CARDS.length), VOCABULARY_CARDS.length);
+
+if (importStartIndex > importEndIndex) {
+  throw new Error("CARD_IMPORT_START_INDEX, CARD_IMPORT_END_INDEX degerinden buyuk olamaz.");
+}
+
 const supabase = createClient(url, serviceRoleKey, {
   auth: {
     persistSession: false,
@@ -27,6 +40,8 @@ const supabase = createClient(url, serviceRoleKey, {
 });
 
 console.log("Supabase kart kataloğu import ediliyor...");
+
+console.log(`Import araligi: ${importStartIndex}-${importEndIndex}/${VOCABULARY_CARDS.length}`);
 
 const { error: languageError } = await supabase.from("languages").upsert(
   LANGUAGES.map((language) => ({
@@ -42,8 +57,8 @@ if (languageError) {
   throw languageError;
 }
 
-for (let index = 0; index < VOCABULARY_CARDS.length; index += BATCH_SIZE) {
-  const batch = VOCABULARY_CARDS.slice(index, index + BATCH_SIZE).map((card) => ({
+for (let index = importStartIndex; index < importEndIndex; index += BATCH_SIZE) {
+  const batch = VOCABULARY_CARDS.slice(index, Math.min(index + BATCH_SIZE, importEndIndex)).map((card) => ({
     source_key: card.sourceKey,
     language_code: card.language,
     tier: card.tier,
@@ -60,16 +75,102 @@ for (let index = 0; index < VOCABULARY_CARDS.length; index += BATCH_SIZE) {
     grammar_i18n: card.grammarByLocale,
   }));
 
-  const { error } = await supabase.from("cards").upsert(batch, { onConflict: "source_key" });
+  await upsertCardBatch(batch);
 
-  if (error) {
+  console.log(`- ${Math.min(index + BATCH_SIZE, importEndIndex)}/${VOCABULARY_CARDS.length}`);
+}
+
+console.log(
+  `Tamamlandı: ${importEndIndex - importStartIndex} kart araligi import edildi (${importStartIndex}-${importEndIndex}/${VOCABULARY_CARDS.length}).`,
+);
+
+async function upsertCardBatch(batch) {
+  const { error } = await supabase.from("cards").upsert(batch, { onConflict: "language_code,term" });
+
+  if (!error) {
+    return;
+  }
+
+  if (!isRecoverableBatchError(error)) {
     throw error;
   }
 
-  console.log(`- ${Math.min(index + BATCH_SIZE, VOCABULARY_CARDS.length)}/${VOCABULARY_CARDS.length}`);
+  if (batch.length === 1) {
+    await upsertCardRow(batch[0]);
+    return;
+  }
+
+  const middleIndex = Math.floor(batch.length / 2);
+  await upsertCardBatch(batch.slice(0, middleIndex));
+  await upsertCardBatch(batch.slice(middleIndex));
 }
 
-console.log(`Tamamlandı: ${VOCABULARY_CARDS.length} kart import edildi.`);
+function isConflictError(error) {
+  return error.code === "23505" || error.code === "21000";
+}
+
+function isRecoverableBatchError(error) {
+  return isConflictError(error) || error.code === "57014";
+}
+
+async function upsertCardRow(row) {
+  const byTerm = await supabase.from("cards").upsert(row, { onConflict: "language_code,term" });
+
+  if (!byTerm.error) {
+    return;
+  }
+
+  if (!isConflictError(byTerm.error)) {
+    throw byTerm.error;
+  }
+
+  const bySourceKey = await supabase.from("cards").upsert(row, { onConflict: "source_key" });
+
+  if (!bySourceKey.error) {
+    return;
+  }
+
+  throw {
+    message: "Card row could not be imported.",
+    row: {
+      source_key: row.source_key,
+      language_code: row.language_code,
+      term: row.term,
+    },
+    byTerm: byTerm.error,
+    bySourceKey: bySourceKey.error,
+  };
+}
+
+function logFatalError(error) {
+  console.error("Supabase card import failed:");
+  console.error(formatError(error));
+  process.exit(1);
+}
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+
+  return util.inspect(error, { depth: 10, colors: false });
+}
+
+function readIndexEnv(name, fallback) {
+  const rawValue = process.env[name];
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const value = Number.parseInt(rawValue, 10);
+
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${name} sifir veya pozitif bir tamsayi olmali.`);
+  }
+
+  return value;
+}
 
 function loadEnvFile(filename) {
   const envPath = path.resolve(filename);
