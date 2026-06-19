@@ -357,8 +357,7 @@ export function QuizStation({
 
   if (phase === "language") {
     return (
-      <div className="relative flex flex-1 flex-col items-center justify-center">
-        <MobileLearnMascot />
+      <div className="flex flex-1 flex-col items-center justify-center">
         <LanguageSelection
           languageStats={languageStats}
           selectedLanguage={selectedLanguage}
@@ -370,8 +369,7 @@ export function QuizStation({
 
   if (phase === "count" && selectedLanguage) {
     return (
-      <div className="relative flex flex-1 flex-col items-center justify-center">
-        <MobileLearnMascot />
+      <div className="flex flex-1 flex-col items-center justify-center">
         <CountSelection
           language={selectedLanguage}
           availableCount={availableCards.length}
@@ -586,20 +584,6 @@ function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
-function MobileLearnMascot() {
-  return (
-    <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 lg:hidden">
-      <Image
-        src="/mascots/mascot5.png"
-        alt=""
-        width={96}
-        height={96}
-        className="size-24 object-contain"
-      />
-    </div>
-  );
-}
-
 function LanguageSelection({
   languageStats,
   selectedLanguage,
@@ -614,6 +598,15 @@ function LanguageSelection({
 
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:p-10">
+      <div className="flex justify-center lg:hidden">
+        <Image
+          src="/mascots/mascot5.png"
+          alt=""
+          width={80}
+          height={80}
+          className="size-20 object-contain"
+        />
+      </div>
       <h2 className="text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
 
       <div className="mt-6">
@@ -662,6 +655,15 @@ function CountSelection({
 
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
+      <div className="flex justify-center lg:hidden">
+        <Image
+          src="/mascots/mascot5.png"
+          alt=""
+          width={80}
+          height={80}
+          className="size-20 object-contain"
+        />
+      </div>
       <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
         {t("quiz.chooseCountDescription", {
