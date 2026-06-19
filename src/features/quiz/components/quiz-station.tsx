@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -395,9 +396,9 @@ export function QuizStation({
 
   if (phase === "result") {
     return (
-      <div
-        data-learn-quiz-page="result"
-        data-quiz-overlay="result"
+      <QuizViewportOverlay
+        learnPagePhase="result"
+        overlay="result"
         className="animate-screen-pop fixed inset-0 z-30 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
       >
         <div className="flex w-full max-w-3xl items-center justify-center">
@@ -408,7 +409,7 @@ export function QuizStation({
             onExit={handleExit}
           />
         </div>
-      </div>
+      </QuizViewportOverlay>
     );
   }
 
@@ -417,12 +418,12 @@ export function QuizStation({
 
     if (tier) {
       return (
-        <div
-          data-quiz-overlay="chest"
+        <QuizViewportOverlay
+          overlay="chest"
           className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
         >
           <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} onClose={() => setPhase("result")} />
-        </div>
+        </QuizViewportOverlay>
       );
     }
   }
@@ -986,6 +987,40 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
         {t("quiz.continue")}
       </Button>
     </div>
+  );
+}
+
+function QuizViewportOverlay({
+  children,
+  className,
+  overlay,
+  learnPagePhase,
+}: {
+  children: ReactNode;
+  className: string;
+  overlay: "result" | "chest";
+  learnPagePhase?: "result";
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      data-quiz-overlay={overlay}
+      data-learn-quiz-page={learnPagePhase}
+      className={className}
+    >
+      {children}
+    </div>,
+    document.body,
   );
 }
 

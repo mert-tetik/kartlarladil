@@ -39,6 +39,14 @@ interface CardFaceState {
   isFaceUp: boolean;
 }
 
+const ADD_BUTTON_TEXT_BY_TIER: Record<Tier, string> = {
+  A1: "text-emerald-800",
+  A2: "text-sky-800",
+  B1: "text-violet-800",
+  B2: "text-amber-800",
+  C1: "text-rose-800",
+};
+
 export function VocabularyCardView({
   card,
   inventory,
@@ -337,7 +345,7 @@ function CardFront({
               disabled={owned || !onAdd}
               className={cn(
                 "h-8 bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
-                style.text,
+                ADD_BUTTON_TEXT_BY_TIER[card.tier],
               )}
             >
               {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
