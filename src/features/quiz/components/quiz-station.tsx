@@ -33,7 +33,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import { getChestTierByCount, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { getChestTierByCount, CHEST_TIER_TEXT_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -690,7 +690,7 @@ function CountSelection({
             >
               <span>{count}</span>
               {chestTier ? (
-                <span className="text-[10px] font-medium opacity-80 sm:text-xs">{t(chestTier.labelKey)}</span>
+                <span className={cn("text-[10px] font-medium sm:text-xs", CHEST_TIER_TEXT_CLASSES[chestTier.tier])}>{t(chestTier.labelKey)}</span>
               ) : null}
             </button>
           );

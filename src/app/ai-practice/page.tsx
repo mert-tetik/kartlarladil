@@ -32,7 +32,7 @@ export default async function AiPracticePage() {
           description={t("page.aiPractice.chooseLanguagePrompt")}
           descriptionClassName="text-sm sm:text-base"
         />
-        <div className="mt-8">
+        <div className="mx-auto mt-8 max-w-3xl">
           <AiPracticeLanguageSelection locale={locale} />
         </div>
       </div>

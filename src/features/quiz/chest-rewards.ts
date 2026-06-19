@@ -8,6 +8,16 @@ export interface ChestTierDefinition {
   labelKey: `chest.tier${Capitalize<ChestTier>}`;
 }
 
+export const CHEST_TIER_TEXT_CLASSES: Record<ChestTier, string> = {
+  wood: "text-amber-800",
+  iron: "text-slate-500",
+  bronze: "text-orange-700",
+  silver: "text-gray-400",
+  gold: "text-yellow-500",
+  diamond: "text-cyan-400",
+  legendary: "text-purple-500",
+};
+
 export const CHEST_TIERS: ChestTierDefinition[] = [
   { tier: "wood", count: 10, points: 20, filter: "none", labelKey: "chest.tierWood" },
   { tier: "iron", count: 20, points: 40, filter: "grayscale(60%) brightness(1.1)", labelKey: "chest.tierIron" },
