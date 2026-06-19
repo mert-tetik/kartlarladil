@@ -559,25 +559,27 @@ function LanguageSelection({
       </div>
 
       <div className="mt-6">
-        <div className="grid grid-cols-2 gap-2">
-          {languageStats.map((language) => (
-            <button
-            key={language.code}
-            type="button"
-            aria-pressed={selectedLanguage === language.code}
-            onClick={() => onSelect(language.code)}
-            className={cn(
-              "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-background-card",
-              selectedLanguage === language.code && "border-foreground bg-background-card",
-            )}
-          >
-            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
-              <LanguageFlag code={language.code} />
-              <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
-            </span>
-            <Badge>{formatCards(locale, language.count)}</Badge>
-          </button>
-        ))}
+        <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px]">
+          <div className="grid grid-cols-1 gap-2">
+            {languageStats.map((language) => (
+              <button
+                key={language.code}
+                type="button"
+                aria-pressed={selectedLanguage === language.code}
+                onClick={() => onSelect(language.code)}
+                className={cn(
+                  "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted",
+                  selectedLanguage === language.code && "border-foreground bg-background-muted",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+                  <LanguageFlag code={language.code} />
+                  <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
+                </span>
+                <Badge>{formatCards(locale, language.count)}</Badge>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

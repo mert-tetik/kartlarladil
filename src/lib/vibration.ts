@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
-export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result";
+export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Very light tap for generic presses. */
@@ -21,6 +21,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   confetti: [35],
   /** Strong, satisfying pulse when the result screen opens. */
   result: [45],
+  /** Short burst when new cards are drawn. */
+  draw: [25],
 };
 
 export function isVibrationSupported(): boolean {

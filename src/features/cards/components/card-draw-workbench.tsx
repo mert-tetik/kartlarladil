@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
@@ -67,7 +68,6 @@ export function CardDrawWorkbench() {
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
-  const [shake, setShake] = useState<{ active: boolean; count: number }>({ active: false, count: 0 });
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const suggestionRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -234,7 +234,7 @@ export function CardDrawWorkbench() {
     setQuery("");
     setIsDropdownOpen(false);
     setRawHighlightedIndex(-1);
-    triggerShake(1);
+    vibrate("draw");
     dealCards([card]);
   }
 
@@ -285,18 +285,8 @@ export function CardDrawWorkbench() {
   }, [highlightedIndex]);
 
   function drawCards(count: number) {
-    triggerShake(count === 1 ? 1 : 4);
+    vibrate("draw");
     dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
-  }
-
-  function triggerShake(count: number) {
-    setShake({ active: false, count: 0 });
-    window.requestAnimationFrame(() => {
-      setShake({ active: true, count });
-      window.setTimeout(() => {
-        setShake({ active: false, count: 0 });
-      }, 90 * count + 50);
-    });
   }
 
   function skipCard(cardId: string) {
@@ -494,13 +484,9 @@ export function CardDrawWorkbench() {
             {showCardGrid ? (
               <div
                 ref={gridRef}
-                className={cn(
-                  "card-draw-card-grid grid min-h-0 grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4",
-                  shake.active && "animate-card-draw-shake",
-                )}
+                className="card-draw-card-grid grid min-h-0 grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4"
                 style={{
                   ...(exitingCards.length > 0 && exitGridHeight ? { minHeight: `${exitGridHeight}px` } : {}),
-                  ...(shake.active ? { animationIterationCount: shake.count } : {}),
                 }}
               >
                 {cards.map((card, index) => (
