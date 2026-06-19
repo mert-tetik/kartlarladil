@@ -28,6 +28,24 @@ export const CHEST_TIER_BORDER_CLASSES: Record<ChestTier, string> = {
   legendary: "border-purple-500",
 };
 
+export interface ChestTierUiClasses {
+  base: string;
+  lid: string;
+  band: string;
+  lock: string;
+  glow: string;
+}
+
+export const CHEST_TIER_UI_CLASSES: Record<ChestTier, ChestTierUiClasses> = {
+  wood: { base: "bg-amber-800", lid: "bg-amber-700", band: "bg-amber-900", lock: "bg-yellow-200", glow: "bg-amber-400" },
+  iron: { base: "bg-slate-500", lid: "bg-slate-400", band: "bg-slate-600", lock: "bg-slate-200", glow: "bg-slate-300" },
+  bronze: { base: "bg-orange-700", lid: "bg-orange-600", band: "bg-orange-800", lock: "bg-yellow-200", glow: "bg-orange-400" },
+  silver: { base: "bg-gray-400", lid: "bg-gray-300", band: "bg-gray-500", lock: "bg-white", glow: "bg-gray-200" },
+  gold: { base: "bg-yellow-500", lid: "bg-yellow-400", band: "bg-yellow-600", lock: "bg-yellow-100", glow: "bg-yellow-300" },
+  diamond: { base: "bg-cyan-400", lid: "bg-cyan-300", band: "bg-cyan-500", lock: "bg-white", glow: "bg-cyan-200" },
+  legendary: { base: "bg-purple-500", lid: "bg-purple-400", band: "bg-fuchsia-700", lock: "bg-yellow-200", glow: "bg-fuchsia-300" },
+};
+
 export const CHEST_TIERS: ChestTierDefinition[] = [
   { tier: "wood", count: 10, points: 20, filter: "none", labelKey: "chest.tierWood" },
   { tier: "iron", count: 20, points: 40, filter: "grayscale(60%) brightness(1.1)", labelKey: "chest.tierIron" },

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
-  Gift,
   GraduationCap,
   Lock,
   RotateCcw,
@@ -167,6 +166,7 @@ export function QuizStation({
       setTextResult("idle");
       setLastAnswerCorrect(null);
       setResults({ correct: [], incorrect: [], learned: [] });
+      setChestOpened(false);
       setPhase("quiz");
     },
     [cards, mode, locale],
@@ -182,6 +182,7 @@ export function QuizStation({
     }
 
     setSelectedCount(null);
+    setChestOpened(false);
     setPhase("count");
   }
 
@@ -257,6 +258,10 @@ export function QuizStation({
     }
 
     if (currentIndex + 1 >= deck.length) {
+      if (!chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
+        setPhase("chest");
+        return;
+      }
       setPhase("result");
       return;
     }
@@ -282,6 +287,10 @@ export function QuizStation({
           learned: [...current.learned, learned],
         }));
       }
+      if (!chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
+        setPhase("chest");
+        return;
+      }
       setPhase("result");
       return;
     }
@@ -306,21 +315,12 @@ export function QuizStation({
       }
     }
 
+    setChestOpened(false);
     setPhase("count");
   }
 
   function handleExit() {
     router.push("/my-cards");
-  }
-
-  function handleOpenChest() {
-    if (chestOpened) return;
-
-    requireAuthAction(() => {
-      setPhase("chest");
-    }, {
-      nextPath: "/learn",
-    });
   }
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
@@ -397,16 +397,14 @@ export function QuizStation({
     return (
       <div
         data-learn-quiz-page="result"
-        className="animate-screen-pop fixed inset-x-0 bottom-0 top-16 z-30 flex items-center justify-center bg-background p-4"
+        className="animate-screen-pop fixed inset-0 z-30 flex items-center justify-center bg-background p-4"
       >
         <div className="w-full max-w-3xl">
           <ResultView
             results={results}
             selectedCount={selectedCount}
-            chestOpened={chestOpened}
             onRestart={handleRestart}
             onExit={handleExit}
-            onOpenChest={handleOpenChest}
           />
         </div>
       </div>
@@ -418,7 +416,7 @@ export function QuizStation({
 
     if (tier) {
       return (
-        <div className="animate-screen-pop fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center bg-background p-4">
+        <div className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4">
           <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} onClose={() => setPhase("result")} />
         </div>
       );
@@ -1001,18 +999,14 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
 
 function ResultView({
   results,
-  selectedCount,
-  chestOpened,
+  selectedCount: _selectedCount,
   onRestart,
   onExit,
-  onOpenChest,
 }: {
   results: QuizResult;
   selectedCount: number | null;
-  chestOpened: boolean;
   onRestart: () => void;
   onExit: () => void;
-  onOpenChest: () => void;
 }) {
   const t = useT();
   const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
@@ -1154,12 +1148,6 @@ function ResultView({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {!chestOpened && selectedCount && getChestTierByCount(selectedCount) ? (
-            <Button className="bg-amber-500 hover:bg-amber-600 text-foreground-inverse" onClick={onOpenChest}>
-              <Gift className="size-4" aria-hidden="true" />
-              {t("quiz.openChest")}
-            </Button>
-          ) : null}
           <Button variant="secondary" onClick={onRestart}>
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}
