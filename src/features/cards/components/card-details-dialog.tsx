@@ -3,9 +3,9 @@
 import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { BookOpenText, X } from "lucide-react";
+import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { TIER_STYLES } from "@/data/tiers";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getCardExampleTranslation,
@@ -59,7 +59,7 @@ export function CardDetailsDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end bg-background-inverse/45 p-0 sm:items-center sm:justify-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end bg-black/60 p-0 sm:items-center sm:justify-center sm:p-6"
       onMouseDown={() => onOpenChange(false)}
     >
       <section
@@ -67,40 +67,47 @@ export function CardDetailsDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="animate-menu-pop origin-center max-h-[92vh] w-full overflow-hidden rounded-t-lg border border-border bg-background-card shadow-lg sm:max-w-4xl sm:rounded-lg"
+        className="animate-menu-pop relative origin-center max-h-[92vh] w-full overflow-hidden rounded-t-lg border border-border bg-background-card shadow-lg sm:max-w-4xl sm:rounded-lg"
         onMouseDown={(event) => event.stopPropagation()}
       >
+        <button
+          type="button"
+          aria-label={t("cards.closeDetails")}
+          onClick={() => onOpenChange(false)}
+          className="absolute right-3 top-3 z-10 inline-flex size-8 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        >
+          <X className="size-5" aria-hidden="true" />
+        </button>
+
+        <div className="px-5 pt-12 sm:pt-5">
+          <VocabularyCardView
+            card={card}
+            initialFace="front"
+            flippable={false}
+            showActions={false}
+            className="mx-auto h-[320px] w-full max-w-[240px] sm:h-[400px] sm:max-w-[300px]"
+          />
+        </div>
+
         <div className={cn("border-b p-5", style.surface, style.border)}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className={cn("border-transparent bg-background-card/80", style.text)}>
-                  {card.tier} · {getTierLabel(card.tier, locale)}
-                </Badge>
-                <Badge className="border-transparent bg-background-card/80 text-foreground-secondary">
-                  {getLanguageDisplayName(card.language, locale)}
-                </Badge>
-                <Badge className="border-transparent bg-background-card/80 text-foreground-secondary">
-                  {getPartOfSpeechLabel(card.termKind, locale)}
-                </Badge>
-              </div>
-              <h2 id={titleId} className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground">
-                {card.term} {t("cards.details")}
-              </h2>
-              <p id={descriptionId} className="mt-2 text-sm leading-6 text-foreground-secondary">
-                {getCardTranslation(card, locale)} · {card.pronunciation}
-              </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={cn("border-transparent bg-background-card/80", style.text)}>
+                {card.tier} · {getTierLabel(card.tier, locale)}
+              </Badge>
+              <Badge className="border-transparent bg-background-card/80 text-foreground-secondary">
+                {getLanguageDisplayName(card.language, locale)}
+              </Badge>
+              <Badge className="border-transparent bg-background-card/80 text-foreground-secondary">
+                {getPartOfSpeechLabel(card.termKind, locale)}
+              </Badge>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              aria-label={t("cards.closeDetails")}
-              onClick={() => onOpenChange(false)}
-              className="shrink-0 bg-background-card/80"
-            >
-              <X className="size-4" aria-hidden="true" />
-            </Button>
+            <h2 id={titleId} className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground">
+              {card.term} {t("cards.details")}
+            </h2>
+            <p id={descriptionId} className="mt-2 text-sm leading-6 text-foreground-secondary">
+              {getCardTranslation(card, locale)} · {card.pronunciation}
+            </p>
           </div>
         </div>
 

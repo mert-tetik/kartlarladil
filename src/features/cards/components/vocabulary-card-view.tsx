@@ -30,6 +30,7 @@ interface VocabularyCardViewProps {
   className?: string;
   onAdd?: () => void;
   onSkip?: () => void;
+  showActions?: boolean;
 }
 
 interface CardFaceState {
@@ -49,6 +50,7 @@ export function VocabularyCardView({
   className,
   onAdd,
   onSkip,
+  showActions = true,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
@@ -73,13 +75,36 @@ export function VocabularyCardView({
     }
   }
 
+  function openDetails() {
+    if (!isControlled && flippable && isFaceUp) {
+      setDetailsOpen(true);
+    }
+  }
+
+  function handleCardClick() {
+    if (isControlled || !flippable) {
+      return;
+    }
+
+    if (!isFaceUp) {
+      revealFront();
+    } else {
+      openDetails();
+    }
+  }
+
   function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (!flippable || isFaceUp || (event.key !== "Enter" && event.key !== " ")) {
+    if (!flippable || (event.key !== "Enter" && event.key !== " ")) {
       return;
     }
 
     event.preventDefault();
-    revealFront();
+
+    if (!isFaceUp) {
+      revealFront();
+    } else {
+      openDetails();
+    }
   }
 
   const flipRoleProps =
@@ -89,7 +114,6 @@ export function VocabularyCardView({
           tabIndex: 0,
           "aria-label": `${card.term}: ${t("cards.flip")}`,
           "aria-pressed": false,
-          onClick: revealFront,
           onKeyDown: handleCardKeyDown,
         }
       : {};
@@ -98,6 +122,7 @@ export function VocabularyCardView({
     <article
       data-card-face={isFaceUp ? "front" : "back"}
       {...flipRoleProps}
+      onClick={handleCardClick}
       className={cn(
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
         "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]",
@@ -119,6 +144,7 @@ export function VocabularyCardView({
           onShowDetails={() => setDetailsOpen(true)}
           onAdd={onAdd}
           onSkip={onSkip}
+          showActions={showActions}
         />
         <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} />
       </div>
@@ -136,6 +162,7 @@ function CardFront({
   onShowDetails,
   onAdd,
   onSkip,
+  showActions = true,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -144,6 +171,7 @@ function CardFront({
   onShowDetails: () => void;
   onAdd?: () => void;
   onSkip?: () => void;
+  showActions?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -204,30 +232,32 @@ function CardFront({
         <span className="text-sm font-bold sm:text-base">
           {card.tier} · {getTierLabel(card.tier, locale)}
         </span>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            aria-label={`${card.term} ${t("cards.details")}`}
-            title={t("cards.details")}
-            onClick={handleDetailsClick}
-            className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
-          >
-            <Info className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            aria-label={`${card.term} ${t("cards.ask")}`}
-            title={t("cards.ask")}
-            onClick={handleAskClick}
-            className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
-          >
-            <MessageCircleQuestion className="size-4" aria-hidden="true" />
-          </Button>
-        </div>
+        {showActions ? (
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label={`${card.term} ${t("cards.details")}`}
+              title={t("cards.details")}
+              onClick={handleDetailsClick}
+              className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
+            >
+              <Info className="size-4" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label={`${card.term} ${t("cards.ask")}`}
+              title={t("cards.ask")}
+              onClick={handleAskClick}
+              className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
+            >
+              <MessageCircleQuestion className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col justify-center py-4 text-center max-sm:py-2">
