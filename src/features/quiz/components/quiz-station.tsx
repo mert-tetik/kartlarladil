@@ -479,19 +479,7 @@ export function QuizStation({
           </div>
 
           <div className="order-1 hidden items-center justify-center lg:order-2 lg:flex lg:h-[440px]">
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setDesktopCardFace((current) => (current === "front" ? "back" : "front"))}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setDesktopCardFace((current) => (current === "front" ? "back" : "front"));
-                }
-              }}
-              className="h-[440px] w-auto cursor-pointer focus:outline-none"
-              aria-label={t("cards.flip")}
-            >
+            <div className="h-[440px] w-auto focus:outline-none" aria-hidden="true">
               <VocabularyCardView
                 card={item.card}
                 inventory={item.inventoryCard}
@@ -896,9 +884,9 @@ function TextQuestion({
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"
-          onClick={() => speakCardTerm(item.card.term, item.card.language)}
+          onClick={() => speakCardTerm(getCardTranslation(item.card, locale), locale)}
           className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
-          aria-label={`${item.card.term} ${t("cards.speak")}`}
+          aria-label={`${getCardTranslation(item.card, locale)} ${t("cards.speak")}`}
           title={t("cards.speak")}
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
@@ -1231,7 +1219,7 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
             <X className="size-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-hide">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {cards.length === 0 ? (
             <p className="py-8 text-center text-sm text-foreground-secondary">No cards</p>
           ) : (

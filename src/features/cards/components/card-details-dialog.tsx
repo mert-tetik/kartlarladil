@@ -67,7 +67,7 @@ export function CardDetailsDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="animate-menu-pop relative origin-center max-h-[92vh] w-full overflow-hidden rounded-t-lg border border-border bg-background-card shadow-lg sm:max-w-4xl sm:rounded-lg"
+        className="animate-menu-pop relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-lg border border-border bg-background-card shadow-lg sm:max-w-4xl sm:rounded-lg"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <button
@@ -79,7 +79,7 @@ export function CardDetailsDialog({
           <X className="size-5" aria-hidden="true" />
         </button>
 
-        <div className="px-5 pt-12 sm:pt-5">
+        <div className="shrink-0 px-5 pt-12 sm:pt-5">
           <VocabularyCardView
             card={card}
             initialFace="front"
@@ -89,7 +89,7 @@ export function CardDetailsDialog({
           />
         </div>
 
-        <div className={cn("border-b p-5", style.surface, style.border)}>
+        <div className={cn("shrink-0 border-b p-5", style.surface, style.border)}>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={cn("border-transparent bg-background-card/80", style.text)}>
@@ -111,7 +111,7 @@ export function CardDetailsDialog({
           </div>
         </div>
 
-        <div className="max-h-[calc(92vh-132px)] overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
             <section className="flex flex-col gap-3" aria-labelledby={`${titleId}-examples`}>
               <div className="flex items-center gap-2">

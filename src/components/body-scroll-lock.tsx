@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 
 const LOCKED_PATHS = [
   "/learn",
-  "/card-draw",
   "/ai-practice",
   "/ask",
 ];
