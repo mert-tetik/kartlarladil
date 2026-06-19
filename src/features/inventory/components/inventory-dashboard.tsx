@@ -218,16 +218,18 @@ export function InventoryDashboard({
         />
       </div>
 
-      <MobileCardMenu
-        isOpen={mobileMenu !== null}
-        title={
-          mobileMenu === "active"
-            ? t("inventory.status.active")
-            : t("inventory.status.learned")
-        }
-        cards={mobileMenu === "active" ? activeCards : learnedCards}
-        onClose={() => setMobileMenu(null)}
-      />
+      <div className="lg:hidden">
+        <MobileCardMenu
+          isOpen={mobileMenu !== null}
+          title={
+            mobileMenu === "active"
+              ? t("inventory.status.active")
+              : t("inventory.status.learned")
+          }
+          cards={mobileMenu === "active" ? activeCards : learnedCards}
+          onClose={() => setMobileMenu(null)}
+        />
+      </div>
     </div>
   );
 }
