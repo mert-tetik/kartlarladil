@@ -558,8 +558,8 @@ function LanguageSelection({
         </div>
       </div>
 
-      <div className="mt-6 h-[180px] overflow-y-auto pr-1 sm:h-[240px]">
-        <div className="grid gap-2 sm:grid-cols-2">
+      <div className="mt-6">
+        <div className="grid grid-cols-2 gap-2">
           {languageStats.map((language) => (
             <button
             key={language.code}
@@ -567,7 +567,7 @@ function LanguageSelection({
             aria-pressed={selectedLanguage === language.code}
             onClick={() => onSelect(language.code)}
             className={cn(
-              "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background p-4 text-left transition-colors hover:bg-background-card",
+              "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-background-card",
               selectedLanguage === language.code && "border-foreground bg-background-card",
             )}
           >

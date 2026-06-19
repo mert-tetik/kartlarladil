@@ -28,7 +28,7 @@ export function LearnQuizShell({ title, description }: LearnQuizShellProps) {
           mascotSize="2xl"
         />
       </div>
-      <div className="flex flex-1 flex-col justify-center overflow-y-auto">
+      <div className="flex flex-1 flex-col justify-center overflow-hidden">
         <QuizStation mode="active" onPhaseChange={setPhase} />
       </div>
     </>
