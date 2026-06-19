@@ -397,9 +397,10 @@ export function QuizStation({
     return (
       <div
         data-learn-quiz-page="result"
-        className="animate-screen-pop fixed inset-0 z-30 flex items-center justify-center bg-background p-4"
+        data-quiz-overlay="result"
+        className="animate-screen-pop fixed inset-0 z-30 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
       >
-        <div className="w-full max-w-3xl">
+        <div className="flex w-full max-w-3xl items-center justify-center">
           <ResultView
             results={results}
             selectedCount={selectedCount}
@@ -416,7 +417,10 @@ export function QuizStation({
 
     if (tier) {
       return (
-        <div className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4">
+        <div
+          data-quiz-overlay="chest"
+          className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
+        >
           <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} onClose={() => setPhase("result")} />
         </div>
       );
@@ -985,7 +989,7 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
   );
 }
 
-function ResultView({
+export function ResultView({
   results,
   selectedCount: _selectedCount,
   onRestart,
@@ -1073,7 +1077,10 @@ function ResultView({
   const menuVisible = introPhase === "done";
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4">
+    <div
+      data-quiz-result-view
+      className="relative mx-auto flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4"
+    >
       {introPhase !== "done" ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
           <div

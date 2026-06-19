@@ -18,7 +18,7 @@ const LOCALES = [
   "ko",
   "zh-CN",
 ] as const;
- 
+  
 function getLocaleIndex(locale: (typeof LOCALES)[number]) {
   return CARD_SEED_LOCALE_ORDER.indexOf(locale) + 5;
 }

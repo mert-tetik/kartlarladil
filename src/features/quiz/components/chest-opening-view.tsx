@@ -82,7 +82,10 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
   }
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center p-4 text-center">
+    <div
+      data-chest-opening-view
+      className="relative mx-auto flex w-full max-w-2xl flex-col items-center justify-center p-4 text-center"
+    >
       <button
         type="button"
         onClick={onClose}
