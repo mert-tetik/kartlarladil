@@ -24,6 +24,7 @@ export function PageHeader({
   action,
   mascot,
   mascotSize = "md",
+  centered = false,
   className,
   titleClassName,
   descriptionClassName,
@@ -33,14 +34,15 @@ export function PageHeader({
   action?: ReactNode;
   mascot?: string;
   mascotSize?: "sm" | "md" | "lg" | "xl" | "2xl";
+  centered?: boolean;
   className?: string;
   titleClassName?: string;
   descriptionClassName?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
-      <div className="max-w-3xl">
-        <div className="flex items-center gap-4">
+    <div className={cn("flex flex-col gap-4", centered ? "items-center text-center md:items-center md:justify-center" : "md:flex-row md:items-end md:justify-between", className)}>
+      <div className={cn("max-w-3xl", centered && "mx-auto")}>
+        <div className={cn("flex items-center gap-4", centered && "justify-center")}>
           {mascot ? (
             <div className={cn("relative shrink-0", MASCOT_SIZE_CLASSES[mascotSize])}>
               <Image src={mascot} alt="" fill sizes={MASCOT_IMAGE_SIZES[mascotSize]} className="object-contain" />
@@ -49,7 +51,7 @@ export function PageHeader({
           <h1 className={cn("font-display font-semibold text-foreground", titleClassName ?? "text-4xl md:text-5xl")}>{title}</h1>
         </div>
         {description ? (
-          <p className={cn("mt-3 max-w-2xl text-base leading-7 text-foreground-secondary", descriptionClassName)}>{description}</p>
+          <p className={cn("mt-3 max-w-2xl text-base leading-7 text-foreground-secondary", centered && "mx-auto", descriptionClassName)}>{description}</p>
         ) : null}
       </div>
       {action}

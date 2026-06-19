@@ -26,6 +26,7 @@ export function LearnQuizShell({ title, description }: LearnQuizShellProps) {
           description={description}
           mascot="/mascots/mascot5.png"
           mascotSize="2xl"
+          centered
         />
       </div>
       <div className="flex flex-1 flex-col justify-center overflow-hidden">

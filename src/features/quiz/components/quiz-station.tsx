@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen,
   CheckCircle2,
   Gift,
   GraduationCap,
-  Languages,
   Lock,
   RotateCcw,
   Sparkles,
@@ -34,7 +33,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import { getChestFrameIndex, getChestTierByCount, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { getChestTierByCount, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -358,7 +357,8 @@ export function QuizStation({
 
   if (phase === "language") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center">
+        <MobileLearnMascot />
         <LanguageSelection
           languageStats={languageStats}
           selectedLanguage={selectedLanguage}
@@ -370,7 +370,8 @@ export function QuizStation({
 
   if (phase === "count" && selectedLanguage) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center">
+        <MobileLearnMascot />
         <CountSelection
           language={selectedLanguage}
           availableCount={availableCards.length}
@@ -585,6 +586,20 @@ function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function MobileLearnMascot() {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 lg:hidden">
+      <Image
+        src="/mascots/mascot5.png"
+        alt=""
+        width={96}
+        height={96}
+        className="size-24 object-contain"
+      />
+    </div>
+  );
+}
+
 function LanguageSelection({
   languageStats,
   selectedLanguage,
@@ -599,13 +614,7 @@ function LanguageSelection({
 
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
-      <div className="flex items-start gap-4">
-        <Languages className="size-6 shrink-0 text-foreground-secondary" aria-hidden="true" />
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">{t("quiz.chooseLanguageDescription")}</p>
-        </div>
-      </div>
+      <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseLanguageTitle")}</h2>
 
       <div className="mt-6">
         <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px]">
@@ -653,18 +662,13 @@ function CountSelection({
 
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
-      <div className="flex items-start gap-4">
-        <BookOpen className="size-6 shrink-0 text-foreground-secondary" aria-hidden="true" />
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
-            {t("quiz.chooseCountDescription", {
-              language: getLanguageDisplayName(language, locale),
-              count: availableCount,
-            })}
-          </p>
-        </div>
-      </div>
+      <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
+        {t("quiz.chooseCountDescription", {
+          language: getLanguageDisplayName(language, locale),
+          count: availableCount,
+        })}
+      </p>
 
       <div className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-7">
         {COUNT_OPTIONS.map((count) => {
