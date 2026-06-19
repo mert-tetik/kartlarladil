@@ -6,7 +6,7 @@ import {
   getNextRankProgress,
   getPointsForTier,
   getRankForPoints,
-  mergeAiPracticePoints,
+  mergeBonusPoints,
 } from "@/features/progress/progress-stats";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
 
@@ -62,7 +62,7 @@ describe("progress stats", () => {
     expect(stats.totalPoints).toBe(0);
     expect(stats.rank.label).toBe("Başlangıç");
 
-    const merged = mergeAiPracticePoints(stats, 150);
+    const merged = mergeBonusPoints(stats, 150);
 
     expect(merged.totalPoints).toBe(150);
     expect(merged.rank.label).toBe("Kart Çırağı");

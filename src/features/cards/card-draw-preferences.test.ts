@@ -23,6 +23,7 @@ describe("card draw preferences", () => {
         preferredUiLocale: "tr",
         preferredTier: "B2",
         aiPracticePoints: 0,
+    chestPoints: 0,
       }),
     ).toEqual({
       language: "de",

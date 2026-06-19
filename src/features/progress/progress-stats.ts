@@ -116,12 +116,12 @@ export function calculateProgressStats(items: InventoryCardView[]): ProgressStat
   };
 }
 
-export function mergeAiPracticePoints(stats: ProgressStats, aiPracticePoints: number): ProgressStats {
-  if (aiPracticePoints <= 0) {
+export function mergeBonusPoints(stats: ProgressStats, bonusPoints: number): ProgressStats {
+  if (bonusPoints <= 0) {
     return stats;
   }
 
-  const totalPoints = stats.totalPoints + aiPracticePoints;
+  const totalPoints = stats.totalPoints + bonusPoints;
   const rankProgress = getNextRankProgress(totalPoints);
 
   return {

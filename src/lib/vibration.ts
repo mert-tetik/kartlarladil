@@ -4,25 +4,29 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
-export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw";
+export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
-  /** Very light tap for generic presses. */
-  tap: [12],
+  /** Light tap for generic presses. */
+  tap: [22],
   /** Short, solid feedback when a card flips. */
-  flip: [15],
+  flip: [22],
   /** Crisp confirmation for a correct answer. */
-  correct: [22],
+  correct: [38],
   /** Two short bursts that mimic an "incorrect" buzz. */
-  incorrect: [15, 70, 15],
+  incorrect: [22, 55, 22],
   /** Subtle pulse when the learned popup appears. */
-  learned: [18],
+  learned: [32],
   /** Heavier burst synced with confetti. */
-  confetti: [35],
+  confetti: [65],
   /** Strong, satisfying pulse when the result screen opens. */
-  result: [45],
+  result: [85],
   /** Short burst when new cards are drawn. */
-  draw: [25],
+  draw: [40],
+  /** Thud when the chest is tapped. */
+  "chest-tap": [45],
+  /** Strong, triumphant burst when the chest opens. */
+  "chest-open": [90, 35, 120],
 };
 
 export function isVibrationSupported(): boolean {

@@ -10,6 +10,7 @@ const baseUser: AuthShellUser = {
     preferredUiLocale: null,
     preferredTier: null,
     aiPracticePoints: 0,
+    chestPoints: 0,
   },
 };
 

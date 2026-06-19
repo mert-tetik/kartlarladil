@@ -18,6 +18,7 @@ vi.mock("@/features/auth/auth-session", () => ({
         preferredUiLocale: "en",
         preferredTier: "A1",
         aiPracticePoints: 0,
+        chestPoints: 0,
       },
     }),
   ),

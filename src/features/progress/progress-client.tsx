@@ -15,7 +15,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   EMPTY_PROGRESS_STATS,
   calculateProgressStats,
-  mergeAiPracticePoints,
+  mergeBonusPoints,
 } from "@/features/progress/progress-stats";
 import type { ProgressStats } from "@/types/domain";
 
@@ -98,10 +98,10 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     }
 
     const baseStats = calculateProgressStats(joinInventoryCards(cards));
-    const aiPracticePoints = user?.profile.aiPracticePoints ?? 0;
+    const bonusPoints = (user?.profile.aiPracticePoints ?? 0) + (user?.profile.chestPoints ?? 0);
 
-    return mergeAiPracticePoints(baseStats, aiPracticePoints);
-  }, [cards, hydrated, user?.profile.aiPracticePoints]);
+    return mergeBonusPoints(baseStats, bonusPoints);
+  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints]);
 
   const refreshStats = useCallback(async () => {
     if (user) {

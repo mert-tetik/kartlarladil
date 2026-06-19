@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   CheckCircle2,
+  Gift,
   GraduationCap,
   Languages,
   Lock,
   RotateCcw,
+  Sparkles,
   Trophy,
   Volume2,
   X,
@@ -29,6 +31,10 @@ import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { useProgressStats } from "@/features/progress/progress-client";
+import { awardChestPoints } from "@/features/quiz/actions";
+import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
+import { getChestFrameIndex, getChestTierByCount, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +55,7 @@ import type {
   VocabularyCard,
 } from "@/types/domain";
 
-type QuizPhase = "language" | "count" | "quiz" | "celebration" | "result";
+type QuizPhase = "language" | "count" | "quiz" | "celebration" | "result" | "chest";
 
 export type { QuizPhase };
 
@@ -86,6 +92,7 @@ export function QuizStation({
   const t = useT();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
+  const { refreshStats } = useProgressStats();
 
   const [phase, setPhase] = useState<QuizPhase>("language");
 
@@ -103,6 +110,7 @@ export function QuizStation({
   const [results, setResults] = useState<QuizResult>({ correct: [], incorrect: [], learned: [] });
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [chestOpened, setChestOpened] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">("back");
   const [mobileCardOpen, setMobileCardOpen] = useState(false);
@@ -306,6 +314,32 @@ export function QuizStation({
     router.push("/my-cards");
   }
 
+  function handleOpenChest() {
+    if (chestOpened) return;
+
+    requireAuthAction(() => {
+      setPhase("chest");
+    }, {
+      nextPath: "/learn",
+    });
+  }
+
+  async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
+    if (chestOpened) {
+      setPhase("result");
+      return;
+    }
+
+    const result = await awardChestPoints(tier);
+
+    if (result.success) {
+      setChestOpened(true);
+      await refreshStats();
+    }
+
+    setPhase("result");
+  }
+
   if (!hydrated) {
     return <EmptyState title={t("quiz.loadingTitle")} description={t("quiz.loadingDescription")} />;
   }
@@ -369,12 +403,27 @@ export function QuizStation({
         <div className="w-full max-w-3xl">
           <ResultView
             results={results}
+            selectedCount={selectedCount}
+            chestOpened={chestOpened}
             onRestart={handleRestart}
             onExit={handleExit}
+            onOpenChest={handleOpenChest}
           />
         </div>
       </div>
     );
+  }
+
+  if (phase === "chest" && selectedCount) {
+    const tier = getChestTierByCount(selectedCount);
+
+    if (tier) {
+      return (
+        <div className="animate-screen-pop fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center bg-background p-4">
+          <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} onClose={() => setPhase("result")} />
+        </div>
+      );
+    }
   }
 
   const item = deck[currentIndex];
@@ -465,7 +514,7 @@ export function QuizStation({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 lg:hidden"
           onClick={() => setMobileCardOpen(false)}
         >
-          <div className="relative w-full max-w-xs" onClick={(event) => event.stopPropagation()}>
+          <div className="relative w-full max-w-[260px]" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
               onClick={() => setMobileCardOpen(false)}
@@ -503,7 +552,7 @@ export function QuizStation({
                 initialFace="back"
                 face={mobileCardFace}
                 flippable={false}
-                className="w-full"
+                className="w-full aspect-[2.5/3.5] min-h-0 h-auto"
               />
             </div>
 
@@ -620,6 +669,7 @@ function CountSelection({
       <div className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-7">
         {COUNT_OPTIONS.map((count) => {
           const disabled = count > availableCount;
+          const chestTier = getChestTierByCount(count);
 
           return (
             <button
@@ -628,13 +678,16 @@ function CountSelection({
               disabled={disabled}
               onClick={() => onSelect(count)}
               className={cn(
-                "rounded-md border px-3 py-3 text-sm font-semibold transition-colors",
+                "flex flex-col items-center justify-center rounded-md border px-2 py-2 text-sm font-semibold transition-colors sm:py-3",
                 selectedCount === count
                   ? "border-foreground bg-background-inverse text-foreground-inverse"
                   : "border-border bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
               )}
             >
-              {count}
+              <span>{count}</span>
+              {chestTier ? (
+                <span className="text-[10px] font-medium opacity-80 sm:text-xs">{t(chestTier.labelKey)}</span>
+              ) : null}
             </button>
           );
         })}
@@ -910,41 +963,26 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
     if (hasTriggered.current) return;
     hasTriggered.current = true;
 
+    setCardFace("front");
     playSoundEffect("learned");
     vibrate("learned");
-
-    const flipTimer = setTimeout(() => {
-      setCardFace("front");
-    }, 1500);
-
-    const confettiTimer = setTimeout(() => {
-      playSoundEffect("confetti");
-      vibrate("confetti");
-      void confetti({
-        particleCount: 140,
-        spread: 80,
-        origin: { y: 0.55 },
-        colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
-        disableForReducedMotion: true,
-      });
-    }, 1750);
-
-    return () => {
-      clearTimeout(flipTimer);
-      clearTimeout(confettiTimer);
-    };
+    playSoundEffect("confetti");
+    vibrate("confetti");
+    void confetti({
+      particleCount: 140,
+      spread: 80,
+      origin: { y: 0.55 },
+      colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
+      disableForReducedMotion: true,
+    });
   }, []);
 
   return (
     <div className="animate-screen-pop mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
-      <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-        <Trophy className="size-10" aria-hidden="true" />
-      </div>
-      <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.learnedTitle")}</h2>
-      <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("quiz.learnedDescription")}</p>
+      <h2 className="text-2xl font-semibold text-foreground">{t("quiz.learnedTitle")}</h2>
 
-      <div className="mt-6 h-[280px] w-auto max-sm:h-[240px]">
-        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} className="h-full w-auto" />
+      <div className="mt-6 w-64 max-w-full">
+        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} className="w-full aspect-[3/4] min-h-0 h-auto" />
       </div>
 
       <Button className="mt-8 w-full" onClick={onContinue}>
@@ -956,16 +994,28 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
 
 function ResultView({
   results,
+  selectedCount,
+  chestOpened,
   onRestart,
   onExit,
+  onOpenChest,
 }: {
   results: QuizResult;
+  selectedCount: number | null;
+  chestOpened: boolean;
   onRestart: () => void;
   onExit: () => void;
+  onOpenChest: () => void;
 }) {
   const t = useT();
   const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
+  const [introPhase, setIntroPhase] = useState<"entering" | "flying" | "done">("entering");
+  const introRef = useRef<HTMLDivElement | null>(null);
+  const trophyRef = useRef<HTMLDivElement | null>(null);
   const hasTriggeredResult = useRef(false);
+
+  const total = results.correct.length + results.incorrect.length + results.learned.length;
+  const accuracy = total > 0 ? Math.round(((results.correct.length + results.learned.length) / total) * 100) : 0;
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -974,8 +1024,56 @@ function ResultView({
     playSoundEffect("quiz-complete");
     vibrate("result");
   }, []);
-  const total = results.correct.length + results.incorrect.length + results.learned.length;
-  const accuracy = total > 0 ? Math.round(((results.correct.length + results.learned.length) / total) * 100) : 0;
+
+  useEffect(() => {
+    if (introPhase !== "entering") return;
+    const el = introRef.current;
+    if (!el) return;
+
+    function onAnimationEnd() {
+      playSoundEffect("confetti");
+      vibrate("confetti");
+      void confetti({
+        particleCount: 140,
+        spread: 110,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
+        disableForReducedMotion: true,
+      });
+      setIntroPhase("flying");
+    }
+
+    el.addEventListener("animationend", onAnimationEnd);
+    return () => el.removeEventListener("animationend", onAnimationEnd);
+  }, [introPhase]);
+
+  useEffect(() => {
+    if (introPhase !== "flying") return;
+    const introEl = introRef.current;
+    const trophyEl = trophyRef.current;
+
+    if (!introEl || !trophyEl) {
+      setIntroPhase("done");
+      return;
+    }
+
+    const first = introEl.getBoundingClientRect();
+    const last = trophyEl.getBoundingClientRect();
+    const translateX = last.left + last.width / 2 - (first.left + first.width / 2);
+    const translateY = last.top + last.height / 2 - (first.top + first.height / 2);
+    const scale = last.width / first.width;
+
+    introEl.style.transition = "transform 550ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms ease 350ms";
+    introEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    introEl.style.opacity = "0";
+
+    function onTransitionEnd() {
+      setIntroPhase("done");
+    }
+
+    introEl.addEventListener("transitionend", onTransitionEnd);
+    return () => introEl.removeEventListener("transitionend", onTransitionEnd);
+  }, [introPhase]);
 
   const menuConfig = {
     correct: { title: t("quiz.resultCorrect"), cards: results.correct },
@@ -983,16 +1081,43 @@ function ResultView({
     learned: { title: t("quiz.resultLearned"), cards: results.learned },
   };
 
+  const menuVisible = introPhase === "done";
+
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4">
-      <div className="w-full rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm sm:p-10">
-        <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-brand/10 text-brand">
+    <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4">
+      {introPhase !== "done" ? (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            ref={introRef}
+            className={cn(
+              "flex size-32 items-center justify-center rounded-full bg-brand/10 text-brand",
+              introPhase === "entering" && "animate-trophy-intro-grow",
+            )}
+          >
+            <Trophy className="size-16" aria-hidden="true" />
+          </div>
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "w-full rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm transition-opacity duration-500 sm:p-10",
+          menuVisible ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <div
+          ref={trophyRef}
+          className={cn(
+            "mx-auto flex size-20 items-center justify-center rounded-full bg-brand/10 text-brand transition-opacity duration-300",
+            menuVisible ? "opacity-100" : "opacity-0",
+          )}
+        >
           <Trophy className="size-10" aria-hidden="true" />
         </div>
         <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
         <p className="mt-2 text-5xl font-bold text-foreground">{accuracy}%</p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ResultCard
             icon={CheckCircle2}
             label={t("quiz.resultCorrect")}
@@ -1009,17 +1134,25 @@ function ResultView({
             disabled={results.incorrect.length === 0}
             onClick={() => setOpenMenu("incorrect")}
           />
-          <ResultCard
-            icon={Trophy}
-            label={t("quiz.resultLearned")}
-            count={results.learned.length}
-            tone="amber"
-            disabled={results.learned.length === 0}
-            onClick={() => setOpenMenu("learned")}
-          />
+          <div className="col-span-2 sm:col-span-1">
+            <ResultCard
+              icon={Trophy}
+              label={t("quiz.resultLearned")}
+              count={results.learned.length}
+              tone="amber"
+              disabled={results.learned.length === 0}
+              onClick={() => setOpenMenu("learned")}
+            />
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          {!chestOpened && selectedCount && getChestTierByCount(selectedCount) ? (
+            <Button className="bg-amber-500 hover:bg-amber-600 text-foreground-inverse" onClick={onOpenChest}>
+              <Gift className="size-4" aria-hidden="true" />
+              {t("quiz.openChest")}
+            </Button>
+          ) : null}
           <Button variant="secondary" onClick={onRestart}>
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}
@@ -1085,14 +1218,14 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
   const t = useT();
   return (
     <div
-      className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl"
+        className="flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl max-lg:max-h-none max-lg:rounded-none max-lg:border-0"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border bg-background-card p-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card p-4">
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <button
             type="button"
@@ -1103,7 +1236,7 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
             <X className="size-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-hide">
           {cards.length === 0 ? (
             <p className="py-8 text-center text-sm text-foreground-secondary">No cards</p>
           ) : (

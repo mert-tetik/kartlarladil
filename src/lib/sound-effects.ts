@@ -1,4 +1,4 @@
-export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti" | "quiz-complete";
+export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti" | "quiz-complete" | "chest-tap" | "chest-open";
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
@@ -9,7 +9,17 @@ let audioContext: AudioContext | null = null;
 
 export function playSoundEffect(effect: SoundEffectName) {
   if (effect === "points") {
-    playPointsEffect();
+    playPointsEffect("/sounds/points.mp3", 0.35);
+    return;
+  }
+
+  if (effect === "chest-tap") {
+    playPointsEffect("/sounds/chest-tap.mp3", 0.55);
+    return;
+  }
+
+  if (effect === "chest-open") {
+    playPointsEffect("/sounds/chest-open.mp3", 0.6);
     return;
   }
 
@@ -55,14 +65,14 @@ export function playSoundEffect(effect: SoundEffectName) {
   }
 }
 
-function playPointsEffect() {
+function playPointsEffect(src: string, volume: number) {
   if (typeof window === "undefined" || typeof Audio === "undefined") {
     return;
   }
 
   try {
-    const audio = new Audio("/sounds/points.mp3");
-    audio.volume = 0.35;
+    const audio = new Audio(src);
+    audio.volume = volume;
     void audio.play();
   } catch {
     // Ignore audio playback errors.

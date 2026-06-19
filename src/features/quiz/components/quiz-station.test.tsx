@@ -30,6 +30,10 @@ vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
 }));
 
+vi.mock("@/features/progress/progress-client", () => ({
+  useProgressStats: () => ({ refreshStats: vi.fn() }),
+}));
+
 const testUser: AuthShellUser = {
   id: "user-1",
   email: "test@example.com",
@@ -39,6 +43,7 @@ const testUser: AuthShellUser = {
     preferredUiLocale: "tr",
     preferredTier: "A1",
     aiPracticePoints: 0,
+    chestPoints: 0,
   },
 };
 

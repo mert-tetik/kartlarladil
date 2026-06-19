@@ -620,7 +620,7 @@ function ChatMessage({
   return (
     <article className={cn("flex gap-3 animate-message-pop", isUser && "flex-row-reverse")}>
       {!isUser && (
-        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-background-muted sm:size-9">
+        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-lg bg-background-muted sm:size-9">
           <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" />
         </div>
       )}

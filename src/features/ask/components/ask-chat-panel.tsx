@@ -503,7 +503,7 @@ function MessageList({
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
-            <Image src="/mascots/mascot14.png" alt="" fill sizes="96px" className="object-cover" />
+            <Image src="/mascots/mascot16.png" alt="" fill sizes="96px" className="object-cover" />
           </div>
           <h2 className="mt-5 text-xl font-semibold text-foreground">{t("page.ask.title")}</h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
