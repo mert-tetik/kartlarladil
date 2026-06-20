@@ -1,25 +1,43 @@
-export type SoundEffectName = "correct" | "incorrect" | "rank-up" | "points" | "learned" | "confetti" | "quiz-complete" | "chest-tap" | "chest-open";
+export type SoundEffectName =
+  | "correct"
+  | "incorrect"
+  | "rank-up"
+  | "points"
+  | "learned"
+  | "confetti"
+  | "quiz-complete"
+  | "chest-tap"
+  | "chest-open";
+
+type AssetBackedSoundEffectName = Exclude<SoundEffectName, "correct">;
+
+type SoundEffectAsset = {
+  src: string;
+  volume: number;
+  playbackRate?: number;
+};
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
   webkitAudioContext?: typeof AudioContext;
 }
 
+export const SOUND_EFFECT_ASSETS: Readonly<Record<AssetBackedSoundEffectName, SoundEffectAsset>> = {
+  incorrect: { src: "/sounds/incorrect.mp3", volume: 0.48 },
+  "rank-up": { src: "/sounds/rank-up.mp3", volume: 0.58 },
+  points: { src: "/sounds/points.mp3", volume: 0.4 },
+  learned: { src: "/sounds/learned.mp3", volume: 0.45 },
+  confetti: { src: "/sounds/confetti.mp3", volume: 0.36 },
+  "quiz-complete": { src: "/sounds/quiz-complete.mp3", volume: 0.48 },
+  "chest-tap": { src: "/sounds/chest-tap.mp3", volume: 0.52 },
+  "chest-open": { src: "/sounds/chest-open.mp3", volume: 0.58 },
+} as const;
+
 let audioContext: AudioContext | null = null;
 
 export function playSoundEffect(effect: SoundEffectName) {
-  if (effect === "points") {
-    playPointsEffect("/sounds/points.mp3", 0.35);
-    return;
-  }
-
-  if (effect === "chest-tap") {
-    playPointsEffect("/sounds/chest-tap.mp3", 0.55);
-    return;
-  }
-
-  if (effect === "chest-open") {
-    playPointsEffect("/sounds/chest-open.mp3", 0.6);
+  if (effect !== "correct") {
+    playAudioAsset(SOUND_EFFECT_ASSETS[effect]);
     return;
   }
 
@@ -34,45 +52,22 @@ export function playSoundEffect(effect: SoundEffectName) {
       void context.resume();
     }
 
-    if (effect === "correct") {
-      playCorrectEffect(context);
-      return;
-    }
-
-    if (effect === "incorrect") {
-      playIncorrectEffect(context);
-      return;
-    }
-
-    if (effect === "learned") {
-      playLearnedEffect(context);
-      return;
-    }
-
-    if (effect === "confetti") {
-      playConfettiEffect(context);
-      return;
-    }
-
-    if (effect === "quiz-complete") {
-      playQuizCompleteEffect(context);
-      return;
-    }
-
-    playRankUpEffect(context);
+    playCorrectEffect(context);
   } catch {
     // Audio feedback should never block quiz or navigation interactions.
   }
 }
 
-function playPointsEffect(src: string, volume: number) {
+function playAudioAsset({ src, volume, playbackRate = 1 }: SoundEffectAsset) {
   if (typeof window === "undefined" || typeof Audio === "undefined") {
     return;
   }
 
   try {
     const audio = new Audio(src);
+    audio.preload = "auto";
     audio.volume = volume;
+    audio.playbackRate = playbackRate;
     void audio.play();
   } catch {
     // Ignore audio playback errors.
@@ -101,82 +96,6 @@ function playCorrectEffect(context: AudioContext) {
 
   playTone(context, { frequency: 520, startTime: now, duration: 0.11, gain: 0.07, type: "sine" });
   playTone(context, { frequency: 780, startTime: now + 0.08, duration: 0.16, gain: 0.08, type: "triangle" });
-}
-
-function playIncorrectEffect(context: AudioContext) {
-  const now = context.currentTime;
-
-  playTone(context, { frequency: 260, endFrequency: 170, startTime: now, duration: 0.18, gain: 0.075, type: "sawtooth" });
-  playTone(context, { frequency: 145, startTime: now + 0.08, duration: 0.12, gain: 0.045, type: "triangle" });
-}
-
-function playRankUpEffect(context: AudioContext) {
-  const now = context.currentTime;
-  const notes = [392, 523.25, 659.25, 783.99];
-
-  notes.forEach((frequency, index) => {
-    playTone(context, {
-      frequency,
-      startTime: now + index * 0.07,
-      duration: 0.22,
-      gain: index === notes.length - 1 ? 0.09 : 0.065,
-      type: index % 2 === 0 ? "triangle" : "sine",
-    });
-  });
-}
-
-function playLearnedEffect(context: AudioContext) {
-  const now = context.currentTime;
-  // Short, crisp "chess piece snap" style thock: low-mid click + higher harmonic.
-  playTone(context, { frequency: 420, startTime: now, duration: 0.06, gain: 0.12, type: "triangle" });
-  playTone(context, { frequency: 840, startTime: now + 0.015, duration: 0.05, gain: 0.08, type: "sine" });
-  playTone(context, { frequency: 1260, startTime: now + 0.03, duration: 0.04, gain: 0.05, type: "sine" });
-}
-
-function playQuizCompleteEffect(context: AudioContext) {
-  const now = context.currentTime;
-  // Short, satisfying success fanfare.
-  const notes = [523.25, 659.25, 783.99, 1046.5];
-  notes.forEach((frequency, index) => {
-    playTone(context, {
-      frequency,
-      startTime: now + index * 0.08,
-      duration: 0.18,
-      gain: index === notes.length - 1 ? 0.1 : 0.07,
-      type: index % 2 === 0 ? "triangle" : "sine",
-    });
-  });
-}
-
-function playConfettiEffect(context: AudioContext) {
-  const now = context.currentTime;
-  const duration = 0.18;
-  const bufferSize = Math.max(1, Math.floor(context.sampleRate * duration));
-  const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
-  const data = buffer.getChannelData(0);
-
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2.5);
-  }
-
-  const source = context.createBufferSource();
-  source.buffer = buffer;
-
-  const bandpass = context.createBiquadFilter();
-  bandpass.type = "bandpass";
-  bandpass.frequency.value = 2800;
-  bandpass.Q.value = 0.8;
-
-  const gainNode = context.createGain();
-  gainNode.gain.setValueAtTime(0.0001, now);
-  gainNode.gain.exponentialRampToValueAtTime(0.06, now + 0.015);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-  source.connect(bandpass);
-  bandpass.connect(gainNode);
-  gainNode.connect(context.destination);
-  source.start(now);
-  source.stop(now + duration);
 }
 
 function playTone(
