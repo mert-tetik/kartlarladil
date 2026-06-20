@@ -199,9 +199,9 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             {phase === "revealed" ? (
               <div
                 data-chest-reward-stack
-                className="pointer-events-none absolute left-1/2 top-[28px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[34px] md:top-[40px]"
+                className="pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[16px] md:top-[20px]"
               >
-                <div className="flex items-center gap-2 text-amber-400 drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
+                <div className="flex items-center gap-2 text-foreground drop-shadow-[0_6px_18px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]">
                   <Gift className="size-5 sm:size-6" aria-hidden="true" />
                   <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
                 </div>
