@@ -416,6 +416,10 @@ button:disabled,
   body:has([data-my-cards-page]) {
     overflow: hidden;
   }
+
+  body:has([data-learn-page]) .page-transition-shell {
+    padding-bottom: 0;
+  }
 }
 
 /* Hide the Learn page header and site footer while a quiz or result screen is active */

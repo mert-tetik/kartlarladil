@@ -600,7 +600,7 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:p-10">
+    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
       <div className="flex justify-center lg:hidden">
         <Image
           src="/mascots/mascot5.png"
@@ -622,8 +622,8 @@ function LanguageSelection({
       </div>
       <h2 className="mt-4 text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
 
-      <div className="mt-6">
-        <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px] lg:h-[480px]">
+      <div className="mt-6 flex min-h-0 flex-1 flex-col">
+        <div className="h-full min-h-0 overflow-y-auto rounded-md border border-border bg-background p-2 lg:h-[480px]">
           <div className="grid grid-cols-1 gap-2">
             {languageStats.map((language) => (
               <button
@@ -670,7 +670,7 @@ function CountSelection({
   const showChestTiers = mode === "active";
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
+    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
       <div className="flex justify-center lg:hidden">
         <Image
           src="/mascots/mascot5.png"
@@ -716,7 +716,7 @@ function CountSelection({
         })}
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-auto pt-6 flex items-center justify-between">
         <Button variant="ghost" onClick={onBack}>
           {t("common.back")}
         </Button>

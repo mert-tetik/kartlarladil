@@ -73,8 +73,8 @@ export function ReviewSection({ user, existingReview, t }: ReviewSectionProps) {
       <div className="absolute inset-0 -z-10 bg-black/70" />
       <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="font-display text-3xl font-semibold text-foreground sm:text-4xl">{t.title}</h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-foreground-secondary">{t.description}</p>
+          <h2 className="font-display text-3xl font-semibold text-white sm:text-4xl">{t.title}</h2>
+          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-white">{t.description}</p>
         </div>
 
         <div className="mt-10 rounded-2xl border border-border bg-background-card p-6 shadow-sm sm:p-8">
