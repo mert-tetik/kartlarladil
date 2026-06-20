@@ -57,7 +57,7 @@ export function CollectionPreviewCard({ card, index }: { card: VocabularyCard; i
         }
       }}
       className={cn(
-        "rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950",
+        "w-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950",
         revealed && "cursor-pointer",
       )}
       style={{ animationDelay: `${index * 100}ms` }}

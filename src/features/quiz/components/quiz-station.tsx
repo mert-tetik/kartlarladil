@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  Gift,
   GraduationCap,
   Lock,
+  Medal,
   RotateCcw,
   Sparkles,
   Trophy,
@@ -75,6 +77,23 @@ interface QuizResult {
   incorrect: VocabularyCard[];
   learned: VocabularyCard[];
 }
+
+type QuizPerformanceLevel = "high" | "medium" | "low";
+type QuizPerformanceMessageKey =
+  | "quiz.resultMessageHigh"
+  | "quiz.resultMessageHighChest"
+  | "quiz.resultMessageMedium"
+  | "quiz.resultMessageLow";
+
+type QuizPerformanceSummary = {
+  accuracy: number;
+  chestUnlocked: boolean;
+  icon: typeof Trophy;
+  level: QuizPerformanceLevel;
+  messageKey: QuizPerformanceMessageKey;
+  ringClassName: string;
+  textClassName: string;
+};
 
 export function QuizStation({
   mode,
@@ -262,10 +281,6 @@ export function QuizStation({
     }
 
     if (currentIndex + 1 >= deck.length) {
-      if (chestRewardsEnabled && !chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
-        setPhase("chest");
-        return;
-      }
       setPhase("result");
       return;
     }
@@ -290,10 +305,6 @@ export function QuizStation({
           ...current,
           learned: [...current.learned, learned],
         }));
-      }
-      if (chestRewardsEnabled && !chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
-        setPhase("chest");
-        return;
       }
       setPhase("result");
       return;
@@ -412,6 +423,12 @@ export function QuizStation({
             mode={mode}
             results={results}
             selectedCount={selectedCount}
+            chestOpened={chestOpened}
+            onOpenChest={
+              chestRewardsEnabled && selectedCount && getChestTierByCount(selectedCount)
+                ? () => setPhase("chest")
+                : undefined
+            }
             onRestart={handleRestart}
             onExit={handleExit}
           />
@@ -1047,13 +1064,17 @@ function QuizViewportOverlay({
 export function ResultView({
   mode,
   results,
-  selectedCount: _selectedCount,
+  selectedCount,
+  chestOpened,
+  onOpenChest,
   onRestart,
   onExit,
 }: {
   mode: PracticeMode;
   results: QuizResult;
   selectedCount: number | null;
+  chestOpened: boolean;
+  onOpenChest?: () => void;
   onRestart: () => void;
   onExit: () => void;
 }) {
@@ -1061,11 +1082,11 @@ export function ResultView({
   const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
   const [introPhase, setIntroPhase] = useState<"entering" | "flying" | "done">("entering");
   const introRef = useRef<HTMLDivElement | null>(null);
-  const trophyRef = useRef<HTMLDivElement | null>(null);
+  const summaryIconRef = useRef<HTMLDivElement | null>(null);
   const hasTriggeredResult = useRef(false);
-
-  const total = results.correct.length + results.incorrect.length + results.learned.length;
-  const accuracy = total > 0 ? Math.round(((results.correct.length + results.learned.length) / total) * 100) : 0;
+  const performance = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
+  const SummaryIcon = performance.icon;
+  const chestAvailable = performance.chestUnlocked && typeof onOpenChest === "function";
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -1081,34 +1102,36 @@ export function ResultView({
     if (!el) return;
 
     function onAnimationEnd() {
-      playSoundEffect("confetti");
-      vibrate("confetti");
-      void confetti({
-        particleCount: 140,
-        spread: 110,
-        origin: { x: 0.5, y: 0.5 },
-        colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
-        disableForReducedMotion: true,
-      });
+      if (performance.level === "high") {
+        playSoundEffect("confetti");
+        vibrate("confetti");
+        void confetti({
+          particleCount: 140,
+          spread: 110,
+          origin: { x: 0.5, y: 0.5 },
+          colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
+          disableForReducedMotion: true,
+        });
+      }
       setIntroPhase("flying");
     }
 
     el.addEventListener("animationend", onAnimationEnd);
     return () => el.removeEventListener("animationend", onAnimationEnd);
-  }, [introPhase]);
+  }, [introPhase, performance.level]);
 
   useEffect(() => {
     if (introPhase !== "flying") return;
     const introEl = introRef.current;
-    const trophyEl = trophyRef.current;
+    const summaryIconEl = summaryIconRef.current;
 
-    if (!introEl || !trophyEl) {
+    if (!introEl || !summaryIconEl) {
       setIntroPhase("done");
       return;
     }
 
     const first = introEl.getBoundingClientRect();
-    const last = trophyEl.getBoundingClientRect();
+    const last = summaryIconEl.getBoundingClientRect();
     const translateX = last.left + last.width / 2 - (first.left + first.width / 2);
     const translateY = last.top + last.height / 2 - (first.top + first.height / 2);
     const scale = last.width / first.width;
@@ -1161,63 +1184,92 @@ export function ResultView({
   return (
     <div
       data-quiz-result-view
-      className="relative mx-auto flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4"
+      className="relative mx-auto flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-2 sm:p-4"
     >
       {introPhase !== "done" ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
           <div
             ref={introRef}
             className={cn(
-              "flex size-32 items-center justify-center rounded-full bg-brand/10 text-brand",
+              "flex size-32 items-center justify-center rounded-full transition-colors duration-300",
+              performance.ringClassName,
+              performance.textClassName,
               introPhase === "entering" && "animate-trophy-intro-grow",
             )}
           >
-            <Trophy className="size-16" aria-hidden="true" />
+            <SummaryIcon className="size-16" aria-hidden="true" />
           </div>
         </div>
       ) : null}
 
       <div
         className={cn(
-          "w-full rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm transition-opacity duration-500 sm:p-10",
+          "w-full rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10",
           menuVisible ? "opacity-100" : "opacity-0",
         )}
       >
         <div
-          ref={trophyRef}
+          ref={summaryIconRef}
           className={cn(
-            "mx-auto flex size-20 items-center justify-center rounded-full bg-brand/10 text-brand transition-opacity duration-300",
+            "mx-auto flex size-16 items-center justify-center rounded-full transition-opacity duration-300 sm:size-20",
+            performance.ringClassName,
+            performance.textClassName,
             menuVisible ? "opacity-100" : "opacity-0",
           )}
         >
-          <Trophy className="size-10" aria-hidden="true" />
+          <SummaryIcon className="size-8 sm:size-10" aria-hidden="true" />
         </div>
-        <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
-        <p className="mt-2 text-5xl font-bold text-foreground">{accuracy}%</p>
+        <h2 className="mt-4 text-xl font-semibold text-foreground sm:mt-5 sm:text-2xl">{t("quiz.resultTitle")}</h2>
+        <p className="mt-1 text-4xl font-bold text-foreground sm:mt-2 sm:text-5xl">{performance.accuracy}%</p>
+        <div
+          className={cn(
+            "mt-3 rounded-xl border px-3 py-2 text-sm font-semibold leading-5 sm:mt-4 sm:px-4 sm:py-3 sm:text-base sm:leading-6",
+            performance.ringClassName,
+            performance.textClassName,
+          )}
+          data-result-message-level={performance.level}
+        >
+          {t(performance.messageKey)}
+        </div>
 
-        <div className={cn("mt-6 grid grid-cols-2 gap-4", mode === "active" ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+        <div
+          className={cn(
+            "mt-5 grid gap-2 sm:mt-6 sm:gap-3",
+            mode === "active" ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-2",
+          )}
+        >
           {resultCards.map((card) => (
             <ResultCard
               key={card.key}
+              resultKey={card.key}
               icon={card.icon}
               label={card.label}
               count={card.count}
               tone={card.tone}
+              className={card.key === "learned" ? "col-span-2 lg:col-span-1" : undefined}
               disabled={card.count === 0}
               onClick={() => setOpenMenu(card.key)}
             />
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button variant="secondary" onClick={onRestart}>
-            <RotateCcw className="size-4" aria-hidden="true" />
-            {t("quiz.restart")}
-          </Button>
-          <Button onClick={onExit}>
-            <X className="size-4" aria-hidden="true" />
-            {t("quiz.exit")}
-          </Button>
+        <div className="mt-4 flex w-full flex-col gap-2 sm:mt-6 sm:w-auto sm:flex-row sm:justify-center sm:gap-3">
+          {chestAvailable ? (
+            <Button className="w-full sm:w-auto" onClick={onOpenChest}>
+              <Gift className="size-4" aria-hidden="true" />
+              {t("quiz.resultOpenChest")}
+            </Button>
+          ) : null}
+          <div className={cn("grid w-full gap-2 sm:flex sm:w-auto sm:gap-3", chestAvailable ? "grid-cols-2" : "grid-cols-1")}>
+            <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
+              <RotateCcw className="size-4" aria-hidden="true" />
+              {t("quiz.restart")}
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={onExit}>
+              <X className="size-4" aria-hidden="true" />
+              {t("quiz.exit")}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1233,17 +1285,21 @@ export function ResultView({
 }
 
 function ResultCard({
+  resultKey,
   icon: Icon,
   label,
   count,
   tone,
+  className,
   disabled,
   onClick,
 }: {
+  resultKey: "correct" | "incorrect" | "learned";
   icon: typeof CheckCircle2;
   label: string;
   count: number;
   tone: "emerald" | "rose" | "amber";
+  className?: string;
   disabled?: boolean;
   onClick?: () => void;
 }) {
@@ -1258,17 +1314,65 @@ function ResultCard({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      data-result-card={resultKey}
       className={cn(
-        "rounded-lg p-4 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+        "flex min-h-[108px] w-full flex-col items-center justify-center rounded-lg p-3 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-[132px] sm:p-4",
         toneClasses[tone],
+        className,
         disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
       )}
     >
-      <Icon className="mx-auto size-6" aria-hidden="true" />
-      <p className="mt-2 text-2xl font-bold">{count}</p>
-      <p className="text-xs font-semibold opacity-80">{label}</p>
+      <Icon className="mx-auto size-5 sm:size-6" aria-hidden="true" />
+      <p className="mt-1 text-xl font-bold sm:mt-2 sm:text-2xl">{count}</p>
+      <p className="text-[11px] font-semibold opacity-80 sm:text-xs">{label}</p>
     </button>
   );
+}
+
+export function getQuizPerformanceSummary(
+  mode: PracticeMode,
+  results: QuizResult,
+  selectedCount: number | null,
+  chestOpened: boolean,
+): QuizPerformanceSummary {
+  const totalAnswered = results.correct.length + results.incorrect.length;
+  const accuracy = totalAnswered > 0 ? Math.round((results.correct.length / totalAnswered) * 100) : 0;
+  const chestTier = mode === "active" && selectedCount ? getChestTierByCount(selectedCount) : undefined;
+  const chestUnlocked = accuracy >= 80 && Boolean(chestTier) && !chestOpened;
+
+  if (accuracy >= 80) {
+    return {
+      accuracy,
+      chestUnlocked,
+      icon: Trophy,
+      level: "high",
+      messageKey: chestUnlocked ? "quiz.resultMessageHighChest" : "quiz.resultMessageHigh",
+      ringClassName: "border-amber-200 bg-amber-50",
+      textClassName: "text-amber-700",
+    };
+  }
+
+  if (accuracy >= 50) {
+    return {
+      accuracy,
+      chestUnlocked: false,
+      icon: Medal,
+      level: "medium",
+      messageKey: "quiz.resultMessageMedium",
+      ringClassName: "border-sky-200 bg-sky-50",
+      textClassName: "text-sky-700",
+    };
+  }
+
+  return {
+    accuracy,
+    chestUnlocked: false,
+    icon: XCircle,
+    level: "low",
+    messageKey: "quiz.resultMessageLow",
+    ringClassName: "border-rose-200 bg-rose-50",
+    textClassName: "text-rose-700",
+  };
 }
 
 function ResultMenu({ title, cards, onClose }: { title: string; cards: VocabularyCard[]; onClose: () => void }) {

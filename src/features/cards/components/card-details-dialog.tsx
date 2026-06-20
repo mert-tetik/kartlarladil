@@ -89,7 +89,7 @@ export function CardDetailsDialog({
             initialFace="front"
             flippable={false}
             showActions={false}
-            className="mx-auto h-[320px] w-full max-w-[240px] sm:h-[400px] sm:max-w-[300px]"
+            className="mx-auto h-[272px] w-full max-w-[204px] sm:h-[344px] sm:max-w-[258px]"
           />
         </div>
 

@@ -94,7 +94,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         </div>
       </header>
 
-      <nav aria-label={t("nav.mobileMenu")} className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card lg:hidden">
+      <nav
+        aria-label={t("nav.mobileMenu")}
+        data-mobile-main-nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card lg:hidden"
+      >
         <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;

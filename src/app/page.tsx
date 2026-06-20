@@ -209,10 +209,14 @@ export default async function Home() {
             </div>
           </div>
 
-          <div data-collection-preview-deck className="min-w-0 self-center">
-            <div className="grid w-full grid-cols-2 items-center gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-5">
+          <div data-collection-preview-deck className="min-w-0 w-full max-w-[380px] self-center lg:max-w-none">
+            <div className="grid w-full grid-cols-2 items-center justify-items-center gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-5">
               {previewCards.map((card, index) => (
-                <div key={card.id} data-collection-preview-card className={index === 2 ? "hidden sm:block" : undefined}>
+                <div
+                  key={card.id}
+                  data-collection-preview-card
+                  className={cn("w-full max-w-[172px] sm:max-w-none", index === 2 ? "hidden sm:block" : undefined)}
+                >
                   <CollectionPreviewCard card={card} index={index} />
                 </div>
               ))}

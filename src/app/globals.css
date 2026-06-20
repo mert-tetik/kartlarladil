@@ -406,6 +406,10 @@ button:disabled,
   body:has([data-card-draw-page]) footer {
     display: none;
   }
+
+  body[data-card-draw-mobile-search="true"] [data-mobile-main-nav] {
+    display: none;
+  }
 }
 
 @media (max-width: 1023px) {
