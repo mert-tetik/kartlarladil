@@ -186,7 +186,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             onClick={handleTap}
             disabled={phase === "revealed" || phase === "disappearing"}
             className={cn(
-              "relative flex size-[220px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[264px] md:size-[296px]",
+              "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[244px] md:size-[272px]",
               phase === "idle" && "animate-chest-float",
               phase === "shake" && "animate-chest-shake",
               phase === "revealed" && "scale-[1.03]",
@@ -199,7 +199,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             {phase === "revealed" ? (
               <div
                 data-chest-reward-stack
-                className="pointer-events-none absolute left-1/2 top-[52px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[60px]"
+                className="pointer-events-none absolute left-1/2 top-[28px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[34px] md:top-[40px]"
               >
                 <div className="flex items-center gap-2 text-amber-400 drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
                   <Gift className="size-5 sm:size-6" aria-hidden="true" />
@@ -214,8 +214,8 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
               </div>
             ) : null}
 
-            <div className="relative h-[178px] w-[178px] sm:h-[214px] sm:w-[214px] md:h-[236px] md:w-[236px]">
-              <div className={cn("absolute bottom-0 left-[12px] right-[12px] h-[118px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[14px] sm:right-[14px] sm:h-[142px] md:left-[16px] md:right-[16px] md:h-[156px]", ui.base)}>
+            <div className="relative h-[160px] w-[160px] sm:h-[194px] sm:w-[194px] md:h-[220px] md:w-[220px]">
+              <div className={cn("absolute bottom-0 left-[6px] right-[6px] h-[98px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[120px] md:left-[10px] md:right-[10px] md:h-[136px]", ui.base)}>
                 <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
                 <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
                 <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
@@ -226,7 +226,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
                 ref={lidRef}
                 data-chest-lid
                 className={cn(
-                  "absolute left-[12px] right-[12px] top-0 z-30 h-[62px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[14px] sm:right-[14px] sm:h-[74px] md:left-[16px] md:right-[16px] md:h-[84px]",
+                  "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[64px] md:left-[10px] md:right-[10px] md:h-[72px]",
                   ui.lid,
                 )}
                 style={{
