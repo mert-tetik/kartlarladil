@@ -422,7 +422,7 @@ export function QuizStation({
           overlay="chest"
           className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
         >
-          <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} onClose={() => setPhase("result")} />
+          <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} />
         </QuizViewportOverlay>
       );
     }

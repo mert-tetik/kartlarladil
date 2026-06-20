@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "回答を確認",
   "quiz.openChest": "報酬の宝箱を開ける",
   "chest.title": "報酬の宝箱",
-  "chest.tapToOpen": "宝箱を3回タップして開ける",
+  "chest.tapToOpen": "宝箱をタップして開ける",
   "chest.tapsRemaining": "あと{count}回タップ",
   "chest.rewardTitle": "当たり!",
   "chest.pointsLabel": "ポイント",

@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "Проверить ответ",
   "quiz.openChest": "Открыть сундук с наградой",
   "chest.title": "Сундук с наградой",
-  "chest.tapToOpen": "Нажмите на сундук 3 раза, чтобы открыть его",
+  "chest.tapToOpen": "Нажмите на сундук, чтобы открыть его",
   "chest.tapsRemaining": "Осталось {count} нажатий",
   "chest.rewardTitle": "Вы выиграли!",
   "chest.pointsLabel": "очков",

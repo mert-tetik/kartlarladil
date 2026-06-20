@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "تحقق من الإجابة",
   "quiz.openChest": "افتح صندوق المكافأة",
   "chest.title": "صندوق المكافأة",
-  "chest.tapToOpen": "اضغط على الصندوق 3 مرات لفتحه",
+  "chest.tapToOpen": "اضغط على الصندوق لفتحه",
   "chest.tapsRemaining": "{count} ضغطات متبقية",
   "chest.rewardTitle": "لقد فزت!",
   "chest.pointsLabel": "نقاط",

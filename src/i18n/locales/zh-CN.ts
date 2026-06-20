@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "检查答案",
   "quiz.openChest": "打开奖励宝箱",
   "chest.title": "奖励宝箱",
-  "chest.tapToOpen": "点击宝箱3次以打开",
+  "chest.tapToOpen": "点击宝箱将其打开",
   "chest.tapsRemaining": "还剩{count}次点击",
   "chest.rewardTitle": "你赢了！",
   "chest.pointsLabel": "积分",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Gift, Sparkles, X } from "lucide-react";
+import { Gift, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -13,17 +13,16 @@ import confetti from "canvas-confetti";
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
   onComplete: () => void;
-  onClose: () => void;
 }
 
 type ChestPhase = "appearing" | "idle" | "shake" | "opening" | "revealed" | "disappearing";
 
-export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningViewProps) {
+export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
   const t = useT();
   const [phase, setPhase] = useState<ChestPhase>("appearing");
-  const [tapCount, setTapCount] = useState(0);
   const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
   const hasAwarded = useRef(false);
+  const lidRef = useRef<HTMLDivElement | null>(null);
 
   const ui = CHEST_TIER_UI_CLASSES[tier.tier];
 
@@ -44,24 +43,65 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
   function handleTap() {
     if (phase === "appearing" || phase === "opening" || phase === "revealed" || phase === "disappearing") return;
 
-    setTapCount(1);
+    const direction = Math.random() < 0.5 ? -1 : 1;
+    const launchX = direction * (72 + Math.random() * 26);
+    const apexY = 84 + Math.random() * 28;
+    const dropY = 128 + Math.random() * 44;
+    const midRotation = direction * (26 + Math.random() * 18);
+    const finalRotation = direction * (96 + Math.random() * 32);
+    const lidElement =
+      lidRef.current ??
+      (document.querySelector("[data-chest-lid]") as HTMLDivElement | null);
+
+    if (lidElement) {
+      lidElement.style.willChange = "transform";
+      lidElement.style.transition = "transform 280ms cubic-bezier(0.2, 0.92, 0.24, 1)";
+      lidElement.style.transform = "translate3d(0, 0, 0) rotate(0deg)";
+    }
     setPhase("opening");
-    playSoundEffect("chest-open");
-    vibrate("chest-open");
-    void confetti({
-      particleCount: 200,
-      spread: 120,
-      origin: { y: 0.55 },
-      colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
-      disableForReducedMotion: true,
-    });
     spawnSparkles();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (lidElement) {
+          lidElement.style.transform = `translate3d(${launchX}px, -${apexY}px, 0) rotate(${midRotation}deg)`;
+        }
+      });
+    });
+
+    setTimeout(() => {
+      if (lidElement) {
+        lidElement.style.transition = "transform 620ms cubic-bezier(0.14, 0.7, 0.2, 1)";
+        lidElement.style.transform = `translate3d(${launchX * 1.45}px, ${dropY}px, 0) rotate(${finalRotation}deg)`;
+      }
+    }, 280);
 
     setTimeout(() => {
       setPhase("revealed");
-      playSoundEffect("points");
-      vibrate("confetti");
-    }, 550);
+    }, 900);
+
+    try {
+      playSoundEffect("chest-open");
+      vibrate("chest-open");
+      void confetti({
+        particleCount: 200,
+        spread: 120,
+        origin: { y: 0.55 },
+        colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
+        disableForReducedMotion: true,
+      });
+    } catch {
+      // Ignore effect failures; the reward flow should keep running.
+    }
+
+    setTimeout(() => {
+      try {
+        playSoundEffect("points");
+        vibrate("confetti");
+      } catch {
+        // Ignore effect failures; the reward flow should keep running.
+      }
+    }, 900);
   }
 
   function handleCollect() {
@@ -74,17 +114,8 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
   return (
     <div
       data-chest-opening-view
-      className="relative mx-auto flex w-full max-w-2xl flex-col items-center justify-center p-4 text-center"
+      className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-6 text-center sm:py-8"
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full bg-background-card text-foreground-secondary shadow-sm transition-colors hover:bg-background-muted hover:text-foreground"
-        aria-label={t("common.close")}
-      >
-        <X className="size-5" aria-hidden="true" />
-      </button>
-
       <div
         className={cn(
           "relative flex flex-col items-center transition-all duration-300",
@@ -96,9 +127,9 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
           {t(tier.labelKey)}
         </p>
 
-        <div className="relative mt-10">
+        <div className="relative mt-8 sm:mt-10">
           {phase === "revealed" ? (
-            <div className={cn("pointer-events-none absolute inset-0 -z-10 animate-chest-glow rounded-full blur-3xl", ui.glow)} />
+            <div className={cn("pointer-events-none absolute inset-0 -z-10 animate-chest-glow rounded-full blur-2xl", ui.glow)} />
           ) : null}
 
           <button
@@ -106,46 +137,41 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
             onClick={handleTap}
             disabled={phase === "revealed" || phase === "disappearing"}
             className={cn(
-              "relative flex h-[260px] w-[420px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none",
+              "relative flex h-[160px] w-[248px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:h-[188px] sm:w-[308px] md:h-[210px] md:w-[344px]",
               phase === "idle" && "animate-chest-float",
               phase === "shake" && "animate-chest-shake",
-              phase === "revealed" && "scale-110",
+              phase === "revealed" && "scale-[1.03]",
             )}
             style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
             aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
           >
-            {/* Chest glow base */}
-            <div className={cn("absolute bottom-2 left-1/2 h-[120px] w-[380px] -translate-x-1/2 rounded-full opacity-40 blur-2xl", ui.glow)} />
+            <div className={cn("absolute bottom-2 left-1/2 h-[74px] w-[216px] -translate-x-1/2 rounded-full opacity-35 blur-2xl sm:h-[88px] sm:w-[268px] md:h-[96px] md:w-[300px]", ui.glow)} />
 
-            {/* Chest body */}
-            <div className={cn("relative h-[140px] w-[420px] rounded-b-2xl rounded-t-lg border-4 border-black/20 shadow-2xl", ui.base)}>
-              {/* Vertical bands */}
-              <div className={cn("absolute left-1/2 top-0 h-full w-12 -translate-x-1/2 opacity-80", ui.band)} />
-              <div className={cn("absolute left-[25%] top-0 h-full w-6 -translate-x-1/2 opacity-60", ui.band)} />
-              <div className={cn("absolute left-[75%] top-0 h-full w-6 -translate-x-1/2 opacity-60", ui.band)} />
+            <div className="relative h-[116px] w-full sm:h-[136px] md:h-[152px]">
+              <div className={cn("absolute inset-x-0 bottom-0 h-[92px] rounded-b-[10px] rounded-t-[8px] border-[3px] border-black/15 shadow-sm sm:h-[108px] md:h-[120px]", ui.base)}>
+                <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
+                <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
+                <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                <div className={cn("absolute left-1/2 top-0 z-20 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-black/15 shadow-sm sm:h-14 sm:w-14", ui.lock)}>
+                  <div className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30 sm:h-4 sm:w-4" />
+                </div>
+              </div>
 
-              {/* Lock plate */}
-              <div className={cn("absolute left-1/2 top-1/2 z-20 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-black/20 shadow-xl", ui.lock)}>
-                <div className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30" />
+              <div
+                ref={lidRef}
+                data-chest-lid
+                className={cn(
+                  "absolute inset-x-0 top-0 z-30 h-[46px] rounded-t-[12px] rounded-b-[6px] border-[3px] border-black/15 shadow-sm sm:h-[54px] md:h-[60px]",
+                  ui.lid,
+                )}
+              >
+                <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
+                <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
+                <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
               </div>
             </div>
-
-            {/* Chest lid */}
-            <div
-              className={cn(
-                "absolute top-0 h-[75px] w-[420px] origin-bottom rounded-t-2xl border-4 border-black/20 shadow-xl transition-transform duration-500",
-                ui.lid,
-              )}
-              style={{ transform: phase === "revealed" ? "translateY(-16px) rotateX(-110deg)" : undefined }}
-            >
-              <div className={cn("absolute left-1/2 top-0 h-full w-12 -translate-x-1/2 opacity-80", ui.band)} />
-              <div className={cn("absolute left-[25%] top-0 h-full w-6 -translate-x-1/2 opacity-60", ui.band)} />
-              <div className={cn("absolute left-[75%] top-0 h-full w-6 -translate-x-1/2 opacity-60", ui.band)} />
-            </div>
-
-            {/* Side handles */}
-            <div className={cn("absolute -left-5 top-20 size-8 rounded-full border-4 border-black/20 shadow-lg", ui.band)} />
-            <div className={cn("absolute -right-5 top-20 size-8 rounded-full border-4 border-black/20 shadow-lg", ui.band)} />
           </button>
 
           {sparkles.map((sparkle) => (
@@ -161,7 +187,7 @@ export function ChestOpeningView({ tier, onComplete, onClose }: ChestOpeningView
 
         {phase === "appearing" || phase === "idle" || phase === "shake" || phase === "opening" ? (
           <p className="mt-8 text-sm font-semibold text-foreground-secondary">
-            {tapCount === 0 ? t("chest.tapToOpen") : t("chest.tapsRemaining", { count: 3 - tapCount })}
+            {t("chest.tapToOpen")}
           </p>
         ) : null}
 

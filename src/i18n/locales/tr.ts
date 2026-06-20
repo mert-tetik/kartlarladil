@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "Cevabı kontrol et",
   "quiz.openChest": "Ödül sandığı aç",
   "chest.title": "Ödül Sandığı",
-  "chest.tapToOpen": "Sandığı açmak için 3 kez dokun",
+  "chest.tapToOpen": "Açmak için sandığa dokun",
   "chest.tapsRemaining": "{count} dokunuş kaldı",
   "chest.rewardTitle": "Kazandın!",
   "chest.pointsLabel": "puan",

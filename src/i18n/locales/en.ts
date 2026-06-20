@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "Check answer",
   "quiz.openChest": "Open reward chest",
   "chest.title": "Reward Chest",
-  "chest.tapToOpen": "Tap the chest 3 times to open it",
+  "chest.tapToOpen": "Tap the chest to open it",
   "chest.tapsRemaining": "{count} taps left",
   "chest.rewardTitle": "You won!",
   "chest.pointsLabel": "points",

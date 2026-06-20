@@ -437,7 +437,7 @@ const dictionary = {
   "quiz.submitAnswer": "답변 확인",
   "quiz.openChest": "보상 상자 열기",
   "chest.title": "보상 상자",
-  "chest.tapToOpen": "상자를 3번 탭하여 열기",
+  "chest.tapToOpen": "상자를 탭해 열기",
   "chest.tapsRemaining": "남은 탭 {count}회",
   "chest.rewardTitle": "당첨!",
   "chest.pointsLabel": "포인트",
