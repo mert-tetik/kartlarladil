@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { GraduationCap, X, ChevronDown } from "lucide-react";
+import { ChevronDown, GraduationCap, RotateCcw, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { InventoryCardGrid } from "@/features/cards/components/card-grid";
@@ -153,7 +153,7 @@ export function InventoryDashboard({
                 {t("inventory.status.active")}
               </h2>
               {activeCards.length > 0 ? (
-                <Link href="/learn" className={buttonClassName("primary", "sm")}>
+                <Link href="/learn?mode=active" className={buttonClassName("primary", "sm")}>
                   <GraduationCap className="size-4" aria-hidden="true" />
                   {t("inventory.learn")}
                 </Link>
@@ -170,10 +170,16 @@ export function InventoryDashboard({
         ) : null}
 
         <section className="mt-8 space-y-4">
-          <div className="w-full bg-black px-4 py-3">
+          <div className="flex w-full items-center justify-between bg-black px-4 py-3 text-white">
             <h2 className="text-lg font-semibold text-white">
               {t("inventory.status.learned")}
             </h2>
+            {learnedCards.length > 0 ? (
+              <Link href="/learn?mode=learned" className={buttonClassName("primary", "sm")}>
+                <RotateCcw className="size-4" aria-hidden="true" />
+                {t("inventory.repeatPractice")}
+              </Link>
+            ) : null}
           </div>
           {learnedCards.length > 0 ? (
             <InventoryCardGrid cards={learnedCards} flippable />
@@ -204,7 +210,9 @@ export function InventoryDashboard({
             count={activeCards.length}
             tierCounts={tierCounts.active}
             variant="active"
-            learnHref="/learn"
+            actionHref="/learn?mode=active"
+            actionLabel={t("inventory.learn")}
+            actionIcon={GraduationCap}
             onView={() => setMobileMenu("active")}
           />
         ) : null}
@@ -214,6 +222,9 @@ export function InventoryDashboard({
           count={learnedCards.length}
           tierCounts={tierCounts.learned}
           variant="learned"
+          actionHref="/learn?mode=learned"
+          actionLabel={t("inventory.repeatPractice")}
+          actionIcon={RotateCcw}
           onView={() => setMobileMenu("learned")}
         />
       </div>
@@ -321,14 +332,18 @@ function MobileSectionBlock({
   count,
   tierCounts,
   variant,
-  learnHref,
+  actionHref,
+  actionLabel,
+  actionIcon: ActionIcon,
   onView,
 }: {
   title: string;
   count: number;
   tierCounts: Record<string, number>;
   variant: "active" | "learned";
-  learnHref?: string;
+  actionHref?: string;
+  actionLabel?: string;
+  actionIcon?: typeof GraduationCap;
   onView: () => void;
 }) {
   const t = useT();
@@ -354,14 +369,14 @@ function MobileSectionBlock({
           <h2 className="text-lg font-semibold">{title}</h2>
           <p className="text-sm text-white/90">{t("common.cardsWithCount", { count })}</p>
         </div>
-        {learnHref && count > 0 ? (
+        {actionHref && actionLabel && ActionIcon && count > 0 ? (
           <Link
-            href={learnHref}
+            href={actionHref}
             onClick={(event) => event.stopPropagation()}
             className={buttonClassName("primary", "sm", cn("bg-white hover:bg-white/90", buttonTextClass))}
           >
-            <GraduationCap className="size-4" aria-hidden="true" />
-            {t("inventory.learn")}
+            <ActionIcon className="size-4" aria-hidden="true" />
+            {actionLabel}
           </Link>
         ) : null}
       </div>

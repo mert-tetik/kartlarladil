@@ -23,7 +23,7 @@ Temel kavramlar:
   - `B1 = 40`
   - `B2 = 50`
   - `C1 = 100`
-- **Rankler**: `baslangic` (0), `kart-ciragi` (100), `kelime-toplayici` (300), `dil-yolcusu` (700), `akici-ogrenci` (1400), `kelime-ustasi` (2500), `cok-dilli` (4500), `seckin-koleksiyoncu` (7500), `dil-bilgesi` (12000), `efsane` (18000).
+- **Rankler**: `baslangic` (0), `kart-ciragi` (200), `kelime-toplayici` (600), `dil-yolcusu` (1400), `akici-ogrenci` (2800), `kelime-ustasi` (7500), `cok-dilli` (13500), `seckin-koleksiyoncu` (22500), `dil-bilgesi` (36000), `efsane` (54000).
 
 Uygulama 14 dil destekler: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`, `pl`, `ar`, `ja`, `ko`, `zh-CN`.
 

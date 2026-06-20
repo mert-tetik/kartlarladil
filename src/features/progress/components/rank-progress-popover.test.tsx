@@ -31,13 +31,13 @@ describe("RankProgressPopover", () => {
   });
 
   it("opens the rank ladder from the navbar rank display", () => {
-    const rankProgress = getNextRankProgress(250);
+    const rankProgress = getNextRankProgress(500);
 
     renderRank(
       <RankProgressPopover
         stats={{
           ...EMPTY_PROGRESS_STATS,
-          totalPoints: 250,
+          totalPoints: 500,
           ...rankProgress,
         }}
       />,
@@ -46,7 +46,7 @@ describe("RankProgressPopover", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rank ilerlemesini göster" }));
 
     expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
-    expect(screen.getByText("Kelime Toplayıcı için 50 puan kaldı")).toBeVisible();
+    expect(screen.getByText("Kelime Toplayıcı için 100 puan kaldı")).toBeVisible();
 
     for (const rank of RANKS) {
       expect(screen.getAllByText(rank.label).length).toBeGreaterThan(0);
@@ -80,9 +80,9 @@ describe("RankProgressPopover", () => {
 
   it("opens a rank-up menu when the user reaches a new rank", () => {
     vi.useFakeTimers();
-    const nextStats = makeStats(100);
+    const nextStats = makeStats(200);
 
-    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(90)} />);
+    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(190)} />);
 
     rerender(<RankProgressPopover stats={nextStats} />);
 
@@ -101,7 +101,7 @@ describe("RankProgressPopover", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("rank-up");
     expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
-    expect(within(rankUpDialog).getByText("100 puan")).toBeVisible();
+    expect(within(rankUpDialog).getByText("200 puan")).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: /Rankleri/ }));
 

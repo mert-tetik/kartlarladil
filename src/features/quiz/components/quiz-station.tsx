@@ -79,9 +79,11 @@ interface QuizResult {
 export function QuizStation({
   mode,
   onPhaseChange,
+  onBackToMode,
 }: {
   mode: PracticeMode;
   onPhaseChange?: (phase: QuizPhase) => void;
+  onBackToMode?: () => void;
 }) {
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -92,6 +94,7 @@ export function QuizStation({
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
   const { refreshStats } = useProgressStats();
+  const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>("language");
 
@@ -141,7 +144,7 @@ export function QuizStation({
         const willLearn =
           inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= requirement;
 
-        if (willLearn) {
+        if (mode === "active" && willLearn) {
           return {
             card,
             inventoryCard,
@@ -248,7 +251,7 @@ export function QuizStation({
         mode,
       });
     }, {
-      nextPath: "/learn",
+      nextPath: `/learn?mode=${mode}`,
     });
   }
 
@@ -259,7 +262,7 @@ export function QuizStation({
     }
 
     if (currentIndex + 1 >= deck.length) {
-      if (!chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
+      if (chestRewardsEnabled && !chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
         setPhase("chest");
         return;
       }
@@ -288,7 +291,7 @@ export function QuizStation({
           learned: [...current.learned, learned],
         }));
       }
-      if (!chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
+      if (chestRewardsEnabled && !chestOpened && selectedCount && getChestTierByCount(selectedCount)) {
         setPhase("chest");
         return;
       }
@@ -347,8 +350,8 @@ export function QuizStation({
   if (languageStats.length === 0) {
     return (
       <EmptyState
-        title={t("inventory.emptyAnyTitle")}
-        description={t("inventory.emptyAnyDescription")}
+        title={t(mode === "active" ? "inventory.emptyAnyTitle" : "inventory.emptyAnyLearnedTitle")}
+        description={t(mode === "active" ? "inventory.emptyAnyDescription" : "quiz.noLearnedDescription")}
         action={
           <Button onClick={() => router.push("/card-draw")}>{t("quiz.backToDraw")}</Button>
         }
@@ -360,9 +363,11 @@ export function QuizStation({
     return (
       <div className="flex flex-1 flex-col items-center justify-center">
         <LanguageSelection
+          mode={mode}
           languageStats={languageStats}
           selectedLanguage={selectedLanguage}
           onSelect={handleSelectLanguage}
+          onBack={onBackToMode}
         />
       </div>
     );
@@ -372,6 +377,7 @@ export function QuizStation({
     return (
       <div className="flex flex-1 flex-col items-center justify-center">
         <CountSelection
+          mode={mode}
           language={selectedLanguage}
           availableCount={availableCards.length}
           selectedCount={selectedCount}
@@ -403,6 +409,7 @@ export function QuizStation({
       >
         <div className="flex w-full max-w-3xl items-center justify-center">
           <ResultView
+            mode={mode}
             results={results}
             selectedCount={selectedCount}
             onRestart={handleRestart}
@@ -413,7 +420,7 @@ export function QuizStation({
     );
   }
 
-  if (phase === "chest" && selectedCount) {
+  if (chestRewardsEnabled && phase === "chest" && selectedCount) {
     const tier = getChestTierByCount(selectedCount);
 
     if (tier) {
@@ -433,8 +440,8 @@ export function QuizStation({
   if (!item) {
     return (
       <EmptyState
-        title={t("quiz.noActiveTitle")}
-        description={t("quiz.noActiveDescription")}
+        title={t(mode === "active" ? "quiz.noActiveTitle" : "quiz.noLearnedTitle")}
+        description={t(mode === "active" ? "quiz.noActiveDescription" : "quiz.noLearnedDescription")}
         action={
           <Link href="/card-draw" className={buttonClassName("primary", "md")}>
             {t("quiz.backToDraw")}
@@ -451,6 +458,7 @@ export function QuizStation({
           <div className="order-2 flex flex-col justify-center gap-4 lg:order-1">
             <QuizCounter currentIndex={currentIndex} total={deck.length} showingAnswer={showingAnswer} />
             <QuizProgressHeader
+              mode={mode}
               item={item}
               showingAnswer={showingAnswer}
               lastAnswerCorrect={lastAnswerCorrect}
@@ -576,13 +584,17 @@ function shuffle<T>(items: T[]) {
 }
 
 function LanguageSelection({
+  mode,
   languageStats,
   selectedLanguage,
   onSelect,
+  onBack,
 }: {
+  mode: PracticeMode;
   languageStats: Array<{ code: LanguageCode; count: number; nativeName: string }>;
   selectedLanguage: LanguageCode | null;
   onSelect: (language: LanguageCode) => void;
+  onBack?: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -598,7 +610,17 @@ function LanguageSelection({
           className="size-20 object-contain"
         />
       </div>
-      <h2 className="text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
+      <div className="mt-4 flex items-center justify-between gap-3 lg:mt-0">
+        <Badge className="border-transparent bg-background text-foreground">
+          {mode === "active" ? t("inventory.learn") : t("inventory.repeatPractice")}
+        </Badge>
+        {onBack ? (
+          <Button variant="ghost" onClick={onBack}>
+            {t("common.back")}
+          </Button>
+        ) : null}
+      </div>
+      <h2 className="mt-4 text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
 
       <div className="mt-6">
         <div className="h-[320px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[280px] lg:h-[480px]">
@@ -629,12 +651,14 @@ function LanguageSelection({
 }
 
 function CountSelection({
+  mode,
   language,
   availableCount,
   selectedCount,
   onSelect,
   onBack,
 }: {
+  mode: PracticeMode;
   language: LanguageCode;
   availableCount: number;
   selectedCount: number | null;
@@ -643,6 +667,7 @@ function CountSelection({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const showChestTiers = mode === "active";
 
   return (
     <div className="animate-screen-pop mx-auto max-w-3xl rounded-lg border border-border bg-background-card p-5 sm:p-8">
@@ -679,11 +704,11 @@ function CountSelection({
                 selectedCount === count
                   ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
                   : "bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
-                chestTier && CHEST_TIER_BORDER_CLASSES[chestTier.tier],
+                showChestTiers && chestTier ? CHEST_TIER_BORDER_CLASSES[chestTier.tier] : "border-border",
               )}
             >
               <span>{count}</span>
-              {chestTier ? (
+              {showChestTiers && chestTier ? (
                 <span className={cn("text-[10px] font-medium sm:text-xs", CHEST_TIER_TEXT_CLASSES[chestTier.tier])}>{t(chestTier.labelKey)}</span>
               ) : null}
             </button>
@@ -701,11 +726,13 @@ function CountSelection({
 }
 
 function QuizProgressHeader({
+  mode,
   item,
   showingAnswer,
   lastAnswerCorrect,
   onShowCard,
 }: {
+  mode: PracticeMode;
   item: QuizItem;
   showingAnswer: boolean;
   lastAnswerCorrect: boolean | null;
@@ -724,7 +751,9 @@ function QuizProgressHeader({
         <Badge className={cn("border-transparent", style.text)}>
           {item.questionType === "text"
             ? t("quiz.learningQuizBadge")
-            : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
+            : mode === "learned"
+              ? t("quiz.reviewBadge")
+              : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
         </Badge>
         <button
           type="button"
@@ -738,7 +767,7 @@ function QuizProgressHeader({
         </button>
       </div>
 
-      {item.questionType === "choice" ? (
+      {item.questionType === "choice" && mode === "active" ? (
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-foreground-secondary">
             <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
@@ -1016,11 +1045,13 @@ function QuizViewportOverlay({
 }
 
 export function ResultView({
+  mode,
   results,
   selectedCount: _selectedCount,
   onRestart,
   onExit,
 }: {
+  mode: PracticeMode;
   results: QuizResult;
   selectedCount: number | null;
   onRestart: () => void;
@@ -1098,7 +1129,32 @@ export function ResultView({
     correct: { title: t("quiz.resultCorrect"), cards: results.correct },
     incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect },
     learned: { title: t("quiz.resultLearned"), cards: results.learned },
-  };
+  } as const;
+  const resultCards = [
+    {
+      key: "correct" as const,
+      icon: CheckCircle2,
+      label: t("quiz.resultCorrect"),
+      count: results.correct.length,
+      tone: "emerald" as const,
+    },
+    {
+      key: "incorrect" as const,
+      icon: XCircle,
+      label: t("quiz.resultIncorrect"),
+      count: results.incorrect.length,
+      tone: "rose" as const,
+    },
+    ...(mode === "active"
+      ? [{
+          key: "learned" as const,
+          icon: Trophy,
+          label: t("quiz.resultLearned"),
+          count: results.learned.length,
+          tone: "amber" as const,
+        }]
+      : []),
+  ];
 
   const menuVisible = introPhase === "done";
 
@@ -1139,33 +1195,18 @@ export function ResultView({
         <h2 className="mt-5 text-2xl font-semibold text-foreground">{t("quiz.resultTitle")}</h2>
         <p className="mt-2 text-5xl font-bold text-foreground">{accuracy}%</p>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <ResultCard
-            icon={CheckCircle2}
-            label={t("quiz.resultCorrect")}
-            count={results.correct.length}
-            tone="emerald"
-            disabled={results.correct.length === 0}
-            onClick={() => setOpenMenu("correct")}
-          />
-          <ResultCard
-            icon={XCircle}
-            label={t("quiz.resultIncorrect")}
-            count={results.incorrect.length}
-            tone="rose"
-            disabled={results.incorrect.length === 0}
-            onClick={() => setOpenMenu("incorrect")}
-          />
-          <div className="col-span-1 sm:col-span-1">
+        <div className={cn("mt-6 grid grid-cols-2 gap-4", mode === "active" ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+          {resultCards.map((card) => (
             <ResultCard
-              icon={Trophy}
-              label={t("quiz.resultLearned")}
-              count={results.learned.length}
-              tone="amber"
-              disabled={results.learned.length === 0}
-              onClick={() => setOpenMenu("learned")}
+              key={card.key}
+              icon={card.icon}
+              label={card.label}
+              count={card.count}
+              tone={card.tone}
+              disabled={card.count === 0}
+              onClick={() => setOpenMenu(card.key)}
             />
-          </div>
+          ))}
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

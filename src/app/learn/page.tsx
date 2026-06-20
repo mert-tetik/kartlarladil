@@ -4,6 +4,7 @@ import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
+import type { PracticeMode } from "@/types/domain";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -17,9 +18,25 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function LearnPage() {
+function parsePracticeMode(value: string | string[] | undefined): PracticeMode | null {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+
+  if (rawValue === "active" || rawValue === "learned") {
+    return rawValue;
+  }
+
+  return null;
+}
+
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireAuthUser("/learn");
   const t = createTranslator(await getServerLocale());
+  const params = await searchParams;
+  const initialMode = parsePracticeMode(params.mode);
 
   return (
     <section
@@ -29,6 +46,7 @@ export default async function LearnPage() {
       <LearnQuizShell
         title={t("page.learn.title")}
         description={t("page.learn.description")}
+        initialMode={initialMode}
       />
     </section>
   );

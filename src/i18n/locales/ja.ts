@@ -503,6 +503,8 @@ const dictionary = {
   "tier.B1": "流暢",
   "tier.B2": "上級",
   "tier.C1": "エリート",
+  "quiz.chooseModeDescription": "新しいカードを学ぶことも、すでに覚えたカードを復習することもできます。次のステップで言語を選びます。",
+  "quiz.chooseModeTitle": "どのモードで練習しますか？",
 } as const;
 
 export default dictionary;

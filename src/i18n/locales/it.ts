@@ -503,6 +503,8 @@ const dictionary = {
   "tier.B1": "Fluente",
   "tier.B2": "Avanzato",
   "tier.C1": "Elite",
+  "quiz.chooseModeDescription": "Puoi imparare nuove carte o ripassare quelle che hai già imparato. Nel passaggio successivo sceglierai la lingua.",
+  "quiz.chooseModeTitle": "Come vuoi esercitarti?",
 } as const;
 
 export default dictionary;

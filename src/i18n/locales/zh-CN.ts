@@ -503,6 +503,8 @@ const dictionary = {
   "tier.B1": "流利",
   "tier.B2": "高级",
   "tier.C1": "精英",
+  "quiz.chooseModeDescription": "你可以学习新卡片，也可以复习已经学会的卡片。下一步你将选择语言。",
+  "quiz.chooseModeTitle": "你想如何练习？",
 } as const;
 
 export default dictionary;

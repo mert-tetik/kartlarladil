@@ -39,13 +39,13 @@ describe("progress stats", () => {
 
   it("selects rank and next-rank progress from total points", () => {
     expect(getRankForPoints(0).label).toBe("Başlangıç");
-    expect(getRankForPoints(300).label).toBe("Kelime Toplayıcı");
+    expect(getRankForPoints(600).label).toBe("Kelime Toplayıcı");
 
-    const progress = getNextRankProgress(250);
+    const progress = getNextRankProgress(500);
 
     expect(progress.rank.label).toBe("Kart Çırağı");
     expect(progress.nextRank?.label).toBe("Kelime Toplayıcı");
-    expect(progress.pointsToNextRank).toBe(50);
+    expect(progress.pointsToNextRank).toBe(100);
     expect(progress.rankProgressPercent).toBe(75);
   });
 
@@ -62,11 +62,11 @@ describe("progress stats", () => {
     expect(stats.totalPoints).toBe(0);
     expect(stats.rank.label).toBe("Başlangıç");
 
-    const merged = mergeBonusPoints(stats, 150);
+    const merged = mergeBonusPoints(stats, 250);
 
-    expect(merged.totalPoints).toBe(150);
+    expect(merged.totalPoints).toBe(250);
     expect(merged.rank.label).toBe("Kart Çırağı");
-    expect(merged.pointsToNextRank).toBe(150);
+    expect(merged.pointsToNextRank).toBe(350);
   });
 });
 
