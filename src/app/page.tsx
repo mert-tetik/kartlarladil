@@ -18,6 +18,7 @@ import { CollectionPreviewCard } from "@/app/components/collection-preview-card"
 import { ReviewSection } from "@/features/reviews/components/review-section";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
+import { getInstallAppCopy } from "@/features/install-app/install-app-copy";
 import { createTranslator } from "@/i18n/dictionaries";
 import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
@@ -66,6 +67,7 @@ const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
 export default async function Home() {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
+  const installAppCopy = getInstallAppCopy(locale);
   const user = await getCurrentAuthUser();
   const existingReview = user ? await fetchExistingReview(user.id) : null;
   const featureItems = [
@@ -89,7 +91,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
-      <section className="relative isolate min-h-[88vh] overflow-hidden bg-slate-950 text-white">
+      <section className="relative isolate min-h-[72vh] overflow-hidden bg-slate-950 text-white sm:min-h-[88vh]">
         <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />
         </div>
@@ -97,48 +99,57 @@ export default async function Home() {
         <div className="absolute inset-0 bg-slate-950/55 sm:hidden" />
         <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.84)_30%,rgba(0,0,0,0.38)_58%,rgba(0,0,0,0.14)_100%)] sm:block" />
 
-        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
-          <div className="flex w-full flex-col items-center gap-8 lg:flex-row">
+        <div className="relative mx-auto flex min-h-[72vh] max-w-7xl items-start px-4 pt-5 pb-10 sm:min-h-[88vh] sm:items-center sm:px-6 sm:py-20 lg:px-8">
+          <div className="flex w-full flex-col items-center gap-4 sm:gap-8 lg:flex-row">
             <div className="order-1 flex shrink-0 items-center justify-center lg:order-none lg:w-[360px]">
               <Image
                 src="/mascots/mascot1.png"
                 alt=""
                 width={360}
                 height={380}
-                className="h-auto w-56 sm:w-64 lg:w-80"
+                className="h-auto w-40 sm:w-64 lg:w-80"
                 priority
               />
             </div>
             <div className="order-2 max-w-3xl lg:order-none">
-              <h1 className="font-display text-6xl font-semibold leading-none md:text-7xl">{t("home.hero.title")}</h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">{t("home.hero.subtitle")}</p>
-            <div className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
-              <Link
-                href="/card-draw"
-                className={cn(
-                  buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200"),
-                  "w-full justify-center sm:w-auto",
-                )}
-              >
-                {t("home.hero.primaryCta")}
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/my-cards"
-                className={cn(
-                  buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20"),
-                  "w-full justify-center sm:w-auto",
-                )}
-              >
-                {t("home.hero.secondaryCta")}
-              </Link>
+              <h1 className="font-display text-5xl font-semibold leading-none sm:text-6xl md:text-7xl">{t("home.hero.title")}</h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:mt-6 sm:text-lg sm:leading-8">{t("home.hero.subtitle")}</p>
+              <div className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
+                <Link
+                  href="/get-the-app"
+                  className={cn(
+                    buttonClassName("primary", "lg", "bg-brand text-white hover:bg-brand-hover"),
+                    "w-full justify-center sm:hidden",
+                  )}
+                >
+                  {installAppCopy.cta}
+                </Link>
+                <Link
+                  href="/card-draw"
+                  className={cn(
+                    buttonClassName("primary", "lg", "bg-white text-slate-950 hover:bg-slate-200"),
+                    "w-full justify-center sm:w-auto",
+                  )}
+                >
+                  {t("home.hero.primaryCta")}
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/my-cards"
+                  className={cn(
+                    buttonClassName("secondary", "lg", "border-white/20 bg-white/10 text-white hover:bg-white/20"),
+                    "w-full justify-center sm:w-auto",
+                  )}
+                >
+                  {t("home.hero.secondaryCta")}
+                </Link>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
+                {LANGUAGES.map((language) => (
+                  <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-0 bg-transparent" />
+                ))}
+              </div>
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3" aria-label={t("home.hero.supportedLanguages")}>
-              {LANGUAGES.map((language) => (
-                <LanguageFlag key={language.code} code={language.code} className="h-6 w-9 border-0 bg-transparent" />
-              ))}
-            </div>
-          </div>
           </div>
         </div>
       </section>
