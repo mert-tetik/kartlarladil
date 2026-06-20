@@ -9,6 +9,8 @@ import {
   checkLimit,
   getUserEntitlements,
 } from "@/features/subscriptions/subscription-service";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   InventoryCard,
@@ -49,6 +51,13 @@ interface AttemptRow {
   created_at: string;
 }
 
+const CLOUD_AUTH_REQUIRED_ERROR = "inventory_auth_required";
+const CLOUD_LOCAL_CARD_MISSING_ERROR = "inventory_local_card_missing";
+
+async function getCloudActionText() {
+  return createTranslator(await getServerLocale());
+}
+
 export async function listCloudInventoryAction(): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
@@ -60,7 +69,7 @@ export async function listCloudInventoryAction(): Promise<CloudActionResult<Clou
       data: payload,
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -68,6 +77,7 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
   try {
     const { supabase, user } = await getAuthedSupabase();
     const card = resolveLocalCard(sourceKey);
+    const t = await getCloudActionText();
     const entitlements = await getUserEntitlements(user.id);
 
     if (entitlements.effectivePlan === "free") {
@@ -77,7 +87,7 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
       if (limitError) {
         return {
           status: "error",
-          message: "Free planda en fazla 20 aktif kart eklenebilir.",
+          message: t("limit.activeCardLimitDescription"),
           errorCode: limitError,
         };
       }
@@ -106,7 +116,7 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
       data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -120,6 +130,7 @@ export async function recordCloudPracticeAttemptAction(input: {
   try {
     const { supabase, user } = await getAuthedSupabase();
     const localCard = resolveLocalCard(input.cardId);
+    const t = await getCloudActionText();
     const currentCard = await readUserCard(supabase, user, localCard.sourceKey);
     const nextCard =
       input.mode === "learned" ? currentCard : applyAnswerProgress(currentCard, localCard, input.isCorrect);
@@ -137,7 +148,7 @@ export async function recordCloudPracticeAttemptAction(input: {
       if (limitError) {
         return {
           status: "error",
-          message: "Free planda en fazla 50 kart öğrenilebilir.",
+          message: t("limit.learnedCardLimitDescription"),
           errorCode: limitError,
         };
       }
@@ -178,7 +189,7 @@ export async function recordCloudPracticeAttemptAction(input: {
       data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -206,7 +217,7 @@ export async function resetCloudInventoryAction(): Promise<CloudActionResult<Clo
       data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -260,7 +271,7 @@ export async function migrateLocalInventoryToCloudAction(
       data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -275,7 +286,7 @@ export async function getCloudProgressStatsAction(): Promise<CloudActionResult<P
       data: calculateProgressStats(toInventoryViews(payload.cards)),
     };
   } catch (error) {
-    return cloudError(error);
+    return await cloudError(error);
   }
 }
 
@@ -287,7 +298,7 @@ async function getAuthedSupabase() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("Oturum bulunamadı.");
+    throw new Error(CLOUD_AUTH_REQUIRED_ERROR);
   }
 
   return { supabase, user };
@@ -405,7 +416,7 @@ function resolveLocalCard(sourceKey: string): VocabularyCard {
   const card = VOCABULARY_CARDS.find((item) => item.sourceKey === sourceKey || item.id === sourceKey);
 
   if (!card) {
-    throw new Error("Kart yerel katalogda bulunamadı.");
+    throw new Error(CLOUD_LOCAL_CARD_MISSING_ERROR);
   }
 
   return card;
@@ -438,10 +449,26 @@ async function countUserCardsByStatus(
   return count ?? 0;
 }
 
-function cloudError(error: unknown): CloudActionResult<never> {
+async function cloudError(error: unknown): Promise<CloudActionResult<never>> {
+  const t = await getCloudActionText();
+
+  if (error instanceof Error && error.message === CLOUD_AUTH_REQUIRED_ERROR) {
+    return {
+      status: "error",
+      message: t("inventory.error.authRequired"),
+    };
+  }
+
+  if (error instanceof Error && error.message === CLOUD_LOCAL_CARD_MISSING_ERROR) {
+    return {
+      status: "error",
+      message: t("inventory.error.localCatalogMissing"),
+    };
+  }
+
   return {
     status: "error",
-    message: error instanceof Error ? error.message : "Supabase işlemi tamamlanamadı.",
+    message: t("inventory.error.operationFailed"),
   };
 }
 

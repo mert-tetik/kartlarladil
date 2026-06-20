@@ -272,8 +272,8 @@ function MobileLanguageSelector({
 
       <div
         className={cn(
-          "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out",
-          isOpen ? "translate-x-0" : "translate-x-full",
+          "fixed inset-0 z-50 flex flex-col bg-background transition-opacity duration-300 ease-out",
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         inert={!isOpen}
         aria-hidden={!isOpen}
@@ -413,8 +413,8 @@ function MobileCardMenu({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out",
-        isOpen ? "translate-x-0" : "translate-x-full",
+        "fixed inset-0 z-50 flex flex-col bg-background transition-opacity duration-300 ease-out",
+        isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       inert={!isOpen}
       aria-hidden={!isOpen}

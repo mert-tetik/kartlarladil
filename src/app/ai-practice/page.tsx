@@ -26,13 +26,13 @@ export default async function AiPracticePage() {
 
   return (
     <section className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-8rem)] max-w-7xl flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="w-full">
+      <div className="w-full max-w-3xl">
         <PageHeader
           title={t("page.aiPractice.title")}
           description={t("page.aiPractice.chooseLanguagePrompt")}
           descriptionClassName="text-sm sm:text-base"
         />
-        <div className="mx-auto mt-8 max-w-3xl">
+        <div className="mt-8">
           <AiPracticeLanguageSelection locale={locale} />
         </div>
       </div>

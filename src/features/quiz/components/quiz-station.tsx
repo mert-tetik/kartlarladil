@@ -886,16 +886,7 @@ function TextQuestion({
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.learningQuizPrompt", { language: getLanguageDisplayName(item.card.language, locale) })}
       </p>
-      <div className="flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => speakCardTerm(getCardTranslation(item.card, locale), locale)}
-          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
-          aria-label={`${getCardTranslation(item.card, locale)} ${t("cards.speak")}`}
-          title={t("cards.speak")}
-        >
-          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
-        </button>
+      <div className="flex items-center justify-center">
         <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
           {getCardTranslation(item.card, locale)}
         </h2>

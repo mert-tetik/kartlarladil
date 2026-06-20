@@ -29,6 +29,10 @@ vi.mock("@/features/subscriptions/subscription-service", () => ({
   getUserEntitlements: mockGetUserEntitlements,
 }));
 
+vi.mock("@/i18n/server", () => ({
+  getServerLocale: vi.fn(async () => "tr"),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(() => Promise.resolve(currentSupabase)),
 }));
@@ -339,7 +343,7 @@ describe("cloud-actions", () => {
     const result = await addCloudInventoryCardAction("missing-source-key");
 
     expect(result.status).toBe("error");
-    expect(result.message).toContain("Kart yerel katalogda bulunamadı");
+    expect(result.message).toContain("Kart bilgisi yerel katalogda bulunamadı");
     expect(await listCloudInventoryAction()).toMatchObject({
       status: "success",
       data: {

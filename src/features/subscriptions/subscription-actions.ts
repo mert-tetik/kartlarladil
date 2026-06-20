@@ -6,6 +6,8 @@ import {
 } from "@/features/subscriptions/lemon-squeezy";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { getRequestOrigin } from "@/features/auth/auth-session";
+import { createTranslator } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SubscriptionPlan, UserEntitlements } from "@/types/domain";
 
@@ -21,8 +23,13 @@ interface CheckoutActionResult {
   checkoutUrl?: string;
 }
 
+async function getSubscriptionActionText() {
+  return createTranslator(await getServerLocale());
+}
+
 export async function getUserEntitlementsAction(): Promise<EntitlementsActionResult> {
   try {
+    const t = await getSubscriptionActionText();
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -32,7 +39,7 @@ export async function getUserEntitlementsAction(): Promise<EntitlementsActionRes
     if (userError || !user) {
       return {
         status: "error",
-        message: "Oturum bulunamadı.",
+        message: t("pricing.error.authRequired"),
       };
     }
 
@@ -44,9 +51,10 @@ export async function getUserEntitlementsAction(): Promise<EntitlementsActionRes
       data: entitlements,
     };
   } catch (error) {
+    const t = await getSubscriptionActionText();
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Abonelik bilgisi alınamadı.",
+      message: t("pricing.error.loadFailed"),
     };
   }
 }
@@ -56,20 +64,21 @@ export async function createCheckoutAction(
   formData: FormData,
 ): Promise<CheckoutActionResult> {
   try {
+    const t = await getSubscriptionActionText();
     const plan = formData.get("plan") as SubscriptionPlan;
     const cycle = formData.get("cycle") as "monthly" | "yearly";
 
     if (plan !== "basic" && plan !== "pro") {
       return {
         status: "error",
-        message: "Geçersiz plan seçildi.",
+        message: t("pricing.error.invalidPlan"),
       };
     }
 
     if (cycle !== "monthly" && cycle !== "yearly") {
       return {
         status: "error",
-        message: "Geçersiz fatura dönemi seçildi.",
+        message: t("pricing.error.invalidCycle"),
       };
     }
 
@@ -82,7 +91,7 @@ export async function createCheckoutAction(
     if (userError || !user?.email) {
       return {
         status: "error",
-        message: "Ödeme için giriş yapmalısın.",
+        message: t("pricing.error.authRequired"),
       };
     }
 
@@ -101,9 +110,10 @@ export async function createCheckoutAction(
       checkoutUrl,
     };
   } catch (error) {
+    const t = await getSubscriptionActionText();
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Ödeme bağlantısı oluşturulamadı.",
+      message: t("pricing.error.checkoutFailed"),
     };
   }
 }

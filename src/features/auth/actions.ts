@@ -127,7 +127,7 @@ export async function registerAction(_state: AuthActionState, formData: FormData
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.registerFailed"),
     };
   }
 
@@ -167,7 +167,7 @@ export async function resetPasswordAction(_state: AuthActionState, formData: For
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.resetFailed"),
     };
   }
 
@@ -211,7 +211,7 @@ export async function updatePasswordAction(_state: AuthActionState, formData: Fo
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.passwordUpdateFailed"),
     };
   }
 
@@ -267,7 +267,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.profileSaveFailed"),
     };
   }
 
@@ -308,7 +308,7 @@ export async function signInWithGoogleAction(
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.googleFailed"),
     };
   }
 
@@ -373,7 +373,7 @@ export async function updateThemeAction(themeId: string): Promise<AuthActionStat
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.themeSaveFailed"),
     };
   }
 
@@ -446,7 +446,7 @@ export async function completeOnboardingAction(
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: t("auth.message.onboardingSaveFailed"),
     };
   }
 
@@ -489,7 +489,7 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : t("auth.message.deleteNeedsSecret"),
+      message: t("auth.message.deleteNeedsSecret"),
     };
   }
 
@@ -498,7 +498,7 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
   if (deleteError) {
     return {
       status: "error",
-      message: deleteError.message,
+      message: t("auth.message.deleteFailed"),
     };
   }
 

@@ -7,6 +7,7 @@ const LOCKED_PATHS = [
   "/learn",
   "/ai-practice",
   "/ask",
+  "/my-cards",
 ];
 
 function isScrollLocked(path: string): boolean {
