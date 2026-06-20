@@ -467,8 +467,8 @@ function ChatHeader({
 
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
-      <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
-        <Image src="/mascots/mascot14.png" alt="FoxiesDeck" fill sizes="48px" className="object-cover" priority />
+      <div className="relative size-12 shrink-0">
+        <Image src="/mascots/mascot14.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain" priority />
       </div>
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
@@ -502,8 +502,8 @@ function MessageList({
     <div ref={refObject} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ask-chat-scroll="true">
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
-          <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
-            <Image src="/mascots/mascot16.png" alt="" fill sizes="96px" className="object-cover" />
+          <div className="relative size-24">
+            <Image src="/mascots/mascot16.png" alt="" fill sizes="96px" className="object-contain" />
           </div>
           <h2 className="mt-5 text-xl font-semibold text-foreground">{t("page.ask.title")}</h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
@@ -541,8 +541,8 @@ function ChatMessage({
   return (
     <article className={cn("flex gap-3 animate-message-pop", isUser && "flex-row-reverse")}>
       {!isUser && (
-        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-full bg-background-muted sm:size-9">
-          <Image src="/mascots/mascot14.png" alt="" fill sizes="36px" className="object-cover" />
+        <div className="relative mt-1 size-8 shrink-0 sm:size-9">
+          <Image src="/mascots/mascot14.png" alt="" fill sizes="36px" className="object-contain" />
         </div>
       )}
       <div className={cn("min-w-0 flex-1", isUser ? "items-end" : "items-start")}>

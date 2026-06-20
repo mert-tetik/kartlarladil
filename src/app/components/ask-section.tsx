@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MessageCircleQuestion } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { buttonClassName } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,14 @@ export function AskSection({ title, description, cta, href }: AskSectionProps) {
         <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
           <div className="flex items-center gap-5">
             <div className="relative shrink-0">
-              <Logo size={72} priority />
+              <Image
+                src="/mascots/mascot1.png"
+                alt=""
+                width={72}
+                height={76}
+                className="h-auto w-[72px] object-contain"
+                priority
+              />
               <div className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm">
                 <MessageCircleQuestion className="size-4" aria-hidden="true" />
               </div>

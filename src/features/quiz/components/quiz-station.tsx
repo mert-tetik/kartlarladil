@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
-  Gift,
   GraduationCap,
   Lock,
   Medal,
@@ -281,6 +280,11 @@ export function QuizStation({
     }
 
     if (currentIndex + 1 >= deck.length) {
+      const summary = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
+      if (summary.chestUnlocked) {
+        setPhase("chest");
+        return;
+      }
       setPhase("result");
       return;
     }
@@ -296,15 +300,13 @@ export function QuizStation({
   }
 
   function handleContinueFromCelebration() {
-    const learned = lastLearned;
     setLastLearned(null);
 
     if (currentIndex + 1 >= deck.length) {
-      if (learned) {
-        setResults((current) => ({
-          ...current,
-          learned: [...current.learned, learned],
-        }));
+      const summary = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
+      if (summary.chestUnlocked) {
+        setPhase("chest");
+        return;
       }
       setPhase("result");
       return;
@@ -424,11 +426,6 @@ export function QuizStation({
             results={results}
             selectedCount={selectedCount}
             chestOpened={chestOpened}
-            onOpenChest={
-              chestRewardsEnabled && selectedCount && getChestTierByCount(selectedCount)
-                ? () => setPhase("chest")
-                : undefined
-            }
             onRestart={handleRestart}
             onExit={handleExit}
           />
@@ -1066,7 +1063,6 @@ export function ResultView({
   results,
   selectedCount,
   chestOpened,
-  onOpenChest,
   onRestart,
   onExit,
 }: {
@@ -1074,7 +1070,6 @@ export function ResultView({
   results: QuizResult;
   selectedCount: number | null;
   chestOpened: boolean;
-  onOpenChest?: () => void;
   onRestart: () => void;
   onExit: () => void;
 }) {
@@ -1086,7 +1081,6 @@ export function ResultView({
   const hasTriggeredResult = useRef(false);
   const performance = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
   const SummaryIcon = performance.icon;
-  const chestAvailable = performance.chestUnlocked && typeof onOpenChest === "function";
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -1221,16 +1215,12 @@ export function ResultView({
         </div>
         <h2 className="mt-4 text-xl font-semibold text-foreground sm:mt-5 sm:text-2xl">{t("quiz.resultTitle")}</h2>
         <p className="mt-1 text-4xl font-bold text-foreground sm:mt-2 sm:text-5xl">{performance.accuracy}%</p>
-        <div
-          className={cn(
-            "mt-3 rounded-xl border px-3 py-2 text-sm font-semibold leading-5 sm:mt-4 sm:px-4 sm:py-3 sm:text-base sm:leading-6",
-            performance.ringClassName,
-            performance.textClassName,
-          )}
+        <p
+          className={cn("mt-3 text-sm font-semibold leading-5 sm:mt-4 sm:text-base sm:leading-6", performance.textClassName)}
           data-result-message-level={performance.level}
         >
           {t(performance.messageKey)}
-        </div>
+        </p>
 
         <div
           className={cn(
@@ -1253,23 +1243,15 @@ export function ResultView({
           ))}
         </div>
 
-        <div className="mt-4 flex w-full flex-col gap-2 sm:mt-6 sm:w-auto sm:flex-row sm:justify-center sm:gap-3">
-          {chestAvailable ? (
-            <Button className="w-full sm:w-auto" onClick={onOpenChest}>
-              <Gift className="size-4" aria-hidden="true" />
-              {t("quiz.resultOpenChest")}
-            </Button>
-          ) : null}
-          <div className={cn("grid w-full gap-2 sm:flex sm:w-auto sm:gap-3", chestAvailable ? "grid-cols-2" : "grid-cols-1")}>
-            <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
-              <RotateCcw className="size-4" aria-hidden="true" />
-              {t("quiz.restart")}
-            </Button>
-            <Button className="w-full sm:w-auto" onClick={onExit}>
-              <X className="size-4" aria-hidden="true" />
-              {t("quiz.exit")}
-            </Button>
-          </div>
+        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3">
+          <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
+            <RotateCcw className="size-4" aria-hidden="true" />
+            {t("quiz.restart")}
+          </Button>
+          <Button className="w-full sm:w-auto" onClick={onExit}>
+            <X className="size-4" aria-hidden="true" />
+            {t("quiz.exit")}
+          </Button>
         </div>
       </div>
 
