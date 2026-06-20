@@ -186,7 +186,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             onClick={handleTap}
             disabled={phase === "revealed" || phase === "disappearing"}
             className={cn(
-              "relative flex h-[152px] w-[216px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:h-[178px] sm:w-[272px] md:h-[196px] md:w-[304px]",
+              "relative flex size-[220px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[264px] md:size-[296px]",
               phase === "idle" && "animate-chest-float",
               phase === "shake" && "animate-chest-shake",
               phase === "revealed" && "scale-[1.03]",
@@ -194,10 +194,28 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
             aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
           >
-            <div className={cn("absolute bottom-2 left-1/2 h-[68px] w-[188px] -translate-x-1/2 rounded-full opacity-35 blur-2xl sm:h-[82px] sm:w-[236px] md:h-[92px] md:w-[272px]", ui.glow)} />
+            <div className={cn("absolute bottom-3 left-1/2 h-[82px] w-[150px] -translate-x-1/2 rounded-full opacity-35 blur-2xl sm:h-[98px] sm:w-[176px] md:h-[112px] md:w-[196px]", ui.glow)} />
 
-            <div className="relative h-[108px] w-full sm:h-[128px] md:h-[144px]">
-              <div className={cn("absolute inset-x-0 bottom-0 h-[88px] rounded-b-[10px] rounded-t-[8px] border-[3px] border-black/15 shadow-sm sm:h-[102px] md:h-[114px]", ui.base)}>
+            {phase === "revealed" ? (
+              <div
+                data-chest-reward-stack
+                className="pointer-events-none absolute left-1/2 top-[52px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[60px]"
+              >
+                <div className="flex items-center gap-2 text-amber-400 drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
+                  <Gift className="size-5 sm:size-6" aria-hidden="true" />
+                  <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
+                </div>
+                <p className="mt-1 text-4xl font-bold leading-none text-white drop-shadow-[0_6px_24px_rgba(0,0,0,0.5)] sm:text-5xl">
+                  +{tier.points}
+                </p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/80 sm:text-sm">
+                  {t("chest.pointsLabel")}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="relative h-[178px] w-[178px] sm:h-[214px] sm:w-[214px] md:h-[236px] md:w-[236px]">
+              <div className={cn("absolute bottom-0 left-[12px] right-[12px] h-[118px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[14px] sm:right-[14px] sm:h-[142px] md:left-[16px] md:right-[16px] md:h-[156px]", ui.base)}>
                 <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
                 <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
                 <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
@@ -208,7 +226,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
                 ref={lidRef}
                 data-chest-lid
                 className={cn(
-                  "absolute inset-x-0 top-0 z-30 h-[44px] rounded-t-[12px] rounded-b-[6px] border-[3px] border-black/15 shadow-sm sm:h-[52px] md:h-[58px]",
+                  "absolute left-[12px] right-[12px] top-0 z-30 h-[62px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[14px] sm:right-[14px] sm:h-[74px] md:left-[16px] md:right-[16px] md:h-[84px]",
                   ui.lid,
                 )}
                 style={{
@@ -246,14 +264,8 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
         ) : null}
 
         {phase === "revealed" ? (
-          <div className="mt-8 flex animate-points-pop flex-col items-center">
-            <div className="flex items-center gap-2 text-amber-500">
-              <Gift className="size-6" aria-hidden="true" />
-              <span className="text-lg font-semibold">{t("chest.rewardTitle")}</span>
-            </div>
-            <p className="mt-1 text-5xl font-bold text-foreground">+{tier.points}</p>
-            <p className="text-sm text-foreground-secondary">{t("chest.pointsLabel")}</p>
-            <Button className="mt-6 w-full max-w-xs bg-brand hover:bg-brand-hover" onClick={handleCollect}>
+          <div className="mt-8 flex w-full animate-points-pop flex-col items-center">
+            <Button className="w-full max-w-xs bg-brand hover:bg-brand-hover" onClick={handleCollect}>
               {t("chest.collect")}
             </Button>
           </div>
