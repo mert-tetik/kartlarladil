@@ -212,7 +212,7 @@ function PricingCard({
           </Button>
         ) : (
           <>
-            <CheckoutButton plan={plan} cycle={cycle} />
+            <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />
             <ConsentText />
           </>
         )}
@@ -243,9 +243,11 @@ function Feature({
 function CheckoutButton({
   plan,
   cycle,
+  currentPlan,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
+  currentPlan: SubscriptionPlan | null;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCheckoutAction, {
@@ -254,7 +256,14 @@ function CheckoutButton({
   });
 
   useEffect(() => {
-    if (state.status === "success" && state.checkoutUrl) {
+    if (state.status !== "success") return;
+
+    if (state.customerPortalUrl) {
+      window.location.href = state.customerPortalUrl;
+      return;
+    }
+
+    if (state.checkoutUrl) {
       if (typeof window !== "undefined" && window.LemonSqueezy?.Url?.Open) {
         window.createLemonSqueezy?.();
         window.LemonSqueezy.Url.Open(state.checkoutUrl);
@@ -263,6 +272,8 @@ function CheckoutButton({
       }
     }
   }, [state]);
+
+  const isPaidUser = currentPlan !== "free";
 
   return (
     <form action={formAction}>
@@ -277,7 +288,7 @@ function CheckoutButton({
         )}
         disabled={pending}
       >
-        {pending ? t("common.loading") : t("pricing.ctaUpgrade")}
+        {pending ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>

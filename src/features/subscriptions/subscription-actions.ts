@@ -21,6 +21,7 @@ interface CheckoutActionResult {
   status: "idle" | "success" | "error";
   message: string;
   checkoutUrl?: string;
+  customerPortalUrl?: string;
 }
 
 async function getSubscriptionActionText() {
@@ -92,6 +93,22 @@ export async function createCheckoutAction(
       return {
         status: "error",
         message: t("pricing.error.authRequired"),
+      };
+    }
+
+    const entitlements = await getUserEntitlements(user.id);
+    if (entitlements.effectivePlan !== "free") {
+      if (entitlements.customerPortalUrl) {
+        return {
+          status: "success",
+          message: "",
+          customerPortalUrl: entitlements.customerPortalUrl,
+        };
+      }
+
+      return {
+        status: "error",
+        message: t("pricing.error.customerPortalUnavailable"),
       };
     }
 
