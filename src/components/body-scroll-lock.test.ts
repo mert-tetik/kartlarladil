@@ -11,8 +11,9 @@ describe("shouldLockBodyScroll", () => {
     expect(shouldLockBodyScroll("/my-cards/details", true)).toBe(true);
   });
 
-  it("always locks the learn, ai-practice, and ask flows", () => {
-    expect(shouldLockBodyScroll("/learn", false)).toBe(true);
+  it("locks learn only on mobile and keeps ai-practice/ask locked", () => {
+    expect(shouldLockBodyScroll("/learn", false)).toBe(false);
+    expect(shouldLockBodyScroll("/learn", true)).toBe(true);
     expect(shouldLockBodyScroll("/ai-practice", false)).toBe(true);
     expect(shouldLockBodyScroll("/ask/en", false)).toBe(true);
   });

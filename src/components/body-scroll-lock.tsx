@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const ALWAYS_LOCKED_PATHS = [
-  "/learn",
   "/ai-practice",
   "/ask",
 ];
 
 const MOBILE_ONLY_LOCKED_PATHS = [
+  "/learn",
   "/my-cards",
 ];
 
