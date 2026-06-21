@@ -2,6 +2,7 @@ import {
   DELETE_ACCOUNT_CONFIRMATION,
   deleteAccountSchema,
   loginSchema,
+  onboardingSchema,
   profileSchema,
   updatePasswordSchema,
 } from "@/features/auth/auth-schemas";
@@ -41,6 +42,39 @@ describe("auth schemas", () => {
       preferredUiLocale: "tr",
       preferredTier: "B1",
     });
+  });
+
+  it("accepts all as onboarding preferred tier", () => {
+    const result = onboardingSchema.safeParse({
+      preferredLanguageCode: "en",
+      preferredUiLocale: "tr",
+      preferredTier: "all",
+      next: "/card-draw",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts all as profile preferred tier", () => {
+    const result = profileSchema.safeParse({
+      displayName: "Deniz",
+      preferredLanguageCode: "ru",
+      preferredUiLocale: "tr",
+      preferredTier: "all",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.success ? result.data.preferredTier : null).toBe("all");
+  });
+
+  it("rejects invalid tier values", () => {
+    expect(
+      onboardingSchema.safeParse({
+        preferredLanguageCode: "en",
+        preferredUiLocale: "tr",
+        preferredTier: "C2",
+      }).success,
+    ).toBe(false);
   });
 
   it("requires explicit delete confirmation", () => {

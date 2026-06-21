@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
-import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
+import { isPreferredTier, normalizePreferredTier } from "@/features/auth/preferred-tier";
+import type { LanguageCode, LocaleCode, PreferredTier } from "@/types/domain";
 import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
@@ -12,7 +13,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const LANGUAGE_CODE_SET = new Set<LanguageCode>(LANGUAGE_CODES);
 const LOCALE_CODE_SET = new Set<LocaleCode>(LOCALE_CODES);
-const TIERS = new Set<Tier>(["A1", "A2", "B1", "B2", "C1"]);
 
 interface ProfileRow {
   display_name: string | null;
@@ -40,7 +40,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
       preferredUiLocale && LOCALE_CODE_SET.has(preferredUiLocale as LocaleCode)
         ? (preferredUiLocale as LocaleCode)
         : null,
-    preferredTier: preferredTier && TIERS.has(preferredTier as Tier) ? (preferredTier as Tier) : null,
+    preferredTier: normalizePreferredTier(preferredTier),
     aiPracticePoints: row?.ai_practice_points ?? 0,
     chestPoints: row?.chest_points ?? 0,
     theme: row?.theme ?? null,
@@ -113,7 +113,7 @@ export async function ensureUserProfile(
     displayName?: string | null;
     preferredLanguageCode?: LanguageCode | null;
     preferredUiLocale?: LocaleCode | null;
-    preferredTier?: Tier | null;
+    preferredTier?: PreferredTier | null;
   },
 ): Promise<{ profile: AuthProfile; onboardingCompleted: boolean }> {
   const existingProfile = await readProfile(supabase, user.id);
@@ -142,7 +142,7 @@ export async function ensureUserProfile(
         preferences?.preferredUiLocale ??
         (LOCALE_CODE_SET.has(metadataUiLocale as LocaleCode) ? (metadataUiLocale as LocaleCode) : "en"),
       preferred_tier:
-        preferences?.preferredTier ?? (TIERS.has(metadataTier as Tier) ? (metadataTier as Tier) : "A1"),
+        preferences?.preferredTier ?? (isPreferredTier(metadataTier) ? metadataTier : "A1"),
       onboarding_completed: false,
     })
     .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, theme")

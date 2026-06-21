@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
+import { PREFERRED_TIERS } from "@/features/auth/preferred-tier";
 import type { AuthActionState } from "@/features/auth/auth-types";
 import { translate, type TranslationKey } from "@/i18n/dictionaries";
 import type { LocaleCode } from "@/types/domain";
@@ -10,6 +11,7 @@ const nextPathSchema = z.string().optional();
 const languageCodeSchema = z.enum(LANGUAGE_CODES);
 const localeCodeSchema = z.enum(LOCALE_CODES);
 const tierSchema = z.enum(["A1", "A2", "B1", "B2", "C1"]);
+const preferredTierSchema = z.enum(PREFERRED_TIERS);
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),
@@ -34,7 +36,7 @@ export const registerSchema = z.object({
 export const onboardingSchema = z.object({
   preferredLanguageCode: languageCodeSchema,
   preferredUiLocale: localeCodeSchema.optional(),
-  preferredTier: tierSchema,
+  preferredTier: preferredTierSchema,
   next: nextPathSchema,
 });
 
@@ -65,7 +67,7 @@ export const profileSchema = z.object({
   preferredUiLocale: z
     .union([localeCodeSchema, z.literal("")])
     .transform((value) => (value === "" ? null : value)),
-  preferredTier: z.union([tierSchema, z.literal("")]).transform((value) => (value === "" ? null : value)),
+  preferredTier: z.union([preferredTierSchema, z.literal("")]).transform((value) => (value === "" ? null : value)),
 });
 
 export const deleteAccountSchema = z.object({

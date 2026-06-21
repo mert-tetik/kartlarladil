@@ -2,11 +2,17 @@ import {
   CATALOG_REPORT,
   VOCABULARY_CARDS,
   createCardSourceKey,
+  isLikelyLocalizedExampleSentence,
   isFixedPhraseTerm,
   isSingleWordTerm,
 } from "@/data/cards";
+import { masterCardEntries } from "@/data/card-seeds/master-list";
+import { CARD_SEED_LOCALE_ORDER } from "@/data/card-seeds/types";
 import { LANGUAGES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
+
+const LATIN_SCRIPT_LOCALES = ["tr", "en", "de", "fr", "es", "it", "pt", "nl", "pl"] as const;
+const NON_LATIN_SCRIPT_PATTERN = /[\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/u;
 
 describe("multilingual card catalog", () => {
   it("contains a non-empty catalog for every supported language and tier", () => {
@@ -64,23 +70,45 @@ describe("multilingual card catalog", () => {
     }
   });
 
-  it("uses a single example for every card", () => {
+  it("uses two unique examples for every card", () => {
     const placeholderPattern = /is useful in a clear sentence|I wrote the word|clear sentence/i;
     const invalidCards = VOCABULARY_CARDS.filter(
-      (card) =>
-        card.examples.length !== 1 ||
-        card.examples[0].context !== "daily" ||
-        card.examples[0].sentence !== card.example ||
-        card.examples[0].translation !== card.exampleTranslation ||
-        card.examples.some((example) => {
-          if (!example.sentence.trim() || !example.translation.trim()) {
-            return true;
-          }
+      (card) => {
+        if (card.examples.length !== 2) {
+          return true;
+        }
 
-          return LOCALE_CODES.some((locale) => !example.translations[locale]?.trim());
-        }) ||
-        placeholderPattern.test(card.example) ||
-        placeholderPattern.test(card.examples[0].sentence),
+        if (card.examples[0].context !== "daily" || card.examples[1].context !== "natural") {
+          return true;
+        }
+
+        if (card.examples[0].sentence !== card.example || card.examples[0].translation !== card.exampleTranslation) {
+          return true;
+        }
+
+        const normalizedSentences = card.examples.map((example) => example.sentence.trim().normalize("NFC"));
+        if (new Set(normalizedSentences).size !== 2) {
+          return true;
+        }
+
+        return card.examples.some(
+          (example) => !example.sentence.trim() || placeholderPattern.test(example.sentence),
+        );
+      },
+    );
+
+    expect(invalidCards).toEqual([]);
+  });
+
+  it("keeps example sentences localized to the card language", () => {
+    const invalidCards = VOCABULARY_CARDS.flatMap((card) =>
+      card.examples
+        .filter((example) => !isLikelyLocalizedExampleSentence(card.language, example.sentence))
+        .map((example) => ({
+          sourceKey: card.sourceKey,
+          language: card.language,
+          example: example.sentence,
+        })),
     );
 
     expect(invalidCards).toEqual([]);
@@ -96,5 +124,28 @@ describe("multilingual card catalog", () => {
     );
 
     expect(invalidCards).toEqual([]);
+  });
+
+  it("keeps latin-script translation columns free of non-latin text", () => {
+    const invalidEntries = masterCardEntries.flatMap((row) =>
+      LATIN_SCRIPT_LOCALES.flatMap((locale) => {
+        const columnIndex = CARD_SEED_LOCALE_ORDER.indexOf(locale) + 5;
+        const value = String(row[columnIndex] ?? "").trim();
+
+        if (!value || !NON_LATIN_SCRIPT_PATTERN.test(value)) {
+          return [];
+        }
+
+        return [
+          {
+            englishKey: row[0],
+            locale,
+            value,
+          },
+        ];
+      }),
+    );
+
+    expect(invalidEntries).toEqual([]);
   });
 });

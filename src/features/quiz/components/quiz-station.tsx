@@ -945,6 +945,7 @@ function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question as { correctAnswer: string };
+  const exampleTranslation = item.card.examples[0] ? getCardExampleTranslation(item.card.examples[0], locale) : "";
 
   function handleSubmit() {
     if (showingAnswer) return;
@@ -1002,9 +1003,7 @@ function TextQuestion({
               </p>
             </div>
             <p className="text-sm leading-6 text-foreground-secondary">{item.card.examples[0]?.sentence}</p>
-            <p className="text-sm leading-6 text-foreground-muted">
-              {getCardExampleTranslation(item.card.examples[0], locale)}
-            </p>
+            {exampleTranslation ? <p className="text-sm leading-6 text-foreground-muted">{exampleTranslation}</p> : null}
             <Button className="w-full bg-brand hover:bg-brand-hover" onClick={onNext}>
               {t("quiz.nextCard")}
             </Button>

@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 اسحب بطاقات",
   "cards.emptyDrawDescription": "اختر لغة أو مستوى آخر لسحب المزيد من البطاقات.",
   "cards.emptyDrawTitle": "لا توجد بطاقات جديدة لهذا الفلتر",
-  "cards.examples": "5 استخدامات مثال",
+  "cards.examples": "2 استخدامات مثال",
   "cards.flip": "انقر للتقليب",
   "cards.grammar": "دليل القواعد",
   "cards.language": "اللغة",

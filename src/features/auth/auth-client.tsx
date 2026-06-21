@@ -2,11 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { normalizePreferredTier } from "@/features/auth/preferred-tier";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
-import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
+import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 interface AuthSessionContextValue {
   user: AuthShellUser | null;
@@ -36,7 +37,6 @@ const LANGUAGE_CODES: LanguageCode[] = [
   "zh-CN",
 ];
 const LOCALE_CODES: LocaleCode[] = LANGUAGE_CODES;
-const TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 function normalizeClientProfile(row: {
   display_name: string | null;
@@ -60,8 +60,7 @@ function normalizeClientProfile(row: {
       preferredUiLocale && LOCALE_CODES.includes(preferredUiLocale as LocaleCode)
         ? (preferredUiLocale as LocaleCode)
         : null,
-    preferredTier:
-      preferredTier && TIERS.includes(preferredTier as Tier) ? (preferredTier as Tier) : null,
+    preferredTier: normalizePreferredTier(preferredTier),
     aiPracticePoints: row.ai_practice_points ?? 0,
     chestPoints: row.chest_points ?? 0,
   };

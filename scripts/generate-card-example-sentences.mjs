@@ -6,11 +6,51 @@ import ts from "typescript";
 
 const BATCH_SIZE = 40;
 const CONCURRENCY = 20;
+const CARD_SEED_LOCALE_ORDER = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
 const PARTIAL_PATH = "scripts/data/card-example-sentences.partial.json";
 const OUTPUT_PATH = "src/data/card-examples.generated.ts";
 const MODEL = process.env.OPENAI_CARD_EXAMPLES_MODEL?.trim() || "gpt-5.4-nano";
 const MAX_CARDS = parsePositiveInt(process.env.CARD_EXAMPLE_LIMIT);
 const EMIT_ONLY = process.env.CARD_EXAMPLE_EMIT_ONLY === "1" || process.env.CARD_EXAMPLE_EMIT_ONLY === "true";
+const FOREIGN_SCRIPT_PATTERN = /[\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const TURKISH_UNIQUE_CHARACTER_PATTERN = /[ıİğĞşŞ]/u;
+const TARGET_SCRIPT_BY_LANGUAGE = {
+  ru: /\p{Script=Cyrillic}/u,
+  ar: /\p{Script=Arabic}/u,
+  ja: /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}々]/u,
+  ko: /\p{Script=Hangul}/u,
+  "zh-CN": /\p{Script=Han}/u,
+};
+const STRONG_TURKISH_MARKERS = [
+  "teklifini",
+  "kabul",
+  "istiyorum",
+  "adresini",
+  "konaklama",
+  "kesinlikle",
+  "yurtdışı",
+  "fotoğraf",
+  "etkinlik",
+  "yetişkin",
+  "görünüyor",
+  "eşlik",
+  "yağmur",
+  "buluş",
+  "havaalan",
+  "istasyon",
+  "tavsiye",
+  "hedefim",
+  "alkollü",
+  "tekrar",
+  "burada",
+  "bugün",
+  "yarın",
+  "küçük",
+  "şehir",
+  "merkez",
+  "sahiplend",
+  "edilebilir",
+];
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
@@ -33,7 +73,7 @@ const cards = CARD_SEED_MODULES.flatMap((module) =>
       language: module.language,
       tier,
       termKind,
-      term: String(row[5] ?? ""),
+      term: getLocalizedSeedTerm(row, module.language),
       englishKey,
       pronunciation,
       partOfSpeech,
@@ -42,7 +82,7 @@ const cards = CARD_SEED_MODULES.flatMap((module) =>
 );
 
 const existing = readPartial();
-const pending = cards.filter((card) => !existing[card.sourceKey]);
+const pending = cards.filter((card) => !hasValidLocalizedExampleSet(card.sourceKey, existing[card.sourceKey]));
 const limitedPending = Number.isFinite(MAX_CARDS) ? pending.slice(0, MAX_CARDS) : pending;
 
 if (EMIT_ONLY) {
@@ -55,6 +95,11 @@ console.log(
   `Toplam: ${cards.length}, mevcut: ${Object.keys(existing).length}, uretilecek: ${limitedPending.length}` +
     (Number.isFinite(MAX_CARDS) ? ` (limit: ${MAX_CARDS})` : ""),
 );
+
+function getLocalizedSeedTerm(row, language) {
+  const localeIndex = CARD_SEED_LOCALE_ORDER.indexOf(language);
+  return String(localeIndex >= 0 ? row[5 + localeIndex] ?? row[0] : row[0]);
+}
 
 for (let index = 0; index < limitedPending.length; index += BATCH_SIZE * CONCURRENCY) {
   const currentBatches = [];
@@ -71,7 +116,7 @@ for (let index = 0; index < limitedPending.length; index += BATCH_SIZE * CONCURR
 
   for (const result of results) {
     for (const item of result.items) {
-      existing[item.sourceKey] = item.sentence;
+      existing[item.sourceKey] = item.sentences;
     }
   }
 
@@ -92,15 +137,16 @@ async function generateBatch(batch) {
 
 async function generateBatchWithRetry(batch, attempt) {
   const prompt = [
-    "You write one real, natural example sentence for each vocabulary card.",
+    "You write two real, natural, different example sentences for each vocabulary card.",
     "Rules:",
     "1. Use the card language only.",
-    "2. Write exactly one sentence per item.",
-    "3. Do not use a reusable pattern, template language, or placeholder text.",
-    "4. Make the sentence concrete and everyday when possible.",
-    "5. Keep it short and natural for a learner.",
-    "6. Do not explain your choices.",
-    '7. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentence":"..."}]}',
+    "2. Write exactly two sentences per item.",
+    "3. The two sentences for the same item must be clearly different from each other.",
+    "4. Do not use reusable patterns, template language, or placeholder text.",
+    "5. Make the sentences concrete and everyday when possible.",
+    "6. Keep them short and natural for a learner.",
+    "7. Do not explain your choices.",
+    '8. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
     "",
     "Cards:",
     ...batch.map((card) =>
@@ -128,11 +174,12 @@ async function generateBatchWithRetry(batch, attempt) {
   }
 
   const items = parsed.items
-    .filter((item) => typeof item?.sourceKey === "string" && typeof item?.sentence === "string")
+    .filter((item) => typeof item?.sourceKey === "string" && Array.isArray(item?.sentences))
     .map((item) => ({
       sourceKey: item.sourceKey,
-      sentence: item.sentence.trim(),
-    }));
+      sentences: normalizeExampleSet(item.sentences),
+    }))
+    .filter((item) => hasValidLocalizedExampleSet(item.sourceKey, item.sentences));
 
   const bySourceKey = new Map(items.map((item) => [item.sourceKey, item]));
   const missingCards = batch.filter((card) => !bySourceKey.has(card.sourceKey));
@@ -140,7 +187,7 @@ async function generateBatchWithRetry(batch, attempt) {
   if (missingCards.length > 0) {
     if (attempt >= 3) {
       throw new Error(
-        `Expected ${batch.length} items, got ${items.length}. Missing: ${missingCards.map((card) => card.sourceKey).join(", ")}`,
+        `Expected ${batch.length} complete items, got ${items.length}. Missing: ${missingCards.map((card) => card.sourceKey).join(", ")}`,
       );
     }
 
@@ -155,15 +202,16 @@ async function generateBatchWithRetry(batch, attempt) {
 
 async function generateMissingBatch(batch, attempt) {
   const prompt = [
-    "You write one real, natural example sentence for each vocabulary card.",
+    "You write two real, natural, different example sentences for each vocabulary card.",
     "Rules:",
     "1. Use the card language only.",
-    "2. Write exactly one sentence per item.",
-    "3. Do not use a reusable pattern, template language, or placeholder text.",
-    "4. Make the sentence concrete and everyday when possible.",
-    "5. Keep it short and natural for a learner.",
-    "6. Do not explain your choices.",
-    '7. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentence":"..."}]}',
+    "2. Write exactly two sentences per item.",
+    "3. The two sentences for the same item must be clearly different from each other.",
+    "4. Do not use reusable patterns, template language, or placeholder text.",
+    "5. Make the sentences concrete and everyday when possible.",
+    "6. Keep them short and natural for a learner.",
+    "7. Do not explain your choices.",
+    '8. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
     "",
     "Fill only these missing cards:",
     ...batch.map((card) =>
@@ -191,11 +239,12 @@ async function generateMissingBatch(batch, attempt) {
   }
 
   const items = parsed.items
-    .filter((item) => typeof item?.sourceKey === "string" && typeof item?.sentence === "string")
+    .filter((item) => typeof item?.sourceKey === "string" && Array.isArray(item?.sentences))
     .map((item) => ({
       sourceKey: item.sourceKey,
-      sentence: item.sentence.trim(),
-    }));
+      sentences: normalizeExampleSet(item.sentences),
+    }))
+    .filter((item) => hasValidLocalizedExampleSet(item.sourceKey, item.sentences));
 
   const bySourceKey = new Map(items.map((item) => [item.sourceKey, item]));
   const missingCards = batch.filter((card) => !bySourceKey.has(card.sourceKey));
@@ -216,6 +265,70 @@ function parseBatchContent(content) {
   } catch {
     return null;
   }
+}
+
+function normalizeExampleSet(value) {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const normalized = values
+    .filter((sentence) => typeof sentence === "string")
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  return [...new Set(normalized.map((sentence) => sentence.normalize("NFC")))];
+}
+
+function hasCompleteExampleSet(value) {
+  return normalizeExampleSet(value).length === 2;
+}
+
+function hasValidLocalizedExampleSet(sourceKey, value) {
+  const language = sourceKey.split(":")[0];
+  const sentences = normalizeExampleSet(value);
+
+  return (
+    sentences.length === 2 &&
+    sentences.every((sentence) => isLikelyLocalizedExampleSentence(language, sentence))
+  );
+}
+
+function isLikelyLocalizedExampleSentence(language, sentence) {
+  const normalized = sentence.trim();
+
+  if (normalized.length === 0 || language === "tr") {
+    return normalized.length > 0;
+  }
+
+  const strongTurkishMarkerCount = countStrongTurkishMarkers(normalized);
+
+  if (TURKISH_UNIQUE_CHARACTER_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  const targetScript = TARGET_SCRIPT_BY_LANGUAGE[language];
+
+  if (targetScript) {
+    if (!targetScript.test(normalized)) {
+      return false;
+    }
+
+    return strongTurkishMarkerCount === 0;
+  }
+
+  if (FOREIGN_SCRIPT_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  return strongTurkishMarkerCount === 0;
+}
+
+function countStrongTurkishMarkers(sentence) {
+  const normalized = sentence.toLocaleLowerCase("tr");
+  const words = normalized.match(/\p{L}+/gu) ?? [];
+  const prefixMarkers = new Set(["havaalan", "sahiplend", "edilebilir"]);
+
+  return STRONG_TURKISH_MARKERS.filter((marker) =>
+    prefixMarkers.has(marker) ? words.some((word) => word.startsWith(marker)) : words.includes(marker),
+  ).length;
 }
 
 async function createJsonCompletion(prompt, attempt = 1) {
@@ -246,7 +359,10 @@ function readPartial() {
     return {};
   }
 
-  return JSON.parse(fs.readFileSync(filename, "utf8"));
+  const parsed = JSON.parse(fs.readFileSync(filename, "utf8"));
+  return Object.fromEntries(
+    Object.entries(parsed).map(([sourceKey, value]) => [sourceKey, normalizeExampleSet(value)]),
+  );
 }
 
 function writePartial(data) {
@@ -256,10 +372,14 @@ function writePartial(data) {
 
 function writeOutput(data) {
   const source = [
-    'export const CARD_EXAMPLE_SENTENCES: Record<string, string> = {',
+    "export const CARD_EXAMPLE_SENTENCES: Record<string, string[]> = {",
     ...Object.entries(data)
+      .filter(([sourceKey, sentences]) => hasValidLocalizedExampleSet(sourceKey, sentences))
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([sourceKey, sentence]) => `  ${JSON.stringify(sourceKey)}: ${JSON.stringify(sentence)},`),
+      .map(
+        ([sourceKey, sentences]) =>
+          `  ${JSON.stringify(sourceKey)}: [${normalizeExampleSet(sentences).map((sentence) => JSON.stringify(sentence)).join(", ")}],`,
+      ),
     '};',
     "",
   ].join("\n");

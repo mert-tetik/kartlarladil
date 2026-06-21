@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 Kaarten trekken",
   "cards.emptyDrawDescription": "Kies een andere taal of tier om meer kaarten te trekken.",
   "cards.emptyDrawTitle": "Geen nieuwe kaarten voor deze filter",
-  "cards.examples": "5 voorbeeldgebruik",
+  "cards.examples": "2 voorbeeldgebruik",
   "cards.flip": "Klik om om te draaien",
   "cards.grammar": "Grammatica gids",
   "cards.language": "Taal",

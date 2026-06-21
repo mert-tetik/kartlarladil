@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 카드 뽑기",
   "cards.emptyDrawDescription": "더 많은 카드를 뽑으려면 다른 언어 또는 티어를 선택하세요.",
   "cards.emptyDrawTitle": "이 필터에 대한 새로운 카드가 없습니다",
-  "cards.examples": "5개의 예시 사용",
+  "cards.examples": "2개의 예시 사용",
   "cards.flip": "클릭하여 뒤집기",
   "cards.grammar": "문법 가이드",
   "cards.language": "언어",

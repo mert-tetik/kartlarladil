@@ -125,15 +125,21 @@ export function CardDetailsDialog({
                 </h3>
               </div>
               <div className="flex flex-col gap-3">
-                {card.examples.map((example) => (
-                  <article key={example.id} className="rounded-lg border border-border bg-background p-4">
-                    <Badge className="border-transparent bg-background-card text-foreground-secondary">
-                      {getExampleContextLabel(example.context, locale)}
-                    </Badge>
-                    <p className="mt-3 text-sm font-semibold leading-6 text-foreground">{example.sentence}</p>
-                    <p className="mt-2 text-sm leading-6 text-foreground-secondary">{getCardExampleTranslation(example, locale)}</p>
-                  </article>
-                ))}
+                {card.examples.map((example) => {
+                  const exampleTranslation = getCardExampleTranslation(example, locale);
+
+                  return (
+                    <article key={example.id} className="rounded-lg border border-border bg-background p-4">
+                      <Badge className="border-transparent bg-background-card text-foreground-secondary">
+                        {getExampleContextLabel(example.context, locale)}
+                      </Badge>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-foreground">{example.sentence}</p>
+                      {exampleTranslation ? (
+                        <p className="mt-2 text-sm leading-6 text-foreground-secondary">{exampleTranslation}</p>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             </section>
 

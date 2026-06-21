@@ -46,6 +46,45 @@ const FIXED_PHRASE_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+)
 const WORD_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:[-'\s…][\p{L}\p{M}\p{N}]+){0,3}[-'\s…]?$/u;
 const EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily", "question", "negative", "contextual", "natural"];
 const A1_EXAMPLE_CONTEXTS: CardExample["context"][] = ["daily"];
+const FOREIGN_SCRIPT_PATTERN = /[\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const TURKISH_UNIQUE_CHARACTER_PATTERN = /[ıİğĞşŞ]/u;
+const TARGET_SCRIPT_BY_LANGUAGE: Partial<Record<LanguageCode, RegExp>> = {
+  ru: /\p{Script=Cyrillic}/u,
+  ar: /\p{Script=Arabic}/u,
+  ja: /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}々]/u,
+  ko: /\p{Script=Hangul}/u,
+  "zh-CN": /\p{Script=Han}/u,
+};
+const STRONG_TURKISH_MARKERS = [
+  "teklifini",
+  "kabul",
+  "istiyorum",
+  "adresini",
+  "konaklama",
+  "kesinlikle",
+  "yurtdışı",
+  "fotoğraf",
+  "etkinlik",
+  "yetişkin",
+  "görünüyor",
+  "eşlik",
+  "yağmur",
+  "buluş",
+  "havaalan",
+  "istasyon",
+  "tavsiye",
+  "hedefim",
+  "alkollü",
+  "tekrar",
+  "burada",
+  "bugün",
+  "yarın",
+  "küçük",
+  "şehir",
+  "merkez",
+  "sahiplend",
+  "edilebilir",
+];
 
 const EXAMPLE_LABELS: Record<CardExample["context"], Record<LocaleCode, string>> = {
   daily: labels("Günlük kullanım", "Daily use", "Alltag", "Повседневно", "Usage quotidien", "Uso diario"),
@@ -163,25 +202,14 @@ function buildCatalog(): VocabularyCard[] {
 
 function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   let grammarByLocale: Record<LocaleCode, GrammarGuide> | undefined;
-  const example = getVocabularyCardExample(input);
+  const examples = getVocabularyCardExamples(input);
 
   return {
     ...input,
     translation: input.translations.tr,
-    example: example.sentence,
-    exampleTranslation: example.translation,
-    get examples() {
-      return [
-        {
-          id: "daily",
-          context: "daily" as const,
-          label: EXAMPLE_LABELS.daily.tr,
-          sentence: example.sentence,
-          translation: example.translation,
-          translations: example.translations,
-        },
-      ];
-    },
+    example: examples[0]?.sentence ?? "",
+    exampleTranslation: examples[0]?.translation ?? "",
+    examples,
     get grammar() {
       return this.grammarByLocale.tr;
     },
@@ -194,18 +222,81 @@ function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   };
 }
 
-function getVocabularyCardExample(
-  input: CardBuildInput,
-): { sentence: string; translation: string; translations: Record<LocaleCode, string> } {
-  const generatedSentence = CARD_EXAMPLE_SENTENCES[input.sourceKey];
-  const sentence = generatedSentence ?? buildSourceExample(input.language, input.term, input.tier, "daily");
-  const translations = buildExampleTranslations(input, "daily");
+function getVocabularyCardExamples(input: CardBuildInput): CardExample[] {
+  const sentences = getGeneratedExampleSentences(input.sourceKey, input.language);
 
-  return {
+  return sentences.map((sentence, index) => ({
+    id: index === 0 ? "daily" : "natural",
+    context: index === 0 ? "daily" : "natural",
+    label: index === 0 ? EXAMPLE_LABELS.daily.tr : EXAMPLE_LABELS.natural.tr,
     sentence,
-    translation: translations.tr,
-    translations,
-  };
+    translation: "",
+    translations: createEmptyExampleTranslations(),
+  }));
+}
+
+function getGeneratedExampleSentences(sourceKey: string, language: LanguageCode) {
+  const rawValue = CARD_EXAMPLE_SENTENCES[sourceKey];
+  const sentences = Array.isArray(rawValue)
+    ? rawValue.map((sentence) => String(sentence ?? "").trim()).filter(Boolean)
+    : [];
+  const uniqueSentences: string[] = [];
+  const seen = new Set<string>();
+
+  for (const sentence of sentences) {
+    const normalized = sentence.normalize("NFC");
+
+    if (seen.has(normalized)) {
+      continue;
+    }
+
+    if (!isLikelyLocalizedExampleSentence(language, sentence)) {
+      throw new Error(`Invalid localized example sentence for ${sourceKey}`);
+    }
+
+    seen.add(normalized);
+    uniqueSentences.push(sentence);
+  }
+
+  if (uniqueSentences.length !== 2) {
+    throw new Error(`Expected 2 unique generated example sentences for ${sourceKey}, received ${uniqueSentences.length}`);
+  }
+
+  return uniqueSentences;
+}
+
+function createEmptyExampleTranslations(): Record<LocaleCode, string> {
+  return Object.fromEntries(LOCALE_CODES.map((locale) => [locale, ""])) as Record<LocaleCode, string>;
+}
+
+export function isLikelyLocalizedExampleSentence(language: LanguageCode, sentence: string) {
+  const normalized = sentence.trim();
+
+  if (normalized.length === 0 || language === "tr") {
+    return normalized.length > 0;
+  }
+
+  const strongTurkishMarkerCount = countStrongTurkishMarkers(normalized);
+
+  if (TURKISH_UNIQUE_CHARACTER_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  const targetScript = TARGET_SCRIPT_BY_LANGUAGE[language];
+
+  if (targetScript) {
+    if (!targetScript.test(normalized)) {
+      return false;
+    }
+
+    return strongTurkishMarkerCount === 0;
+  }
+
+  if (FOREIGN_SCRIPT_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  return strongTurkishMarkerCount === 0;
 }
 
 function buildSourceExample(language: LanguageCode, term: string, tier: Tier, context: CardExample["context"]) {
@@ -216,6 +307,16 @@ function buildSourceExample(language: LanguageCode, term: string, tier: Tier, co
 
   const templates = SOURCE_EXAMPLE_TEMPLATES[language] ?? SOURCE_EXAMPLE_TEMPLATES.en;
   return templates[context](term, tier);
+}
+
+function countStrongTurkishMarkers(sentence: string) {
+  const normalized = sentence.toLocaleLowerCase("tr");
+  const words: string[] = normalized.match(/\p{L}+/gu) ?? [];
+  const prefixMarkers = new Set<string>(["havaalan", "sahiplend", "edilebilir"]);
+
+  return STRONG_TURKISH_MARKERS.filter((marker) =>
+    prefixMarkers.has(marker) ? words.some((word) => word.startsWith(marker)) : words.includes(marker),
+  ).length;
 }
 
 function buildExampleTranslations(input: CardBuildInput, context: CardExample["context"]): Record<LocaleCode, string> {

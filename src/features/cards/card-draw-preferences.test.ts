@@ -23,11 +23,27 @@ describe("card draw preferences", () => {
         preferredUiLocale: "tr",
         preferredTier: "B2",
         aiPracticePoints: 0,
-    chestPoints: 0,
+        chestPoints: 0,
       }),
     ).toEqual({
       language: "de",
       tier: "B2",
+    });
+  });
+
+  it("uses all as the fallback tier when the saved profile prefers all tiers", () => {
+    expect(
+      getCardDrawPreferenceFallback({
+        displayName: null,
+        preferredLanguageCode: "de",
+        preferredUiLocale: "tr",
+        preferredTier: "all",
+        aiPracticePoints: 0,
+        chestPoints: 0,
+      }),
+    ).toEqual({
+      language: "de",
+      tier: "all",
     });
   });
 

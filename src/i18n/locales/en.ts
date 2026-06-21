@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "Draw 10 cards",
   "cards.emptyDrawDescription": "Choose another language or tier to draw more cards.",
   "cards.emptyDrawTitle": "No new cards for this filter",
-  "cards.examples": "5 example uses",
+  "cards.examples": "2 example uses",
   "cards.flip": "Click to flip",
   "cards.grammar": "Grammar guide",
   "cards.language": "Language",

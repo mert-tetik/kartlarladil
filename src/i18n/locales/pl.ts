@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 Losuj karty",
   "cards.emptyDrawDescription": "Wybierz inny język lub poziom, aby wylosować więcej kart.",
   "cards.emptyDrawTitle": "Brak nowych kart dla tego filtra",
-  "cards.examples": "5 przykładów użycia",
+  "cards.examples": "2 przykłady użycia",
   "cards.flip": "Kliknij, aby obrócić",
   "cards.grammar": "Przewodnik gramatyczny",
   "cards.language": "Język",

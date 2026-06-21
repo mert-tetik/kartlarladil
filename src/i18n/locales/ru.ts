@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "Тянуть 10 карт",
   "cards.emptyDrawDescription": "Выберите другой язык или уровень, чтобы вытянуть больше карточек.",
   "cards.emptyDrawTitle": "Нет новых карточек для этого фильтра",
-  "cards.examples": "5 примеров использования",
+  "cards.examples": "2 примера использования",
   "cards.flip": "Нажмите, чтобы перевернуть",
   "cards.grammar": "Грамматический справочник",
   "cards.language": "Язык",

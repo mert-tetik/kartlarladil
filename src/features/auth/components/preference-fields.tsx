@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { LanguagePicker } from "@/components/language-picker";
-import { TIERS } from "@/data/tiers";
+import { PREFERRED_TIERS } from "@/features/auth/preferred-tier";
 import { FieldError } from "@/features/auth/components/form-message";
 import { getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
+import type { LanguageCode, LocaleCode, PreferredTier, Tier } from "@/types/domain";
 
 export function PreferenceFields({
   defaultLanguage = "en",
@@ -19,7 +19,7 @@ export function PreferenceFields({
 }: {
   defaultLanguage?: LanguageCode | null;
   defaultUiLocale?: LocaleCode | null;
-  defaultTier?: Tier | null;
+  defaultTier?: PreferredTier | null;
   languageError?: string;
   uiLocaleError?: string;
   tierError?: string;
@@ -63,8 +63,8 @@ export function PreferenceFields({
 
       <fieldset>
         <legend className="text-sm font-semibold text-foreground">{t("auth.preference.tier")}</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {TIERS.map((tier) => (
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {PREFERRED_TIERS.map((tier) => (
             <label key={tier} className="block">
               <input
                 className="peer sr-only"
@@ -81,8 +81,14 @@ export function PreferenceFields({
                   "hover:border-foreground-muted",
                 )}
               >
-                <span>{tier}</span>
-                <span className="text-xs font-semibold opacity-70">{getTierLabel(tier, locale)}</span>
+                {tier === "all" ? (
+                  <span>{t("common.all")}</span>
+                ) : (
+                  <>
+                    <span>{tier}</span>
+                    <span className="text-xs font-semibold opacity-70">{getTierLabel(tier as Tier, locale)}</span>
+                  </>
+                )}
               </span>
             </label>
           ))}

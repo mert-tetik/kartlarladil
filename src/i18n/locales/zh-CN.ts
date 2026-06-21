@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 抽卡",
   "cards.emptyDrawDescription": "选择其他语言或级别以抽取更多卡片。",
   "cards.emptyDrawTitle": "此过滤器没有新卡片",
-  "cards.examples": "5个示例用法",
+  "cards.examples": "2个示例用法",
   "cards.flip": "点击翻转",
   "cards.grammar": "语法指南",
   "cards.language": "语言",

@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 kart çek",
   "cards.emptyDrawDescription": "Başka bir dil veya tier seçerek yeni kartlar çekebilirsin.",
   "cards.emptyDrawTitle": "Bu filtrede yeni kart kalmadı",
-  "cards.examples": "5 örnek kullanım",
+  "cards.examples": "2 örnek kullanım",
   "cards.flip": "Çevirmek için tıkla",
   "cards.grammar": "Gramer anlatımı",
   "cards.language": "Dil",

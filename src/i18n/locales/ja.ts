@@ -142,7 +142,7 @@ const dictionary = {
   "cards.drawTen": "10 カードを引く",
   "cards.emptyDrawDescription": "他の言語またはティアを選択して、さらにカードを引いてください。",
   "cards.emptyDrawTitle": "このフィルターには新しいカードがありません",
-  "cards.examples": "5つの例文",
+  "cards.examples": "2つの例文",
   "cards.flip": "クリックして裏返す",
   "cards.grammar": "文法ガイド",
   "cards.language": "言語",

@@ -21,6 +21,7 @@ export type TextDirection = "ltr" | "rtl";
 export type TermKind = "word" | "fixed_phrase";
 
 export type Tier = "A1" | "A2" | "B1" | "B2" | "C1";
+export type PreferredTier = Tier | "all";
 
 export type CardStatus = "active" | "learned";
 

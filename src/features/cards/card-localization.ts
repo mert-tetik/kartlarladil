@@ -14,7 +14,7 @@ export function getCardTranslation(card: VocabularyCard, uiLocale: LocaleCode): 
 }
 
 export function getCardExampleTranslation(example: CardExample, uiLocale: LocaleCode): string {
-  return example.translations[uiLocale] || example.translation;
+  return example.translations[uiLocale]?.trim() || example.translation.trim();
 }
 
 export function getCardGrammar(card: VocabularyCard, uiLocale: LocaleCode): GrammarGuide {
@@ -23,5 +23,6 @@ export function getCardGrammar(card: VocabularyCard, uiLocale: LocaleCode): Gram
 
 export function getSearchableCardText(card: VocabularyCard, uiLocale?: LocaleCode): string {
   const translations = uiLocale ? [getCardTranslation(card, uiLocale)] : Object.values(card.translations);
-  return [card.term, card.pronunciation, card.partOfSpeech, card.example, ...translations].join(" ");
+  const examples = card.examples.map((example) => example.sentence);
+  return [card.term, card.pronunciation, card.partOfSpeech, ...examples, ...translations].join(" ");
 }

@@ -169,7 +169,7 @@ Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse
 ### UI Sorumlulukları
 
 - `VocabularyCardView` kartın tüm fiziksel/3D görünümünü sahiplenir.
-- `CardDetailsDialog` 5 örnek ve gramer detayını gösterir.
+- `CardDetailsDialog` 2 örnek ve gramer detayını gösterir.
 - Quiz sırasında detaylar cevap verilmeden gösterilmez; cevap sonrası öğrenme desteği olarak açılır.
 - `FilterControls` öğrenme dili/tier seçimini yapar; mobilde dil dropdown kullanır.
 - `QuizStation` tüm quiz akışını sahiplenir (dil/tier seçimi, soru tipleri, sonuçlar).
