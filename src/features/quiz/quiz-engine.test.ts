@@ -79,4 +79,16 @@ describe("quiz engine", () => {
     expect(question.options).toHaveLength(4);
     expect(question.options).toContain(question.correctAnswer);
   });
+
+  it("uses only the primary meaning for multiple choice answers", () => {
+    const card = VOCABULARY_CARDS.find(
+      (item) => item.language !== "tr" && item.translationMeaningsByLocale.tr.length > 1,
+    );
+    expect(card).toBeDefined();
+
+    const question = buildQuizQuestion(card!, VOCABULARY_CARDS, "tr");
+
+    expect(question.correctAnswer).toBe(card!.translationMeaningsByLocale.tr[0]);
+    expect(question.correctAnswer).not.toContain(",");
+  });
 });

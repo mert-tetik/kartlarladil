@@ -299,9 +299,11 @@ function CardFront({
         <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
           {getPartOfSpeechLabel(card.termKind, locale)}
         </p>
-        <p className="mt-5 text-lg font-semibold text-foreground dark:text-white max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">
-          {cardTranslation}
-        </p>
+        <div className="mt-5 flex h-12 items-start justify-center max-sm:mt-1 max-sm:h-8">
+          <p className="line-clamp-2 text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight">
+            {cardTranslation}
+          </p>
+        </div>
       </div>
 
       <div

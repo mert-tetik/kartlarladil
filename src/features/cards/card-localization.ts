@@ -9,8 +9,23 @@ export function getStudyLocale(cardLanguage: LanguageCode, uiLocale: LocaleCode)
 }
 
 export function getCardTranslation(card: VocabularyCard, uiLocale: LocaleCode): string {
+  return getCardTranslationMeanings(card, uiLocale).slice(0, 3).join(", ");
+}
+
+export function getPrimaryCardTranslation(card: VocabularyCard, uiLocale: LocaleCode): string {
+  return getCardTranslationMeanings(card, uiLocale)[0] ?? card.translation;
+}
+
+export function getCardTranslationMeanings(card: VocabularyCard, uiLocale: LocaleCode): string[] {
   const studyLocale = getStudyLocale(card.language, uiLocale);
-  return card.translations[studyLocale] || card.translation;
+  const meanings = card.translationMeaningsByLocale[studyLocale] ?? [];
+
+  if (meanings.length > 0) {
+    return meanings;
+  }
+
+  const primaryTranslation = card.translations[studyLocale] || card.translation;
+  return primaryTranslation ? [primaryTranslation] : [];
 }
 
 export function getCardExampleTranslation(example: CardExample, uiLocale: LocaleCode): string {
@@ -22,7 +37,9 @@ export function getCardGrammar(card: VocabularyCard, uiLocale: LocaleCode): Gram
 }
 
 export function getSearchableCardText(card: VocabularyCard, uiLocale?: LocaleCode): string {
-  const translations = uiLocale ? [getCardTranslation(card, uiLocale)] : Object.values(card.translations);
+  const translations = uiLocale
+    ? getCardTranslationMeanings(card, uiLocale)
+    : Object.values(card.translationMeaningsByLocale).flat();
   const examples = card.examples.map((example) => example.sentence);
   return [card.term, card.pronunciation, card.partOfSpeech, ...examples, ...translations].join(" ");
 }

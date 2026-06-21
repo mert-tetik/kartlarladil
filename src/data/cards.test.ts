@@ -6,6 +6,7 @@ import {
   isFixedPhraseTerm,
   isSingleWordTerm,
 } from "@/data/cards";
+import { CARD_PRONUNCIATIONS } from "@/data/card-pronunciations.generated";
 import { masterCardEntries } from "@/data/card-seeds/master-list";
 import { CARD_SEED_LOCALE_ORDER } from "@/data/card-seeds/types";
 import { LANGUAGES, LOCALE_CODES } from "@/data/languages";
@@ -13,6 +14,7 @@ import { TIERS } from "@/data/tiers";
 
 const LATIN_SCRIPT_LOCALES = ["tr", "en", "de", "fr", "es", "it", "pt", "nl", "pl"] as const;
 const NON_LATIN_SCRIPT_PATTERN = /[\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/u;
+const IPA_PATTERN = /^\/.+\/$/u;
 
 describe("multilingual card catalog", () => {
   it("contains a non-empty catalog for every supported language and tier", () => {
@@ -70,32 +72,62 @@ describe("multilingual card catalog", () => {
     }
   });
 
+  it("stores translation meanings for every supported locale", () => {
+    const invalidCards = VOCABULARY_CARDS.filter((card) =>
+      LOCALE_CODES.some((locale) => {
+        const meanings = card.translationMeaningsByLocale[locale];
+        return (
+          !Array.isArray(meanings) ||
+          meanings.length === 0 ||
+          meanings.length > 3 ||
+          meanings.some((meaning) => !meaning.trim())
+        );
+      }),
+    );
+
+    expect(invalidCards).toEqual([]);
+  });
+
+  it("stores valid IPA pronunciations for generated pronunciation overrides", () => {
+    expect(Object.keys(CARD_PRONUNCIATIONS).length).toBeGreaterThan(0);
+
+    const invalidGeneratedEntries = Object.entries(CARD_PRONUNCIATIONS).filter(([, pronunciation]) => {
+      return !IPA_PATTERN.test(pronunciation.trim());
+    });
+
+    expect(invalidGeneratedEntries).toEqual([]);
+
+    const trAbandon = VOCABULARY_CARDS.find((card) => card.sourceKey === "tr:B2:word:abandon:verb");
+    const deAbility = VOCABULARY_CARDS.find((card) => card.sourceKey === "de:A2:word:ability:noun");
+    const ruAbout = VOCABULARY_CARDS.find((card) => card.sourceKey === "ru:A1:word:about:adverb");
+
+    expect(trAbandon?.pronunciation).toMatch(IPA_PATTERN);
+    expect(deAbility?.pronunciation).toMatch(IPA_PATTERN);
+    expect(ruAbout?.pronunciation).toMatch(IPA_PATTERN);
+  });
+
   it("uses two unique examples for every card", () => {
     const placeholderPattern = /is useful in a clear sentence|I wrote the word|clear sentence/i;
-    const invalidCards = VOCABULARY_CARDS.filter(
-      (card) => {
-        if (card.examples.length !== 2) {
-          return true;
-        }
+    const invalidCards = VOCABULARY_CARDS.filter((card) => {
+      if (card.examples.length !== 2) {
+        return true;
+      }
 
-        if (card.examples[0].context !== "daily" || card.examples[1].context !== "natural") {
-          return true;
-        }
+      if (card.examples[0].context !== "daily" || card.examples[1].context !== "natural") {
+        return true;
+      }
 
-        if (card.examples[0].sentence !== card.example || card.examples[0].translation !== card.exampleTranslation) {
-          return true;
-        }
+      if (card.examples[0].sentence !== card.example || card.examples[0].translation !== card.exampleTranslation) {
+        return true;
+      }
 
-        const normalizedSentences = card.examples.map((example) => example.sentence.trim().normalize("NFC"));
-        if (new Set(normalizedSentences).size !== 2) {
-          return true;
-        }
+      const normalizedSentences = card.examples.map((example) => example.sentence.trim().normalize("NFC"));
+      if (new Set(normalizedSentences).size !== 2) {
+        return true;
+      }
 
-        return card.examples.some(
-          (example) => !example.sentence.trim() || placeholderPattern.test(example.sentence),
-        );
-      },
-    );
+      return card.examples.some((example) => !example.sentence.trim() || placeholderPattern.test(example.sentence));
+    });
 
     expect(invalidCards).toEqual([]);
   });

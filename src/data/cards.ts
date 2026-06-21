@@ -1,6 +1,8 @@
 import { CARD_SEED_MODULES } from "./card-seeds";
 import { rowToTranslations } from "./card-seeds/types";
 import { CARD_EXAMPLE_SENTENCES } from "./card-examples.generated";
+import { CARD_PRONUNCIATIONS } from "./card-pronunciations.generated";
+import { CARD_TRANSLATION_MEANINGS } from "./card-translation-meanings.generated";
 import { LANGUAGE_CODES, LOCALE_CODES } from "./languages";
 import type {
   CardExample,
@@ -26,6 +28,8 @@ interface CardBuildInput {
   pronunciation: string;
   partOfSpeech: string;
 }
+
+type TranslationMeaningsByLocale = Record<LocaleCode, string[]>;
 
 export interface CatalogReport {
   total: number;
@@ -193,7 +197,7 @@ function buildCatalog(): VocabularyCard[] {
         termKind,
         term,
         translations,
-        pronunciation,
+        pronunciation: getLocalizedPronunciation(sourceKey, pronunciation),
         partOfSpeech,
       });
     }),
@@ -203,10 +207,12 @@ function buildCatalog(): VocabularyCard[] {
 function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   let grammarByLocale: Record<LocaleCode, GrammarGuide> | undefined;
   const examples = getVocabularyCardExamples(input);
+  const translationMeaningsByLocale = getTranslationMeaningsByLocale(input);
 
   return {
     ...input,
     translation: input.translations.tr,
+    translationMeaningsByLocale,
     example: examples[0]?.sentence ?? "",
     exampleTranslation: examples[0]?.translation ?? "",
     examples,
@@ -220,6 +226,34 @@ function createVocabularyCard(input: CardBuildInput): VocabularyCard {
       return grammarByLocale;
     },
   };
+}
+
+function getLocalizedPronunciation(sourceKey: string, fallbackPronunciation: string) {
+  const generatedPronunciation = CARD_PRONUNCIATIONS[sourceKey]?.trim();
+
+  if (generatedPronunciation) {
+    return generatedPronunciation;
+  }
+
+  return String(fallbackPronunciation ?? "").trim();
+}
+
+function getTranslationMeaningsByLocale(input: CardBuildInput): TranslationMeaningsByLocale {
+  const meaningKey = createCardSourceKey("en", input.tier, input.englishKey, input.partOfSpeech, input.termKind);
+  const generatedMeanings = CARD_TRANSLATION_MEANINGS[meaningKey] ?? {};
+
+  return Object.fromEntries(
+    LOCALE_CODES.map((locale) => {
+      const rawMeanings = Array.isArray(generatedMeanings[locale]) ? generatedMeanings[locale] : [];
+      const cleanedGeneratedMeanings = rawMeanings
+        .map((meaning) => String(meaning ?? "").trim())
+        .filter(Boolean);
+      const primaryMeaning = String(locale === "en" ? input.englishKey : input.translations[locale] || input.term).trim();
+      const meanings = cleanedGeneratedMeanings.length > 0 ? cleanedGeneratedMeanings : [primaryMeaning];
+
+      return [locale, [...new Set(meanings)].slice(0, 3)];
+    }),
+  ) as TranslationMeaningsByLocale;
 }
 
 function getVocabularyCardExamples(input: CardBuildInput): CardExample[] {

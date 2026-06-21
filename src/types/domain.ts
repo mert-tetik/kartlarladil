@@ -70,6 +70,7 @@ export interface VocabularyCard {
   term: string;
   translation: string;
   translations: Record<LocaleCode, string>;
+  translationMeaningsByLocale: Record<LocaleCode, string[]>;
   pronunciation: string;
   partOfSpeech: string;
   example: string;

@@ -12,6 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:card-examples": "node scripts/generate-card-example-sentences.mjs",
+    "generate:card-pronunciations": "node scripts/generate-card-pronunciations.mjs",
+    "generate:card-pronunciations:batch": "node scripts/generate-card-pronunciations-batch.mjs",
+    "generate:card-translation-meanings": "node scripts/generate-card-translation-meanings.mjs",
+    "generate:card-translation-meanings:batch": "node scripts/generate-card-translation-meanings-batch.mjs",
     "pretest:e2e": "next build",
     "test:e2e": "playwright test"
   },

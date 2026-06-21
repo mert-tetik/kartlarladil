@@ -1,5 +1,5 @@
 import { TIER_REQUIREMENTS } from "@/data/tiers";
-import { getCardTranslation } from "@/features/cards/card-localization";
+import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { createId } from "@/lib/utils";
 import type {
   InventoryCard,
@@ -58,13 +58,13 @@ function shuffle<T>(items: T[]) {
 }
 
 export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard[], locale: LocaleCode = "tr"): QuizQuestion {
-  const correctAnswer = getCardTranslation(card, locale);
+  const correctAnswer = getPrimaryCardTranslation(card, locale);
   const sameLanguageDistractors = allCards
     .filter((candidate) => candidate.language === card.language && candidate.id !== card.id)
-    .map((candidate) => getCardTranslation(candidate, locale));
+    .map((candidate) => getPrimaryCardTranslation(candidate, locale));
   const fallbackDistractors = allCards
     .filter((candidate) => candidate.id !== card.id)
-    .map((candidate) => getCardTranslation(candidate, locale));
+    .map((candidate) => getPrimaryCardTranslation(candidate, locale));
 
   const uniqueDistractors = Array.from(
     new Set([...sameLanguageDistractors, ...fallbackDistractors].filter((answer) => answer !== correctAnswer)),
