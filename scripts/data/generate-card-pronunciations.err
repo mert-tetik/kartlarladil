@@ -1,0 +1,28 @@
+file:///C:/Users/CASPER/Documents/kartlarladil/node_modules/openai/core/error.mjs:59
+            return new RateLimitError(status, error, message, headers);
+                   ^
+
+RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (file:///C:/Users/CASPER/Documents/kartlarladil/node_modules/openai/core/error.mjs:59:20)
+    at OpenAI.makeStatusError (file:///C:/Users/CASPER/Documents/kartlarladil/node_modules/openai/client.mjs:255:32)
+    at OpenAI.makeRequest (file:///C:/Users/CASPER/Documents/kartlarladil/node_modules/openai/client.mjs:449:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async createJsonCompletion (file:///C:/Users/CASPER/Documents/kartlarladil/scripts/generate-card-pronunciations.mjs:258:12)
+    at async generateBatchWithRetry (file:///C:/Users/CASPER/Documents/kartlarladil/scripts/generate-card-pronunciations.mjs:124:20)
+    at async Promise.all (index 1)
+    at async file:///C:/Users/CASPER/Documents/kartlarladil/scripts/generate-card-pronunciations.mjs:76:19 {
+  status: 429,
+  headers: Headers {},
+  requestID: 'req_7c43c744d4cf4c1eb6cbb1b47e0d9338',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+
+Node.js v24.15.0

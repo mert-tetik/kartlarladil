@@ -1,0 +1,5 @@
+
+> foxiesdeck@0.1.0 generate:card-pronunciations
+> node scripts/generate-card-pronunciations.mjs
+
+Toplam: 57394, mevcut: 7100, uretilecek: 50294

@@ -1,18 +1,30 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const LOCKED_PATHS = [
+const ALWAYS_LOCKED_PATHS = [
   "/learn",
   "/ai-practice",
   "/ask",
+];
+
+const MOBILE_ONLY_LOCKED_PATHS = [
   "/my-cards",
 ];
 
-function isScrollLocked(path: string): boolean {
-  return LOCKED_PATHS.some(
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+
+function pathMatches(path: string, prefixes: string[]): boolean {
+  return prefixes.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+}
+
+export function shouldLockBodyScroll(path: string, mobileViewport: boolean): boolean {
+  return (
+    pathMatches(path, ALWAYS_LOCKED_PATHS) ||
+    (mobileViewport && pathMatches(path, MOBILE_ONLY_LOCKED_PATHS))
   );
 }
 
@@ -36,8 +48,34 @@ function isInsideScrollableElement(target: EventTarget | null): boolean {
 
 export function BodyScrollLock() {
   const pathname = usePathname();
-  const locked = isScrollLocked(pathname);
   const scrollYRef = useRef(0);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return false;
+    }
+
+    return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
+  });
+  const locked = shouldLockBodyScroll(pathname, isMobileViewport);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+
+    function updateViewportState() {
+      setIsMobileViewport(mediaQuery.matches);
+    }
+
+    updateViewportState();
+    mediaQuery.addEventListener("change", updateViewportState);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewportState);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
