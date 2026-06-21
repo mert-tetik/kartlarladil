@@ -560,6 +560,7 @@ export function CardDrawWorkbench() {
             tier={tier}
             onLanguageChange={(nextLanguage) => updatePreferences({ language: nextLanguage })}
             onTierChange={(nextTier) => updatePreferences({ tier: nextTier })}
+            mobileMenuDirection="up"
           />
         </div>
       </div>

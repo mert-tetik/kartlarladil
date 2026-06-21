@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
-import { QuizStation } from "@/features/quiz/components/quiz-station";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { playSoundEffect } from "@/lib/sound-effects";
+import { QuizStation } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { InventoryCard } from "@/types/domain";
+import type { InventoryCard, LocaleCode } from "@/types/domain";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/learn",
@@ -73,7 +73,7 @@ describe("QuizStation sound feedback", () => {
 
   it("plays the correct-answer effect after a correct guess", async () => {
     renderQuizStation();
-    await startQuiz();
+    await startChoiceQuiz();
     fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
 
     expect(playSoundEffect).toHaveBeenCalledWith("correct");
@@ -81,7 +81,7 @@ describe("QuizStation sound feedback", () => {
 
   it("plays the incorrect-answer effect after a wrong guess", async () => {
     renderQuizStation();
-    await startQuiz();
+    await startChoiceQuiz();
 
     const wrongOption = Array.from(document.querySelectorAll("[data-quiz-option]")).find(
       (button) => button.textContent?.trim() !== correctAnswer,
@@ -110,11 +110,50 @@ describe("QuizStation sound feedback", () => {
 
     await screen.findByRole("heading", { name: germanCard.term });
   });
+
+  it("auto-advances to the result screen when the learned-card limit blocks learning", async () => {
+    const learnedCards = VOCABULARY_CARDS.filter((card) => card.id !== testCard.id)
+      .slice(0, 50)
+      .map<InventoryCard>((card, index) => ({
+        cardId: card.id,
+        status: "learned",
+        correctCount: 4,
+        addedAt: `2026-06-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+        learnedAt: `2026-06-${String(index + 1).padStart(2, "0")}T01:00:00.000Z`,
+      }));
+
+    useInventoryStore.setState({
+      cards: [
+        {
+          ...inventoryCard,
+          correctCount: 3,
+        },
+        ...learnedCards,
+      ],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("en");
+    fireEvent.click(screen.getByRole("button", { name: /English/i }));
+
+    const input = await screen.findByRole("textbox");
+    fireEvent.change(input, { target: { value: testCard.term } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await screen.findByRole("heading", { name: /Learned card limit reached/i });
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Practice results" })).toBeVisible();
+    });
+  });
 });
 
-function renderQuizStation() {
+function renderQuizStation(locale: LocaleCode = "tr") {
   render(
-    <LocaleProvider initialLocale="tr">
+    <LocaleProvider initialLocale={locale}>
       <AuthSessionProvider user={testUser}>
         <QuizStation mode="active" />
       </AuthSessionProvider>
@@ -122,7 +161,7 @@ function renderQuizStation() {
   );
 }
 
-async function startQuiz() {
-  fireEvent.click(screen.getByRole("button", { name: /İngilizce/ }));
+async function startChoiceQuiz() {
+  fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
   await screen.findByRole("heading", { name: testCard.term });
 }

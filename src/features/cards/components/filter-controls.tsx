@@ -22,11 +22,13 @@ export function FilterControls({
   tier,
   onLanguageChange,
   onTierChange,
+  mobileMenuDirection = "down",
 }: {
   language: LanguageCode | "all";
   tier: Tier | "all";
   onLanguageChange: (language: LanguageCode | "all") => void;
   onTierChange: (tier: Tier | "all") => void;
+  mobileMenuDirection?: "up" | "down";
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -62,6 +64,7 @@ export function FilterControls({
           options={languageOptions}
           value={language}
           onChange={(value) => onLanguageChange(value as LanguageCode | "all")}
+          mobileMenuDirection={mobileMenuDirection}
         />
       </div>
       <div>
@@ -70,6 +73,7 @@ export function FilterControls({
           options={tierOptions}
           value={tier}
           onChange={(value) => onTierChange(value as Tier | "all")}
+          mobileMenuDirection={mobileMenuDirection}
         />
       </div>
     </div>
@@ -81,11 +85,13 @@ export function SelectDropdown({
   options,
   value,
   onChange,
+  mobileMenuDirection = "down",
 }: {
   label: string;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
+  mobileMenuDirection?: "up" | "down";
 }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -147,7 +153,12 @@ export function SelectDropdown({
             id={listboxId}
             role="listbox"
             aria-labelledby={buttonId}
-            className="animate-menu-pop absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-72 origin-top overflow-y-auto rounded-md border border-border bg-background-card p-1 shadow-lg"
+            className={cn(
+              "animate-menu-pop absolute left-0 right-0 z-30 max-h-72 overflow-y-auto rounded-md border border-border bg-background-card p-1 shadow-lg",
+              mobileMenuDirection === "up"
+                ? "top-[calc(100%+6px)] origin-top max-lg:bottom-[calc(100%+6px)] max-lg:top-auto max-lg:origin-bottom"
+                : "top-[calc(100%+6px)] origin-top",
+            )}
           >
             {options.map((option) => {
               const selected = option.value === value;

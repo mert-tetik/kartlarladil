@@ -135,6 +135,7 @@ export function QuizStation({
   const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">("back");
   const [mobileCardOpen, setMobileCardOpen] = useState(false);
   const [mobileCardFace, setMobileCardFace] = useState<"front" | "back">("back");
+  const autoAdvanceTimeoutRef = useRef<number | null>(null);
 
   const languageStats = useMemo(
     () =>
@@ -194,6 +195,68 @@ export function QuizStation({
     [cards, mode, locale],
   );
 
+  const resetQuestionUi = useCallback(() => {
+    setShowingAnswer(false);
+    setTextAnswer("");
+    setTextResult("idle");
+    setLastAnswerCorrect(null);
+    setDesktopCardFace("back");
+    setMobileCardFace("back");
+    setMobileCardOpen(false);
+  }, []);
+
+  const advanceQuiz = useCallback(
+    ({
+      bypassCelebration = false,
+      resultsOverride,
+    }: {
+      bypassCelebration?: boolean;
+      resultsOverride?: QuizResult;
+    } = {}) => {
+      if (!bypassCelebration && lastLearned) {
+        setPhase("celebration");
+        return;
+      }
+
+      if (currentIndex + 1 >= deck.length) {
+        const summary = getQuizPerformanceSummary(mode, resultsOverride ?? results, selectedCount, chestOpened);
+        if (summary.chestUnlocked) {
+          setPhase("chest");
+          return;
+        }
+        setPhase("result");
+        return;
+      }
+
+      setCurrentIndex((current) => current + 1);
+      resetQuestionUi();
+    },
+    [chestOpened, currentIndex, deck.length, lastLearned, mode, resetQuestionUi, results, selectedCount],
+  );
+
+  const queueAutoAdvance = useCallback(
+    (resultsOverride?: QuizResult) => {
+      if (autoAdvanceTimeoutRef.current !== null) {
+        window.clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+
+      autoAdvanceTimeoutRef.current = window.setTimeout(() => {
+        advanceQuiz({ bypassCelebration: true, resultsOverride });
+        autoAdvanceTimeoutRef.current = null;
+      }, 0);
+    },
+    [advanceQuiz],
+  );
+
+  useEffect(
+    () => () => {
+      if (autoAdvanceTimeoutRef.current !== null) {
+        window.clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
     const count = filterInventoryCards({ cards, language, status: mode }).length;
@@ -223,7 +286,7 @@ export function QuizStation({
         ? (item.question as QuizQuestion).correctAnswer
         : (item.question as { correctAnswer: string }).correctAnswer;
 
-    if (item.willLearn) {
+    if (item.willLearn && isCorrect) {
       const effectivePlan = entitlements?.effectivePlan ?? "free";
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
 
@@ -231,7 +294,17 @@ export function QuizStation({
         const learnedCount = cards.filter((card) => card.status === "learned").length;
 
         if (learnedCount >= learnedLimit) {
+          const nextResults: QuizResult = {
+            correct: [...results.correct, item.card],
+            incorrect: results.incorrect,
+            learned: results.learned,
+          };
+
+          playSoundEffect("correct");
+          vibrate("correct");
+          setResults(nextResults);
           setLimitError("free_learned_card_limit");
+          queueAutoAdvance(nextResults);
           return;
         }
       }
@@ -274,52 +347,12 @@ export function QuizStation({
   }
 
   function handleNext() {
-    if (lastLearned) {
-      setPhase("celebration");
-      return;
-    }
-
-    if (currentIndex + 1 >= deck.length) {
-      const summary = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
-      if (summary.chestUnlocked) {
-        setPhase("chest");
-        return;
-      }
-      setPhase("result");
-      return;
-    }
-
-    setCurrentIndex((current) => current + 1);
-    setShowingAnswer(false);
-    setTextAnswer("");
-    setTextResult("idle");
-    setLastAnswerCorrect(null);
-    setDesktopCardFace("back");
-    setMobileCardFace("back");
-    setMobileCardOpen(false);
+    advanceQuiz();
   }
 
   function handleContinueFromCelebration() {
     setLastLearned(null);
-
-    if (currentIndex + 1 >= deck.length) {
-      const summary = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
-      if (summary.chestUnlocked) {
-        setPhase("chest");
-        return;
-      }
-      setPhase("result");
-      return;
-    }
-
-    setCurrentIndex((current) => current + 1);
-    setShowingAnswer(false);
-    setTextAnswer("");
-    setTextResult("idle");
-    setLastAnswerCorrect(null);
-    setDesktopCardFace("back");
-    setMobileCardFace("back");
-    setMobileCardOpen(false);
+    advanceQuiz({ bypassCelebration: true });
   }
 
   function handleRestart() {
