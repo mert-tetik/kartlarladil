@@ -66,7 +66,10 @@ function CustomerPortalButton() {
 
   useEffect(() => {
     if (state.status === "success" && state.customerPortalUrl) {
-      window.location.href = state.customerPortalUrl;
+      const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
+      if (!portalWindow) {
+        window.location.assign(state.customerPortalUrl);
+      }
     }
   }, [state]);
 

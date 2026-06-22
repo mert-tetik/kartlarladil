@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "Abonnement kündigen",
   "account.subscription.cancelDescription": "Du kannst jederzeit kündigen. Der Zugang bleibt bis zum Ende des bezahlten Zeitraums bestehen.",
+  "account.subscription.customerDashboard": "Lemon Squeezy Kundenbereich",
   "account.subscription.customerPortalMissing": "Link zur Abonnementverwaltung ist nicht verfügbar. Bitte kontaktiere den Support.",
   "account.subscription.description": "Sieh dir hier dein aktives Abonnement an und kündige es.",
   "account.subscription.error": "Fehler",

@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "Anuluj subskrypcję",
   "account.subscription.cancelDescription": "Możesz anulować w dowolnym momencie. Dostęp trwa do końca opłaconego okresu.",
+  "account.subscription.customerDashboard": "Panel klienta Lemon Squeezy",
   "account.subscription.customerPortalMissing": "Link do zarządzania subskrypcją jest niedostępny. Proszę skontaktować się z pomocą techniczną.",
   "account.subscription.description": "Zobacz i anuluj swoją aktywną subskrypcję tutaj.",
   "account.subscription.error": "Błąd",

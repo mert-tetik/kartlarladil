@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "サブスクリプションをキャンセル",
   "account.subscription.cancelDescription": "いつでもキャンセルできます。支払い期間が終了するまでアクセスが続きます。",
+  "account.subscription.customerDashboard": "Lemon Squeezy カスタマーダッシュボード",
   "account.subscription.customerPortalMissing": "サブスクリプション管理リンクが利用できません。サポートにお問い合わせください。",
   "account.subscription.description": "ここでアクティブなサブスクリプションを表示およびキャンセルします。",
   "account.subscription.error": "エラー",

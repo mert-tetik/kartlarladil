@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "구독 취소",
   "account.subscription.cancelDescription": "언제든지 취소할 수 있습니다. 유료 기간이 끝날 때까지 계속 사용할 수 있습니다.",
+  "account.subscription.customerDashboard": "Lemon Squeezy 고객 대시보드",
   "account.subscription.customerPortalMissing": "구독 관리 링크를 사용할 수 없습니다. 지원팀에 문의하세요.",
   "account.subscription.description": "여기에서 활성 구독을 보고 취소하세요.",
   "account.subscription.error": "오류",

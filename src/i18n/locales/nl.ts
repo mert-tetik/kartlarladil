@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "Abonnement annuleren",
   "account.subscription.cancelDescription": "Je kunt op elk moment annuleren. Toegang blijft tot het einde van de betaalde periode.",
+  "account.subscription.customerDashboard": "Lemon Squeezy klantendashboard",
   "account.subscription.customerPortalMissing": "Link voor abonnementbeheer is niet beschikbaar. Neem contact op met de ondersteuning.",
   "account.subscription.description": "Bekijk en annuleer hier je actieve abonnement.",
   "account.subscription.error": "Fout",

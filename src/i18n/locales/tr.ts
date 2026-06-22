@@ -2,6 +2,7 @@
 const dictionary = {
   "account.subscription.cancel": "Aboneliği iptal et",
   "account.subscription.cancelDescription": "Aboneliğini istediğin zaman iptal edebilirsin. Ödenen dönem sonuna kadar erişimin devam eder.",
+  "account.subscription.customerDashboard": "Lemon Squeezy Müşteri Paneli",
   "account.subscription.customerPortalMissing": "Abonelik yönetim bağlantısına ulaşılamadı. Lütfen destekle iletişime geç.",
   "account.subscription.description": "Aktif aboneliğini buradan görüntüleyebilir ve iptal edebilirsin.",
   "account.subscription.error": "Hata",
