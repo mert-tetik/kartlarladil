@@ -16,7 +16,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useVibration } from "@/lib/vibration";
 
-export function AccountMenu({ user }: { user: AuthShellUser }) {
+export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,9 @@ export function AccountMenu({ user }: { user: AuthShellUser }) {
           onClick={() => setOpen((current) => !current)}
           className={cn(
             "relative flex size-10 items-center justify-center rounded-full border border-border bg-background-inverse text-sm font-bold text-foreground-inverse transition-colors hover:bg-background-inverse",
+            navbar && "border-white/15 bg-white text-black hover:bg-white",
             open && "ring-2 ring-border",
+            navbar && open && "ring-white/20",
           )}
         >
           {initial}

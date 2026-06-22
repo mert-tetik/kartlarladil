@@ -99,16 +99,19 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
           <div className="flex shrink-0 items-center gap-2">
             <div className="mr-auto lg:order-last lg:mr-0">
-              <LocaleSwitcher />
+              <LocaleSwitcher navbar />
             </div>
             {user ? (
               <>
-                {!hideMobileHeaderOnLearn ? <RankProgressPopover stats={stats} userId={user.id} /> : null}
-                <AccountMenu user={user} />
+                {!hideMobileHeaderOnLearn ? <RankProgressPopover stats={stats} userId={user.id} navbar /> : null}
+                <AccountMenu user={user} navbar />
               </>
             ) : (
               <>
-                <Link href="/login" className={buttonClassName("ghost", "sm")}>
+                <Link
+                  href="/login"
+                  className={buttonClassName("ghost", "sm", "text-white hover:bg-white/10 hover:text-white")}
+                >
                   {t("nav.login")}
                 </Link>
                 <Link href="/register" className={buttonClassName("primary", "sm")}>

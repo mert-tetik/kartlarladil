@@ -16,7 +16,7 @@ export function shouldBlockLocaleChange(pathname: string, currentLocale: LocaleC
   return pathname === "/learn" && currentLocale !== nextLocale;
 }
 
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
   const { locale, setLocale } = useLocale();
   const t = useT();
   const pathname = usePathname();
@@ -55,10 +55,20 @@ export function LocaleSwitcher() {
           aria-expanded={open}
           aria-controls={listboxId}
           onClick={() => setOpen((current) => !current)}
-          className="h-9 gap-1.5 px-2"
+          className={cn(
+            "h-9 gap-1.5 px-2",
+            navbar && "border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white",
+          )}
         >
           <LanguageFlag code={locale} className="h-4 w-6" />
-          <ChevronDown aria-hidden="true" className={cn("size-3.5 text-foreground-muted transition-transform", open && "rotate-180")} />
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "size-3.5 text-foreground-muted transition-transform",
+              navbar && "text-white/65",
+              open && "rotate-180",
+            )}
+          />
         </Button>
 
         {open ? (
@@ -66,7 +76,10 @@ export function LocaleSwitcher() {
             id={listboxId}
             role="listbox"
             aria-labelledby={buttonId}
-            className="animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:left-0 max-lg:right-auto"
+            className={cn(
+              "animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:left-0 max-lg:right-auto",
+              navbar && "border-white/10 bg-black text-white shadow-sm",
+            )}
           >
             {LANGUAGES.map((language) => {
               const selected = language.code === locale;
@@ -91,16 +104,20 @@ export function LocaleSwitcher() {
                   className={cn(
                     "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
                     selected && "bg-background-muted",
+                    navbar && "text-white hover:bg-white/10",
+                    navbar && selected && "bg-white/10",
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <LanguageFlag code={language.code} className="h-4 w-6" />
                     <span className="min-w-0">
-                      <span className="block truncate font-semibold text-foreground">{language.nativeName}</span>
-                      <span className="block truncate text-xs text-foreground-muted">{getLanguageDisplayName(language.code, locale)}</span>
+                      <span className={cn("block truncate font-semibold text-foreground", navbar && "text-white")}>{language.nativeName}</span>
+                      <span className={cn("block truncate text-xs text-foreground-muted", navbar && "text-white/60")}>
+                        {getLanguageDisplayName(language.code, locale)}
+                      </span>
                     </span>
                   </span>
-                  {selected ? <Check aria-hidden="true" className="size-4 text-foreground" /> : null}
+                  {selected ? <Check aria-hidden="true" className={cn("size-4 text-foreground", navbar && "text-white")} /> : null}
                 </button>
               );
             })}
