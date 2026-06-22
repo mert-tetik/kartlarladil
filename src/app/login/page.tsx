@@ -46,13 +46,13 @@ export default async function LoginPage({
 
   return (
     <AuthPageShell title={t("auth.login.title")}>
-      <LoginForm nextPath={nextPath} message={message} />
+      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signIn")} />
       <div className="relative flex items-center py-4">
         <div className="grow border-t border-border" />
         <span className="mx-3 text-xs font-medium text-foreground-muted">{t("common.or")}</span>
         <div className="grow border-t border-border" />
       </div>
-      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signIn")} />
+      <LoginForm nextPath={nextPath} message={message} />
       <AuthFooter>
         {t("auth.login.noAccount")}{" "}
         <Link href={`/register?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-foreground">

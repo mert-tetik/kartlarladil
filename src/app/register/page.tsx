@@ -43,13 +43,13 @@ export default async function RegisterPage({
 
   return (
     <AuthPageShell title={t("auth.register.title")}>
-      <RegisterForm nextPath={nextPath} />
+      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signUp")} />
       <div className="relative flex items-center py-4">
         <div className="grow border-t border-border" />
         <span className="mx-3 text-xs font-medium text-foreground-muted">{t("common.or")}</span>
         <div className="grow border-t border-border" />
       </div>
-      <GoogleSignInButton nextPath={nextPath} label={t("auth.google.signUp")} />
+      <RegisterForm nextPath={nextPath} />
       <div className="mt-6 border-t border-border pt-5 text-sm text-foreground-secondary">
         {t("auth.register.hasAccount")}{" "}
         <Link href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-foreground">

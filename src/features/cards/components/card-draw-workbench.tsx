@@ -196,18 +196,89 @@ export function CardDrawWorkbench() {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
+    const scrollY = window.scrollY;
+    const previousBodyStyles = {
+      overflow: document.body.style.overflow,
+      overscrollBehavior: document.body.style.overscrollBehavior,
+      touchAction: document.body.style.touchAction,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      height: document.body.style.height,
+    };
+    const previousHtmlStyles = {
+      overflow: document.documentElement.style.overflow,
+      overscrollBehavior: document.documentElement.style.overscrollBehavior,
+      touchAction: document.documentElement.style.touchAction,
+    };
     const previousMobileSearchState = document.body.dataset.cardDrawMobileSearch;
+
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.body.style.touchAction = "none";
+    document.body.style.position = "fixed";
+    document.body.style.top = `${-scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+    document.documentElement.style.touchAction = "none";
     document.body.dataset.cardDrawMobileSearch = "true";
 
+    function preventTouchMove(event: TouchEvent) {
+      if (!(event.target instanceof HTMLElement)) {
+        event.preventDefault();
+        return;
+      }
+
+      const overlayRoot = event.target.closest("[data-card-draw-mobile-search]");
+
+      if (!overlayRoot) {
+        event.preventDefault();
+        return;
+      }
+
+      let node: HTMLElement | null = event.target;
+
+      while (node && node !== overlayRoot) {
+        const overflow = getComputedStyle(node).overflowY;
+        if ((overflow === "auto" || overflow === "scroll") && node.scrollHeight > node.clientHeight) {
+          return;
+        }
+
+        node = node.parentElement;
+      }
+
+      event.preventDefault();
+    }
+
+    document.addEventListener("touchmove", preventTouchMove, { passive: false });
+
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("touchmove", preventTouchMove);
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.body.style.overscrollBehavior = previousBodyStyles.overscrollBehavior;
+      document.body.style.touchAction = previousBodyStyles.touchAction;
+      document.body.style.position = previousBodyStyles.position;
+      document.body.style.top = previousBodyStyles.top;
+      document.body.style.left = previousBodyStyles.left;
+      document.body.style.right = previousBodyStyles.right;
+      document.body.style.width = previousBodyStyles.width;
+      document.body.style.height = previousBodyStyles.height;
+      document.documentElement.style.overflow = previousHtmlStyles.overflow;
+      document.documentElement.style.overscrollBehavior = previousHtmlStyles.overscrollBehavior;
+      document.documentElement.style.touchAction = previousHtmlStyles.touchAction;
       if (previousMobileSearchState) {
         document.body.dataset.cardDrawMobileSearch = previousMobileSearchState;
       } else {
         delete document.body.dataset.cardDrawMobileSearch;
       }
+
+      window.scrollTo(0, scrollY);
     };
   }, [isMobileSearchActive]);
 
