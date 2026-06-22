@@ -38,7 +38,7 @@ export default async function OnboardingPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.onboarding.title")} description={t("auth.onboarding.description")}>
+    <AuthPageShell title={t("auth.onboarding.title")} description={t("auth.onboarding.description")} hideBranding hideHeader>
       <OnboardingForm nextPath={nextPath} />
     </AuthPageShell>
   );
