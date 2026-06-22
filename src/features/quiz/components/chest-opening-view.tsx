@@ -177,10 +177,6 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
         </p>
 
         <div className="relative mt-8 sm:mt-10">
-          {phase === "revealed" ? (
-            <div className={cn("pointer-events-none absolute inset-0 -z-10 animate-chest-glow rounded-full blur-2xl", ui.glow)} />
-          ) : null}
-
           <button
             type="button"
             onClick={handleTap}
@@ -194,21 +190,19 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
             style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
             aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
           >
-            <div className={cn("absolute bottom-3 left-1/2 h-[82px] w-[150px] -translate-x-1/2 rounded-full opacity-35 blur-2xl sm:h-[98px] sm:w-[176px] md:h-[112px] md:w-[196px]", ui.glow)} />
-
             {phase === "revealed" ? (
               <div
                 data-chest-reward-stack
                 className="pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[16px] md:top-[20px]"
               >
-                <div className="flex items-center gap-2 text-foreground drop-shadow-[0_6px_18px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]">
+                <div className="flex items-center gap-2 text-amber-400">
                   <Gift className="size-5 sm:size-6" aria-hidden="true" />
                   <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
                 </div>
-                <p className="mt-1 text-4xl font-bold leading-none text-white drop-shadow-[0_6px_24px_rgba(0,0,0,0.5)] sm:text-5xl">
+                <p className="mt-1 text-4xl font-bold leading-none text-black sm:text-5xl">
                   +{tier.points}
                 </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/80 sm:text-sm">
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-black sm:text-sm">
                   {t("chest.pointsLabel")}
                 </p>
               </div>

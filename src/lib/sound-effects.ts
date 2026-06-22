@@ -33,9 +33,15 @@ export const SOUND_EFFECT_ASSETS: Readonly<Record<AssetBackedSoundEffectName, So
   "chest-open": { src: "/sounds/chest-open.mp3", volume: 0.58 },
 } as const;
 
+const SOUND_EFFECTS_ENABLED = false;
+
 let audioContext: AudioContext | null = null;
 
 export function playSoundEffect(effect: SoundEffectName) {
+  if (!SOUND_EFFECTS_ENABLED) {
+    return;
+  }
+
   if (effect !== "correct") {
     playAudioAsset(SOUND_EFFECT_ASSETS[effect]);
     return;
