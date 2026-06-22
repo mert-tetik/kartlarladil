@@ -71,7 +71,7 @@ interface UpsertWebhookEventInput {
   webhookId: string;
   eventName: string;
   payload: unknown;
-  userId: string;
+  userId: string | null;
 }
 
 export async function upsertWebhookEvent(
@@ -170,4 +170,93 @@ export async function processWebhookEvent(
   }
 
   return { status: "success" };
+}
+
+export async function resolveWebhookUserId(
+  client: SupabaseClient,
+  event: LemonSqueezyWebhookEvent,
+): Promise<string | null> {
+  const customUserId = event.meta?.custom_data?.user_id;
+
+  if (customUserId) {
+    return customUserId;
+  }
+
+  const subscriptionId = getEventSubscriptionId(event);
+  if (subscriptionId) {
+    const userId = await findUserIdBySubscriptionId(client, subscriptionId);
+    if (userId) {
+      return userId;
+    }
+  }
+
+  const customerId = event.data?.attributes?.customer_id;
+  if (customerId) {
+    return findUserIdByCustomerId(client, String(customerId));
+  }
+
+  return null;
+}
+
+export async function recordWebhookEventError(
+  client: SupabaseClient,
+  event: LemonSqueezyWebhookEvent,
+  userId: string | null,
+  message: string,
+): Promise<void> {
+  const webhookId = event.meta?.webhook_id;
+  const eventName = event.meta?.event_name;
+
+  if (!webhookId || !eventName) {
+    return;
+  }
+
+  await upsertWebhookEvent(
+    client,
+    { webhookId, eventName, payload: event, userId },
+    { errorMessage: message },
+  );
+}
+
+function getEventSubscriptionId(event: LemonSqueezyWebhookEvent): string | null {
+  if (event.data?.type === "subscriptions" && event.data.id) {
+    return String(event.data.id);
+  }
+
+  const subscriptionId = event.data?.attributes?.subscription_id;
+  return subscriptionId ? String(subscriptionId) : null;
+}
+
+async function findUserIdBySubscriptionId(
+  client: SupabaseClient,
+  subscriptionId: string,
+): Promise<string | null> {
+  const { data, error } = await client
+    .from("user_subscriptions")
+    .select("user_id")
+    .eq("lemon_squeezy_subscription_id", subscriptionId)
+    .maybeSingle<{ user_id: string }>();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.user_id ?? null;
+}
+
+async function findUserIdByCustomerId(
+  client: SupabaseClient,
+  customerId: string,
+): Promise<string | null> {
+  const { data, error } = await client
+    .from("user_subscriptions")
+    .select("user_id")
+    .eq("lemon_squeezy_customer_id", customerId)
+    .maybeSingle<{ user_id: string }>();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.user_id ?? null;
 }

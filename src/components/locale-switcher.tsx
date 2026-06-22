@@ -2,18 +2,26 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { LANGUAGES } from "@/data/languages";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
+import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LocaleCode } from "@/types/domain";
 
+export function shouldBlockLocaleChange(pathname: string, currentLocale: LocaleCode, nextLocale: LocaleCode) {
+  return pathname === "/learn" && currentLocale !== nextLocale;
+}
+
 export function LocaleSwitcher() {
   const { locale, setLocale } = useLocale();
   const t = useT();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [dialogError, setDialogError] = useState<UpgradeDialogErrorCode | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonId = useId();
   const listboxId = useId();
@@ -35,61 +43,80 @@ export function LocaleSwitcher() {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
-      <Button
-        id={buttonId}
-        type="button"
-        variant="secondary"
-        size="sm"
-        aria-label={t("locale.change")}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        onClick={() => setOpen((current) => !current)}
-        className="h-9 gap-1.5 px-2"
-      >
-        <LanguageFlag code={locale} className="h-4 w-6" />
-        <ChevronDown aria-hidden="true" className={cn("size-3.5 text-foreground-muted transition-transform", open && "rotate-180")} />
-      </Button>
-
-      {open ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-labelledby={buttonId}
-          className="animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:left-0 max-lg:right-auto"
+    <>
+      <div ref={rootRef} className="relative">
+        <Button
+          id={buttonId}
+          type="button"
+          variant="secondary"
+          size="sm"
+          aria-label={t("locale.change")}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          onClick={() => setOpen((current) => !current)}
+          className="h-9 gap-1.5 px-2"
         >
-          {LANGUAGES.map((language) => {
-            const selected = language.code === locale;
+          <LanguageFlag code={locale} className="h-4 w-6" />
+          <ChevronDown aria-hidden="true" className={cn("size-3.5 text-foreground-muted transition-transform", open && "rotate-180")} />
+        </Button>
 
-            return (
-              <button
-                key={language.code}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                onClick={() => {
-                  setLocale(language.code as LocaleCode);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
-                  selected && "bg-background-muted",
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <LanguageFlag code={language.code} className="h-4 w-6" />
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold text-foreground">{language.nativeName}</span>
-                    <span className="block truncate text-xs text-foreground-muted">{getLanguageDisplayName(language.code, locale)}</span>
+        {open ? (
+          <div
+            id={listboxId}
+            role="listbox"
+            aria-labelledby={buttonId}
+            className="animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:left-0 max-lg:right-auto"
+          >
+            {LANGUAGES.map((language) => {
+              const selected = language.code === locale;
+              const nextLocale = language.code as LocaleCode;
+
+              return (
+                <button
+                  key={language.code}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => {
+                    if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
+                      setDialogError("learn_locale_locked");
+                      setOpen(false);
+                      return;
+                    }
+
+                    setLocale(nextLocale);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
+                    selected && "bg-background-muted",
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <LanguageFlag code={language.code} className="h-4 w-6" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold text-foreground">{language.nativeName}</span>
+                      <span className="block truncate text-xs text-foreground-muted">{getLanguageDisplayName(language.code, locale)}</span>
+                    </span>
                   </span>
-                </span>
-                {selected ? <Check aria-hidden="true" className="size-4 text-foreground" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
+                  {selected ? <Check aria-hidden="true" className="size-4 text-foreground" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+
+      <UpgradeDialog
+        open={dialogError !== null}
+        errorCode={dialogError}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setDialogError(null);
+          }
+        }}
+      />
+    </>
   );
 }

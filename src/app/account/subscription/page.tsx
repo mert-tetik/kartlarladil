@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 interface WebhookEventRow {
-  event_id: string;
+  id: string;
   event_name: string;
   payload: Record<string, unknown>;
   processed_at: string | null;
@@ -42,7 +42,7 @@ export default async function AccountSubscriptionPage() {
 
   const { data: events } = await supabase
     .from("webhook_events")
-    .select("event_id, event_name, payload, processed_at, error_message, created_at")
+    .select("id, event_name, payload, processed_at, error_message, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20)
@@ -61,10 +61,7 @@ export default async function AccountSubscriptionPage() {
       />
 
       <div className="mt-8 grid gap-6">
-        <SubscriptionSettings
-          plan={entitlements.effectivePlan}
-          customerPortalUrl={entitlements.customerPortalUrl}
-        />
+        <SubscriptionSettings plan={entitlements.effectivePlan} />
 
         <div className="rounded-lg border border-border bg-background-card p-6">
           <h2 className="text-lg font-semibold text-foreground">
@@ -84,7 +81,7 @@ export default async function AccountSubscriptionPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {events.map((event) => (
-                    <tr key={event.event_id}>
+                    <tr key={event.id}>
                       <td className="py-3 font-medium text-foreground">{event.event_name}</td>
                       <td className="py-3 text-foreground-secondary">{formatDate(event.created_at, locale)}</td>
                       <td className="py-3 text-foreground-secondary">

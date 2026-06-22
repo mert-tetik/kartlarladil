@@ -1,5 +1,6 @@
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import {
   addCardToInventory,
@@ -90,5 +91,25 @@ describe("quiz engine", () => {
 
     expect(question.correctAnswer).toBe(card!.translationMeaningsByLocale.tr[0]);
     expect(question.correctAnswer).not.toContain(",");
+  });
+
+  it("keeps distractors in the requested answer language", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.language === "en" && item.translationMeaningsByLocale.tr.length > 0);
+    expect(card).toBeDefined();
+
+    const question = buildQuizQuestion(card!, VOCABULARY_CARDS, "tr");
+    const eligibleAnswers = new Set(
+      VOCABULARY_CARDS
+        .filter((candidate) => candidate.id !== card!.id && getStudyLocale(candidate.language, "tr") === "tr")
+        .map((candidate) => getPrimaryCardTranslation(candidate, "tr")),
+    );
+
+    for (const option of question.options) {
+      if (option === question.correctAnswer) {
+        continue;
+      }
+
+      expect(eligibleAnswers.has(option)).toBe(true);
+    }
   });
 });

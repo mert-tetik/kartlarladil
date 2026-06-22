@@ -34,9 +34,14 @@ Migrationlar:
 - `0001_initial_schema.sql`: temel tablo, RLS ve grant yapisi.
 - `0002_user_profile_preferences.sql`: profil tercih alanlari.
 - `0003_multilingual_catalog_and_locale.sql`: 14 dil ve locale tercihi.
+- `0004_subscriptions_and_ai_usage.sql`: subscription ve AI usage tablolari.
+- `0005_subscription_enforcement.sql`: yeni kullanici icin default free subscription row'u ve AI usage RLS'i.
+- `0007_webhook_events.sql`: Lemon Squeezy webhook event log'u.
+- `0009_add_ask_usage_event.sql`: AI usage event tiplerine `ask` ekler.
 - `0013_card_source_key_compat.sql`: `card_source_key` uyumluluk kolonlari ve backfill.
 - `0014_remove_cards_catalog.sql`: `public.cards` kaldirimi ve source key cleanup'i.
 - `0015_allow_all_preferred_tier.sql`: `user_profiles.preferred_tier` alanina `"all"` secenegini ekler.
+- `0016_subscription_production_hardening.sql`: subscription trigger helper'ini hardened `security definer` ayarlariyla replace eder.
 
 Tablolar:
 
@@ -44,6 +49,9 @@ Tablolar:
 - `user_profiles`: private kullanici profili ve tercihleri.
 - `user_cards`: kullanici envanteri ve quiz progress'i (`card_source_key` ile local katalog kartina baglanir).
 - `practice_attempts`: quiz cevap gecmisi (`card_source_key` ile local katalog kartina baglanir).
+- `user_subscriptions`: kullanici subscription state'i ve Lemon Squeezy identifier'lari.
+- `ai_usage_events`: AI chat/translate/ask kullanim kayitlari.
+- `webhook_events`: Lemon Squeezy webhook idempotency ve support log'u.
 
 `user_profiles` icin:
 
@@ -64,6 +72,12 @@ Migrationlar `anon` ve `authenticated` icin explicit grants icerir. Supabase Dat
 ## Catalog Contract
 
 Kart katalogu artik uygulama bundle'inda yasar. Supabase sadece kullanici state'ini tutar. Cloud action'lar gelen `sourceKey` degerini server bundle icindeki local katalog ile dogrular ve sadece `card_source_key` yazar.
+
+## Subscription Operations
+
+Subscription state'i Lemon Squeezy webhook'lari ile `user_subscriptions` tablosuna yazilir. Customer portal URL'leri Lemon Squeezy tarafinda imzali ve surelidir; app stale DB URL'sine guvenmez, paid kullanici yonetim aksiyonu istediginde subscription ID ile fresh portal URL alir.
+
+Production checklist, replay, reconciliation, monitoring ve secret rotation adimlari icin `docs/SUBSCRIPTION_PRODUCTION_RUNBOOK.md` kullanilir.
 
 ## Stats
 

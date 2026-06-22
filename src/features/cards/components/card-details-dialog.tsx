@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   getCardExampleTranslation,
-  getCardGrammar,
   getCardTranslation,
 } from "@/features/cards/card-localization";
 import { getExampleContextLabel, getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
@@ -30,7 +29,6 @@ export function CardDetailsDialog({
   const { locale } = useLocale();
   const t = useT();
   const style = TIER_STYLES[card.tier];
-  const grammar = getCardGrammar(card, locale);
 
   useEffect(() => {
     if (!open) {
@@ -116,7 +114,7 @@ export function CardDetailsDialog({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="grid gap-6">
             <section className="flex flex-col gap-3" aria-labelledby={`${titleId}-examples`}>
               <div className="flex items-center gap-2">
                 <BookOpenText className="size-5 text-foreground-secondary" aria-hidden="true" />
@@ -141,63 +139,6 @@ export function CardDetailsDialog({
                   );
                 })}
               </div>
-            </section>
-
-            <section className="flex flex-col gap-4" aria-labelledby={`${titleId}-grammar`}>
-              <div>
-                <h3 id={`${titleId}-grammar`} className="text-base font-semibold text-foreground">
-                  {t("cards.grammar")}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-foreground-secondary">{grammar.summary}</p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background-card p-4">
-                <h4 className="text-sm font-semibold text-foreground">{t("cards.rules")}</h4>
-                <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-foreground-secondary">
-                  {grammar.rules.map((rule) => (
-                    <li key={rule}>{rule}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background-card p-4">
-                <h4 className="text-sm font-semibold text-foreground">{t("cards.notes")}</h4>
-                <div className="mt-3 flex flex-col gap-2 text-sm leading-6 text-foreground-secondary">
-                  {grammar.details.map((detail) => (
-                    <p key={detail}>{detail}</p>
-                  ))}
-                </div>
-              </div>
-
-              {grammar.tables?.map((table) => (
-                <div key={table.title} className="rounded-lg border border-border bg-background-card p-4">
-                  <h4 className="text-sm font-semibold text-foreground">{table.title}</h4>
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full min-w-[360px] border-collapse text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-border text-foreground-muted">
-                          {table.columns.map((column) => (
-                            <th key={column} scope="col" className="py-2 pr-4 font-semibold">
-                              {column}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {table.rows.map((row) => (
-                          <tr key={row.join("-")} className="border-b border-border last:border-0">
-                            {row.map((cell) => (
-                              <td key={cell} className="py-2 pr-4 text-foreground-secondary">
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
             </section>
           </div>
         </div>

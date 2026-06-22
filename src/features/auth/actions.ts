@@ -482,11 +482,20 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
     };
   }
 
+  const entitlements = await getUserEntitlements(user.id);
+
+  if (entitlements.effectivePlan !== "free") {
+    return {
+      status: "error",
+      message: t("auth.delete.activeSubscription"),
+    };
+  }
+
   let adminClient: ReturnType<typeof createSupabaseAdminClient>;
 
   try {
     adminClient = createSupabaseAdminClient();
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: t("auth.message.deleteNeedsSecret"),

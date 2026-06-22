@@ -16,8 +16,16 @@ interface UserSubscriptionRow {
   plan: string;
   status: string;
   customer_portal_url: string | null;
+  lemon_squeezy_customer_id?: string | null;
+  lemon_squeezy_subscription_id?: string | null;
   renews_at: string | null;
   ends_at: string | null;
+}
+
+export interface UserSubscriptionManagementSource {
+  effectivePlan: SubscriptionPlan;
+  customerId: string | null;
+  subscriptionId: string | null;
 }
 
 export async function getUserEntitlements(userId: string): Promise<UserEntitlements> {
@@ -41,6 +49,39 @@ export async function getUserEntitlements(userId: string): Promise<UserEntitleme
     status: subscription.status,
     limits: PLAN_LIMITS[effectivePlan],
     customerPortalUrl: subscription.customerPortalUrl,
+  };
+}
+
+export async function getUserSubscriptionManagementSource(
+  userId: string,
+): Promise<UserSubscriptionManagementSource> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select(
+      [
+        "plan",
+        "status",
+        "customer_portal_url",
+        "lemon_squeezy_customer_id",
+        "lemon_squeezy_subscription_id",
+        "renews_at",
+        "ends_at",
+      ].join(", "),
+    )
+    .eq("user_id", userId)
+    .maybeSingle<UserSubscriptionRow>();
+
+  if (error) {
+    throw error;
+  }
+
+  const subscription = normalizeSubscription(data);
+
+  return {
+    effectivePlan: getEffectivePlan(subscription),
+    customerId: data?.lemon_squeezy_customer_id ?? null,
+    subscriptionId: data?.lemon_squeezy_subscription_id ?? null,
   };
 }
 

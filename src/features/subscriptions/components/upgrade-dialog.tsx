@@ -6,9 +6,11 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import type { LimitErrorCode } from "@/types/domain";
 
+export type UpgradeDialogErrorCode = LimitErrorCode | "learn_locale_locked";
+
 interface UpgradeDialogProps {
   open: boolean;
-  errorCode: LimitErrorCode | null;
+  errorCode: UpgradeDialogErrorCode | null;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -20,6 +22,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
   }
 
   const content = getLimitContent(errorCode, t);
+  const showsUpgradeCta = content.variant === "upgrade";
 
   return (
     <div
@@ -50,13 +53,15 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             {t("common.maybeLater")}
           </Button>
-          <Link
-            href="/pricing"
-            className={buttonClassName("primary", "md")}
-            onClick={() => onOpenChange(false)}
-          >
-            {t("limit.upgradeButton")}
-          </Link>
+          {showsUpgradeCta ? (
+            <Link
+              href="/pricing"
+              className={buttonClassName("primary", "md")}
+              onClick={() => onOpenChange(false)}
+            >
+              {t("limit.upgradeButton")}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -64,34 +69,45 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
 }
 
 function getLimitContent(
-  errorCode: LimitErrorCode,
+  errorCode: UpgradeDialogErrorCode,
   t: ReturnType<typeof useT>,
-): { title: string; description: string } {
+): { title: string; description: string; variant: "upgrade" | "message" } {
   switch (errorCode) {
     case "free_active_card_limit":
       return {
         title: t("limit.activeCardLimitTitle"),
         description: t("limit.activeCardLimitDescription"),
+        variant: "upgrade",
       };
     case "free_learned_card_limit":
       return {
         title: t("limit.learnedCardLimitTitle"),
         description: t("limit.learnedCardLimitDescription"),
+        variant: "upgrade",
       };
     case "ai_daily_limit":
       return {
         title: t("limit.aiDailyLimitTitle"),
         description: t("limit.aiDailyLimitDescription"),
+        variant: "upgrade",
       };
     case "ai_monthly_limit":
       return {
         title: t("limit.aiMonthlyLimitTitle"),
         description: t("limit.aiMonthlyLimitDescription"),
+        variant: "upgrade",
+      };
+    case "learn_locale_locked":
+      return {
+        title: t("locale.lockedOnLearnTitle"),
+        description: t("locale.lockedOnLearnDescription"),
+        variant: "message",
       };
     default:
       return {
         title: t("limit.defaultTitle"),
         description: t("limit.defaultDescription"),
+        variant: "upgrade",
       };
   }
 }

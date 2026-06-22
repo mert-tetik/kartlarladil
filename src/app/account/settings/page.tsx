@@ -45,10 +45,7 @@ export default async function AccountSettingsPage() {
 
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
-        <SubscriptionSettings
-          plan={entitlements.effectivePlan}
-          customerPortalUrl={entitlements.customerPortalUrl}
-        />
+        <SubscriptionSettings plan={entitlements.effectivePlan} />
         <DeleteAccountForm email={user.email} hasActiveSubscription={hasActiveSubscription} />
       </div>
     </section>

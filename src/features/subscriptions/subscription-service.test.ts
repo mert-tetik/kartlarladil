@@ -3,6 +3,7 @@ import {
   checkLimit,
   getEffectivePlan,
   getUserEntitlements,
+  getUserSubscriptionManagementSource,
 } from "@/features/subscriptions/subscription-service";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import type { SubscriptionStatus, UserSubscription } from "@/types/domain";
@@ -140,5 +141,30 @@ describe("getUserEntitlements", () => {
     expect(result.plan).toBe("basic");
     expect(result.effectivePlan).toBe("free");
     expect(result.limits).toEqual(PLAN_LIMITS.free);
+  });
+});
+
+describe("getUserSubscriptionManagementSource", () => {
+  it("returns the effective plan and Lemon identifiers for a paid subscription", async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: {
+        plan: "pro",
+        status: "active",
+        customer_portal_url: "https://stale.example.com",
+        lemon_squeezy_customer_id: "customer-1",
+        lemon_squeezy_subscription_id: "subscription-1",
+        renews_at: "2026-07-01T00:00:00Z",
+        ends_at: null,
+      },
+      error: null,
+    });
+
+    const result = await getUserSubscriptionManagementSource("user-4");
+
+    expect(result).toEqual({
+      effectivePlan: "pro",
+      customerId: "customer-1",
+      subscriptionId: "subscription-1",
+    });
   });
 });

@@ -2,9 +2,13 @@
 
 import {
   createCheckoutUrl,
+  fetchSubscription,
   getVariantIdForPlan,
 } from "@/features/subscriptions/lemon-squeezy";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import {
+  getUserEntitlements,
+  getUserSubscriptionManagementSource,
+} from "@/features/subscriptions/subscription-service";
 import { getRequestOrigin } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -21,6 +25,12 @@ interface CheckoutActionResult {
   status: "idle" | "success" | "error";
   message: string;
   checkoutUrl?: string;
+  customerPortalUrl?: string;
+}
+
+interface CustomerPortalActionResult {
+  status: "idle" | "success" | "error";
+  message: string;
   customerPortalUrl?: string;
 }
 
@@ -51,7 +61,7 @@ export async function getUserEntitlementsAction(): Promise<EntitlementsActionRes
       message: "",
       data: entitlements,
     };
-  } catch (error) {
+  } catch {
     const t = await getSubscriptionActionText();
     return {
       status: "error",
@@ -98,17 +108,21 @@ export async function createCheckoutAction(
 
     const entitlements = await getUserEntitlements(user.id);
     if (entitlements.effectivePlan !== "free") {
-      if (entitlements.customerPortalUrl) {
+      let customerPortalUrl: string;
+
+      try {
+        customerPortalUrl = await getFreshCustomerPortalUrl(user.id);
+      } catch {
         return {
-          status: "success",
-          message: "",
-          customerPortalUrl: entitlements.customerPortalUrl,
+          status: "error",
+          message: t("pricing.error.customerPortalUnavailable"),
         };
       }
 
       return {
-        status: "error",
-        message: t("pricing.error.customerPortalUnavailable"),
+        status: "success",
+        message: "",
+        customerPortalUrl,
       };
     }
 
@@ -126,11 +140,66 @@ export async function createCheckoutAction(
       message: "",
       checkoutUrl,
     };
-  } catch (error) {
+    } catch {
     const t = await getSubscriptionActionText();
     return {
       status: "error",
       message: t("pricing.error.checkoutFailed"),
     };
   }
+}
+
+export async function createCustomerPortalAction(
+  _state: CustomerPortalActionResult,
+  _formData?: FormData,
+): Promise<CustomerPortalActionResult> {
+  void _state;
+  void _formData;
+
+  try {
+    const t = await getSubscriptionActionText();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        status: "error",
+        message: t("pricing.error.authRequired"),
+      };
+    }
+
+    const customerPortalUrl = await getFreshCustomerPortalUrl(user.id);
+
+    return {
+      status: "success",
+      message: "",
+      customerPortalUrl,
+    };
+  } catch {
+    const t = await getSubscriptionActionText();
+    return {
+      status: "error",
+      message: t("pricing.error.customerPortalUnavailable"),
+    };
+  }
+}
+
+async function getFreshCustomerPortalUrl(userId: string): Promise<string> {
+  const source = await getUserSubscriptionManagementSource(userId);
+
+  if (source.effectivePlan === "free" || !source.subscriptionId) {
+    throw new Error("No active Lemon Squeezy subscription is available for this user.");
+  }
+
+  const subscription = await fetchSubscription(source.subscriptionId);
+  const customerPortalUrl = subscription?.attributes.urls?.customer_portal;
+
+  if (!customerPortalUrl) {
+    throw new Error("Lemon Squeezy subscription did not include a customer portal URL.");
+  }
+
+  return customerPortalUrl;
 }

@@ -1,14 +1,15 @@
 "use client";
 
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
-import { buttonClassName } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
+import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "@/types/domain";
 
 interface SubscriptionSettingsProps {
   plan: SubscriptionPlan;
-  customerPortalUrl: string | null;
 }
 
 const PLAN_STYLES: Record<SubscriptionPlan, string> = {
@@ -17,7 +18,7 @@ const PLAN_STYLES: Record<SubscriptionPlan, string> = {
   pro: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
-export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSettingsProps) {
+export function SubscriptionSettings({ plan }: SubscriptionSettingsProps) {
   const t = useT();
   const isPaid = plan !== "free";
 
@@ -49,24 +50,34 @@ export function SubscriptionSettings({ plan, customerPortalUrl }: SubscriptionSe
           <Link href="/account/subscription" className={buttonClassName("secondary", "sm")}>
             {t("account.subscription.viewDetails")}
           </Link>
-          {isPaid ? (
-            customerPortalUrl ? (
-              <a
-                href={customerPortalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonClassName("secondary", "md")}
-              >
-                {t("account.subscription.cancel")}
-              </a>
-            ) : (
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                {t("account.subscription.customerPortalMissing")}
-              </div>
-            )
-          ) : null}
+          {isPaid ? <CustomerPortalButton /> : null}
         </div>
       </div>
     </div>
+  );
+}
+
+function CustomerPortalButton() {
+  const t = useT();
+  const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
+    status: "idle" as const,
+    message: "",
+  });
+
+  useEffect(() => {
+    if (state.status === "success" && state.customerPortalUrl) {
+      window.location.href = state.customerPortalUrl;
+    }
+  }, [state]);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-2">
+      <Button type="submit" variant="secondary" size="md" disabled={pending}>
+        {pending ? t("common.loading") : t("account.subscription.cancel")}
+      </Button>
+      {state.status === "error" ? (
+        <p className="max-w-sm text-sm text-rose-600">{state.message}</p>
+      ) : null}
+    </form>
   );
 }

@@ -8,6 +8,7 @@ import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -190,8 +191,8 @@ function PricingCard({
         <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureThemes")}</Feature>
-        <Feature included>{t("pricing.featureAiDaily", { count: getAiDailyLimit(plan) })}</Feature>
-        <Feature included>{t("pricing.featureAiMonthly", { count: getAiMonthlyLimit(plan) })}</Feature>
+        <Feature included>{t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })}</Feature>
+        <Feature included>{t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })}</Feature>
       </ul>
 
       <div className="mt-8">
@@ -361,26 +362,4 @@ function ConsentText() {
       {t("pricing.consentSuffix")}
     </p>
   );
-}
-
-function getAiDailyLimit(plan: SubscriptionPlan): number {
-  switch (plan) {
-    case "free":
-      return 10;
-    case "basic":
-      return 30;
-    case "pro":
-      return 150;
-  }
-}
-
-function getAiMonthlyLimit(plan: SubscriptionPlan): number {
-  switch (plan) {
-    case "free":
-      return 200;
-    case "basic":
-      return 900;
-    case "pro":
-      return 4500;
-  }
 }

@@ -145,6 +145,10 @@ export function QuizStation({
       })).filter((language) => language.count > 0),
     [cards, mode],
   );
+  const practiceLanguageStats = useMemo(
+    () => languageStats.filter((language) => language.code !== locale),
+    [languageStats, locale],
+  );
 
   const availableCards = useMemo(() => {
     if (!selectedLanguage) return [];
@@ -410,7 +414,7 @@ export function QuizStation({
       <div className="flex flex-1 flex-col items-center justify-center">
         <LanguageSelection
           mode={mode}
-          languageStats={languageStats}
+          languageStats={practiceLanguageStats}
           selectedLanguage={selectedLanguage}
           onSelect={handleSelectLanguage}
           onBack={onBackToMode}
@@ -647,7 +651,7 @@ function LanguageSelection({
   const t = useT();
 
   return (
-    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:max-w-[96rem] lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
+    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
       <div className="flex justify-center lg:hidden">
         <Image
           src="/mascots/mascot5.png"
@@ -671,26 +675,37 @@ function LanguageSelection({
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
         <div className="h-full min-h-0 overflow-y-auto rounded-md border border-border bg-background p-2 lg:h-[480px]">
-          <div className="grid grid-cols-1 gap-2">
-            {languageStats.map((language) => (
-              <button
-                key={language.code}
-                type="button"
-                aria-pressed={selectedLanguage === language.code}
-                onClick={() => onSelect(language.code)}
-                className={cn(
-                  "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left text-sm font-semibold transition-colors hover:bg-background-muted lg:p-4 lg:text-base",
-                  selectedLanguage === language.code && "border-foreground bg-background-muted",
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
-                  <LanguageFlag code={language.code} />
-                  <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
-                </span>
-                <Badge>{formatCards(locale, language.count)}</Badge>
-              </button>
-            ))}
-          </div>
+          {languageStats.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2">
+              {languageStats.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  aria-pressed={selectedLanguage === language.code}
+                  onClick={() => onSelect(language.code)}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left text-sm font-semibold transition-colors hover:bg-background-muted lg:p-4 lg:text-base",
+                    selectedLanguage === language.code && "border-foreground bg-background-muted",
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+                    <LanguageFlag code={language.code} />
+                    <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
+                  </span>
+                  <Badge>{formatCards(locale, language.count)}</Badge>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
+              <div className="max-w-md">
+                <p className="text-base font-semibold text-foreground">{t("quiz.noPracticeLanguagesTitle")}</p>
+                <p className="mt-2 text-sm leading-6 text-foreground-secondary">
+                  {t("quiz.noPracticeLanguagesDescription")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

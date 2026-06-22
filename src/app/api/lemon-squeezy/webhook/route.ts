@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/features/subscriptions/lemon-squeezy";
 import {
   processWebhookEvent,
+  recordWebhookEventError,
+  resolveWebhookUserId,
   type LemonSqueezyWebhookEvent,
   type SubscriptionUpdate,
 } from "@/features/subscriptions/webhook-service";
@@ -48,20 +50,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
-    const userId = event.meta?.custom_data?.user_id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Missing user_id in custom data" }, { status: 400 });
-    }
-
     // Invoice events do not carry the subscription attributes we need.
     // The actual subscription state is updated by subscription_created/updated/cancelled/expired.
     if (event.data?.type === "subscription-invoices") {
       return NextResponse.json({ received: true, skipped: true }, { status: 200 });
     }
 
-    const update = mapSubscriptionUpdate(event);
     const adminClient = createSupabaseAdminClient();
+    const userId = await resolveWebhookUserId(adminClient, event);
+
+    if (!userId) {
+      const message = "Unable to resolve user for Lemon Squeezy webhook event.";
+      await recordWebhookEventError(adminClient, event, null, message);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+
+    const update = mapSubscriptionUpdate(event);
+
+    if (!update) {
+      const message = "Unknown Lemon Squeezy subscription variant.";
+      await recordWebhookEventError(adminClient, event, userId, message);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+
     const result = await processWebhookEvent(adminClient, event, update, userId);
 
     if (result.status === "duplicate") {
@@ -88,13 +99,18 @@ function parseWebhookPayload(payload: string): LemonSqueezyWebhookEvent | null {
   }
 }
 
-function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpdate {
+function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpdate | null {
   const attributes = event.data?.attributes ?? {};
   const urls = attributes.urls ?? {};
   const variantId = String(attributes.variant_id ?? "");
+  const plan = resolvePlanFromVariant(variantId);
+
+  if (!plan) {
+    return null;
+  }
 
   return {
-    plan: resolvePlanFromVariant(variantId),
+    plan,
     status: normalizeSubscriptionStatus(attributes.status),
     customerId: attributes.customer_id ? String(attributes.customer_id) : null,
     subscriptionId: event.data?.id ? String(event.data.id) : null,
@@ -106,7 +122,7 @@ function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpd
   };
 }
 
-function resolvePlanFromVariant(variantId: string): SubscriptionPlan {
+function resolvePlanFromVariant(variantId: string): SubscriptionPlan | null {
   if (
     variantId === process.env.LEMONSQUEEZY_PRO_VARIANT_ID ||
     variantId === process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID
@@ -121,7 +137,7 @@ function resolvePlanFromVariant(variantId: string): SubscriptionPlan {
     return "basic";
   }
 
-  return "free";
+  return null;
 }
 
 function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {

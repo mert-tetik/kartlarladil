@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
-import { getCardTranslation } from "@/features/cards/card-localization";
+import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
@@ -49,7 +49,7 @@ const testUser: AuthShellUser = {
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
 const germanCard = VOCABULARY_CARDS.find((card) => card.language === "de" && card.tier === "A1")!;
-const correctAnswer = getCardTranslation(testCard, "tr");
+const correctAnswer = getPrimaryCardTranslation(testCard, "tr");
 
 const inventoryCard: InventoryCard = {
   cardId: testCard.id,
@@ -111,6 +111,23 @@ describe("QuizStation sound feedback", () => {
     await screen.findByRole("heading", { name: germanCard.term });
   });
 
+  it("does not list the current site language as a practice language", () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard, { ...inventoryCard, cardId: germanCard.id }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("en");
+
+    expect(screen.getByRole("heading", { name: "Choose a practice language" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /English/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /German/i })).toBeVisible();
+  });
+
   it("auto-advances to the result screen when the learned-card limit blocks learning", async () => {
     const learnedCards = VOCABULARY_CARDS.filter((card) => card.id !== testCard.id)
       .slice(0, 50)
@@ -137,16 +154,15 @@ describe("QuizStation sound feedback", () => {
       cloudError: "",
     });
 
-    renderQuizStation("en");
+    renderQuizStation("tr");
     fireEvent.click(screen.getByRole("button", { name: /English/i }));
 
     const input = await screen.findByRole("textbox");
     fireEvent.change(input, { target: { value: testCard.term } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    await screen.findByRole("heading", { name: /Learned card limit reached/i });
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Practice results" })).toBeVisible();
+      expect(screen.getByRole("heading", { name: "Alıştırma sonucu" })).toBeVisible();
     });
   });
 });

@@ -61,6 +61,13 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("heading")).toHaveTextContent(/Aylık AI mesaj limitine ulaştın/i);
   });
 
+  it("shows the learn page locale lock message without a pricing link", () => {
+    renderDialog({ open: true, errorCode: "learn_locale_locked" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent(/Öğren sayfasındayken site dili değiştirilemez/i);
+    expect(screen.queryByRole("link", { name: /Planını yükselt/i })).not.toBeInTheDocument();
+  });
+
   it("closes the dialog when the close button is clicked", async () => {
     const user = userEvent.setup();
     const { onOpenChange } = renderDialog({ open: true, errorCode: "free_active_card_limit" });

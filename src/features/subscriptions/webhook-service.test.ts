@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   findWebhookEvent,
   processWebhookEvent,
+  recordWebhookEventError,
+  resolveWebhookUserId,
   type LemonSqueezyWebhookEvent,
   type SubscriptionUpdate,
 } from "@/features/subscriptions/webhook-service";
@@ -10,6 +12,8 @@ import {
 interface MockCall {
   table: string;
   method: string;
+  column?: string;
+  value?: unknown;
 }
 
 interface MockResponse {
@@ -30,17 +34,60 @@ function createMockClient(responses: MockResponse[]) {
 
       return {
         select: () => ({
-          eq: () => ({
-            maybeSingle: async () => ({
-              data: response?.data ?? null,
-              error: response?.error ?? null,
-            }),
+          eq: (column: string, value: unknown) => ({
+            maybeSingle: async () => {
+              calls[calls.length - 1] = {
+                ...calls[calls.length - 1],
+                column,
+                value,
+              };
+              return {
+                data: response?.data ?? null,
+                error: response?.error ?? null,
+              };
+            },
           }),
         }),
         upsert: async () => ({
           data: response?.data ?? null,
           error: response?.error ?? null,
         }),
+      };
+    },
+  } as unknown as SupabaseClient;
+
+  return { client, calls };
+}
+
+function createRecordingMockClient(responses: MockResponse[]) {
+  let index = 0;
+  const calls: Array<MockCall & { payload?: unknown }> = [];
+
+  const client = {
+    from(table: string) {
+      const response = responses[index++];
+
+      return {
+        select: () => ({
+          eq: (column: string, value: unknown) => ({
+            maybeSingle: async () => {
+              void column;
+              void value;
+
+              return {
+                data: response?.data ?? null,
+                error: response?.error ?? null,
+              };
+            },
+          }),
+        }),
+        upsert: async (payload: unknown) => {
+          calls.push({ table, method: "upsert", payload });
+          return {
+            data: response?.data ?? null,
+            error: response?.error ?? null,
+          };
+        },
       };
     },
   } as unknown as SupabaseClient;
@@ -114,6 +161,91 @@ describe("findWebhookEvent", () => {
   });
 });
 
+describe("resolveWebhookUserId", () => {
+  it("uses custom_data.user_id when present", async () => {
+    const { client, calls } = createMockClient([]);
+
+    await expect(resolveWebhookUserId(client, makeEvent())).resolves.toBe("user-1");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("falls back to the subscription id", async () => {
+    const { client, calls } = createMockClient([
+      {
+        table: "user_subscriptions",
+        method: "select",
+        data: { user_id: "user-from-subscription" },
+      },
+    ]);
+
+    await expect(
+      resolveWebhookUserId(client, makeEvent({ custom_data: undefined })),
+    ).resolves.toBe("user-from-subscription");
+    expect(calls).toEqual([
+      {
+        table: "user_subscriptions",
+        method: "select",
+        column: "lemon_squeezy_subscription_id",
+        value: "sub_1",
+      },
+    ]);
+  });
+
+  it("falls back to the customer id when the subscription id is unknown", async () => {
+    const { client, calls } = createMockClient([
+      { table: "user_subscriptions", method: "select", data: null },
+      {
+        table: "user_subscriptions",
+        method: "select",
+        data: { user_id: "user-from-customer" },
+      },
+    ]);
+
+    await expect(
+      resolveWebhookUserId(client, makeEvent({ custom_data: undefined })),
+    ).resolves.toBe("user-from-customer");
+    expect(calls).toEqual([
+      {
+        table: "user_subscriptions",
+        method: "select",
+        column: "lemon_squeezy_subscription_id",
+        value: "sub_1",
+      },
+      {
+        table: "user_subscriptions",
+        method: "select",
+        column: "lemon_squeezy_customer_id",
+        value: "789",
+      },
+    ]);
+  });
+});
+
+describe("recordWebhookEventError", () => {
+  it("logs an error without requiring a user id", async () => {
+    const { client, calls } = createRecordingMockClient([
+      { table: "webhook_events", method: "upsert" },
+    ]);
+
+    await recordWebhookEventError(client, makeEvent(), null, "unresolved user");
+
+    expect(calls).toEqual([
+      {
+        table: "webhook_events",
+        method: "upsert",
+        payload: {
+          webhook_id: "evt_123",
+          event_name: "subscription_created",
+          payload: makeEvent(),
+          user_id: null,
+          processed_at: null,
+          error_message: "unresolved user",
+        },
+      },
+    ]);
+  });
+});
+
 describe("processWebhookEvent", () => {
   it("returns duplicate when the event was already processed", async () => {
     const { client, calls } = createMockClient([
@@ -142,7 +274,7 @@ describe("processWebhookEvent", () => {
 
     expect(result.status).toBe("success");
     expect(calls).toEqual([
-      { table: "webhook_events", method: "select" },
+      { table: "webhook_events", method: "select", column: "webhook_id", value: "evt_123" },
       { table: "webhook_events", method: "upsert" },
       { table: "user_subscriptions", method: "upsert" },
       { table: "webhook_events", method: "upsert" },
