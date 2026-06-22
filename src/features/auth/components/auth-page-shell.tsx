@@ -12,7 +12,7 @@ export async function AuthPageShell({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   const t = createTranslator(await getServerLocale());
@@ -27,7 +27,7 @@ export async function AuthPageShell({
           </Link>
           <div className="mt-12 max-w-sm">
             <h1 className="font-display text-4xl font-semibold leading-tight">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-foreground-muted">{description}</p>
+            {description ? <p className="mt-4 text-sm leading-7 text-foreground-muted">{description}</p> : null}
           </div>
         </div>
 
@@ -48,11 +48,11 @@ export async function AuthPageShell({
               <span className="font-display text-xl">{APP_NAME}</span>
             </Link>
             <h1 className="mt-8 font-display text-3xl font-semibold text-foreground">{title}</h1>
-            <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p>
+            {description ? <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p> : null}
           </div>
           <div className="hidden lg:block">
             <h2 className="font-display text-3xl font-semibold text-foreground">{title}</h2>
-            <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p>
+            {description ? <p className="mt-3 text-sm leading-6 text-foreground-secondary">{description}</p> : null}
           </div>
           <div className="mt-7">{children}</div>
         </div>

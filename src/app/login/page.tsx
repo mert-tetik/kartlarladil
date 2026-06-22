@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -12,6 +12,9 @@ import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+export const viewport: Viewport = {
+  interactiveWidget: "overlays-content",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -42,7 +45,7 @@ export default async function LoginPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.login.title")} description={t("auth.login.description")}>
+    <AuthPageShell title={t("auth.login.title")}>
       <LoginForm nextPath={nextPath} message={message} />
       <div className="relative flex items-center py-4">
         <div className="grow border-t border-border" />

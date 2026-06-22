@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
@@ -11,6 +11,9 @@ import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+export const viewport: Viewport = {
+  interactiveWidget: "overlays-content",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -39,7 +42,7 @@ export default async function RegisterPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.register.title")} description={t("auth.register.description")}>
+    <AuthPageShell title={t("auth.register.title")}>
       <RegisterForm nextPath={nextPath} />
       <div className="relative flex items-center py-4">
         <div className="grow border-t border-border" />
