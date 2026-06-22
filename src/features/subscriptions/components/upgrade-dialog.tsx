@@ -6,7 +6,11 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import type { LimitErrorCode } from "@/types/domain";
 
-export type UpgradeDialogErrorCode = LimitErrorCode | "learn_locale_locked";
+export type UpgradeDialogErrorCode =
+  | LimitErrorCode
+  | "learn_locale_locked"
+  | "inventory_card_already_active"
+  | "inventory_card_already_learned";
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -101,6 +105,18 @@ function getLimitContent(
       return {
         title: t("locale.lockedOnLearnTitle"),
         description: t("locale.lockedOnLearnDescription"),
+        variant: "message",
+      };
+    case "inventory_card_already_active":
+      return {
+        title: t("limit.cardAlreadyActiveTitle"),
+        description: t("limit.cardAlreadyActiveDescription"),
+        variant: "message",
+      };
+    case "inventory_card_already_learned":
+      return {
+        title: t("limit.cardAlreadyLearnedTitle"),
+        description: t("limit.cardAlreadyLearnedDescription"),
         variant: "message",
       };
     default:

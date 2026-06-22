@@ -74,6 +74,29 @@ describe("CardDrawWorkbench", () => {
     expect(container.querySelector('[data-card-draw-exit-kind="add"]')).toBeInTheDocument();
     await waitFor(() => expect(useInventoryStore.getState().hasCard(testCard.id)).toBe(true));
   }, 20_000);
+
+  it("keeps an owned card searchable and blocks adding it again", async () => {
+    const user = userEvent.setup();
+
+    useInventoryStore.setState({
+      cards: [
+        {
+          cardId: testCard.id,
+          status: "active",
+          correctCount: 1,
+          addedAt: new Date().toISOString(),
+        },
+      ],
+    });
+
+    renderWorkbench();
+
+    await revealTestCard(user);
+    await user.click(screen.getByRole("button", { name: "Ekle" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(useInventoryStore.getState().cards).toHaveLength(1);
+  });
 });
 
 function renderWorkbench() {

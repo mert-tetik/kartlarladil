@@ -68,6 +68,20 @@ describe("UpgradeDialog", () => {
     expect(screen.queryByRole("link", { name: /Planını yükselt/i })).not.toBeInTheDocument();
   });
 
+  it("shows the already learning card message without a pricing link", () => {
+    renderDialog({ open: true, errorCode: "inventory_card_already_active" });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Plan/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the already learned card message without a pricing link", () => {
+    renderDialog({ open: true, errorCode: "inventory_card_already_learned" });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Plan/i })).not.toBeInTheDocument();
+  });
+
   it("closes the dialog when the close button is clicked", async () => {
     const user = userEvent.setup();
     const { onOpenChange } = renderDialog({ open: true, errorCode: "free_active_card_limit" });

@@ -76,12 +76,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       </a>
       <header
         className={cn(
-          "sticky top-0 z-40 border-b border-border/80 bg-background-card",
+          "sticky top-0 z-40 border-b border-white/10 bg-black text-white",
           hideMobileHeaderOnLearn && "max-lg:hidden",
         )}
       >
         <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-foreground">
+          <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-white">
             <Logo size={40} priority />
             <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
           </Link>
@@ -131,7 +131,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       <nav
         aria-label={t("nav.mobileMenu")}
         data-mobile-main-nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black text-white lg:hidden"
       >
         <div className="grid grid-cols-6">
           {navItems.map((item) => {
@@ -143,8 +143,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-foreground-muted transition-colors hover:text-foreground",
-                  active && "bg-brand text-brand-foreground hover:text-foreground-inverse",
+                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white/70 transition-colors hover:text-white",
+                  active && "bg-white text-black hover:text-black",
                 )}
               >
                 <Icon className="size-5" aria-hidden="true" />
@@ -171,8 +171,8 @@ function DesktopNavLink({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-3 py-2 text-sm font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground",
-        active && "bg-background-inverse text-foreground-inverse hover:bg-background-inverse hover:text-foreground-inverse",
+        "rounded-md px-3 py-2 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white",
+        active && "bg-white text-black hover:bg-white hover:text-black",
       )}
     >
       {children}

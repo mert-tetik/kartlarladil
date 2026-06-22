@@ -19,7 +19,7 @@ import {
 } from "@/features/cards/card-draw-preferences";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
-import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
+import type { VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
 
@@ -65,7 +65,7 @@ export function CardDrawWorkbench() {
   const [dealCycle, setDealCycle] = useState(0);
   const [exitingCards, setExitingCards] = useState<ExitingCardDrawCard[]>([]);
   const [exitGridHeight, setExitGridHeight] = useState<number | null>(null);
-  const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [limitError, setLimitError] = useState<UpgradeDialogErrorCode | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -91,15 +91,17 @@ export function CardDrawWorkbench() {
   const t = useT();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
+  const inventoryById = useMemo(
+    () => new Map(inventoryCards.map((card) => [card.cardId, card] as const)),
+    [inventoryCards],
+  );
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
     const normalizedQuery = normalizeSearch(query);
-    const candidates = localCardRepository
-      .list({ query, language, tier })
-      .filter((card) => !ownedIds.has(card.id));
+    const candidates = localCardRepository.list({ query, language, tier });
 
     const scored = candidates.map((card) => {
       const normalizedTerm = normalizeSearch(card.term);
@@ -121,7 +123,7 @@ export function CardDrawWorkbench() {
 
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, 5).map((item) => item.card);
-  }, [query, language, tier, ownedIds, locale]);
+  }, [query, language, tier, locale]);
 
   const highlightedIndex = rawHighlightedIndex >= 0 && rawHighlightedIndex < suggestions.length ? rawHighlightedIndex : -1;
 
@@ -372,6 +374,13 @@ export function CardDrawWorkbench() {
 
   function addDrawnCard(cardId: string) {
     requireAuthAction(() => {
+      const existingCard = inventoryById.get(cardId);
+
+      if (existingCard) {
+        setLimitError(existingCard.status === "learned" ? "inventory_card_already_learned" : "inventory_card_already_active");
+        return;
+      }
+
       const effectivePlan = entitlements?.effectivePlan ?? "free";
       const activeLimit = PLAN_LIMITS[effectivePlan].activeCards;
 
@@ -593,7 +602,9 @@ export function CardDrawWorkbench() {
                   >
                     <VocabularyCardView
                       card={card}
+                      inventory={inventoryById.get(card.id)}
                       owned={ownedIds.has(card.id)}
+                      allowOwnedAdd
                       initialFace="back"
                       flippable
                       onAdd={() => addDrawnCard(card.id)}

@@ -23,6 +23,7 @@ interface VocabularyCardViewProps {
   card: VocabularyCard;
   inventory?: InventoryCard;
   owned?: boolean;
+  allowOwnedAdd?: boolean;
   initialFace?: CardFace;
   face?: CardFace;
   flippable?: boolean;
@@ -51,6 +52,7 @@ export function VocabularyCardView({
   card,
   inventory,
   owned,
+  allowOwnedAdd = false,
   initialFace = "front",
   face,
   flippable = false,
@@ -148,6 +150,7 @@ export function VocabularyCardView({
           card={card}
           inventory={inventory}
           owned={owned}
+          allowOwnedAdd={allowOwnedAdd}
           isFaceUp={isFaceUp}
           onShowDetails={() => setDetailsOpen(true)}
           onAdd={onAdd}
@@ -166,6 +169,7 @@ function CardFront({
   card,
   inventory,
   owned,
+  allowOwnedAdd = false,
   isFaceUp,
   onShowDetails,
   onAdd,
@@ -175,6 +179,7 @@ function CardFront({
   card: VocabularyCard;
   inventory?: InventoryCard;
   owned?: boolean;
+  allowOwnedAdd?: boolean;
   isFaceUp: boolean;
   onShowDetails: () => void;
   onAdd?: () => void;
@@ -190,6 +195,7 @@ function CardFront({
   const tierPoints = getPointsForTier(card.tier);
   const progress = inventory ? Math.min(100, (inventory.correctCount / requirement) * 100) : 0;
   const learned = inventory?.status === "learned";
+  const showOwnedState = owned && !allowOwnedAdd;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
   const cardTranslation = getCardTranslation(card, locale);
 
@@ -344,14 +350,14 @@ function CardFront({
             </Button>
             <Button
               onClick={handleAddClick}
-              disabled={owned || !onAdd}
+              disabled={!onAdd || showOwnedState}
               className={cn(
                 "h-8 bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
                 ADD_BUTTON_TEXT_BY_TIER[card.tier],
               )}
             >
-              {owned ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
-              {owned ? t("cards.owned") : t("cards.add")}
+              {showOwnedState ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
+              {showOwnedState ? t("cards.owned") : t("cards.add")}
             </Button>
           </div>
         ) : null}
