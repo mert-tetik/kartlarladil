@@ -401,6 +401,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "Je hebt {count} {language} kaarten. Hoeveel wil je deze keer oefenen?",
   "quiz.chooseCountTitle": "Hoeveel kaarten?",
   "quiz.chooseLanguageDescription": "Je hebt kaarten in meer dan één taal. Kies welke taal je wilt oefenen voordat je begint.",
+  "quiz.hiddenSiteLanguageHint": "{language} is hier verborgen omdat het de sitetaal is.",
   "quiz.chooseLanguageTitle": "Kies een oefentaal",
   "quiz.noPracticeLanguagesDescription": "Op de leerpagina kun je niet dezelfde taal oefenen als de huidige sitetaal. Voeg kaarten toe in een andere taal of wijzig de sitetaal buiten Leren.",
   "quiz.noPracticeLanguagesTitle": "Geen oefentaal beschikbaar voor deze sitetaal",

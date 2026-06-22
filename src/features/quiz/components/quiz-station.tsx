@@ -149,6 +149,10 @@ export function QuizStation({
     () => languageStats.filter((language) => language.code !== locale),
     [languageStats, locale],
   );
+  const hiddenLocalePracticeLanguage = useMemo(
+    () => languageStats.find((language) => language.code === locale) ?? null,
+    [languageStats, locale],
+  );
 
   const availableCards = useMemo(() => {
     if (!selectedLanguage) return [];
@@ -411,10 +415,11 @@ export function QuizStation({
 
   if (phase === "language") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
         <LanguageSelection
           mode={mode}
           languageStats={practiceLanguageStats}
+          hiddenLanguageCode={hiddenLocalePracticeLanguage?.code ?? null}
           selectedLanguage={selectedLanguage}
           onSelect={handleSelectLanguage}
           onBack={onBackToMode}
@@ -637,18 +642,21 @@ function shuffle<T>(items: T[]) {
 function LanguageSelection({
   mode,
   languageStats,
+  hiddenLanguageCode,
   selectedLanguage,
   onSelect,
   onBack,
 }: {
   mode: PracticeMode;
   languageStats: Array<{ code: LanguageCode; count: number; nativeName: string }>;
+  hiddenLanguageCode: LanguageCode | null;
   selectedLanguage: LanguageCode | null;
   onSelect: (language: LanguageCode) => void;
   onBack?: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const hiddenLanguageName = hiddenLanguageCode ? getLanguageDisplayName(hiddenLanguageCode, locale) : null;
 
   return (
     <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
@@ -672,6 +680,11 @@ function LanguageSelection({
         ) : null}
       </div>
       <h2 className="mt-4 text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
+      {hiddenLanguageName ? (
+        <p className="mt-2 max-w-xl text-xs leading-5 text-foreground-muted lg:text-sm">
+          {t("quiz.hiddenSiteLanguageHint", { language: hiddenLanguageName })}
+        </p>
+      ) : null}
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
         <div className="h-full min-h-0 overflow-y-auto rounded-md border border-border bg-background p-2 lg:h-[480px]">

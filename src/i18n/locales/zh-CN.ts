@@ -401,6 +401,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "您有 {count} {language} 卡片。您想这次练习多少张？",
   "quiz.chooseCountTitle": "多少张卡片？",
   "quiz.chooseLanguageDescription": "您有多种语言的卡片。在开始之前选择要练习的语言。",
+  "quiz.hiddenSiteLanguageHint": "{language} 因为是站点语言，所以这里被隐藏。",
   "quiz.chooseLanguageTitle": "选择练习语言",
   "quiz.noPracticeLanguagesDescription": "在学习页面中，你不能练习与当前网站语言相同的语言。请添加其他语言的卡片，或在离开学习页面后更改网站语言。",
   "quiz.noPracticeLanguagesTitle": "当前网站语言下没有可练习的语言",

@@ -401,6 +401,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "{language} haznende {count} kart var. Bu sefer kaç kartla çalışmak istersin?",
   "quiz.chooseCountTitle": "Kaç kartla çalışacaksın?",
   "quiz.chooseLanguageDescription": "Birden fazla dilde kartın var. Başlamadan önce hangi dilde çalışacağını seç.",
+  "quiz.hiddenSiteLanguageHint": "Site dili olduğu için {language} burada gizli.",
   "quiz.chooseLanguageTitle": "Alıştırma dilini seç",
   "quiz.noPracticeLanguagesDescription": "Öğren sayfasında site diliyle aynı dilde alıştırma yapılamaz. Başka bir dilde kart ekle ya da site dilini Öğren sayfası dışında değiştir.",
   "quiz.noPracticeLanguagesTitle": "Bu site dili için kullanılabilir alıştırma dili yok",

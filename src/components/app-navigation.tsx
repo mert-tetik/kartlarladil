@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,10 +41,30 @@ const navItems: readonly NavItem[] = [
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
 
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
   const t = useT();
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
+  const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
 
   return (
     <>
@@ -53,7 +74,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       >
         {t("common.skipToContent")}
       </a>
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background-card">
+      <header
+        className={cn(
+          "sticky top-0 z-40 border-b border-border/80 bg-background-card",
+          hideMobileHeaderOnLearn && "max-lg:hidden",
+        )}
+      >
         <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-foreground">
             <Logo size={40} priority />
@@ -77,7 +103,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             </div>
             {user ? (
               <>
-                <RankProgressPopover stats={stats} userId={user.id} />
+                {!hideMobileHeaderOnLearn ? <RankProgressPopover stats={stats} userId={user.id} /> : null}
                 <AccountMenu user={user} />
               </>
             ) : (
@@ -93,6 +119,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </div>
         </div>
       </header>
+
+      {user && hideMobileHeaderOnLearn ? (
+        <div className="pointer-events-none fixed right-0 top-0 z-50">
+          <div className="pointer-events-auto">
+            <RankProgressPopover stats={stats} userId={user.id} hideTrigger />
+          </div>
+        </div>
+      ) : null}
 
       <nav
         aria-label={t("nav.mobileMenu")}

@@ -25,7 +25,6 @@ export function InventoryDashboard({
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
-  const cloudError = useInventoryStore((state) => state.cloudError);
   const { locale } = useLocale();
   const t = useT();
 
@@ -113,12 +112,6 @@ export function InventoryDashboard({
 
   return (
     <div className="max-lg:flex-1 max-lg:overflow-hidden lg:space-y-6">
-      {cloudError ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-          {cloudError}
-        </div>
-      ) : null}
-
       <div className="hidden lg:block">
         <div className="rounded-lg border border-border bg-background-card p-4">
           <div className="grid gap-2 sm:grid-cols-3">
@@ -401,12 +394,6 @@ function MobileSectionBlock({
             </div>
           );
         })}
-      </div>
-
-      <div className="px-4 pb-4">
-        <span className="inline-flex rounded-md bg-background px-3 py-1.5 text-xs font-semibold text-foreground-secondary">
-          {t("inventory.viewCards")}
-        </span>
       </div>
     </div>
   );

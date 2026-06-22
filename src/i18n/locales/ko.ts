@@ -401,6 +401,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "당신은 {count} {language} 카드를 가지고 있습니다. 이번에 몇 장을 연습하고 싶으신가요?",
   "quiz.chooseCountTitle": "몇 장의 카드를 선택할까요?",
   "quiz.chooseLanguageDescription": "여러 언어의 카드가 있습니다. 시작하기 전에 연습할 언어를 선택하세요.",
+  "quiz.hiddenSiteLanguageHint": "{language}는 사이트 언어라서 여기서 숨겨집니다.",
   "quiz.chooseLanguageTitle": "연습할 언어 선택",
   "quiz.noPracticeLanguagesDescription": "학습 페이지에서는 현재 사이트 언어와 같은 언어를 연습할 수 없습니다. 다른 언어 카드를 추가하거나 학습 페이지 밖에서 사이트 언어를 바꾸세요.",
   "quiz.noPracticeLanguagesTitle": "현재 사이트 언어로는 연습할 언어가 없습니다",

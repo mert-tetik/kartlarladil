@@ -124,6 +124,7 @@ describe("QuizStation sound feedback", () => {
     renderQuizStation("en");
 
     expect(screen.getByRole("heading", { name: "Choose a practice language" })).toBeVisible();
+    expect(screen.getByText("English is hidden because it's the site language.")).toBeVisible();
     expect(screen.queryByRole("button", { name: /English/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /German/i })).toBeVisible();
   });

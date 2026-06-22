@@ -14,7 +14,15 @@ import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
 
-export function RankProgressPopover({ stats, userId }: { stats: ProgressStats; userId?: string }) {
+export function RankProgressPopover({
+  stats,
+  userId,
+  hideTrigger = false,
+}: {
+  stats: ProgressStats;
+  userId?: string;
+  hideTrigger?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
@@ -54,34 +62,36 @@ export function RankProgressPopover({ stats, userId }: { stats: ProgressStats; u
 
   return (
     <div ref={rootRef} className="relative block">
-      <button
-        type="button"
-        aria-label={t("rank.showProgress")}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen((current) => !current)}
-        className={cn(
-          "flex h-9 items-center gap-1.5 rounded-full border border-border bg-background px-2 text-xs font-semibold text-foreground-secondary transition-colors hover:bg-background-muted min-[390px]:gap-2 min-[390px]:px-3 sm:h-auto sm:py-1.5",
-          open && "border-border bg-background-card ring-2 ring-border",
-        )}
-      >
-        <RankIcon icon={displayStats.rank.icon} className={cn("size-4", getRankIconTone(displayStats.rank.icon))} />
-        <span className="hidden min-[390px]:inline">{getRankLabel(displayStats.rank, locale)}</span>
-        <span className="hidden text-foreground-muted min-[390px]:inline">/</span>
-        <span className="relative inline-flex min-w-4 justify-start min-[390px]:min-w-10">
-          {scoreGain > 0 ? (
-            <span
-              key={scoreGain}
-              aria-live="polite"
-              className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-amber-500"
-            >
-              +{formatNumber(locale, scoreGain)}
-            </span>
-          ) : null}
-          <span className="min-[390px]:hidden">{formatNumber(locale, displayStats.totalPoints)}</span>
-          <span className="hidden min-[390px]:inline">{formatPoints(locale, displayStats.totalPoints)}</span>
-        </span>
-      </button>
+      {hideTrigger ? null : (
+        <button
+          type="button"
+          aria-label={t("rank.showProgress")}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          onClick={() => setOpen((current) => !current)}
+          className={cn(
+            "flex h-9 items-center gap-1.5 rounded-full border border-border bg-background px-2 text-xs font-semibold text-foreground-secondary transition-colors hover:bg-background-muted min-[390px]:gap-2 min-[390px]:px-3 sm:h-auto sm:py-1.5",
+            open && "border-border bg-background-card ring-2 ring-border",
+          )}
+        >
+          <RankIcon icon={displayStats.rank.icon} className={cn("size-4", getRankIconTone(displayStats.rank.icon))} />
+          <span className="hidden min-[390px]:inline">{getRankLabel(displayStats.rank, locale)}</span>
+          <span className="hidden text-foreground-muted min-[390px]:inline">/</span>
+          <span className="relative inline-flex min-w-4 justify-start min-[390px]:min-w-10">
+            {scoreGain > 0 ? (
+              <span
+                key={scoreGain}
+                aria-live="polite"
+                className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-amber-500"
+              >
+                +{formatNumber(locale, scoreGain)}
+              </span>
+            ) : null}
+            <span className="min-[390px]:hidden">{formatNumber(locale, displayStats.totalPoints)}</span>
+            <span className="hidden min-[390px]:inline">{formatPoints(locale, displayStats.totalPoints)}</span>
+          </span>
+        </button>
+      )}
 
       {rankUpRank ? (
         <RankUpMenu
