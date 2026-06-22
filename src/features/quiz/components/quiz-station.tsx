@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -79,20 +79,59 @@ interface QuizResult {
 
 type QuizPerformanceLevel = "high" | "medium" | "low";
 type QuizPerformanceMessageKey =
-  | "quiz.resultMessageHigh"
-  | "quiz.resultMessageHighChest"
-  | "quiz.resultMessageMedium"
-  | "quiz.resultMessageLow";
+  | "quiz.resultMessageHigh1"
+  | "quiz.resultMessageHigh2"
+  | "quiz.resultMessageHigh3"
+  | "quiz.resultMessageMedium1"
+  | "quiz.resultMessageMedium2"
+  | "quiz.resultMessageMedium3"
+  | "quiz.resultMessageLow1"
+  | "quiz.resultMessageLow2"
+  | "quiz.resultMessageLow3";
 
 type QuizPerformanceSummary = {
   accuracy: number;
   chestUnlocked: boolean;
   icon: typeof Trophy;
   level: QuizPerformanceLevel;
-  messageKey: QuizPerformanceMessageKey;
+  messageKeys: readonly QuizPerformanceMessageKey[];
   ringClassName: string;
   textClassName: string;
 };
+
+const QUIZ_RESULT_MESSAGE_KEYS: Record<QuizPerformanceLevel, readonly QuizPerformanceMessageKey[]> = {
+  high: ["quiz.resultMessageHigh1", "quiz.resultMessageHigh2", "quiz.resultMessageHigh3"],
+  medium: ["quiz.resultMessageMedium1", "quiz.resultMessageMedium2", "quiz.resultMessageMedium3"],
+  low: ["quiz.resultMessageLow1", "quiz.resultMessageLow2", "quiz.resultMessageLow3"],
+};
+
+function getQuizResultMessageKey(
+  messageKeys: readonly QuizPerformanceMessageKey[],
+  results: QuizResult,
+  selectedCount: number | null,
+  chestOpened: boolean,
+) {
+  if (messageKeys.length === 0) {
+    return "quiz.resultMessageMedium1" as const;
+  }
+
+  const seed = [
+    String(selectedCount ?? "none"),
+    chestOpened ? "opened" : "closed",
+    ...results.correct.map((card) => card.id),
+    "|",
+    ...results.incorrect.map((card) => card.id),
+    "|",
+    ...results.learned.map((card) => card.id),
+  ].join(":");
+
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) >>> 0;
+  }
+
+  return messageKeys[hash % messageKeys.length] ?? messageKeys[0];
+}
 
 export function QuizStation({
   mode,
@@ -460,9 +499,9 @@ export function QuizStation({
       <QuizViewportOverlay
         learnPagePhase="result"
         overlay="result"
-        className="animate-screen-pop fixed inset-0 z-30 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-16 max-lg:p-0 lg:bottom-0 lg:top-16"
       >
-        <div className="flex w-full max-w-3xl items-center justify-center">
+        <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultView
             mode={mode}
             results={results}
@@ -725,7 +764,7 @@ function LanguageSelection({
   );
 }
 
-function CountSelection({
+export function CountSelection({
   mode,
   language,
   availableCount,
@@ -745,56 +784,67 @@ function CountSelection({
   const showChestTiers = mode === "active";
 
   return (
-    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
-      <div className="flex justify-center lg:hidden">
-        <Image
-          src="/mascots/mascot5.png"
-          alt=""
-          width={80}
-          height={80}
-          className="size-20 object-contain"
-        />
-      </div>
-      <h2 className="text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
-        {t("quiz.chooseCountDescription", {
-          language: getLanguageDisplayName(language, locale),
-          count: availableCount,
-        })}
-      </p>
+    <div
+      data-quiz-count-selection
+      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
+    >
+      <div className="flex min-h-0 flex-1 flex-col justify-between">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex justify-center lg:hidden">
+            <Image
+              src="/mascots/mascot5.png"
+              alt=""
+              width={80}
+              height={80}
+              className="size-20 object-contain"
+            />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-foreground">{t("quiz.chooseCountTitle")}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-foreground-secondary">
+            {t("quiz.chooseCountDescription", {
+              language: getLanguageDisplayName(language, locale),
+              count: availableCount,
+            })}
+          </p>
+        </div>
 
-      <div className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-7">
-        {COUNT_OPTIONS.map((count) => {
-          const disabled = count > availableCount;
-          const chestTier = getChestTierByCount(count);
+        <div className="flex flex-1 items-center justify-center py-6 sm:py-8">
+          <div className="grid w-full grid-cols-4 gap-2 sm:grid-cols-7">
+            {COUNT_OPTIONS.map((count) => {
+              const disabled = count > availableCount;
+              const chestTier = getChestTierByCount(count);
 
-          return (
-            <button
-              key={count}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelect(count)}
-              className={cn(
-                "flex flex-col items-center justify-center rounded-md border-2 px-2 py-2 text-sm font-semibold transition-colors sm:py-3",
-                selectedCount === count
-                  ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
-                  : "bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
-                showChestTiers && chestTier ? CHEST_TIER_BORDER_CLASSES[chestTier.tier] : "border-border",
-              )}
-            >
-              <span>{count}</span>
-              {showChestTiers && chestTier ? (
-                <span className={cn("text-[10px] font-medium sm:text-xs", CHEST_TIER_TEXT_CLASSES[chestTier.tier])}>{t(chestTier.labelKey)}</span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
+              return (
+                <button
+                  key={count}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelect(count)}
+                  className={cn(
+                    "flex min-h-16 flex-col items-center justify-center rounded-md border-2 px-2 py-2 text-sm font-semibold transition-colors sm:min-h-[72px] sm:py-3",
+                    selectedCount === count
+                      ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
+                      : "bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
+                    showChestTiers && chestTier ? CHEST_TIER_BORDER_CLASSES[chestTier.tier] : "border-border",
+                  )}
+                >
+                  <span>{count}</span>
+                  {showChestTiers && chestTier ? (
+                    <span className={cn("text-[10px] font-medium sm:text-xs", CHEST_TIER_TEXT_CLASSES[chestTier.tier])}>
+                      {t(chestTier.labelKey)}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-      <div className="mt-auto pt-6 flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
-          {t("common.back")}
-        </Button>
+        <div className="flex items-center justify-between pt-2 sm:pt-4">
+          <Button variant="ghost" onClick={onBack}>
+            {t("common.back")}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1141,6 +1191,10 @@ export function ResultView({
   const hasTriggeredResult = useRef(false);
   const performance = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
   const SummaryIcon = performance.icon;
+  const messageKey = useMemo(
+    () => getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened),
+    [chestOpened, performance.messageKeys, results, selectedCount],
+  );
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -1154,8 +1208,11 @@ export function ResultView({
     if (introPhase !== "entering") return;
     const el = introRef.current;
     if (!el) return;
+    let finished = false;
 
     function onAnimationEnd() {
+      if (finished) return;
+      finished = true;
       if (performance.level === "high") {
         playSoundEffect("confetti");
         vibrate("confetti");
@@ -1170,8 +1227,13 @@ export function ResultView({
       setIntroPhase("flying");
     }
 
+    const fallbackTimer = window.setTimeout(onAnimationEnd, 900);
     el.addEventListener("animationend", onAnimationEnd);
-    return () => el.removeEventListener("animationend", onAnimationEnd);
+    return () => {
+      finished = true;
+      window.clearTimeout(fallbackTimer);
+      el.removeEventListener("animationend", onAnimationEnd);
+    };
   }, [introPhase, performance.level]);
 
   useEffect(() => {
@@ -1183,6 +1245,7 @@ export function ResultView({
       setIntroPhase("done");
       return;
     }
+    let finished = false;
 
     const first = introEl.getBoundingClientRect();
     const last = summaryIconEl.getBoundingClientRect();
@@ -1195,11 +1258,18 @@ export function ResultView({
     introEl.style.opacity = "0";
 
     function onTransitionEnd() {
+      if (finished) return;
+      finished = true;
       setIntroPhase("done");
     }
 
+    const fallbackTimer = window.setTimeout(onTransitionEnd, 700);
     introEl.addEventListener("transitionend", onTransitionEnd);
-    return () => introEl.removeEventListener("transitionend", onTransitionEnd);
+    return () => {
+      finished = true;
+      window.clearTimeout(fallbackTimer);
+      introEl.removeEventListener("transitionend", onTransitionEnd);
+    };
   }, [introPhase]);
 
   const menuConfig = {
@@ -1238,7 +1308,7 @@ export function ResultView({
   return (
     <div
       data-quiz-result-view
-      className="relative mx-auto flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-2 sm:p-4"
+      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-2 sm:p-4 max-lg:p-0"
     >
       {introPhase !== "done" ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
@@ -1257,8 +1327,9 @@ export function ResultView({
       ) : null}
 
       <div
+        data-quiz-result-panel
         className={cn(
-          "w-full rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10",
+          "flex w-full flex-col rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10 max-lg:h-full max-lg:rounded-none max-lg:border-0 max-lg:p-5",
           menuVisible ? "opacity-100" : "opacity-0",
         )}
       >
@@ -1276,10 +1347,10 @@ export function ResultView({
         <h2 className="mt-4 text-xl font-semibold text-foreground sm:mt-5 sm:text-2xl">{t("quiz.resultTitle")}</h2>
         <p className="mt-1 text-4xl font-bold text-foreground sm:mt-2 sm:text-5xl">{performance.accuracy}%</p>
         <p
-          className={cn("mt-3 text-sm font-semibold leading-5 sm:mt-4 sm:text-base sm:leading-6", performance.textClassName)}
+          className={cn("mt-4 text-xl font-bold leading-tight sm:mt-5 sm:text-2xl", performance.textClassName)}
           data-result-message-level={performance.level}
         >
-          {t(performance.messageKey)}
+          {t(messageKey)}
         </p>
 
         <div
@@ -1303,7 +1374,7 @@ export function ResultView({
           ))}
         </div>
 
-        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3">
+        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3 max-lg:mt-auto">
           <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}
@@ -1346,9 +1417,9 @@ function ResultCard({
   onClick?: () => void;
 }) {
   const toneClasses = {
-    emerald: "bg-emerald-50 text-emerald-700",
-    rose: "bg-rose-50 text-rose-700",
-    amber: "bg-amber-50 text-amber-700",
+    emerald: "bg-emerald-500 text-white",
+    rose: "bg-rose-500 text-white",
+    amber: "bg-amber-500 text-white",
   };
 
   return (
@@ -1366,7 +1437,7 @@ function ResultCard({
     >
       <Icon className="mx-auto size-5 sm:size-6" aria-hidden="true" />
       <p className="mt-1 text-xl font-bold sm:mt-2 sm:text-2xl">{count}</p>
-      <p className="text-[11px] font-semibold opacity-80 sm:text-xs">{label}</p>
+      <p className="text-[11px] font-semibold text-white/90 sm:text-xs">{label}</p>
     </button>
   );
 }
@@ -1388,7 +1459,7 @@ export function getQuizPerformanceSummary(
       chestUnlocked,
       icon: Trophy,
       level: "high",
-      messageKey: chestUnlocked ? "quiz.resultMessageHighChest" : "quiz.resultMessageHigh",
+      messageKeys: QUIZ_RESULT_MESSAGE_KEYS.high,
       ringClassName: "border-amber-200 bg-amber-50",
       textClassName: "text-amber-700",
     };
@@ -1400,7 +1471,7 @@ export function getQuizPerformanceSummary(
       chestUnlocked: false,
       icon: Medal,
       level: "medium",
-      messageKey: "quiz.resultMessageMedium",
+      messageKeys: QUIZ_RESULT_MESSAGE_KEYS.medium,
       ringClassName: "border-sky-200 bg-sky-50",
       textClassName: "text-sky-700",
     };
@@ -1411,7 +1482,7 @@ export function getQuizPerformanceSummary(
     chestUnlocked: false,
     icon: XCircle,
     level: "low",
-    messageKey: "quiz.resultMessageLow",
+    messageKeys: QUIZ_RESULT_MESSAGE_KEYS.low,
     ringClassName: "border-rose-200 bg-rose-50",
     textClassName: "text-rose-700",
   };

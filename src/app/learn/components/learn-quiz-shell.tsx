@@ -96,13 +96,13 @@ function LearnModeSelection({ onSelect }: { onSelect: (mode: PracticeMode) => vo
         <button
           type="button"
           onClick={() => onSelect("active")}
-          className="flex h-full min-h-0 flex-col rounded-2xl border border-border bg-background p-5 text-left transition-colors hover:bg-background-muted sm:p-6"
+          className="flex h-full min-h-0 flex-col rounded-2xl border border-emerald-600 bg-emerald-600 p-5 text-left text-white transition-colors hover:bg-emerald-700 sm:p-6"
         >
-          <div className="inline-flex size-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <div className="inline-flex size-12 items-center justify-center text-white">
             <GraduationCap className="size-6" aria-hidden="true" />
           </div>
-          <h3 className="mt-5 text-xl font-semibold text-foreground">{t("inventory.learn")}</h3>
-          <p className="mt-3 text-sm leading-6 text-foreground-secondary">
+          <h3 className="mt-5 text-xl font-semibold text-white">{t("inventory.learn")}</h3>
+          <p className="mt-3 text-sm leading-6 text-white/90">
             {t("page.learn.description")}
           </p>
         </button>
@@ -110,13 +110,13 @@ function LearnModeSelection({ onSelect }: { onSelect: (mode: PracticeMode) => vo
         <button
           type="button"
           onClick={() => onSelect("learned")}
-          className="flex h-full min-h-0 flex-col rounded-2xl border border-border bg-background p-5 text-left transition-colors hover:bg-background-muted sm:p-6"
+          className="flex h-full min-h-0 flex-col rounded-2xl border border-sky-600 bg-sky-600 p-5 text-left text-white transition-colors hover:bg-sky-700 sm:p-6"
         >
-          <div className="inline-flex size-12 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600">
+          <div className="inline-flex size-12 items-center justify-center text-white">
             <RotateCcw className="size-6" aria-hidden="true" />
           </div>
-          <h3 className="mt-5 text-xl font-semibold text-foreground">{t("inventory.repeatPractice")}</h3>
-          <p className="mt-3 text-sm leading-6 text-foreground-secondary">
+          <h3 className="mt-5 text-xl font-semibold text-white">{t("inventory.repeatPractice")}</h3>
+          <p className="mt-3 text-sm leading-6 text-white/90">
             {t("page.learned.practiceDescription")}
           </p>
         </button>

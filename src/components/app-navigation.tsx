@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -48,6 +48,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [mobileNavBottomOffset, setMobileNavBottomOffset] = useState(0);
+  const stableBottomOffsetRef = useRef(0);
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
 
@@ -63,6 +65,50 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
     return () => {
       mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery =
+      typeof window.matchMedia === "function" ? window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY) : null;
+    const visualViewport = window.visualViewport;
+
+    function syncMobileBottomOffset() {
+      const mobile = mediaQuery?.matches ?? window.innerWidth < 1024;
+
+      if (!mobile) {
+        stableBottomOffsetRef.current = 0;
+        setMobileNavBottomOffset(0);
+        return;
+      }
+
+      const viewportHeight = visualViewport?.height ?? window.innerHeight;
+      const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
+      const rawBottomOffset = Math.max(0, window.innerHeight - (viewportHeight + viewportOffsetTop));
+      const keyboardLikelyVisible = window.innerHeight - viewportHeight > 160;
+
+      if (!keyboardLikelyVisible) {
+        stableBottomOffsetRef.current = rawBottomOffset;
+      }
+
+      setMobileNavBottomOffset(keyboardLikelyVisible ? stableBottomOffsetRef.current : rawBottomOffset);
+    }
+
+    syncMobileBottomOffset();
+    mediaQuery?.addEventListener("change", syncMobileBottomOffset);
+    window.addEventListener("resize", syncMobileBottomOffset);
+    visualViewport?.addEventListener("resize", syncMobileBottomOffset);
+    visualViewport?.addEventListener("scroll", syncMobileBottomOffset);
+
+    return () => {
+      mediaQuery?.removeEventListener("change", syncMobileBottomOffset);
+      window.removeEventListener("resize", syncMobileBottomOffset);
+      visualViewport?.removeEventListener("resize", syncMobileBottomOffset);
+      visualViewport?.removeEventListener("scroll", syncMobileBottomOffset);
     };
   }, []);
 
@@ -135,6 +181,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         aria-label={t("nav.mobileMenu")}
         data-mobile-main-nav
         className="mobile-main-nav fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card text-foreground lg:hidden"
+        style={{ bottom: `${mobileNavBottomOffset}px` }}
       >
         <div className="grid grid-cols-6">
           {navItems.map((item) => {

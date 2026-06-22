@@ -24,7 +24,7 @@ describe("getQuizPerformanceSummary", () => {
     expect(summary.accuracy).toBe(80);
     expect(summary.chestUnlocked).toBe(true);
     expect(summary.icon).toBe(Trophy);
-    expect(summary.messageKey).toBe("quiz.resultMessageHighChest");
+    expect(summary.messageKeys).toContain("quiz.resultMessageHigh1");
   });
 
   it("uses the medium state at the passing threshold without chest access", () => {
@@ -34,7 +34,7 @@ describe("getQuizPerformanceSummary", () => {
     expect(summary.accuracy).toBe(50);
     expect(summary.chestUnlocked).toBe(false);
     expect(summary.icon).toBe(Medal);
-    expect(summary.messageKey).toBe("quiz.resultMessageMedium");
+    expect(summary.messageKeys).toContain("quiz.resultMessageMedium1");
   });
 
   it("uses the low state for weaker runs", () => {
@@ -44,6 +44,6 @@ describe("getQuizPerformanceSummary", () => {
     expect(summary.accuracy).toBe(30);
     expect(summary.chestUnlocked).toBe(false);
     expect(summary.icon).toBe(XCircle);
-    expect(summary.messageKey).toBe("quiz.resultMessageLow");
+    expect(summary.messageKeys).toContain("quiz.resultMessageLow1");
   });
 });

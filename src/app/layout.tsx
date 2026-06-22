@@ -22,7 +22,9 @@ const fraunces = Fraunces({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  interactiveWidget: "resizes-content",
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "overlays-content",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

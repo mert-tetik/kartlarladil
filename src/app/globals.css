@@ -74,12 +74,22 @@ button:disabled,
   cursor: default;
 }
 
+@media (max-width: 1023px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 .mobile-main-nav {
-  bottom: 0;
-  padding-bottom: env(safe-area-inset-bottom);
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  will-change: transform;
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  min-height: calc(4rem + max(env(safe-area-inset-bottom), 0px));
+  overscroll-behavior: none;
+  -webkit-transform: translateZ(0);
+  transform: none;
+  backface-visibility: visible;
+  will-change: auto;
 }
 
 ::selection {

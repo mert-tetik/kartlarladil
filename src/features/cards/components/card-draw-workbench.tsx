@@ -74,7 +74,7 @@ export function CardDrawWorkbench() {
   const [mobileSearchMenuMaxHeight, setMobileSearchMenuMaxHeight] = useState(240);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const suggestionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
@@ -171,10 +171,8 @@ export function CardDrawWorkbench() {
         0,
         window.innerHeight - ((visualViewport?.height ?? window.innerHeight) + (visualViewport?.offsetTop ?? 0)),
       );
-      const keyboardLikelyVisible = window.innerHeight - viewportHeight > 120;
-
-      setMobileSearchBottomOffset(keyboardLikelyVisible ? rawBottomOffset : 0);
-      setMobileSearchMenuMaxHeight(Math.max(140, Math.floor(viewportHeight - 92)));
+      setMobileSearchBottomOffset(rawBottomOffset);
+      setMobileSearchMenuMaxHeight(Math.max(140, Math.floor(viewportHeight - 96)));
     }
 
     updateMobileSearchLayout();
@@ -235,7 +233,7 @@ export function CardDrawWorkbench() {
         return;
       }
 
-      const overlayRoot = event.target.closest("[data-card-draw-mobile-search]");
+      const overlayRoot = event.target.closest("[data-card-draw-mobile-search-shell]");
 
       if (!overlayRoot) {
         event.preventDefault();
@@ -285,13 +283,18 @@ export function CardDrawWorkbench() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        if (isMobileViewport && isMobileSearchActive) {
+          closeMobileSearch();
+          return;
+        }
+
         setIsDropdownOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobileSearchActive, isMobileViewport]);
 
   useLayoutEffect(() => {
     // FLIP keeps the remaining cards moving from their old grid positions instead of jumping.
@@ -418,17 +421,18 @@ export function CardDrawWorkbench() {
       return;
     }
 
-    setMobileSearchBottomOffset(0);
     setIsMobileSearchActive(true);
-    setIsDropdownOpen(true);
+    if (suggestions.length > 0 || query.trim()) {
+      setIsDropdownOpen(true);
+    }
 
     window.requestAnimationFrame(() => {
-      mobileSearchInputRef.current?.focus();
+      searchInputRef.current?.focus();
     });
   }
 
   function closeMobileSearch() {
-    mobileSearchInputRef.current?.blur();
+    searchInputRef.current?.blur();
     setIsMobileSearchActive(false);
     setIsDropdownOpen(false);
     setRawHighlightedIndex(-1);
@@ -555,42 +559,127 @@ export function CardDrawWorkbench() {
       <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4">
         <div className="mx-auto max-w-7xl max-lg:space-y-1 space-y-3">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
-              <input
-                value={query}
-                readOnly={isMobileViewport}
-                onChange={(event) => {
-                  updateSearchQuery(event.target.value);
-                }}
-                onPointerDown={(event) => {
-                  if (!isMobileViewport) {
-                    return;
-                  }
-
-                  event.preventDefault();
-                  openMobileSearch();
-                }}
-                onFocus={(event) => {
-                  if (isMobileViewport) {
-                    event.currentTarget.blur();
-                    openMobileSearch();
-                    return;
-                  }
-
-                  if (suggestions.length > 0 || query.trim()) {
-                    setIsDropdownOpen(true);
-                  }
-                }}
-                onKeyDown={handleSuggestionKeyDown}
-                placeholder={t("cards.searchPlaceholder")}
-                className="relative h-12 max-lg:h-11 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground"
-              />
-              {!isMobileViewport && isDropdownOpen ? (
+            <div ref={dropdownRef} className="relative max-lg:min-h-11">
+              {isMobileViewport && isMobileSearchActive ? (
                 <div
-                  ref={dropdownRef}
-                  className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0"
-                >
+                  className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+                  onMouseDown={closeMobileSearch}
+                  aria-hidden="true"
+                />
+              ) : null}
+
+              <div
+                className={cn(
+                  "relative",
+                  isMobileViewport &&
+                    isMobileSearchActive &&
+                    "fixed inset-x-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:hidden",
+                )}
+                style={
+                  isMobileViewport && isMobileSearchActive
+                    ? { bottom: `${mobileSearchBottomOffset}px` }
+                    : undefined
+                }
+                data-card-draw-mobile-search-shell={isMobileViewport && isMobileSearchActive ? "true" : undefined}
+              >
+                <div className={cn("mx-auto max-w-7xl", isMobileViewport && isMobileSearchActive && "flex flex-col gap-2")}>
+                  {isMobileViewport && isMobileSearchActive && isDropdownOpen ? (
+                    <div
+                      className="animate-menu-pop overflow-hidden rounded-xl border border-border bg-background-card shadow-xl"
+                      style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      data-card-draw-mobile-search-menu
+                    >
+                      <div className="overflow-y-auto py-1" style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}>
+                        {suggestions.length > 0 ? (
+                          suggestions.map((card, index) => {
+                            const style = TIER_STYLES[card.tier];
+                            const highlighted = index === highlightedIndex;
+                            return (
+                              <button
+                                key={card.id}
+                                ref={(element) => {
+                                  suggestionRefs.current[index] = element;
+                                }}
+                                type="button"
+                                onClick={() => {
+                                  selectSuggestion(card);
+                                  closeMobileSearch();
+                                }}
+                                onMouseEnter={() => setRawHighlightedIndex(index)}
+                                className={cn(
+                                  "flex w-full items-center justify-between px-3 py-3 text-left text-sm outline-none",
+                                  highlighted ? "bg-background-muted" : "hover:bg-background-muted",
+                                )}
+                              >
+                                <span className="font-semibold text-foreground">{card.term}</span>
+                                <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
+                                  {card.tier}
+                                </span>
+                              </button>
+                            );
+                          })
+                        ) : query.trim() ? (
+                          <div className="px-3 py-3 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div
+                    className={cn(
+                      "relative",
+                      isMobileViewport && isMobileSearchActive && "rounded-xl border border-border bg-background-card p-2 shadow-xl",
+                    )}
+                    onMouseDown={(event) => {
+                      if (isMobileViewport && isMobileSearchActive) {
+                        event.stopPropagation();
+                      }
+                    }}
+                  >
+                    <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
+                    <input
+                      ref={searchInputRef}
+                      value={query}
+                      onChange={(event) => {
+                        updateSearchQuery(event.target.value);
+                      }}
+                      onPointerDown={() => {
+                        if (isMobileViewport && !isMobileSearchActive) {
+                          openMobileSearch();
+                        }
+                      }}
+                      onFocus={() => {
+                        if (isMobileViewport) {
+                          setIsMobileSearchActive(true);
+                        }
+
+                        if (suggestions.length > 0 || query.trim()) {
+                          setIsDropdownOpen(true);
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (isMobileViewport && event.key === "Escape") {
+                          event.preventDefault();
+                          closeMobileSearch();
+                          return;
+                        }
+
+                        handleSuggestionKeyDown(event);
+                      }}
+                      placeholder={t("cards.searchPlaceholder")}
+                      className={cn(
+                        "relative h-12 max-lg:h-11 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground",
+                        isMobileViewport && isMobileSearchActive && "bg-background",
+                      )}
+                      data-card-draw-search-input
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {!isMobileViewport && isDropdownOpen ? (
+                <div className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0">
                   {suggestions.length > 0 ? (
                     suggestions.map((card, index) => {
                       const style = TIER_STYLES[card.tier];
@@ -727,98 +816,6 @@ export function CardDrawWorkbench() {
           />
         </div>
       </div>
-
-      {isMobileViewport && isMobileSearchActive ? (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/20 lg:hidden"
-            onMouseDown={closeMobileSearch}
-            aria-hidden="true"
-          />
-          <div
-            className="fixed inset-x-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:hidden"
-            style={{ bottom: `${mobileSearchBottomOffset}px` }}
-            data-card-draw-mobile-search
-          >
-            <div className="mx-auto flex max-w-7xl flex-col-reverse">
-              <div
-                ref={dropdownRef}
-                className="rounded-xl border border-border bg-background-card p-2 shadow-2xl"
-                onMouseDown={(event) => event.stopPropagation()}
-              >
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
-                  <input
-                    ref={mobileSearchInputRef}
-                    value={query}
-                    onChange={(event) => updateSearchQuery(event.target.value)}
-                    onFocus={() => {
-                      if (suggestions.length > 0 || query.trim()) {
-                        setIsDropdownOpen(true);
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape") {
-                        event.preventDefault();
-                        closeMobileSearch();
-                        return;
-                      }
-
-                      handleSuggestionKeyDown(event);
-                    }}
-                    placeholder={t("cards.searchPlaceholder")}
-                    className="relative h-11 w-full rounded-lg border border-border bg-background pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground"
-                    data-card-draw-mobile-search-input
-                  />
-                </div>
-              </div>
-
-              {isDropdownOpen ? (
-                <div
-                  className="animate-menu-pop mb-2 overflow-hidden rounded-xl border border-border bg-background-card shadow-2xl"
-                  style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}
-                  onMouseDown={(event) => event.stopPropagation()}
-                  data-card-draw-mobile-search-menu
-                >
-                  <div className="overflow-y-auto py-1" style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}>
-                    {suggestions.length > 0 ? (
-                      suggestions.map((card, index) => {
-                        const style = TIER_STYLES[card.tier];
-                        const highlighted = index === highlightedIndex;
-                        return (
-                          <button
-                            key={card.id}
-                            ref={(element) => {
-                              suggestionRefs.current[index] = element;
-                            }}
-                            type="button"
-                            onClick={() => {
-                              selectSuggestion(card);
-                              closeMobileSearch();
-                            }}
-                            onMouseEnter={() => setRawHighlightedIndex(index)}
-                            className={cn(
-                              "flex w-full items-center justify-between px-3 py-3 text-left text-sm outline-none",
-                              highlighted ? "bg-background-muted" : "hover:bg-background-muted",
-                            )}
-                          >
-                            <span className="font-semibold text-foreground">{card.term}</span>
-                            <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
-                              {card.tier}
-                            </span>
-                          </button>
-                        );
-                      })
-                    ) : query.trim() ? (
-                      <div className="px-3 py-3 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </>
-      ) : null}
     </div>
   );
 }
