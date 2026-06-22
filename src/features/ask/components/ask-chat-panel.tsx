@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +27,7 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useMobileKeyboardDock } from "@/lib/use-mobile-keyboard-dock";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -80,9 +90,11 @@ export function AskChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [dockedComposerHeight, setDockedComposerHeight] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLFormElement | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -90,6 +102,17 @@ export function AskChatPanel({
   const finalTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const initialSentRef = useRef(false);
+  const { isKeyboardOpen, isMobileViewport, keyboardOffset } = useMobileKeyboardDock();
+  const isComposerDocked = isMobileViewport && isKeyboardOpen;
+  const composerBottomPadding = isComposerDocked ? dockedComposerHeight + 16 : 0;
+
+  const scrollMessageListToBottom = useCallback(() => {
+    const list = listRef.current;
+
+    if (list) {
+      list.scrollTop = list.scrollHeight;
+    }
+  }, []);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -104,29 +127,49 @@ export function AskChatPanel({
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
-      const list = listRef.current;
-
-      if (list) {
-        list.scrollTop = list.scrollHeight;
-      }
+      scrollMessageListToBottom();
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [messages]);
+  }, [messages, scrollMessageListToBottom]);
 
   useEffect(() => {
     function handleResize() {
-      const list = listRef.current;
-      if (list) {
-        list.scrollTop = list.scrollHeight;
-      }
+      scrollMessageListToBottom();
     }
 
     const viewport = window.visualViewport;
     if (!viewport) return;
     viewport.addEventListener("resize", handleResize);
     return () => viewport.removeEventListener("resize", handleResize);
-  }, []);
+  }, [scrollMessageListToBottom]);
+
+  useEffect(() => {
+    if (!isComposerDocked) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      scrollMessageListToBottom();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isComposerDocked, keyboardOffset, scrollMessageListToBottom]);
+
+  useLayoutEffect(() => {
+    const composer = composerRef.current;
+
+    if (!composer) {
+      return;
+    }
+
+    const nextHeight = Math.ceil(composer.getBoundingClientRect().height);
+
+    if (nextHeight !== dockedComposerHeight) {
+      setDockedComposerHeight(nextHeight);
+    }
+  }, [dockedComposerHeight, draft, isComposerDocked, isRecording, pending]);
 
   useEffect(() => {
     if (!initialTerm || initialSentRef.current || pending) {
@@ -424,6 +467,7 @@ export function AskChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
+        bottomPadding={composerBottomPadding}
       />
       <ChatComposer
         draft={isRecording && interimTranscript ? interimTranscript : draft}
@@ -431,16 +475,16 @@ export function AskChatPanel({
         isRecording={isRecording}
         microphoneSupported={microphoneSupported}
         textareaRef={textareaRef}
+        composerRef={composerRef}
         analyser={analyserRef.current}
         onChange={setDraft}
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
+        docked={isComposerDocked}
+        dockedBottomOffset={keyboardOffset}
         onTextareaFocus={() => {
-          const list = listRef.current;
-          if (list) {
-            list.scrollTop = list.scrollHeight;
-          }
+          scrollMessageListToBottom();
         }}
       />
 
@@ -489,17 +533,24 @@ function MessageList({
   pending,
   onTranslate,
   onSpeak,
+  bottomPadding,
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
   pending: boolean;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
+  bottomPadding?: number;
 }) {
   const t = useT();
 
   return (
-    <div ref={refObject} className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5" data-ask-chat-scroll="true">
+    <div
+      ref={refObject}
+      className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5"
+      style={(bottomPadding ?? 0) > 0 ? { paddingBottom: `${bottomPadding}px` } : undefined}
+      data-ask-chat-scroll="true"
+    >
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24">
@@ -632,11 +683,14 @@ function ChatComposer({
   isRecording,
   microphoneSupported,
   textareaRef,
+  composerRef,
   analyser,
   onChange,
   onKeyDown,
   onSubmit,
   onToggleRecording,
+  docked,
+  dockedBottomOffset,
   onTextareaFocus,
 }: {
   draft: string;
@@ -644,11 +698,14 @@ function ChatComposer({
   isRecording: boolean;
   microphoneSupported: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  composerRef: RefObject<HTMLFormElement | null>;
   analyser: AnalyserNode | null;
   onChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
+  docked: boolean;
+  dockedBottomOffset: number;
   onTextareaFocus?: () => void;
 }) {
   const t = useT();
@@ -659,55 +716,66 @@ function ChatComposer({
     : t("ask.micUnsupported");
 
   return (
-    <form onSubmit={onSubmit} className="shrink-0 border-t border-border p-2 sm:p-3">
-      <div
-        className={cn(
-          "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
-          isRecording ? "items-center" : "items-end",
-        )}
-      >
-        {isRecording ? (
-          <div className="flex min-h-9 flex-1 items-center px-2">
-            <AudioVisualizer analyser={analyser} />
-          </div>
-        ) : (
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(event) => onChange(event.target.value)}
-            onKeyDown={onKeyDown}
-            onFocus={onTextareaFocus}
-            rows={1}
-            maxLength={900}
-            placeholder={t("ask.placeholder")}
-            className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
-            disabled={pending}
-          />
-        )}
-        <button
-          type="button"
-          onClick={onToggleRecording}
-          disabled={pending || !microphoneSupported}
-          aria-label={micLabel}
-          title={micLabel}
+    <form
+      ref={composerRef}
+      onSubmit={onSubmit}
+      className={cn(
+        "shrink-0 border-t border-border bg-background-card p-2 sm:p-3",
+        docked && "fixed inset-x-0 z-50 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2",
+      )}
+      style={docked ? { bottom: `${dockedBottomOffset}px` } : undefined}
+      data-chat-composer={docked ? "docked" : "inline"}
+    >
+      <div className="mx-auto w-full max-w-5xl">
+        <div
           className={cn(
-            "inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-            isRecording ? "text-rose-600 animate-pulse" : "text-foreground-muted hover:bg-background-muted hover:text-foreground",
+            "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
+            isRecording ? "items-center" : "items-end",
           )}
         >
-          {isRecording ? <Pause className="size-5" aria-hidden="true" /> : <Mic className="size-5" aria-hidden="true" />}
-        </button>
-        {!isRecording ? (
-          <Button
-            type="submit"
-            size="icon"
-            disabled={pending || draft.trim().length === 0}
-            aria-label={t("ask.send")}
-            className="size-9 rounded-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+          {isRecording ? (
+            <div className="flex min-h-9 flex-1 items-center px-2">
+              <AudioVisualizer analyser={analyser} />
+            </div>
+          ) : (
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(event) => onChange(event.target.value)}
+              onKeyDown={onKeyDown}
+              onFocus={onTextareaFocus}
+              rows={1}
+              maxLength={900}
+              placeholder={t("ask.placeholder")}
+              className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
+              disabled={pending}
+            />
+          )}
+          <button
+            type="button"
+            onClick={onToggleRecording}
+            disabled={pending || !microphoneSupported}
+            aria-label={micLabel}
+            title={micLabel}
+            className={cn(
+              "inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+              isRecording ? "text-rose-600 animate-pulse" : "text-foreground-muted hover:bg-background-muted hover:text-foreground",
+            )}
           >
-            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
-          </Button>
-        ) : null}
+            {isRecording ? <Pause className="size-5" aria-hidden="true" /> : <Mic className="size-5" aria-hidden="true" />}
+          </button>
+          {!isRecording ? (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={pending || draft.trim().length === 0}
+              aria-label={t("ask.send")}
+              className="size-9 rounded-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SendHorizonal className="size-4" aria-hidden="true" />}
+            </Button>
+          ) : null}
+        </div>
       </div>
     </form>
   );

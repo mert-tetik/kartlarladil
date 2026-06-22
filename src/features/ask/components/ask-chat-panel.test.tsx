@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { AskChatPanel } from "@/features/ask/components/ask-chat-panel";
@@ -26,6 +26,10 @@ vi.mock("next/link", () => ({
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: undefined,
+  });
 });
 
 describe("AskChatPanel", () => {
@@ -75,6 +79,25 @@ describe("AskChatPanel", () => {
 
     expect(await screen.findByText("answer 1")).toBeVisible();
   });
+
+  it("docks the composer above the mobile keyboard", async () => {
+    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
+
+    const { container } = renderPanel({ initialTerm: "" });
+    const composer = container.querySelector('[data-chat-composer]') as HTMLFormElement;
+
+    expect(composer).toHaveAttribute("data-chat-composer", "inline");
+
+    act(() => {
+      keyboard.setViewportHeight(500);
+    });
+
+    await waitFor(() => {
+      expect(composer).toHaveAttribute("data-chat-composer", "docked");
+    });
+
+    expect(composer.style.bottom).toBe("344px");
+  });
 });
 
 function renderPanel({ initialTerm }: { initialTerm: string }) {
@@ -83,4 +106,62 @@ function renderPanel({ initialTerm }: { initialTerm: string }) {
       <AskChatPanel language="en" initialTerm={initialTerm} />
     </LocaleProvider>,
   );
+}
+
+function installMobileKeyboardEnvironment({
+  innerHeight = 844,
+  viewportHeight,
+}: {
+  innerHeight?: number;
+  viewportHeight: number;
+}) {
+  const listeners = {
+    resize: new Set<() => void>(),
+    scroll: new Set<() => void>(),
+  };
+  const visualViewport = {
+    height: viewportHeight,
+    offsetTop: 0,
+    addEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].add(listener);
+    }),
+    removeEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].delete(listener);
+    }),
+  };
+
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+    matches: query === "(max-width: 1023px)",
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: innerHeight,
+  });
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 390,
+  });
+  Object.defineProperty(window, "scrollTo", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: visualViewport,
+  });
+
+  return {
+    setViewportHeight(nextHeight: number) {
+      visualViewport.height = nextHeight;
+      listeners.resize.forEach((listener) => listener());
+    },
+  };
 }

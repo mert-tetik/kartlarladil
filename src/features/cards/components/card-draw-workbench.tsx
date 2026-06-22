@@ -101,7 +101,7 @@ export function CardDrawWorkbench() {
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
     const normalizedQuery = normalizeSearch(query);
-    const candidates = localCardRepository.list({ query, language, tier });
+    const candidates = localCardRepository.list({ query, language, tier: "all" });
 
     const scored = candidates.map((card) => {
       const normalizedTerm = normalizeSearch(card.term);
@@ -123,7 +123,7 @@ export function CardDrawWorkbench() {
 
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, 5).map((item) => item.card);
-  }, [query, language, tier, locale]);
+  }, [query, language, locale]);
 
   const highlightedIndex = rawHighlightedIndex >= 0 && rawHighlightedIndex < suggestions.length ? rawHighlightedIndex : -1;
 
@@ -417,7 +417,7 @@ export function CardDrawWorkbench() {
   }
 
   function openMobileSearch() {
-    if (!isMobileViewport) {
+    if (!isMobileViewport || isMobileSearchActive) {
       return;
     }
 
@@ -427,7 +427,7 @@ export function CardDrawWorkbench() {
     }
 
     window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
+      searchInputRef.current?.focus({ preventScroll: true });
     });
   }
 
@@ -644,14 +644,10 @@ export function CardDrawWorkbench() {
                       onChange={(event) => {
                         updateSearchQuery(event.target.value);
                       }}
-                      onPointerDown={() => {
+                      onFocus={() => {
                         if (isMobileViewport && !isMobileSearchActive) {
                           openMobileSearch();
-                        }
-                      }}
-                      onFocus={() => {
-                        if (isMobileViewport) {
-                          setIsMobileSearchActive(true);
+                          return;
                         }
 
                         if (suggestions.length > 0 || query.trim()) {

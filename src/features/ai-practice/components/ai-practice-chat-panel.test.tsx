@@ -38,6 +38,10 @@ const testCharacter = getAiPracticeCharacters()[0]!;
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: undefined,
+  });
 });
 
 describe("AiPracticeChatPanel", () => {
@@ -151,6 +155,25 @@ describe("AiPracticeChatPanel", () => {
     expect(await screen.findByText("Nice Answer!")).toBeVisible();
     expect(playSoundEffect).toHaveBeenCalledWith("points");
   });
+
+  it("docks the composer above the mobile keyboard", async () => {
+    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
+
+    const { container } = renderPanel();
+    const composer = container.querySelector('[data-chat-composer]') as HTMLFormElement;
+
+    expect(composer).toHaveAttribute("data-chat-composer", "inline");
+
+    act(() => {
+      keyboard.setViewportHeight(500);
+    });
+
+    await waitFor(() => {
+      expect(composer).toHaveAttribute("data-chat-composer", "docked");
+    });
+
+    expect(composer.style.bottom).toBe("344px");
+  });
 });
 
 function renderPanel() {
@@ -224,5 +247,63 @@ function makeSpeechResultEvent(transcript: string) {
         isFinal: true,
       },
     ],
+  };
+}
+
+function installMobileKeyboardEnvironment({
+  innerHeight = 844,
+  viewportHeight,
+}: {
+  innerHeight?: number;
+  viewportHeight: number;
+}) {
+  const listeners = {
+    resize: new Set<() => void>(),
+    scroll: new Set<() => void>(),
+  };
+  const visualViewport = {
+    height: viewportHeight,
+    offsetTop: 0,
+    addEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].add(listener);
+    }),
+    removeEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].delete(listener);
+    }),
+  };
+
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+    matches: query === "(max-width: 1023px)",
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: innerHeight,
+  });
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 390,
+  });
+  Object.defineProperty(window, "scrollTo", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: visualViewport,
+  });
+
+  return {
+    setViewportHeight(nextHeight: number) {
+      visualViewport.height = nextHeight;
+      listeners.resize.forEach((listener) => listener());
+    },
   };
 }

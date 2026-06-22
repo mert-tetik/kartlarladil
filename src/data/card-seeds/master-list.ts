@@ -4868,4 +4868,5 @@ export const masterCardEntries = [
   ["yell","C1","word","verb","/jel/","bağırmak","yell","schreien","кричать","crier","gritar","urlare","gritar","schreeuwen","wrzeszczeć","يصرخ","叫ぶ","소리치다","喊叫"],
   ["yield","C1","word","noun","/jiːld/","verim","yield","ertrag","доход","rendement","rendimiento","resa","rendimento","opbrengst","zysk","العائد","収穫","수익","产量"],
   ["youngster","C1","word","noun","/ˈjʌŋstər/","genç","youngster","junge","молодежь","jeune","joven","giovane","jovem","jongere","młody","شاب","若者","젊은이","年轻人"],
+  ["exhausted","B1","word","adjective","/ɪɡˈzɔːstɪd/","bitkin","exhausted","erschöpft","измотанный","épuisé","agotado","esausto","exausto","uitgeput","wyczerpany","منهك","疲れ切った","기진맥진한","筋疲力尽的"],
 ] as const satisfies readonly CardSeedRow[];

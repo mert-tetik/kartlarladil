@@ -678,7 +678,7 @@ function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
-function LanguageSelection({
+export function LanguageSelection({
   mode,
   languageStats,
   hiddenLanguageCode,
@@ -698,35 +698,26 @@ function LanguageSelection({
   const hiddenLanguageName = hiddenLanguageCode ? getLanguageDisplayName(hiddenLanguageCode, locale) : null;
 
   return (
-    <div className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4">
-      <div className="flex justify-center lg:hidden">
-        <Image
-          src="/mascots/mascot5.png"
-          alt=""
-          width={80}
-          height={80}
-          className="size-20 object-contain"
-        />
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-3 lg:mt-0">
-        <Badge className="border-transparent bg-background text-foreground">
-          {mode === "active" ? t("inventory.learn") : t("inventory.repeatPractice")}
-        </Badge>
-        {onBack ? (
-          <Button variant="ghost" onClick={onBack}>
-            {t("common.back")}
-          </Button>
-        ) : null}
-      </div>
-      <h2 className="mt-4 text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
-      {hiddenLanguageName ? (
-        <p className="mt-2 max-w-xl text-xs leading-5 text-foreground-muted lg:text-sm">
-          {t("quiz.hiddenSiteLanguageHint", { language: hiddenLanguageName })}
-        </p>
-      ) : null}
+    <div
+      data-quiz-language-selection
+      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-white/10 bg-black p-5 text-white sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
+    >
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+        <div className="w-full max-w-4xl">
+          <div className="flex items-center justify-center gap-3">
+            <Badge className="border-transparent bg-white/10 text-white">
+              {mode === "active" ? t("inventory.learn") : t("inventory.repeatPractice")}
+            </Badge>
+          </div>
+          <h2 className="mt-4 text-center text-lg font-semibold text-white lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
+          {hiddenLanguageName ? (
+            <p className="mt-2 text-center text-xs leading-5 text-white/65 lg:text-sm">
+              {t("quiz.hiddenSiteLanguageHint", { language: hiddenLanguageName })}
+            </p>
+          ) : null}
 
-      <div className="mt-6 flex min-h-0 flex-1 flex-col">
-        <div className="h-full min-h-0 overflow-y-auto rounded-md border border-border bg-background p-2 lg:h-[480px]">
+          <div className="mt-6 flex min-h-0 flex-col items-center">
+            <div className="w-full min-h-0 overflow-y-auto rounded-md border border-white/10 bg-black p-2 lg:h-[420px]">
           {languageStats.length > 0 ? (
             <div className="grid grid-cols-1 gap-2">
               {languageStats.map((language) => (
@@ -736,28 +727,38 @@ function LanguageSelection({
                   aria-pressed={selectedLanguage === language.code}
                   onClick={() => onSelect(language.code)}
                   className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-md border border-border bg-background-card p-3 text-left text-sm font-semibold transition-colors hover:bg-background-muted lg:p-4 lg:text-base",
-                    selectedLanguage === language.code && "border-foreground bg-background-muted",
+                    "flex cursor-pointer items-center justify-between rounded-md border border-white/10 bg-neutral-950 p-3 text-left text-sm font-semibold text-white transition-colors hover:bg-neutral-900 lg:p-4 lg:text-base",
+                    selectedLanguage === language.code && "border-white/40 bg-neutral-900",
                   )}
                 >
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-white">
                     <LanguageFlag code={language.code} />
                     <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
                   </span>
-                  <Badge>{formatCards(locale, language.count)}</Badge>
+                  <Badge className="border-transparent bg-white/10 text-white">{formatCards(locale, language.count)}</Badge>
                 </button>
               ))}
             </div>
           ) : (
             <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
               <div className="max-w-md">
-                <p className="text-base font-semibold text-foreground">{t("quiz.noPracticeLanguagesTitle")}</p>
-                <p className="mt-2 text-sm leading-6 text-foreground-secondary">
+                <p className="text-base font-semibold text-white">{t("quiz.noPracticeLanguagesTitle")}</p>
+                <p className="mt-2 text-sm leading-6 text-white/70">
                   {t("quiz.noPracticeLanguagesDescription")}
                 </p>
               </div>
             </div>
           )}
+            </div>
+          </div>
+
+          {onBack ? (
+            <div className="mt-5 flex justify-center">
+              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={onBack}>
+                {t("common.back")}
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -119,7 +119,7 @@ export function SelectDropdown({
 
   return (
     <div ref={dropdownRef}>
-      <p id={labelId} className="mb-1 mt-0.5 text-sm font-semibold text-foreground-secondary">
+      <p id={labelId} className="mb-1 mt-0.5 hidden text-sm font-semibold text-foreground-secondary md:block">
         {label}
       </p>
       <div className="relative">
