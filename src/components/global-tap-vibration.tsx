@@ -5,7 +5,9 @@ import { vibrate } from "@/lib/vibration";
 
 export function GlobalTapVibration() {
   useEffect(() => {
-    function handlePointerDown(event: PointerEvent) {
+    function handleClick(event: MouseEvent) {
+      if (event.defaultPrevented) return;
+
       const target = event.target as HTMLElement | null;
       if (!target) return;
 
@@ -21,8 +23,8 @@ export function GlobalTapVibration() {
       vibrate("tap");
     }
 
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
   }, []);
 
   return null;

@@ -166,7 +166,6 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
             <button
               type="submit"
               role="menuitem"
-              onClick={() => setOpen(false)}
               className="mt-1 flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-left font-semibold text-foreground-inverse transition-colors hover:bg-red-700 focus-visible:outline-none"
             >
               <LogOut className="size-4" aria-hidden="true" />

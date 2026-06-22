@@ -74,6 +74,14 @@ button:disabled,
   cursor: default;
 }
 
+.mobile-main-nav {
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
 ::selection {
   background: #0f172a;
   color: #ffffff;
