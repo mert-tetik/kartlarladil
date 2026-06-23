@@ -1,25 +1,23 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 const MOBILE_MEDIA_QUERY = "(max-width: 1023px)";
 const DEFAULT_KEYBOARD_THRESHOLD = 80;
-const KEYBOARD_FOCUS_TOP_RATIO = 0.58;
 
 export type MobileKeyboardDockState = {
   isKeyboardOpen: boolean;
   isMobileViewport: boolean;
-  keyboardFocusTop: number;
   keyboardOffset: number;
 };
 
 export function useMobileKeyboardDock(
   keyboardThreshold = DEFAULT_KEYBOARD_THRESHOLD,
 ): MobileKeyboardDockState {
+  const maxMobileViewportHeightRef = useRef(0);
   const [state, setState] = useState<MobileKeyboardDockState>({
     isKeyboardOpen: false,
     isMobileViewport: false,
-    keyboardFocusTop: 0,
     keyboardOffset: 0,
   });
 
@@ -36,14 +34,23 @@ export function useMobileKeyboardDock(
       const isMobileViewport = mediaQuery?.matches ?? window.innerWidth < 1024;
       const viewportHeight = visualViewport?.height ?? window.innerHeight;
       const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
-      const keyboardOffset = Math.max(0, window.innerHeight - (viewportHeight + viewportOffsetTop));
-      const isKeyboardOpen = isMobileViewport && window.innerHeight - viewportHeight > keyboardThreshold;
-      const keyboardFocusTop = Math.round(viewportOffsetTop + viewportHeight * KEYBOARD_FOCUS_TOP_RATIO);
+      const visibleViewportBottom = viewportHeight + viewportOffsetTop;
+      const currentViewportHeight = Math.max(window.innerHeight, visibleViewportBottom);
+      const previousMaxViewportHeight = maxMobileViewportHeightRef.current || currentViewportHeight;
+      const viewportKeyboardOffset = Math.max(0, window.innerHeight - visibleViewportBottom);
+      const baselineKeyboardOffset = Math.max(0, previousMaxViewportHeight - visibleViewportBottom);
+      const keyboardOffset = Math.max(viewportKeyboardOffset, baselineKeyboardOffset);
+      const isKeyboardOpen = isMobileViewport && keyboardOffset > keyboardThreshold;
+
+      if (!isMobileViewport) {
+        maxMobileViewportHeightRef.current = 0;
+      } else if (!isKeyboardOpen) {
+        maxMobileViewportHeightRef.current = Math.max(previousMaxViewportHeight, currentViewportHeight);
+      }
 
       setState({
         isKeyboardOpen,
         isMobileViewport,
-        keyboardFocusTop,
         keyboardOffset: isKeyboardOpen ? keyboardOffset : 0,
       });
     }

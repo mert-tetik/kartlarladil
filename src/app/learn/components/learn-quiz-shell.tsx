@@ -2,7 +2,10 @@
 
 import { GraduationCap, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
+import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
 import { cn } from "@/lib/utils";
@@ -19,17 +22,38 @@ interface LearnQuizShellProps {
 
 export function LearnQuizShell({
   title,
-  description: _description,
   initialMode,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const [phase, setPhase] = useState<LearnShellPhase>(initialMode ? "language" : "mode");
+  const cards = useInventoryStore((state) => state.cards);
+  const hydrated = useInventoryStore((state) => state.hydrated);
+  const t = useT();
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
 
   useEffect(() => {
-    setSelectedMode(initialMode);
-    setPhase(initialMode ? "language" : "mode");
+    const frameId = window.requestAnimationFrame(() => {
+      setSelectedMode(initialMode);
+      setPhase(initialMode ? "language" : "mode");
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [initialMode]);
+
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+        <EmptyState
+          title={t("quiz.loadingTitle")}
+          description={t("quiz.loadingDescription")}
+        />
+      </div>
+    );
+  }
+
+  if (cards.length === 0) {
+    return <NoCardsEmptyState variant="learn" />;
+  }
 
   return (
     <>

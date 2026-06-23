@@ -443,7 +443,18 @@ button:disabled,
     display: none;
   }
 
-  body[data-card-draw-mobile-search="true"] [data-mobile-main-nav-frame] {
+  body:has([data-card-draw-page]) #main-content,
+  body:has([data-ai-practice-chat-page]) #main-content,
+  body:has([data-ask-chat-page]) #main-content,
+  body:has([data-card-draw-page]) .page-transition-shell,
+  body:has([data-ai-practice-chat-page]) .page-transition-shell,
+  body:has([data-ask-chat-page]) .page-transition-shell {
+    padding-bottom: 0;
+  }
+
+  body:has([data-card-draw-page]) [data-mobile-main-nav-frame],
+  body:has([data-ai-practice-chat-page]) [data-mobile-main-nav-frame],
+  body:has([data-ask-chat-page]) [data-mobile-main-nav-frame] {
     display: none;
   }
 }

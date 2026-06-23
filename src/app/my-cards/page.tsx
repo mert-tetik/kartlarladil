@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/page-header";
 import { InventoryDashboard } from "@/features/inventory/components/inventory-dashboard";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -20,21 +19,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MyCardsPage() {
   await requireAuthUser("/my-cards");
-  const t = createTranslator(await getServerLocale());
 
   return (
     <section
-      className="animate-screen-pop mx-auto flex max-w-7xl flex-col px-4 py-10 max-lg:h-[calc(100dvh-8rem)] max-lg:px-4 max-lg:pt-4 max-lg:pb-0 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-4rem)] max-w-7xl flex-col px-4 py-10 max-lg:h-[calc(100dvh-8rem)] max-lg:min-h-0 max-lg:px-4 max-lg:pt-4 max-lg:pb-0 sm:px-6 lg:px-8"
       data-my-cards-page
     >
-      <PageHeader
-        title={t("page.inventory.title")}
-        mascot="/mascots/mascot10.png"
-        mascotSize="lg"
-        titleClassName="text-3xl md:text-4xl"
-      />
-      <div className="mt-8 flex flex-1 flex-col max-lg:mt-4">
-        <InventoryDashboard />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <InventoryDashboard showHeader />
       </div>
     </section>
   );

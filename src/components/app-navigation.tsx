@@ -61,7 +61,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     keyboardOpen: false,
   });
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
+  const isDockedMobileToolRoute =
+    pathname === "/card-draw" ||
+    /^\/ai-practice\/[^/]+\/[^/]+/.test(pathname) ||
+    /^\/ask\/[^/]+/.test(pathname);
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
+  const hideMobileNavForDockedTool = isDockedMobileToolRoute && isMobileViewport;
   const mobileNavStyle = {
     "--mobile-nav-extra-filler-height": `${mobileNavMetrics.extraFillerHeight}px`,
     "--mobile-nav-frame-bottom":
@@ -223,6 +228,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         data-mobile-main-nav-frame
         className={cn(
           "mobile-main-nav-frame text-foreground lg:hidden",
+          hideMobileNavForDockedTool && "hidden",
           mobileNavMetrics.keyboardOpen && "pointer-events-none translate-y-full opacity-0",
         )}
         style={mobileNavStyle}

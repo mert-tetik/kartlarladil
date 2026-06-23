@@ -73,31 +73,29 @@ describe("AskChatPanel", () => {
 
     renderPanel({ initialTerm: "" });
 
-    const input = screen.getByPlaceholderText("Bir şey sor...");
+    const input = screen.getByPlaceholderText(/Bir/);
     await user.type(input, "give me a synonym");
     await user.click(screen.getByRole("button", { name: "Gönder" }));
 
     expect(await screen.findByText("answer 1")).toBeVisible();
   });
 
-  it("moves the composer to a fixed mobile focus position when the keyboard opens", async () => {
+  it("keeps the composer docked at the bottom when the mobile viewport shrinks", () => {
     const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
     const { container } = renderPanel({ initialTerm: "" });
     const composer = container.querySelector('[data-chat-composer]') as HTMLFormElement;
 
-    expect(composer).toHaveAttribute("data-chat-composer", "inline");
+    expect(composer).toHaveAttribute("data-chat-composer", "bottom");
 
     act(() => {
       keyboard.setViewportHeight(500);
     });
 
-    await waitFor(() => {
-      expect(composer).toHaveAttribute("data-chat-composer", "lifted");
-    });
-
-    expect(composer.style.top).toBe("290px");
-    expect(composer.style.transform).toBe("translateY(-50%)");
+    expect(composer).toHaveAttribute("data-chat-composer", "bottom");
+    expect(composer).not.toHaveClass("fixed");
+    expect(composer.style.top).toBe("");
+    expect(composer.style.transform).toBe("");
   });
 });
 

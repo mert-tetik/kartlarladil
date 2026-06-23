@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -27,7 +26,6 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { useMobileKeyboardDock } from "@/lib/use-mobile-keyboard-dock";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -90,11 +88,9 @@ export function AskChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
-  const [dockedComposerHeight, setDockedComposerHeight] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const composerRef = useRef<HTMLFormElement | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -102,9 +98,6 @@ export function AskChatPanel({
   const finalTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const initialSentRef = useRef(false);
-  const { isKeyboardOpen, isMobileViewport, keyboardFocusTop } = useMobileKeyboardDock();
-  const isComposerLifted = isMobileViewport && isKeyboardOpen;
-  const composerBottomPadding = isComposerLifted ? dockedComposerHeight + 16 : 0;
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -143,32 +136,6 @@ export function AskChatPanel({
     viewport.addEventListener("resize", handleResize);
     return () => viewport.removeEventListener("resize", handleResize);
   }, [scrollMessageListToBottom]);
-
-  useEffect(() => {
-    if (!isComposerLifted) {
-      return;
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      scrollMessageListToBottom();
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [isComposerLifted, keyboardFocusTop, scrollMessageListToBottom]);
-
-  useLayoutEffect(() => {
-    const composer = composerRef.current;
-
-    if (!composer) {
-      return;
-    }
-
-    const nextHeight = Math.ceil(composer.getBoundingClientRect().height);
-
-    if (nextHeight !== dockedComposerHeight) {
-      setDockedComposerHeight(nextHeight);
-    }
-  }, [dockedComposerHeight, draft, isComposerLifted, isRecording, pending]);
 
   useEffect(() => {
     if (!initialTerm || initialSentRef.current || pending) {
@@ -458,7 +425,7 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:h-[calc(100dvh-8rem)] max-lg:max-h-[calc(100dvh-8rem)] max-lg:rounded-none max-lg:border-x-0">
+    <section className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader language={language} />
       <MessageList
         refObject={listRef}
@@ -466,7 +433,6 @@ export function AskChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
-        bottomPadding={composerBottomPadding}
       />
       <ChatComposer
         draft={isRecording && interimTranscript ? interimTranscript : draft}
@@ -474,14 +440,11 @@ export function AskChatPanel({
         isRecording={isRecording}
         microphoneSupported={microphoneSupported}
         textareaRef={textareaRef}
-        composerRef={composerRef}
         analyser={analyserRef.current}
         onChange={setDraft}
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
-        lifted={isComposerLifted}
-        keyboardFocusTop={keyboardFocusTop}
         onTextareaFocus={() => {
           scrollMessageListToBottom();
         }}
@@ -682,14 +645,11 @@ function ChatComposer({
   isRecording,
   microphoneSupported,
   textareaRef,
-  composerRef,
   analyser,
   onChange,
   onKeyDown,
   onSubmit,
   onToggleRecording,
-  lifted,
-  keyboardFocusTop,
   onTextareaFocus,
 }: {
   draft: string;
@@ -697,14 +657,11 @@ function ChatComposer({
   isRecording: boolean;
   microphoneSupported: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
-  composerRef: RefObject<HTMLFormElement | null>;
   analyser: AnalyserNode | null;
   onChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
-  lifted: boolean;
-  keyboardFocusTop: number;
   onTextareaFocus?: () => void;
 }) {
   const t = useT();
@@ -716,14 +673,9 @@ function ChatComposer({
 
   return (
     <form
-      ref={composerRef}
       onSubmit={onSubmit}
-      className={cn(
-        "shrink-0 border-t border-border bg-background-card p-2 sm:p-3",
-        lifted && "fixed inset-x-0 z-50 px-2 py-2",
-      )}
-      style={lifted ? { top: `${keyboardFocusTop}px`, transform: "translateY(-50%)" } : undefined}
-      data-chat-composer={lifted ? "lifted" : "inline"}
+      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3"
+      data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">
         <div

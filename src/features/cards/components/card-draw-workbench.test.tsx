@@ -59,7 +59,6 @@ describe("CardDrawWorkbench", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete document.body.dataset.cardDrawMobileSearch;
     document.body.removeAttribute("style");
     document.documentElement.removeAttribute("style");
     Object.defineProperty(window, "innerHeight", {
@@ -122,32 +121,33 @@ describe("CardDrawWorkbench", () => {
     expect(useInventoryStore.getState().cards).toHaveLength(1);
   });
 
-  it("moves the mobile search input to a fixed focus position when the keyboard opens", async () => {
+  it("keeps mobile controls docked and hides draw/filter controls when the keyboard opens", async () => {
     const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
-    renderWorkbench();
+    const { container } = renderWorkbench();
 
     await waitFor(() => {
       expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1023px)");
     });
 
+    const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
+    const drawActions = container.querySelector("[data-card-draw-draw-actions]") as HTMLElement;
+    const filters = container.querySelector("[data-card-draw-filters]") as HTMLElement;
+
+    expect(controls).toHaveAttribute("data-card-draw-keyboard", "closed");
     fireEvent.focus(screen.getByPlaceholderText(/Kelime/));
 
-    await waitFor(() => {
-      expect(document.body.dataset.cardDrawMobileSearch).toBe("true");
-    });
-
     act(() => {
-      keyboard.setViewportHeight(500);
+      keyboard.setLayoutViewportHeight(500);
     });
 
     await waitFor(() => {
-      const shell = document.querySelector('[data-card-draw-mobile-search-shell="true"]') as HTMLElement | null;
-
-      expect(shell).not.toBeNull();
-      expect(shell?.style.top).toBe("290px");
-      expect(shell?.style.transform).toBe("translateY(-50%)");
+      expect(controls).toHaveAttribute("data-card-draw-keyboard", "open");
     });
+
+    expect(drawActions).toHaveClass("max-lg:hidden");
+    expect(filters).toHaveClass("max-lg:hidden");
+    expect(screen.getByPlaceholderText(/Kelime/)).toBeVisible();
   });
 });
 
@@ -221,6 +221,15 @@ function installMobileKeyboardEnvironment({
   return {
     setViewportHeight(nextHeight: number) {
       visualViewport.height = nextHeight;
+      listeners.resize.forEach((listener) => listener());
+    },
+    setLayoutViewportHeight(nextHeight: number) {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: nextHeight,
+      });
+      visualViewport.height = nextHeight;
+      window.dispatchEvent(new Event("resize"));
       listeners.resize.forEach((listener) => listener());
     },
   };

@@ -9,6 +9,7 @@ const ALWAYS_LOCKED_PATHS = [
 ];
 
 const MOBILE_ONLY_LOCKED_PATHS = [
+  "/card-draw",
   "/learn",
   "/my-cards",
 ];

@@ -70,7 +70,8 @@ describe("InventoryDashboard", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("heading", { name: "Hiçbir dilde kartınız yok" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /Hen/ })).toBeVisible();
+    expect(screen.getByRole("link", { name: /Kart/ })).toHaveAttribute("href", "/card-draw");
   });
 });
 

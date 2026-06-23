@@ -70,8 +70,6 @@ export function CardDrawWorkbench() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
-  const [mobileSearchMenuMaxHeight, setMobileSearchMenuMaxHeight] = useState(240);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,7 +87,7 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
-  const { isKeyboardOpen: isMobileKeyboardOpen, keyboardFocusTop } = useMobileKeyboardDock();
+  const { isKeyboardOpen: isMobileKeyboardOpen } = useMobileKeyboardDock();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -98,7 +96,7 @@ export function CardDrawWorkbench() {
   );
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
-  const isMobileSearchLifted = isMobileViewport && isMobileSearchActive && isMobileKeyboardOpen;
+  const compactMobileControls = isMobileViewport && isMobileKeyboardOpen;
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
@@ -155,142 +153,36 @@ export function CardDrawWorkbench() {
     }
 
     const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    const visualViewport = window.visualViewport;
 
     function updateMobileSearchLayout() {
       const mobile = mediaQuery.matches;
       setIsMobileViewport(mobile);
 
       if (!mobile) {
-        setIsMobileSearchActive(false);
-        setMobileSearchMenuMaxHeight(240);
-        return;
+        setIsDropdownOpen(false);
       }
-
-      const viewportHeight = visualViewport?.height ?? window.innerHeight;
-      setMobileSearchMenuMaxHeight(Math.max(140, Math.floor(viewportHeight - 96)));
     }
 
     updateMobileSearchLayout();
     mediaQuery.addEventListener("change", updateMobileSearchLayout);
     window.addEventListener("resize", updateMobileSearchLayout);
-    visualViewport?.addEventListener("resize", updateMobileSearchLayout);
-    visualViewport?.addEventListener("scroll", updateMobileSearchLayout);
 
     return () => {
       mediaQuery.removeEventListener("change", updateMobileSearchLayout);
       window.removeEventListener("resize", updateMobileSearchLayout);
-      visualViewport?.removeEventListener("resize", updateMobileSearchLayout);
-      visualViewport?.removeEventListener("scroll", updateMobileSearchLayout);
     };
   }, []);
 
   useEffect(() => {
-    if (!isMobileSearchActive) {
-      return;
-    }
-
-    const scrollY = window.scrollY;
-    const previousBodyStyles = {
-      overflow: document.body.style.overflow,
-      overscrollBehavior: document.body.style.overscrollBehavior,
-      touchAction: document.body.style.touchAction,
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      width: document.body.style.width,
-      height: document.body.style.height,
-    };
-    const previousHtmlStyles = {
-      overflow: document.documentElement.style.overflow,
-      overscrollBehavior: document.documentElement.style.overscrollBehavior,
-      touchAction: document.documentElement.style.touchAction,
-    };
-    const previousMobileSearchState = document.body.dataset.cardDrawMobileSearch;
-
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.body.style.touchAction = "none";
-    document.body.style.position = "fixed";
-    document.body.style.top = `${-scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    document.body.style.height = "100%";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.overscrollBehavior = "none";
-    document.documentElement.style.touchAction = "none";
-    document.body.dataset.cardDrawMobileSearch = "true";
-
-    function preventTouchMove(event: TouchEvent) {
-      if (!(event.target instanceof HTMLElement)) {
-        event.preventDefault();
-        return;
-      }
-
-      const overlayRoot = event.target.closest("[data-card-draw-mobile-search-shell]");
-
-      if (!overlayRoot) {
-        event.preventDefault();
-        return;
-      }
-
-      let node: HTMLElement | null = event.target;
-
-      while (node && node !== overlayRoot) {
-        const overflow = getComputedStyle(node).overflowY;
-        if ((overflow === "auto" || overflow === "scroll") && node.scrollHeight > node.clientHeight) {
-          return;
-        }
-
-        node = node.parentElement;
-      }
-
-      event.preventDefault();
-    }
-
-    document.addEventListener("touchmove", preventTouchMove, { passive: false });
-
-    return () => {
-      document.removeEventListener("touchmove", preventTouchMove);
-      document.body.style.overflow = previousBodyStyles.overflow;
-      document.body.style.overscrollBehavior = previousBodyStyles.overscrollBehavior;
-      document.body.style.touchAction = previousBodyStyles.touchAction;
-      document.body.style.position = previousBodyStyles.position;
-      document.body.style.top = previousBodyStyles.top;
-      document.body.style.left = previousBodyStyles.left;
-      document.body.style.right = previousBodyStyles.right;
-      document.body.style.width = previousBodyStyles.width;
-      document.body.style.height = previousBodyStyles.height;
-      document.documentElement.style.overflow = previousHtmlStyles.overflow;
-      document.documentElement.style.overscrollBehavior = previousHtmlStyles.overscrollBehavior;
-      document.documentElement.style.touchAction = previousHtmlStyles.touchAction;
-      if (previousMobileSearchState) {
-        document.body.dataset.cardDrawMobileSearch = previousMobileSearchState;
-      } else {
-        delete document.body.dataset.cardDrawMobileSearch;
-      }
-
-      window.scrollTo(0, scrollY);
-    };
-  }, [isMobileSearchActive]);
-
-  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        if (isMobileViewport && isMobileSearchActive) {
-          closeMobileSearch();
-          return;
-        }
-
         setIsDropdownOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMobileSearchActive, isMobileViewport]);
+  }, []);
 
   useLayoutEffect(() => {
     // FLIP keeps the remaining cards moving from their old grid positions instead of jumping.
@@ -412,28 +304,6 @@ export function CardDrawWorkbench() {
     setRawHighlightedIndex(-1);
   }
 
-  function openMobileSearch() {
-    if (!isMobileViewport || isMobileSearchActive) {
-      return;
-    }
-
-    setIsMobileSearchActive(true);
-    if (suggestions.length > 0 || query.trim()) {
-      setIsDropdownOpen(true);
-    }
-
-    window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus({ preventScroll: true });
-    });
-  }
-
-  function closeMobileSearch() {
-    searchInputRef.current?.blur();
-    setIsMobileSearchActive(false);
-    setIsDropdownOpen(false);
-    setRawHighlightedIndex(-1);
-  }
-
   function drawCards(count: number) {
     vibrate("draw");
     dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
@@ -548,133 +418,48 @@ export function CardDrawWorkbench() {
 
   return (
     <div
-      className="max-lg:-mb-24 max-lg:flex max-lg:h-[calc(100svh-8rem)] max-lg:flex-col max-lg:bg-background"
+      className="max-lg:flex max-lg:h-[calc(100dvh-4rem)] max-lg:min-h-0 max-lg:flex-col max-lg:overflow-hidden max-lg:bg-background"
       data-card-draw-workbench
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
-      <div className="max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4">
-        <div className="mx-auto max-w-7xl max-lg:space-y-1 space-y-3">
+      <div
+        className="max-lg:sticky max-lg:bottom-0 max-lg:z-30 max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        data-card-draw-controls
+        data-card-draw-keyboard={compactMobileControls ? "open" : "closed"}
+      >
+        <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div ref={dropdownRef} className="relative max-lg:min-h-11">
-              {isMobileViewport && isMobileSearchActive ? (
-                <div
-                  className="fixed inset-0 z-40 bg-black/20 lg:hidden"
-                  onMouseDown={closeMobileSearch}
-                  aria-hidden="true"
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
+                <input
+                  ref={searchInputRef}
+                  value={query}
+                  onChange={(event) => {
+                    updateSearchQuery(event.target.value);
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0 || query.trim()) {
+                      setIsDropdownOpen(true);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (isMobileViewport && event.key === "Escape") {
+                      event.preventDefault();
+                      setIsDropdownOpen(false);
+                      setRawHighlightedIndex(-1);
+                      return;
+                    }
+
+                    handleSuggestionKeyDown(event);
+                  }}
+                  placeholder={t("cards.searchPlaceholder")}
+                  className="relative h-12 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground max-lg:h-11"
+                  data-card-draw-search-input
                 />
-              ) : null}
-
-              <div
-                className={cn(
-                  "relative",
-                  isMobileViewport &&
-                    isMobileSearchActive &&
-                    cn(
-                      "fixed inset-x-0 z-50 px-3 lg:hidden",
-                      isMobileSearchLifted ? "py-0" : "pb-[calc(env(safe-area-inset-bottom)+0.5rem)]",
-                    ),
-                )}
-                style={
-                  isMobileViewport && isMobileSearchActive
-                    ? isMobileSearchLifted
-                      ? { top: `${keyboardFocusTop}px`, transform: "translateY(-50%)" }
-                      : { bottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }
-                    : undefined
-                }
-                data-card-draw-mobile-search-shell={isMobileViewport && isMobileSearchActive ? "true" : undefined}
-              >
-                <div className={cn("mx-auto max-w-7xl", isMobileViewport && isMobileSearchActive && "flex flex-col gap-2")}>
-                  {isMobileViewport && isMobileSearchActive && isDropdownOpen ? (
-                    <div
-                      className="animate-menu-pop overflow-hidden rounded-xl border border-border bg-background-card shadow-xl"
-                      style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}
-                      onMouseDown={(event) => event.stopPropagation()}
-                      data-card-draw-mobile-search-menu
-                    >
-                      <div className="overflow-y-auto py-1" style={{ maxHeight: `${mobileSearchMenuMaxHeight}px` }}>
-                        {suggestions.length > 0 ? (
-                          suggestions.map((card, index) => {
-                            const style = TIER_STYLES[card.tier];
-                            const highlighted = index === highlightedIndex;
-                            return (
-                              <button
-                                key={card.id}
-                                ref={(element) => {
-                                  suggestionRefs.current[index] = element;
-                                }}
-                                type="button"
-                                onClick={() => {
-                                  selectSuggestion(card);
-                                  closeMobileSearch();
-                                }}
-                                onMouseEnter={() => setRawHighlightedIndex(index)}
-                                className={cn(
-                                  "flex w-full items-center justify-between px-3 py-3 text-left text-sm outline-none",
-                                  highlighted ? "bg-background-muted" : "hover:bg-background-muted",
-                                )}
-                              >
-                                <span className="font-semibold text-foreground">{card.term}</span>
-                                <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
-                                  {card.tier}
-                                </span>
-                              </button>
-                            );
-                          })
-                        ) : query.trim() ? (
-                          <div className="px-3 py-3 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div
-                    className={cn(
-                      "relative",
-                      isMobileViewport && isMobileSearchActive && "rounded-xl border border-border bg-background-card p-2 shadow-xl",
-                    )}
-                    onMouseDown={(event) => {
-                      if (isMobileViewport && isMobileSearchActive) {
-                        event.stopPropagation();
-                      }
-                    }}
-                  >
-                    <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
-                    <input
-                      ref={searchInputRef}
-                      value={query}
-                      onChange={(event) => {
-                        updateSearchQuery(event.target.value);
-                      }}
-                      onFocus={() => {
-                        if (isMobileViewport && !isMobileSearchActive) {
-                          openMobileSearch();
-                        }
-
-                        if (suggestions.length > 0 || query.trim()) {
-                          setIsDropdownOpen(true);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (isMobileViewport && event.key === "Escape") {
-                          event.preventDefault();
-                          closeMobileSearch();
-                          return;
-                        }
-
-                        handleSuggestionKeyDown(event);
-                      }}
-                      placeholder={t("cards.searchPlaceholder")}
-                      className={cn(
-                        "relative h-12 max-lg:h-11 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground",
-                        isMobileViewport && isMobileSearchActive && "bg-background",
-                      )}
-                      data-card-draw-search-input
-                    />
-                  </div>
-                </div>
               </div>
 
-              {!isMobileViewport && isDropdownOpen ? (
+              {isDropdownOpen ? (
                 <div className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg max-lg:bottom-full max-lg:mb-1 max-lg:mt-0">
                   {suggestions.length > 0 ? (
                     suggestions.map((card, index) => {
@@ -707,7 +492,10 @@ export function CardDrawWorkbench() {
                 </div>
               ) : null}
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:contents">
+            <div
+              className={cn("grid grid-cols-2 gap-3 lg:contents", compactMobileControls && "max-lg:hidden")}
+              data-card-draw-draw-actions
+            >
               <Button
                 size="lg"
                 onClick={() => drawCards(5)}
@@ -720,18 +508,26 @@ export function CardDrawWorkbench() {
               </Button>
             </div>
           </div>
-          <FilterControls
-            language={language}
-            tier={tier}
-            onLanguageChange={(nextLanguage) => updatePreferences({ language: nextLanguage })}
-            onTierChange={(nextTier) => updatePreferences({ tier: nextTier })}
-            mobileMenuDirection="up"
-          />
+          <div
+            className={cn(compactMobileControls && "max-lg:hidden")}
+            data-card-draw-filters
+          >
+            <FilterControls
+              language={language}
+              tier={tier}
+              onLanguageChange={(nextLanguage) => updatePreferences({ language: nextLanguage })}
+              onTierChange={(nextTier) => updatePreferences({ tier: nextTier })}
+              mobileMenuDirection="up"
+            />
+          </div>
         </div>
       </div>
 
       {/* Cards area - fills the space above controls on mobile */}
-      <div className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto lg:mt-6">
+      <div
+        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:mt-6"
+        data-card-draw-scroll-area
+      >
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">
           {cloudError ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">

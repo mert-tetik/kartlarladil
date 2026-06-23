@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ChevronDown, GraduationCap, RotateCcw, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
+import { PageHeader } from "@/components/page-header";
 import { InventoryCardGrid } from "@/features/cards/components/card-grid";
+import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EmptyState } from "@/components/empty-state";
@@ -19,7 +21,8 @@ import type { LanguageCode } from "@/types/domain";
 
 export function InventoryDashboard({
   learnedOnly = false,
-}: { learnedOnly?: boolean } = {}) {
+  showHeader = false,
+}: { learnedOnly?: boolean; showHeader?: boolean } = {}) {
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [mobileMenu, setMobileMenu] = useState<"active" | "learned" | null>(null);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
@@ -27,6 +30,7 @@ export function InventoryDashboard({
   const hydrated = useInventoryStore((state) => state.hydrated);
   const { locale } = useLocale();
   const t = useT();
+  const hasAnyCards = cards.length > 0;
 
   const languageStats = useMemo(
     () =>
@@ -92,6 +96,10 @@ export function InventoryDashboard({
     );
   }
 
+  if (!hasAnyCards) {
+    return <NoCardsEmptyState variant="inventory" />;
+  }
+
   if (languageStats.length === 0) {
     return (
       <EmptyState
@@ -111,7 +119,16 @@ export function InventoryDashboard({
   }
 
   return (
-    <div className="max-lg:flex-1 max-lg:overflow-hidden lg:space-y-6">
+    <div className="max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-4 max-lg:overflow-hidden lg:space-y-6">
+      {showHeader ? (
+        <PageHeader
+          title={t("page.inventory.title")}
+          mascot="/mascots/mascot10.png"
+          mascotSize="lg"
+          titleClassName="text-3xl md:text-4xl"
+        />
+      ) : null}
+
       <div className="hidden lg:block">
         <div className="rounded-lg border border-border bg-background-card p-4">
           <div className="grid gap-2 sm:grid-cols-3">
@@ -184,7 +201,7 @@ export function InventoryDashboard({
         </section>
       </div>
 
-      <div className="flex h-full flex-col gap-4 lg:hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:hidden">
         <MobileLanguageSelector
           languages={languageStats}
           activeLanguage={activeLanguage}
