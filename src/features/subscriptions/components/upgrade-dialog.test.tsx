@@ -39,26 +39,26 @@ describe("UpgradeDialog", () => {
     renderDialog({ open: true, errorCode: "free_active_card_limit" });
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart limiti/i);
+    expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /Planını yükselt/i })).toHaveAttribute("href", "/pricing");
   });
 
   it("shows the learned card limit message", () => {
     renderDialog({ open: true, errorCode: "free_learned_card_limit" });
 
-    expect(screen.getByRole("heading")).toHaveTextContent(/Öğrenilen kart limiti/i);
+    expect(screen.getByRole("heading")).toHaveTextContent(/Öğrenilen kart kotan doldu/i);
   });
 
   it("shows the ai daily limit message", () => {
     renderDialog({ open: true, errorCode: "ai_daily_limit" });
 
-    expect(screen.getByRole("heading")).toHaveTextContent(/Günlük AI mesaj limitine ulaştın/i);
+    expect(screen.getByRole("heading")).toHaveTextContent(/Günlük AI mesaj kotan doldu/i);
   });
 
   it("shows the ai monthly limit message", () => {
     renderDialog({ open: true, errorCode: "ai_monthly_limit" });
 
-    expect(screen.getByRole("heading")).toHaveTextContent(/Aylık AI mesaj limitine ulaştın/i);
+    expect(screen.getByRole("heading")).toHaveTextContent(/Aylık AI mesaj kotan doldu/i);
   });
 
   it("shows the learn page locale lock message without a pricing link", () => {

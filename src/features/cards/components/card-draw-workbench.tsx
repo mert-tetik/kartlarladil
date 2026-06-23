@@ -70,6 +70,7 @@ export function CardDrawWorkbench() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -78,6 +79,7 @@ export function CardDrawWorkbench() {
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
   const exitTimerRefs = useRef<number[]>([]);
   const exitSequenceRef = useRef(0);
+  const searchBlurTimeoutRef = useRef<number | null>(null);
 
   const inventoryCards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -87,7 +89,9 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
-  const { isKeyboardOpen: isMobileKeyboardOpen } = useMobileKeyboardDock();
+  const { isKeyboardOpen: isMobileKeyboardOpen, keyboardOffset } = useMobileKeyboardDock({
+    forceOpen: searchFocused,
+  });
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -97,6 +101,7 @@ export function CardDrawWorkbench() {
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
   const compactMobileControls = isMobileViewport && isMobileKeyboardOpen;
+  const dockMobileControls = isMobileViewport && searchFocused && isMobileKeyboardOpen;
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
@@ -143,6 +148,9 @@ export function CardDrawWorkbench() {
     return () => {
       for (const timerId of exitTimers) {
         window.clearTimeout(timerId);
+      }
+      if (searchBlurTimeoutRef.current !== null) {
+        window.clearTimeout(searchBlurTimeoutRef.current);
       }
     };
   }, []);
@@ -423,9 +431,15 @@ export function CardDrawWorkbench() {
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div
-        className="max-lg:sticky max-lg:bottom-0 max-lg:z-30 max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        className={cn(
+          "max-lg:order-2 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4",
+          dockMobileControls
+            ? "max-lg:fixed max-lg:inset-x-0 max-lg:z-50"
+            : "max-lg:sticky max-lg:bottom-0 max-lg:z-30",
+        )}
         data-card-draw-controls
         data-card-draw-keyboard={compactMobileControls ? "open" : "closed"}
+        style={dockMobileControls ? { bottom: `${keyboardOffset}px` } : undefined}
       >
         <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
@@ -439,9 +453,15 @@ export function CardDrawWorkbench() {
                     updateSearchQuery(event.target.value);
                   }}
                   onFocus={() => {
+                    setSearchFocused(true);
                     if (suggestions.length > 0 || query.trim()) {
                       setIsDropdownOpen(true);
                     }
+                  }}
+                  onBlur={() => {
+                    searchBlurTimeoutRef.current = window.setTimeout(() => {
+                      setSearchFocused(false);
+                    }, 120);
                   }}
                   onKeyDown={(event) => {
                     if (isMobileViewport && event.key === "Escape") {

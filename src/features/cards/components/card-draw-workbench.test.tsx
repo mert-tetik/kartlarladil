@@ -149,6 +149,26 @@ describe("CardDrawWorkbench", () => {
     expect(filters).toHaveClass("max-lg:hidden");
     expect(screen.getByPlaceholderText(/Kelime/)).toBeVisible();
   });
+
+  it("positions mobile controls fixed above the keyboard when search is focused", async () => {
+    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
+
+    const { container } = renderWorkbench();
+    const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
+
+    fireEvent.focus(screen.getByPlaceholderText(/Kelime/));
+
+    act(() => {
+      keyboard.setViewportHeight(500);
+    });
+
+    await waitFor(() => {
+      expect(controls).toHaveAttribute("data-card-draw-keyboard", "open");
+    });
+
+    expect(controls.classList.contains("max-lg:fixed")).toBe(true);
+    expect(controls.style.bottom).toBe(`${844 - 500}px`);
+  });
 });
 
 function renderWorkbench() {

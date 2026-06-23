@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 const MOBILE_MEDIA_QUERY = "(max-width: 1023px)";
 const DEFAULT_KEYBOARD_THRESHOLD = 80;
+const KEYBOARD_FALLBACK_RATIO = 0.38;
 
 export type MobileKeyboardDockState = {
   isKeyboardOpen: boolean;
@@ -11,9 +12,17 @@ export type MobileKeyboardDockState = {
   keyboardOffset: number;
 };
 
+export type UseMobileKeyboardDockOptions = {
+  keyboardThreshold?: number;
+  forceOpen?: boolean;
+};
+
 export function useMobileKeyboardDock(
-  keyboardThreshold = DEFAULT_KEYBOARD_THRESHOLD,
+  options: UseMobileKeyboardDockOptions | number = {},
 ): MobileKeyboardDockState {
+  const { keyboardThreshold = DEFAULT_KEYBOARD_THRESHOLD, forceOpen = false } =
+    typeof options === "number" ? { keyboardThreshold: options, forceOpen: false } : options;
+
   const maxMobileViewportHeightRef = useRef(0);
   const [state, setState] = useState<MobileKeyboardDockState>({
     isKeyboardOpen: false,
@@ -39,7 +48,10 @@ export function useMobileKeyboardDock(
       const previousMaxViewportHeight = maxMobileViewportHeightRef.current || currentViewportHeight;
       const viewportKeyboardOffset = Math.max(0, window.innerHeight - visibleViewportBottom);
       const baselineKeyboardOffset = Math.max(0, previousMaxViewportHeight - visibleViewportBottom);
-      const keyboardOffset = Math.max(viewportKeyboardOffset, baselineKeyboardOffset);
+      const computedKeyboardOffset = Math.max(viewportKeyboardOffset, baselineKeyboardOffset);
+      const fallbackKeyboardOffset =
+        forceOpen && computedKeyboardOffset === 0 ? Math.round(window.innerHeight * KEYBOARD_FALLBACK_RATIO) : 0;
+      const keyboardOffset = Math.max(computedKeyboardOffset, fallbackKeyboardOffset);
       const isKeyboardOpen = isMobileViewport && keyboardOffset > keyboardThreshold;
 
       if (!isMobileViewport) {
@@ -67,7 +79,7 @@ export function useMobileKeyboardDock(
       visualViewport?.removeEventListener("resize", syncState);
       visualViewport?.removeEventListener("scroll", syncState);
     };
-  }, [keyboardThreshold]);
+  }, [keyboardThreshold, forceOpen]);
 
   return state;
 }

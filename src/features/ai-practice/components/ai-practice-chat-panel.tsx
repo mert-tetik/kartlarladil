@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
+import { useMobileKeyboardDock } from "@/lib/use-mobile-keyboard-dock";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -95,8 +96,11 @@ export function AiPracticeChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerRef = useRef<HTMLFormElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const composerBlurTimeoutRef = useRef<number | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -108,6 +112,11 @@ export function AiPracticeChatPanel({
   const { refreshStats } = useProgressStats();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
+  const { isMobileViewport, isKeyboardOpen: isMobileKeyboardOpen, keyboardOffset } = useMobileKeyboardDock({
+    forceOpen: composerFocused,
+  });
+  const [composerHeight, setComposerHeight] = useState(0);
+  const isComposerDocked = isMobileViewport && composerFocused && isMobileKeyboardOpen;
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -125,6 +134,9 @@ export function AiPracticeChatPanel({
     return () => {
       window.cancelAnimationFrame(frameId);
       recognitionRef.current?.abort?.();
+      if (composerBlurTimeoutRef.current !== null) {
+        window.clearTimeout(composerBlurTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -146,6 +158,22 @@ export function AiPracticeChatPanel({
     viewport.addEventListener("resize", handleResize);
     return () => viewport.removeEventListener("resize", handleResize);
   }, [scrollMessageListToBottom]);
+
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setComposerHeight(entry.contentRect.height);
+      }
+    });
+
+    observer.observe(composer);
+    return () => observer.disconnect();
+  }, []);
 
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
@@ -480,20 +508,30 @@ export function AiPracticeChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
+        bottomPadding={isComposerDocked ? composerHeight : 0}
       />
       <ChatComposer
+        ref={composerRef}
         draft={isRecording && interimTranscript ? interimTranscript : draft}
         pending={pending}
         isRecording={isRecording}
         microphoneSupported={microphoneSupported}
         textareaRef={textareaRef}
         analyser={analyserRef.current}
+        keyboardOffset={isComposerDocked ? keyboardOffset : 0}
+        isKeyboardDocked={isComposerDocked}
         onChange={setDraft}
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
         onTextareaFocus={() => {
+          setComposerFocused(true);
           scrollMessageListToBottom();
+        }}
+        onTextareaBlur={() => {
+          composerBlurTimeoutRef.current = window.setTimeout(() => {
+            setComposerFocused(false);
+          }, 120);
         }}
       />
 
@@ -733,29 +771,37 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
 }
 
 function ChatComposer({
+  ref,
   draft,
   pending,
   isRecording,
   microphoneSupported,
   textareaRef,
   analyser,
+  keyboardOffset,
+  isKeyboardDocked,
   onChange,
   onKeyDown,
   onSubmit,
   onToggleRecording,
   onTextareaFocus,
+  onTextareaBlur,
 }: {
+  ref?: React.Ref<HTMLFormElement>;
   draft: string;
   pending: boolean;
   isRecording: boolean;
   microphoneSupported: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   analyser: AnalyserNode | null;
+  keyboardOffset?: number;
+  isKeyboardDocked?: boolean;
   onChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
   onTextareaFocus?: () => void;
+  onTextareaBlur?: () => void;
 }) {
   const t = useT();
   const micLabel = microphoneSupported
@@ -766,8 +812,13 @@ function ChatComposer({
 
   return (
     <form
+      ref={ref}
       onSubmit={onSubmit}
-      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3"
+      className={cn(
+        "shrink-0 border-t border-border bg-background-card p-2 sm:p-3",
+        isKeyboardDocked && "fixed inset-x-0 bottom-0 z-50",
+      )}
+      style={isKeyboardDocked ? { bottom: `${keyboardOffset}px` } : undefined}
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">
@@ -788,6 +839,7 @@ function ChatComposer({
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
               onFocus={onTextareaFocus}
+              onBlur={onTextareaBlur}
               rows={1}
               maxLength={900}
               placeholder={t("aiPractice.chat.placeholder")}
