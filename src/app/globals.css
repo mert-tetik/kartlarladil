@@ -447,6 +447,12 @@ button:disabled,
   body:has([data-ask-chat-page]) .page-transition-shell {
     padding-bottom: 0;
   }
+
+  body:has([data-card-draw-page]) #main-content,
+  body:has([data-ai-practice-chat-page]) #main-content,
+  body:has([data-ask-chat-page]) #main-content {
+    padding-bottom: 0;
+  }
 }
 
 @media (max-width: 1023px) {

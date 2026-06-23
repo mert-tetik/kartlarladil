@@ -23,6 +23,7 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, createId } from "@/lib/utils";
 import type {
   AiPracticeCharacter,
@@ -106,6 +107,7 @@ export function AiPracticeChatPanel({
   const { locale } = useLocale();
   const t = useT();
   const { refreshStats } = useProgressStats();
+  useVisualViewport();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
 
@@ -464,7 +466,7 @@ export function AiPracticeChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+    <section className="relative mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader
         character={character}
         characterName={characterName}
@@ -480,6 +482,7 @@ export function AiPracticeChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
+        bottomPadding={80}
       />
       <ChatComposer
         draft={isRecording && interimTranscript ? interimTranscript : draft}
@@ -767,7 +770,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3 max-lg:mt-auto"
+      className="absolute bottom-0 left-0 right-0 border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">

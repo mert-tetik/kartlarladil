@@ -26,6 +26,7 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -79,6 +80,7 @@ export function AskChatPanel({
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
+  useVisualViewport();
 
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -424,7 +426,7 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+    <section className="relative mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader language={language} />
       <MessageList
         refObject={listRef}
@@ -432,6 +434,7 @@ export function AskChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
+        bottomPadding={80}
       />
       <ChatComposer
         draft={isRecording && interimTranscript ? interimTranscript : draft}
@@ -673,7 +676,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3 max-lg:mt-auto"
+      className="absolute bottom-0 left-0 right-0 border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">

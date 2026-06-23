@@ -25,6 +25,7 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
@@ -86,6 +87,7 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
+  useVisualViewport();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -415,12 +417,12 @@ export function CardDrawWorkbench() {
 
   return (
     <div
-      className="max-lg:flex max-lg:h-full max-lg:min-h-0 max-lg:flex-col max-lg:bg-background"
+      className="max-lg:relative max-lg:flex max-lg:h-full max-lg:min-h-0 max-lg:flex-col max-lg:bg-background"
       data-card-draw-workbench
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div
-        className="max-lg:order-2 max-lg:z-30 max-lg:mt-auto max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        className="max-lg:absolute max-lg:bottom-0 max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
         data-card-draw-controls
       >
         <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
@@ -518,7 +520,7 @@ export function CardDrawWorkbench() {
 
       {/* Cards area - fills the space above controls on mobile */}
       <div
-        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:mt-6"
+        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:pb-48 max-lg:touch-pan-y lg:mt-6"
         data-card-draw-scroll-area
       >
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">
