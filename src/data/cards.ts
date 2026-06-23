@@ -257,7 +257,27 @@ function getTranslationMeaningsByLocale(input: CardBuildInput): TranslationMeani
 }
 
 function getVocabularyCardExamples(input: CardBuildInput): CardExample[] {
-  const sentences = getGeneratedExampleSentences(input.sourceKey, input.language);
+  const generatedSentences = getGeneratedExampleSentences(input.sourceKey, input.language);
+  const sentences: string[] = [...generatedSentences];
+
+  if (sentences.length < 2) {
+    const fallbackContexts: CardExample["context"][] = ["daily", "natural"];
+    const seen = new Set(sentences.map((sentence) => sentence.normalize("NFC")));
+
+    for (const context of fallbackContexts) {
+      if (sentences.length >= 2) {
+        break;
+      }
+
+      const fallback = buildSourceExample(input.language, input.term, input.tier, context);
+      const normalized = fallback.normalize("NFC");
+
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        sentences.push(fallback);
+      }
+    }
+  }
 
   return sentences.map((sentence, index) => ({
     id: index === 0 ? "daily" : "natural",
@@ -285,15 +305,11 @@ function getGeneratedExampleSentences(sourceKey: string, language: LanguageCode)
     }
 
     if (!isLikelyLocalizedExampleSentence(language, sentence)) {
-      throw new Error(`Invalid localized example sentence for ${sourceKey}`);
+      continue;
     }
 
     seen.add(normalized);
     uniqueSentences.push(sentence);
-  }
-
-  if (uniqueSentences.length !== 2) {
-    throw new Error(`Expected 2 unique generated example sentences for ${sourceKey}, received ${uniqueSentences.length}`);
   }
 
   return uniqueSentences;

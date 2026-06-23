@@ -15,7 +15,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-lg border border-dashed border-border bg-background-card p-8 text-center", className)}>
+    <div className={cn("rounded-lg border border-dashed border-transparent bg-transparent p-8 text-center", className)}>
       <div className="relative mx-auto h-32 w-32">
         <Image
           src={mascot ?? "/mascots/mascot12.png"}

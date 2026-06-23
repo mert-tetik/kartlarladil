@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
@@ -21,7 +21,11 @@ function readDismissedState() {
 
 export function CookieNotice() {
   const t = useT();
-  const [visible, setVisible] = useState(readDismissedState);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(readDismissedState());
+  }, []);
 
   function dismiss() {
     try {

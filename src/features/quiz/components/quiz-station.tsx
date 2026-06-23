@@ -789,7 +789,7 @@ export function CountSelection({
       data-quiz-count-selection
       className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card p-5 sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
     >
-      <div className="flex min-h-0 flex-1 flex-col justify-between">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 overflow-y-auto">
         <div className="flex flex-col items-center text-center">
           <div className="flex justify-center lg:hidden">
             <Image
@@ -809,7 +809,7 @@ export function CountSelection({
           </p>
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-6 sm:py-8">
+        <div className="flex items-center justify-center">
           <div className="grid w-full grid-cols-4 gap-2 sm:grid-cols-7">
             {COUNT_OPTIONS.map((count) => {
               const disabled = count > availableCount;
@@ -841,7 +841,7 @@ export function CountSelection({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 sm:pt-4">
+        <div className="flex items-center justify-center">
           <Button variant="ghost" onClick={onBack}>
             {t("common.back")}
           </Button>
@@ -872,7 +872,7 @@ function QuizProgressHeader({
   const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
 
   return (
-    <div className="rounded-lg border border-border bg-background-card p-3 max-sm:p-2 sm:p-5">
+    <div className="rounded-lg border border-transparent bg-transparent p-3 max-sm:p-2 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className={cn("border-transparent", style.text)}>
           {item.questionType === "text"
@@ -949,7 +949,7 @@ function ChoiceQuestion({
   const answerLocale = getStudyLocale(item.card.language, locale);
 
   return (
-    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8">
       <p className="text-sm font-semibold text-foreground-muted">
         {t("quiz.questionPrompt", { language: getLanguageDisplayName(answerLocale, locale) })}
       </p>
@@ -1033,7 +1033,7 @@ function TextQuestion({
   }
 
   return (
-    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-border bg-background-card p-4 max-sm:p-3 sm:p-8">
+    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8">
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
@@ -1330,7 +1330,7 @@ export function ResultView({
       <div
         data-quiz-result-panel
         className={cn(
-          "flex w-full flex-col rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10 max-lg:h-full max-lg:rounded-none max-lg:border-0 max-lg:p-5",
+          "flex w-full flex-col rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10 max-lg:h-full max-lg:justify-center max-lg:rounded-none max-lg:border-0 max-lg:p-5",
           menuVisible ? "opacity-100" : "opacity-0",
         )}
       >
@@ -1375,7 +1375,7 @@ export function ResultView({
           ))}
         </div>
 
-        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3 max-lg:mt-auto">
+        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3">
           <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}

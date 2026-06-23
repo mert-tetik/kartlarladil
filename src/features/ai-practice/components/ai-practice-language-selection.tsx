@@ -6,7 +6,7 @@ import type { LocaleCode } from "@/types/domain";
 
 export function AiPracticeLanguageSelection({ locale }: { locale: LocaleCode }) {
   return (
-    <div className="h-[448px] overflow-y-auto rounded-md border border-border bg-background p-2 max-sm:h-[392px] lg:h-[344px]">
+    <div className="h-[448px] overflow-y-auto rounded-md border border-black bg-black p-2 max-sm:h-[392px] lg:h-[344px]">
       <div className="grid grid-cols-1 gap-2">
         {LANGUAGES.map((language) => (
           <Link
