@@ -121,53 +121,20 @@ describe("CardDrawWorkbench", () => {
     expect(useInventoryStore.getState().cards).toHaveLength(1);
   });
 
-  it("keeps mobile controls docked and hides draw/filter controls when the keyboard opens", async () => {
-    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
+  it("keeps mobile controls sticky above the bottom nav and keeps draw/filter controls visible", async () => {
+    installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
     const { container } = renderWorkbench();
-
-    await waitFor(() => {
-      expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1023px)");
-    });
 
     const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
     const drawActions = container.querySelector("[data-card-draw-draw-actions]") as HTMLElement;
     const filters = container.querySelector("[data-card-draw-filters]") as HTMLElement;
 
-    expect(controls).toHaveAttribute("data-card-draw-keyboard", "closed");
-    fireEvent.focus(screen.getByPlaceholderText(/Kelime/));
-
-    act(() => {
-      keyboard.setLayoutViewportHeight(500);
-    });
-
-    await waitFor(() => {
-      expect(controls).toHaveAttribute("data-card-draw-keyboard", "open");
-    });
-
-    expect(drawActions).toHaveClass("max-lg:hidden");
-    expect(filters).toHaveClass("max-lg:hidden");
+    expect(controls.classList.contains("max-lg:sticky")).toBe(true);
+    expect(controls.classList.contains("max-lg:bottom-0")).toBe(true);
+    expect(drawActions).not.toHaveClass("max-lg:hidden");
+    expect(filters).not.toHaveClass("max-lg:hidden");
     expect(screen.getByPlaceholderText(/Kelime/)).toBeVisible();
-  });
-
-  it("positions mobile controls fixed above the keyboard when search is focused", async () => {
-    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
-
-    const { container } = renderWorkbench();
-    const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
-
-    fireEvent.focus(screen.getByPlaceholderText(/Kelime/));
-
-    act(() => {
-      keyboard.setViewportHeight(500);
-    });
-
-    await waitFor(() => {
-      expect(controls).toHaveAttribute("data-card-draw-keyboard", "open");
-    });
-
-    expect(controls.classList.contains("max-lg:fixed")).toBe(true);
-    expect(controls.style.bottom).toBe(`${844 - 500}px`);
   });
 });
 

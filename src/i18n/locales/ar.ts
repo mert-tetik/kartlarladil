@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "بطاقات متعلمة غير محدودة",
   "pricing.featureThemes": "سمات مخصصة",
   "pricing.free": "مجاني",
-  "pricing.monthlyEquivalent": "~$%{price}/شهر",
+  "pricing.monthlyEquivalent": "~%{price}/شهر",
   "pricing.mostPopular": "الأكثر شعبية",
   "pricing.paymentProvider": "مزود الدفع: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/شهر",

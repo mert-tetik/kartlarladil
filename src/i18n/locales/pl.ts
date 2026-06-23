@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "Nielimitowane nauczone karty",
   "pricing.featureThemes": "Niestandardowe motywy",
   "pricing.free": "Darmowy",
-  "pricing.monthlyEquivalent": "~$%{price}/miesiąc",
+  "pricing.monthlyEquivalent": "~%{price}/miesiąc",
   "pricing.mostPopular": "Najbardziej popularny",
   "pricing.paymentProvider": "Dostawca płatności: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/miesiąc",

@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "无限已学习卡片",
   "pricing.featureThemes": "自定义主题",
   "pricing.free": "免费",
-  "pricing.monthlyEquivalent": "~$%{price}/月",
+  "pricing.monthlyEquivalent": "~%{price}/月",
   "pricing.mostPopular": "最受欢迎",
   "pricing.paymentProvider": "支付提供商：Lemon Squeezy, LLC.",
   "pricing.perMonth": "/月",

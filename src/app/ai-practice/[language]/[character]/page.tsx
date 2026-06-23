@@ -57,7 +57,7 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
 
   return (
     <section
-      className="animate-screen-pop mx-auto max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
       data-ai-practice-chat-page
     >
       <AiPracticeChatPanel character={character} language={rawLanguage} tier={tier} />

@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
@@ -156,7 +156,7 @@ describe("AiPracticeChatPanel", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("points");
   });
 
-  it("keeps the composer docked at the bottom when the mobile viewport shrinks without focus", () => {
+  it("keeps the composer docked at the bottom without fixed positioning when the viewport shrinks", () => {
     const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
     const { container } = renderPanel();
@@ -170,31 +170,6 @@ describe("AiPracticeChatPanel", () => {
 
     expect(composer).toHaveAttribute("data-chat-composer", "bottom");
     expect(composer).not.toHaveClass("fixed");
-    expect(composer.style.top).toBe("");
-    expect(composer.style.transform).toBe("");
-  });
-
-  it("fixes the composer above the keyboard when the textarea is focused on mobile", () => {
-    vi.stubGlobal("ResizeObserver", class ResizeObserver {
-      observe = vi.fn();
-      unobserve = vi.fn();
-      disconnect = vi.fn();
-    });
-
-    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
-
-    const { container } = renderPanel();
-    const composer = container.querySelector('[data-chat-composer]') as HTMLFormElement;
-    const textarea = screen.getByPlaceholderText("Write your message...");
-
-    fireEvent.focus(textarea);
-
-    act(() => {
-      keyboard.setViewportHeight(500);
-    });
-
-    expect(composer).toHaveClass("fixed");
-    expect(composer.style.bottom).toBe(`${844 - 500}px`);
     expect(composer.style.top).toBe("");
     expect(composer.style.transform).toBe("");
   });

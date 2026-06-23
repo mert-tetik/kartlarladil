@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "Sınırsız kart öğrenme",
   "pricing.featureThemes": "Özel temalar",
   "pricing.free": "Free",
-  "pricing.monthlyEquivalent": "~$%{price}/ay",
+  "pricing.monthlyEquivalent": "~%{price}/ay",
   "pricing.mostPopular": "En popüler",
   "pricing.paymentProvider": "Ödeme sağlayıcısı: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/ay",

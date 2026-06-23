@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
-import type { ComponentType, CSSProperties, ReactNode, SVGProps } from "react";
+import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -42,36 +42,14 @@ const navItems: readonly NavItem[] = [
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
-const MOBILE_KEYBOARD_THRESHOLD = 160;
-
-type MobileNavMetrics = {
-  extraFillerHeight: number;
-  frameBottom: number | null;
-  keyboardOpen: boolean;
-};
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [mobileNavMetrics, setMobileNavMetrics] = useState<MobileNavMetrics>({
-    extraFillerHeight: 0,
-    frameBottom: null,
-    keyboardOpen: false,
-  });
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
-  const isDockedMobileToolRoute =
-    pathname === "/card-draw" ||
-    /^\/ai-practice\/[^/]+\/[^/]+/.test(pathname) ||
-    /^\/ask\/[^/]+/.test(pathname);
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
-  const hideMobileNavForDockedTool = isDockedMobileToolRoute && isMobileViewport;
-  const mobileNavStyle = {
-    "--mobile-nav-extra-filler-height": `${mobileNavMetrics.extraFillerHeight}px`,
-    "--mobile-nav-frame-bottom":
-      mobileNavMetrics.frameBottom === null ? "100dvh" : `${mobileNavMetrics.frameBottom}px`,
-  } as CSSProperties;
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -85,77 +63,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
     return () => {
       mediaQuery.removeEventListener("change", syncViewport);
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery =
-      typeof window.matchMedia === "function" ? window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY) : null;
-    const visualViewport = window.visualViewport;
-    let rafId: number | null = null;
-
-    function syncNavMetrics() {
-      if (rafId !== null) return;
-
-      rafId = window.requestAnimationFrame(() => {
-        rafId = null;
-        const mobile = mediaQuery?.matches ?? window.innerWidth < 1024;
-
-        if (!mobile) {
-          setMobileNavMetrics({
-            extraFillerHeight: 0,
-            frameBottom: null,
-            keyboardOpen: false,
-          });
-          return;
-        }
-
-        const viewportHeight = visualViewport?.height ?? window.innerHeight;
-        const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
-        const viewportBottom = Math.round(viewportOffsetTop + viewportHeight);
-        const keyboardOpen = window.innerHeight - viewportHeight > MOBILE_KEYBOARD_THRESHOLD;
-        const extraFillerHeight = keyboardOpen
-          ? 0
-          : Math.max(0, Math.round(window.innerHeight - viewportBottom));
-        const frameBottom = viewportBottom + extraFillerHeight;
-        const nextMetrics = {
-          extraFillerHeight,
-          frameBottom,
-          keyboardOpen,
-        };
-
-        setMobileNavMetrics((current) =>
-          current.extraFillerHeight === nextMetrics.extraFillerHeight &&
-          current.frameBottom === nextMetrics.frameBottom &&
-          current.keyboardOpen === nextMetrics.keyboardOpen
-            ? current
-            : nextMetrics,
-        );
-      });
-    }
-
-    syncNavMetrics();
-    mediaQuery?.addEventListener("change", syncNavMetrics);
-    window.addEventListener("orientationchange", syncNavMetrics);
-    window.addEventListener("resize", syncNavMetrics);
-    window.addEventListener("scroll", syncNavMetrics, { passive: true });
-    visualViewport?.addEventListener("resize", syncNavMetrics);
-    visualViewport?.addEventListener("scroll", syncNavMetrics);
-
-    return () => {
-      mediaQuery?.removeEventListener("change", syncNavMetrics);
-      window.removeEventListener("orientationchange", syncNavMetrics);
-      window.removeEventListener("resize", syncNavMetrics);
-      window.removeEventListener("scroll", syncNavMetrics);
-      visualViewport?.removeEventListener("resize", syncNavMetrics);
-      visualViewport?.removeEventListener("scroll", syncNavMetrics);
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-      }
     };
   }, []);
 
@@ -226,12 +133,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
       <div
         data-mobile-main-nav-frame
-        className={cn(
-          "mobile-main-nav-frame text-foreground lg:hidden",
-          hideMobileNavForDockedTool && "hidden",
-          mobileNavMetrics.keyboardOpen && "pointer-events-none translate-y-full opacity-0",
-        )}
-        style={mobileNavStyle}
+        className="mobile-main-nav-frame text-foreground lg:hidden"
       >
         <nav
           aria-label={t("nav.mobileMenu")}

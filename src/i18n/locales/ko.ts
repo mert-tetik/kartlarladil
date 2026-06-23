@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "무제한 학습된 카드",
   "pricing.featureThemes": "사용자 정의 테마",
   "pricing.free": "무료",
-  "pricing.monthlyEquivalent": "~$%{price}/월",
+  "pricing.monthlyEquivalent": "~%{price}/월",
   "pricing.mostPopular": "가장 인기 있는",
   "pricing.paymentProvider": "결제 제공자: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/월",

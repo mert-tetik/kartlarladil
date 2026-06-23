@@ -9,8 +9,14 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import {
+  formatCurrency,
+  getLocalizedPrice,
+  useLocalizedPricing,
+  type LocalizedPricingStatus,
+} from "@/features/subscriptions/components/use-localized-pricing";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { SubscriptionPlan } from "@/types/domain";
 
@@ -36,8 +42,10 @@ const PLANS: PricingPlan[] = [
 
 export function PricingPage({ user }: PricingPageProps) {
   const t = useT();
+  const { locale } = useLocale();
   const { entitlements } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const localizedPricing = useLocalizedPricing();
 
   return (
     <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -69,6 +77,8 @@ export function PricingPage({ user }: PricingPageProps) {
             cycle={cycle}
             currentPlan={entitlements?.effectivePlan ?? null}
             user={user}
+            localizedPricing={localizedPricing}
+            uiLocale={locale}
           />
         ))}
       </div>
@@ -131,18 +141,35 @@ function PricingCard({
   cycle,
   currentPlan,
   user,
+  localizedPricing,
+  uiLocale,
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   user: AuthShellUser | null;
+  localizedPricing: LocalizedPricingStatus;
+  uiLocale: string;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
   const price = cycle === "yearly" ? yearlyPrice : monthlyPrice;
+  const localized = getLocalizedPrice(localizedPricing, plan, cycle);
+  const localizedYearly = cycle === "yearly" ? localized : getLocalizedPrice(localizedPricing, plan, "yearly");
   const discountRate = useMemo(() => {
     if (monthlyPrice == null || yearlyPrice == null) return null;
     return Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
   }, [monthlyPrice, yearlyPrice]);
+
+  const priceDisplay = useMemo(() => {
+    if (price === null) return { primary: t("pricing.priceFree"), original: "" };
+    if (localized) {
+      return {
+        primary: formatCurrency(localized.amount, localized.currencyCode, uiLocale),
+        original: `≈ $${price}`,
+      };
+    }
+    return { primary: `$${price}`, original: "" };
+  }, [price, localized, uiLocale, t]);
 
   return (
     <div
@@ -164,14 +191,17 @@ function PricingCard({
         ) : null}
         <h2 className="text-lg font-semibold">{t(`pricing.${plan}`)}</h2>
       </div>
-      <div className="mt-4 flex items-baseline gap-1">
-        <span className="font-display text-4xl font-semibold">
-          {price === null ? t("pricing.priceFree") : `$${price}`}
-        </span>
+      <div className="mt-4 flex flex-wrap items-baseline gap-1">
+        <span className="font-display text-4xl font-semibold">{priceDisplay.primary}</span>
         {price !== null ? (
-          <span className={cn("text-sm", "text-foreground-muted")}>
-            {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
-          </span>
+          <>
+            <span className={cn("text-sm", "text-foreground-muted")}>
+              {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
+            </span>
+            {priceDisplay.original ? (
+              <span className="w-full text-xs text-foreground-muted">{priceDisplay.original}</span>
+            ) : null}
+          </>
         ) : null}
       </div>
 
@@ -183,7 +213,12 @@ function PricingCard({
 
       {cycle === "yearly" && monthlyPrice != null && yearlyPrice != null ? (
         <p className={cn("mt-1 text-xs", "text-foreground-muted")}>
-          {t("pricing.monthlyEquivalent", { price: (yearlyPrice / 12).toFixed(2) })}
+          {t("pricing.monthlyEquivalent", {
+            price:
+              localizedYearly
+                ? formatCurrency(localizedYearly.amount / 12, localizedYearly.currencyCode, uiLocale)
+                : (yearlyPrice / 12).toFixed(2),
+          })}
         </p>
       ) : null}
 

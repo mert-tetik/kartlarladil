@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "無制限の学習済みカード",
   "pricing.featureThemes": "カスタムテーマ",
   "pricing.free": "無料",
-  "pricing.monthlyEquivalent": "~$%{price}/月",
+  "pricing.monthlyEquivalent": "~%{price}/月",
   "pricing.mostPopular": "最も人気",
   "pricing.paymentProvider": "支払いプロバイダー: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/月",

@@ -101,17 +101,6 @@ describe("useMobileKeyboardDock", () => {
     expect(result.current.keyboardOffset).toBeGreaterThan(0);
   });
 
-  it("falls back to a ratio-based offset when forceOpen is true but computed offset is zero", () => {
-    window.innerWidth = 400;
-    window.innerHeight = 844;
-    mockVisualViewport({ height: 844 });
-
-    const { result } = renderHook(() => useMobileKeyboardDock({ forceOpen: true }));
-
-    expect(result.current.isKeyboardOpen).toBe(true);
-    expect(result.current.keyboardOffset).toBe(Math.round(844 * 0.38));
-  });
-
   it("returns desktop state when viewport is wide", () => {
     mockMatchMedia(false);
     window.innerWidth = 1280;

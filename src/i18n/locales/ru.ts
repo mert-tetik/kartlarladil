@@ -371,7 +371,7 @@ const dictionary = {
   "pricing.featureLearned": "Неограниченные изученные карточки",
   "pricing.featureThemes": "Пользовательские темы",
   "pricing.free": "Бесплатно",
-  "pricing.monthlyEquivalent": "~$%{price}/мес",
+  "pricing.monthlyEquivalent": "~%{price}/мес",
   "pricing.mostPopular": "Самый популярный",
   "pricing.paymentProvider": "Поставщик платежей: Lemon Squeezy, LLC.",
   "pricing.perMonth": "/месяц",
