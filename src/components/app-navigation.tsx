@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -42,15 +42,14 @@ const navItems: readonly NavItem[] = [
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+const BOTTOM_NAV_HEIGHT = 65;
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [mobileNavBottomOffset, setMobileNavBottomOffset] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const stableBottomOffsetRef = useRef(0);
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
 
@@ -77,40 +76,40 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     const mediaQuery =
       typeof window.matchMedia === "function" ? window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY) : null;
     const visualViewport = window.visualViewport;
+    let rafId: number | null = null;
 
-    function syncMobileBottomOffset() {
-      const mobile = mediaQuery?.matches ?? window.innerWidth < 1024;
+    function syncKeyboardState() {
+      if (rafId !== null) return;
 
-      if (!mobile) {
-        stableBottomOffsetRef.current = 0;
-        setMobileNavBottomOffset(0);
-        return;
-      }
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        const mobile = mediaQuery?.matches ?? window.innerWidth < 1024;
 
-      const viewportHeight = visualViewport?.height ?? window.innerHeight;
-      const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
-      const rawBottomOffset = Math.max(0, window.innerHeight - (viewportHeight + viewportOffsetTop));
-      const keyboardLikelyVisible = window.innerHeight - viewportHeight > 160;
+        if (!mobile) {
+          setIsKeyboardOpen(false);
+          return;
+        }
 
-      if (!keyboardLikelyVisible) {
-        stableBottomOffsetRef.current = rawBottomOffset;
-      }
-
-      setIsKeyboardOpen(keyboardLikelyVisible);
-      setMobileNavBottomOffset(keyboardLikelyVisible ? stableBottomOffsetRef.current : rawBottomOffset);
+        const viewportHeight = visualViewport?.height ?? window.innerHeight;
+        const keyboardLikelyVisible = window.innerHeight - viewportHeight > 160;
+        setIsKeyboardOpen(keyboardLikelyVisible);
+      });
     }
 
-    syncMobileBottomOffset();
-    mediaQuery?.addEventListener("change", syncMobileBottomOffset);
-    window.addEventListener("resize", syncMobileBottomOffset);
-    visualViewport?.addEventListener("resize", syncMobileBottomOffset);
-    visualViewport?.addEventListener("scroll", syncMobileBottomOffset);
+    syncKeyboardState();
+    mediaQuery?.addEventListener("change", syncKeyboardState);
+    window.addEventListener("resize", syncKeyboardState);
+    visualViewport?.addEventListener("resize", syncKeyboardState);
+    visualViewport?.addEventListener("scroll", syncKeyboardState);
 
     return () => {
-      mediaQuery?.removeEventListener("change", syncMobileBottomOffset);
-      window.removeEventListener("resize", syncMobileBottomOffset);
-      visualViewport?.removeEventListener("resize", syncMobileBottomOffset);
-      visualViewport?.removeEventListener("scroll", syncMobileBottomOffset);
+      mediaQuery?.removeEventListener("change", syncKeyboardState);
+      window.removeEventListener("resize", syncKeyboardState);
+      visualViewport?.removeEventListener("resize", syncKeyboardState);
+      visualViewport?.removeEventListener("scroll", syncKeyboardState);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
     };
   }, []);
 
@@ -186,15 +185,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           "mobile-main-nav fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card text-foreground transition-transform duration-200 lg:hidden",
           isKeyboardOpen && "pointer-events-none translate-y-full",
         )}
-        style={{ bottom: `${mobileNavBottomOffset}px` }}
       >
-        <div className="relative">
-          <div
-            className="pointer-events-none absolute left-0 right-0 top-full h-32 bg-brand"
-            aria-hidden="true"
-          />
-        </div>
-
         <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -216,6 +207,15 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           })}
         </div>
       </nav>
+
+      <div
+        className={cn(
+          "fixed inset-x-0 z-30 h-32 bg-background-card transition-transform duration-200 lg:hidden",
+          isKeyboardOpen && "translate-y-full opacity-0",
+        )}
+        style={{ bottom: `${BOTTOM_NAV_HEIGHT}px` }}
+        aria-hidden="true"
+      />
     </>
   );
 }

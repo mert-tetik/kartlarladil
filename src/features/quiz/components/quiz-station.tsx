@@ -560,17 +560,15 @@ export function QuizStation({
         }}
       />
       <div
-        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:pt-36"
+        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:pt-32"
         data-learn-quiz-page="quiz"
       >
         <div className="grid gap-6 max-sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="order-2 flex flex-col justify-center gap-4 lg:order-1">
-            <QuizCounter currentIndex={currentIndex} total={deck.length} showingAnswer={showingAnswer} />
+            <QuizCounter currentIndex={currentIndex} total={deck.length} />
             <QuizProgressHeader
               mode={mode}
               item={item}
-              showingAnswer={showingAnswer}
-              lastAnswerCorrect={lastAnswerCorrect}
               onShowCard={() => {
                 setMobileCardOpen(true);
                 setMobileCardFace(showingAnswer ? "front" : "back");
@@ -719,13 +717,13 @@ export function LanguageSelection({
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         <div className="w-full max-w-4xl">
           <div className="flex items-center justify-center gap-3">
-            <Badge className="border-transparent bg-white/10 text-white">
+            <Badge className="border-transparent bg-white/10 text-foreground">
               {mode === "active" ? t("inventory.learn") : t("inventory.repeatPractice")}
             </Badge>
           </div>
-          <h2 className="mt-4 text-center text-lg font-semibold text-white lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
+          <h2 className="mt-4 text-center text-lg font-semibold text-foreground lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
           {hiddenLanguageName ? (
-            <p className="mt-2 text-center text-xs leading-5 text-white/65 lg:text-sm">
+            <p className="mt-2 text-center text-xs leading-5 text-foreground/65 lg:text-sm">
               {t("quiz.hiddenSiteLanguageHint", { language: hiddenLanguageName })}
             </p>
           ) : null}
@@ -741,23 +739,23 @@ export function LanguageSelection({
                   aria-pressed={selectedLanguage === language.code}
                   onClick={() => onSelect(language.code)}
                   className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-md border border-white/10 bg-neutral-950 p-3 text-left text-sm font-semibold text-white transition-colors hover:bg-neutral-900 lg:p-4 lg:text-base",
-                    selectedLanguage === language.code && "border-white/40 bg-neutral-900",
+                    "flex cursor-pointer items-center justify-between rounded-md border border-black/10 bg-white p-3 text-left text-sm font-semibold text-black transition-colors hover:bg-neutral-100 lg:p-4 lg:text-base",
+                    selectedLanguage === language.code && "border-black/40 bg-neutral-100",
                   )}
                 >
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-white">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-black">
                     <LanguageFlag code={language.code} />
                     <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
                   </span>
-                  <Badge className="border-transparent bg-white/10 text-white">{formatCards(locale, language.count)}</Badge>
+                  <Badge className="border-transparent bg-black/10 text-black">{formatCards(locale, language.count)}</Badge>
                 </button>
               ))}
             </div>
           ) : (
             <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
               <div className="max-w-md">
-                <p className="text-base font-semibold text-white">{t("quiz.noPracticeLanguagesTitle")}</p>
-                <p className="mt-2 text-sm leading-6 text-white/70">
+                <p className="text-base font-semibold text-foreground">{t("quiz.noPracticeLanguagesTitle")}</p>
+                <p className="mt-2 text-sm leading-6 text-foreground/70">
                   {t("quiz.noPracticeLanguagesDescription")}
                 </p>
               </div>
@@ -876,22 +874,14 @@ export function CountSelection({
 function QuizProgressHeader({
   mode,
   item,
-  showingAnswer,
-  lastAnswerCorrect,
   onShowCard,
 }: {
   mode: PracticeMode;
   item: QuizItem;
-  showingAnswer: boolean;
-  lastAnswerCorrect: boolean | null;
   onShowCard: () => void;
 }) {
   const t = useT();
   const style = TIER_STYLES[item.card.tier];
-  const requirement = TIER_REQUIREMENTS[item.card.tier];
-  const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
-  const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
-  const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
 
   return (
     <div className="rounded-lg border border-transparent bg-transparent p-3 max-sm:p-2 sm:p-5 max-lg:hidden">
@@ -914,19 +904,6 @@ function QuizProgressHeader({
           {t("quiz.showCard")}
         </button>
       </div>
-
-      {item.questionType === "choice" && mode === "active" ? (
-        <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-foreground-secondary">
-            <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
-            <span>
-              {displayCorrectCount}/{requirement}
-            </span>
-          </div>
-          <Progress value={progress} indicatorClassName={style.accent} />
-        </div>
-      ) : null}
-
     </div>
   );
 }
@@ -949,11 +926,10 @@ function MobileQuizTopBars({
   onShowCard: () => void;
 }) {
   const t = useT();
-  const style = TIER_STYLES[item.card.tier];
   const requirement = TIER_REQUIREMENTS[item.card.tier];
   const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
   const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
-  const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
+  const learningProgress = Math.min(100, (displayCorrectCount / requirement) * 100);
   const quizProgress = Math.min(100, ((currentIndex + (showingAnswer ? 1 : 0)) / total) * 100);
 
   return (
@@ -965,10 +941,10 @@ function MobileQuizTopBars({
             {currentIndex + 1} / {total}
           </span>
         </div>
-        <Progress value={quizProgress} indicatorClassName="bg-white" />
+        <Progress value={quizProgress} className="bg-[#131313]" indicatorClassName="bg-red-500" />
       </div>
 
-      <div className={cn("flex flex-col gap-1 px-4 py-2 text-white", style.accent)}>
+      <div className="flex flex-col gap-1 bg-black px-4 py-2 text-white">
         <div className="flex items-center justify-between">
           <Badge className="border-transparent bg-white/20 text-white">
             {item.questionType === "text"
@@ -980,10 +956,7 @@ function MobileQuizTopBars({
           <button
             type="button"
             onClick={onShowCard}
-            className={cn(
-              "rounded-md bg-white px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/90",
-              style.backText,
-            )}
+            className="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-white/90"
           >
             {t("quiz.showCard")}
           </button>
@@ -996,7 +969,7 @@ function MobileQuizTopBars({
                 {displayCorrectCount}/{requirement}
               </span>
             </div>
-            <Progress value={progress} indicatorClassName="bg-white" />
+            <Progress value={learningProgress} className="bg-[#131313]" indicatorClassName="bg-white" />
           </>
         ) : null}
       </div>
@@ -1007,22 +980,15 @@ function MobileQuizTopBars({
 function QuizCounter({
   currentIndex,
   total,
-  showingAnswer,
 }: {
   currentIndex: number;
   total: number;
-  showingAnswer: boolean;
 }) {
-  const progress = Math.min(100, ((currentIndex + (showingAnswer ? 1 : 0)) / total) * 100);
-
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-2xl font-bold text-foreground max-lg:hidden">
         {currentIndex + 1} / {total}
       </span>
-      <div className="w-full max-w-xs">
-        <Progress value={progress} indicatorClassName="bg-rose-500" />
-      </div>
     </div>
   );
 }
