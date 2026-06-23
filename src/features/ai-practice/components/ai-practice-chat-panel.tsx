@@ -580,7 +580,7 @@ function MessageList({
   return (
     <div
       ref={refObject}
-      className="min-h-0 flex-1 overscroll-contain overflow-y-auto p-3 sm:p-5"
+      className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto p-3 sm:p-5"
       data-ai-chat-scroll="true"
     >
       {messages.length === 0 ? (

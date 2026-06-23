@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CardDrawPage() {
   return (
     <section
-      className="animate-screen-pop mx-auto h-full max-w-7xl px-4 py-10 max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-lg:h-auto max-lg:max-w-none max-lg:overflow-hidden max-lg:px-0 max-lg:py-0 sm:px-6 lg:px-8"
+      className="animate-screen-pop mx-auto h-full max-w-7xl px-4 py-10 max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-[var(--mobile-nav-visible-height)] max-lg:h-auto max-lg:max-w-none max-lg:overflow-hidden max-lg:px-0 max-lg:py-0 sm:px-6 lg:px-8"
       data-card-draw-page
     >
       <CardDrawWorkbench />

@@ -29,22 +29,30 @@ export function shouldLockBodyScroll(path: string, mobileViewport: boolean): boo
   );
 }
 
-function isInsideScrollableElement(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+function findScrollableElement(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof HTMLElement)) return null;
   let node: HTMLElement | null = target;
   while (node && node !== document.body) {
-    const role = node.getAttribute("role");
-    if (role === "dialog" || role === "alertdialog") return true;
     const overflow = getComputedStyle(node).overflowY;
     if (
       (overflow === "auto" || overflow === "scroll") &&
       node.scrollHeight > node.clientHeight
     ) {
-      return true;
+      return node;
     }
     node = node.parentElement;
   }
-  return false;
+  return null;
+}
+
+export function shouldPreventBoundaryScroll(
+  element: Pick<HTMLElement, "scrollTop" | "scrollHeight" | "clientHeight">,
+  deltaY: number,
+): boolean {
+  const atTop = element.scrollTop <= 0;
+  const atBottom = Math.ceil(element.scrollTop + element.clientHeight) >= element.scrollHeight;
+
+  return (deltaY > 0 && atTop) || (deltaY < 0 && atBottom);
 }
 
 export function BodyScrollLock() {
@@ -116,15 +124,49 @@ export function BodyScrollLock() {
     html.style.overscrollBehavior = "none";
     html.style.touchAction = "none";
 
-    function preventTouchMove(e: TouchEvent) {
-      if (isInsideScrollableElement(e.target)) return;
-      e.preventDefault();
+    let activeScroller: HTMLElement | null = null;
+    let previousTouchY = 0;
+
+    function handleTouchStart(event: TouchEvent) {
+      if (event.touches.length !== 1) {
+        activeScroller = null;
+        return;
+      }
+
+      activeScroller = findScrollableElement(event.target);
+      previousTouchY = event.touches[0].clientY;
     }
 
+    function preventTouchMove(event: TouchEvent) {
+      if (event.touches.length !== 1) {
+        event.preventDefault();
+        return;
+      }
+
+      const currentTouchY = event.touches[0].clientY;
+      const deltaY = currentTouchY - previousTouchY;
+      previousTouchY = currentTouchY;
+
+      if (!activeScroller || shouldPreventBoundaryScroll(activeScroller, deltaY)) {
+        event.preventDefault();
+      }
+    }
+
+    function handleTouchEnd() {
+      activeScroller = null;
+      previousTouchY = 0;
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
     document.addEventListener("touchmove", preventTouchMove, { passive: false });
+    document.addEventListener("touchend", handleTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
     return () => {
+      document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", preventTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchcancel", handleTouchEnd);
       body.style.overflow = "";
       body.style.overscrollBehavior = "";
       body.style.touchAction = "";

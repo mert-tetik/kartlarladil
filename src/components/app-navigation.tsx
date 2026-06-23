@@ -140,7 +140,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           data-mobile-main-nav
           className="mobile-main-nav-bar border-t border-border bg-background-card"
         >
-          <div className="grid grid-cols-6">
+          <div className="grid h-full grid-cols-6">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -149,12 +149,16 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-foreground-muted transition-colors hover:text-foreground",
-                    active && "bg-brand text-brand-foreground hover:text-brand-foreground",
+                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
+                    active && "bg-background-muted text-brand hover:text-brand",
                   )}
                 >
-                  <Icon className="size-5" aria-hidden="true" />
+                  {active ? (
+                    <span className="absolute inset-x-3 top-0 h-0.5 bg-brand" aria-hidden="true" />
+                  ) : null}
+                  <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
                   <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
                 </Link>
               );

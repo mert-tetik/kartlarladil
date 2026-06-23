@@ -1,4 +1,7 @@
-import { shouldLockBodyScroll } from "@/components/body-scroll-lock";
+import {
+  shouldLockBodyScroll,
+  shouldPreventBoundaryScroll,
+} from "@/components/body-scroll-lock";
 
 describe("shouldLockBodyScroll", () => {
   it("keeps desktop my-cards pages scrollable", () => {
@@ -18,5 +21,37 @@ describe("shouldLockBodyScroll", () => {
     expect(shouldLockBodyScroll("/card-draw", true)).toBe(true);
     expect(shouldLockBodyScroll("/ai-practice", false)).toBe(true);
     expect(shouldLockBodyScroll("/ask/en", false)).toBe(true);
+  });
+});
+
+describe("shouldPreventBoundaryScroll", () => {
+  it("blocks pulling past the top and pushing past the bottom", () => {
+    expect(
+      shouldPreventBoundaryScroll(
+        { scrollTop: 0, clientHeight: 400, scrollHeight: 900 },
+        12,
+      ),
+    ).toBe(true);
+    expect(
+      shouldPreventBoundaryScroll(
+        { scrollTop: 500, clientHeight: 400, scrollHeight: 900 },
+        -12,
+      ),
+    ).toBe(true);
+  });
+
+  it("allows movement toward available scroll content", () => {
+    expect(
+      shouldPreventBoundaryScroll(
+        { scrollTop: 0, clientHeight: 400, scrollHeight: 900 },
+        -12,
+      ),
+    ).toBe(false);
+    expect(
+      shouldPreventBoundaryScroll(
+        { scrollTop: 250, clientHeight: 400, scrollHeight: 900 },
+        12,
+      ),
+    ).toBe(false);
   });
 });
