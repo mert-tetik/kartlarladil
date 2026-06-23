@@ -33,6 +33,13 @@ function mockVisualViewport(snapshot: { height: number; offsetTop?: number }) {
 const originalInnerWidth = window.innerWidth;
 const originalInnerHeight = window.innerHeight;
 
+function focusTextarea() {
+  const textarea = document.createElement("textarea");
+  document.body.append(textarea);
+  textarea.focus();
+  return textarea;
+}
+
 describe("useMobileKeyboardDock", () => {
   beforeEach(() => {
     mockMatchMedia(true);
@@ -40,6 +47,7 @@ describe("useMobileKeyboardDock", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.replaceChildren();
     window.innerWidth = originalInnerWidth;
     window.innerHeight = originalInnerHeight;
     Object.defineProperty(window, "visualViewport", {
@@ -64,6 +72,7 @@ describe("useMobileKeyboardDock", () => {
     window.innerWidth = 400;
     window.innerHeight = 844;
     mockVisualViewport({ height: 500 });
+    focusTextarea();
 
     const { result } = renderHook(() => useMobileKeyboardDock());
 
@@ -91,6 +100,7 @@ describe("useMobileKeyboardDock", () => {
     const { result } = renderHook(() => useMobileKeyboardDock());
     expect(result.current.isKeyboardOpen).toBe(false);
 
+    focusTextarea();
     window.innerHeight = 500;
     visualViewport.height = 500;
     act(() => {
@@ -98,7 +108,18 @@ describe("useMobileKeyboardDock", () => {
     });
 
     expect(result.current.isKeyboardOpen).toBe(true);
-    expect(result.current.keyboardOffset).toBeGreaterThan(0);
+    expect(result.current.keyboardOffset).toBe(0);
+  });
+
+  it("does not treat browser chrome resizing as a keyboard without editable focus", () => {
+    window.innerWidth = 400;
+    window.innerHeight = 844;
+    mockVisualViewport({ height: 700 });
+
+    const { result } = renderHook(() => useMobileKeyboardDock());
+
+    expect(result.current.isKeyboardOpen).toBe(false);
+    expect(result.current.keyboardOffset).toBe(0);
   });
 
   it("returns desktop state when viewport is wide", () => {

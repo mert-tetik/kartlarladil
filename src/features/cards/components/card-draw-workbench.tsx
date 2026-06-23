@@ -25,7 +25,6 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
@@ -71,8 +70,10 @@ export function CardDrawWorkbench() {
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const mobileDropdownRef = useRef<HTMLDivElement | null>(null);
+  const desktopDropdownRef = useRef<HTMLDivElement | null>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
   const suggestionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutSnapshotRef = useRef(new Map<string, DOMRect>());
@@ -87,14 +88,6 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
-  const { keyboardHeight, safeAreaBottom, navHeight } = useVisualViewport();
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [panelHeight, setPanelHeight] = useState(0);
-  const searchPanelRef = useRef<HTMLDivElement | null>(null);
-  const [searchPanelHeight, setSearchPanelHeight] = useState(0);
-
-  const mobilePanelBottom = keyboardHeight > 0 ? keyboardHeight : navHeight + safeAreaBottom;
-  const mobileScrollPaddingBottom = panelHeight + mobilePanelBottom;
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -181,49 +174,17 @@ export function CardDrawWorkbench() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideMobileSearch = mobileDropdownRef.current?.contains(target) ?? false;
+      const insideDesktopSearch = desktopDropdownRef.current?.contains(target) ?? false;
+
+      if (!insideMobileSearch && !insideDesktopSearch) {
         setIsDropdownOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height =
-          entry.borderBoxSize && entry.borderBoxSize.length > 0
-            ? entry.borderBoxSize[0].blockSize
-            : entry.contentRect.height;
-        setPanelHeight(height);
-      }
-    });
-
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const searchPanel = searchPanelRef.current;
-    if (!searchPanel || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height =
-          entry.borderBoxSize && entry.borderBoxSize.length > 0
-            ? entry.borderBoxSize[0].blockSize
-            : entry.contentRect.height;
-        setSearchPanelHeight(height);
-      }
-    });
-
-    observer.observe(searchPanel);
-    return () => observer.disconnect();
   }, []);
 
   useLayoutEffect(() => {
@@ -458,76 +419,81 @@ export function CardDrawWorkbench() {
     );
   }
 
-  const searchInputSection = (
-    <div ref={dropdownRef} className="relative max-lg:min-h-11">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
-        <input
-          ref={searchInputRef}
-          value={query}
-          onChange={(event) => {
-            updateSearchQuery(event.target.value);
-          }}
-          onFocus={() => {
-            if (suggestions.length > 0 || query.trim()) {
-              setIsDropdownOpen(true);
-            }
-            if (isMobileViewport && searchInputRef.current) {
-              window.setTimeout(() => {
-                searchInputRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-              }, 0);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (isMobileViewport && event.key === "Escape") {
-              event.preventDefault();
-              setIsDropdownOpen(false);
-              setRawHighlightedIndex(-1);
-              return;
-            }
+  function renderSearchInputSection(variant: "mobile" | "desktop") {
+    const dropdownRef = variant === "mobile" ? mobileDropdownRef : desktopDropdownRef;
+    const searchInputRef = variant === "mobile" ? mobileSearchInputRef : desktopSearchInputRef;
 
-            handleSuggestionKeyDown(event);
-          }}
-          placeholder={t("cards.searchPlaceholder")}
-          className="relative h-12 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground max-lg:h-11"
-          data-card-draw-search-input
-        />
-      </div>
+    return (
+      <div ref={dropdownRef} className="relative max-lg:min-h-11">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-foreground-muted" />
+          <input
+            ref={searchInputRef}
+            value={query}
+            onChange={(event) => {
+              updateSearchQuery(event.target.value);
+            }}
+            onFocus={() => {
+              if (suggestions.length > 0 || query.trim()) {
+                setIsDropdownOpen(true);
+              }
+              if (isMobileViewport && searchInputRef.current) {
+                window.setTimeout(() => {
+                  searchInputRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+                }, 0);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (isMobileViewport && event.key === "Escape") {
+                event.preventDefault();
+                setIsDropdownOpen(false);
+                setRawHighlightedIndex(-1);
+                return;
+              }
 
-      {isDropdownOpen ? (
-        <div className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg">
-          {suggestions.length > 0 ? (
-            suggestions.map((card, index) => {
-              const style = TIER_STYLES[card.tier];
-              const highlighted = index === highlightedIndex;
-              return (
-                <button
-                  key={card.id}
-                  ref={(element) => {
-                    suggestionRefs.current[index] = element;
-                  }}
-                  type="button"
-                  onClick={() => selectSuggestion(card)}
-                  onMouseEnter={() => setRawHighlightedIndex(index)}
-                  className={cn(
-                    "flex w-full items-center justify-between px-3 py-2.5 text-left text-sm outline-none",
-                    highlighted ? "bg-background-muted" : "hover:bg-background-muted",
-                  )}
-                >
-                  <span className="font-semibold text-foreground">{card.term}</span>
-                  <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
-                    {card.tier}
-                  </span>
-                </button>
-              );
-            })
-          ) : query.trim() ? (
-            <div className="px-3 py-2.5 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
-          ) : null}
+              handleSuggestionKeyDown(event);
+            }}
+            placeholder={t("cards.searchPlaceholder")}
+            className="relative h-12 w-full rounded-md border border-border bg-background-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-foreground max-lg:h-11"
+            data-card-draw-search-input
+          />
         </div>
-      ) : null}
-    </div>
-  );
+
+        {isDropdownOpen ? (
+          <div className="animate-menu-pop origin-top absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-border bg-background-card py-1 shadow-lg">
+            {suggestions.length > 0 ? (
+              suggestions.map((card, index) => {
+                const style = TIER_STYLES[card.tier];
+                const highlighted = index === highlightedIndex;
+                return (
+                  <button
+                    key={card.id}
+                    ref={(element) => {
+                      suggestionRefs.current[index] = element;
+                    }}
+                    type="button"
+                    onClick={() => selectSuggestion(card)}
+                    onMouseEnter={() => setRawHighlightedIndex(index)}
+                    className={cn(
+                      "flex w-full items-center justify-between px-3 py-2.5 text-left text-sm outline-none",
+                      highlighted ? "bg-background-muted" : "hover:bg-background-muted",
+                    )}
+                  >
+                    <span className="font-semibold text-foreground">{card.term}</span>
+                    <span className={`rounded px-2 py-0.5 text-xs font-semibold text-foreground-inverse ${style.accent}`}>
+                      {card.tier}
+                    </span>
+                  </button>
+                );
+              })
+            ) : query.trim() ? (
+              <div className="px-3 py-2.5 text-sm text-foreground-muted">{t("cards.noSearchResults")}</div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -536,23 +502,20 @@ export function CardDrawWorkbench() {
     >
       {/* Mobile search - attached to top */}
       <div
-        ref={searchPanelRef}
-        className="fixed left-0 right-0 top-0 z-30 border-b border-border bg-background-card p-2 lg:hidden"
+        className="relative z-20 shrink-0 border-b border-border bg-background-card p-2 lg:hidden"
         data-card-draw-mobile-search
       >
-        <div className="mx-auto max-w-7xl">{searchInputSection}</div>
+        <div className="mx-auto max-w-7xl">{renderSearchInputSection("mobile")}</div>
       </div>
 
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div
-        ref={panelRef}
-        className="max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
-        style={{ bottom: `${mobilePanelBottom}px` }}
+        className="max-lg:order-3 max-lg:shrink-0 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
         data-card-draw-controls
       >
         <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-            <div className="hidden lg:block">{searchInputSection}</div>
+            <div className="hidden lg:block">{renderSearchInputSection("desktop")}</div>
             <div
               className="grid grid-cols-2 gap-3 lg:contents"
               data-card-draw-draw-actions
@@ -583,8 +546,7 @@ export function CardDrawWorkbench() {
 
       {/* Cards area - fills the space between top search and bottom controls on mobile */}
       <div
-        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:mt-6"
-        style={isMobileViewport ? { paddingTop: `${searchPanelHeight}px`, paddingBottom: `${mobileScrollPaddingBottom}px` } : undefined}
+        className="max-lg:order-2 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:mt-6"
         data-card-draw-scroll-area
       >
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">

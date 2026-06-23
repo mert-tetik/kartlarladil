@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineLanguagePicker } from "@/components/inline-language-picker";
-import { getCharacterName, getRandomOpeningLine } from "@/features/ai-practice/ai-practice-data";
+import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
@@ -23,7 +23,6 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { useProgressStats } from "@/features/progress/progress-client";
-import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, createId } from "@/lib/utils";
 import type {
   AiPracticeCharacter,
@@ -76,10 +75,12 @@ interface SpeechRecognitionResultLike {
 
 export function AiPracticeChatPanel({
   character,
+  initialOpeningLine,
   language,
   tier = "A1",
 }: {
   character: AiPracticeCharacter;
+  initialOpeningLine: string;
   language: LanguageCode;
   tier?: Tier;
 }) {
@@ -87,7 +88,7 @@ export function AiPracticeChatPanel({
     {
       id: createId("ai-opening"),
       role: "assistant",
-      content: getRandomOpeningLine(character, language),
+      content: initialOpeningLine,
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -107,12 +108,6 @@ export function AiPracticeChatPanel({
   const { locale } = useLocale();
   const t = useT();
   const { refreshStats } = useProgressStats();
-  const { keyboardHeight, safeAreaBottom, navHeight } = useVisualViewport();
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
-  const [composerHeight, setComposerHeight] = useState(0);
-  const panelBottom = keyboardHeight > 0 ? keyboardHeight : navHeight + safeAreaBottom;
-  const messageListBottomPadding = isMobileViewport ? composerHeight + panelBottom : 80;
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
 
@@ -133,35 +128,6 @@ export function AiPracticeChatPanel({
       window.cancelAnimationFrame(frameId);
       recognitionRef.current?.abort?.();
     };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    function updateMobile() {
-      setIsMobileViewport(mediaQuery.matches);
-    }
-    updateMobile();
-    mediaQuery.addEventListener("change", updateMobile);
-    return () => mediaQuery.removeEventListener("change", updateMobile);
-  }, []);
-
-  useEffect(() => {
-    const wrapper = composerWrapperRef.current;
-    if (!wrapper || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height =
-          entry.borderBoxSize && entry.borderBoxSize.length > 0
-            ? entry.borderBoxSize[0].blockSize
-            : entry.contentRect.height;
-        setComposerHeight(height);
-      }
-    });
-
-    observer.observe(wrapper);
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -516,13 +482,8 @@ export function AiPracticeChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
-        bottomPadding={messageListBottomPadding}
       />
-      <div
-        ref={composerWrapperRef}
-        className="max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card lg:static"
-        style={{ bottom: `${panelBottom}px` }}
-      >
+      <div className="shrink-0 bg-background-card">
         <ChatComposer
           draft={isRecording && interimTranscript ? interimTranscript : draft}
           pending={pending}
@@ -536,11 +497,6 @@ export function AiPracticeChatPanel({
           onToggleRecording={toggleRecording}
           onTextareaFocus={() => {
             scrollMessageListToBottom();
-            if (textareaRef.current) {
-              window.setTimeout(() => {
-                textareaRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-              }, 0);
-            }
           }}
         />
       </div>
@@ -609,7 +565,6 @@ function MessageList({
   pending,
   onTranslate,
   onSpeak,
-  bottomPadding,
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
@@ -619,15 +574,13 @@ function MessageList({
   pending: boolean;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
-  bottomPadding?: number;
 }) {
   const t = useT();
 
   return (
     <div
       ref={refObject}
-      className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5"
-      style={(bottomPadding ?? 0) > 0 ? { paddingBottom: `${bottomPadding}px` } : undefined}
+      className="min-h-0 flex-1 overscroll-contain overflow-y-auto p-3 sm:p-5"
       data-ai-chat-scroll="true"
     >
       {messages.length === 0 ? (

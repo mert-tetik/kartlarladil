@@ -11,10 +11,23 @@ export type MobileKeyboardDockState = {
   keyboardOffset: number;
 };
 
+function isEditableElement(element: Element | null): boolean {
+  if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
+    return !element.disabled;
+  }
+
+  if (element instanceof HTMLInputElement) {
+    return !element.disabled && !element.readOnly;
+  }
+
+  return element instanceof HTMLElement && element.isContentEditable;
+}
+
 export function useMobileKeyboardDock(
   keyboardThreshold = DEFAULT_KEYBOARD_THRESHOLD,
 ): MobileKeyboardDockState {
   const maxMobileViewportHeightRef = useRef(0);
+  const keyboardOpenRef = useRef(false);
   const [state, setState] = useState<MobileKeyboardDockState>({
     isKeyboardOpen: false,
     isMobileViewport: false,
@@ -39,8 +52,12 @@ export function useMobileKeyboardDock(
       const previousMaxViewportHeight = maxMobileViewportHeightRef.current || currentViewportHeight;
       const viewportKeyboardOffset = Math.max(0, window.innerHeight - visibleViewportBottom);
       const baselineKeyboardOffset = Math.max(0, previousMaxViewportHeight - visibleViewportBottom);
-      const keyboardOffset = Math.max(viewportKeyboardOffset, baselineKeyboardOffset);
-      const isKeyboardOpen = isMobileViewport && keyboardOffset > keyboardThreshold;
+      const keyboardReduction = Math.max(viewportKeyboardOffset, baselineKeyboardOffset);
+      const hasEditableFocus = isEditableElement(document.activeElement);
+      const isKeyboardOpen =
+        isMobileViewport &&
+        keyboardReduction > keyboardThreshold &&
+        (hasEditableFocus || keyboardOpenRef.current);
 
       if (!isMobileViewport) {
         maxMobileViewportHeightRef.current = 0;
@@ -48,11 +65,22 @@ export function useMobileKeyboardDock(
         maxMobileViewportHeightRef.current = Math.max(previousMaxViewportHeight, currentViewportHeight);
       }
 
-      setState({
+      keyboardOpenRef.current = isKeyboardOpen;
+      const nextState = {
         isKeyboardOpen,
         isMobileViewport,
-        keyboardOffset: isKeyboardOpen ? keyboardOffset : 0,
-      });
+        // Fixed elements need only the gap between the layout and visual viewport.
+        // When a browser resizes both viewports, this is correctly zero.
+        keyboardOffset: isKeyboardOpen ? viewportKeyboardOffset : 0,
+      };
+
+      setState((current) =>
+        current.isKeyboardOpen === nextState.isKeyboardOpen &&
+        current.isMobileViewport === nextState.isMobileViewport &&
+        current.keyboardOffset === nextState.keyboardOffset
+          ? current
+          : nextState,
+      );
     }
 
     syncState();
@@ -60,12 +88,16 @@ export function useMobileKeyboardDock(
     window.addEventListener("resize", syncState);
     visualViewport?.addEventListener("resize", syncState);
     visualViewport?.addEventListener("scroll", syncState);
+    document.addEventListener("focusin", syncState);
+    document.addEventListener("focusout", syncState);
 
     return () => {
       mediaQuery?.removeEventListener("change", syncState);
       window.removeEventListener("resize", syncState);
       visualViewport?.removeEventListener("resize", syncState);
       visualViewport?.removeEventListener("scroll", syncState);
+      document.removeEventListener("focusin", syncState);
+      document.removeEventListener("focusout", syncState);
     };
   }, [keyboardThreshold]);
 

@@ -3,6 +3,7 @@ import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { CookieNotice } from "@/components/cookie-notice";
 import { GlobalTapVibration } from "@/components/global-tap-vibration";
 import { AppNavigation } from "@/components/app-navigation";
+import { MobileViewportController } from "@/components/mobile-viewport-controller";
 import { PageTransitionShell } from "@/components/page-transition-shell";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -20,6 +21,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
   return (
     <LocaleProvider initialLocale={locale}>
       <BodyScrollLock />
+      <MobileViewportController />
       <GlobalTapVibration />
       <AuthSessionProvider user={user}>
         <SubscriptionProvider>

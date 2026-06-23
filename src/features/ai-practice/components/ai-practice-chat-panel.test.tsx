@@ -178,7 +178,11 @@ describe("AiPracticeChatPanel", () => {
 function renderPanel() {
   return render(
     <LocaleProvider initialLocale="en">
-      <AiPracticeChatPanel character={testCharacter} language="en" />
+      <AiPracticeChatPanel
+        character={testCharacter}
+        initialOpeningLine="Hello! How are you today?"
+        language="en"
+      />
     </LocaleProvider>,
   );
 }

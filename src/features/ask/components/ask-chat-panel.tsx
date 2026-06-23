@@ -26,7 +26,6 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { useVisualViewport } from "@/lib/use-visual-viewport";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -80,12 +79,6 @@ export function AskChatPanel({
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
-  const { keyboardHeight, safeAreaBottom, navHeight } = useVisualViewport();
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
-  const [composerHeight, setComposerHeight] = useState(0);
-  const panelBottom = keyboardHeight > 0 ? keyboardHeight : navHeight + safeAreaBottom;
-  const messageListBottomPadding = isMobileViewport ? composerHeight + panelBottom : 80;
 
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -122,35 +115,6 @@ export function AskChatPanel({
       window.cancelAnimationFrame(frameId);
       recognitionRef.current?.abort?.();
     };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    function updateMobile() {
-      setIsMobileViewport(mediaQuery.matches);
-    }
-    updateMobile();
-    mediaQuery.addEventListener("change", updateMobile);
-    return () => mediaQuery.removeEventListener("change", updateMobile);
-  }, []);
-
-  useEffect(() => {
-    const wrapper = composerWrapperRef.current;
-    if (!wrapper || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height =
-          entry.borderBoxSize && entry.borderBoxSize.length > 0
-            ? entry.borderBoxSize[0].blockSize
-            : entry.contentRect.height;
-        setComposerHeight(height);
-      }
-    });
-
-    observer.observe(wrapper);
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -468,13 +432,8 @@ export function AskChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
-        bottomPadding={messageListBottomPadding}
       />
-      <div
-        ref={composerWrapperRef}
-        className="max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card lg:static"
-        style={{ bottom: `${panelBottom}px` }}
-      >
+      <div className="shrink-0 bg-background-card">
         <ChatComposer
           draft={isRecording && interimTranscript ? interimTranscript : draft}
           pending={pending}
@@ -488,11 +447,6 @@ export function AskChatPanel({
           onToggleRecording={toggleRecording}
           onTextareaFocus={() => {
             scrollMessageListToBottom();
-            if (textareaRef.current) {
-              window.setTimeout(() => {
-                textareaRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-              }, 0);
-            }
           }}
         />
       </div>
@@ -542,22 +496,19 @@ function MessageList({
   pending,
   onTranslate,
   onSpeak,
-  bottomPadding,
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
   pending: boolean;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
-  bottomPadding?: number;
 }) {
   const t = useT();
 
   return (
     <div
       ref={refObject}
-      className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5"
-      style={(bottomPadding ?? 0) > 0 ? { paddingBottom: `${bottomPadding}px` } : undefined}
+      className="min-h-0 flex-1 overscroll-contain overflow-y-auto p-3 sm:p-5"
       data-ask-chat-scroll="true"
     >
       {messages.length === 0 ? (

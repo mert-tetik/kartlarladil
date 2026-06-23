@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isLanguageCode } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
-import { getAiPracticeCharacter, getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import {
+  getAiPracticeCharacter,
+  getCharacterName,
+  getRandomOpeningLine,
+} from "@/features/ai-practice/ai-practice-data";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -54,13 +58,19 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
   const { tier: rawTier } = await searchParams;
   const tier: Tier =
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
+  const initialOpeningLine = getRandomOpeningLine(character, rawLanguage);
 
   return (
     <section
-      className="animate-screen-pop mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
+      className="mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
       data-ai-practice-chat-page
     >
-      <AiPracticeChatPanel character={character} language={rawLanguage} tier={tier} />
+      <AiPracticeChatPanel
+        character={character}
+        initialOpeningLine={initialOpeningLine}
+        language={rawLanguage}
+        tier={tier}
+      />
     </section>
   );
 }

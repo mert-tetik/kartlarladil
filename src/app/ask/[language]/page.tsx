@@ -44,7 +44,7 @@ export default async function AskPage({ params, searchParams }: AskPageProps) {
 
   return (
     <section
-      className="animate-screen-pop mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
+      className="mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
       data-ask-chat-page
     >
       <AskChatPanel language={rawLanguage} initialTerm={initialTerm} />

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -121,7 +121,7 @@ describe("CardDrawWorkbench", () => {
     expect(useInventoryStore.getState().cards).toHaveLength(1);
   });
 
-  it("keeps mobile controls sticky above the bottom nav and keeps draw/filter controls visible", async () => {
+  it("keeps mobile draw controls at the bottom of the workbench and makes cards scroll between controls", async () => {
     installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
     const { container } = renderWorkbench();
@@ -129,12 +129,14 @@ describe("CardDrawWorkbench", () => {
     const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
     const drawActions = container.querySelector("[data-card-draw-draw-actions]") as HTMLElement;
     const filters = container.querySelector("[data-card-draw-filters]") as HTMLElement;
+    const scrollArea = container.querySelector("[data-card-draw-scroll-area]") as HTMLElement;
 
-    expect(controls.classList.contains("max-lg:fixed")).toBe(true);
-    expect(controls.style.bottom).toBe("64px");
+    expect(controls).toHaveClass("max-lg:order-3", "max-lg:shrink-0");
+    expect(controls).not.toHaveClass("max-lg:fixed");
+    expect(scrollArea).toHaveClass("max-lg:order-2", "max-lg:flex-1", "max-lg:overflow-y-auto");
     expect(drawActions).not.toHaveClass("max-lg:hidden");
     expect(filters).not.toHaveClass("max-lg:hidden");
-    expect(screen.getByPlaceholderText(/Kelime/)).toBeVisible();
+    expect(getMobileSearchInput(container)).toBeVisible();
   });
 });
 
@@ -149,10 +151,19 @@ function renderWorkbench() {
 }
 
 async function revealTestCard(user: ReturnType<typeof userEvent.setup>) {
-  fireEvent.change(screen.getByPlaceholderText(/Kelime/), { target: { value: testCard.term } });
-  await user.click(await screen.findByRole("button", { name: new RegExp(testCard.term) }));
+  const mobileSearchPanel = getMobileSearchPanel(document.body);
+  fireEvent.change(getMobileSearchInput(mobileSearchPanel), { target: { value: testCard.term } });
+  await user.click(await within(mobileSearchPanel).findByRole("button", { name: new RegExp(testCard.term) }));
   await user.click(await screen.findByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` }));
   await screen.findByRole("heading", { name: testCard.term });
+}
+
+function getMobileSearchInput(container: HTMLElement) {
+  return container.querySelector("[data-card-draw-mobile-search] [data-card-draw-search-input]") as HTMLInputElement;
+}
+
+function getMobileSearchPanel(container: HTMLElement) {
+  return container.querySelector("[data-card-draw-mobile-search]") as HTMLElement;
 }
 
 function installMobileKeyboardEnvironment({
