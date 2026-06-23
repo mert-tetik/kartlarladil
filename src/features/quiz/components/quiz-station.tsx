@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -1086,13 +1086,22 @@ function TextQuestion({
   const t = useT();
   const question = item.question as { correctAnswer: string };
   const exampleTranslation = item.card.examples[0] ? getCardExampleTranslation(item.card.examples[0], locale) : "";
+  const isMobileViewport = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 1024,
+    () => false,
+  );
   const [splashDone, setSplashDone] = useState(false);
   const [splashColor] = useState(() => CHOICE_OPTION_COLORS[Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)]);
 
   useEffect(() => {
+    if (!isMobileViewport) return;
     const timer = window.setTimeout(() => setSplashDone(true), 1200);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [isMobileViewport]);
 
   function handleSubmit() {
     if (showingAnswer) return;
@@ -1102,10 +1111,10 @@ function TextQuestion({
 
   return (
     <>
-      {!splashDone ? (
+      {isMobileViewport && !splashDone ? (
         <div
           className={cn(
-            "fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-learning-quiz-splash",
+            "fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-learning-quiz-splash lg:hidden",
             splashColor,
           )}
           aria-hidden="true"
@@ -1118,7 +1127,7 @@ function TextQuestion({
       <div
         className={cn(
           "animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8",
-          splashDone ? "opacity-100" : "opacity-0",
+          splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
         )}
       >
       <div className="flex items-center gap-2">
@@ -1404,8 +1413,7 @@ export function ResultView({
           <div
             ref={introRef}
             className={cn(
-              "flex size-32 items-center justify-center rounded-full transition-colors duration-300",
-              performance.textClassName,
+              "flex size-32 items-center justify-center rounded-full bg-black text-white transition-colors duration-300 dark:bg-white dark:text-black",
               introPhase === "entering" && "animate-trophy-intro-grow",
             )}
           >
@@ -1424,8 +1432,7 @@ export function ResultView({
         <div
           ref={summaryIconRef}
           className={cn(
-            "mx-auto flex size-16 items-center justify-center rounded-full transition-opacity duration-300 sm:size-20",
-            performance.textClassName,
+            "mx-auto flex size-16 items-center justify-center rounded-full bg-black text-white transition-opacity duration-300 dark:bg-white dark:text-black sm:size-20",
             menuVisible ? "opacity-100" : "opacity-0",
           )}
         >
@@ -1462,7 +1469,10 @@ export function ResultView({
         </div>
 
         <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3">
-          <Button className="w-full sm:w-auto" variant="secondary" onClick={onRestart}>
+          <Button
+            className="w-full bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 sm:w-auto"
+            onClick={onRestart}
+          >
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("quiz.restart")}
           </Button>
@@ -1583,9 +1593,13 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl max-lg:max-h-none max-lg:rounded-none max-lg:border-0"
+        className="relative flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl max-lg:max-h-none max-lg:rounded-none max-lg:border-0"
         onClick={(event) => event.stopPropagation()}
       >
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/2 -z-10 h-3 -translate-y-1/2 bg-black dark:bg-white"
+          aria-hidden="true"
+        />
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card p-4">
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <button
