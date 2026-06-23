@@ -770,7 +770,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="absolute bottom-0 left-0 right-0 border-t border-border bg-background-card p-2 sm:p-3"
+      className="absolute bottom-[var(--keyboard-height,0px)] left-0 right-0 border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">

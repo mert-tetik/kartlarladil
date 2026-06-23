@@ -422,7 +422,7 @@ export function CardDrawWorkbench() {
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div
-        className="max-lg:absolute max-lg:bottom-0 max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        className="max-lg:absolute max-lg:bottom-[var(--keyboard-height,0px)] max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
         data-card-draw-controls
       >
         <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
