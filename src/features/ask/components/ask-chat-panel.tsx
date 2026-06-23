@@ -80,7 +80,12 @@ export function AskChatPanel({
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
-  useVisualViewport();
+  const { keyboardHeight, safeAreaBottom, navHeight } = useVisualViewport();
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [composerHeight, setComposerHeight] = useState(0);
+  const panelBottom = keyboardHeight > 0 ? keyboardHeight : navHeight + safeAreaBottom;
+  const messageListBottomPadding = isMobileViewport ? composerHeight + panelBottom : 80;
 
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -117,6 +122,35 @@ export function AskChatPanel({
       window.cancelAnimationFrame(frameId);
       recognitionRef.current?.abort?.();
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    function updateMobile() {
+      setIsMobileViewport(mediaQuery.matches);
+    }
+    updateMobile();
+    mediaQuery.addEventListener("change", updateMobile);
+    return () => mediaQuery.removeEventListener("change", updateMobile);
+  }, []);
+
+  useEffect(() => {
+    const wrapper = composerWrapperRef.current;
+    if (!wrapper || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height =
+          entry.borderBoxSize && entry.borderBoxSize.length > 0
+            ? entry.borderBoxSize[0].blockSize
+            : entry.contentRect.height;
+        setComposerHeight(height);
+      }
+    });
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -434,23 +468,34 @@ export function AskChatPanel({
         pending={pending}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
-        bottomPadding={80}
+        bottomPadding={messageListBottomPadding}
       />
-      <ChatComposer
-        draft={isRecording && interimTranscript ? interimTranscript : draft}
-        pending={pending}
-        isRecording={isRecording}
-        microphoneSupported={microphoneSupported}
-        textareaRef={textareaRef}
-        analyser={analyserRef.current}
-        onChange={setDraft}
-        onKeyDown={handleKeyDown}
-        onSubmit={submitMessage}
-        onToggleRecording={toggleRecording}
-        onTextareaFocus={() => {
-          scrollMessageListToBottom();
-        }}
-      />
+      <div
+        ref={composerWrapperRef}
+        className="max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card lg:static"
+        style={{ bottom: `${panelBottom}px` }}
+      >
+        <ChatComposer
+          draft={isRecording && interimTranscript ? interimTranscript : draft}
+          pending={pending}
+          isRecording={isRecording}
+          microphoneSupported={microphoneSupported}
+          textareaRef={textareaRef}
+          analyser={analyserRef.current}
+          onChange={setDraft}
+          onKeyDown={handleKeyDown}
+          onSubmit={submitMessage}
+          onToggleRecording={toggleRecording}
+          onTextareaFocus={() => {
+            scrollMessageListToBottom();
+            if (textareaRef.current) {
+              window.setTimeout(() => {
+                textareaRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+              }, 0);
+            }
+          }}
+        />
+      </div>
 
       <UpgradeDialog
         open={limitError !== null}
@@ -676,7 +721,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="absolute bottom-[var(--keyboard-height,0px)] left-0 right-0 border-t border-border bg-background-card p-2 sm:p-3"
+      className="border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">

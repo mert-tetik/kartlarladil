@@ -87,7 +87,12 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
-  useVisualViewport();
+  const { keyboardHeight, safeAreaBottom, navHeight } = useVisualViewport();
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  const mobilePanelBottom = keyboardHeight > 0 ? keyboardHeight : navHeight + safeAreaBottom;
+  const mobileScrollPaddingBottom = panelHeight + mobilePanelBottom;
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -181,6 +186,24 @@ export function CardDrawWorkbench() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height =
+          entry.borderBoxSize && entry.borderBoxSize.length > 0
+            ? entry.borderBoxSize[0].blockSize
+            : entry.contentRect.height;
+        setPanelHeight(height);
+      }
+    });
+
+    observer.observe(panel);
+    return () => observer.disconnect();
   }, []);
 
   useLayoutEffect(() => {
@@ -422,7 +445,9 @@ export function CardDrawWorkbench() {
     >
       {/* Controls - attached to bottom on mobile, normal card on desktop */}
       <div
-        className="max-lg:absolute max-lg:bottom-[var(--keyboard-height,0px)] max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        ref={panelRef}
+        className="max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-30 max-lg:border-t max-lg:border-border max-lg:bg-background-card max-lg:p-2 lg:rounded-lg lg:border lg:border-border lg:bg-background-card lg:p-4"
+        style={{ bottom: `${mobilePanelBottom}px` }}
         data-card-draw-controls
       >
         <div className="mx-auto max-w-7xl space-y-3 max-lg:space-y-1">
@@ -439,6 +464,11 @@ export function CardDrawWorkbench() {
                   onFocus={() => {
                     if (suggestions.length > 0 || query.trim()) {
                       setIsDropdownOpen(true);
+                    }
+                    if (isMobileViewport && searchInputRef.current) {
+                      window.setTimeout(() => {
+                        searchInputRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+                      }, 0);
                     }
                   }}
                   onKeyDown={(event) => {
@@ -520,7 +550,8 @@ export function CardDrawWorkbench() {
 
       {/* Cards area - fills the space above controls on mobile */}
       <div
-        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:pb-48 max-lg:touch-pan-y lg:mt-6"
+        className="max-lg:order-1 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:mt-6"
+        style={isMobileViewport ? { paddingBottom: `${mobileScrollPaddingBottom}px` } : undefined}
         data-card-draw-scroll-area
       >
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">

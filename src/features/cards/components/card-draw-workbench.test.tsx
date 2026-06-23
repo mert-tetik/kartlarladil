@@ -130,8 +130,8 @@ describe("CardDrawWorkbench", () => {
     const drawActions = container.querySelector("[data-card-draw-draw-actions]") as HTMLElement;
     const filters = container.querySelector("[data-card-draw-filters]") as HTMLElement;
 
-    expect(controls.classList.contains("max-lg:sticky")).toBe(true);
-    expect(controls.classList.contains("max-lg:bottom-0")).toBe(true);
+    expect(controls.classList.contains("max-lg:fixed")).toBe(true);
+    expect(controls.style.bottom).toBe("64px");
     expect(drawActions).not.toHaveClass("max-lg:hidden");
     expect(filters).not.toHaveClass("max-lg:hidden");
     expect(screen.getByPlaceholderText(/Kelime/)).toBeVisible();
