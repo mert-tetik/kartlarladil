@@ -3,7 +3,7 @@
 import { useLayoutEffect, useState } from "react";
 
 const MOBILE_MEDIA_QUERY = "(max-width: 1023px)";
-const DEFAULT_KEYBOARD_THRESHOLD = 160;
+const DEFAULT_KEYBOARD_THRESHOLD = 80;
 
 export type MobileKeyboardDockState = {
   isKeyboardOpen: boolean;

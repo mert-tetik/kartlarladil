@@ -417,6 +417,7 @@ const dictionary = {
   "quiz.learnedDescription": "Great job — this card is now marked as learned.",
   "quiz.learnedTitle": "Great job! This card is now marked as learned.",
   "quiz.learningQuizBadge": "Learning question",
+  "quiz.learningQuizSplash": "Card learning question",
   "quiz.learningQuizPlaceholder": "Type the word...",
   "quiz.learningQuizPrompt": "Type the {language} word",
   "quiz.learningQuizTitle": "You're about to learn this card",

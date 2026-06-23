@@ -11,7 +11,6 @@ import {
   Lock,
   Medal,
   RotateCcw,
-  Sparkles,
   Trophy,
   Volume2,
   X,
@@ -34,7 +33,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import { getChestTierByCount, CHEST_TIER_TEXT_CLASSES, CHEST_TIER_BORDER_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { getChestTierByCount, CHEST_TIER_BORDER_CLASSES, CHEST_TIER_UI_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -548,7 +547,22 @@ export function QuizStation({
 
   return (
     <>
-      <div className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center" data-learn-quiz-page="quiz">
+      <MobileQuizTopBars
+        mode={mode}
+        item={item}
+        currentIndex={currentIndex}
+        total={deck.length}
+        showingAnswer={showingAnswer}
+        lastAnswerCorrect={lastAnswerCorrect}
+        onShowCard={() => {
+          setMobileCardOpen(true);
+          setMobileCardFace(showingAnswer ? "front" : "back");
+        }}
+      />
+      <div
+        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:pt-36"
+        data-learn-quiz-page="quiz"
+      >
         <div className="grid gap-6 max-sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="order-2 flex flex-col justify-center gap-4 lg:order-1">
             <QuizCounter currentIndex={currentIndex} total={deck.length} showingAnswer={showingAnswer} />
@@ -700,7 +714,7 @@ export function LanguageSelection({
   return (
     <div
       data-quiz-language-selection
-      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-white/10 bg-black p-5 text-white sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
+      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background p-5 text-foreground sm:p-8 lg:min-w-[56rem] lg:max-w-5xl lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
     >
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         <div className="w-full max-w-4xl">
@@ -754,7 +768,7 @@ export function LanguageSelection({
 
           {onBack ? (
             <div className="mt-5 flex justify-center">
-              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={onBack}>
+              <Button variant="ghost" className="text-foreground hover:bg-background-muted hover:text-foreground" onClick={onBack}>
                 {t("common.back")}
               </Button>
             </div>
@@ -815,6 +829,8 @@ export function CountSelection({
               const disabled = count > availableCount;
               const chestTier = getChestTierByCount(count);
 
+              const chestBase = showChestTiers && chestTier ? CHEST_TIER_UI_CLASSES[chestTier.tier].base : null;
+
               return (
                 <button
                   key={count}
@@ -823,15 +839,21 @@ export function CountSelection({
                   onClick={() => onSelect(count)}
                   className={cn(
                     "flex min-h-16 flex-col items-center justify-center rounded-md border-2 px-2 py-2 text-sm font-semibold transition-colors sm:min-h-[72px] sm:py-3",
-                    selectedCount === count
-                      ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
-                      : "bg-background text-foreground-secondary hover:bg-background-card disabled:opacity-40",
+                    chestBase
+                      ? cn("text-white", chestBase, selectedCount === count ? "ring-2 ring-white/60" : "hover:brightness-110")
+                      : [
+                          selectedCount === count
+                            ? "bg-background-inverse text-foreground-inverse hover:brightness-110"
+                            : "bg-background text-foreground-secondary hover:bg-background-card",
+                          "border-border",
+                        ],
+                    disabled && "opacity-40",
                     showChestTiers && chestTier ? CHEST_TIER_BORDER_CLASSES[chestTier.tier] : "border-border",
                   )}
                 >
                   <span>{count}</span>
                   {showChestTiers && chestTier ? (
-                    <span className={cn("text-[10px] font-medium sm:text-xs", CHEST_TIER_TEXT_CLASSES[chestTier.tier])}>
+                    <span className="text-[10px] font-medium text-white sm:text-xs">
                       {t(chestTier.labelKey)}
                     </span>
                   ) : null}
@@ -872,7 +894,7 @@ function QuizProgressHeader({
   const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
 
   return (
-    <div className="rounded-lg border border-transparent bg-transparent p-3 max-sm:p-2 sm:p-5">
+    <div className="rounded-lg border border-transparent bg-transparent p-3 max-sm:p-2 sm:p-5 max-lg:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className={cn("border-transparent", style.text)}>
           {item.questionType === "text"
@@ -885,7 +907,7 @@ function QuizProgressHeader({
           type="button"
           onClick={onShowCard}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 active:brightness-90 lg:hidden",
+            "rounded-md px-3 py-1.5 text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 active:brightness-90",
             style.accent,
           )}
         >
@@ -905,6 +927,79 @@ function QuizProgressHeader({
         </div>
       ) : null}
 
+    </div>
+  );
+}
+
+function MobileQuizTopBars({
+  mode,
+  item,
+  currentIndex,
+  total,
+  showingAnswer,
+  lastAnswerCorrect,
+  onShowCard,
+}: {
+  mode: PracticeMode;
+  item: QuizItem;
+  currentIndex: number;
+  total: number;
+  showingAnswer: boolean;
+  lastAnswerCorrect: boolean | null;
+  onShowCard: () => void;
+}) {
+  const t = useT();
+  const style = TIER_STYLES[item.card.tier];
+  const requirement = TIER_REQUIREMENTS[item.card.tier];
+  const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
+  const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
+  const progress = Math.min(100, (displayCorrectCount / requirement) * 100);
+  const quizProgress = Math.min(100, ((currentIndex + (showingAnswer ? 1 : 0)) / total) * 100);
+
+  return (
+    <div className="fixed inset-x-0 top-0 z-30 flex flex-col lg:hidden">
+      <div className="flex flex-col gap-1 bg-black px-4 py-2 text-white">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span>{t("quiz.activeBadge")}</span>
+          <span>
+            {currentIndex + 1} / {total}
+          </span>
+        </div>
+        <Progress value={quizProgress} indicatorClassName="bg-white" />
+      </div>
+
+      <div className={cn("flex flex-col gap-1 px-4 py-2 text-white", style.accent)}>
+        <div className="flex items-center justify-between">
+          <Badge className="border-transparent bg-white/20 text-white">
+            {item.questionType === "text"
+              ? t("quiz.learningQuizBadge")
+              : mode === "learned"
+                ? t("quiz.reviewBadge")
+                : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
+          </Badge>
+          <button
+            type="button"
+            onClick={onShowCard}
+            className={cn(
+              "rounded-md bg-white px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/90",
+              style.backText,
+            )}
+          >
+            {t("quiz.showCard")}
+          </button>
+        </div>
+        {item.questionType === "choice" && mode === "active" ? (
+          <>
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
+              <span>
+                {displayCorrectCount}/{requirement}
+              </span>
+            </div>
+            <Progress value={progress} indicatorClassName="bg-white" />
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -1025,6 +1120,13 @@ function TextQuestion({
   const t = useT();
   const question = item.question as { correctAnswer: string };
   const exampleTranslation = item.card.examples[0] ? getCardExampleTranslation(item.card.examples[0], locale) : "";
+  const [splashDone, setSplashDone] = useState(false);
+  const [splashColor] = useState(() => CHOICE_OPTION_COLORS[Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSplashDone(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function handleSubmit() {
     if (showingAnswer) return;
@@ -1033,7 +1135,26 @@ function TextQuestion({
   }
 
   return (
-    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8">
+    <>
+      {!splashDone ? (
+        <div
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-learning-quiz-splash",
+            splashColor,
+          )}
+          aria-hidden="true"
+        >
+          <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
+            {t("quiz.learningQuizSplash")}
+          </span>
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8",
+          splashDone ? "opacity-100" : "opacity-0",
+        )}
+      >
       <div className="flex items-center gap-2">
         <GraduationCap className="size-5 text-amber-600" aria-hidden="true" />
         <span className="text-sm font-semibold text-amber-700">{t("quiz.learningQuizTitle")}</span>
@@ -1094,6 +1215,7 @@ function TextQuestion({
         )}
       </div>
     </div>
+    </>
   );
 }
 
@@ -1317,7 +1439,6 @@ export function ResultView({
             ref={introRef}
             className={cn(
               "flex size-32 items-center justify-center rounded-full transition-colors duration-300",
-              performance.ringClassName,
               performance.textClassName,
               introPhase === "entering" && "animate-trophy-intro-grow",
             )}
@@ -1338,7 +1459,6 @@ export function ResultView({
           ref={summaryIconRef}
           className={cn(
             "mx-auto flex size-16 items-center justify-center rounded-full transition-opacity duration-300 sm:size-20",
-            performance.ringClassName,
             performance.textClassName,
             menuVisible ? "opacity-100" : "opacity-0",
           )}

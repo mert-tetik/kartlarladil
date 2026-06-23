@@ -809,3 +809,22 @@ body:has([data-ask-page]) footer {
 .animate-sparkle-rise {
   animation: sparkle-rise 900ms ease-out forwards;
 }
+
+@keyframes learning-quiz-splash {
+  0% {
+    transform: translate3d(0, -100%, 0);
+  }
+  40% {
+    transform: translate3d(0, 0, 0);
+  }
+  60% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.animate-learning-quiz-splash {
+  animation: learning-quiz-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}

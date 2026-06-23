@@ -30,6 +30,7 @@ export default async function AiPracticePage() {
         <PageHeader
           title={t("page.aiPractice.title")}
           description={t("page.aiPractice.chooseLanguagePrompt")}
+          centered
           descriptionClassName="text-sm sm:text-base"
         />
         <div className="mt-8">

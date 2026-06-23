@@ -49,6 +49,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileNavBottomOffset, setMobileNavBottomOffset] = useState(0);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const stableBottomOffsetRef = useRef(0);
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
@@ -95,6 +96,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         stableBottomOffsetRef.current = rawBottomOffset;
       }
 
+      setIsKeyboardOpen(keyboardLikelyVisible);
       setMobileNavBottomOffset(keyboardLikelyVisible ? stableBottomOffsetRef.current : rawBottomOffset);
     }
 
@@ -180,9 +182,19 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       <nav
         aria-label={t("nav.mobileMenu")}
         data-mobile-main-nav
-        className="mobile-main-nav fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card text-foreground lg:hidden"
+        className={cn(
+          "mobile-main-nav fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card text-foreground transition-transform duration-200 lg:hidden",
+          isKeyboardOpen && "pointer-events-none translate-y-full",
+        )}
         style={{ bottom: `${mobileNavBottomOffset}px` }}
       >
+        <div className="relative">
+          <div
+            className="pointer-events-none absolute left-0 right-0 top-full h-32 bg-brand"
+            aria-hidden="true"
+          />
+        </div>
+
         <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const Icon = item.icon;

@@ -417,6 +417,7 @@ const dictionary = {
   "quiz.learnedDescription": "عمل رائع - هذه البطاقة الآن مُعلمة كمتعلمة.",
   "quiz.learnedTitle": "عمل رائع! هذه البطاقة الآن مُعلمة كمتعلمة.",
   "quiz.learningQuizBadge": "سؤال تعلم",
+  "quiz.learningQuizSplash": "سؤال تعلم البطاقة",
   "quiz.learningQuizPlaceholder": "اكتب الكلمة...",
   "quiz.learningQuizPrompt": "اكتب الكلمة {language}",
   "quiz.learningQuizTitle": "أنت على وشك تعلم هذه البطاقة",

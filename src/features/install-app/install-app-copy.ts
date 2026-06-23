@@ -24,8 +24,8 @@ type InstallAppCopy = {
 
 const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
   tr: {
-    cta: "Uygulamayı Al",
-    metaTitle: "Uygulamayı Al",
+    cta: "Uygulamayı İndir",
+    metaTitle: "Uygulamayı İndir",
     metaDescription: "FoxiesDeck'i telefonunun ana ekranına eklemek için tarayıcına uygun kısa adımları gör.",
     title: "FoxiesDeck'i ana ekrana ekle",
     description: "Bu sayfayı telefonunda açık bırak ve kullandığın tarayıcıya göre aşağıdaki kısa adımları uygula.",
@@ -74,8 +74,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   en: {
-    cta: "Get The App",
-    metaTitle: "Get The App",
+    cta: "Download the App",
+    metaTitle: "Download the App",
     metaDescription: "See the short browser-specific steps to add FoxiesDeck to your phone's home screen.",
     title: "Add FoxiesDeck to your home screen",
     description: "Keep this page open on your phone and follow the short steps for the browser you use.",
@@ -124,8 +124,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   de: {
-    cta: "App holen",
-    metaTitle: "App holen",
+    cta: "App herunterladen",
+    metaTitle: "App herunterladen",
     metaDescription: "Sieh dir die kurzen browserspezifischen Schritte an, um FoxiesDeck zum Startbildschirm deines Telefons hinzuzufügen.",
     title: "FoxiesDeck zum Startbildschirm hinzufügen",
     description: "Lass diese Seite auf deinem Handy geöffnet und folge den kurzen Schritten für den Browser, den du verwendest.",
@@ -174,8 +174,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   ru: {
-    cta: "Установить",
-    metaTitle: "Установить",
+    cta: "Скачать приложение",
+    metaTitle: "Скачать приложение",
     metaDescription: "Посмотри короткие инструкции для каждого браузера, чтобы добавить FoxiesDeck на главный экран телефона.",
     title: "Добавь FoxiesDeck на главный экран",
     description: "Оставь эту страницу открытой на телефоне и выполни короткие шаги для своего браузера.",
@@ -224,8 +224,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   fr: {
-    cta: "Obtenir l'app",
-    metaTitle: "Obtenir l'app",
+    cta: "Télécharger l'app",
+    metaTitle: "Télécharger l'app",
     metaDescription: "Consulte les étapes courtes selon le navigateur pour ajouter FoxiesDeck à l'écran d'accueil de ton téléphone.",
     title: "Ajouter FoxiesDeck à l'écran d'accueil",
     description: "Garde cette page ouverte sur ton téléphone et suis les étapes courtes pour le navigateur que tu utilises.",
@@ -274,8 +274,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   es: {
-    cta: "Obtener la app",
-    metaTitle: "Obtener la app",
+    cta: "Descargar la app",
+    metaTitle: "Descargar la app",
     metaDescription: "Mira los pasos cortos según el navegador para añadir FoxiesDeck a la pantalla de inicio de tu teléfono.",
     title: "Añade FoxiesDeck a tu pantalla de inicio",
     description: "Mantén esta página abierta en tu teléfono y sigue los pasos cortos del navegador que usas.",
@@ -324,8 +324,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   it: {
-    cta: "Ottieni l'app",
-    metaTitle: "Ottieni l'app",
+    cta: "Scarica l'app",
+    metaTitle: "Scarica l'app",
     metaDescription: "Guarda i passaggi brevi per browser per aggiungere FoxiesDeck alla schermata Home del telefono.",
     title: "Aggiungi FoxiesDeck alla schermata Home",
     description: "Tieni aperta questa pagina sul telefono e segui i passaggi brevi per il browser che usi.",
@@ -374,8 +374,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   pt: {
-    cta: "Obter o app",
-    metaTitle: "Obter o app",
+    cta: "Baixar o app",
+    metaTitle: "Baixar o app",
     metaDescription: "Veja os passos curtos por navegador para adicionar o FoxiesDeck à tela inicial do seu telefone.",
     title: "Adicione o FoxiesDeck à tela inicial",
     description: "Mantenha esta página aberta no seu celular e siga os passos curtos do navegador que você usa.",
@@ -524,8 +524,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   ar: {
-    cta: "احصل على التطبيق",
-    metaTitle: "احصل على التطبيق",
+    cta: "حمّل التطبيق",
+    metaTitle: "حمّل التطبيق",
     metaDescription: "اطلع على الخطوات القصيرة الخاصة بكل متصفح لإضافة FoxiesDeck إلى الشاشة الرئيسية لهاتفك.",
     title: "أضف FoxiesDeck إلى الشاشة الرئيسية",
     description: "اترك هذه الصفحة مفتوحة على هاتفك واتبع الخطوات القصيرة الخاصة بالمتصفح الذي تستخدمه.",
@@ -574,8 +574,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   ja: {
-    cta: "アプリを入手",
-    metaTitle: "アプリを入手",
+    cta: "アプリをダウンロード",
+    metaTitle: "アプリをダウンロード",
     metaDescription: "FoxiesDeck をスマートフォンのホーム画面に追加するための、ブラウザ別の短い手順を確認できます。",
     title: "FoxiesDeck をホーム画面に追加",
     description: "このページをスマートフォンで開いたまま、使っているブラウザの短い手順に従ってください。",
@@ -624,8 +624,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   ko: {
-    cta: "앱 받기",
-    metaTitle: "앱 받기",
+    cta: "앱 다운로드",
+    metaTitle: "앱 다운로드",
     metaDescription: "FoxiesDeck를 휴대폰 홈 화면에 추가하는 브라우저별 짧은 안내를 확인하세요.",
     title: "FoxiesDeck를 홈 화면에 추가하기",
     description: "이 페이지를 휴대폰에서 연 상태로 두고, 사용하는 브라우저에 맞는 짧은 안내를 따라가세요.",
@@ -674,8 +674,8 @@ const INSTALL_APP_COPY: Record<LocaleCode, InstallAppCopy> = {
     ],
   },
   "zh-CN": {
-    cta: "获取应用",
-    metaTitle: "获取应用",
+    cta: "下载应用",
+    metaTitle: "下载应用",
     metaDescription: "查看按浏览器区分的简短步骤，把 FoxiesDeck 添加到你的手机主屏幕。",
     title: "将 FoxiesDeck 添加到主屏幕",
     description: "请在手机上保持此页面打开，并按照你正在使用的浏览器对应的简短步骤操作。",

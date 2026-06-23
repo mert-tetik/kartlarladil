@@ -171,8 +171,8 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
           phase === "disappearing" && "scale-75 opacity-0",
         )}
       >
-        <h2 className="text-xl font-semibold text-foreground sm:text-2xl">{t("chest.title")}</h2>
-        <p className={cn("mt-2 text-sm font-semibold sm:text-base", CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"))}>
+        <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("chest.title")}</h2>
+        <p className={cn("mt-2 text-base font-semibold sm:text-lg", CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"))}>
           {t(tier.labelKey)}
         </p>
 
@@ -199,10 +199,10 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
                   <Gift className="size-5 sm:size-6" aria-hidden="true" />
                   <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
                 </div>
-                <p className="mt-1 text-4xl font-bold leading-none text-black sm:text-5xl">
+                <p className="mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl">
                   +{tier.points}
                 </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-black sm:text-sm">
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-400 sm:text-sm">
                   {t("chest.pointsLabel")}
                 </p>
               </div>

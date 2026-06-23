@@ -647,8 +647,9 @@ export function CardDrawWorkbench() {
                       onFocus={() => {
                         if (isMobileViewport && !isMobileSearchActive) {
                           openMobileSearch();
-                          return;
                         }
+
+                        searchInputRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
 
                         if (suggestions.length > 0 || query.trim()) {
                           setIsDropdownOpen(true);
