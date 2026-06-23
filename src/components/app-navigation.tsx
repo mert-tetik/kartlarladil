@@ -165,7 +165,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             })}
           </div>
         </nav>
-        <div className="mobile-main-nav-filler bg-background-card" aria-hidden="true" />
       </div>
     </>
   );
