@@ -102,9 +102,9 @@ export function AskChatPanel({
   const finalTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const initialSentRef = useRef(false);
-  const { isKeyboardOpen, isMobileViewport, keyboardOffset } = useMobileKeyboardDock();
-  const isComposerDocked = isMobileViewport && isKeyboardOpen;
-  const composerBottomPadding = isComposerDocked ? dockedComposerHeight + 16 : 0;
+  const { isKeyboardOpen, isMobileViewport, keyboardFocusTop } = useMobileKeyboardDock();
+  const isComposerLifted = isMobileViewport && isKeyboardOpen;
+  const composerBottomPadding = isComposerLifted ? dockedComposerHeight + 16 : 0;
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -145,17 +145,16 @@ export function AskChatPanel({
   }, [scrollMessageListToBottom]);
 
   useEffect(() => {
-    if (!isComposerDocked) {
+    if (!isComposerLifted) {
       return;
     }
 
     const frameId = window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       scrollMessageListToBottom();
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [isComposerDocked, keyboardOffset, scrollMessageListToBottom]);
+  }, [isComposerLifted, keyboardFocusTop, scrollMessageListToBottom]);
 
   useLayoutEffect(() => {
     const composer = composerRef.current;
@@ -169,7 +168,7 @@ export function AskChatPanel({
     if (nextHeight !== dockedComposerHeight) {
       setDockedComposerHeight(nextHeight);
     }
-  }, [dockedComposerHeight, draft, isComposerDocked, isRecording, pending]);
+  }, [dockedComposerHeight, draft, isComposerLifted, isRecording, pending]);
 
   useEffect(() => {
     if (!initialTerm || initialSentRef.current || pending) {
@@ -481,14 +480,10 @@ export function AskChatPanel({
         onKeyDown={handleKeyDown}
         onSubmit={submitMessage}
         onToggleRecording={toggleRecording}
-        docked={isComposerDocked}
-        dockedBottomOffset={keyboardOffset}
+        lifted={isComposerLifted}
+        keyboardFocusTop={keyboardFocusTop}
         onTextareaFocus={() => {
           scrollMessageListToBottom();
-          if (typeof window !== "undefined") {
-            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-            textareaRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-          }
         }}
       />
 
@@ -693,8 +688,8 @@ function ChatComposer({
   onKeyDown,
   onSubmit,
   onToggleRecording,
-  docked,
-  dockedBottomOffset,
+  lifted,
+  keyboardFocusTop,
   onTextareaFocus,
 }: {
   draft: string;
@@ -708,8 +703,8 @@ function ChatComposer({
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onToggleRecording: () => void;
-  docked: boolean;
-  dockedBottomOffset: number;
+  lifted: boolean;
+  keyboardFocusTop: number;
   onTextareaFocus?: () => void;
 }) {
   const t = useT();
@@ -725,10 +720,10 @@ function ChatComposer({
       onSubmit={onSubmit}
       className={cn(
         "shrink-0 border-t border-border bg-background-card p-2 sm:p-3",
-        docked && "fixed inset-x-0 z-50 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2",
+        lifted && "fixed inset-x-0 z-50 px-2 py-2",
       )}
-      style={docked ? { bottom: `${dockedBottomOffset}px` } : undefined}
-      data-chat-composer={docked ? "docked" : "inline"}
+      style={lifted ? { top: `${keyboardFocusTop}px`, transform: "translateY(-50%)" } : undefined}
+      data-chat-composer={lifted ? "lifted" : "inline"}
     >
       <div className="mx-auto w-full max-w-5xl">
         <div

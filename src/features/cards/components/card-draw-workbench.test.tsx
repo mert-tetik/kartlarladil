@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -38,6 +38,11 @@ const testUser: AuthShellUser = {
 };
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
+const defaultViewport = {
+  innerHeight: window.innerHeight,
+  innerWidth: window.innerWidth,
+  visualViewport: window.visualViewport,
+};
 
 describe("CardDrawWorkbench", () => {
   beforeEach(() => {
@@ -49,6 +54,25 @@ describe("CardDrawWorkbench", () => {
       cloudEnabled: false,
       cloudLoading: false,
       cloudError: "",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete document.body.dataset.cardDrawMobileSearch;
+    document.body.removeAttribute("style");
+    document.documentElement.removeAttribute("style");
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: defaultViewport.innerHeight,
+    });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: defaultViewport.innerWidth,
+    });
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: defaultViewport.visualViewport,
     });
   });
 
@@ -97,6 +121,34 @@ describe("CardDrawWorkbench", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(useInventoryStore.getState().cards).toHaveLength(1);
   });
+
+  it("moves the mobile search input to a fixed focus position when the keyboard opens", async () => {
+    const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
+
+    renderWorkbench();
+
+    await waitFor(() => {
+      expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1023px)");
+    });
+
+    fireEvent.focus(screen.getByPlaceholderText(/Kelime/));
+
+    await waitFor(() => {
+      expect(document.body.dataset.cardDrawMobileSearch).toBe("true");
+    });
+
+    act(() => {
+      keyboard.setViewportHeight(500);
+    });
+
+    await waitFor(() => {
+      const shell = document.querySelector('[data-card-draw-mobile-search-shell="true"]') as HTMLElement | null;
+
+      expect(shell).not.toBeNull();
+      expect(shell?.style.top).toBe("290px");
+      expect(shell?.style.transform).toBe("translateY(-50%)");
+    });
+  });
 });
 
 function renderWorkbench() {
@@ -114,4 +166,62 @@ async function revealTestCard(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole("button", { name: new RegExp(testCard.term) }));
   await user.click(await screen.findByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` }));
   await screen.findByRole("heading", { name: testCard.term });
+}
+
+function installMobileKeyboardEnvironment({
+  innerHeight = 844,
+  viewportHeight,
+}: {
+  innerHeight?: number;
+  viewportHeight: number;
+}) {
+  const listeners = {
+    resize: new Set<() => void>(),
+    scroll: new Set<() => void>(),
+  };
+  const visualViewport = {
+    height: viewportHeight,
+    offsetTop: 0,
+    addEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].add(listener);
+    }),
+    removeEventListener: vi.fn((event: "resize" | "scroll", listener: () => void) => {
+      listeners[event].delete(listener);
+    }),
+  };
+
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+    matches: query === "(max-width: 1023px)",
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: innerHeight,
+  });
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 390,
+  });
+  Object.defineProperty(window, "scrollTo", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: visualViewport,
+  });
+
+  return {
+    setViewportHeight(nextHeight: number) {
+      visualViewport.height = nextHeight;
+      listeners.resize.forEach((listener) => listener());
+    },
+  };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ComponentType, CSSProperties, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -42,16 +42,31 @@ const navItems: readonly NavItem[] = [
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
-const BOTTOM_NAV_HEIGHT = 65;
+const MOBILE_KEYBOARD_THRESHOLD = 160;
+
+type MobileNavMetrics = {
+  extraFillerHeight: number;
+  frameBottom: number | null;
+  keyboardOpen: boolean;
+};
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [mobileNavMetrics, setMobileNavMetrics] = useState<MobileNavMetrics>({
+    extraFillerHeight: 0,
+    frameBottom: null,
+    keyboardOpen: false,
+  });
   const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
+  const mobileNavStyle = {
+    "--mobile-nav-extra-filler-height": `${mobileNavMetrics.extraFillerHeight}px`,
+    "--mobile-nav-frame-bottom":
+      mobileNavMetrics.frameBottom === null ? "100dvh" : `${mobileNavMetrics.frameBottom}px`,
+  } as CSSProperties;
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -78,7 +93,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     const visualViewport = window.visualViewport;
     let rafId: number | null = null;
 
-    function syncKeyboardState() {
+    function syncNavMetrics() {
       if (rafId !== null) return;
 
       rafId = window.requestAnimationFrame(() => {
@@ -86,27 +101,53 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         const mobile = mediaQuery?.matches ?? window.innerWidth < 1024;
 
         if (!mobile) {
-          setIsKeyboardOpen(false);
+          setMobileNavMetrics({
+            extraFillerHeight: 0,
+            frameBottom: null,
+            keyboardOpen: false,
+          });
           return;
         }
 
         const viewportHeight = visualViewport?.height ?? window.innerHeight;
-        const keyboardLikelyVisible = window.innerHeight - viewportHeight > 160;
-        setIsKeyboardOpen(keyboardLikelyVisible);
+        const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
+        const viewportBottom = Math.round(viewportOffsetTop + viewportHeight);
+        const keyboardOpen = window.innerHeight - viewportHeight > MOBILE_KEYBOARD_THRESHOLD;
+        const extraFillerHeight = keyboardOpen
+          ? 0
+          : Math.max(0, Math.round(window.innerHeight - viewportBottom));
+        const frameBottom = viewportBottom + extraFillerHeight;
+        const nextMetrics = {
+          extraFillerHeight,
+          frameBottom,
+          keyboardOpen,
+        };
+
+        setMobileNavMetrics((current) =>
+          current.extraFillerHeight === nextMetrics.extraFillerHeight &&
+          current.frameBottom === nextMetrics.frameBottom &&
+          current.keyboardOpen === nextMetrics.keyboardOpen
+            ? current
+            : nextMetrics,
+        );
       });
     }
 
-    syncKeyboardState();
-    mediaQuery?.addEventListener("change", syncKeyboardState);
-    window.addEventListener("resize", syncKeyboardState);
-    visualViewport?.addEventListener("resize", syncKeyboardState);
-    visualViewport?.addEventListener("scroll", syncKeyboardState);
+    syncNavMetrics();
+    mediaQuery?.addEventListener("change", syncNavMetrics);
+    window.addEventListener("orientationchange", syncNavMetrics);
+    window.addEventListener("resize", syncNavMetrics);
+    window.addEventListener("scroll", syncNavMetrics, { passive: true });
+    visualViewport?.addEventListener("resize", syncNavMetrics);
+    visualViewport?.addEventListener("scroll", syncNavMetrics);
 
     return () => {
-      mediaQuery?.removeEventListener("change", syncKeyboardState);
-      window.removeEventListener("resize", syncKeyboardState);
-      visualViewport?.removeEventListener("resize", syncKeyboardState);
-      visualViewport?.removeEventListener("scroll", syncKeyboardState);
+      mediaQuery?.removeEventListener("change", syncNavMetrics);
+      window.removeEventListener("orientationchange", syncNavMetrics);
+      window.removeEventListener("resize", syncNavMetrics);
+      window.removeEventListener("scroll", syncNavMetrics);
+      visualViewport?.removeEventListener("resize", syncNavMetrics);
+      visualViewport?.removeEventListener("scroll", syncNavMetrics);
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
@@ -178,44 +219,42 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         </div>
       ) : null}
 
-      <nav
-        aria-label={t("nav.mobileMenu")}
-        data-mobile-main-nav
-        className={cn(
-          "mobile-main-nav fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background-card text-foreground transition-transform duration-200 lg:hidden",
-          isKeyboardOpen && "pointer-events-none translate-y-full",
-        )}
-      >
-        <div className="grid grid-cols-6">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-foreground-muted transition-colors hover:text-foreground",
-                  active && "bg-brand text-brand-foreground hover:text-brand-foreground",
-                )}
-              >
-                <Icon className="size-5" aria-hidden="true" />
-                <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
       <div
+        data-mobile-main-nav-frame
         className={cn(
-          "fixed inset-x-0 z-30 h-32 bg-background-card transition-transform duration-200 lg:hidden",
-          isKeyboardOpen && "translate-y-full opacity-0",
+          "mobile-main-nav-frame text-foreground lg:hidden",
+          mobileNavMetrics.keyboardOpen && "pointer-events-none translate-y-full opacity-0",
         )}
-        style={{ bottom: `${BOTTOM_NAV_HEIGHT}px` }}
-        aria-hidden="true"
-      />
+        style={mobileNavStyle}
+      >
+        <nav
+          aria-label={t("nav.mobileMenu")}
+          data-mobile-main-nav
+          className="mobile-main-nav-bar border-t border-border bg-background-card"
+        >
+          <div className="grid grid-cols-6">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-foreground-muted transition-colors hover:text-foreground",
+                    active && "bg-brand text-brand-foreground hover:text-brand-foreground",
+                  )}
+                >
+                  <Icon className="size-5" aria-hidden="true" />
+                  <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+        <div className="mobile-main-nav-filler bg-background-card" aria-hidden="true" />
+      </div>
     </>
   );
 }

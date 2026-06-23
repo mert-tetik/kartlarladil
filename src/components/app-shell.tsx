@@ -29,7 +29,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
                 <AppNavigation user={user} />
                 <main
                   id="main-content"
-                  className={cn("flex-1", "outline-none")}
+                  className={cn("flex-1 outline-none", "max-lg:pb-[calc(4rem+env(safe-area-inset-bottom))]")}
                   tabIndex={-1}
                 >
                   <PageTransitionShell>{children}</PageTransitionShell>

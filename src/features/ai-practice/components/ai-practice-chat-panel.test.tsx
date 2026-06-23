@@ -156,7 +156,7 @@ describe("AiPracticeChatPanel", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("points");
   });
 
-  it("docks the composer above the mobile keyboard", async () => {
+  it("moves the composer to a fixed mobile focus position when the keyboard opens", async () => {
     const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
     const { container } = renderPanel();
@@ -169,10 +169,11 @@ describe("AiPracticeChatPanel", () => {
     });
 
     await waitFor(() => {
-      expect(composer).toHaveAttribute("data-chat-composer", "docked");
+      expect(composer).toHaveAttribute("data-chat-composer", "lifted");
     });
 
-    expect(composer.style.bottom).toBe("344px");
+    expect(composer.style.top).toBe("290px");
+    expect(composer.style.transform).toBe("translateY(-50%)");
   });
 });
 

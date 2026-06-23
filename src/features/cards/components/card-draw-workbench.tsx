@@ -25,6 +25,7 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useMobileKeyboardDock } from "@/lib/use-mobile-keyboard-dock";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
@@ -70,7 +71,6 @@ export function CardDrawWorkbench() {
   const [rawHighlightedIndex, setRawHighlightedIndex] = useState(-1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
-  const [mobileSearchBottomOffset, setMobileSearchBottomOffset] = useState(0);
   const [mobileSearchMenuMaxHeight, setMobileSearchMenuMaxHeight] = useState(240);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +89,7 @@ export function CardDrawWorkbench() {
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
+  const { isKeyboardOpen: isMobileKeyboardOpen, keyboardFocusTop } = useMobileKeyboardDock();
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -97,6 +98,7 @@ export function CardDrawWorkbench() {
   );
   const { language, tier } = preferences;
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
+  const isMobileSearchLifted = isMobileViewport && isMobileSearchActive && isMobileKeyboardOpen;
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
@@ -161,17 +163,11 @@ export function CardDrawWorkbench() {
 
       if (!mobile) {
         setIsMobileSearchActive(false);
-        setMobileSearchBottomOffset(0);
         setMobileSearchMenuMaxHeight(240);
         return;
       }
 
       const viewportHeight = visualViewport?.height ?? window.innerHeight;
-      const rawBottomOffset = Math.max(
-        0,
-        window.innerHeight - ((visualViewport?.height ?? window.innerHeight) + (visualViewport?.offsetTop ?? 0)),
-      );
-      setMobileSearchBottomOffset(rawBottomOffset);
       setMobileSearchMenuMaxHeight(Math.max(140, Math.floor(viewportHeight - 96)));
     }
 
@@ -573,11 +569,16 @@ export function CardDrawWorkbench() {
                   "relative",
                   isMobileViewport &&
                     isMobileSearchActive &&
-                    "fixed inset-x-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:hidden",
+                    cn(
+                      "fixed inset-x-0 z-50 px-3 lg:hidden",
+                      isMobileSearchLifted ? "py-0" : "pb-[calc(env(safe-area-inset-bottom)+0.5rem)]",
+                    ),
                 )}
                 style={
                   isMobileViewport && isMobileSearchActive
-                    ? { bottom: `${mobileSearchBottomOffset}px` }
+                    ? isMobileSearchLifted
+                      ? { top: `${keyboardFocusTop}px`, transform: "translateY(-50%)" }
+                      : { bottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }
                     : undefined
                 }
                 data-card-draw-mobile-search-shell={isMobileViewport && isMobileSearchActive ? "true" : undefined}
@@ -648,8 +649,6 @@ export function CardDrawWorkbench() {
                         if (isMobileViewport && !isMobileSearchActive) {
                           openMobileSearch();
                         }
-
-                        searchInputRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
 
                         if (suggestions.length > 0 || query.trim()) {
                           setIsDropdownOpen(true);

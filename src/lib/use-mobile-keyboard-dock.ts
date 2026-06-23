@@ -4,10 +4,12 @@ import { useLayoutEffect, useState } from "react";
 
 const MOBILE_MEDIA_QUERY = "(max-width: 1023px)";
 const DEFAULT_KEYBOARD_THRESHOLD = 80;
+const KEYBOARD_FOCUS_TOP_RATIO = 0.58;
 
 export type MobileKeyboardDockState = {
   isKeyboardOpen: boolean;
   isMobileViewport: boolean;
+  keyboardFocusTop: number;
   keyboardOffset: number;
 };
 
@@ -17,6 +19,7 @@ export function useMobileKeyboardDock(
   const [state, setState] = useState<MobileKeyboardDockState>({
     isKeyboardOpen: false,
     isMobileViewport: false,
+    keyboardFocusTop: 0,
     keyboardOffset: 0,
   });
 
@@ -35,10 +38,12 @@ export function useMobileKeyboardDock(
       const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
       const keyboardOffset = Math.max(0, window.innerHeight - (viewportHeight + viewportOffsetTop));
       const isKeyboardOpen = isMobileViewport && window.innerHeight - viewportHeight > keyboardThreshold;
+      const keyboardFocusTop = Math.round(viewportOffsetTop + viewportHeight * KEYBOARD_FOCUS_TOP_RATIO);
 
       setState({
         isKeyboardOpen,
         isMobileViewport,
+        keyboardFocusTop,
         keyboardOffset: isKeyboardOpen ? keyboardOffset : 0,
       });
     }
