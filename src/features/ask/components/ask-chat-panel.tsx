@@ -673,7 +673,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3"
+      className="shrink-0 border-t border-border bg-background-card p-2 sm:p-3 max-lg:mt-auto"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full max-w-5xl">

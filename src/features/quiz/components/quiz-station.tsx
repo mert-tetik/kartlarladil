@@ -926,6 +926,7 @@ function MobileQuizTopBars({
   onShowCard: () => void;
 }) {
   const t = useT();
+  const style = TIER_STYLES[item.card.tier];
   const requirement = TIER_REQUIREMENTS[item.card.tier];
   const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
   const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
@@ -944,7 +945,7 @@ function MobileQuizTopBars({
         <Progress value={quizProgress} className="bg-[#131313]" indicatorClassName="bg-red-500" />
       </div>
 
-      <div className="flex flex-col gap-1 bg-black px-4 py-2 text-white">
+      <div className={cn("flex flex-col gap-1 px-4 py-2 text-white", style.accent)}>
         <div className="flex items-center justify-between">
           <Badge className="border-transparent bg-white/20 text-white">
             {item.questionType === "text"
@@ -956,7 +957,10 @@ function MobileQuizTopBars({
           <button
             type="button"
             onClick={onShowCard}
-            className="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-white/90"
+            className={cn(
+              "rounded-md bg-white px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/90",
+              style.text,
+            )}
           >
             {t("quiz.showCard")}
           </button>
@@ -1126,7 +1130,7 @@ function TextQuestion({
       ) : null}
       <div
         className={cn(
-          "animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8",
+          "animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:p-3 sm:p-8 max-lg:-mt-12",
           splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
         )}
       >
