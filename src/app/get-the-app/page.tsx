@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Info } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { Download } from "lucide-react";
+import { buttonClassName } from "@/components/ui/button";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { getInstallAppCopy } from "@/features/install-app/install-app-copy";
+import { randomInt } from "crypto";
 
 export const dynamic = "force-dynamic";
+
+const MASCOT_COUNT = 17;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -23,49 +26,42 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GetTheAppPage() {
   const locale = await getServerLocale();
   const copy = getInstallAppCopy(locale);
+  const mascotIndex = randomInt(1, MASCOT_COUNT + 1);
+  const mascotSrc = `/mascots/mascot${mascotIndex}.png`;
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <PageHeader
-        title={copy.title}
-        description={copy.description}
-        mascot="/mascots/mascot2.png"
-        mascotSize="lg"
-        className="md:items-center"
-      />
-
-      <ol className="mt-10 space-y-14 sm:mt-14">
-        {copy.steps.map((step, index) => (
-          <li key={step.image} className="flex flex-col gap-5 sm:gap-6">
-            <div className="flex items-start gap-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-base font-bold text-white">
-                {index + 1}
-              </span>
-              <p className="pt-1.5 text-base leading-7 text-foreground-secondary sm:text-lg sm:leading-8">
-                {step.instruction}
-              </p>
-            </div>
-
-            <div className="relative mx-auto aspect-[18/35] w-full max-w-[280px] overflow-hidden rounded-2xl border border-border bg-background shadow-xl sm:max-w-[320px]">
-              <Image
-                src={step.image}
-                alt={step.imageAlt}
-                fill
-                sizes="(max-width: 640px) 85vw, 320px"
-                className="object-contain"
-                priority={index === 0}
-              />
-            </div>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-10 rounded-lg border border-border bg-background-card/70 p-4 text-sm text-foreground-secondary backdrop-blur sm:mt-14">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
-          <p>{copy.note}</p>
-        </div>
+    <section className="mx-auto flex w-full max-w-md flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">
+      <div className="relative size-40 sm:size-48">
+        <Image
+          src={mascotSrc}
+          alt="FoxiesDeck mascot"
+          fill
+          sizes="(max-width: 640px) 160px, 192px"
+          className="object-contain"
+          priority
+        />
       </div>
+
+      <h1 className="mt-8 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        {copy.title}
+      </h1>
+
+      <p className="mt-4 text-base leading-7 text-foreground-secondary sm:text-lg sm:leading-8">
+        {copy.description}
+      </p>
+
+      <a
+        href="/download/app-release-signed.apk"
+        download="foxiesdeck-app-release-signed.apk"
+        className={buttonClassName("primary", "lg", "mt-8 h-12 px-8 text-base")}
+      >
+        <Download className="size-5" aria-hidden="true" />
+        {copy.buttonLabel}
+      </a>
+
+      <p className="mt-4 text-xs text-foreground-secondary">
+        Android cihazlara kurulum için APK dosyasıdır.
+      </p>
     </section>
   );
 }

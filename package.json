@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -17,9 +17,14 @@
     "generate:card-translation-meanings": "node scripts/generate-card-translation-meanings.mjs",
     "generate:card-translation-meanings:batch": "node scripts/generate-card-translation-meanings-batch.mjs",
     "pretest:e2e": "next build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "pwa:icons": "node scripts/generate-pwa-icons.mjs",
+    "pwa:init": "node scripts/init-twa.mjs",
+    "pwa:build": "node scripts/build-twa.mjs",
+    "pwa:doctor": "bubblewrap doctor"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.108.0",
     "canvas-confetti": "^1.9.4",
@@ -35,6 +40,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@bubblewrap/core": "^1.24.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -47,6 +53,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "jsdom": "^29.1.1",
+    "sharp": "^0.35.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"
