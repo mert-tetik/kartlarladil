@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "آخر تحديث",
   "limit.activeCardLimitDescription": "تسمح الخطة المجانية بوجود ما يصل إلى 20 بطاقة نشطة في وقت واحد. قم بإزالة بطاقة موجودة أو قم بترقية خطتك لإضافة بطاقة جديدة.",
+  "limit.activeCardLimitLearnButton": "تعلّم البطاقات",
   "limit.activeCardLimitTitle": "حصة البطاقات النشطة ممتلئة",
   "limit.aiDailyLimitDescription": "لقد استخدمت جميع الرسائل العشر المضمنة في الخطة المجانية اليوم. عد غدًا أو قم بترقية خطتك لإرسال المزيد.",
   "limit.aiDailyLimitTitle": "حصة الرسائل اليومية للذكاء الاصطناعي ممتلئة",

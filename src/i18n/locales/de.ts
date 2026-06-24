@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Zuletzt aktualisiert",
   "limit.activeCardLimitDescription": "Der kostenlose Plan erlaubt bis zu 20 aktive Karten gleichzeitig. Entferne eine vorhandene Karte oder upgrade deinen Plan, um eine neue hinzuzufügen.",
+  "limit.activeCardLimitLearnButton": "Karten lernen",
   "limit.activeCardLimitTitle": "Aktives Kartenkontingent voll",
   "limit.aiDailyLimitDescription": "Du hast heute alle 10 KI-Nachrichten im kostenlosen Plan verwendet. Komm morgen wieder oder upgrade deinen Plan, um mehr zu senden.",
   "limit.aiDailyLimitTitle": "Tägliches KI-Nachrichtenkontingent voll",

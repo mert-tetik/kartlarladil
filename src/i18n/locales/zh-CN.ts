@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "最后更新",
   "limit.activeCardLimitDescription": "免费计划允许同时最多使用20张活跃卡。删除一张现有卡片或升级您的计划以添加新卡。",
+  "limit.activeCardLimitLearnButton": "学习卡片",
   "limit.activeCardLimitTitle": "活跃卡配额已满",
   "limit.aiDailyLimitDescription": "您今天已使用完免费计划中包含的10条AI消息。明天再来或升级您的计划以发送更多。",
   "limit.aiDailyLimitTitle": "每日AI消息配额已满",

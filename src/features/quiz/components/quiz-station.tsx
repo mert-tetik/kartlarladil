@@ -27,7 +27,6 @@ import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
-  getCardExampleTranslation,
   getCardTranslation,
   getStudyLocale,
 } from "@/features/cards/card-localization";
@@ -694,7 +693,7 @@ export function QuizStation({
         lastAnswerCorrect={lastAnswerCorrect}
       />
       <div
-        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-28 max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
+        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-20 max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
         data-learn-quiz-page="quiz"
       >
         <div
@@ -1105,7 +1104,7 @@ function MobileQuizTopBars({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-30 flex h-28 flex-col lg:hidden"
+      className="fixed inset-x-0 top-0 z-30 flex h-20 flex-col lg:hidden"
       data-mobile-quiz-top-bars
     >
       <div className="flex h-11 shrink-0 flex-col justify-center gap-1 bg-black px-4 py-1.5 text-white">
@@ -1124,21 +1123,12 @@ function MobileQuizTopBars({
 
       <div
         className={cn(
-          "flex min-h-0 flex-1 flex-col justify-center gap-1 px-4 py-1.5 text-white",
+          "flex h-9 items-center justify-center px-4 text-white",
           style.accent,
         )}
       >
-        <div className="flex items-center justify-between">
-          <Badge className="border-transparent bg-white/20 text-white">
-            {item.questionType === "text"
-              ? t("quiz.learningQuizBadge")
-              : mode === "learned"
-                ? t("quiz.reviewBadge")
-                : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
-          </Badge>
-        </div>
-        {item.questionType === "choice" && mode === "active" ? (
-          <>
+        {mode === "active" ? (
+          <div className="w-full max-w-md">
             <div className="flex items-center justify-between text-xs font-semibold">
               <span>
                 {item.inventoryCard.status === "learned"
@@ -1154,8 +1144,12 @@ function MobileQuizTopBars({
               className="bg-[#131313]"
               indicatorClassName="bg-white"
             />
-          </>
-        ) : null}
+          </div>
+        ) : (
+          <Badge className="border-transparent bg-white/20 text-white">
+            {t("quiz.reviewBadge")}
+          </Badge>
+        )}
       </div>
     </div>
   );
@@ -1292,9 +1286,6 @@ function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question as { correctAnswer: string };
-  const exampleTranslation = item.card.examples[0]
-    ? getCardExampleTranslation(item.card.examples[0], locale)
-    : "";
   const isMobileViewport = useSyncExternalStore(
     (callback) => {
       window.addEventListener("resize", callback);
@@ -1403,14 +1394,6 @@ function TextQuestion({
                       })}
                 </p>
               </div>
-              <p className="text-sm leading-6 text-foreground-secondary">
-                {item.card.examples[0]?.sentence}
-              </p>
-              {exampleTranslation ? (
-                <p className="text-sm leading-6 text-foreground-muted">
-                  {exampleTranslation}
-                </p>
-              ) : null}
               <Button
                 className="w-full bg-brand hover:bg-brand-hover"
                 onClick={onNext}

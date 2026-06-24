@@ -53,6 +53,16 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
         </h2>
         <p className="mt-2 text-sm leading-6 text-foreground-secondary">{content.description}</p>
 
+        {errorCode === "free_active_card_limit" ? (
+          <Link
+            href="/learn"
+            className={buttonClassName("primary", "md", "mt-4 w-full")}
+            onClick={() => onOpenChange(false)}
+          >
+            {t("limit.activeCardLimitLearnButton")}
+          </Link>
+        ) : null}
+
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             {t("common.maybeLater")}

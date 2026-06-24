@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Последнее обновление",
   "limit.activeCardLimitDescription": "Бесплатный план позволяет иметь до 20 активных карт одновременно. Удали существующую карту или обнови план, чтобы добавить новую.",
+  "limit.activeCardLimitLearnButton": "Учить карточки",
   "limit.activeCardLimitTitle": "Квота активных карт заполнена",
   "limit.aiDailyLimitDescription": "Ты использовал все 10 AI-сообщений, включённых в бесплатный план на сегодня. Вернись завтра или обнови план, чтобы отправить больше.",
   "limit.aiDailyLimitTitle": "Дневная квота AI-сообщений заполнена",

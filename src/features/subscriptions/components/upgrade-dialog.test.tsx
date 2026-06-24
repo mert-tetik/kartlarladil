@@ -41,6 +41,7 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /Planını yükselt/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("link", { name: /Kartları öğren/i })).toHaveAttribute("href", "/learn");
   });
 
   it("shows the learned card limit message", () => {

@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "마지막 업데이트",
   "limit.activeCardLimitDescription": "무료 플랜에서는 동시에 최대 20개의 활성 카드를 사용할 수 있습니다. 기존 카드를 제거하거나 플랜을 업그레이드하여 새 카드를 추가하세요.",
+  "limit.activeCardLimitLearnButton": "카드 학습하기",
   "limit.activeCardLimitTitle": "활성 카드 할당량이 가득 찼습니다",
   "limit.aiDailyLimitDescription": "오늘 무료 플랜에 포함된 10개의 AI 메시지를 모두 사용했습니다. 내일 다시 오거나 플랜을 업그레이드하여 더 많은 메시지를 보내세요.",
   "limit.aiDailyLimitTitle": "일일 AI 메시지 할당량이 가득 찼습니다",

@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Son güncelleme",
   "limit.activeCardLimitDescription": "Free planda aynı anda en fazla 20 aktif kartın olabilir. Yeni kart eklemek için önce elindeki kartlardan birini çıkar veya planını yükselt.",
+  "limit.activeCardLimitLearnButton": "Kartları öğren",
   "limit.activeCardLimitTitle": "Aktif kart kotan doldu",
   "limit.aiDailyLimitDescription": "Bugün için free planda 10 AI mesaj hakkın vardı ve hepsini kullandın. Yeni mesaj göndermek için yarını bekle veya planını yükselt.",
   "limit.aiDailyLimitTitle": "Günlük AI mesaj kotan doldu",

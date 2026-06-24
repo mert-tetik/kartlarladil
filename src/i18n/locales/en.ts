@@ -278,6 +278,7 @@ const dictionary = {
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Last updated",
   "limit.activeCardLimitDescription": "The free plan allows up to 20 active cards at a time. Remove an existing card or upgrade your plan to add a new one.",
+  "limit.activeCardLimitLearnButton": "Learn cards",
   "limit.activeCardLimitTitle": "Active card quota full",
   "limit.aiDailyLimitDescription": "You’ve used all 10 AI messages included in the free plan for today. Come back tomorrow or upgrade your plan to send more.",
   "limit.aiDailyLimitTitle": "Daily AI message quota full",
