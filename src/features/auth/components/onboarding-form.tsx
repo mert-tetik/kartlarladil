@@ -1,38 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { completeOnboardingAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
-import { matchSupportedLocale } from "@/data/languages";
 import { useT } from "@/i18n/locale-provider";
-import { fetchGeoCurrencyInfo } from "@/lib/geo-currency";
-import type { LanguageCode } from "@/types/domain";
 
 export function OnboardingForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
-  const [detectedLanguage, setDetectedLanguage] = useState<LanguageCode>("en");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function detect() {
-      const geo = await fetchGeoCurrencyInfo();
-      if (cancelled) return;
-
-      const languageCode =
-        geo?.languageCode ?? matchSupportedLocale(navigator.language) ?? "en";
-      setDetectedLanguage(languageCode as LanguageCode);
-    }
-
-    void detect();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <form action={formAction} className="space-y-6" data-onboarding-form>
@@ -40,7 +18,7 @@ export function OnboardingForm({ nextPath }: { nextPath: string }) {
       <FormMessage state={state} />
 
       <PreferenceFields
-        defaultLanguage={detectedLanguage}
+        defaultLanguage="en"
         defaultUiLocale="tr"
         defaultTier="all"
         languageError={state.fieldErrors?.preferredLanguageCode?.[0]}

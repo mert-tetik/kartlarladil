@@ -8,6 +8,7 @@ import {
   buildQuizQuestion,
   createInventoryCard,
   getTierRequirement,
+  isAnswerSimilarEnough,
 } from "@/features/quiz/quiz-engine";
 import type { InventoryCard } from "@/types/domain";
 
@@ -111,5 +112,38 @@ describe("quiz engine", () => {
 
       expect(eligibleAnswers.has(option)).toBe(true);
     }
+  });
+
+  describe("isAnswerSimilarEnough", () => {
+    it("accepts an answer that is only missing the last three letters", () => {
+      expect(isAnswerSimilarEnough("dance", "dancing")).toBe(true);
+      expect(isAnswerSimilarEnough("danc", "dancing")).toBe(true);
+    });
+
+    it("accepts an answer that adds up to three extra trailing letters", () => {
+      expect(isAnswerSimilarEnough("dancing", "dance")).toBe(true);
+    });
+
+    it("accepts an answer when only the last three letters differ", () => {
+      expect(isAnswerSimilarEnough("dancery", "dancing")).toBe(true);
+      expect(isAnswerSimilarEnough("dancer", "dancing")).toBe(true);
+    });
+
+    it("rejects an answer when more than the last three letters are missing", () => {
+      expect(isAnswerSimilarEnough("dan", "dancing")).toBe(false);
+    });
+
+    it("rejects an answer when the mismatch is not in the last three letters", () => {
+      expect(isAnswerSimilarEnough("dane", "dancing")).toBe(false);
+    });
+
+    it("rejects an answer that is too different even when the first three letters match", () => {
+      expect(isAnswerSimilarEnough("dankingly", "dancing")).toBe(false);
+      expect(isAnswerSimilarEnough("danceable", "dancing")).toBe(false);
+    });
+
+    it("still accepts small typos within the similarity threshold", () => {
+      expect(isAnswerSimilarEnough("dancig", "dancing")).toBe(true);
+    });
   });
 });

@@ -99,7 +99,30 @@ export function isAnswerSimilarEnough(input: string, correctAnswer: string, thre
   const distance = levenshteinDistance(normalizedInput, normalizedCorrect);
   const similarity = 1 - distance / Math.max(normalizedInput.length, normalizedCorrect.length);
 
-  return similarity >= threshold;
+  if (similarity >= threshold) {
+    return true;
+  }
+
+  return isCloseSuffixMatch(normalizedInput, normalizedCorrect);
+}
+
+function isCloseSuffixMatch(input: string, correct: string) {
+  if (input.length < 3) {
+    return false;
+  }
+
+  if (!correct.startsWith(input.slice(0, 3))) {
+    return false;
+  }
+
+  let commonPrefixLength = 0;
+  const maxCommon = Math.min(input.length, correct.length);
+
+  while (commonPrefixLength < maxCommon && input[commonPrefixLength] === correct[commonPrefixLength]) {
+    commonPrefixLength += 1;
+  }
+
+  return Math.max(input.length, correct.length) - commonPrefixLength <= 3;
 }
 
 function normalizeQuizAnswer(value: string) {

@@ -22,7 +22,7 @@ export async function AuthPageShell({
   const t = createTranslator(await getServerLocale());
 
   return (
-    <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-10">
+    <section className="mx-auto grid min-h-0 max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-10">
       <aside className="hidden rounded-lg bg-background-inverse p-8 text-foreground-inverse lg:flex lg:flex-col lg:justify-between">
         <div>
           {!hideBranding ? (
