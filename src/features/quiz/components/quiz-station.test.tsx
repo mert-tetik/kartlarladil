@@ -93,6 +93,44 @@ describe("QuizStation sound feedback", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
   });
 
+  it("orders the mobile choice quiz as prompt, card, then question", async () => {
+    renderQuizStation();
+    await startChoiceQuiz();
+
+    const layout = document.querySelector('[data-quiz-mobile-layout="choice"]');
+    const prompt = layout?.querySelector("[data-quiz-mobile-prompt]");
+    const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
+    const card = layout?.querySelector("[data-quiz-mobile-card]");
+    const question = layout?.querySelector("[data-quiz-mobile-question]");
+
+    expect(prompt).toHaveClass("order-1");
+    expect(cardSlot).toHaveClass("order-2");
+    expect(question).toHaveClass("order-3");
+    expect(card).toHaveClass("w-[min(190px,calc((100vw-3rem)/2))]");
+  });
+
+  it("places the text-answer question above the card on mobile", async () => {
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+    await screen.findByRole("textbox");
+
+    const layout = document.querySelector('[data-quiz-mobile-layout="text"]');
+    const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
+    const question = layout?.querySelector("[data-quiz-mobile-question]");
+
+    expect(question).toHaveClass("order-1");
+    expect(cardSlot).toHaveClass("order-2");
+  });
+
   it("asks for a language before starting when multiple languages are available", async () => {
     useInventoryStore.setState({
       cards: [inventoryCard, { ...inventoryCard, cardId: germanCard.id }],

@@ -1,6 +1,14 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,11 +26,19 @@ import { LANGUAGES } from "@/data/languages";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
-import { getCardExampleTranslation, getCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
+import {
+  getCardExampleTranslation,
+  getCardTranslation,
+  getStudyLocale,
+} from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { buildQuizQuestion, getTierRequirement, isAnswerSimilarEnough } from "@/features/quiz/quiz-engine";
+import {
+  buildQuizQuestion,
+  getTierRequirement,
+  isAnswerSimilarEnough,
+} from "@/features/quiz/quiz-engine";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -57,7 +73,13 @@ import type {
   VocabularyCard,
 } from "@/types/domain";
 
-type QuizPhase = "language" | "count" | "quiz" | "celebration" | "result" | "chest";
+type QuizPhase =
+  | "language"
+  | "count"
+  | "quiz"
+  | "celebration"
+  | "result"
+  | "chest";
 
 export type { QuizPhase };
 
@@ -74,7 +96,12 @@ const MODE_STYLE = {
   },
 } as const;
 
-const CHOICE_OPTION_COLORS = ["bg-red-500", "bg-blue-500", "bg-amber-400", "bg-emerald-500"] as const;
+const CHOICE_OPTION_COLORS = [
+  "bg-red-500",
+  "bg-blue-500",
+  "bg-amber-400",
+  "bg-emerald-500",
+] as const;
 
 interface QuizItem {
   card: VocabularyCard;
@@ -112,10 +139,25 @@ type QuizPerformanceSummary = {
   textClassName: string;
 };
 
-const QUIZ_RESULT_MESSAGE_KEYS: Record<QuizPerformanceLevel, readonly QuizPerformanceMessageKey[]> = {
-  high: ["quiz.resultMessageHigh1", "quiz.resultMessageHigh2", "quiz.resultMessageHigh3"],
-  medium: ["quiz.resultMessageMedium1", "quiz.resultMessageMedium2", "quiz.resultMessageMedium3"],
-  low: ["quiz.resultMessageLow1", "quiz.resultMessageLow2", "quiz.resultMessageLow3"],
+const QUIZ_RESULT_MESSAGE_KEYS: Record<
+  QuizPerformanceLevel,
+  readonly QuizPerformanceMessageKey[]
+> = {
+  high: [
+    "quiz.resultMessageHigh1",
+    "quiz.resultMessageHigh2",
+    "quiz.resultMessageHigh3",
+  ],
+  medium: [
+    "quiz.resultMessageMedium1",
+    "quiz.resultMessageMedium2",
+    "quiz.resultMessageMedium3",
+  ],
+  low: [
+    "quiz.resultMessageLow1",
+    "quiz.resultMessageLow2",
+    "quiz.resultMessageLow3",
+  ],
 };
 
 function getQuizResultMessageKey(
@@ -171,28 +213,46 @@ export function QuizStation({
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
-  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
+    null,
+  );
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
   const [textAnswer, setTextAnswer] = useState("");
-  const [textResult, setTextResult] = useState<"idle" | "correct" | "incorrect">("idle");
-  const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(null);
-  const [results, setResults] = useState<QuizResult>({ correct: [], incorrect: [], learned: [] });
+  const [textResult, setTextResult] = useState<
+    "idle" | "correct" | "incorrect"
+  >("idle");
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(
+    null,
+  );
+  const [results, setResults] = useState<QuizResult>({
+    correct: [],
+    incorrect: [],
+    learned: [],
+  });
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [chestOpened, setChestOpened] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">("back");
-  const [mobileCardFace, setMobileCardFace] = useState<"front" | "back">("back");
+  const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">(
+    "back",
+  );
+  const [mobileCardFace, setMobileCardFace] = useState<"front" | "back">(
+    "back",
+  );
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
 
   const languageStats = useMemo(
     () =>
       LANGUAGES.map((language) => ({
         ...language,
-        count: filterInventoryCards({ cards, language: language.code, status: mode }).length,
+        count: filterInventoryCards({
+          cards,
+          language: language.code,
+          status: mode,
+        }).length,
       })).filter((language) => language.count > 0),
     [cards, mode],
   );
@@ -207,12 +267,20 @@ export function QuizStation({
 
   const availableCards = useMemo(() => {
     if (!selectedLanguage) return [];
-    return filterInventoryCards({ cards, language: selectedLanguage, status: mode }).map((item) => item.card);
+    return filterInventoryCards({
+      cards,
+      language: selectedLanguage,
+      status: mode,
+    }).map((item) => item.card);
   }, [cards, mode, selectedLanguage]);
 
   const buildDeck = useCallback(
     (language: LanguageCode, count: number | null) => {
-      const source = filterInventoryCards({ cards, language, status: mode }).map((item) => item.card);
+      const source = filterInventoryCards({
+        cards,
+        language,
+        status: mode,
+      }).map((item) => item.card);
       const limited = count ? source.slice(0, count) : source;
       const shuffled = shuffle(limited);
 
@@ -220,7 +288,8 @@ export function QuizStation({
         const inventoryCard = cards.find((item) => item.cardId === card.id)!;
         const requirement = getTierRequirement(card.tier);
         const willLearn =
-          inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= requirement;
+          inventoryCard.status !== "learned" &&
+          inventoryCard.correctCount + 1 >= requirement;
 
         if (mode === "active" && willLearn) {
           return {
@@ -236,7 +305,11 @@ export function QuizStation({
           card,
           inventoryCard,
           questionType: "choice",
-          question: buildQuizQuestion(card, VOCABULARY_CARDS, getStudyLocale(card.language, locale)),
+          question: buildQuizQuestion(
+            card,
+            VOCABULARY_CARDS,
+            getStudyLocale(card.language, locale),
+          ),
           willLearn: false,
         };
       });
@@ -277,7 +350,12 @@ export function QuizStation({
       }
 
       if (currentIndex + 1 >= deck.length) {
-        const summary = getQuizPerformanceSummary(mode, resultsOverride ?? results, selectedCount, chestOpened);
+        const summary = getQuizPerformanceSummary(
+          mode,
+          resultsOverride ?? results,
+          selectedCount,
+          chestOpened,
+        );
         if (summary.chestUnlocked) {
           setPhase("chest");
           return;
@@ -289,7 +367,16 @@ export function QuizStation({
       setCurrentIndex((current) => current + 1);
       resetQuestionUi();
     },
-    [chestOpened, currentIndex, deck.length, lastLearned, mode, resetQuestionUi, results, selectedCount],
+    [
+      chestOpened,
+      currentIndex,
+      deck.length,
+      lastLearned,
+      mode,
+      resetQuestionUi,
+      results,
+      selectedCount,
+    ],
   );
 
   const queueAutoAdvance = useCallback(
@@ -317,7 +404,11 @@ export function QuizStation({
 
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
-    const count = filterInventoryCards({ cards, language, status: mode }).length;
+    const count = filterInventoryCards({
+      cards,
+      language,
+      status: mode,
+    }).length;
 
     if (count < 10) {
       buildDeck(language, null);
@@ -348,7 +439,9 @@ export function QuizStation({
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
 
       if (effectivePlan === "free" && typeof learnedLimit === "number") {
-        const learnedCount = cards.filter((card) => card.status === "learned").length;
+        const learnedCount = cards.filter(
+          (card) => card.status === "learned",
+        ).length;
 
         if (learnedCount >= learnedLimit) {
           const nextResults: QuizResult = {
@@ -367,38 +460,47 @@ export function QuizStation({
       }
     }
 
-    requireAuthAction(() => {
-      const willLearn = item.willLearn && isCorrect;
+    requireAuthAction(
+      () => {
+        const willLearn = item.willLearn && isCorrect;
 
-      playSoundEffect(isCorrect ? "correct" : "incorrect");
-      vibrate(isCorrect ? "correct" : "incorrect");
+        playSoundEffect(isCorrect ? "correct" : "incorrect");
+        vibrate(isCorrect ? "correct" : "incorrect");
 
-      setResults((current) => ({
-        correct: isCorrect ? [...current.correct, item.card] : current.correct,
-        incorrect: !isCorrect ? [...current.incorrect, item.card] : current.incorrect,
-        learned: willLearn ? [...current.learned, item.card] : current.learned,
-      }));
+        setResults((current) => ({
+          correct: isCorrect
+            ? [...current.correct, item.card]
+            : current.correct,
+          incorrect: !isCorrect
+            ? [...current.incorrect, item.card]
+            : current.incorrect,
+          learned: willLearn
+            ? [...current.learned, item.card]
+            : current.learned,
+        }));
 
-      if (willLearn) {
-        setLastLearned(item.card);
-      }
+        if (willLearn) {
+          setLastLearned(item.card);
+        }
 
-      setShowingAnswer(true);
-      setTextResult(isCorrect ? "correct" : "incorrect");
-      setLastAnswerCorrect(isCorrect);
-      setDesktopCardFace("front");
-      setMobileCardFace("front");
+        setShowingAnswer(true);
+        setTextResult(isCorrect ? "correct" : "incorrect");
+        setLastAnswerCorrect(isCorrect);
+        setDesktopCardFace("front");
+        setMobileCardFace("front");
 
-      void recordAnswer({
-        cardId: item.card.id,
-        selectedAnswer: answer,
-        correctAnswer,
-        isCorrect,
-        mode,
-      });
-    }, {
-      nextPath: `/learn?mode=${mode}`,
-    });
+        void recordAnswer({
+          cardId: item.card.id,
+          selectedAnswer: answer,
+          correctAnswer,
+          isCorrect,
+          mode,
+        });
+      },
+      {
+        nextPath: `/learn?mode=${mode}`,
+      },
+    );
   }
 
   function handleNext() {
@@ -412,7 +514,11 @@ export function QuizStation({
 
   function handleRestart() {
     if (selectedLanguage) {
-      const count = filterInventoryCards({ cards, language: selectedLanguage, status: mode }).length;
+      const count = filterInventoryCards({
+        cards,
+        language: selectedLanguage,
+        status: mode,
+      }).length;
 
       if (count < 10) {
         buildDeck(selectedLanguage, null);
@@ -445,16 +551,31 @@ export function QuizStation({
   }
 
   if (!hydrated) {
-    return <EmptyState title={t("quiz.loadingTitle")} description={t("quiz.loadingDescription")} />;
+    return (
+      <EmptyState
+        title={t("quiz.loadingTitle")}
+        description={t("quiz.loadingDescription")}
+      />
+    );
   }
 
   if (languageStats.length === 0) {
     return (
       <EmptyState
-        title={t(mode === "active" ? "inventory.emptyAnyTitle" : "inventory.emptyAnyLearnedTitle")}
-        description={t(mode === "active" ? "inventory.emptyAnyDescription" : "quiz.noLearnedDescription")}
+        title={t(
+          mode === "active"
+            ? "inventory.emptyAnyTitle"
+            : "inventory.emptyAnyLearnedTitle",
+        )}
+        description={t(
+          mode === "active"
+            ? "inventory.emptyAnyDescription"
+            : "quiz.noLearnedDescription",
+        )}
         action={
-          <Button onClick={() => router.push("/card-draw")}>{t("quiz.backToDraw")}</Button>
+          <Button onClick={() => router.push("/card-draw")}>
+            {t("quiz.backToDraw")}
+          </Button>
         }
       />
     );
@@ -506,7 +627,7 @@ export function QuizStation({
       <QuizViewportOverlay
         learnPagePhase="result"
         overlay="result"
-        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-16 max-lg:p-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
       >
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultView
@@ -531,7 +652,10 @@ export function QuizStation({
           overlay="chest"
           className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
         >
-          <ChestOpeningView tier={tier} onComplete={() => handleChestComplete(tier.tier)} />
+          <ChestOpeningView
+            tier={tier}
+            onComplete={() => handleChestComplete(tier.tier)}
+          />
         </QuizViewportOverlay>
       );
     }
@@ -542,8 +666,14 @@ export function QuizStation({
   if (!item) {
     return (
       <EmptyState
-        title={t(mode === "active" ? "quiz.noActiveTitle" : "quiz.noLearnedTitle")}
-        description={t(mode === "active" ? "quiz.noActiveDescription" : "quiz.noLearnedDescription")}
+        title={t(
+          mode === "active" ? "quiz.noActiveTitle" : "quiz.noLearnedTitle",
+        )}
+        description={t(
+          mode === "active"
+            ? "quiz.noActiveDescription"
+            : "quiz.noLearnedDescription",
+        )}
         action={
           <Link href="/card-draw" className={buttonClassName("primary", "md")}>
             {t("quiz.backToDraw")}
@@ -564,24 +694,29 @@ export function QuizStation({
         lastAnswerCorrect={lastAnswerCorrect}
       />
       <div
-        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:pt-32"
+        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-28 max-lg:h-auto max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y"
         data-learn-quiz-page="quiz"
       >
-        <div className="grid gap-6 max-sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="order-2 flex flex-col justify-center gap-4 lg:order-1">
-            <div className="flex justify-center lg:hidden">
-              <div className="h-32 w-24 max-w-full sm:h-36 sm:w-28">
-                <VocabularyCardView
-                  card={item.card}
-                  inventory={item.inventoryCard}
-                  owned
-                  initialFace="back"
-                  face={mobileCardFace}
-                  flippable={false}
-                  className="h-full w-full min-h-0"
-                />
-              </div>
-            </div>
+        <div
+          className="flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0"
+          data-quiz-mobile-layout={item.questionType}
+        >
+          {item.questionType === "choice" ? (
+            <p
+              className="order-1 text-center text-sm font-semibold text-foreground-muted lg:hidden"
+              data-quiz-mobile-prompt
+            >
+              {t("quiz.recallPrompt")}
+            </p>
+          ) : null}
+
+          <div
+            className={cn(
+              "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+              item.questionType === "choice" ? "order-3" : "order-1",
+            )}
+            data-quiz-mobile-question
+          >
             <QuizCounter currentIndex={currentIndex} total={deck.length} />
             <QuizProgressHeader mode={mode} item={item} />
             <div className="flex flex-1 flex-col justify-center">
@@ -590,6 +725,7 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
+                  promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onNext={handleNext}
                 />
@@ -608,8 +744,18 @@ export function QuizStation({
             </div>
           </div>
 
-          <div className="order-1 hidden items-center justify-center lg:order-2 lg:flex lg:h-[440px]">
-            <div className="h-[440px] w-auto focus:outline-none" aria-hidden="true">
+          <div
+            className="order-2 flex items-center justify-center lg:hidden"
+            data-quiz-mobile-card-slot
+          >
+            <MobileQuizCard item={item} face={mobileCardFace} />
+          </div>
+
+          <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
+            <div
+              className="h-[440px] w-auto focus:outline-none"
+              aria-hidden="true"
+            >
               <VocabularyCardView
                 card={item.card}
                 inventory={item.inventoryCard}
@@ -624,7 +770,11 @@ export function QuizStation({
         </div>
       </div>
 
-      <CardDetailsDialog card={item.card} open={detailsOpen} onOpenChange={setDetailsOpen} />
+      <CardDetailsDialog
+        card={item.card}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
 
       <UpgradeDialog
         open={limitError !== null}
@@ -636,6 +786,31 @@ export function QuizStation({
         }}
       />
     </>
+  );
+}
+
+function MobileQuizCard({
+  item,
+  face,
+}: {
+  item: QuizItem;
+  face: "front" | "back";
+}) {
+  return (
+    <div
+      className="w-[min(190px,calc((100vw-3rem)/2))] max-w-full shrink-0"
+      data-quiz-mobile-card
+    >
+      <VocabularyCardView
+        card={item.card}
+        inventory={item.inventoryCard}
+        owned
+        initialFace="back"
+        face={face}
+        flippable={false}
+        className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
+      />
+    </div>
   );
 }
 
@@ -652,7 +827,11 @@ export function LanguageSelection({
   onBack,
 }: {
   mode: PracticeMode;
-  languageStats: Array<{ code: LanguageCode; count: number; nativeName: string }>;
+  languageStats: Array<{
+    code: LanguageCode;
+    count: number;
+    nativeName: string;
+  }>;
   hiddenLanguageCode: LanguageCode | null;
   selectedLanguage: LanguageCode | null;
   onSelect: (language: LanguageCode) => void;
@@ -660,7 +839,9 @@ export function LanguageSelection({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const hiddenLanguageName = hiddenLanguageCode ? getLanguageDisplayName(hiddenLanguageCode, locale) : null;
+  const hiddenLanguageName = hiddenLanguageCode
+    ? getLanguageDisplayName(hiddenLanguageCode, locale)
+    : null;
   const modeColor = MODE_STYLE[mode].bg;
 
   return (
@@ -673,46 +854,57 @@ export function LanguageSelection({
     >
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         <div className="w-full max-w-4xl">
-          <h2 className="mt-4 text-center text-lg font-semibold text-foreground max-lg:text-white lg:text-2xl">{t("quiz.chooseLanguageTitle")}</h2>
+          <h2 className="mt-4 text-center text-lg font-semibold text-foreground max-lg:text-white lg:text-2xl">
+            {t("quiz.chooseLanguageTitle")}
+          </h2>
           {hiddenLanguageName ? (
             <p className="mt-2 text-center text-xs leading-5 text-foreground/65 max-lg:text-white/80 lg:text-sm">
-              {t("quiz.hiddenSiteLanguageHint", { language: hiddenLanguageName })}
+              {t("quiz.hiddenSiteLanguageHint", {
+                language: hiddenLanguageName,
+              })}
             </p>
           ) : null}
 
           <div className="mt-6 flex min-h-0 flex-col items-center">
             <div className="w-full min-h-0 overflow-y-auto rounded-md border border-white/10 bg-black p-2 lg:h-[420px]">
-          {languageStats.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2">
-              {languageStats.map((language) => (
-                <button
-                  key={language.code}
-                  type="button"
-                  aria-pressed={selectedLanguage === language.code}
-                  onClick={() => onSelect(language.code)}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-md border border-black/10 bg-white p-3 text-left text-sm font-semibold text-black transition-colors hover:bg-neutral-100 lg:p-4 lg:text-base",
-                    selectedLanguage === language.code && "border-black/40 bg-neutral-100",
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-black">
-                    <LanguageFlag code={language.code} />
-                    <span className="truncate">{getLanguageDisplayName(language.code, locale)}</span>
-                  </span>
-                  <Badge className="border-transparent bg-black/10 text-black">{formatCards(locale, language.count)}</Badge>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
-              <div className="max-w-md">
-                <p className="text-base font-semibold text-foreground">{t("quiz.noPracticeLanguagesTitle")}</p>
-                <p className="mt-2 text-sm leading-6 text-foreground/70">
-                  {t("quiz.noPracticeLanguagesDescription")}
-                </p>
-              </div>
-            </div>
-          )}
+              {languageStats.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {languageStats.map((language) => (
+                    <button
+                      key={language.code}
+                      type="button"
+                      aria-pressed={selectedLanguage === language.code}
+                      onClick={() => onSelect(language.code)}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-md border border-black/10 bg-white p-3 text-left text-sm font-semibold text-black transition-colors hover:bg-neutral-100 lg:p-4 lg:text-base",
+                        selectedLanguage === language.code &&
+                          "border-black/40 bg-neutral-100",
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-black">
+                        <LanguageFlag code={language.code} />
+                        <span className="truncate">
+                          {getLanguageDisplayName(language.code, locale)}
+                        </span>
+                      </span>
+                      <Badge className="border-transparent bg-black/10 text-black">
+                        {formatCards(locale, language.count)}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
+                  <div className="max-w-md">
+                    <p className="text-base font-semibold text-foreground max-lg:text-white">
+                      {t("quiz.noPracticeLanguagesTitle")}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-foreground/70 max-lg:text-white/80">
+                      {t("quiz.noPracticeLanguagesDescription")}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -776,22 +968,38 @@ export function CountSelection({
   const showChestTiers = mode === "active";
   const languageName = getLanguageDisplayName(language, locale);
 
+  const countButtonColors = [
+    "bg-red-500",
+    "bg-blue-500",
+    "bg-amber-400",
+    "bg-emerald-500",
+  ];
+
   return (
     <div
       data-quiz-count-selection
       className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0"
     >
-      <div className="flex items-center justify-between bg-black px-5 py-4 text-white max-lg:px-4 max-lg:py-3">
-        <h2 className="text-base font-semibold sm:text-lg">{t("quiz.chooseCountTitle")}</h2>
+      <div className="flex flex-col items-center justify-center bg-black px-5 py-4 text-center text-white max-lg:px-4 max-lg:py-3">
+        <h2 className="text-base font-semibold sm:text-lg">
+          {t("quiz.chooseCountTitle")}
+        </h2>
         <p className="text-xs font-medium opacity-90 sm:text-sm">
-          {t("quiz.countAvailable", { language: languageName, count: availableCount })}
+          {t("quiz.countAvailable", {
+            language: languageName,
+            count: availableCount,
+          })}
         </p>
       </div>
 
       <div className="grid flex-1 grid-cols-2">
-        {QUIZ_COUNT_OPTIONS.map((count) => {
+        {QUIZ_COUNT_OPTIONS.map((count, index) => {
           const disabled = count > availableCount;
-          const previewPair = showChestTiers ? getChestPreviewPairForCount(count) : undefined;
+          const previewPair = showChestTiers
+            ? getChestPreviewPairForCount(count)
+            : undefined;
+          const colorClass =
+            countButtonColors[index % countButtonColors.length];
 
           return (
             <button
@@ -800,8 +1008,10 @@ export function CountSelection({
               disabled={disabled}
               onClick={() => onSelect(count)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 border border-white/10 bg-neutral-900 p-4 text-center text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40",
-                selectedCount === count && "bg-neutral-800 ring-inset ring-2 ring-white/30",
+                "flex flex-col items-center justify-center gap-1 border border-white/10 p-4 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
+                colorClass,
+                selectedCount === count &&
+                  "ring-inset ring-2 ring-white/30 brightness-110",
               )}
             >
               <span className="text-xs font-medium uppercase tracking-wide opacity-80">
@@ -811,7 +1021,10 @@ export function CountSelection({
               {showChestTiers && previewPair ? (
                 <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
                   {previewPair.map((tier) => (
-                    <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
+                    <span
+                      key={tier}
+                      className="flex items-center gap-1 text-xs font-semibold"
+                    >
                       <MiniChestIcon className="text-white" />
                       {t(getChestLabelKey(tier))}
                     </span>
@@ -869,24 +1082,47 @@ function MobileQuizTopBars({
   const t = useT();
   const style = TIER_STYLES[item.card.tier];
   const requirement = TIER_REQUIREMENTS[item.card.tier];
-  const delta = showingAnswer && lastAnswerCorrect !== null ? (lastAnswerCorrect ? 1 : -1) : 0;
-  const displayCorrectCount = Math.max(0, Math.min(requirement, item.inventoryCard.correctCount + delta));
-  const learningProgress = Math.min(100, (displayCorrectCount / requirement) * 100);
+  const delta =
+    showingAnswer && lastAnswerCorrect !== null
+      ? lastAnswerCorrect
+        ? 1
+        : -1
+      : 0;
+  const displayCorrectCount = Math.max(
+    0,
+    Math.min(requirement, item.inventoryCard.correctCount + delta),
+  );
+  const learningProgress = Math.min(
+    100,
+    (displayCorrectCount / requirement) * 100,
+  );
   const quizProgress = Math.min(100, ((currentIndex + 1) / total) * 100);
 
   return (
-    <div className="fixed inset-x-0 top-0 z-30 flex flex-col lg:hidden">
-      <div className="flex flex-col gap-1 bg-black px-4 py-2 text-white">
+    <div
+      className="fixed inset-x-0 top-0 z-30 flex h-28 flex-col lg:hidden"
+      data-mobile-quiz-top-bars
+    >
+      <div className="flex h-11 shrink-0 flex-col justify-center gap-1 bg-black px-4 py-1.5 text-white">
         <div className="flex items-center justify-between text-xs font-semibold">
           <span>{t("quiz.activeBadge")}</span>
           <span>
             {currentIndex + 1} / {total}
           </span>
         </div>
-        <Progress value={quizProgress} className="bg-[#131313]" indicatorClassName="bg-red-500" />
+        <Progress
+          value={quizProgress}
+          className="bg-[#131313]"
+          indicatorClassName="bg-red-500"
+        />
       </div>
 
-      <div className={cn("flex flex-col gap-1 px-4 py-2 text-white", style.accent)}>
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col justify-center gap-1 px-4 py-1.5 text-white",
+          style.accent,
+        )}
+      >
         <div className="flex items-center justify-between">
           <Badge className="border-transparent bg-white/20 text-white">
             {item.questionType === "text"
@@ -899,12 +1135,20 @@ function MobileQuizTopBars({
         {item.questionType === "choice" && mode === "active" ? (
           <>
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span>{item.inventoryCard.status === "learned" ? t("cards.learned") : t("quiz.cardLearningProcess")}</span>
+              <span>
+                {item.inventoryCard.status === "learned"
+                  ? t("cards.learned")
+                  : t("quiz.cardLearningProcess")}
+              </span>
               <span>
                 {displayCorrectCount}/{requirement}
               </span>
             </div>
-            <Progress value={learningProgress} className="bg-[#131313]" indicatorClassName="bg-white" />
+            <Progress
+              value={learningProgress}
+              className="bg-[#131313]"
+              indicatorClassName="bg-white"
+            />
           </>
         ) : null}
       </div>
@@ -931,11 +1175,15 @@ function QuizCounter({
 function ChoiceQuestion({
   item,
   showingAnswer,
+  showPrompt = true,
+  promptClassName,
   onAnswer,
   onNext,
 }: {
   item: QuizItem;
   showingAnswer: boolean;
+  showPrompt?: boolean;
+  promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onNext: () => void;
 }) {
@@ -943,10 +1191,20 @@ function ChoiceQuestion({
   const question = item.question as QuizQuestion;
 
   return (
-    <div className="animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:gap-3 max-sm:p-3 sm:p-8">
-      <p className="text-center text-sm font-semibold text-foreground-muted">
-        {t("quiz.recallPrompt")}
-      </p>
+    <div
+      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      data-quiz-question-content="choice"
+    >
+      {showPrompt ? (
+        <p
+          className={cn(
+            "text-center text-sm font-semibold text-foreground-muted",
+            promptClassName,
+          )}
+        >
+          {t("quiz.recallPrompt")}
+        </p>
+      ) : null}
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"
@@ -957,7 +1215,7 @@ function ChoiceQuestion({
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
         </button>
-        <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
+        <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
           {item.card.term}
         </h2>
       </div>
@@ -965,7 +1223,8 @@ function ChoiceQuestion({
       <div className="grid grid-cols-2 gap-3">
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
-          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+          const optionColor =
+            CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
             <button
@@ -975,10 +1234,14 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "flex min-h-20 items-center justify-center rounded-md px-3 py-3 text-center text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default max-sm:min-h-16 max-sm:text-xs",
+                "flex min-h-14 items-center justify-center rounded-md px-3 py-2.5 text-center text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-16 sm:text-sm lg:min-h-20 lg:py-3",
                 optionColor,
-                showingAnswer && isCorrectOption && "bg-emerald-500 hover:brightness-100",
-                showingAnswer && !isCorrectOption && "bg-background-inverse hover:brightness-100",
+                showingAnswer &&
+                  isCorrectOption &&
+                  "bg-emerald-500 hover:brightness-100",
+                showingAnswer &&
+                  !isCorrectOption &&
+                  "bg-background-inverse hover:brightness-100",
               )}
             >
               {option}
@@ -989,7 +1252,10 @@ function ChoiceQuestion({
 
       {showingAnswer ? (
         <div className="mt-2 max-sm:mt-1 flex flex-col gap-3 sm:flex-row">
-          <Button className="w-full bg-brand hover:bg-brand-hover" onClick={onNext}>
+          <Button
+            className="w-full bg-brand hover:bg-brand-hover"
+            onClick={onNext}
+          >
             {t("quiz.nextCard")}
           </Button>
         </div>
@@ -1018,7 +1284,9 @@ function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question as { correctAnswer: string };
-  const exampleTranslation = item.card.examples[0] ? getCardExampleTranslation(item.card.examples[0], locale) : "";
+  const exampleTranslation = item.card.examples[0]
+    ? getCardExampleTranslation(item.card.examples[0], locale)
+    : "";
   const isMobileViewport = useSyncExternalStore(
     (callback) => {
       window.addEventListener("resize", callback);
@@ -1028,7 +1296,12 @@ function TextQuestion({
     () => false,
   );
   const [splashDone, setSplashDone] = useState(false);
-  const [splashColor] = useState(() => CHOICE_OPTION_COLORS[Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)]);
+  const [splashColor] = useState(
+    () =>
+      CHOICE_OPTION_COLORS[
+        Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)
+      ],
+  );
 
   useEffect(() => {
     if (!isMobileViewport) return;
@@ -1059,70 +1332,102 @@ function TextQuestion({
       ) : null}
       <div
         className={cn(
-          "animate-screen-pop flex flex-col gap-4 rounded-lg border border-transparent bg-transparent p-4 max-sm:gap-3 max-sm:p-3 sm:p-8",
+          "animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8",
           splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
         )}
+        data-quiz-question-content="text"
       >
-      <p className="text-center text-sm font-semibold text-orange-500">
-        {t("quiz.learningPrompt")}
-      </p>
-      <div className="flex items-center justify-center">
-        <h2 className="font-display text-5xl font-semibold leading-none text-foreground max-sm:text-3xl sm:text-6xl">
-          {getCardTranslation(item.card, locale)}
-        </h2>
-      </div>
+        <p className="text-center text-sm font-semibold text-orange-500">
+          {t("quiz.learningPrompt")}
+        </p>
+        <div className="flex items-center justify-center">
+          <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
+            {getCardTranslation(item.card, locale)}
+          </h2>
+        </div>
 
-      <div>
-        <input
-          type="text"
-          value={textAnswer}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !showingAnswer) {
-              handleSubmit();
-            }
-          }}
-          disabled={showingAnswer}
-          placeholder={t("quiz.learningQuizPlaceholder")}
-          className={cn(
-            "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground",
-            showingAnswer && textResult === "correct" && "border-emerald-500 bg-emerald-50",
-            showingAnswer && textResult === "incorrect" && "border-rose-500 bg-rose-50",
-          )}
-        />
+        <div>
+          <input
+            type="text"
+            value={textAnswer}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !showingAnswer) {
+                handleSubmit();
+              }
+            }}
+            disabled={showingAnswer}
+            placeholder={t("quiz.learningQuizPlaceholder")}
+            className={cn(
+              "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground",
+              showingAnswer &&
+                textResult === "correct" &&
+                "border-emerald-500 bg-emerald-50",
+              showingAnswer &&
+                textResult === "incorrect" &&
+                "border-rose-500 bg-rose-50",
+            )}
+          />
 
-        {showingAnswer ? (
-          <div className="mt-4 max-sm:mt-2 space-y-3">
-            <div className="flex items-center gap-3">
-              {textResult === "correct" ? (
-                <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
-              ) : (
-                <XCircle className="size-5 text-rose-600" aria-hidden="true" />
-              )}
-              <p className="font-semibold text-foreground">
-                {textResult === "correct"
-                  ? t("quiz.correctAnswer")
-                  : t("quiz.correctAnswerWithValue", { answer: question.correctAnswer })}
+          {showingAnswer ? (
+            <div className="mt-2 space-y-3 lg:mt-4">
+              <div className="flex items-center gap-3">
+                {textResult === "correct" ? (
+                  <CheckCircle2
+                    className="size-5 text-emerald-600"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <XCircle
+                    className="size-5 text-rose-600"
+                    aria-hidden="true"
+                  />
+                )}
+                <p className="font-semibold text-foreground">
+                  {textResult === "correct"
+                    ? t("quiz.correctAnswer")
+                    : t("quiz.correctAnswerWithValue", {
+                        answer: question.correctAnswer,
+                      })}
+                </p>
+              </div>
+              <p className="text-sm leading-6 text-foreground-secondary">
+                {item.card.examples[0]?.sentence}
               </p>
+              {exampleTranslation ? (
+                <p className="text-sm leading-6 text-foreground-muted">
+                  {exampleTranslation}
+                </p>
+              ) : null}
+              <Button
+                className="w-full bg-brand hover:bg-brand-hover"
+                onClick={onNext}
+              >
+                {t("quiz.nextCard")}
+              </Button>
             </div>
-            <p className="text-sm leading-6 text-foreground-secondary">{item.card.examples[0]?.sentence}</p>
-            {exampleTranslation ? <p className="text-sm leading-6 text-foreground-muted">{exampleTranslation}</p> : null}
-            <Button className="w-full bg-brand hover:bg-brand-hover" onClick={onNext}>
-              {t("quiz.nextCard")}
+          ) : (
+            <Button
+              className="mt-2 w-full lg:mt-4"
+              onClick={handleSubmit}
+              disabled={textAnswer.trim().length === 0}
+            >
+              {t("quiz.submitAnswer")}
             </Button>
-          </div>
-        ) : (
-          <Button className="mt-4 max-sm:mt-2 w-full" onClick={handleSubmit} disabled={textAnswer.trim().length === 0}>
-            {t("quiz.submitAnswer")}
-          </Button>
-        )}
+          )}
+        </div>
       </div>
-    </div>
     </>
   );
 }
 
-function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinue: () => void }) {
+function CelebrationView({
+  card,
+  onContinue,
+}: {
+  card: VocabularyCard;
+  onContinue: () => void;
+}) {
   const t = useT();
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
   const hasTriggered = useRef(false);
@@ -1147,10 +1452,19 @@ function CelebrationView({ card, onContinue }: { card: VocabularyCard; onContinu
 
   return (
     <div className="animate-screen-pop mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
-      <h2 className="text-2xl font-semibold text-foreground">{t("quiz.learnedTitle")}</h2>
+      <h2 className="text-2xl font-semibold text-foreground">
+        {t("quiz.learnedTitle")}
+      </h2>
 
       <div className="mt-6 w-64 max-w-full">
-        <VocabularyCardView card={card} owned initialFace="back" face={cardFace} flippable={false} className="w-full aspect-[3/4] min-h-0 h-auto" />
+        <VocabularyCardView
+          card={card}
+          owned
+          initialFace="back"
+          face={cardFace}
+          flippable={false}
+          className="w-full aspect-[3/4] min-h-0 h-auto"
+        />
       </div>
 
       <Button className="mt-8 w-full" onClick={onContinue}>
@@ -1210,15 +1524,30 @@ export function ResultView({
   onExit: () => void;
 }) {
   const t = useT();
-  const [openMenu, setOpenMenu] = useState<"correct" | "incorrect" | "learned" | null>(null);
-  const [introPhase, setIntroPhase] = useState<"entering" | "flying" | "done">("entering");
+  const [openMenu, setOpenMenu] = useState<
+    "correct" | "incorrect" | "learned" | null
+  >(null);
+  const [introPhase, setIntroPhase] = useState<"entering" | "flying" | "done">(
+    "entering",
+  );
   const introRef = useRef<HTMLDivElement | null>(null);
   const summaryIconRef = useRef<HTMLDivElement | null>(null);
   const hasTriggeredResult = useRef(false);
-  const performance = getQuizPerformanceSummary(mode, results, selectedCount, chestOpened);
+  const performance = getQuizPerformanceSummary(
+    mode,
+    results,
+    selectedCount,
+    chestOpened,
+  );
   const SummaryIcon = performance.icon;
   const messageKey = useMemo(
-    () => getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened),
+    () =>
+      getQuizResultMessageKey(
+        performance.messageKeys,
+        results,
+        selectedCount,
+        chestOpened,
+      ),
     [chestOpened, performance.messageKeys, results, selectedCount],
   );
 
@@ -1275,11 +1604,14 @@ export function ResultView({
 
     const first = introEl.getBoundingClientRect();
     const last = summaryIconEl.getBoundingClientRect();
-    const translateX = last.left + last.width / 2 - (first.left + first.width / 2);
-    const translateY = last.top + last.height / 2 - (first.top + first.height / 2);
+    const translateX =
+      last.left + last.width / 2 - (first.left + first.width / 2);
+    const translateY =
+      last.top + last.height / 2 - (first.top + first.height / 2);
     const scale = last.width / first.width;
 
-    introEl.style.transition = "transform 550ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms ease 350ms";
+    introEl.style.transition =
+      "transform 550ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms ease 350ms";
     introEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     introEl.style.opacity = "0";
 
@@ -1319,13 +1651,15 @@ export function ResultView({
       tone: "rose" as const,
     },
     ...(mode === "active"
-      ? [{
-          key: "learned" as const,
-          icon: Trophy,
-          label: t("quiz.resultLearned"),
-          count: results.learned.length,
-          tone: "amber" as const,
-        }]
+      ? [
+          {
+            key: "learned" as const,
+            icon: Trophy,
+            label: t("quiz.resultLearned"),
+            count: results.learned.length,
+            tone: "amber" as const,
+          },
+        ]
       : []),
   ];
 
@@ -1369,8 +1703,12 @@ export function ResultView({
           >
             <SummaryIcon className="size-8 sm:size-10" aria-hidden="true" />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-white dark:text-black sm:text-lg">{t("quiz.resultTitle")}</h2>
-          <p className="text-4xl font-bold text-white dark:text-black sm:text-5xl">{performance.accuracy}%</p>
+          <h2 className="mt-3 text-base font-semibold text-white dark:text-black sm:text-lg">
+            {t("quiz.resultTitle")}
+          </h2>
+          <p className="text-4xl font-bold text-white dark:text-black sm:text-5xl">
+            {performance.accuracy}%
+          </p>
           <p
             className="mt-2 text-lg font-bold leading-tight text-yellow-300 sm:text-xl"
             data-result-message-level={performance.level}
@@ -1393,7 +1731,9 @@ export function ResultView({
               label={card.label}
               count={card.count}
               tone={card.tone}
-              className={card.key === "learned" ? "col-span-2 lg:col-span-1" : undefined}
+              className={
+                card.key === "learned" ? "col-span-2 lg:col-span-1" : undefined
+              }
               disabled={card.count === 0}
               onClick={() => setOpenMenu(card.key)}
             />
@@ -1461,12 +1801,16 @@ function ResultCard({
         "flex min-h-[108px] w-full flex-col items-center justify-center rounded-lg p-3 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-[132px] sm:p-4",
         toneClasses[tone],
         className,
-        disabled ? "cursor-not-allowed" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+        disabled
+          ? "cursor-not-allowed"
+          : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
       )}
     >
       <Icon className="mx-auto size-5 sm:size-6" aria-hidden="true" />
       <p className="mt-1 text-xl font-bold sm:mt-2 sm:text-2xl">{count}</p>
-      <p className="text-[11px] font-semibold text-white/90 sm:text-xs">{label}</p>
+      <p className="text-[11px] font-semibold text-white/90 sm:text-xs">
+        {label}
+      </p>
     </button>
   );
 }
@@ -1478,8 +1822,14 @@ export function getQuizPerformanceSummary(
   chestOpened: boolean,
 ): QuizPerformanceSummary {
   const totalAnswered = results.correct.length + results.incorrect.length;
-  const accuracy = totalAnswered > 0 ? Math.round((results.correct.length / totalAnswered) * 100) : 0;
-  const chestTier = mode === "active" && selectedCount ? getChestTierByCount(selectedCount) : undefined;
+  const accuracy =
+    totalAnswered > 0
+      ? Math.round((results.correct.length / totalAnswered) * 100)
+      : 0;
+  const chestTier =
+    mode === "active" && selectedCount
+      ? getChestTierByCount(selectedCount)
+      : undefined;
   const chestUnlocked = accuracy >= 80 && Boolean(chestTier) && !chestOpened;
 
   if (accuracy >= 80) {
@@ -1517,7 +1867,15 @@ export function getQuizPerformanceSummary(
   };
 }
 
-function ResultMenu({ title, cards, onClose }: { title: string; cards: VocabularyCard[]; onClose: () => void }) {
+function ResultMenu({
+  title,
+  cards,
+  onClose,
+}: {
+  title: string;
+  cards: VocabularyCard[];
+  onClose: () => void;
+}) {
   const t = useT();
   return (
     <div
@@ -1545,11 +1903,18 @@ function ResultMenu({ title, cards, onClose }: { title: string; cards: Vocabular
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {cards.length === 0 ? (
-            <p className="py-8 text-center text-sm text-foreground-secondary">No cards</p>
+            <p className="py-8 text-center text-sm text-foreground-secondary">
+              No cards
+            </p>
           ) : (
             <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {cards.map((card) => (
-                <VocabularyCardView key={card.id} card={card} owned={false} className="h-full min-h-[320px] w-full" />
+                <VocabularyCardView
+                  key={card.id}
+                  card={card}
+                  owned={false}
+                  className="h-full min-h-[320px] w-full"
+                />
               ))}
             </div>
           )}

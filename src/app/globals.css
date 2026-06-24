@@ -526,7 +526,10 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
   }
 
   body:has([data-learn-page]) .page-transition-shell {
+    animation: none;
     padding-bottom: 0;
+    transform: none;
+    will-change: auto;
   }
 }
 

@@ -408,7 +408,7 @@ const dictionary = {
   "quiz.countAvailable": "You have {count} {language} cards",
   "quiz.countLabel": "Card count",
   "quiz.recallPrompt": "Recall the card",
-  "quiz.learningPrompt": "To learn the card, know its meaning",
+  "quiz.learningPrompt": "Recall its meaning to learn the card",
   "quiz.chooseCountTitle": "How many cards?",
   "quiz.chooseLanguageDescription": "You have cards in more than one language. Choose which language to practice before starting.",
   "quiz.hiddenSiteLanguageHint": "{language} is hidden because it's the site language.",
