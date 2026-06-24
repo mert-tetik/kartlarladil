@@ -694,7 +694,7 @@ export function QuizStation({
         lastAnswerCorrect={lastAnswerCorrect}
       />
       <div
-        className="animate-screen-pop mx-auto flex h-full w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-28 max-lg:h-auto max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y"
+        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-28 max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
         data-learn-quiz-page="quiz"
       >
         <div
@@ -798,8 +798,13 @@ function MobileQuizCard({
 }) {
   return (
     <div
-      className="w-[min(190px,calc((100vw-3rem)/2))] max-w-full shrink-0"
+      className={cn(
+        "w-[min(190px,calc((100vw-3rem)/2))] max-w-full shrink-0",
+        item.questionType === "text" && "origin-top scale-[1.12]",
+      )}
       data-quiz-mobile-card
+      data-quiz-mobile-card-kind={item.questionType}
+      data-quiz-card-term={item.card.term}
     >
       <VocabularyCardView
         card={item.card}
@@ -1234,7 +1239,7 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "flex min-h-14 items-center justify-center rounded-md px-3 py-2.5 text-center text-xs font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-16 sm:text-sm lg:min-h-20 lg:py-3",
+                "flex min-h-14 items-center justify-center rounded-md px-3 py-2.5 text-center text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-16 lg:min-h-20 lg:py-3 lg:text-base",
                 optionColor,
                 showingAnswer &&
                   isCorrectOption &&
@@ -1250,16 +1255,19 @@ function ChoiceQuestion({
         })}
       </div>
 
-      {showingAnswer ? (
-        <div className="mt-2 max-sm:mt-1 flex flex-col gap-3 sm:flex-row">
-          <Button
-            className="w-full bg-brand hover:bg-brand-hover"
-            onClick={onNext}
-          >
-            {t("quiz.nextCard")}
-          </Button>
-        </div>
-      ) : null}
+      <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
+        <Button
+          className={cn(
+            "w-full bg-brand hover:bg-brand-hover",
+            !showingAnswer && "invisible pointer-events-none",
+          )}
+          data-quiz-next-button
+          disabled={!showingAnswer}
+          onClick={onNext}
+        >
+          {t("quiz.nextCard")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1317,19 +1325,23 @@ function TextQuestion({
 
   return (
     <>
-      {isMobileViewport && !splashDone ? (
-        <div
-          className={cn(
-            "fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-learning-quiz-splash lg:hidden",
-            splashColor,
-          )}
-          aria-hidden="true"
-        >
-          <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
-            {t("quiz.learningQuizSplash")}
-          </span>
-        </div>
-      ) : null}
+      {isMobileViewport && !splashDone
+        ? createPortal(
+            <div
+              className={cn(
+                "pointer-events-none fixed inset-0 z-[60] flex items-center justify-center animate-learning-quiz-splash lg:hidden",
+                splashColor,
+              )}
+              data-learning-quiz-splash
+              aria-hidden="true"
+            >
+              <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
+                {t("quiz.learningQuizSplash")}
+              </span>
+            </div>,
+            document.body,
+          )
+        : null}
       <div
         className={cn(
           "animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8",
@@ -1451,25 +1463,36 @@ function CelebrationView({
   }, []);
 
   return (
-    <div className="animate-screen-pop mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-6 text-center sm:p-10">
-      <h2 className="text-2xl font-semibold text-foreground">
-        {t("quiz.learnedTitle")}
-      </h2>
+    <div
+      className="animate-screen-pop mx-auto flex h-full w-full max-w-md items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0"
+      data-quiz-celebration
+    >
+      <div
+        className="flex w-full max-w-sm flex-col items-center justify-center"
+        data-quiz-celebration-content
+      >
+        <h2 className="text-2xl font-semibold text-foreground">
+          {t("quiz.learnedTitle")}
+        </h2>
 
-      <div className="mt-6 w-64 max-w-full">
-        <VocabularyCardView
-          card={card}
-          owned
-          initialFace="back"
-          face={cardFace}
-          flippable={false}
-          className="w-full aspect-[3/4] min-h-0 h-auto"
-        />
+        <div
+          className="mt-5 w-[min(292px,76vw)] max-w-full"
+          data-quiz-celebration-card
+        >
+          <VocabularyCardView
+            card={card}
+            owned
+            initialFace="back"
+            face={cardFace}
+            flippable={false}
+            className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
+          />
+        </div>
+
+        <Button className="mt-5 w-full" onClick={onContinue}>
+          {t("quiz.continue")}
+        </Button>
       </div>
-
-      <Button className="mt-8 w-full" onClick={onContinue}>
-        {t("quiz.continue")}
-      </Button>
     </div>
   );
 }
@@ -1877,20 +1900,25 @@ function ResultMenu({
   onClose: () => void;
 }) {
   const t = useT();
-  return (
+  return createPortal(
     <div
       className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
+      data-result-menu
       onClick={onClose}
     >
       <div
-        className="relative flex w-full max-w-4xl max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl max-lg:max-h-none max-lg:rounded-none max-lg:border-0"
+        className="relative flex max-h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background-card shadow-2xl max-lg:h-full max-lg:max-h-none max-lg:rounded-none max-lg:border-0"
+        data-result-menu-panel
         onClick={(event) => event.stopPropagation()}
       >
         <div
           className="pointer-events-none absolute inset-x-0 top-1/2 -z-10 h-3 -translate-y-1/2 bg-black dark:bg-white"
           aria-hidden="true"
         />
-        <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card p-4">
+        <div
+          className="flex shrink-0 items-center justify-between border-b border-border bg-background-card p-4"
+          data-result-menu-header
+        >
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <button
             type="button"
@@ -1901,7 +1929,10 @@ function ResultMenu({
             <X className="size-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div
+          className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain p-4"
+          data-result-menu-scroll
+        >
           {cards.length === 0 ? (
             <p className="py-8 text-center text-sm text-foreground-secondary">
               No cards
@@ -1920,6 +1951,7 @@ function ResultMenu({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

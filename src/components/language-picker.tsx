@@ -28,7 +28,7 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
   }
 
   return (
-    <div>
+    <div data-language-picker={name}>
       <label className="text-sm font-semibold text-foreground">{label}</label>
       <button
         type="button"

@@ -10,6 +10,12 @@ describe("PreferenceFields", () => {
     expect(screen.getByRole("radio", { name: /Tümü/i })).toBeInTheDocument();
   });
 
+  it("renders the All tier option first", () => {
+    renderPreferenceFields();
+
+    expect(screen.getAllByRole("radio")[0]).toHaveAttribute("value", "all");
+  });
+
   it("keeps A1 selected by default", () => {
     renderPreferenceFields();
 

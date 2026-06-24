@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { PricingPage } from "@/features/subscriptions/components/pricing-page";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { getCurrencyCodeForCountry } from "@/lib/country-currency";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PricingPageRoute() {
-  const user = await getCurrentAuthUser();
+  const [user, requestHeaders] = await Promise.all([
+    getCurrentAuthUser(),
+    headers(),
+  ]);
+  const currencyCode = getCurrencyCodeForCountry(
+    requestHeaders.get("x-vercel-ip-country"),
+  );
 
-  return <PricingPage user={user} />;
+  return <PricingPage user={user} currencyCode={currencyCode} />;
 }

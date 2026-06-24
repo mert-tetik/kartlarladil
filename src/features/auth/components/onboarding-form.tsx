@@ -9,12 +9,11 @@ import { SubmitButton } from "@/features/auth/components/submit-button";
 import { matchSupportedLocale } from "@/data/languages";
 import { useT } from "@/i18n/locale-provider";
 import { fetchGeoCurrencyInfo } from "@/lib/geo-currency";
-import type { LanguageCode, LocaleCode } from "@/types/domain";
+import type { LanguageCode } from "@/types/domain";
 
 export function OnboardingForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
-  const [deviceLocale] = useState<LocaleCode>(() => matchSupportedLocale(navigator.language) ?? "en");
   const [detectedLanguage, setDetectedLanguage] = useState<LanguageCode>("en");
 
   useEffect(() => {
@@ -36,14 +35,14 @@ export function OnboardingForm({ nextPath }: { nextPath: string }) {
   }, []);
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-6" data-onboarding-form>
       <input type="hidden" name="next" value={nextPath} />
       <FormMessage state={state} />
 
       <PreferenceFields
         defaultLanguage={detectedLanguage}
-        defaultUiLocale={deviceLocale}
-        defaultTier="A1"
+        defaultUiLocale="tr"
+        defaultTier="all"
         languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
         uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
         tierError={state.fieldErrors?.preferredTier?.[0]}

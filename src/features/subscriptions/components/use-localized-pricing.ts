@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import {
-  convertUsdToCurrency,
-  fetchGeoCurrencyInfo,
+  fetchExchangeRate,
   formatCurrency,
 } from "@/lib/geo-currency";
+import {
+  getCountryCodeFromLocale,
+  getCurrencyCodeForCountry,
+} from "@/lib/country-currency";
 
 export { formatCurrency };
 import type { SubscriptionPlan } from "@/types/domain";
@@ -22,17 +25,21 @@ export type LocalizedPricingStatus =
   | { kind: "ready"; currencyCode: string; prices: Partial<Record<`${SubscriptionPlan}:${BillingCycle}`, LocalizedPrice>> }
   | { kind: "unavailable" };
 
-export function useLocalizedPricing(): LocalizedPricingStatus {
+export function useLocalizedPricing(
+  serverCurrencyCode: string | null,
+): LocalizedPricingStatus {
   const [status, setStatus] = useState<LocalizedPricingStatus>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const geo = await fetchGeoCurrencyInfo();
-      if (cancelled) return;
+      const browserCurrencyCode = getCurrencyCodeForCountry(
+        getCountryCodeFromLocale(navigator.language),
+      );
+      const currencyCode = serverCurrencyCode ?? browserCurrencyCode;
 
-      if (!geo?.currencyCode || geo.currencyCode === "USD") {
+      if (!currencyCode || currencyCode === "USD") {
         setStatus({ kind: "unavailable" });
         return;
       }
@@ -45,23 +52,29 @@ export function useLocalizedPricing(): LocalizedPricingStatus {
       ];
 
       const prices: Partial<Record<`${SubscriptionPlan}:${BillingCycle}`, LocalizedPrice>> = {};
+      const rate = await fetchExchangeRate("USD", currencyCode);
+      if (cancelled) return;
 
-      for (const item of planCycles) {
-        const amount = await convertUsdToCurrency(item.usd, geo.currencyCode);
-        if (amount !== null) {
-          prices[`${item.plan}:${item.cycle}`] = { amount, currencyCode: geo.currencyCode };
-        }
+      if (rate === null) {
+        setStatus({ kind: "unavailable" });
+        return;
       }
 
-      if (cancelled) return;
-      setStatus({ kind: "ready", currencyCode: geo.currencyCode, prices });
+      for (const item of planCycles) {
+        prices[`${item.plan}:${item.cycle}`] = {
+          amount: Math.round(item.usd * rate),
+          currencyCode,
+        };
+      }
+
+      setStatus({ kind: "ready", currencyCode, prices });
     }
 
     void load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [serverCurrencyCode]);
 
   return status;
 }

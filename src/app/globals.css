@@ -531,6 +531,12 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
     transform: none;
     will-change: auto;
   }
+
+  body:has([data-learn-quiz-page]) [data-learn-page] {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
 }
 
 /* Hide the Learn page header and site footer while a quiz or result screen is active */

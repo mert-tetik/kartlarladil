@@ -69,7 +69,7 @@ export function PreferenceFields({
         error={uiLocaleError}
       />
 
-      <fieldset>
+      <fieldset data-preference-tier>
         <legend className="text-sm font-semibold text-foreground">{t("auth.preference.tier")}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {PREFERRED_TIERS.map((tier) => (

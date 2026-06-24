@@ -109,6 +109,26 @@ describe("QuizStation sound feedback", () => {
     expect(card).toHaveClass("w-[min(190px,calc((100vw-3rem)/2))]");
   });
 
+  it("reserves the next-card slot before a choice answer is shown", async () => {
+    renderQuizStation();
+    await startChoiceQuiz();
+
+    const slot = document.querySelector<HTMLElement>("[data-quiz-next-slot]");
+    const nextButton = document.querySelector<HTMLElement>(
+      "[data-quiz-next-button]",
+    );
+
+    expect(slot).toContainElement(nextButton);
+    expect(nextButton).toHaveClass("invisible");
+    expect(nextButton).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+
+    expect(slot).toContainElement(nextButton);
+    expect(nextButton).not.toHaveClass("invisible");
+    expect(nextButton).toBeEnabled();
+  });
+
   it("places the text-answer question above the card on mobile", async () => {
     useInventoryStore.setState({
       cards: [{ ...inventoryCard, correctCount: 3 }],
@@ -125,10 +145,41 @@ describe("QuizStation sound feedback", () => {
 
     const layout = document.querySelector('[data-quiz-mobile-layout="text"]');
     const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
+    const card = layout?.querySelector("[data-quiz-mobile-card]");
     const question = layout?.querySelector("[data-quiz-mobile-question]");
 
     expect(question).toHaveClass("order-1");
     expect(cardSlot).toHaveClass("order-2");
+    expect(card).toHaveClass("origin-top", "scale-[1.12]");
+  });
+
+  it("renders the mobile learning splash against the viewport body", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+    await screen.findByRole("textbox");
+
+    const splash = document.querySelector("[data-learning-quiz-splash]");
+
+    expect(splash?.parentElement).toBe(document.body);
+    expect(splash).toHaveClass("fixed", "inset-0", "z-[60]");
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1024,
+    });
   });
 
   it("asks for a language before starting when multiple languages are available", async () => {

@@ -96,15 +96,15 @@ export async function fetchExchangeRate(from: string, to: string): Promise<numbe
   }
 
   try {
-    const response = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
+    const searchParams = new URLSearchParams({ from, to });
+    const response = await fetch(
+      `/api/pricing/exchange-rate?${searchParams.toString()}`,
+    );
 
     if (!response.ok) return null;
 
-    const data = (await response.json()) as { rates?: Record<string, number> };
-    const rate = data.rates?.[to];
+    const data = (await response.json()) as { rate?: number };
+    const rate = data.rate;
 
     if (typeof rate !== "number") return null;
 

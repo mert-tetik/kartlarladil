@@ -24,6 +24,7 @@ type BillingCycle = "monthly" | "yearly";
 
 interface PricingPageProps {
   user: AuthShellUser | null;
+  currencyCode: string | null;
 }
 
 interface PricingPlan {
@@ -40,12 +41,12 @@ const PLANS: PricingPlan[] = [
   { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.png" },
 ];
 
-export function PricingPage({ user }: PricingPageProps) {
+export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const t = useT();
   const { locale } = useLocale();
   const { entitlements } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const localizedPricing = useLocalizedPricing();
+  const localizedPricing = useLocalizedPricing(currencyCode);
 
   return (
     <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
