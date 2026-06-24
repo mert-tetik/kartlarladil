@@ -56,5 +56,6 @@ next-env.d.ts
 /android.keystore
 /*.keystore
 
-# Generated APK download artifact
-/public/download/
+# Generated APK download artifact — keep only the signed APK for deployment
+/public/download/*
+!/public/download/app-release-signed.apk
