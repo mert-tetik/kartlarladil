@@ -163,7 +163,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
   return (
     <div
       data-chest-opening-view
-      className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-6 text-center sm:py-8"
+      className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-2 text-center sm:py-4"
     >
       <div
         className={cn(
@@ -171,12 +171,12 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
           phase === "disappearing" && "scale-75 opacity-0",
         )}
       >
-        <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{t("chest.title")}</h2>
-        <p className={cn("mt-2 text-base font-semibold sm:text-lg", CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"))}>
+        <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{t("chest.title")}</h2>
+        <p className={cn("mt-1 text-base font-semibold sm:text-lg", CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"))}>
           {t(tier.labelKey)}
         </p>
 
-        <div className="relative mt-8 sm:mt-10">
+        <div className="relative mt-4 sm:mt-6">
           <button
             type="button"
             onClick={handleTap}
@@ -252,13 +252,13 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
         </div>
 
         {phase === "appearing" || phase === "idle" || phase === "shake" || phase === "opening" ? (
-          <p className="mt-8 text-sm font-semibold text-foreground-secondary">
+          <p className="mt-4 text-sm font-semibold text-foreground-secondary sm:mt-6">
             {t("chest.tapToOpen")}
           </p>
         ) : null}
 
         {phase === "revealed" ? (
-          <div className="mt-8 flex w-full animate-points-pop flex-col items-center">
+          <div className="mt-4 flex w-full animate-points-pop flex-col items-center sm:mt-6">
             <Button className="w-full max-w-xs bg-brand hover:bg-brand-hover" onClick={handleCollect}>
               {t("chest.collect")}
             </Button>

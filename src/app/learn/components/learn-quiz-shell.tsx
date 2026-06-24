@@ -100,6 +100,19 @@ export function LearnQuizShell({
   );
 }
 
+export const MODE_STYLE = {
+  active: {
+    bg: "bg-emerald-500",
+    border: "border-emerald-500",
+    hover: "hover:bg-emerald-600",
+  },
+  learned: {
+    bg: "bg-sky-500",
+    border: "border-sky-500",
+    hover: "hover:bg-sky-600",
+  },
+} as const;
+
 export function LearnModeSelection({ onSelect }: { onSelect: (mode: PracticeMode) => void }) {
   const t = useT();
 
@@ -119,7 +132,12 @@ export function LearnModeSelection({ onSelect }: { onSelect: (mode: PracticeMode
           <button
             type="button"
             onClick={() => onSelect("active")}
-            className="flex min-h-[136px] flex-col justify-center rounded-2xl border border-emerald-500 bg-emerald-500 p-5 text-left text-white transition-colors hover:bg-emerald-600 sm:min-h-[148px] sm:p-6"
+            className={cn(
+              "flex min-h-[136px] flex-col justify-center rounded-2xl border p-5 text-left text-white transition-colors sm:min-h-[148px] sm:p-6",
+              MODE_STYLE.active.bg,
+              MODE_STYLE.active.border,
+              MODE_STYLE.active.hover,
+            )}
           >
             <div className="flex items-center gap-3">
               <GraduationCap className="size-6 shrink-0 text-white" aria-hidden="true" />
@@ -133,7 +151,12 @@ export function LearnModeSelection({ onSelect }: { onSelect: (mode: PracticeMode
           <button
             type="button"
             onClick={() => onSelect("learned")}
-            className="flex min-h-[136px] flex-col justify-center rounded-2xl border border-sky-500 bg-sky-500 p-5 text-left text-white transition-colors hover:bg-sky-600 sm:min-h-[148px] sm:p-6"
+            className={cn(
+              "flex min-h-[136px] flex-col justify-center rounded-2xl border p-5 text-left text-white transition-colors sm:min-h-[148px] sm:p-6",
+              MODE_STYLE.learned.bg,
+              MODE_STYLE.learned.border,
+              MODE_STYLE.learned.hover,
+            )}
           >
             <div className="flex items-center gap-3">
               <RotateCcw className="size-6 shrink-0 text-white" aria-hidden="true" />

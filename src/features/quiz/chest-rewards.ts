@@ -69,3 +69,21 @@ export function getChestFrameIndex(tapCount: number): number {
 export function getChestRewardPoints(tier: ChestTier): number {
   return CHEST_TIERS.find((t) => t.tier === tier)?.points ?? 0;
 }
+
+export function getChestLabelKey(tier: ChestTier): `chest.tier${Capitalize<ChestTier>}` {
+  const tierDef = CHEST_TIERS.find((t) => t.tier === tier);
+  return tierDef?.labelKey ?? "chest.tierWood";
+}
+
+export const QUIZ_COUNT_OPTIONS = [10, 20, 30, 50] as const;
+
+export const COUNT_CHEST_PREVIEW_PAIRS: Record<number, [ChestTier, ChestTier]> = {
+  10: ["wood", "iron"],
+  20: ["bronze", "silver"],
+  30: ["gold", "diamond"],
+  50: ["diamond", "legendary"],
+};
+
+export function getChestPreviewPairForCount(count: number): [ChestTier, ChestTier] | undefined {
+  return COUNT_CHEST_PREVIEW_PAIRS[count];
+}
