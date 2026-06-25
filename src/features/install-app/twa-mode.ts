@@ -1,5 +1,5 @@
 const DEFAULT_TWA_PACKAGE_NAME = "com.LigidTools.Glidecore";
-const TWA_PACKAGE_NAME =
+export const TWA_PACKAGE_NAME =
   (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_TWA_PACKAGE_NAME) ||
   DEFAULT_TWA_PACKAGE_NAME;
 

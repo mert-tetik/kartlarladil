@@ -10,6 +10,7 @@ import { createCheckoutAction } from "@/features/subscriptions/subscription-acti
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
+import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -312,7 +313,7 @@ function CheckoutButton({
     }
   }, [state]);
 
-  const isPaidUser = currentPlan !== "free";
+  const isPaidUser = currentPlan != null && currentPlan !== "free";
 
   return (
     <form action={formAction}>
@@ -363,12 +364,12 @@ function GooglePlayCheckoutButton({
 }) {
   const t = useT();
   const { purchase, isLoading } = useGooglePlayBilling();
-  const isPaidUser = currentPlan !== "free";
+  const isPaidUser = currentPlan != null && currentPlan !== "free";
 
   const handleClick = async () => {
     if (isPaidUser) {
       window.open(
-        `https://play.google.com/store/account/subscriptions?package=com.foxiesdeck&sku=${getGooglePlaySku(plan, cycle)}`,
+        `https://play.google.com/store/account/subscriptions?package=${TWA_PACKAGE_NAME}&sku=${getGooglePlaySku(plan, cycle)}`,
         "_blank",
         "noopener,noreferrer",
       );

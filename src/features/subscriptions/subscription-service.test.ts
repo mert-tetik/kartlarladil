@@ -173,4 +173,31 @@ describe("getUserSubscriptionManagementSource", () => {
       managementUrl: null,
     });
   });
+
+  it("returns a Google Play management URL for an active Google Play subscription", async () => {
+    process.env.GOOGLE_PLAY_PACKAGE_NAME = "com.LigidTools.Glidecore";
+    mockSingle.mockResolvedValueOnce({
+      data: {
+        plan: "basic",
+        status: "active",
+        provider: "google_play",
+        customer_portal_url: null,
+        google_play_subscription_id: "basic_monthly",
+        renews_at: "2026-07-01T00:00:00Z",
+        ends_at: null,
+      },
+      error: null,
+    });
+
+    const result = await getUserSubscriptionManagementSource("user-5");
+
+    expect(result).toEqual({
+      effectivePlan: "basic",
+      provider: "google_play",
+      customerId: null,
+      subscriptionId: "basic_monthly",
+      managementUrl:
+        "https://play.google.com/store/account/subscriptions?package=com.LigidTools.Glidecore&sku=basic_monthly",
+    });
+  });
 });

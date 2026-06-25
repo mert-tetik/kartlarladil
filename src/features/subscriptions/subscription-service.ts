@@ -202,7 +202,8 @@ function normalizeSubscriptionProvider(value: string | null | undefined): Subscr
 
 function buildManagementUrl(provider: SubscriptionProvider, subscriptionId: string | null): string | null {
   if (provider === "google_play" && subscriptionId) {
-    return `https://play.google.com/store/account/subscriptions?package=com.foxiesdeck&sku=${encodeURIComponent(subscriptionId)}`;
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.LigidTools.Glidecore";
+    return `https://play.google.com/store/account/subscriptions?package=${encodeURIComponent(packageName)}&sku=${encodeURIComponent(subscriptionId)}`;
   }
 
   return null;

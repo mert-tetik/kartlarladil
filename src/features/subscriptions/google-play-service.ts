@@ -1,7 +1,7 @@
 "use server";
 
 import { google } from "googleapis";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { SubscriptionPlan, SubscriptionProvider, SubscriptionStatus } from "@/types/domain";
 
 const PACKAGE_NAME = process.env.GOOGLE_PLAY_PACKAGE_NAME;
@@ -45,6 +45,25 @@ interface VerifyResult {
   endsAt: string | null;
 }
 
+interface AndroidPublisher {
+  purchases: {
+    subscriptions: {
+      get: (params: { packageName: string | undefined; subscriptionId: string; token: string }) => Promise<{
+        data: {
+          paymentState?: number;
+          expiryTimeMillis?: string | number;
+          orderId?: string;
+        };
+      }>;
+      acknowledge: (params: {
+        packageName: string | undefined;
+        subscriptionId: string;
+        token: string;
+      }) => Promise<unknown>;
+    };
+  };
+}
+
 /**
  * Verifies a Google Play subscription purchase token, acknowledges it, and
  * persists the entitlement in Supabase.
@@ -55,8 +74,9 @@ export async function verifyGooglePlaySubscription(
   purchaseToken: string,
   subscriptionId: string,
   userId: string,
+  publisher?: AndroidPublisher,
 ): Promise<VerifyResult> {
-  const androidpublisher = getAndroidPublisher();
+  const androidpublisher = publisher ?? getAndroidPublisher();
 
   const plan = resolvePlanFromSku(subscriptionId);
   if (!plan) {
@@ -78,7 +98,7 @@ export async function verifyGooglePlaySubscription(
   const status: SubscriptionStatus = data.paymentState === 2 ? "on_trial" : "active";
   const orderId = (data.orderId as string | undefined) ?? null;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseAdminClient();
   const { error } = await supabase.from("user_subscriptions").upsert(
     {
       user_id: userId,
