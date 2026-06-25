@@ -150,7 +150,7 @@ export function MobileLandingDashboard() {
   }
 
   return (
-    <section className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-1.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
+    <section className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
       {/* Info icon */}
       <button
         type="button"
@@ -165,16 +165,10 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[40vh] flex-col items-center gap-0.5 bg-[#121212] px-4 py-1 text-white">
+      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[30vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <h1 className="text-center text-lg font-extrabold text-brand">
-          {stats.rank.label}
-        </h1>
-        <p className="text-[10px] font-semibold text-white/80">
-          {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
-        </p>
         <button
           type="button"
           onClick={() => {
@@ -193,6 +187,12 @@ export function MobileLandingDashboard() {
             draggable={false}
           />
         </button>
+        <h1 className="text-center text-lg font-extrabold text-brand">
+          {stats.rank.label}
+        </h1>
+        <p className="text-[10px] font-semibold text-white/80">
+          {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
+        </p>
       </div>
 
       {/* Language selector */}
@@ -219,7 +219,7 @@ export function MobileLandingDashboard() {
       <Button
         size="lg"
         onClick={handleDrawCards}
-        className="h-10 w-full shrink-0 gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
+        className="h-14 w-full shrink-0 gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
       >
         <CardsIcon className="size-6" aria-hidden="true" />
         {t("home.mobile.drawCards")}
@@ -557,7 +557,7 @@ function ActionButton({
       onClick={onClick}
       aria-disabled={locked}
       className={cn(
-        "flex h-10 w-full items-center justify-center gap-2 rounded-xl border-0 text-xs font-bold text-white shadow-lg transition-colors active:scale-[0.98]",
+        "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white shadow-lg transition-colors active:scale-[0.98]",
         variant === "active"
           ? "bg-emerald-500 hover:bg-emerald-600"
           : "bg-sky-500 hover:bg-sky-600",
