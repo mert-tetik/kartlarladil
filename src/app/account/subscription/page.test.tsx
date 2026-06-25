@@ -43,7 +43,17 @@ describe("AccountSubscriptionPage", () => {
     vi.resetAllMocks();
     mockRequireAuthUser.mockResolvedValue({ id: "user-1", email: "test@example.com" });
     mockGetUserEntitlements.mockResolvedValue({
+      plan: "pro",
       effectivePlan: "pro",
+      status: "active",
+      provider: "lemon_squeezy",
+      limits: {
+        activeCards: null,
+        learnedCards: null,
+        aiDailyMessages: 150,
+        aiMonthlyMessages: 4500,
+      },
+      customerPortalUrl: null,
     });
 
     const query = {

@@ -317,6 +317,7 @@ function createEntitlements(plan: UserEntitlements["effectivePlan"] = "basic"): 
     plan,
     effectivePlan: plan,
     status: plan === "free" ? "free" : "active",
+    provider: "lemon_squeezy",
     customerPortalUrl: null,
     limits: {
       activeCards: plan === "free" ? 20 : null,

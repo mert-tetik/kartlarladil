@@ -5,6 +5,7 @@ import {
   fetchSubscription,
   getVariantIdForPlan,
 } from "@/features/subscriptions/lemon-squeezy";
+import { verifyGooglePlaySubscription } from "@/features/subscriptions/google-play-service";
 import {
   getUserEntitlements,
   getUserSubscriptionManagementSource,
@@ -187,11 +188,98 @@ export async function createCustomerPortalAction(
   }
 }
 
+interface GooglePlayPurchaseDetail {
+  purchaseToken: string;
+  productId: string;
+}
+
+export async function verifyGooglePlayPurchaseAction(
+  purchaseToken: string,
+  productId: string,
+): Promise<EntitlementsActionResult> {
+  try {
+    const t = await getSubscriptionActionText();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        status: "error",
+        message: t("pricing.error.authRequired"),
+      };
+    }
+
+    await verifyGooglePlaySubscription(purchaseToken, productId, user.id);
+    const entitlements = await getUserEntitlements(user.id);
+
+    return {
+      status: "success",
+      message: "",
+      data: entitlements,
+    };
+  } catch {
+    const t = await getSubscriptionActionText();
+    return {
+      status: "error",
+      message: t("pricing.error.checkoutFailed"),
+    };
+  }
+}
+
+export async function syncGooglePlayPurchasesAction(
+  purchases: GooglePlayPurchaseDetail[],
+): Promise<EntitlementsActionResult> {
+  try {
+    const t = await getSubscriptionActionText();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        status: "error",
+        message: t("pricing.error.authRequired"),
+      };
+    }
+
+    for (const purchase of purchases) {
+      try {
+        await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
+      } catch {
+        // Continue trying the rest; a stale/expired token should not block active ones.
+      }
+    }
+
+    const entitlements = await getUserEntitlements(user.id);
+
+    return {
+      status: "success",
+      message: "",
+      data: entitlements,
+    };
+  } catch {
+    const t = await getSubscriptionActionText();
+    return {
+      status: "error",
+      message: t("pricing.error.loadFailed"),
+    };
+  }
+}
+
 async function getFreshCustomerPortalUrl(userId: string): Promise<string> {
   const source = await getUserSubscriptionManagementSource(userId);
 
   if (source.effectivePlan === "free" || !source.subscriptionId) {
-    throw new Error("No active Lemon Squeezy subscription is available for this user.");
+    throw new Error("No active subscription is available for this user.");
+  }
+
+  if (source.provider === "google_play" && source.managementUrl) {
+    return source.managementUrl;
   }
 
   const subscription = await fetchSubscription(source.subscriptionId);

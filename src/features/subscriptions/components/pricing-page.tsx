@@ -8,6 +8,8 @@ import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
+import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -84,10 +86,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         ))}
       </div>
 
-      <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-foreground-muted">
-        <p>{t("pricing.paymentProvider")}</p>
-        <p>{t("pricing.cancelAnytime")}</p>
-      </div>
+      <PaymentProviderNotes />
     </div>
   );
 }
@@ -249,7 +248,7 @@ function PricingCard({
           </Button>
         ) : (
           <>
-            <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />
+            <PurchaseButton plan={plan} cycle={cycle} currentPlan={currentPlan} />
             <ConsentText />
           </>
         )}
@@ -332,6 +331,82 @@ function CheckoutButton({
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>
+  );
+}
+
+function PurchaseButton({
+  plan,
+  cycle,
+  currentPlan,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  currentPlan: SubscriptionPlan | null;
+}) {
+  const isTwa = useTwaMode();
+
+  if (isTwa) {
+    return <GooglePlayCheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />;
+  }
+
+  return <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />;
+}
+
+function GooglePlayCheckoutButton({
+  plan,
+  cycle,
+  currentPlan,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  currentPlan: SubscriptionPlan | null;
+}) {
+  const t = useT();
+  const { purchase, isLoading } = useGooglePlayBilling();
+  const isPaidUser = currentPlan !== "free";
+
+  const handleClick = async () => {
+    if (isPaidUser) {
+      window.open(
+        `https://play.google.com/store/account/subscriptions?package=com.foxiesdeck&sku=${getGooglePlaySku(plan, cycle)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+      return;
+    }
+
+    await purchase(getGooglePlaySku(plan, cycle));
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="primary"
+      className={cn(
+        "w-full border-0",
+        (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
+      )}
+      disabled={isLoading}
+      onClick={() => void handleClick()}
+    >
+      {isLoading ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
+    </Button>
+  );
+}
+
+function getGooglePlaySku(plan: Exclude<SubscriptionPlan, "free">, cycle: BillingCycle): string {
+  return `${plan}_${cycle}`;
+}
+
+function PaymentProviderNotes() {
+  const t = useT();
+  const isTwa = useTwaMode();
+
+  return (
+    <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-foreground-muted">
+      <p>{isTwa ? "Google Play Billing" : t("pricing.paymentProvider")}</p>
+      <p>{t("pricing.cancelAnytime")}</p>
+    </div>
   );
 }
 

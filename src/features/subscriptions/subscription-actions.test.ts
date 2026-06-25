@@ -63,7 +63,17 @@ describe("subscription actions", () => {
 
   it("creates a checkout URL for a free user", async () => {
     mockGetUserEntitlements.mockResolvedValue({
+      plan: "free",
       effectivePlan: "free",
+      status: "free",
+      provider: "lemon_squeezy",
+      limits: {
+        activeCards: 20,
+        learnedCards: 50,
+        aiDailyMessages: 10,
+        aiMonthlyMessages: 200,
+      },
+      customerPortalUrl: null,
     });
 
     const result = await createCheckoutAction(
@@ -86,12 +96,24 @@ describe("subscription actions", () => {
 
   it("returns a fresh customer portal URL for an existing paid user instead of creating checkout", async () => {
     mockGetUserEntitlements.mockResolvedValue({
+      plan: "pro",
       effectivePlan: "pro",
+      status: "active",
+      provider: "lemon_squeezy",
+      limits: {
+        activeCards: null,
+        learnedCards: null,
+        aiDailyMessages: 150,
+        aiMonthlyMessages: 4500,
+      },
+      customerPortalUrl: null,
     });
     mockGetUserSubscriptionManagementSource.mockResolvedValue({
       effectivePlan: "pro",
+      provider: "lemon_squeezy",
       subscriptionId: "sub_1",
       customerId: "customer_1",
+      managementUrl: null,
     });
     mockFetchSubscription.mockResolvedValue({
       id: "sub_1",
@@ -118,8 +140,10 @@ describe("subscription actions", () => {
   it("creates a fresh customer portal URL on demand", async () => {
     mockGetUserSubscriptionManagementSource.mockResolvedValue({
       effectivePlan: "basic",
+      provider: "lemon_squeezy",
       subscriptionId: "sub_2",
       customerId: "customer_2",
+      managementUrl: null,
     });
     mockFetchSubscription.mockResolvedValue({
       id: "sub_2",
@@ -142,8 +166,10 @@ describe("subscription actions", () => {
   it("returns an error when a paid portal URL cannot be refreshed", async () => {
     mockGetUserSubscriptionManagementSource.mockResolvedValue({
       effectivePlan: "pro",
+      provider: "lemon_squeezy",
       subscriptionId: null,
       customerId: "customer_1",
+      managementUrl: null,
     });
 
     const result = await createCustomerPortalAction({ status: "idle", message: "" });

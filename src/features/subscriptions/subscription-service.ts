@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   LimitErrorCode,
   SubscriptionPlan,
+  SubscriptionProvider,
   SubscriptionStatus,
   UserEntitlements,
   UserSubscription,
@@ -15,24 +16,42 @@ const PAID_STATUSES: SubscriptionStatus[] = ["active", "on_trial", "past_due"];
 interface UserSubscriptionRow {
   plan: string;
   status: string;
+  provider: string | null;
   customer_portal_url: string | null;
   lemon_squeezy_customer_id?: string | null;
   lemon_squeezy_subscription_id?: string | null;
+  google_play_purchase_token: string | null;
+  google_play_subscription_id: string | null;
+  google_play_order_id: string | null;
   renews_at: string | null;
   ends_at: string | null;
 }
 
 export interface UserSubscriptionManagementSource {
   effectivePlan: SubscriptionPlan;
+  provider: SubscriptionProvider;
   customerId: string | null;
   subscriptionId: string | null;
+  managementUrl: string | null;
 }
 
 export async function getUserEntitlements(userId: string): Promise<UserEntitlements> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("user_subscriptions")
-    .select("plan, status, customer_portal_url, renews_at, ends_at")
+    .select(
+      [
+        "plan",
+        "status",
+        "provider",
+        "customer_portal_url",
+        "google_play_purchase_token",
+        "google_play_subscription_id",
+        "google_play_order_id",
+        "renews_at",
+        "ends_at",
+      ].join(", "),
+    )
     .eq("user_id", userId)
     .maybeSingle<UserSubscriptionRow>();
 
@@ -47,6 +66,7 @@ export async function getUserEntitlements(userId: string): Promise<UserEntitleme
     plan: subscription.plan,
     effectivePlan,
     status: subscription.status,
+    provider: subscription.provider,
     limits: PLAN_LIMITS[effectivePlan],
     customerPortalUrl: subscription.customerPortalUrl,
   };
@@ -62,9 +82,13 @@ export async function getUserSubscriptionManagementSource(
       [
         "plan",
         "status",
+        "provider",
         "customer_portal_url",
         "lemon_squeezy_customer_id",
         "lemon_squeezy_subscription_id",
+        "google_play_purchase_token",
+        "google_play_subscription_id",
+        "google_play_order_id",
         "renews_at",
         "ends_at",
       ].join(", "),
@@ -78,10 +102,20 @@ export async function getUserSubscriptionManagementSource(
 
   const subscription = normalizeSubscription(data);
 
+  const provider = normalizeSubscriptionProvider(data?.provider);
+  const subscriptionId =
+    provider === "google_play"
+      ? data?.google_play_subscription_id ?? null
+      : data?.lemon_squeezy_subscription_id ?? null;
+
+  const managementUrl = buildManagementUrl(provider, subscriptionId);
+
   return {
     effectivePlan: getEffectivePlan(subscription),
+    provider,
     customerId: data?.lemon_squeezy_customer_id ?? null,
-    subscriptionId: data?.lemon_squeezy_subscription_id ?? null,
+    subscriptionId,
+    managementUrl,
   };
 }
 
@@ -116,11 +150,16 @@ export function checkLimit(
 function normalizeSubscription(row: UserSubscriptionRow | null): UserSubscription {
   const plan = normalizeSubscriptionPlan(row?.plan);
   const status = normalizeSubscriptionStatus(row?.status);
+  const provider = normalizeSubscriptionProvider(row?.provider);
 
   return {
     plan,
     status,
+    provider,
     customerPortalUrl: row?.customer_portal_url ?? null,
+    googlePlayPurchaseToken: row?.google_play_purchase_token ?? null,
+    googlePlaySubscriptionId: row?.google_play_subscription_id ?? null,
+    googlePlayOrderId: row?.google_play_order_id ?? null,
     renewsAt: row?.renews_at ?? null,
     endsAt: row?.ends_at ?? null,
   };
@@ -151,4 +190,20 @@ function normalizeSubscriptionStatus(value: string | null | undefined): Subscrip
   }
 
   return "free";
+}
+
+function normalizeSubscriptionProvider(value: string | null | undefined): SubscriptionProvider {
+  if (value === "google_play") {
+    return "google_play";
+  }
+
+  return "lemon_squeezy";
+}
+
+function buildManagementUrl(provider: SubscriptionProvider, subscriptionId: string | null): string | null {
+  if (provider === "google_play" && subscriptionId) {
+    return `https://play.google.com/store/account/subscriptions?package=com.foxiesdeck&sku=${encodeURIComponent(subscriptionId)}`;
+  }
+
+  return null;
 }

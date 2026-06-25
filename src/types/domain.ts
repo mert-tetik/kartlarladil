@@ -153,6 +153,7 @@ export interface ProgressStats {
 }
 
 export type SubscriptionPlan = "free" | "basic" | "pro";
+export type SubscriptionProvider = "lemon_squeezy" | "google_play";
 
 export type SubscriptionStatus =
   | "free"
@@ -182,7 +183,11 @@ export interface PlanLimits {
 export interface UserSubscription {
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  provider: SubscriptionProvider;
   customerPortalUrl: string | null;
+  googlePlayPurchaseToken: string | null;
+  googlePlaySubscriptionId: string | null;
+  googlePlayOrderId: string | null;
   renewsAt: string | null;
   endsAt: string | null;
 }
@@ -191,6 +196,7 @@ export interface UserEntitlements {
   plan: SubscriptionPlan;
   effectivePlan: SubscriptionPlan;
   status: SubscriptionStatus;
+  provider: SubscriptionProvider;
   limits: PlanLimits;
   customerPortalUrl: string | null;
 }

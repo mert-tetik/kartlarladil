@@ -40,7 +40,7 @@ Uygulama 14 dil destekler: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`,
 | State (yerel) | Zustand + `localStorage` |
 | Auth / DB | Supabase Auth (`@supabase/ssr`) + Supabase PostgreSQL (`@supabase/supabase-js`) |
 | AI | OpenAI SDK, Responses API, varsayılan model `gpt-5-nano` |
-| Ödeme | Lemon Squeezy webhook entegrasyonu |
+| Ödeme | Lemon Squeezy webhook entegrasyonu; TWA için Google Play Billing (Digital Goods API) |
 | Doğrulama | Zod 4 |
 | Birim test | Vitest 4 + jsdom + Testing Library |
 | E2E test | Playwright 1.60 |
@@ -68,7 +68,7 @@ Her modül kendi veri mantığını, bileşenlerini ve testlerini içerir:
 - `quiz/` — quiz motoru (`quiz-engine.ts`), quiz istasyonu, cevap / eşik kuralları.
 - `auth/` — login, register, reset password, profile update, logout, hesap silme, onboarding, auth şemaları ve session yardımcıları.
 - `progress/` — puan, rank, ilerleme istatistikleri.
-- `subscriptions/` — Lemon Squeezy entegrasyonu, haklar (entitlements), plan limitleri, webhook servisi.
+- `subscriptions/` — Lemon Squeezy ve Google Play Billing entegrasyonu, haklar (entitlements), plan limitleri, webhook servisi.
 - `themes/` — tema seçimi ve tema değişkenleri.
 - `ai-practice/` — AI karakterleri, prompt'lar, streaming sohbet, puanlama.
 - `ask/` — dil asistanı (Ask) sohbet akışı.

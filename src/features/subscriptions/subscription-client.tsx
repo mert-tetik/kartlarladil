@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { getUserEntitlementsAction } from "@/features/subscriptions/subscription-actions";
+import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
+import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import type { UserEntitlements } from "@/types/domain";
 
 interface SubscriptionContextValue {
@@ -53,8 +55,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       value={{ entitlements, isLoading, error, refreshEntitlements }}
     >
       {children}
+      <GooglePlayBillingSync />
     </SubscriptionContext.Provider>
   );
+}
+
+function GooglePlayBillingSync() {
+  const isTwa = useTwaMode();
+  const { isSupported, restorePurchases } = useGooglePlayBilling();
+
+  useEffect(() => {
+    if (isTwa && isSupported) {
+      void restorePurchases();
+    }
+  }, [isTwa, isSupported, restorePurchases]);
+
+  return null;
 }
 
 export function useSubscription(): SubscriptionContextValue {

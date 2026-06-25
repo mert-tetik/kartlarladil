@@ -61,7 +61,7 @@ export default async function AccountSubscriptionPage() {
       />
 
       <div className="mt-8 grid gap-6">
-        <SubscriptionSettings plan={entitlements.effectivePlan} />
+        <SubscriptionSettings plan={entitlements.effectivePlan} provider={entitlements.provider} />
 
         <div className="rounded-lg border border-border bg-background-card p-6">
           <h2 className="text-lg font-semibold text-foreground">

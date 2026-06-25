@@ -33,7 +33,11 @@ function makeSubscription(
   return {
     plan: plan as UserSubscription["plan"],
     status,
+    provider: "lemon_squeezy",
     customerPortalUrl: null,
+    googlePlayPurchaseToken: null,
+    googlePlaySubscriptionId: null,
+    googlePlayOrderId: null,
     renewsAt: null,
     endsAt,
   };
@@ -163,8 +167,10 @@ describe("getUserSubscriptionManagementSource", () => {
 
     expect(result).toEqual({
       effectivePlan: "pro",
+      provider: "lemon_squeezy",
       customerId: "customer-1",
       subscriptionId: "subscription-1",
+      managementUrl: null,
     });
   });
 });

@@ -209,6 +209,12 @@ async function main() {
       alias: "android",
     };
 
+    // Enable Google Play Billing for the TWA Digital Goods API.
+    twaManifest.features = {
+      ...twaManifest.features,
+      playBilling: { enabled: true },
+    };
+
     const manifestFile = path.join(PROJECT_DIR, "twa-manifest.json");
     await twaManifest.saveToFile(manifestFile);
 

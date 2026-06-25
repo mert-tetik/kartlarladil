@@ -6,10 +6,11 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import type { SubscriptionPlan } from "@/types/domain";
+import type { SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
 
 interface SubscriptionSettingsProps {
   plan: SubscriptionPlan;
+  provider?: SubscriptionProvider;
 }
 
 const PLAN_STYLES: Record<SubscriptionPlan, string> = {
@@ -18,7 +19,7 @@ const PLAN_STYLES: Record<SubscriptionPlan, string> = {
   pro: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
-export function SubscriptionSettings({ plan }: SubscriptionSettingsProps) {
+export function SubscriptionSettings({ plan, provider = "lemon_squeezy" }: SubscriptionSettingsProps) {
   const t = useT();
   const isPaid = plan !== "free";
 
@@ -50,14 +51,14 @@ export function SubscriptionSettings({ plan }: SubscriptionSettingsProps) {
           <Link href="/account/subscription" className={buttonClassName("secondary", "sm")}>
             {t("account.subscription.viewDetails")}
           </Link>
-          {isPaid ? <CustomerPortalButton /> : null}
+          {isPaid ? <CustomerPortalButton provider={provider} /> : null}
         </div>
       </div>
     </div>
   );
 }
 
-function CustomerPortalButton() {
+function CustomerPortalButton({ provider }: { provider: SubscriptionProvider }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
     status: "idle" as const,
@@ -76,7 +77,7 @@ function CustomerPortalButton() {
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <Button type="submit" variant="secondary" size="md" disabled={pending}>
-        {pending ? t("common.loading") : t("account.subscription.cancel")}
+        {pending ? t("common.loading") : provider === "google_play" ? t("account.subscription.manage") : t("account.subscription.cancel")}
       </Button>
       {state.status === "error" ? (
         <p className="max-w-sm text-sm text-rose-600">{state.message}</p>
