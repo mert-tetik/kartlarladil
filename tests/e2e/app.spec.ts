@@ -306,11 +306,9 @@ test("mobile navigation exposes the main sections", async ({ page, isMobile }) =
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("banner").getByRole("link", { name: "Draw cards" })).toBeVisible();
-
   const mobileNav = page.getByRole("navigation", { name: "Mobile main menu" });
-  await expect(mobileNav.getByRole("link", { name: "Draw cards" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "My cards" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Learn", exact: true })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "AI", exact: true })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Home", exact: true })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Practice", exact: true })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Ask", exact: true })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
 });

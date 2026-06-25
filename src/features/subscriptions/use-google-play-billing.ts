@@ -111,7 +111,11 @@ export function useGooglePlayBilling() {
 
       const result = await syncGooglePlayPurchasesAction(details);
 
-      if (result.status === "success" && result.data) {
+      if (result.status === "error") {
+        throw new Error(result.message || "Purchase restoration failed.");
+      }
+
+      if (result.data) {
         await refreshEntitlements();
       }
     } finally {

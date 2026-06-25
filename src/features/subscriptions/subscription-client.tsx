@@ -66,7 +66,10 @@ function GooglePlayBillingSync() {
 
   useEffect(() => {
     if (isTwa && isSupported) {
-      void restorePurchases();
+      void restorePurchases().catch((error: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error("Google Play purchase restoration failed on mount:", error);
+      });
     }
   }, [isTwa, isSupported, restorePurchases]);
 

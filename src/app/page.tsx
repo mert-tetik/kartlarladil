@@ -15,6 +15,7 @@ import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
+import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
 import { ReviewSection } from "@/features/reviews/components/review-section";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
@@ -90,8 +91,10 @@ export default async function Home() {
 
   return (
     <>
-      <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
-      <section className="relative isolate min-h-[72vh] overflow-hidden bg-slate-950 text-white sm:min-h-[88vh]">
+      <MobileLandingDashboard />
+      <div className="max-lg:hidden">
+        <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
+        <section className="relative isolate min-h-[72vh] overflow-hidden bg-slate-950 text-white sm:min-h-[88vh]">
         <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />
         </div>
@@ -333,6 +336,7 @@ export default async function Home() {
           invalidRating: t("home.review.invalidRating"),
         }}
       />
+      </div>
     </>
   );
 }

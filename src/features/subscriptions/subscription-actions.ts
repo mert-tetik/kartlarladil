@@ -247,12 +247,22 @@ export async function syncGooglePlayPurchasesAction(
       };
     }
 
+    let lastError: Error | null = null;
+
     for (const purchase of purchases) {
       try {
         await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
-      } catch {
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
         // Continue trying the rest; a stale/expired token should not block active ones.
       }
+    }
+
+    if (lastError && purchases.length > 0) {
+      return {
+        status: "error",
+        message: lastError.message,
+      };
     }
 
     const entitlements = await getUserEntitlements(user.id);

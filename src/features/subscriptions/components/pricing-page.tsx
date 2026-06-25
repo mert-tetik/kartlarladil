@@ -11,6 +11,7 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
+import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ import {
   type LocalizedPricingStatus,
 } from "@/features/subscriptions/components/use-localized-pricing";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { SubscriptionPlan } from "@/types/domain";
+import type { SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
 
 type BillingCycle = "monthly" | "yearly";
 
@@ -80,6 +81,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
             mascot={item.mascot}
             cycle={cycle}
             currentPlan={entitlements?.effectivePlan ?? null}
+            provider={entitlements?.provider ?? "lemon_squeezy"}
             user={user}
             localizedPricing={localizedPricing}
             uiLocale={locale}
@@ -141,12 +143,14 @@ function PricingCard({
   mascot,
   cycle,
   currentPlan,
+  provider,
   user,
   localizedPricing,
   uiLocale,
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
+  provider: SubscriptionProvider;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   uiLocale: string;
@@ -249,7 +253,7 @@ function PricingCard({
           </Button>
         ) : (
           <>
-            <PurchaseButton plan={plan} cycle={cycle} currentPlan={currentPlan} />
+            <PurchaseButton plan={plan} cycle={cycle} currentPlan={currentPlan} provider={provider} />
             <ConsentText />
           </>
         )}
@@ -339,12 +343,22 @@ function PurchaseButton({
   plan,
   cycle,
   currentPlan,
+  provider,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
+  provider: SubscriptionProvider;
 }) {
   const isTwa = useTwaMode();
+  const isPaid = currentPlan != null && currentPlan !== "free";
+  const isMismatch =
+    isPaid &&
+    ((isTwa && provider === "lemon_squeezy") || (!isTwa && provider === "google_play"));
+
+  if (isMismatch) {
+    return <SubscriptionMismatchNotice provider={provider} context="pricing" />;
+  }
 
   if (isTwa) {
     return <GooglePlayCheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />;

@@ -10,7 +10,7 @@ import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/locale-provider";
-import type { PracticeMode } from "@/types/domain";
+import type { LanguageCode, PracticeMode } from "@/types/domain";
 
 type LearnShellPhase = QuizPhase | "mode";
 
@@ -18,14 +18,19 @@ interface LearnQuizShellProps {
   title: string;
   description: string;
   initialMode: PracticeMode | null;
+  initialLanguage?: LanguageCode | null;
 }
 
 export function LearnQuizShell({
   title,
   initialMode,
+  initialLanguage,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
-  const [phase, setPhase] = useState<LearnShellPhase>(initialMode ? "language" : "mode");
+  const initialPhase: LearnShellPhase = initialMode
+    ? (initialLanguage ? "count" : "language")
+    : "mode";
+  const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const t = useT();
@@ -81,6 +86,7 @@ export function LearnQuizShell({
           <QuizStation
             key={selectedMode}
             mode={selectedMode}
+            initialLanguage={initialLanguage ?? undefined}
             onPhaseChange={setPhase}
             onBackToMode={() => {
               setSelectedMode(null);

@@ -4,7 +4,8 @@ import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
-import type { PracticeMode } from "@/types/domain";
+import { LANGUAGES } from "@/data/languages";
+import type { LanguageCode, PracticeMode } from "@/types/domain";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -28,6 +29,16 @@ function parsePracticeMode(value: string | string[] | undefined): PracticeMode |
   return null;
 }
 
+function parseLanguage(value: string | string[] | undefined): LanguageCode | null {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+
+  if (!rawValue) {
+    return null;
+  }
+
+  return LANGUAGES.find((language) => language.code === rawValue)?.code ?? null;
+}
+
 export default async function LearnPage({
   searchParams,
 }: {
@@ -37,6 +48,7 @@ export default async function LearnPage({
   const t = createTranslator(await getServerLocale());
   const params = await searchParams;
   const initialMode = parsePracticeMode(params.mode);
+  const initialLanguage = parseLanguage(params.language);
 
   return (
     <section
@@ -47,6 +59,7 @@ export default async function LearnPage({
         title={t("page.learn.title")}
         description={t("page.learn.description")}
         initialMode={initialMode}
+        initialLanguage={initialLanguage}
       />
     </section>
   );

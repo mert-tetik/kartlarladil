@@ -6,8 +6,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  ChevronLeft,
   CircleHelp,
   CreditCard,
+  Home,
   MessageCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -41,6 +43,13 @@ const navItems: readonly NavItem[] = [
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
 
+const mobileNavItems: readonly NavItem[] = [
+  { href: "/", labelKey: "nav.home", icon: Home },
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
+  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
+  { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
+];
+
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
@@ -48,8 +57,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const isLearnRoute = pathname === "/learn" || pathname.startsWith("/learn/");
-  const hideMobileHeaderOnLearn = isLearnRoute && isMobileViewport;
+  const showMobileBackButton =
+    isMobileViewport &&
+    (pathname === "/card-draw" || pathname === "/learn" || pathname.startsWith("/ai-practice/"));
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -75,16 +85,23 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         {t("common.skipToContent")}
       </a>
       <header
-        className={cn(
-          "sticky top-0 z-40 border-b border-white/10 bg-black text-white",
-          hideMobileHeaderOnLearn && "max-lg:hidden",
-        )}
+        className="sticky top-0 z-40 border-b border-white/10 bg-black text-white"
       >
         <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-white">
-            <Logo size={40} priority />
-            <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
-          </Link>
+          {showMobileBackButton ? (
+            <Link
+              href="/"
+              className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
+            >
+              <ChevronLeft className="size-6" aria-hidden="true" />
+              <span className="sr-only">{t("common.back")}</span>
+            </Link>
+          ) : (
+            <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-white">
+              <Logo size={40} priority />
+              <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
+            </Link>
+          )}
 
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
@@ -103,7 +120,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             </div>
             {user ? (
               <>
-                {!hideMobileHeaderOnLearn ? <RankProgressPopover stats={stats} userId={user.id} navbar /> : null}
+                <div className="max-lg:hidden">
+                  <RankProgressPopover stats={stats} userId={user.id} navbar />
+                </div>
                 <AccountMenu user={user} navbar />
               </>
             ) : (
@@ -123,14 +142,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         </div>
       </header>
 
-      {user && hideMobileHeaderOnLearn ? (
-        <div className="pointer-events-none fixed right-0 top-0 z-50">
-          <div className="pointer-events-auto">
-            <RankProgressPopover stats={stats} userId={user.id} hideTrigger />
-          </div>
-        </div>
-      ) : null}
-
       <div
         data-mobile-main-nav-frame
         className="mobile-main-nav-frame text-foreground lg:hidden"
@@ -140,8 +151,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           data-mobile-main-nav
           className="mobile-main-nav-bar border-t border-border bg-background-card"
         >
-          <div className="grid h-full grid-cols-6">
-            {navItems.map((item) => {
+          <div className="grid h-full grid-cols-4">
+            {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

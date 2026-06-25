@@ -189,10 +189,12 @@ function getQuizResultMessageKey(
 
 export function QuizStation({
   mode,
+  initialLanguage,
   onPhaseChange,
   onBackToMode,
 }: {
   mode: PracticeMode;
+  initialLanguage?: LanguageCode;
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
 }) {
@@ -207,13 +209,13 @@ export function QuizStation({
   const { refreshStats } = useProgressStats();
   const chestRewardsEnabled = mode === "active";
 
-  const [phase, setPhase] = useState<QuizPhase>("language");
+  const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
 
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
-    null,
+    initialLanguage ?? null,
   );
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);

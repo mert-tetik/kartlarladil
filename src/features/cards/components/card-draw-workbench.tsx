@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Search } from "lucide-react";
+import { CardsIcon } from "@/components/icons/cards-icon";
 import { TIER_STYLES } from "@/data/tiers";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { getSearchableCardText } from "@/features/cards/card-localization";
@@ -27,7 +28,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
-import type { VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";
 
@@ -46,10 +47,23 @@ interface ExitingCardDrawCard {
 const CARD_DRAW_EXIT_ANIMATION_MS = 380;
 const CARD_DRAW_LAYOUT_ANIMATION_MS = 360;
 
-export function CardDrawWorkbench() {
+interface CardDrawWorkbenchProps {
+  initialLanguage?: LanguageCode;
+  initialTier?: Tier;
+}
+
+export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWorkbenchProps) {
   const { user } = useAuthSession();
   const profile = user?.profile ?? null;
-  const profileFallback = useMemo(() => getCardDrawPreferenceFallback(profile), [profile]);
+  const profileFallback = useMemo(() => {
+    const fallback = getCardDrawPreferenceFallback(profile);
+
+    return {
+      ...fallback,
+      ...(initialLanguage ? { language: initialLanguage } : {}),
+      ...(initialTier ? { tier: initialTier } : {}),
+    };
+  }, [profile, initialLanguage, initialTier]);
   const storedPreferenceSnapshot = useSyncExternalStore(
     subscribeCardDrawPreferences,
     () => window.localStorage.getItem(CARD_DRAW_PREFERENCES_KEY) ?? "",
@@ -95,6 +109,7 @@ export function CardDrawWorkbench() {
     [inventoryCards],
   );
   const { language, tier } = preferences;
+  const hasInitialFilters = Boolean(initialLanguage && initialTier);
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
 
   const suggestions = useMemo(() => {
@@ -532,7 +547,23 @@ export function CardDrawWorkbench() {
               </Button>
             </div>
           </div>
-          <div data-card-draw-filters>
+          <div
+            data-card-draw-main-action
+            className={cn("lg:hidden", !hasInitialFilters && "max-lg:hidden")}
+          >
+            <Button
+              size="lg"
+              onClick={() => drawCards(5)}
+              className="h-12 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground hover:bg-brand-hover"
+            >
+              <CardsIcon className="size-5" aria-hidden="true" />
+              {t("home.mobile.drawCards")}
+            </Button>
+          </div>
+          <div
+            data-card-draw-filters
+            className={cn(hasInitialFilters && "max-lg:hidden")}
+          >
             <FilterControls
               language={language}
               tier={tier}

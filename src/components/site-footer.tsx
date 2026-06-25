@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { cn } from "@/lib/utils";
 
-export async function SiteFooter() {
+export async function SiteFooter({ className }: { className?: string }) {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
   const year = new Date().getFullYear();
@@ -17,7 +18,7 @@ export async function SiteFooter() {
   ];
 
   return (
-    <footer className="border-t border-border bg-background-card">
+    <footer className={cn("border-t border-border bg-background-card", className)}>
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-3">

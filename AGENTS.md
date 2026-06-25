@@ -326,6 +326,7 @@ Kart kataloğu uygulama bundle'ında tutulur. Supabase sadece kullanıcı state'
 - Webhook olayları `webhook_events` tablosunda duplicate önlemesi için saklanır.
 - Checkout action: `src/features/subscriptions/subscription-actions.ts`.
 - Haklar ve limit kontrolü: `src/features/subscriptions/subscription-service.ts`.
+- Aktif aboneliğin sağlayıcısı (`lemon_squeezy`/`google_play`) ile mevcut ortam uyuşmuyorsa (örn. TWA içindeyken Lemon Squeezy aboneliği veya web'deyken Google Play aboneliği), satın alma/yönetim butonları kilitlenir ve kullanıcı diğer platforma yönlendirilir.
 
 ## Temalar
 
