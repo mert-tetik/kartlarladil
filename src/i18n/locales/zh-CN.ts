@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "定价",
   "nav.signup": "注册",
   "nav.topMenu": "顶部菜单",
+  "offline.description": "请检查您的连接后重试。",
+  "offline.title": "无互联网连接",
   "page.account.description": "在此管理个人资料详情、密码操作和永久账户删除。",
   "page.account.title": "账户设置",
   "page.accountSubscription.description": "查看您的活跃订阅和最近的Webhook事件。",

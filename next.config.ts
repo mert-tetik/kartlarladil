@@ -17,4 +17,7 @@ export default withPWA({
   dest: "public",
   register: true,
   disable: process.env.NODE_ENV === "development",
+  fallbacks: {
+    document: "/offline",
+  },
 })(nextConfig);

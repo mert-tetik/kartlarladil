@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "Цены",
   "nav.signup": "Регистрация",
   "nav.topMenu": "Верхнее меню",
+  "offline.description": "Проверьте подключение и попробуйте снова.",
+  "offline.title": "Нет подключения к интернету",
   "page.account.description": "Управляйте деталями профиля, действиями с паролем и постоянным удалением аккаунта здесь.",
   "page.account.title": "Настройки аккаунта",
   "page.accountSubscription.description": "Просмотрите вашу активную подписку и недавние события вебхука.",

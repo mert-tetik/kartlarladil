@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "Pricing",
   "nav.signup": "Sign up",
   "nav.topMenu": "Top menu",
+  "offline.description": "Please check your connection and try again.",
+  "offline.title": "No internet connection",
   "page.account.description": "Manage profile details, password actions, and permanent account deletion here.",
   "page.account.title": "Account settings",
   "page.accountSubscription.description": "View your active subscription and recent webhook events.",

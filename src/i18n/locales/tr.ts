@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "Fiyatlandırma",
   "nav.signup": "Kayıt ol",
   "nav.topMenu": "Üst menü",
+  "offline.description": "Bağlantını kontrol edip tekrar dene.",
+  "offline.title": "İnternet bağlantısı yok",
   "page.account.description": "Profil bilgilerini, şifre işlemlerini ve kalıcı hesap silme akışını buradan yönet.",
   "page.account.title": "Hesap ayarları",
   "page.accountSubscription.description": "Aktif aboneliğini ve son webhook olaylarını görüntüle.",

@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "Prezzi",
   "nav.signup": "Registrati",
   "nav.topMenu": "Menu superiore",
+  "offline.description": "Controlla la connessione e riprova.",
+  "offline.title": "Nessuna connessione a Internet",
   "page.account.description": "Gestisci i dettagli del profilo, le azioni sulla password e la cancellazione permanente dell'account qui.",
   "page.account.title": "Impostazioni account",
   "page.accountSubscription.description": "Visualizza il tuo abbonamento attivo e gli eventi webhook recenti.",

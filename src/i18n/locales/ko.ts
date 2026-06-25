@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "가격",
   "nav.signup": "가입",
   "nav.topMenu": "상단 메뉴",
+  "offline.description": "연결 상태를 확인하고 다시 시도하세요.",
+  "offline.title": "인터넷 연결 없음",
   "page.account.description": "프로필 세부정보, 비밀번호 작업 및 계정 삭제를 관리하세요.",
   "page.account.title": "계정 설정",
   "page.accountSubscription.description": "활성 구독 및 최근 웹훅 이벤트를 확인하세요.",

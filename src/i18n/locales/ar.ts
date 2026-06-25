@@ -312,6 +312,8 @@ const dictionary = {
   "nav.pricing": "الأسعار",
   "nav.signup": "إنشاء حساب",
   "nav.topMenu": "القائمة العلوية",
+  "offline.description": "يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+  "offline.title": "لا يوجد اتصال بالإنترنت",
   "page.account.description": "إدارة تفاصيل الملف الشخصي، إجراءات كلمة المرور، وحذف الحساب بشكل دائم هنا.",
   "page.account.title": "إعدادات الحساب",
   "page.accountSubscription.description": "عرض اشتراكك النشط وأحداث الويب الأخيرة.",
