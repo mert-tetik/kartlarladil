@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // because the SHA-256 fingerprint is already exposed in the APK signature.
 const FALLBACK_PACKAGE_NAME = "com.LigidTools.Glidecore";
 const FALLBACK_SHA256_FINGERPRINT =
-  "49:1a:b6:5b:be:ba:97:be:7f:f4:79:5b:c5:e6:b0:e0:ab:4a:b1:73:1f:44:9b:f9:ee:05:41:88:21:2e:31:f5";
+  "d4:73:e8:a7:a8:c7:7b:21:75:eb:5e:63:f4:d4:fb:2c:89:ad:85:82:02:5a:ba:1a:fe:11:71:e7:db:ee:48:42";
 
 // Legacy entry for the old package name, so any leftover installs keep working.
 const LEGACY_PACKAGE_NAME = "com.foxiesdeck";
