@@ -35,7 +35,16 @@ function detectTwaFromEnvironment(): boolean {
   const params = new URLSearchParams(window.location.search);
   const hasApkOverride = params.has("apk") || params.has("twa");
 
-  return isFromAndroidApp || hasApkOverride;
+  // Play Store TWA exposes the Digital Goods API even when the address bar is
+  // still visible because of a temporary assetlinks failure. Use it as an extra
+  // signal so the Google Play Billing UI is shown in the right context.
+  const hasDigitalGoodsApi =
+    typeof window !== "undefined" &&
+    "getDigitalGoodsService" in window &&
+    typeof (window as Window & { getDigitalGoodsService?: unknown })
+      .getDigitalGoodsService === "function";
+
+  return isFromAndroidApp || hasApkOverride || hasDigitalGoodsApi;
 }
 
 let storeValue = false;
@@ -80,8 +89,9 @@ export function initTwaModeStore(): void {
 /**
  * Returns true if the page is running inside the FoxiesDeck TWA/APK.
  *
- * Detection is based on the Android app referrer (`android-app://<package>`)
- * on first navigation. The result is cached in sessionStorage so it survives
+ * Detection is based on the Android app referrer (`android-app://<package>`),
+ * manual URL overrides (`?twa` / `?apk`), or the presence of the Digital Goods
+ * API. The result is cached in sessionStorage so it survives
  * same-origin page transitions.
  *
  * Note: this is client-side only; server-side renders always return false.
