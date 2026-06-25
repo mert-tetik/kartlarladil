@@ -1,4 +1,15 @@
-const TWA_REFERRER_PREFIX = "android-app://com.foxiesdeck";
+const DEFAULT_TWA_PACKAGE_NAME = "com.LigidTools.Glidecore";
+const TWA_PACKAGE_NAME =
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_TWA_PACKAGE_NAME) ||
+  DEFAULT_TWA_PACKAGE_NAME;
+
+// Keep the old package prefix so existing installs keep working after the
+// package rename. New installs use the configured/current package name.
+const TWA_REFERRER_PREFIXES = [
+  `android-app://${TWA_PACKAGE_NAME}`,
+  "android-app://com.foxiesdeck",
+];
+
 const TWA_MODE_KEY = "foxiesdeck:twa-mode";
 
 function isBrowser(): boolean {
@@ -17,7 +28,9 @@ function detectTwaFromEnvironment(): boolean {
   if (!isBrowser()) return false;
 
   const referrer = document.referrer || "";
-  const isFromAndroidApp = referrer.startsWith(TWA_REFERRER_PREFIX);
+  const isFromAndroidApp = TWA_REFERRER_PREFIXES.some((prefix) =>
+    referrer.startsWith(prefix)
+  );
 
   const params = new URLSearchParams(window.location.search);
   const hasApkOverride = params.has("apk") || params.has("twa");
@@ -67,7 +80,7 @@ export function initTwaModeStore(): void {
 /**
  * Returns true if the page is running inside the FoxiesDeck TWA/APK.
  *
- * Detection is based on the Android app referrer (`android-app://com.foxiesdeck`)
+ * Detection is based on the Android app referrer (`android-app://<package>`)
  * on first navigation. The result is cached in sessionStorage so it survives
  * same-origin page transitions.
  *
