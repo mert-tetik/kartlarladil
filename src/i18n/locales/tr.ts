@@ -570,6 +570,15 @@ const dictionary = {
   "home.mobile.cardsLabel": "KART",
   "home.mobile.searchPlaceholder": "Kelime, çeviri veya örnek cümle ara",
   "home.mobile.allTiers": "Tüm seviyeler",
+  "home.mobile.rankInfoTitle": "Rütbe detayları",
+  "home.mobile.rankInfoProgress": "Sonraki rütbeye ilerleme",
+  "home.mobile.rankInfoNextRank": "Sonraki: {{rank}}",
+  "home.mobile.rankInfoMaxRank": "En yüksek rütbeye ulaştın!",
+  "home.mobile.currentRank": "Mevcut",
+  "home.mobile.noActiveCardsTitle": "Öğrenilecek kart yok",
+  "home.mobile.noActiveCardsDescription": "Önce kart çekerek öğrenme destene kelime ekle.",
+  "home.mobile.noLearnedCardsTitle": "Öğrenilmiş kart yok",
+  "home.mobile.noLearnedCardsDescription": "Quizleri tamamlayarak kartları öğrenilenlere taşı.",
 } as const;
 
 export default dictionary;

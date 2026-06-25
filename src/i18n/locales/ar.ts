@@ -570,6 +570,15 @@ const dictionary = {
   "home.mobile.cardsLabel": "CARDS",
   "home.mobile.searchPlaceholder": "Search word, translation or example",
   "home.mobile.allTiers": "All levels",
+  "home.mobile.rankInfoTitle": "Rank details",
+  "home.mobile.rankInfoProgress": "Progress to next rank",
+  "home.mobile.rankInfoNextRank": "Next: {{rank}}",
+  "home.mobile.rankInfoMaxRank": "You reached the highest rank!",
+  "home.mobile.currentRank": "Current",
+  "home.mobile.noActiveCardsTitle": "No learning cards",
+  "home.mobile.noActiveCardsDescription": "Draw cards first to add words to your learning deck.",
+  "home.mobile.noLearnedCardsTitle": "No learned cards",
+  "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 } as const;
 
 export default dictionary;

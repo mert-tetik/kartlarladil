@@ -12,14 +12,17 @@ import { Button } from "@/components/ui/button";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { MobileTierSelector } from "@/app/components/mobile-tier-selector";
 import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-sheet";
+import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
+import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { useIsClient } from "@/lib/use-is-client";
+
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier } from "@/types/domain";
 
@@ -31,7 +34,6 @@ export function MobileLandingDashboard() {
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
-  const hydrated = useInventoryStore((state) => state.hydrated);
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const preferred = user?.profile.preferredLanguageCode;
@@ -48,6 +50,8 @@ export function MobileLandingDashboard() {
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const [tierSelectorOpen, setTierSelectorOpen] = useState(false);
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
+  const [rankInfoOpen, setRankInfoOpen] = useState(false);
+  const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
   const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
   const [detailMenuOpen, setDetailMenuOpen] = useState(false);
   const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">("active");
@@ -116,18 +120,24 @@ export function MobileLandingDashboard() {
 
   function handleStartLearning() {
     vibrate("tap");
+    if (activeCount === 0) {
+      setLockedSheet("active");
+      return;
+    }
     const nextPath = `/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`;
     requireAuthAction(() => {
-      if (activeCount === 0) return;
       router.push(nextPath);
     }, { nextPath });
   }
 
   function handleRepeatLearned() {
     vibrate("tap");
+    if (learnedCount === 0) {
+      setLockedSheet("learned");
+      return;
+    }
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
     requireAuthAction(() => {
-      if (learnedCount === 0) return;
       router.push(nextPath);
     }, { nextPath });
   }
@@ -139,18 +149,8 @@ export function MobileLandingDashboard() {
     setDetailMenuOpen(true);
   }
 
-  const isClient = useIsClient();
-
-  if (!hydrated || !isClient) {
-    return (
-      <div className="flex h-full items-center justify-center lg:hidden">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground-muted border-t-brand" />
-      </div>
-    );
-  }
-
   return (
-    <section className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overflow-hidden bg-background p-4 lg:hidden">
+    <section className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-1.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
       {/* Info icon */}
       <button
         type="button"
@@ -158,23 +158,40 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-background-card text-foreground-secondary shadow-sm transition-colors hover:text-foreground"
+        className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-background-card text-foreground-secondary shadow-sm transition-colors hover:text-foreground"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
       </button>
 
       {/* Rank */}
-      <div className="flex flex-col items-center pt-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-foreground-muted">
+      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[40vh] flex-col items-center gap-0.5 bg-[#121212] px-4 py-1 text-white">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <h1 className="mt-1 text-center text-3xl font-extrabold text-brand">
+        <h1 className="text-center text-lg font-extrabold text-brand">
           {stats.rank.label}
         </h1>
-        <p className="mt-1 text-sm font-semibold text-foreground-secondary">
+        <p className="text-[10px] font-semibold text-white/80">
           {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            vibrate("tap");
+            setRankInfoOpen(true);
+          }}
+          className="flex min-h-0 w-full flex-1 items-center justify-center self-stretch"
+          aria-label={stats.rank.label}
+          data-rank-icon-button
+        >
+          <img
+            src={RANK_ICON_ASSETS[stats.rank.icon]}
+            alt=""
+            className="max-h-full w-auto max-w-full object-contain"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {/* Language selector */}
@@ -184,7 +201,7 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setLanguageSheetOpen(true);
         }}
-        className="mt-4 flex w-full items-center justify-between rounded-xl border border-border bg-background-card px-4 py-3 text-left transition-colors hover:bg-background-muted"
+        className="flex w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 py-1.5 text-left transition-colors hover:bg-background-muted"
       >
         <span className="flex items-center gap-3">
           <LanguageFlag code={selectedLanguage} className="h-6 w-9" />
@@ -201,14 +218,14 @@ export function MobileLandingDashboard() {
       <Button
         size="lg"
         onClick={handleDrawCards}
-        className="mt-4 h-14 w-full gap-2 border-0 bg-brand text-lg font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
+        className="h-10 w-full shrink-0 gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
       >
         <CardsIcon className="size-6" aria-hidden="true" />
         {t("home.mobile.drawCards")}
       </Button>
 
       {/* Active / Learned row */}
-      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-2xl border border-border">
+      <div className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
@@ -224,7 +241,7 @@ export function MobileLandingDashboard() {
       </div>
 
       {/* Tier breakdown */}
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+      <div className="grid shrink-0 grid-cols-5 gap-2">
         {TIERS.map((tier) => {
           const style = TIER_STYLES[tier];
           const count = tierCounts[tier].active + tierCounts[tier].learned;
@@ -240,42 +257,33 @@ export function MobileLandingDashboard() {
                 setDetailMenuOpen(true);
               }}
               className={cn(
-                "flex flex-col items-center justify-center rounded-lg border px-2 py-1 text-xs font-bold transition-transform active:scale-95",
-                style.surface,
-                style.border,
-                style.text,
+                "flex flex-col items-center justify-center rounded-md py-1 text-[10px] font-bold text-white shadow-sm transition-transform active:scale-95",
+                style.accent,
               )}
             >
               <span>{tier}</span>
-              <span className="text-sm">{count}</span>
+              <span className="text-xs">{count}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
       {/* Action buttons */}
-      <div className="mt-4 flex flex-col gap-3 pb-2">
-        <Button
-          size="lg"
+      <div className="flex shrink-0 flex-col gap-3 pb-2">
+        <ActionButton
+          icon={GraduationCap}
+          label={t("home.mobile.startLearning")}
+          locked={activeCount === 0}
           onClick={handleStartLearning}
-          disabled={activeCount === 0}
-          className="h-14 w-full gap-2 border-0 bg-emerald-500 text-lg font-bold text-white shadow-lg hover:bg-emerald-600 disabled:opacity-50"
-        >
-          <GraduationCap className="size-6" aria-hidden="true" />
-          {t("home.mobile.startLearning")}
-        </Button>
-        <Button
-          size="lg"
+          variant="active"
+        />
+        <ActionButton
+          icon={RotateCcw}
+          label={t("home.mobile.repeatLearned")}
+          locked={learnedCount === 0}
           onClick={handleRepeatLearned}
-          disabled={learnedCount === 0}
-          className="h-14 w-full gap-2 border-0 bg-sky-500 text-lg font-bold text-white shadow-lg hover:bg-sky-600 disabled:opacity-50"
-        >
-          <RotateCcw className="size-6" aria-hidden="true" />
-          {t("home.mobile.repeatLearned")}
-        </Button>
+          variant="learned"
+        />
       </div>
 
       {/* Sheets */}
@@ -296,6 +304,22 @@ export function MobileLandingDashboard() {
       <MobileLandingInfoSheet
         isOpen={infoSheetOpen}
         onClose={() => setInfoSheetOpen(false)}
+      />
+
+      <MobileRankInfoSheet
+        isOpen={rankInfoOpen}
+        onClose={() => setRankInfoOpen(false)}
+        rank={stats.rank}
+        nextRank={stats.nextRank}
+        totalPoints={stats.totalPoints}
+        pointsToNextRank={stats.pointsToNextRank}
+        rankProgressPercent={stats.rankProgressPercent}
+      />
+
+      <MobileLockedActionSheet
+        isOpen={lockedSheet !== null}
+        onClose={() => setLockedSheet(null)}
+        variant={lockedSheet ?? "active"}
       />
 
       <TierDetailMenu
@@ -330,12 +354,12 @@ function StatusBlock({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center justify-center py-4 text-white transition-transform active:scale-[0.98]",
+        "flex flex-col items-center justify-center py-2 text-white transition-transform active:scale-[0.98]",
         isActive ? "bg-emerald-500" : "bg-sky-500",
       )}
     >
-      <span className="text-sm font-semibold">{title}</span>
-      <span className="mt-1 text-3xl font-extrabold">{count}</span>
+      <span className="text-xs font-semibold">{title}</span>
+      <span className="mt-0.5 text-2xl font-extrabold">{count}</span>
     </button>
   );
 }
@@ -393,7 +417,7 @@ function TierDetailMenu({
       aria-hidden={!isOpen}
       inert={!isOpen}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
+      <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
         <div className="flex gap-1">
           {(["active", "learned"] as const).map((item) => (
             <button
@@ -509,6 +533,38 @@ function FilterChip({
     >
       <span>{label}</span>
       <span className={cn("opacity-80", selected ? "text-background" : "")}>{count}</span>
+    </button>
+  );
+}
+
+function ActionButton({
+  icon: Icon,
+  label,
+  locked,
+  onClick,
+  variant,
+}: {
+  icon: typeof GraduationCap;
+  label: string;
+  locked: boolean;
+  onClick: () => void;
+  variant: "active" | "learned";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-disabled={locked}
+      className={cn(
+        "flex h-10 w-full items-center justify-center gap-2 rounded-xl border-0 text-xs font-bold text-white shadow-lg transition-colors active:scale-[0.98]",
+        variant === "active"
+          ? "bg-emerald-500 hover:bg-emerald-600"
+          : "bg-sky-500 hover:bg-sky-600",
+        locked && "opacity-50",
+      )}
+    >
+      <Icon className="size-5" aria-hidden="true" />
+      {label}
     </button>
   );
 }

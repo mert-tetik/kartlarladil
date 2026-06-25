@@ -2,7 +2,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { RankIconId } from "@/types/domain";
 
-const RANK_ICON_ASSETS: Record<RankIconId, string> = {
+export const RANK_ICON_ASSETS: Record<RankIconId, string> = {
   trophy: "/ranks/rank1.png",
   medal: "/ranks/rank2.png",
   book: "/ranks/rank3.png",
