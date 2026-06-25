@@ -152,9 +152,28 @@ async function main() {
     );
   }
 
-  const passwords = readJson(PASSWORD_FILE);
-  const keystorePassword = passwords.keystorePassword;
-  const keyPassword = passwords.keyPassword;
+  let keystorePassword = process.env.TWA_KEYSTORE_PASSWORD;
+  let keyPassword = process.env.TWA_KEY_PASSWORD || keystorePassword;
+
+  if (!keystorePassword && fileExists(PASSWORD_FILE)) {
+    const passwords = readJson(PASSWORD_FILE);
+    keystorePassword = passwords.keystorePassword;
+    keyPassword = passwords.keyPassword;
+  }
+
+  if (!keystorePassword) {
+    throw new Error(
+      "Keystore password not found. Set TWA_KEYSTORE_PASSWORD or create " +
+        `${PASSWORD_FILE} by running \`npm run pwa:init\`.`
+    );
+  }
+
+  if (!keyPassword) {
+    throw new Error(
+      "Key password not found. Set TWA_KEY_PASSWORD or create " +
+        `${PASSWORD_FILE} by running \`npm run pwa:init\`.`
+    );
+  }
 
   const manifest = readJson(path.join(PROJECT_DIR, "twa-manifest.json"));
   const keystorePath = manifest.signingKey.path;

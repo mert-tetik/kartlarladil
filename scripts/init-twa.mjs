@@ -27,9 +27,17 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-const TARGET_HOST = process.env.TWA_HOST || "foxiesdeck.vercel.app";
+const TARGET_HOST = process.env.TWA_HOST || "www.foxiesdeck.com";
 const TARGET_START_URL = process.env.TWA_START_URL || "/";
 const PACKAGE_ID = process.env.TWA_PACKAGE_ID || "com.foxiesdeck";
+const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
+  ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
+  : undefined;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME;
+const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
+  ? path.resolve(process.env.TWA_KEYSTORE_PATH)
+  : undefined;
+const KEYSTORE_ALIAS = process.env.TWA_KEYSTORE_ALIAS || "android";
 const PROJECT_DIR = path.resolve(
   process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck")
 );
@@ -204,9 +212,17 @@ async function main() {
     twaManifest.host = TARGET_HOST;
     twaManifest.startUrl = TARGET_START_URL;
     twaManifest.packageId = PACKAGE_ID;
+
+    if (APP_VERSION_CODE != null && Number.isFinite(APP_VERSION_CODE)) {
+      twaManifest.appVersionCode = APP_VERSION_CODE;
+    }
+    if (APP_VERSION_NAME) {
+      twaManifest.appVersionName = APP_VERSION_NAME;
+    }
+
     twaManifest.signingKey = {
-      path: path.join(PROJECT_DIR, "android.keystore"),
-      alias: "android",
+      path: KEYSTORE_PATH || path.join(PROJECT_DIR, "android.keystore"),
+      alias: KEYSTORE_ALIAS,
     };
 
     // Enable Google Play Billing for the TWA Digital Goods API.
@@ -243,10 +259,43 @@ async function main() {
 
     const jdkHelper = new JdkHelper(process, config);
     const keyTool = new KeyTool(jdkHelper, log);
+    const keystorePassword = process.env.TWA_KEYSTORE_PASSWORD;
+    const keyPassword = process.env.TWA_KEY_PASSWORD || keystorePassword;
 
     if (await fileExists(twaManifest.signingKey.path)) {
       console.log(`Signing key already exists: ${twaManifest.signingKey.path}`);
+
+      // If the user supplied passwords for an existing custom keystore, print
+      // the SHA-256 fingerprint so it can be added to assetlinks.json.
+      if (KEYSTORE_PATH && keystorePassword) {
+        try {
+          const info = await keyTool.keyInfo({
+            path: twaManifest.signingKey.path,
+            alias: twaManifest.signingKey.alias,
+            password: keystorePassword,
+            keypassword: keyPassword,
+          });
+          const fingerprint =
+            info.fingerprints.get("SHA256") || [...info.fingerprints.values()][0];
+          console.log("\n=== SHA-256 certificate fingerprint ===");
+          console.log(fingerprint);
+          console.log("=== Save this for assetlinks.json ===\n");
+          await fs.writeFile(
+            path.join(PROJECT_DIR, ".sha256-fingerprint.txt"),
+            fingerprint
+          );
+        } catch (err) {
+          console.warn("Could not extract fingerprint from existing keystore:", err.message);
+        }
+      }
     } else {
+      if (KEYSTORE_PATH) {
+        throw new Error(
+          `Custom keystore not found at ${twaManifest.signingKey.path}. ` +
+            "Please check TWA_KEYSTORE_PATH."
+        );
+      }
+
       const password = generatePassword();
       console.log("Creating Android signing key...");
       await keyTool.createSigningKey({

@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 // Public values for the current TWA signing key. These are safe to hard-code
 // because the SHA-256 fingerprint is already exposed in the APK signature.
-const FALLBACK_PACKAGE_NAME = "com.foxiesdeck";
+const FALLBACK_PACKAGE_NAME = "com.LigidTools.Glidecore";
 const FALLBACK_SHA256_FINGERPRINT =
-  "7f:11:a1:10:f6:2e:9c:3d:1d:33:e6:57:21:0b:78:e2:18:e6:3b:b5:8b:7e:08:a4:c2:e5:61:bd:bc:cb:fd:16";
+  "49:1a:b6:5b:be:ba:97:be:7f:f4:79:5b:c5:e6:b0:e0:ab:4a:b1:73:1f:44:9b:f9:ee:05:41:88:21:2e:31:f5";
 
 function normalizeFingerprint(value: string): string {
   return value
