@@ -24,8 +24,6 @@ interface MobileLanguageBottomSheetProps {
   onSelect: (language: LanguageCode) => void;
 }
 
-const SHEET_MIN_HEIGHT = 96;
-
 export function MobileLanguageBottomSheet({
   isOpen,
   onClose,

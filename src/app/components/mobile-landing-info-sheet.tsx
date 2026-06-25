@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Sparkles, BookOpen, RotateCcw, X } from "lucide-react";
 import { useT } from "@/i18n/locale-provider";

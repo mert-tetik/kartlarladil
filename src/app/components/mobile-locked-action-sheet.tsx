@@ -67,6 +67,7 @@ export function MobileLockedActionSheet({ isOpen, onClose, variant }: MobileLock
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/mascots/mascot12.png"
             alt=""

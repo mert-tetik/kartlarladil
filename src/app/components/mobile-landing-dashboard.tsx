@@ -185,6 +185,7 @@ export function MobileLandingDashboard() {
           aria-label={stats.rank.label}
           data-rank-icon-button
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={RANK_ICON_ASSETS[stats.rank.icon]}
             alt=""

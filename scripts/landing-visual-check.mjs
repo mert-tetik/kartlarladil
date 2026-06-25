@@ -15,6 +15,14 @@ const pages = [
   { name: "learn", path: "/learn?mode=active&language=en" },
 ];
 
+async function dismissCookieNotice(page) {
+  const cookieButton = page.locator('button:has-text("Got it")');
+  if (await cookieButton.isVisible().catch(() => false)) {
+    await cookieButton.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 async function capture(browser, device, pageInfo) {
   const context = await browser.newContext({
     viewport: { width: device.width, height: device.height },
@@ -34,23 +42,37 @@ async function capture(browser, device, pageInfo) {
 
   if (pageInfo.name === "landing") {
     await page.waitForSelector('[data-rank-icon-button] img', { timeout: 15000 });
-    const cookieButton = page.locator('button:has-text("Got it")');
-    if (await cookieButton.isVisible().catch(() => false)) {
-      await cookieButton.click();
-      await page.waitForTimeout(300);
-    }
+    await dismissCookieNotice(page);
     await page.waitForTimeout(500);
   } else if (pageInfo.name === "card-draw") {
     await page.waitForSelector('[data-card-draw-search-input]', { timeout: 15000 });
+    await dismissCookieNotice(page);
     await page.waitForTimeout(500);
   } else if (pageInfo.name === "learn") {
-    await page.waitForSelector('text=/Start|Begin|Learn|Quiz/i', { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('text=/Log in|Sign in|Start|Learn/i', { timeout: 15000 }).catch(() => {});
+    await dismissCookieNotice(page);
     await page.waitForTimeout(500);
   }
 
   const fileName = `${pageInfo.name}-${device.name}.png`;
   await page.screenshot({ path: path.join(outDir, fileName), fullPage: false });
   console.log(`Captured ${fileName}`);
+
+  if (pageInfo.name === "landing" && device.name === "iphone-se") {
+    await page.locator('text=Learning').first().click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(outDir, "landing-detail-menu-iphone-se.png"), fullPage: false });
+    console.log("Captured landing-detail-menu-iphone-se.png");
+
+    await page.locator('button[aria-label="Close"]').first().click();
+    await page.waitForTimeout(300);
+
+    await page.locator('button:has-text("Start Learning")').click({ force: true });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(outDir, "landing-locked-sheet-iphone-se.png"), fullPage: false });
+    console.log("Captured landing-locked-sheet-iphone-se.png");
+  }
+
   await context.close();
 }
 
