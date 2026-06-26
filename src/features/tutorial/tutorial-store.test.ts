@@ -25,11 +25,11 @@ describe("useTutorialStore", () => {
   it("marks completed after the final step", () => {
     const { advance } = useTutorialStore.getState();
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 7; i += 1) {
       advance();
     }
 
-    expect(useTutorialStore.getState().step).toBe(5);
+    expect(useTutorialStore.getState().step).toBe(7);
     expect(useTutorialStore.getState().completed).toBe(true);
   });
 

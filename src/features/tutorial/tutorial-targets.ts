@@ -36,6 +36,18 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
     selector: '[data-tutorial-target="card-add"]',
     pages: ["/card-draw"],
   },
+  {
+    step: 5,
+    key: "navbar-back",
+    selector: '[data-tutorial-target="navbar-back"]',
+    pages: ["/card-draw", "/learn", "/learned", "/ai-practice"],
+  },
+  {
+    step: 6,
+    key: "start-learning",
+    selector: '[data-tutorial-target="start-learning"]',
+    pages: ["/"],
+  },
 ];
 
 export function getTargetForStep(step: number, pathname: string): TutorialTarget | null {

@@ -10,7 +10,7 @@ interface TutorialState {
   reset: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(
