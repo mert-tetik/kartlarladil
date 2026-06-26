@@ -161,6 +161,12 @@ export function useRequireAuthAction() {
         return action();
       }
 
+      // On mobile the full-screen auth gateway is already shown; redirecting to
+      // /register would hit the middleware redirect and produce a broken page.
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        return undefined;
+      }
+
       const nextPath = getSafeNextPath(options?.nextPath ?? getCurrentClientPath(pathname), DEFAULT_AUTH_REDIRECT);
       router.push(`/register?next=${encodeURIComponent(nextPath)}`);
 

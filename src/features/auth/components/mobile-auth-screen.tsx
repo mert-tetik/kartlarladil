@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { Mail } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import { MobileEmailAuthForm } from "@/features/auth/components/mobile-email-auth-form";
-import { APP_NAME } from "@/lib/constants";
 import { useT } from "@/i18n/locale-provider";
 
 type AuthMode = "google" | "email";
@@ -31,13 +29,12 @@ export function MobileAuthScreen() {
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center text-center">
-      <div className="flex items-center gap-3">
-        <Logo size={48} priority />
-        <span className="font-display text-3xl font-semibold text-foreground">{APP_NAME}</span>
-      </div>
+      <h1 className="font-display text-3xl font-semibold text-foreground">
+        {t("auth.mobile.welcomeTitle")}
+      </h1>
 
       <p className="mt-4 text-base leading-relaxed text-foreground-secondary">
-        {t("metadata.description")}
+        {t("auth.mobile.welcomeDescription")}
       </p>
 
       <div className="mt-10 flex w-full flex-col gap-3">

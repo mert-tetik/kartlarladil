@@ -938,3 +938,12 @@ body:has([data-mobile-auth-gateway]) footer {
 body:has([data-mobile-auth-gateway]) #main-content {
   display: none !important;
 }
+
+/* Hide mobile bottom nav during full-screen study flows */
+body:has([data-mobile-hide-bottom-nav]) [data-mobile-main-nav-frame] {
+  display: none !important;
+}
+
+body:has([data-mobile-hide-bottom-nav]) #main-content {
+  padding-bottom: 0 !important;
+}

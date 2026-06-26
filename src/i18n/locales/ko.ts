@@ -80,6 +80,8 @@ const dictionary = {
   "auth.google.signIn": "Google로 로그인",
   "auth.google.signUp": "Google로 가입",
   "auth.mobile.useEmailInstead": "Use email instead",
+  "auth.mobile.welcomeTitle": "Welcome To FoxiesDeck!",
+  "auth.mobile.welcomeDescription": "Learn vocabulary with cards. Earn points, get gifts and rank up!",
   "auth.login.description": "안전한 세션으로 카드 풀, 학습 진행 및 계정 설정을 관리하세요.",
   "auth.login.forgotPassword": "비밀번호를 잊으셨나요?",
   "auth.login.noAccount": "계정이 없으신가요?",

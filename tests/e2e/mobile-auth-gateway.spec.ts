@@ -36,9 +36,11 @@ test.describe("mobile auth gateway", () => {
     await page.getByRole("button", { name: /Use email instead/i }).click();
 
     await expect(page.getByRole("button", { name: /^Log in$/i })).toBeVisible();
+    await expect(page.locator("[data-language-picker]")).toHaveCount(0);
 
     await page.getByRole("button", { name: /No account/i }).click();
     await expect(page.getByRole("button", { name: /^Sign up$/i })).toBeVisible();
+    await expect(page.locator("[data-language-picker]")).toHaveCount(0);
   });
 
   test("redirects old auth pages to home on mobile", async ({ page }) => {

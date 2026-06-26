@@ -80,6 +80,8 @@ const dictionary = {
   "auth.google.signIn": "Google ile giriş yap",
   "auth.google.signUp": "Google ile kayıt ol",
   "auth.mobile.useEmailInstead": "Email kullan",
+  "auth.mobile.welcomeTitle": "FoxiesDeck'e Hoş Geldiniz!",
+  "auth.mobile.welcomeDescription": "Kartlarla kelime öğren. Puan kazan, hediyeler al ve rank atla!",
   "auth.login.description": "Kart hazneni, öğrenme ilerlemeni ve hesap ayarlarını güvenli oturumla yönet.",
   "auth.login.forgotPassword": "Şifremi unuttum",
   "auth.login.noAccount": "Hesabın yok mu?",

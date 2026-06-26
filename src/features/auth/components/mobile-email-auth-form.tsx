@@ -6,7 +6,6 @@ import { loginAction, registerAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
 import { PasswordInput } from "@/features/auth/components/password-input";
-import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
@@ -105,14 +104,6 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
             <FieldError message={state.fieldErrors?.consent?.[0]} />
           </>
         ) : null}
-
-        <PreferenceFields
-          hideTier
-          defaultLanguage="en"
-          defaultUiLocale="tr"
-          languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
-          uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
-        />
 
         <SubmitButton
           className="mt-2 h-14 w-full text-base font-bold"

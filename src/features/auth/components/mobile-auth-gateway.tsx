@@ -63,7 +63,7 @@ export function MobileAuthGateway() {
       <div
         data-mobile-auth-gateway
         className={cn(
-          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white p-6",
+          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
           "max-lg:flex lg:hidden",
         )}
       >
@@ -77,7 +77,7 @@ export function MobileAuthGateway() {
       <div
         data-mobile-auth-gateway
         className={cn(
-          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white p-6",
+          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
           "max-lg:flex lg:hidden",
         )}
       >
@@ -90,7 +90,7 @@ export function MobileAuthGateway() {
     <div
       data-mobile-auth-gateway
       className={cn(
-        "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white p-6",
+        "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
         "max-lg:flex lg:hidden",
       )}
     >

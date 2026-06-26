@@ -80,6 +80,8 @@ const dictionary = {
   "auth.google.signIn": "Entrar com o Google",
   "auth.google.signUp": "Cadastrar-se com o Google",
   "auth.mobile.useEmailInstead": "Use email instead",
+  "auth.mobile.welcomeTitle": "Welcome To FoxiesDeck!",
+  "auth.mobile.welcomeDescription": "Learn vocabulary with cards. Earn points, get gifts and rank up!",
   "auth.login.description": "Gerencie seu conjunto de cartões, progresso de aprendizado e configurações da conta com uma sessão segura.",
   "auth.login.forgotPassword": "Esqueceu a senha",
   "auth.login.noAccount": "Sem conta?",
