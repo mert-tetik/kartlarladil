@@ -4,7 +4,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { QuizStation } from "@/features/quiz/components/quiz-station";
+import { MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -42,6 +42,7 @@ const testUser: AuthShellUser = {
     preferredLanguageCode: "en",
     preferredUiLocale: "tr",
     preferredTier: "A1",
+  onboardingCompleted: true,
     aiPracticePoints: 0,
     chestPoints: 0,
   },
@@ -57,6 +58,44 @@ const inventoryCard: InventoryCard = {
   correctCount: 0,
   addedAt: "2026-06-09T00:00:00.000Z",
 };
+
+describe("MobileQuizFeedback", () => {
+  it("keeps the previous content while closing so the next card does not flash the old color", () => {
+    const onNext = vi.fn();
+    const { rerender, container } = render(
+      <LocaleProvider initialLocale="en">
+        <MobileQuizFeedback isOpen={true} isCorrect={false} correctAnswer="apple" onNext={onNext} />
+      </LocaleProvider>,
+    );
+
+    const bar = container.querySelector("[data-quiz-mobile-feedback] > div");
+    expect(bar).toHaveClass("bg-rose-500");
+    expect(screen.getByText(/apple/i)).toBeInTheDocument();
+
+    // Simulate the next card starting to open while the sheet is still closing.
+    rerender(
+      <LocaleProvider initialLocale="en">
+        <MobileQuizFeedback isOpen={false} isCorrect={true} correctAnswer="banana" onNext={onNext} />
+      </LocaleProvider>,
+    );
+
+    // The snapshot from the previous open state should still be rendered.
+    expect(bar).toHaveClass("bg-rose-500");
+    expect(screen.getByText(/apple/i)).toBeInTheDocument();
+
+    // Once the sheet opens again it should reflect the new answer.
+    rerender(
+      <LocaleProvider initialLocale="en">
+        <MobileQuizFeedback isOpen={true} isCorrect={true} correctAnswer="banana" onNext={onNext} />
+      </LocaleProvider>,
+    );
+
+    const newBar = container.querySelector("[data-quiz-mobile-feedback] > div");
+    expect(newBar).toHaveClass("bg-emerald-500");
+    expect(screen.queryByText(/apple/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Correct answer/i)).toBeInTheDocument();
+  });
+});
 
 describe("QuizStation sound feedback", () => {
   beforeEach(() => {

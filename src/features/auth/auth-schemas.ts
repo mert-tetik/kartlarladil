@@ -33,12 +33,17 @@ export const registerSchema = z.object({
   }),
 });
 
-export const onboardingSchema = z.object({
-  preferredLanguageCode: languageCodeSchema,
-  preferredUiLocale: localeCodeSchema.optional(),
-  preferredTier: preferredTierSchema,
-  next: nextPathSchema,
-});
+export const onboardingSchema = z
+  .object({
+    preferredLanguageCode: languageCodeSchema,
+    preferredUiLocale: localeCodeSchema.optional(),
+    preferredTier: preferredTierSchema,
+    next: nextPathSchema,
+  })
+  .refine((data) => data.preferredLanguageCode !== data.preferredUiLocale, {
+    message: "auth.validation.languageSameAsLocale",
+    path: ["preferredLanguageCode"],
+  });
 
 export const resetPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),

@@ -9,6 +9,7 @@ const baseUser: AuthShellUser = {
     preferredLanguageCode: null,
     preferredUiLocale: null,
     preferredTier: null,
+    onboardingCompleted: true,
     aiPracticePoints: 0,
     chestPoints: 0,
   },

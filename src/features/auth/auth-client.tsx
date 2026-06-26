@@ -43,6 +43,7 @@ function normalizeClientProfile(row: {
   preferred_language_code: string | null;
   preferred_ui_locale: string | null;
   preferred_tier: string | null;
+  onboarding_completed: boolean | null;
   ai_practice_points: number | null;
   chest_points: number | null;
 }): AuthShellUser["profile"] {
@@ -61,6 +62,7 @@ function normalizeClientProfile(row: {
         ? (preferredUiLocale as LocaleCode)
         : null,
     preferredTier: normalizePreferredTier(preferredTier),
+    onboardingCompleted: row.onboarding_completed ?? true,
     aiPracticePoints: row.ai_practice_points ?? 0,
     chestPoints: row.chest_points ?? 0,
   };
@@ -109,7 +111,7 @@ export function AuthSessionProvider({
 
     const { data, error } = await client
       .from("user_profiles")
-      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, ai_practice_points, chest_points")
+      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points")
       .eq("user_id", session.user.id)
       .maybeSingle();
 

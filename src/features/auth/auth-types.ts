@@ -13,6 +13,7 @@ export interface AuthProfile {
   preferredLanguageCode: LanguageCode | null;
   preferredUiLocale: LocaleCode | null;
   preferredTier: PreferredTier | null;
+  onboardingCompleted: boolean;
   aiPracticePoints: number;
   chestPoints: number;
   theme?: string | null;

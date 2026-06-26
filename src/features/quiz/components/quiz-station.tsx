@@ -1428,7 +1428,7 @@ function TextQuestion({
   );
 }
 
-function MobileQuizFeedback({
+export function MobileQuizFeedback({
   isOpen,
   isCorrect,
   correctAnswer,
@@ -1440,6 +1440,19 @@ function MobileQuizFeedback({
   onNext: () => void;
 }) {
   const t = useT();
+  const [snapshot, setSnapshot] = useState<{
+    isCorrect: boolean;
+    correctAnswer: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSnapshot({ isCorrect, correctAnswer: correctAnswer ?? "" });
+    }
+  }, [isOpen, isCorrect, correctAnswer]);
+
+  const display = snapshot ?? { isCorrect, correctAnswer: correctAnswer ?? "" };
 
   return (
     <div
@@ -1454,20 +1467,20 @@ function MobileQuizFeedback({
       <div
         className={cn(
           "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-4 shadow-2xl transition-transform duration-300",
-          isCorrect ? "bg-emerald-500" : "bg-rose-500",
+          display.isCorrect ? "bg-emerald-500" : "bg-rose-500",
           isOpen ? "translate-y-0" : "translate-y-full",
         )}
       >
         <div className="flex items-center gap-3">
-          {isCorrect ? (
+          {display.isCorrect ? (
             <CheckCircle2 className="size-6 text-white" aria-hidden="true" />
           ) : (
             <XCircle className="size-6 text-white" aria-hidden="true" />
           )}
           <p className="text-sm font-semibold text-white">
-            {isCorrect
+            {display.isCorrect
               ? t("quiz.correctAnswer")
-              : t("quiz.correctAnswerWithValue", { answer: correctAnswer ?? "" })}
+              : t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })}
           </p>
         </div>
         <Button

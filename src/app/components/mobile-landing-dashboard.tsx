@@ -30,7 +30,7 @@ export function MobileLandingDashboard() {
   const router = useRouter();
   const { user } = useAuthSession();
   const { stats } = useProgressStats();
-  const { locale } = useLocale();
+  const { locale, setLocale } = useLocale();
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
@@ -149,8 +149,18 @@ export function MobileLandingDashboard() {
     setDetailMenuOpen(true);
   }
 
+  function handleSelectLanguage(language: LanguageCode) {
+    vibrate("tap");
+    if (language === locale) {
+      setLocale(selectedLanguage);
+      setSelectedLanguage(locale);
+    } else {
+      setSelectedLanguage(language);
+    }
+  }
+
   return (
-    <section className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
+    <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
       {/* Info icon */}
       <button
         type="button"
@@ -293,7 +303,7 @@ export function MobileLandingDashboard() {
         onClose={() => setLanguageSheetOpen(false)}
         options={languageStats}
         selectedLanguage={selectedLanguage}
-        onSelect={setSelectedLanguage}
+        onSelect={handleSelectLanguage}
       />
 
       <MobileTierSelector

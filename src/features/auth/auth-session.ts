@@ -41,6 +41,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
         ? (preferredUiLocale as LocaleCode)
         : null,
     preferredTier: normalizePreferredTier(preferredTier),
+    onboardingCompleted: row?.onboarding_completed ?? true,
     aiPracticePoints: row?.ai_practice_points ?? 0,
     chestPoints: row?.chest_points ?? 0,
     theme: row?.theme ?? null,

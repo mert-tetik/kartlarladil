@@ -32,6 +32,7 @@ const testUser: AuthShellUser = {
     preferredLanguageCode: "en",
     preferredUiLocale: "tr",
     preferredTier: "A1",
+  onboardingCompleted: true,
     aiPracticePoints: 0,
     chestPoints: 0,
   },

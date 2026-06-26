@@ -131,11 +131,17 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               <>
                 <Link
                   href="/login"
-                  className={buttonClassName("ghost", "sm", "text-white hover:bg-white/10 hover:text-white")}
+                  className={cn(
+                    buttonClassName("ghost", "sm", "text-white hover:bg-white/10 hover:text-white"),
+                    "max-lg:hidden",
+                  )}
                 >
                   {t("nav.login")}
                 </Link>
-                <Link href="/register" className={buttonClassName("primary", "sm")}>
+                <Link
+                  href="/register"
+                  className={cn(buttonClassName("primary", "sm"), "max-lg:hidden")}
+                >
                   {t("nav.signup")}
                 </Link>
               </>

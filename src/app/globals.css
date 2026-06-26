@@ -923,3 +923,18 @@ body:has([data-ask-page]) footer {
 .animate-learning-quiz-splash {
   animation: learning-quiz-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* Mobile auth gateway: full-screen overlay that replaces the normal UI */
+body:has([data-mobile-auth-gateway]) {
+  overflow: hidden;
+}
+
+body:has([data-mobile-auth-gateway]) header,
+body:has([data-mobile-auth-gateway]) [data-mobile-main-nav-frame],
+body:has([data-mobile-auth-gateway]) footer {
+  display: none !important;
+}
+
+body:has([data-mobile-auth-gateway]) #main-content {
+  display: none !important;
+}

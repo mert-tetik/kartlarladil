@@ -13,6 +13,7 @@ export function PreferenceFields({
   defaultLanguage = "en",
   defaultUiLocale = "en",
   defaultTier = "A1",
+  hideTier = false,
   languageError,
   uiLocaleError,
   tierError,
@@ -20,6 +21,7 @@ export function PreferenceFields({
   defaultLanguage?: LanguageCode | null;
   defaultUiLocale?: LocaleCode | null;
   defaultTier?: PreferredTier | null;
+  hideTier?: boolean;
   languageError?: string;
   uiLocaleError?: string;
   tierError?: string;
@@ -47,8 +49,19 @@ export function PreferenceFields({
   }, [defaultUiLocale]);
 
   function handleUiLocaleChange(code: LocaleCode) {
+    if (code === selectedLanguage) {
+      setSelectedLanguage(selectedUiLocale);
+    }
     setSelectedUiLocale(code);
     setLocale(code);
+  }
+
+  function handleLanguageChange(code: LanguageCode) {
+    if (code === selectedUiLocale) {
+      setSelectedUiLocale(selectedLanguage);
+      setLocale(selectedLanguage);
+    }
+    setSelectedLanguage(code);
   }
 
   return (
@@ -57,7 +70,7 @@ export function PreferenceFields({
         name="preferredLanguageCode"
         label={t("auth.preference.language")}
         value={selectedLanguage}
-        onChange={setSelectedLanguage}
+        onChange={handleLanguageChange}
         error={languageError}
       />
 
@@ -69,40 +82,44 @@ export function PreferenceFields({
         error={uiLocaleError}
       />
 
-      <fieldset data-preference-tier>
-        <legend className="text-sm font-semibold text-foreground">{t("auth.preference.tier")}</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PREFERRED_TIERS.map((tier) => (
-            <label key={tier} className="block">
-              <input
-                className="peer sr-only"
-                type="radio"
-                name="preferredTier"
-                value={tier}
-                defaultChecked={(defaultTier ?? "A1") === tier}
-                required
-              />
-              <span
-                className={cn(
-                  "flex h-12 flex-col justify-center rounded-md border border-border bg-background-card px-3 text-sm font-semibold text-foreground-secondary transition-colors",
-                  "peer-checked:border-foreground peer-checked:bg-background-inverse peer-checked:text-foreground-inverse",
-                  "hover:border-foreground-muted",
-                )}
-              >
-                {tier === "all" ? (
-                  <span>{t("common.all")}</span>
-                ) : (
-                  <>
-                    <span>{tier}</span>
-                    <span className="text-xs font-semibold opacity-70">{getTierLabel(tier as Tier, locale)}</span>
-                  </>
-                )}
-              </span>
-            </label>
-          ))}
-        </div>
-        <FieldError message={tierError} />
-      </fieldset>
+      {!hideTier ? (
+        <fieldset data-preference-tier>
+          <legend className="text-sm font-semibold text-foreground">{t("auth.preference.tier")}</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {PREFERRED_TIERS.map((tier) => (
+              <label key={tier} className="block">
+                <input
+                  className="peer sr-only"
+                  type="radio"
+                  name="preferredTier"
+                  value={tier}
+                  defaultChecked={(defaultTier ?? "A1") === tier}
+                  required
+                />
+                <span
+                  className={cn(
+                    "flex h-12 flex-col justify-center rounded-md border border-border bg-background-card px-3 text-sm font-semibold text-foreground-secondary transition-colors",
+                    "peer-checked:border-foreground peer-checked:bg-background-inverse peer-checked:text-foreground-inverse",
+                    "hover:border-foreground-muted",
+                  )}
+                >
+                  {tier === "all" ? (
+                    <span>{t("common.all")}</span>
+                  ) : (
+                    <>
+                      <span>{tier}</span>
+                      <span className="text-xs font-semibold opacity-70">{getTierLabel(tier as Tier, locale)}</span>
+                    </>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+          <FieldError message={tierError} />
+        </fieldset>
+      ) : (
+        <input type="hidden" name="preferredTier" value="all" />
+      )}
     </div>
   );
 }

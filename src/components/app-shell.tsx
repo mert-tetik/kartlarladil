@@ -8,6 +8,7 @@ import { RouteAwareShell } from "@/components/route-aware-shell";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
+import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
@@ -29,6 +30,7 @@ export async function AppShell({ children, locale }: { children: ReactNode; loca
             <ThemeProvider initialTheme={user?.profile.theme}>
               <div className="flex min-h-screen flex-col bg-background text-foreground">
                 <AppNavigation user={user} />
+                <MobileAuthGateway />
                 <RouteAwareShell>{children}</RouteAwareShell>
                 <SiteFooter className="max-lg:hidden" />
                 <CookieNotice />
