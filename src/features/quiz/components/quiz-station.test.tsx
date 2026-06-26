@@ -106,7 +106,7 @@ describe("QuizStation sound feedback", () => {
     expect(prompt).toHaveClass("order-1");
     expect(cardSlot).toHaveClass("order-2");
     expect(question).toHaveClass("order-3");
-    expect(card).toHaveClass("w-[min(190px,calc((100vw-3rem)/2))]");
+    expect(card).toHaveClass("w-[min(285px,calc((100vw-3rem)/2))]");
   });
 
   it("reserves the next-card slot before a choice answer is shown", async () => {
@@ -150,7 +150,7 @@ describe("QuizStation sound feedback", () => {
 
     expect(question).toHaveClass("order-1");
     expect(cardSlot).toHaveClass("order-2");
-    expect(card).toHaveClass("origin-top", "scale-[1.12]");
+    expect(card).not.toHaveClass("origin-top", "scale-[1.12]");
   });
 
   it("renders the mobile learning splash against the viewport body", async () => {

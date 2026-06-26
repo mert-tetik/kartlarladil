@@ -532,7 +532,7 @@ export function QuizStation({
   }
 
   function handleExit() {
-    router.push("/my-cards");
+    router.push("/");
   }
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
@@ -599,7 +599,7 @@ export function QuizStation({
 
   if (phase === "count" && selectedLanguage) {
     return (
-      <div className="flex flex-1 flex-col items-stretch justify-center">
+      <div className="flex flex-1 flex-col items-stretch">
         <CountSelection
           mode={mode}
           language={selectedLanguage}
@@ -628,7 +628,7 @@ export function QuizStation({
       <QuizViewportOverlay
         learnPagePhase="result"
         overlay="result"
-        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:p-0 lg:bottom-0 lg:top-16"
       >
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultView
@@ -695,7 +695,7 @@ export function QuizStation({
         lastAnswerCorrect={lastAnswerCorrect}
       />
       <div
-        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-20 max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
+        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
         data-learn-quiz-page="quiz"
       >
         <div
@@ -771,6 +771,18 @@ export function QuizStation({
         </div>
       </div>
 
+      {showingAnswer && lastAnswerCorrect !== null ? (
+        <MobileQuizFeedback
+          isCorrect={lastAnswerCorrect}
+          correctAnswer={
+            item.questionType === "text"
+              ? (item.question as { correctAnswer: string }).correctAnswer
+              : undefined
+          }
+          onNext={handleNext}
+        />
+      ) : null}
+
       <CardDetailsDialog
         card={item.card}
         open={detailsOpen}
@@ -800,8 +812,7 @@ function MobileQuizCard({
   return (
     <div
       className={cn(
-        "w-[min(190px,calc((100vw-3rem)/2))] max-w-full shrink-0",
-        item.questionType === "text" && "origin-top scale-[1.12]",
+        "w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0",
       )}
       data-quiz-mobile-card
       data-quiz-mobile-card-kind={item.questionType}
@@ -984,7 +995,7 @@ export function CountSelection({
   return (
     <div
       data-quiz-count-selection
-      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0"
+      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:pb-[var(--mobile-nav-bar-height)]"
     >
       <div className="flex flex-col items-center justify-center bg-black px-5 py-4 text-center text-white max-lg:px-4 max-lg:py-3">
         <h2 className="text-base font-semibold sm:text-lg">
@@ -1106,7 +1117,7 @@ function MobileQuizTopBars({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-30 flex h-20 flex-col lg:hidden"
+      className="fixed inset-x-0 top-[var(--app-header-height)] z-50 flex h-20 flex-col lg:hidden"
       data-mobile-quiz-top-bars
     >
       <div className="flex h-11 shrink-0 flex-col justify-center gap-1 bg-black px-4 py-1.5 text-white">
@@ -1254,7 +1265,7 @@ function ChoiceQuestion({
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
         <Button
           className={cn(
-            "w-full bg-brand hover:bg-brand-hover",
+            "w-full bg-brand hover:bg-brand-hover max-lg:hidden",
             !showingAnswer && "invisible pointer-events-none",
           )}
           data-quiz-next-button
@@ -1375,7 +1386,7 @@ function TextQuestion({
           />
 
           {showingAnswer ? (
-            <div className="mt-2 space-y-3 lg:mt-4">
+            <div className="mt-2 space-y-3 max-lg:hidden lg:mt-4">
               <div className="flex items-center gap-3">
                 {textResult === "correct" ? (
                   <CheckCircle2
@@ -1415,6 +1426,50 @@ function TextQuestion({
         </div>
       </div>
     </>
+  );
+}
+
+function MobileQuizFeedback({
+  isCorrect,
+  correctAnswer,
+  onNext,
+}: {
+  isCorrect: boolean;
+  correctAnswer?: string;
+  onNext: () => void;
+}) {
+  const t = useT();
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-x-0 bottom-[var(--mobile-nav-bar-height)] z-50 max-lg:flex lg:hidden",
+        isCorrect ? "bg-emerald-500" : "bg-rose-500",
+      )}
+      data-quiz-mobile-feedback
+    >
+      <div className="flex w-full items-center justify-between gap-4 rounded-t-2xl p-4">
+        <div className="flex items-center gap-3">
+          {isCorrect ? (
+            <CheckCircle2 className="size-6 text-white" aria-hidden="true" />
+          ) : (
+            <XCircle className="size-6 text-white" aria-hidden="true" />
+          )}
+          <p className="text-sm font-semibold text-white">
+            {isCorrect
+              ? t("quiz.correctAnswer")
+              : t("quiz.correctAnswerWithValue", { answer: correctAnswer ?? "" })}
+          </p>
+        </div>
+        <Button
+          className="shrink-0 bg-white text-black hover:bg-white/90"
+          onClick={onNext}
+          data-quiz-mobile-feedback-next
+        >
+          {t("quiz.nextCard")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

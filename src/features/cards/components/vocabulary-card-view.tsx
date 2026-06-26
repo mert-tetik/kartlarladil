@@ -142,7 +142,7 @@ export function VocabularyCardView({
     >
       <div
         className={cn(
-          "relative h-full min-h-[inherit] w-full transition-transform duration-500 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
+          "relative h-full min-h-[inherit] w-full transition-transform duration-250 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
           isFaceUp ? "[transform:rotateY(0deg)]" : "[transform:rotateY(180deg)]",
         )}
       >

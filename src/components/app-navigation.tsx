@@ -25,6 +25,7 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { useT } from "@/i18n/locale-provider";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import type { TranslationKey } from "@/i18n/dictionaries";
 
 type NavItem = {
@@ -91,6 +92,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           {showMobileBackButton ? (
             <Link
               href="/"
+              onClick={() => vibrate("tap")}
               className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
             >
               <ChevronLeft className="size-6" aria-hidden="true" />
