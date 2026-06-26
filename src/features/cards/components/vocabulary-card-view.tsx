@@ -351,6 +351,7 @@ function CardFront({
             <Button
               onClick={handleAddClick}
               disabled={!onAdd || showOwnedState}
+              data-tutorial-target="card-add"
               className={cn(
                 "h-8 bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
                 ADD_BUTTON_TEXT_BY_TIER[card.tier],

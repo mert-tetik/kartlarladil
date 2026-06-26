@@ -616,6 +616,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
                     key={`${dealCycle}-${card.id}`}
                     ref={(element) => setCardRef(card.id, element)}
                     data-card-deal-index={index}
+                    data-tutorial-target={index === 0 ? "draw-card-result" : undefined}
                     className="card-draw-card-deal"
                     style={{ animationDelay: `${index * 55}ms` }}
                   >

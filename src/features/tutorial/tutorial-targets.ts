@@ -26,15 +26,15 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
   },
   {
     step: 3,
-    key: "navbar-back",
-    selector: '[data-tutorial-target="navbar-back"]',
-    pages: ["/card-draw", "/learn", "/learned", "/ai-practice"],
+    key: "draw-card-result",
+    selector: '[data-tutorial-target="draw-card-result"]',
+    pages: ["/card-draw"],
   },
   {
     step: 4,
-    key: "start-learning",
-    selector: '[data-tutorial-target="start-learning"]',
-    pages: ["/"],
+    key: "card-add",
+    selector: '[data-tutorial-target="card-add"]',
+    pages: ["/card-draw"],
   },
 ];
 

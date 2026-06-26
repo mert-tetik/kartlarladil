@@ -73,7 +73,7 @@ describe("TutorialPointer", () => {
     window.history.pushState({}, "", "/card-draw");
     useTutorialStore.setState({ completed: false, step: 3 });
     createTarget({
-      name: "navbar-back",
+      name: "draw-card-result",
       rect: { left: 8, top: 8, width: 40, height: 40 },
     });
 
