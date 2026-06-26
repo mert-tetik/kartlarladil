@@ -10,9 +10,12 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 export function useGooglePlayBilling() {
   const { refreshEntitlements } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isSupported =
     typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+
+  const clearError = useCallback(() => setError(null), []);
 
   const getService = useCallback(async (): Promise<DigitalGoodsService> => {
     if (!isSupported) {
@@ -39,6 +42,7 @@ export function useGooglePlayBilling() {
   const purchase = useCallback(
     async (sku: string) => {
       setIsLoading(true);
+      setError(null);
 
       try {
         const service = await getService();
@@ -86,6 +90,10 @@ export function useGooglePlayBilling() {
         await refreshEntitlements();
 
         return result.data;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setError(message);
+        throw error;
       } finally {
         setIsLoading(false);
       }
@@ -97,6 +105,7 @@ export function useGooglePlayBilling() {
     if (!isSupported) return;
 
     setIsLoading(true);
+    setError(null);
 
     try {
       const service = await getService();
@@ -118,6 +127,10 @@ export function useGooglePlayBilling() {
       if (result.data) {
         await refreshEntitlements();
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setError(message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +139,8 @@ export function useGooglePlayBilling() {
   return {
     isSupported,
     isLoading,
+    error,
+    clearError,
     getProductDetails,
     purchase,
     restorePurchases,

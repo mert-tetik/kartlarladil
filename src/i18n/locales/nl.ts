@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "Er is een ongeldig abonnement geselecteerd.",
   "pricing.error.loadFailed": "Abonnementsgegevens konden nu niet worden geladen. Probeer het opnieuw.",
   "pricing.error.customerPortalUnavailable": "Je hebt al een betaald abonnement. Beheer het via het klantenportaal.",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "Huidig thema",
   "theme.dark": "Donker",
   "theme.light": "Licht",

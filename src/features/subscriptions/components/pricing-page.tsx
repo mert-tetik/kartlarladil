@@ -377,10 +377,13 @@ function GooglePlayCheckoutButton({
   currentPlan: SubscriptionPlan | null;
 }) {
   const t = useT();
-  const { purchase, isLoading } = useGooglePlayBilling();
+  const { purchase, isLoading, isSupported } = useGooglePlayBilling();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const handleClick = async () => {
+    setPurchaseError(null);
+
     if (isPaidUser) {
       window.open(
         `https://play.google.com/store/account/subscriptions?package=${TWA_PACKAGE_NAME}&sku=${getGooglePlaySku(plan, cycle)}`,
@@ -390,22 +393,37 @@ function GooglePlayCheckoutButton({
       return;
     }
 
-    await purchase(getGooglePlaySku(plan, cycle));
+    try {
+      await purchase(getGooglePlaySku(plan, cycle));
+    } catch (error) {
+      console.error("Google Play purchase failed:", error);
+      setPurchaseError(t("pricing.error.checkoutFailed"));
+    }
   };
 
   return (
-    <Button
-      type="button"
-      variant="primary"
-      className={cn(
-        "w-full border-0",
-        (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
-      )}
-      disabled={isLoading}
-      onClick={() => void handleClick()}
-    >
-      {isLoading ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
-    </Button>
+    <div className="w-full space-y-2">
+      <Button
+        type="button"
+        variant="primary"
+        className={cn(
+          "w-full border-0",
+          (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
+        )}
+        disabled={isLoading || !isSupported}
+        onClick={handleClick}
+      >
+        {isLoading ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
+      </Button>
+
+      {!isSupported ? (
+        <p className="text-center text-xs text-foreground-muted">
+          {t("pricing.googlePlayUnavailable")}
+        </p>
+      ) : purchaseError ? (
+        <p className="text-center text-xs text-rose-600">{purchaseError}</p>
+      ) : null}
+    </div>
   );
 }
 

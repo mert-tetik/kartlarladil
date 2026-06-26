@@ -192,6 +192,12 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   }, []);
 
   useEffect(() => {
+    if (!tutorialCompleted && tutorialStep === 1 && initialTier) {
+      advanceTutorial();
+    }
+  }, [advanceTutorial, initialTier, tutorialCompleted, tutorialStep]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
       const insideMobileSearch = mobileDropdownRef.current?.contains(target) ?? false;

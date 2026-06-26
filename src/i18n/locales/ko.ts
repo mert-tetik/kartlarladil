@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "잘못된 요금제가 선택되었습니다.",
   "pricing.error.loadFailed": "지금은 구독 정보를 불러올 수 없습니다. 다시 시도해 주세요.",
   "pricing.error.customerPortalUnavailable": "이미 유료 플랜이 있습니다. 고객 포털에서 관리하세요.",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "현재 테마",
   "theme.dark": "어두운",
   "theme.light": "밝은",

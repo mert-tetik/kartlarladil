@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
@@ -9,7 +9,7 @@ const COOKIE_NOTICE_KEY = "foxiesdeck-cookie-notice-dismissed";
 
 function readDismissedState() {
   if (typeof window === "undefined") {
-    return false;
+    return true;
   }
 
   try {
@@ -19,13 +19,24 @@ function readDismissedState() {
   }
 }
 
+function subscribe(callback: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === COOKIE_NOTICE_KEY) {
+      callback();
+    }
+  }
+
+  window.addEventListener("storage", handleStorage);
+  return () => window.removeEventListener("storage", handleStorage);
+}
+
 export function CookieNotice() {
   const t = useT();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    setVisible(readDismissedState());
-  }, []);
+  const visible = useSyncExternalStore(
+    subscribe,
+    readDismissedState,
+    () => true,
+  );
 
   function dismiss() {
     try {
@@ -33,7 +44,10 @@ export function CookieNotice() {
     } catch {
       // ignore
     }
-    setVisible(false);
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new StorageEvent("storage", { key: COOKIE_NOTICE_KEY }));
+    }
   }
 
   if (!visible) {

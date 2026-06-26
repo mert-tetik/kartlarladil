@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "选择了无效的套餐。",
   "pricing.error.loadFailed": "当前无法加载订阅详情。请重试。",
   "pricing.error.customerPortalUnavailable": "您已经拥有付费计划。请从客户门户管理。",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "当前主题",
   "theme.dark": "黑暗",
   "theme.light": "明亮",

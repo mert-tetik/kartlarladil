@@ -1559,6 +1559,14 @@ function CelebrationView({
   );
 }
 
+function useIsMounted() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 function QuizViewportOverlay({
   children,
   className,
@@ -1570,12 +1578,7 @@ function QuizViewportOverlay({
   overlay: "result" | "chest";
   learnPagePhase?: "result";
 }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const mounted = useIsMounted();
 
   if (!mounted) {
     return null;

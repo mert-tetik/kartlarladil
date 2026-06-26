@@ -57,7 +57,7 @@ export function CardDetailsDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end bg-black/60 p-0 sm:items-center sm:justify-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-end bg-black/60 p-0 sm:items-center sm:justify-center sm:p-6"
       onMouseDown={() => onOpenChange(false)}
     >
       <section

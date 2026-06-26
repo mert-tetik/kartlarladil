@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
@@ -39,6 +39,21 @@ function readEnabledState(): boolean {
   return stored === null ? true : stored === "true";
 }
 
+function subscribe(callback: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === STORAGE_KEY) {
+      callback();
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }
+
+  return () => {};
+}
+
 export function getVibrationEnabled(): boolean {
   return isVibrationSupported() && readEnabledState();
 }
@@ -60,26 +75,28 @@ export function vibrate(patternName: VibrationPatternName): void {
 }
 
 export function useVibration() {
-  const [supported, setSupported] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    const isSupported = isVibrationSupported();
-    setSupported(isSupported);
-    setEnabled(isSupported && readEnabledState());
-  }, []);
+  const supported = useSyncExternalStore(
+    subscribe,
+    isVibrationSupported,
+    () => false,
+  );
+  const enabled = useSyncExternalStore(
+    subscribe,
+    readEnabledState,
+    () => true,
+  );
 
   const toggle = useCallback(() => {
-    setEnabled((current) => {
-      const next = !current;
-      setVibrationEnabled(next);
-      return next;
-    });
-  }, []);
+    const next = !enabled;
+    setVibrationEnabled(next);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+    }
+  }, [enabled]);
 
   const trigger = useCallback((patternName: VibrationPatternName) => {
     vibrate(patternName);
   }, []);
 
-  return { supported, enabled, toggle, trigger };
+  return { supported, enabled: supported && enabled, toggle, trigger };
 }

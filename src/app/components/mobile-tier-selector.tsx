@@ -8,6 +8,7 @@ import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 import { vibrate } from "@/lib/vibration";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import type { LanguageCode, Tier } from "@/types/domain";
 
 interface MobileTierSelectorProps {
@@ -20,6 +21,9 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
   const router = useRouter();
   const t = useT();
   const mounted = useIsClient();
+  const tutorialStep = useTutorialStore((state) => state.step);
+  const tutorialCompleted = useTutorialStore((state) => state.completed);
+  const advanceTutorial = useTutorialStore((state) => state.advance);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -36,6 +40,9 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
 
   function handleSelect(tier: Tier) {
     vibrate("tap");
+    if (!tutorialCompleted && tutorialStep === 1) {
+      advanceTutorial();
+    }
     onClose();
     router.push(`/card-draw?language=${encodeURIComponent(language)}&tier=${encodeURIComponent(tier)}`);
   }
@@ -63,6 +70,7 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
             <button
               key={tier}
               type="button"
+              data-tutorial-target={tier === "A1" ? "tier-choice" : undefined}
               onClick={() => handleSelect(tier)}
               className={cn(
                 "w-full rounded-2xl py-5 text-center text-xl font-bold text-white shadow-lg transition-transform active:scale-[0.98]",

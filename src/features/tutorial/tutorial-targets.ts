@@ -14,9 +14,9 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
   },
   {
     step: 1,
-    key: "tier-filter",
-    selector: '[data-tutorial-target="tier-filter"]',
-    pages: ["/card-draw"],
+    key: "tier-choice",
+    selector: '[data-tutorial-target="tier-choice"], [data-tutorial-target="tier-filter"]',
+    pages: ["/", "/card-draw"],
   },
   {
     step: 2,

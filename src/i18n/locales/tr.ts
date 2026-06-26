@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "Geçersiz plan seçildi.",
   "pricing.error.loadFailed": "Abonelik bilgisi şu anda alınamadı. Lütfen tekrar dene.",
   "pricing.error.customerPortalUnavailable": "Zaten ücretli bir plana sahipsin. Lütfen müşteri portalından yönet.",
+  "pricing.googlePlayUnavailable": "Google Play Billing bu cihazda kullanılamıyor. Lütfen Google Play'den indirilmiş uygulamayı kullan.",
   "theme.current": "Mevcut tema",
   "theme.dark": "Karanlık",
   "theme.light": "Aydınlık",

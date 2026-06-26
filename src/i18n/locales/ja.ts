@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "無効なプランが選択されました。",
   "pricing.error.loadFailed": "現在サブスクリプション情報を読み込めませんでした。もう一度お試しください。",
   "pricing.error.customerPortalUnavailable": "すでに有料プランをお持ちです。カスタマーポータルから管理してください。",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "現在のテーマ",
   "theme.dark": "ダーク",
   "theme.light": "ライト",

@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "Un forfait invalide a été sélectionné.",
   "pricing.error.loadFailed": "Les détails de l’abonnement n’ont pas pu être chargés pour le moment. Veuillez réessayer.",
   "pricing.error.customerPortalUnavailable": "Vous avez déjà un plan payant. Veuillez le gérer depuis le portail client.",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "Thème actuel",
   "theme.dark": "Sombre",
   "theme.light": "Clair",

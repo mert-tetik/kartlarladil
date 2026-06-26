@@ -544,6 +544,7 @@ const dictionary = {
   "pricing.error.invalidPlan": "تم اختيار خطة غير صالحة.",
   "pricing.error.loadFailed": "تعذر تحميل تفاصيل الاشتراك الآن. يرجى المحاولة مرة أخرى.",
   "pricing.error.customerPortalUnavailable": "لديك خطة مدفوعة بالفعل. يُرجى إدارتها من بوابة العملاء.",
+  "pricing.googlePlayUnavailable": "Google Play Billing is not available on this device. Please use the app installed from Google Play.",
   "theme.current": "السمة الحالية",
   "theme.dark": "داكن",
   "theme.light": "فاتح",
