@@ -17,19 +17,21 @@ type SelectOption = {
   className?: string;
 };
 
+type FilterControlsProps = {
+  language: LanguageCode | "all";
+  tier: Tier | "all";
+  onLanguageChange: (language: LanguageCode | "all") => void;
+  onTierChange: (tier: Tier | "all") => void;
+  mobileMenuDirection?: "up" | "down";
+};
+
 export function FilterControls({
   language,
   tier,
   onLanguageChange,
   onTierChange,
   mobileMenuDirection = "down",
-}: {
-  language: LanguageCode | "all";
-  tier: Tier | "all";
-  onLanguageChange: (language: LanguageCode | "all") => void;
-  onTierChange: (tier: Tier | "all") => void;
-  mobileMenuDirection?: "up" | "down";
-}) {
+}: FilterControlsProps) {
   const t = useT();
   const { locale } = useLocale();
   const languageOptions = useMemo<SelectOption[]>(
@@ -74,6 +76,7 @@ export function FilterControls({
           value={tier}
           onChange={(value) => onTierChange(value as Tier | "all")}
           mobileMenuDirection={mobileMenuDirection}
+          dataTutorialTarget="tier-filter"
         />
       </div>
     </div>
@@ -86,12 +89,14 @@ export function SelectDropdown({
   value,
   onChange,
   mobileMenuDirection = "down",
+  dataTutorialTarget,
 }: {
   label: string;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
   mobileMenuDirection?: "up" | "down";
+  dataTutorialTarget?: string;
 }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -126,6 +131,7 @@ export function SelectDropdown({
         <button
           id={buttonId}
           type="button"
+          data-tutorial-target={dataTutorialTarget}
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listboxId}

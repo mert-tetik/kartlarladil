@@ -93,6 +93,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <Link
               href="/"
               onClick={() => vibrate("tap")}
+              data-tutorial-target="navbar-back"
               className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
             >
               <ChevronLeft className="size-6" aria-hidden="true" />

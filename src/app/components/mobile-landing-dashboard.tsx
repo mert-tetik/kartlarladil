@@ -229,6 +229,7 @@ export function MobileLandingDashboard() {
       <Button
         size="lg"
         onClick={handleDrawCards}
+        data-tutorial-target="landing-draw-cards"
         className="h-14 w-full shrink-0 gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
       >
         <CardsIcon className="size-6" aria-hidden="true" />
@@ -287,6 +288,7 @@ export function MobileLandingDashboard() {
           locked={activeCount === 0}
           onClick={handleStartLearning}
           variant="active"
+          dataTutorialTarget="start-learning"
         />
         <ActionButton
           icon={RotateCcw}
@@ -570,18 +572,21 @@ function ActionButton({
   locked,
   onClick,
   variant,
+  dataTutorialTarget,
 }: {
   icon: typeof GraduationCap;
   label: string;
   locked: boolean;
   onClick: () => void;
   variant: "active" | "learned";
+  dataTutorialTarget?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-disabled={locked}
+      data-tutorial-target={dataTutorialTarget}
       className={cn(
         "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white shadow-lg transition-colors active:scale-[0.98]",
         variant === "active"

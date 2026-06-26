@@ -21,6 +21,7 @@ import {
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,9 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
+  const tutorialStep = useTutorialStore((state) => state.step);
+  const tutorialCompleted = useTutorialStore((state) => state.completed);
+  const advanceTutorial = useTutorialStore((state) => state.advance);
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(
@@ -260,6 +264,10 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     };
 
     writeCardDrawPreferences(window.localStorage, updatedPreferences);
+
+    if (!tutorialCompleted && nextPreferences.tier !== undefined && nextPreferences.tier !== tier && tutorialStep === 1) {
+      advanceTutorial();
+    }
   }
 
   function selectSuggestion(card: VocabularyCard) {
@@ -554,6 +562,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
             <Button
               size="lg"
               onClick={() => drawCards(10)}
+              data-tutorial-target="draw-cards-action"
               className="h-12 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground hover:bg-brand-hover"
             >
               <CardsIcon className="size-5" aria-hidden="true" />

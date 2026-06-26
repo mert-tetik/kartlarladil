@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
+import { TutorialPointer } from "@/features/tutorial/tutorial-pointer";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -51,6 +52,7 @@ export default async function RootLayout({
       <body className="min-h-full">
         <AppShell locale={locale}>{children}</AppShell>
         <LemonSqueezyScript />
+        <TutorialPointer />
       </body>
     </html>
   );
