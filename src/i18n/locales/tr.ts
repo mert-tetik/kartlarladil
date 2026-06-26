@@ -557,6 +557,7 @@ const dictionary = {
   "home.mobile.rankLabel": "Rank",
   "home.mobile.pointsLabel": "Puan",
   "home.mobile.selectLanguage": "Dil seç",
+  "home.mobile.cardLanguage": "Kart Dili",
   "home.mobile.drawCards": "Kart çek",
   "home.mobile.selectTierTitle": "Hangi seviyede kart çekmek istersin?",
   "home.mobile.activeCards": "Öğreniliyor",

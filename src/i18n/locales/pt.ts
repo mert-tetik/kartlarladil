@@ -557,6 +557,7 @@ const dictionary = {
   "home.mobile.rankLabel": "Rank",
   "home.mobile.pointsLabel": "Points",
   "home.mobile.selectLanguage": "Select language",
+  "home.mobile.cardLanguage": "Idioma do cartão",
   "home.mobile.drawCards": "Draw cards",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "Learning",

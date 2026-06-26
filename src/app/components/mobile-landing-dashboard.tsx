@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Info, RotateCcw } from "lucide-react";
+import { GraduationCap, Info, RotateCcw, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -65,7 +65,7 @@ export function MobileLandingDashboard() {
           language: item.code,
           status: "all",
         }).length,
-      })).filter((item) => item.count > 0),
+      })),
     [cards],
   );
 
@@ -158,14 +158,14 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-background-card text-foreground-secondary shadow-sm transition-colors hover:text-foreground"
+        className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[30vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
+      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[25vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
@@ -211,7 +211,7 @@ export function MobileLandingDashboard() {
           </span>
         </span>
         <span className="text-xs font-semibold text-foreground-muted">
-          {t("home.mobile.selectLanguage")}
+          {t("home.mobile.cardLanguage")}
         </span>
       </button>
 
@@ -291,7 +291,7 @@ export function MobileLandingDashboard() {
       <MobileLanguageBottomSheet
         isOpen={languageSheetOpen}
         onClose={() => setLanguageSheetOpen(false)}
-        options={languageStats.length > 0 ? languageStats : LANGUAGES.map((item) => ({ code: item.code, count: 0 }))}
+        options={languageStats}
         selectedLanguage={selectedLanguage}
         onSelect={setSelectedLanguage}
       />
@@ -418,60 +418,64 @@ function TierDetailMenu({
       aria-hidden={!isOpen}
       inert={!isOpen}
     >
-      <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border bg-background-card px-4 py-3">
-        <div className="flex gap-1">
-          {(["active", "learned"] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => onStatusChange(item)}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                status === item
-                  ? item === "active"
-                    ? "bg-emerald-500 text-white"
-                    : "bg-sky-500 text-white"
-                  : "text-foreground-secondary hover:bg-background-muted",
-              )}
-            >
-              {t(`home.mobile.${item}Cards`)}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-          aria-label={t("common.close")}
-        >
-          ×
-        </button>
-      </div>
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <div className="sticky top-0 z-10 bg-background-card">
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+              <div className="flex gap-1">
+                {(["active", "learned"] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => onStatusChange(item)}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
+                      status === item
+                        ? item === "active"
+                          ? "bg-emerald-500 text-white"
+                          : "bg-sky-500 text-white"
+                        : "text-foreground-secondary hover:bg-background-muted",
+                    )}
+                  >
+                    {t(`home.mobile.${item}Cards`)}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex size-10 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+                aria-label={t("common.close")}
+              >
+                <X className="size-6" aria-hidden="true" />
+              </button>
+            </div>
 
-      <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border bg-background-card px-4 py-3 scrollbar-hide">
-        <FilterChip
-          label={t("home.mobile.allTiers")}
-          count={tierCounts.all}
-          selected={selectedTier === "all"}
-          onClick={() => onTierChange("all")}
-        />
-        {TIERS.map((tier) => {
-          const style = TIER_STYLES[tier];
-          return (
-            <FilterChip
-              key={tier}
-              label={tier}
-              count={tierCounts[tier]}
-              selected={selectedTier === tier}
-              onClick={() => onTierChange(tier)}
-              className={cn(style.text, selectedTier === tier && "text-white")}
-              selectedClassName={style.accent}
-            />
-          );
-        })}
-      </div>
+            <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border px-4 py-3 scrollbar-hide">
+              <FilterChip
+                label={t("home.mobile.allTiers")}
+                count={tierCounts.all}
+                selected={selectedTier === "all"}
+                onClick={() => onTierChange("all")}
+              />
+              {TIERS.map((tier) => {
+                const style = TIER_STYLES[tier];
+                return (
+                  <FilterChip
+                    key={tier}
+                    label={tier}
+                    count={tierCounts[tier]}
+                    selected={selectedTier === tier}
+                    onClick={() => onTierChange(tier)}
+                    className={cn(style.text, selectedTier === tier && "text-white")}
+                    selectedClassName={style.accent}
+                  />
+                );
+              })}
+            </div>
+          </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+          <div className="p-4">
         {filteredCards.length === 0 ? (
           <p className="py-8 text-center text-sm text-foreground-secondary">
             {t(status === "active" ? "inventory.emptyActiveDescription" : "quiz.noLearnedDescription")}
@@ -503,6 +507,8 @@ function TierDetailMenu({
         )}
       </div>
     </div>
+  </div>
+</div>
   );
 }
 

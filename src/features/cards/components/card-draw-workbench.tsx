@@ -532,7 +532,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div className="hidden lg:block">{renderSearchInputSection("desktop")}</div>
             <div
-              className="grid grid-cols-2 gap-3 lg:contents"
+              className="grid grid-cols-2 gap-3 max-lg:hidden lg:contents"
               data-card-draw-draw-actions
             >
               <Button
@@ -549,11 +549,11 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           </div>
           <div
             data-card-draw-main-action
-            className={cn("lg:hidden", !hasInitialFilters && "max-lg:hidden")}
+            className="lg:hidden"
           >
             <Button
               size="lg"
-              onClick={() => drawCards(5)}
+              onClick={() => drawCards(10)}
               className="h-12 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground hover:bg-brand-hover"
             >
               <CardsIcon className="size-5" aria-hidden="true" />

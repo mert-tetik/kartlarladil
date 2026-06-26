@@ -599,7 +599,7 @@ export function QuizStation({
 
   if (phase === "count" && selectedLanguage) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="flex flex-1 flex-col items-stretch justify-center">
         <CountSelection
           mode={mode}
           language={selectedLanguage}

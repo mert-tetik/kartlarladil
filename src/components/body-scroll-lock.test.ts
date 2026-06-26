@@ -22,6 +22,11 @@ describe("shouldLockBodyScroll", () => {
     expect(shouldLockBodyScroll("/ai-practice", false)).toBe(true);
     expect(shouldLockBodyScroll("/ask/en", false)).toBe(true);
   });
+
+  it("locks the landing page only on mobile", () => {
+    expect(shouldLockBodyScroll("/", false)).toBe(false);
+    expect(shouldLockBodyScroll("/", true)).toBe(true);
+  });
 });
 
 describe("shouldPreventBoundaryScroll", () => {

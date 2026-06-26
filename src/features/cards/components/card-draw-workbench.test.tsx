@@ -128,13 +128,15 @@ describe("CardDrawWorkbench", () => {
 
     const controls = container.querySelector("[data-card-draw-controls]") as HTMLElement;
     const drawActions = container.querySelector("[data-card-draw-draw-actions]") as HTMLElement;
+    const mainAction = container.querySelector("[data-card-draw-main-action]") as HTMLElement;
     const filters = container.querySelector("[data-card-draw-filters]") as HTMLElement;
     const scrollArea = container.querySelector("[data-card-draw-scroll-area]") as HTMLElement;
 
     expect(controls).toHaveClass("max-lg:order-3", "max-lg:shrink-0");
     expect(controls).not.toHaveClass("max-lg:fixed");
     expect(scrollArea).toHaveClass("max-lg:order-2", "max-lg:flex-1", "max-lg:overflow-y-auto");
-    expect(drawActions).not.toHaveClass("max-lg:hidden");
+    expect(drawActions).toHaveClass("max-lg:hidden");
+    expect(mainAction).not.toHaveClass("max-lg:hidden");
     expect(filters).not.toHaveClass("max-lg:hidden");
     expect(getMobileSearchInput(container)).toBeVisible();
   });
