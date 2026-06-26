@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Info, RotateCcw, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
@@ -14,6 +13,7 @@ import { MobileTierSelector } from "@/app/components/mobile-tier-selector";
 import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-sheet";
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
+import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -24,7 +24,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
 import { vibrate } from "@/lib/vibration";
-import type { LanguageCode, Tier } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -386,6 +386,7 @@ function TierDetailMenu({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const [displayCard, setDisplayCard] = useState<VocabularyCard | null>(null);
 
   const sourceCards = status === "active" ? activeCards : learnedCards;
   const filteredCards = selectedTier === "all"
@@ -483,11 +484,14 @@ function TierDetailMenu({
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredCards.map(({ card }) => (
-              <Link
+              <button
                 key={card.id}
-                href={`/ask/${card.language}?term=${encodeURIComponent(card.term)}`}
-                onClick={onClose}
-                className="rounded-xl border border-border bg-background-card p-3 transition-colors hover:bg-background-muted"
+                type="button"
+                onClick={() => {
+                  vibrate("tap");
+                  setDisplayCard(card);
+                }}
+                className="rounded-xl border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted"
               >
                 <p className="text-sm font-bold text-foreground">{card.term}</p>
                 <p className="mt-1 text-xs text-foreground-secondary line-clamp-2">
@@ -501,13 +505,19 @@ function TierDetailMenu({
                 >
                   {card.tier}
                 </span>
-              </Link>
+              </button>
             ))}
           </div>
         )}
       </div>
     </div>
   </div>
+
+  <MobileCardDisplaySheet
+    card={displayCard}
+    isOpen={displayCard !== null}
+    onClose={() => setDisplayCard(null)}
+  />
 </div>
   );
 }

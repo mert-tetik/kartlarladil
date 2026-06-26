@@ -771,17 +771,16 @@ export function QuizStation({
         </div>
       </div>
 
-      {showingAnswer && lastAnswerCorrect !== null ? (
-        <MobileQuizFeedback
-          isCorrect={lastAnswerCorrect}
-          correctAnswer={
-            item.questionType === "text"
-              ? (item.question as { correctAnswer: string }).correctAnswer
-              : undefined
-          }
-          onNext={handleNext}
-        />
-      ) : null}
+      <MobileQuizFeedback
+        isOpen={showingAnswer && lastAnswerCorrect !== null}
+        isCorrect={lastAnswerCorrect ?? false}
+        correctAnswer={
+          item.questionType === "text"
+            ? (item.question as { correctAnswer: string }).correctAnswer
+            : undefined
+        }
+        onNext={handleNext}
+      />
 
       <CardDetailsDialog
         card={item.card}
@@ -1430,10 +1429,12 @@ function TextQuestion({
 }
 
 function MobileQuizFeedback({
+  isOpen,
   isCorrect,
   correctAnswer,
   onNext,
 }: {
+  isOpen: boolean;
   isCorrect: boolean;
   correctAnswer?: string;
   onNext: () => void;
@@ -1443,12 +1444,20 @@ function MobileQuizFeedback({
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-[var(--mobile-nav-bar-height)] z-50 max-lg:flex lg:hidden",
-        isCorrect ? "bg-emerald-500" : "bg-rose-500",
+        "fixed inset-0 z-[60] flex flex-col justify-end transition-opacity duration-300 max-lg:flex lg:hidden",
+        isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
+      aria-hidden={!isOpen}
+      inert={!isOpen}
       data-quiz-mobile-feedback
     >
-      <div className="flex w-full items-center justify-between gap-4 rounded-t-2xl p-4">
+      <div
+        className={cn(
+          "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-4 shadow-2xl transition-transform duration-300",
+          isCorrect ? "bg-emerald-500" : "bg-rose-500",
+          isOpen ? "translate-y-0" : "translate-y-full",
+        )}
+      >
         <div className="flex items-center gap-3">
           {isCorrect ? (
             <CheckCircle2 className="size-6 text-white" aria-hidden="true" />
