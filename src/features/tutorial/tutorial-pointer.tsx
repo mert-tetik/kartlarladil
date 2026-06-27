@@ -31,6 +31,7 @@ export function TutorialPointer() {
   const step = useTutorialStore((state) => state.step);
   const testMode = useTutorialStore((state) => state.testMode);
   const advance = useTutorialStore((state) => state.advance);
+  const reset = useTutorialStore((state) => state.reset);
   const enableTestMode = useTutorialStore((state) => state.enableTestMode);
   const [position, setPosition] = useState<PointerPosition | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -41,9 +42,10 @@ export function TutorialPointer() {
     const params = new URLSearchParams(window.location.search);
     const isTestUrl = params.get("tutorial-test") === "1" || params.get("tutorial-debug") === "1";
     if (isTestUrl && !testMode) {
+      reset();
       enableTestMode();
     }
-  }, [pathname, testMode, enableTestMode]);
+  }, [pathname, testMode, reset, enableTestMode]);
 
   const updatePosition = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -65,27 +67,37 @@ export function TutorialPointer() {
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
-    if (!resolvedTarget) {
+    let left: number;
+    let top: number;
+    let targetKey: string;
+
+    if (resolvedTarget) {
+      const rect = resolvedTarget.element.getBoundingClientRect();
+      left = clamp(
+        rect.left + rect.width / 2 - POINTER_HOTSPOT_X,
+        VIEWPORT_EDGE_GAP,
+        Math.max(VIEWPORT_EDGE_GAP, viewportWidth - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+      );
+      top = clamp(
+        rect.top + rect.height / 2 - POINTER_HOTSPOT_Y,
+        VIEWPORT_EDGE_GAP,
+        Math.max(VIEWPORT_EDGE_GAP, viewportHeight - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+      );
+      targetKey = resolvedTarget.target.key;
+    } else if (currentState.testMode) {
+      left = Math.max(VIEWPORT_EDGE_GAP, viewportWidth / 2 - POINTER_HOTSPOT_X);
+      top = Math.max(VIEWPORT_EDGE_GAP, viewportHeight / 2 - POINTER_HOTSPOT_Y);
+      targetKey = "test-mode-fallback";
+    } else {
       setPosition(null);
       return;
     }
 
-    const rect = resolvedTarget.element.getBoundingClientRect();
-    const left = clamp(
-      rect.left + rect.width / 2 - POINTER_HOTSPOT_X,
-      VIEWPORT_EDGE_GAP,
-      Math.max(VIEWPORT_EDGE_GAP, viewportWidth - POINTER_SIZE - VIEWPORT_EDGE_GAP),
-    );
-    const top = clamp(
-      rect.top + rect.height / 2 - POINTER_HOTSPOT_Y,
-      VIEWPORT_EDGE_GAP,
-      Math.max(VIEWPORT_EDGE_GAP, viewportHeight - POINTER_SIZE - VIEWPORT_EDGE_GAP),
-    );
     setPosition({
       left,
       top,
       step: currentState.step,
-      targetKey: resolvedTarget.target.key,
+      targetKey,
     });
   }, []);
 

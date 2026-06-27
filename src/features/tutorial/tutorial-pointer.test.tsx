@@ -333,6 +333,19 @@ describe("TutorialPointer", () => {
     });
   });
 
+  it("shows a fallback position in test mode when no target exists", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ completed: true, step: 0, testMode: true });
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      const pointer = document.querySelector(".tutorial-pointer") as HTMLElement;
+      expect(pointer).toBeInTheDocument();
+      expect(pointer.getAttribute("data-tutorial-target-key")).toBe("test-mode-fallback");
+    });
+  });
+
   it("enables test mode from the tutorial-test query param", async () => {
     setMobileViewport();
     setSearchParams("?tutorial-test=1");
@@ -342,6 +355,22 @@ describe("TutorialPointer", () => {
 
     await waitFor(() => {
       expect(useTutorialStore.getState().testMode).toBe(true);
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+  });
+
+  it("resets the tutorial to step 0 when test mode is enabled from URL", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ completed: true, step: 7, testMode: false });
+    setSearchParams("?tutorial-test=1");
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(useTutorialStore.getState().testMode).toBe(true);
+      expect(useTutorialStore.getState().completed).toBe(false);
+      expect(useTutorialStore.getState().step).toBe(0);
       expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
     });
   });
