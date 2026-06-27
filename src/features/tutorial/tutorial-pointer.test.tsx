@@ -65,6 +65,26 @@ function createVisibleOverlay() {
   return overlay;
 }
 
+function createVisibleCookieNotice() {
+  const notice = document.createElement("div");
+  notice.setAttribute("data-cookie-notice", "");
+  document.body.appendChild(notice);
+
+  notice.getBoundingClientRect = () => ({
+    x: 0,
+    y: 700,
+    width: 412,
+    height: 100,
+    top: 700,
+    left: 0,
+    right: 412,
+    bottom: 800,
+    toJSON: () => {},
+  });
+
+  return notice;
+}
+
 describe("TutorialPointer", () => {
   beforeEach(() => {
     useTutorialStore.setState({ completed: false, step: 0 });
@@ -226,6 +246,23 @@ describe("TutorialPointer", () => {
     setMobileViewport();
     createTarget();
     createVisibleOverlay();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("hides while the cookie notice covers the current target", async () => {
+    setMobileViewport();
+    window.history.pushState({}, "", "/card-draw");
+    useTutorialStore.setState({ completed: false, step: 2 });
+    createTarget({
+      name: "draw-cards-action",
+      rect: { left: 8, top: 728, width: 374, height: 48 },
+    });
+    createVisibleCookieNotice();
 
     render(<TutorialPointer />);
 

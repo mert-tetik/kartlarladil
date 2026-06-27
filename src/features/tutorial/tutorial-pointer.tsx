@@ -211,7 +211,8 @@ function isTargetObscuredByOverlay(element: Element): boolean {
       '[role="menu"]:not([aria-hidden="true"]):not([inert]), ' +
       '[role="listbox"]:not([aria-hidden="true"]):not([inert]), ' +
       '[data-mobile-auth-gateway]:not([aria-hidden="true"]):not([inert]), ' +
-      '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
+      '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert]), ' +
+      '[data-cookie-notice]:not([aria-hidden="true"]):not([inert])',
   );
 
   for (const overlay of overlays) {
