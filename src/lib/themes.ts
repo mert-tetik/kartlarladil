@@ -48,7 +48,7 @@ export const THEMES: ThemeDefinition[] = brandColors.flatMap((item) => {
   ];
 });
 
-export const DEFAULT_THEME_ID = "default";
+export const DEFAULT_THEME_ID = "default-dark";
 
 export const FREE_THEME_IDS = new Set([DEFAULT_THEME_ID, `${DEFAULT_THEME_ID}-dark`]);
 

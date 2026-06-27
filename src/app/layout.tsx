@@ -3,6 +3,8 @@ import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
 import { TutorialPointer } from "@/features/tutorial/tutorial-pointer";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { DEFAULT_THEME_ID } from "@/lib/themes";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale, getServerTextDirection } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
@@ -46,11 +48,13 @@ export default async function RootLayout({
 }>) {
   const locale = await getServerLocale();
   const direction = await getServerTextDirection();
+  const user = await getCurrentAuthUser();
+  const themeId = user?.profile.theme ?? DEFAULT_THEME_ID;
 
   return (
     <html lang={locale} dir={direction} className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}>
-      <body className="min-h-full">
-        <AppShell locale={locale}>{children}</AppShell>
+      <body className="min-h-full" data-theme={themeId}>
+        <AppShell locale={locale} user={user}>{children}</AppShell>
         <LemonSqueezyScript />
         <TutorialPointer />
       </body>

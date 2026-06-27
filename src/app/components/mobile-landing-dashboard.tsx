@@ -19,7 +19,7 @@ import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
-import { formatNumber, getLanguageDisplayName } from "@/i18n/labels";
+import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -175,7 +175,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[120px] max-h-[25vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
+      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[56vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
@@ -186,7 +186,7 @@ export function MobileLandingDashboard() {
             setRankInfoOpen(true);
           }}
           className="flex min-h-0 w-full flex-1 items-center justify-center self-stretch"
-          aria-label={stats.rank.label}
+          aria-label={getRankLabel(stats.rank, locale)}
           data-rank-icon-button
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -198,7 +198,7 @@ export function MobileLandingDashboard() {
           />
         </button>
         <h1 className="text-center text-lg font-extrabold text-brand">
-          {stats.rank.label}
+          {getRankLabel(stats.rank, locale)}
         </h1>
         <p className="text-[10px] font-semibold text-white/80">
           {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
@@ -281,7 +281,7 @@ export function MobileLandingDashboard() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex shrink-0 flex-col gap-3 pb-2">
+      <div className="flex shrink-0 flex-col gap-3 pb-1">
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}

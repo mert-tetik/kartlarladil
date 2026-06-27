@@ -25,9 +25,9 @@ describe("RouteAwareShell", () => {
     expect(document.getElementById("main-content")).not.toHaveAttribute("data-mobile-hide-bottom-nav");
   });
 
-  it("also hides the bottom nav on ai-practice subroutes", () => {
+  it("keeps the bottom nav visible on ai-practice subroutes", () => {
     renderWithPath("/ai-practice/en/barista");
 
-    expect(document.getElementById("main-content")).toHaveAttribute("data-mobile-hide-bottom-nav", "true");
+    expect(document.getElementById("main-content")).not.toHaveAttribute("data-mobile-hide-bottom-nav");
   });
 });

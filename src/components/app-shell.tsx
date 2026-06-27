@@ -14,22 +14,31 @@ import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
 
-export async function AppShell({ children, locale }: { children: ReactNode; locale: LocaleCode }) {
-  const user = await getCurrentAuthUser();
+export async function AppShell({
+  children,
+  locale,
+  user,
+}: {
+  children: ReactNode;
+  locale: LocaleCode;
+  user?: AuthShellUser | null;
+}) {
+  const authUser = user ?? (await getCurrentAuthUser());
 
   return (
     <LocaleProvider initialLocale={locale}>
       <BodyScrollLock />
       <MobileViewportController />
       <GlobalTapVibration />
-      <AuthSessionProvider user={user}>
+      <AuthSessionProvider user={authUser}>
         <SubscriptionProvider>
           <ProgressStatsProvider>
-            <ThemeProvider initialTheme={user?.profile.theme}>
+            <ThemeProvider initialTheme={authUser?.profile.theme}>
               <div className="flex min-h-screen flex-col bg-background text-foreground">
-                <AppNavigation user={user} />
+                <AppNavigation user={authUser} />
                 <MobileAuthGateway />
                 <RouteAwareShell>{children}</RouteAwareShell>
                 <SiteFooter className="max-lg:hidden" />

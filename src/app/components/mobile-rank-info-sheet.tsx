@@ -7,7 +7,7 @@ import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Progress } from "@/components/ui/progress";
 import { useT, useLocale } from "@/i18n/locale-provider";
-import { formatNumber } from "@/i18n/labels";
+import { formatNumber, getRankLabel } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 import type { RankDefinition } from "@/types/domain";
@@ -83,7 +83,7 @@ export function MobileRankInfoSheet({
         <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col items-center py-4">
             <RankIcon icon={rank.icon} className="size-32" sizes="128px" />
-            <h3 className="mt-4 text-2xl font-extrabold text-brand">{rank.label}</h3>
+            <h3 className="mt-4 text-2xl font-extrabold text-brand">{getRankLabel(rank, locale)}</h3>
             <p className="mt-1 text-sm font-semibold text-foreground-secondary">
               {formatNumber(locale, totalPoints)} {t("home.mobile.pointsLabel")}
             </p>
@@ -97,7 +97,7 @@ export function MobileRankInfoSheet({
               </div>
               <Progress value={rankProgressPercent} className="h-2" />
               <p className="text-xs text-foreground-secondary">
-                {t("home.mobile.rankInfoNextRank", { rank: nextRank.label })}
+                {t("home.mobile.rankInfoNextRank", { rank: getRankLabel(nextRank, locale) })}
               </p>
             </div>
           ) : (
@@ -122,7 +122,7 @@ export function MobileRankInfoSheet({
                   <RankIcon icon={item.icon} className="size-8" sizes="32px" />
                   <div className="flex-1">
                     <p className={cn("text-sm font-bold", current ? "text-brand" : "text-foreground")}>
-                      {item.label}
+                      {getRankLabel(item, locale)}
                     </p>
                     <p className="text-xs text-foreground-secondary">
                       {formatNumber(locale, item.minPoints)} {t("home.mobile.pointsLabel")}
