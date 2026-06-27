@@ -261,19 +261,6 @@ describe("TutorialPointer", () => {
     });
   });
 
-  it("renders over a visible dialog when test mode is enabled", async () => {
-    setMobileViewport();
-    useTutorialStore.setState({ testMode: true });
-    createTarget();
-    createVisibleOverlay();
-
-    render(<TutorialPointer />);
-
-    await waitFor(() => {
-      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
-    });
-  });
-
   it("hides while the cookie notice covers the current target", async () => {
     setMobileViewport();
     window.history.pushState({}, "", "/card-draw");
@@ -333,7 +320,7 @@ describe("TutorialPointer", () => {
     });
   });
 
-  it("renders on suppressed pages when test mode is enabled", async () => {
+  it("does not render on suppressed pages even if test mode is enabled", async () => {
     setMobileViewport();
     window.history.pushState({}, "", "/pricing");
     useTutorialStore.setState({ testMode: true });
@@ -342,20 +329,31 @@ describe("TutorialPointer", () => {
     render(<TutorialPointer />);
 
     await waitFor(() => {
-      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
     });
   });
 
-  it("shows a fallback position in test mode when no target exists", async () => {
+  it("does not render over a visible dialog even if test mode is enabled", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ testMode: true });
+    createTarget();
+    createVisibleOverlay();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not show a fallback position in test mode when no target exists", async () => {
     setMobileViewport();
     useTutorialStore.setState({ completed: true, step: 0, testMode: true });
 
     render(<TutorialPointer />);
 
     await waitFor(() => {
-      const pointer = document.querySelector(".tutorial-pointer") as HTMLElement;
-      expect(pointer).toBeInTheDocument();
-      expect(pointer.getAttribute("data-tutorial-target-key")).toBe("test-mode-fallback");
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
     });
   });
 
