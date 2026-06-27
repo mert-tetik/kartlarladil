@@ -18,6 +18,7 @@ import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-clien
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -117,6 +118,10 @@ export function MobileLandingDashboard() {
   function handleDrawCards() {
     vibrate("tap");
     requireAuthAction(() => {
+      const tutorialState = useTutorialStore.getState();
+      if (!tutorialState.completed && tutorialState.step === 0) {
+        tutorialState.advance();
+      }
       setTierSelectorOpen(true);
     }, { nextPath: "/card-draw" });
   }

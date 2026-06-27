@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { getTargetForStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 
@@ -10,7 +11,7 @@ const POINTER_SIZE = 48;
 const POINTER_HOTSPOT_X = 22;
 const POINTER_HOTSPOT_Y = 16;
 const VIEWPORT_EDGE_GAP = 4;
-const TEST_MODE = true;
+const SUPPRESSED_PATH_PREFIXES = ["/pricing", "/ask", "/ai-practice", "/practice", "/learn", "/learned"];
 
 interface ResolvedTutorialTarget {
   target: TutorialTarget;
@@ -25,6 +26,7 @@ interface PointerPosition {
 }
 
 export function TutorialPointer() {
+  const pathname = usePathname();
   const completed = useTutorialStore((state) => state.completed);
   const step = useTutorialStore((state) => state.step);
   const advance = useTutorialStore((state) => state.advance);
@@ -35,11 +37,11 @@ export function TutorialPointer() {
     if (typeof window === "undefined") return;
 
     const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
-    setIsMobile(TEST_MODE || mobile);
+    setIsMobile(mobile);
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!TEST_MODE && (!mobile || currentState.completed)) {
+    if (!mobile || currentState.completed || isSuppressedPath(currentPathname)) {
       setPosition(null);
       return;
     }
@@ -52,26 +54,7 @@ export function TutorialPointer() {
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
     if (!resolvedTarget) {
-      if (TEST_MODE) {
-        const left = clamp(
-          viewportWidth / 2 - POINTER_HOTSPOT_X,
-          VIEWPORT_EDGE_GAP,
-          Math.max(VIEWPORT_EDGE_GAP, viewportWidth - POINTER_SIZE - VIEWPORT_EDGE_GAP),
-        );
-        const top = clamp(
-          viewportHeight / 2 - POINTER_HOTSPOT_Y,
-          VIEWPORT_EDGE_GAP,
-          Math.max(VIEWPORT_EDGE_GAP, viewportHeight - POINTER_SIZE - VIEWPORT_EDGE_GAP),
-        );
-        setPosition({
-          left,
-          top,
-          step: currentState.step,
-          targetKey: "test-mode",
-        });
-      } else {
-        setPosition(null);
-      }
+      setPosition(null);
       return;
     }
 
@@ -99,7 +82,7 @@ export function TutorialPointer() {
 
     const frameId = requestAnimationFrame(updatePosition);
     return () => cancelAnimationFrame(frameId);
-  }, [completed, step, updatePosition]);
+  }, [completed, pathname, step, updatePosition]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -151,16 +134,19 @@ export function TutorialPointer() {
     function handleClick(event: PointerEvent) {
       const currentState = useTutorialStore.getState();
       if (currentState.completed) return;
+      if (window.innerWidth > MOBILE_BREAKPOINT) return;
+      if (isSuppressedPath(window.location.pathname)) return;
 
       const target = getTargetForStep(currentState.step, window.location.pathname);
       if (!target) return;
+      if (target.advanceOnClick === false) return;
 
       const element = findVisibleElement(target.selector);
       if (!element) return;
-      if (target.step !== currentState.step || target.key === "tier-choice") return;
+      if (target.step !== currentState.step) return;
       if (isTargetObscuredByOverlay(element)) return;
       if (
-        element.getAttribute("aria-disabled") === "true" ||
+        (target.key !== "start-learning" && element.getAttribute("aria-disabled") === "true") ||
         (element as HTMLButtonElement).disabled
       ) {
         return;
@@ -175,7 +161,7 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if (!TEST_MODE && (completed || !isMobile || !position)) {
+  if (completed || !isMobile || !position || isSuppressedPath(pathname)) {
     return null;
   }
 
@@ -209,11 +195,6 @@ function resolveRenderedTutorialTarget(step: number, pathname: string): Resolved
   const element = findVisibleElement(target.selector);
   if (!element || !isElementVisible(element)) return null;
   if (isTargetObscuredByOverlay(element)) return null;
-
-  if (target.key === "start-learning" && element.getAttribute("aria-disabled") === "true") {
-    useTutorialStore.getState().complete();
-    return null;
-  }
 
   return { target, element };
 }
@@ -269,4 +250,8 @@ function isElementVisible(element: Element) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function isSuppressedPath(pathname: string) {
+  return SUPPRESSED_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }

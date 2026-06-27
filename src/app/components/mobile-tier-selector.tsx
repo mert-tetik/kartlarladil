@@ -21,9 +21,6 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
   const router = useRouter();
   const t = useT();
   const mounted = useIsClient();
-  const tutorialStep = useTutorialStore((state) => state.step);
-  const tutorialCompleted = useTutorialStore((state) => state.completed);
-  const advanceTutorial = useTutorialStore((state) => state.advance);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -40,8 +37,9 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
 
   function handleSelect(tier: Tier) {
     vibrate("tap");
-    if (!tutorialCompleted && tutorialStep === 1) {
-      advanceTutorial();
+    const tutorialState = useTutorialStore.getState();
+    if (!tutorialState.completed && tutorialState.step === 1) {
+      tutorialState.advance();
     }
     onClose();
     router.push(`/card-draw?language=${encodeURIComponent(language)}&tier=${encodeURIComponent(tier)}`);
@@ -49,12 +47,15 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
 
   const content = (
     <div
+      data-mobile-tier-selector
       className={cn(
         "fixed inset-0 z-50 flex flex-col bg-background transition-opacity duration-300 lg:hidden",
         isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}
+      role="dialog"
+      aria-modal={isOpen}
     >
       <div className="flex shrink-0 items-center justify-center border-b border-border bg-background-card px-4 py-4">
         <h2 className="text-center text-lg font-semibold text-foreground">

@@ -15,9 +15,11 @@ function setDesktopViewport() {
 function createTarget({
   name = "landing-draw-cards",
   rect = { left: 100, top: 200, width: 80, height: 40 },
+  parent = document.body,
 }: {
   name?: string;
   rect?: { left: number; top: number; width: number; height: number };
+  parent?: HTMLElement;
 } = {}) {
   const target = document.createElement("button");
   target.setAttribute("data-tutorial-target", name);
@@ -26,7 +28,7 @@ function createTarget({
   target.style.top = `${rect.top}px`;
   target.style.width = `${rect.width}px`;
   target.style.height = `${rect.height}px`;
-  document.body.appendChild(target);
+  parent.appendChild(target);
 
   target.getBoundingClientRect = () => ({
     x: rect.left,
@@ -41,6 +43,26 @@ function createTarget({
   });
 
   return target;
+}
+
+function createVisibleOverlay() {
+  const overlay = document.createElement("div");
+  overlay.setAttribute("role", "dialog");
+  document.body.appendChild(overlay);
+
+  overlay.getBoundingClientRect = () => ({
+    x: 0,
+    y: 0,
+    width: 412,
+    height: 800,
+    top: 0,
+    left: 0,
+    right: 412,
+    bottom: 800,
+    toJSON: () => {},
+  });
+
+  return overlay;
 }
 
 describe("TutorialPointer", () => {
@@ -110,9 +132,23 @@ describe("TutorialPointer", () => {
     });
   });
 
-  it("advances the tutorial when the target is clicked", async () => {
+  it("does not render on suppressed pages", async () => {
     setMobileViewport();
-    const target = createTarget();
+    window.history.pushState({}, "", "/pricing");
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("advances the tutorial when an automatic target is clicked", async () => {
+    setMobileViewport();
+    window.history.pushState({}, "", "/card-draw");
+    useTutorialStore.setState({ completed: false, step: 2 });
+    const target = createTarget({ name: "draw-cards-action" });
 
     render(<TutorialPointer />);
 
@@ -122,7 +158,7 @@ describe("TutorialPointer", () => {
 
     fireEvent.pointerDown(target);
 
-    expect(useTutorialStore.getState().step).toBe(1);
+    expect(useTutorialStore.getState().step).toBe(3);
   });
 
   it("does not render when the current step target is missing", async () => {
@@ -154,10 +190,26 @@ describe("TutorialPointer", () => {
     });
   });
 
-  it("does not advance the tier step from pointerdown", async () => {
+  it("renders the tier target on the landing tier selector", async () => {
     setMobileViewport();
+    window.history.pushState({}, "", "/");
     useTutorialStore.setState({ completed: false, step: 1 });
-    createTarget({ name: "tier-choice" });
+    const overlay = createVisibleOverlay();
+    overlay.setAttribute("data-mobile-tier-selector", "");
+    createTarget({ name: "tier-choice", parent: overlay });
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+  });
+
+  it("does not auto-advance the tier target because tier selection advances it manually", async () => {
+    setMobileViewport();
+    window.history.pushState({}, "", "/");
+    useTutorialStore.setState({ completed: false, step: 1 });
+    const target = createTarget({ name: "tier-choice" });
 
     render(<TutorialPointer />);
 
@@ -165,8 +217,38 @@ describe("TutorialPointer", () => {
       expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
     });
 
-    fireEvent.pointerDown(document.querySelector('[data-tutorial-target="tier-choice"]')!);
+    fireEvent.pointerDown(target);
 
     expect(useTutorialStore.getState().step).toBe(1);
+  });
+
+  it("hides while a visible dialog outside the target is open", async () => {
+    setMobileViewport();
+    createTarget();
+    createVisibleOverlay();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("completes when the start learning target is clicked", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ completed: false, step: 6 });
+    const target = createTarget({ name: "start-learning" });
+    target.setAttribute("aria-disabled", "true");
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+
+    fireEvent.pointerDown(target);
+
+    expect(useTutorialStore.getState().step).toBe(7);
+    expect(useTutorialStore.getState().completed).toBe(true);
   });
 });

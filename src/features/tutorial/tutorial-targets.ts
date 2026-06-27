@@ -3,6 +3,7 @@ export interface TutorialTarget {
   key: string;
   selector: string;
   pages: string[];
+  advanceOnClick?: boolean;
 }
 
 export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
@@ -11,12 +12,14 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
     key: "landing-draw-cards",
     selector: '[data-tutorial-target="landing-draw-cards"]',
     pages: ["/"],
+    advanceOnClick: false,
   },
   {
     step: 1,
     key: "tier-choice",
-    selector: '[data-tutorial-target="tier-choice"], [data-tutorial-target="tier-filter"]',
-    pages: ["/", "/card-draw"],
+    selector: '[data-tutorial-target="tier-choice"]',
+    pages: ["/"],
+    advanceOnClick: false,
   },
   {
     step: 2,
@@ -35,12 +38,13 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
     key: "card-add",
     selector: '[data-tutorial-target="card-add"]',
     pages: ["/card-draw"],
+    advanceOnClick: false,
   },
   {
     step: 5,
     key: "navbar-back",
     selector: '[data-tutorial-target="navbar-back"]',
-    pages: ["/card-draw", "/learn", "/learned", "/ai-practice"],
+    pages: ["/card-draw"],
   },
   {
     step: 6,

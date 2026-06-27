@@ -366,6 +366,11 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
         }
       }
 
+      const tutorialState = useTutorialStore.getState();
+      if (!tutorialState.completed && tutorialState.step === 4) {
+        tutorialState.advance();
+      }
+
       dismissCard(cardId, "add");
       void addCard(cardId);
     }, { nextPath: "/card-draw" });
