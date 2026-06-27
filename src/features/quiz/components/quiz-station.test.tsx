@@ -7,8 +7,14 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode } from "@/types/domain";
+
+beforeEach(() => {
+  window.localStorage.clear();
+  document.cookie = `${LOCALE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+});
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/learn",

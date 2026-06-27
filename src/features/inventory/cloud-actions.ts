@@ -221,6 +221,43 @@ export async function resetCloudInventoryAction(): Promise<CloudActionResult<Clo
   }
 }
 
+export async function removeCloudInventoryCardAction(sourceKey: string): Promise<CloudActionResult<CloudInventoryPayload>> {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    const card = resolveLocalCard(sourceKey);
+
+    const { error: attemptsError } = await supabase
+      .from("practice_attempts")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("card_source_key", card.sourceKey);
+
+    if (attemptsError) {
+      throw attemptsError;
+    }
+
+    const { error: cardsError } = await supabase
+      .from("user_cards")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("card_source_key", card.sourceKey);
+
+    if (cardsError) {
+      throw cardsError;
+    }
+
+    revalidateProgressPaths();
+
+    return {
+      status: "success",
+      message: "",
+      data: await listCloudInventory(supabase, user),
+    };
+  } catch (error) {
+    return await cloudError(error);
+  }
+}
+
 export async function migrateLocalInventoryToCloudAction(
   localCards: InventoryCard[],
 ): Promise<CloudActionResult<CloudInventoryPayload>> {

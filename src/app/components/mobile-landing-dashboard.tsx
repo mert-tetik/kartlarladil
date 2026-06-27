@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Info, RotateCcw, X } from "lucide-react";
+import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -398,7 +398,20 @@ function TierDetailMenu({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const removeCard = useInventoryStore((state) => state.removeCard);
   const [displayCard, setDisplayCard] = useState<VocabularyCard | null>(null);
+
+  function handleDeleteCard(cardId: string) {
+    if (typeof window !== "undefined" && !window.confirm(t("inventory.deleteConfirm"))) {
+      return;
+    }
+
+    if (displayCard?.id === cardId) {
+      setDisplayCard(null);
+    }
+
+    void removeCard(cardId);
+  }
 
   const sourceCards = status === "active" ? activeCards : learnedCards;
   const filteredCards = selectedTier === "all"
@@ -496,16 +509,39 @@ function TierDetailMenu({
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredCards.map(({ card }) => (
-              <button
+              <div
                 key={card.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   vibrate("tap");
                   setDisplayCard(card);
                 }}
-                className="rounded-xl border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted"
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                  }
+                  event.preventDefault();
+                  vibrate("tap");
+                  setDisplayCard(card);
+                }}
+                aria-label={card.term}
+                className="relative rounded-xl border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
-                <p className="text-sm font-bold text-foreground">{card.term}</p>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDeleteCard(card.id);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  aria-label={`${card.term} ${t("common.delete")}`}
+                  title={t("inventory.deleteConfirm")}
+                  className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+                <p className="pr-6 text-sm font-bold text-foreground">{card.term}</p>
                 <p className="mt-1 text-xs text-foreground-secondary line-clamp-2">
                   {card.translations[locale] || card.translation}
                 </p>
@@ -517,7 +553,7 @@ function TierDetailMenu({
                 >
                   {card.tier}
                 </span>
-              </button>
+              </div>
             ))}
           </div>
         )}

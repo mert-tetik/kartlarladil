@@ -6,6 +6,7 @@ import { Info, MessageCircleQuestion, X } from "lucide-react";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { VocabularyCard } from "@/types/domain";
@@ -22,6 +23,9 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
   const requireAuth = useRequireAuthAction();
   const [face, setFace] = useState<"front" | "back">("back");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const inventory = useInventoryStore((state) =>
+    card ? state.cards.find((item) => item.cardId === card.id) : undefined,
+  );
 
   if (!card) return null;
 
@@ -93,12 +97,14 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
         <div onClick={handleCardAreaClick}>
           <VocabularyCardView
             card={card}
+            inventory={inventory}
             owned
             face={face}
             initialFace="back"
             flippable={false}
             showActions={false}
-            className="w-full"
+            frontFit
+            className="w-full h-[clamp(420px,70vh,540px)]"
           />
         </div>
       </div>

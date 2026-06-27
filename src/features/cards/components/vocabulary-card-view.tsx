@@ -32,6 +32,7 @@ interface VocabularyCardViewProps {
   onAdd?: () => void;
   onSkip?: () => void;
   showActions?: boolean;
+  frontFit?: boolean;
 }
 
 interface CardFaceState {
@@ -61,6 +62,7 @@ export function VocabularyCardView({
   onAdd,
   onSkip,
   showActions = true,
+  frontFit = false,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
@@ -156,6 +158,7 @@ export function VocabularyCardView({
           onAdd={onAdd}
           onSkip={onSkip}
           showActions={showActions}
+          frontFit={frontFit}
         />
         <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} />
       </div>
@@ -175,6 +178,7 @@ function CardFront({
   onAdd,
   onSkip,
   showActions = true,
+  frontFit = false,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -185,6 +189,7 @@ function CardFront({
   onAdd?: () => void;
   onSkip?: () => void;
   showActions?: boolean;
+  frontFit?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -232,7 +237,7 @@ function CardFront({
       className={cn(
         "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-background-card [backface-visibility:hidden]",
         "p-2.5 sm:p-4",
-        "max-sm:justify-between",
+        frontFit ? "justify-between" : "max-sm:justify-between",
         "dark:text-white",
         style.border,
       )}
@@ -305,8 +310,18 @@ function CardFront({
         <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
           {getPartOfSpeechLabel(card.termKind, locale)}
         </p>
-        <div className="mt-5 flex h-12 items-start justify-center max-sm:mt-1 max-sm:h-8">
-          <p className="line-clamp-2 text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight">
+        <div
+          className={cn(
+            "mt-5 flex items-start justify-center max-sm:mt-1",
+            frontFit ? "min-h-0" : "h-12 max-sm:h-8",
+          )}
+        >
+          <p
+            className={cn(
+              "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
+              frontFit ? "line-clamp-3" : "line-clamp-2",
+            )}
+          >
             {cardTranslation}
           </p>
         </div>
@@ -319,7 +334,10 @@ function CardFront({
         )}
       >
         <p
-          className="truncate text-sm font-medium leading-5 max-sm:text-xs"
+          className={cn(
+            "text-sm font-medium leading-5 max-sm:text-xs",
+            frontFit ? "line-clamp-2" : "truncate",
+          )}
           title={examplePreview}
         >
           {examplePreview}

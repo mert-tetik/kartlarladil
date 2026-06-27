@@ -9,6 +9,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
+import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
@@ -397,7 +398,7 @@ function GooglePlayCheckoutButton({
       await purchase(getGooglePlaySku(plan, cycle));
     } catch (error) {
       console.error("Google Play purchase failed:", error);
-      setPurchaseError(t("pricing.error.checkoutFailed"));
+      setPurchaseError(getGooglePlayErrorMessage(error, t("pricing.error.checkoutFailed")));
     }
   };
 

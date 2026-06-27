@@ -10,6 +10,7 @@ import {
   listCloudInventoryAction,
   migrateLocalInventoryToCloudAction,
   recordCloudPracticeAttemptAction,
+  removeCloudInventoryCardAction,
   resetCloudInventoryAction,
 } from "@/features/inventory/cloud-actions";
 import {
@@ -38,6 +39,7 @@ interface InventoryState {
   loadCloudInventory: () => Promise<void>;
   migrateLocalInventoryToCloud: () => Promise<void>;
   addCard: (cardId: string) => Promise<void>;
+  removeCard: (cardId: string) => Promise<void>;
   hasCard: (cardId: string) => boolean;
   recordAnswer: (input: {
     cardId: string;
@@ -139,6 +141,31 @@ export const useInventoryStore = create<InventoryState>()(
 
         set((state) => ({
           cards: addCardToInventory(state.cards, cardId),
+        }));
+      },
+
+      async removeCard(cardId) {
+        if (get().cloudEnabled) {
+          set({ cloudLoading: true, cloudError: "" });
+          const result = await removeCloudInventoryCardAction(cardId);
+
+          if (result.status === "error" || !result.data) {
+            set({ cloudLoading: false, cloudError: result.message });
+            return;
+          }
+
+          set({
+            cards: result.data.cards,
+            attempts: result.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+          return;
+        }
+
+        set((state) => ({
+          cards: state.cards.filter((card) => card.cardId !== cardId),
+          attempts: state.attempts.filter((attempt) => attempt.cardId !== cardId),
         }));
       },
 

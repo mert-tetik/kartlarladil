@@ -36,32 +36,25 @@ export function LocaleProvider({
     if (storedLocale) {
       const normalizedStoredLocale = normalizeLocale(storedLocale);
 
+      persistLocalePreference(normalizedStoredLocale);
+
       if (normalizedStoredLocale !== locale) {
-        document.cookie = `${LOCALE_COOKIE_NAME}=${normalizedStoredLocale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
-        router.refresh();
+        const syncTimer = window.setTimeout(() => setLocaleState(normalizedStoredLocale), 0);
+        return () => window.clearTimeout(syncTimer);
       }
 
       return;
     }
 
-    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-    document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
-  }, [locale, router]);
+    persistLocalePreference(locale);
+  }, [locale]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
       setLocale(nextLocale) {
         setLocaleState(nextLocale);
-
-        if (typeof document !== "undefined") {
-          document.cookie = `${LOCALE_COOKIE_NAME}=${nextLocale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
-        }
-
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
-        }
-
+        persistLocalePreference(nextLocale);
         router.refresh();
       },
       t(key, values) {
@@ -72,6 +65,11 @@ export function LocaleProvider({
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+}
+
+function persistLocalePreference(locale: LocaleCode) {
+  window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_MAX_AGE_SECONDS}; samesite=lax`;
 }
 
 export function useLocale() {

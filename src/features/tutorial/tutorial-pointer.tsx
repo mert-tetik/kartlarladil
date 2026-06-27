@@ -10,6 +10,7 @@ const POINTER_SIZE = 48;
 const POINTER_HOTSPOT_X = 22;
 const POINTER_HOTSPOT_Y = 16;
 const VIEWPORT_EDGE_GAP = 4;
+const TEST_MODE = true;
 
 interface ResolvedTutorialTarget {
   target: TutorialTarget;
@@ -34,24 +35,44 @@ export function TutorialPointer() {
     if (typeof window === "undefined") return;
 
     const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
-    setIsMobile(mobile);
+    setIsMobile(TEST_MODE || mobile);
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!mobile || currentState.completed) {
+    if (!TEST_MODE && (!mobile || currentState.completed)) {
       setPosition(null);
       return;
     }
 
     const resolvedTarget = resolveRenderedTutorialTarget(currentState.step, currentPathname);
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+
     if (!resolvedTarget) {
-      setPosition(null);
+      if (TEST_MODE) {
+        const left = clamp(
+          viewportWidth / 2 - POINTER_HOTSPOT_X,
+          VIEWPORT_EDGE_GAP,
+          Math.max(VIEWPORT_EDGE_GAP, viewportWidth - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+        );
+        const top = clamp(
+          viewportHeight / 2 - POINTER_HOTSPOT_Y,
+          VIEWPORT_EDGE_GAP,
+          Math.max(VIEWPORT_EDGE_GAP, viewportHeight - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+        );
+        setPosition({
+          left,
+          top,
+          step: currentState.step,
+          targetKey: "test-mode",
+        });
+      } else {
+        setPosition(null);
+      }
       return;
     }
 
     const rect = resolvedTarget.element.getBoundingClientRect();
-    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const left = clamp(
       rect.left + rect.width / 2 - POINTER_HOTSPOT_X,
       VIEWPORT_EDGE_GAP,
@@ -144,7 +165,11 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if (completed || !isMobile || !position) {
+  if (!TEST_MODE && (completed || !isMobile || !position)) {
+    return null;
+  }
+
+  if (!position) {
     return null;
   }
 

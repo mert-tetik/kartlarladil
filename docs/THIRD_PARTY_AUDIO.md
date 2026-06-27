@@ -1,18 +1,16 @@
 # Third-Party Audio
 
-FoxiesDeck ships short UI/game sound effects in `public/sounds/`.
+FoxiesDeck previously shipped short UI/game sound effects as MP3 files in `public/sounds/`.
+These have been replaced with synthesized Web Audio API effects defined in `src/lib/sound-effects.ts`.
 
-All audio files below were downloaded on **2026-06-20**, trimmed for short in-app playback, lightly peak-limited with `ffmpeg`, and re-encoded to MP3 for web delivery.
+The current sound effects are generated in-browser using oscillators and noise buffers, so no
+third-party audio assets are bundled with the app anymore.
 
-## License
+## Historical inventory
 
-- Provider: Mixkit
-- License page: https://mixkit.co/license/
-- Asset type: Sound Effects / Free License
-- Commercial use: allowed
-- Attribution: not required
-
-## Inventory
+The files below were used before the switch to synthesized audio. They were downloaded on
+**2026-06-20**, trimmed for short in-app playback, lightly peak-limited with `ffmpeg`, and
+re-encoded to MP3 for web delivery.
 
 | Effect key | Shipped file | Source title | Source page | Original asset URL |
 | --- | --- | --- | --- | --- |
@@ -25,6 +23,12 @@ All audio files below were downloaded on **2026-06-20**, trimmed for short in-ap
 | `chest-tap` | `public/sounds/chest-tap.mp3` | Wood hard hit | https://mixkit.co/free-sound-effects/wood/ | https://assets.mixkit.co/active_storage/sfx/2182/2182.wav |
 | `chest-open` | `public/sounds/chest-open.mp3` | Old medieval door lock | https://mixkit.co/free-sound-effects/wood/ | https://assets.mixkit.co/active_storage/sfx/187/187.wav |
 
-## Attribution
+## License (historical)
 
-No visible attribution is required for these shipped sound effects under the Mixkit Sound Effects Free License.
+- Provider: Mixkit
+- License page: https://mixkit.co/license/
+- Asset type: Sound Effects / Free License
+- Commercial use: allowed
+- Attribution: not required
+
+No visible attribution is required for these historical sound effects under the Mixkit Sound Effects Free License.
