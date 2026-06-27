@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
-import { getTargetForStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
+import { getTargetForStep, TUTORIAL_TARGETS, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 
 const MOBILE_BREAKPOINT = 1023;
 const POINTER_SIZE = 48;
@@ -55,7 +55,7 @@ export function TutorialPointer() {
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!mobile || (!currentState.testMode && currentState.completed) || isSuppressedPath(currentPathname)) {
+    if (!mobile || (!currentState.testMode && currentState.completed) || (!currentState.testMode && isSuppressedPath(currentPathname))) {
       setPosition(null);
       return;
     }
@@ -63,6 +63,7 @@ export function TutorialPointer() {
     const resolvedTarget = resolveRenderedTutorialTarget(
       currentState.step,
       currentPathname,
+      currentState.testMode,
     );
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
@@ -157,7 +158,7 @@ export function TutorialPointer() {
   useEffect(() => {
     function handleClick(event: PointerEvent) {
       const currentState = useTutorialStore.getState();
-      if (window.innerWidth > MOBILE_BREAKPOINT || (!currentState.testMode && currentState.completed) || isSuppressedPath(window.location.pathname)) {
+      if (window.innerWidth > MOBILE_BREAKPOINT || (!currentState.testMode && currentState.completed) || (!currentState.testMode && isSuppressedPath(window.location.pathname))) {
         return;
       }
 
@@ -185,7 +186,7 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if ((!testMode && completed) || !isMobile || isSuppressedPath(pathname)) {
+  if ((!testMode && completed) || !isMobile || (!testMode && isSuppressedPath(pathname))) {
     return null;
   }
 
@@ -210,17 +211,27 @@ export function TutorialPointer() {
   );
 }
 
-function resolveRenderedTutorialTarget(step: number, pathname: string): ResolvedTutorialTarget | null {
+function resolveRenderedTutorialTarget(step: number, pathname: string, testMode = false): ResolvedTutorialTarget | null {
   if (typeof document === "undefined" || step < 0) return null;
 
-  const target = getTargetForStep(step, pathname);
+  const target = testMode ? getTargetByStep(step) : getTargetForStep(step, pathname);
   if (!target) return null;
+
+  if (testMode) {
+    const element = document.querySelector(target.selector);
+    if (!element) return null;
+    return { target, element };
+  }
 
   const element = findVisibleElement(target.selector);
   if (!element || !isElementVisible(element)) return null;
   if (isTargetObscuredByOverlay(element)) return null;
 
   return { target, element };
+}
+
+function getTargetByStep(step: number) {
+  return TUTORIAL_TARGETS.find((item) => item.step === step) ?? null;
 }
 
 function findVisibleElement(selector: string) {

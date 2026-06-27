@@ -261,6 +261,19 @@ describe("TutorialPointer", () => {
     });
   });
 
+  it("renders over a visible dialog when test mode is enabled", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ testMode: true });
+    createTarget();
+    createVisibleOverlay();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+  });
+
   it("hides while the cookie notice covers the current target", async () => {
     setMobileViewport();
     window.history.pushState({}, "", "/card-draw");
@@ -320,7 +333,7 @@ describe("TutorialPointer", () => {
     });
   });
 
-  it("does not render on suppressed pages even if test mode is enabled", async () => {
+  it("renders on suppressed pages when test mode is enabled", async () => {
     setMobileViewport();
     window.history.pushState({}, "", "/pricing");
     useTutorialStore.setState({ testMode: true });
@@ -329,7 +342,7 @@ describe("TutorialPointer", () => {
     render(<TutorialPointer />);
 
     await waitFor(() => {
-      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
     });
   });
 
