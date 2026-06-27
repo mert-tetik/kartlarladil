@@ -35,6 +35,15 @@ export const useTutorialStore = create<TutorialState>()(
     }),
     {
       name: "foxiesdeck:tutorial",
+      onRehydrateStorage: () => (state) => {
+        if (typeof window === "undefined") return;
+
+        const params = new URLSearchParams(window.location.search);
+        const isTestUrl = params.get("tutorial-test") === "1" || params.get("tutorial-debug") === "1";
+        if (isTestUrl && state) {
+          useTutorialStore.setState({ completed: false, step: 0, testMode: true });
+        }
+      },
     },
   ),
 );
