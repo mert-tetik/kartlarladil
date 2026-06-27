@@ -61,7 +61,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
       {open ? (
         <div
           role="menu"
-          className="animate-menu-pop absolute right-0 top-12 z-50 w-72 rounded-lg border border-border bg-background-card p-2 text-sm shadow-2xl"
+          className="animate-menu-pop absolute right-0 top-12 z-[60] w-72 rounded-lg border border-border bg-background-card p-2 text-sm shadow-2xl"
         >
           <div className="px-3 py-3">
             <p className="font-semibold text-foreground">{getAccountLabel(user)}</p>

@@ -1032,7 +1032,7 @@ export function CountSelection({
   return (
     <div
       data-quiz-count-selection
-      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:pb-[var(--mobile-nav-bar-height)]"
+      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0"
     >
       <div className="flex flex-col items-center justify-center bg-black px-5 py-4 text-center text-white max-lg:px-4 max-lg:py-3">
         <h2 className="text-base font-semibold sm:text-lg">
@@ -1154,7 +1154,7 @@ function MobileQuizTopBars({
 
   return (
     <div
-      className="fixed inset-x-0 top-[var(--app-header-height)] z-50 flex h-20 flex-col lg:hidden"
+      className="fixed inset-x-0 top-[var(--app-header-height)] z-40 flex h-20 flex-col lg:hidden"
       data-mobile-quiz-top-bars
     >
       <div className="flex h-11 shrink-0 flex-col justify-center gap-1 bg-black px-4 py-1.5 text-white">
@@ -1544,8 +1544,8 @@ function CelebrationView({
 }) {
   const t = useT();
   const { locale } = useLocale();
+  const { stats, refreshStats } = useProgressStats();
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
-  const [displayPoints, setDisplayPoints] = useState(basePoints);
   const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
   const hasTriggered = useRef(false);
   const gainedPoints = getPointsForTier(card.tier);
@@ -1573,10 +1573,10 @@ function CelebrationView({
     return () => window.clearTimeout(timer);
   }, []);
 
-  function handleBonusAnimationEnd() {
-    setDisplayPoints(basePoints + gainedPoints);
+  const handleBonusAnimationEnd = useCallback(() => {
     setBonusPhase("bobble");
-  }
+    void refreshStats();
+  }, [refreshStats]);
 
   return (
     <div
@@ -1592,7 +1592,7 @@ function CelebrationView({
               bonusPhase === "bobble" && "animate-score-bobble",
             )}
           >
-            {formatPoints(locale, displayPoints)}
+            {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
           </span>
           {bonusPhase === "dropping" ? (
             <span
@@ -1689,7 +1689,7 @@ export function ResultView({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const { stats } = useProgressStats();
+  const { stats, refreshStats } = useProgressStats();
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
@@ -1715,6 +1715,7 @@ export function ResultView({
     if (hasTriggeredResult.current) return;
     hasTriggeredResult.current = true;
 
+    void refreshStats();
     playSoundEffect("quiz-complete");
     vibrate("result");
 
@@ -1731,7 +1732,7 @@ export function ResultView({
         });
       }, 350);
     }
-  }, [performance.level]);
+  }, [performance.level, refreshStats]);
 
   const menuConfig = {
     correct: { title: t("quiz.resultCorrect"), cards: results.correct },
@@ -1780,13 +1781,11 @@ export function ResultView({
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
             {t("home.mobile.rankLabel")}
           </span>
-          <div className="relative mt-2 flex size-28 items-center justify-center rounded-full bg-background-muted shadow-lg ring-4 ring-background sm:size-36">
-            <RankIcon
-              icon={stats.rank.icon}
-              className="size-20 animate-trophy-intro-grow sm:size-28"
-              sizes="144px"
-            />
-          </div>
+          <RankIcon
+            icon={stats.rank.icon}
+            className="mt-2 size-20 animate-trophy-intro-grow sm:size-28"
+            sizes="144px"
+          />
           <h2 className="mt-3 text-xl font-bold text-foreground sm:text-2xl">
             {getRankLabel(stats.rank, locale)}
           </h2>

@@ -81,7 +81,10 @@ export function LearnQuizShell({
           />
         </div>
       </div>
-      <div className="mt-8 flex min-h-0 flex-1 flex-col items-stretch max-lg:mt-0 max-lg:w-full">
+      <div
+        data-learn-phase={phase}
+        className="mt-8 flex min-h-0 flex-1 flex-col items-stretch max-lg:mt-0 max-lg:w-full"
+      >
         {selectedMode ? (
           <QuizStation
             key={selectedMode}

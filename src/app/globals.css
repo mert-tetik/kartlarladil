@@ -995,6 +995,15 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   padding-bottom: 0 !important;
 }
 
+/* Show mobile bottom nav only on learn count selection */
+body:has([data-learn-phase="count"]) [data-mobile-main-nav-frame] {
+  display: flex !important;
+}
+
+body:has([data-learn-phase="count"]) #main-content {
+  padding-bottom: var(--mobile-nav-bar-height) !important;
+}
+
 /* Tutorial pointer overlay */
 @keyframes tutorial-pointer-pulse {
   0%, 100% {
