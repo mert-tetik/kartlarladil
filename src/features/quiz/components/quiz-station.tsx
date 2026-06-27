@@ -1276,14 +1276,14 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "flex min-h-12 items-center justify-center rounded-md px-3 py-2 text-center text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-14 lg:min-h-20 lg:py-3 lg:text-base",
+                "flex min-h-[4.5rem] items-center justify-center rounded-md px-3 py-2 text-center text-base font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
                 optionColor,
                 showingAnswer &&
                   isCorrectOption &&
-                  "bg-emerald-500 hover:brightness-100",
+                  "bg-emerald-500 text-white hover:brightness-100",
                 showingAnswer &&
                   !isCorrectOption &&
-                  "bg-background-inverse hover:brightness-100",
+                  "bg-background-inverse text-foreground-inverse hover:brightness-100",
               )}
             >
               {option}
@@ -1408,10 +1408,10 @@ function TextQuestion({
               "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground sm:py-3",
               showingAnswer &&
                 textResult === "correct" &&
-                "border-emerald-500 bg-emerald-50",
+                "border-emerald-500",
               showingAnswer &&
                 textResult === "incorrect" &&
-                "border-rose-500 bg-rose-50",
+                "border-rose-500",
             )}
           />
 
