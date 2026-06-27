@@ -10,7 +10,7 @@ const POINTER_SIZE = 48;
 const POINTER_HOTSPOT_X = 22;
 const POINTER_HOTSPOT_Y = 16;
 const VIEWPORT_EDGE_GAP = 4;
-
+const TEST_MODE = true;
 
 interface ResolvedTutorialTarget {
   target: TutorialTarget;
@@ -35,16 +35,11 @@ export function TutorialPointer() {
     if (typeof window === "undefined") return;
 
     const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
-    setIsMobile(mobile);
+    setIsMobile(TEST_MODE || mobile);
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!mobile || currentState.completed) {
-      setPosition(null);
-      return;
-    }
-
-    if (isAnyOverlayOpen()) {
+    if (!TEST_MODE && (!mobile || currentState.completed)) {
       setPosition(null);
       return;
     }
@@ -57,7 +52,26 @@ export function TutorialPointer() {
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
     if (!resolvedTarget) {
-      setPosition(null);
+      if (TEST_MODE) {
+        const left = clamp(
+          viewportWidth / 2 - POINTER_HOTSPOT_X,
+          VIEWPORT_EDGE_GAP,
+          Math.max(VIEWPORT_EDGE_GAP, viewportWidth - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+        );
+        const top = clamp(
+          viewportHeight / 2 - POINTER_HOTSPOT_Y,
+          VIEWPORT_EDGE_GAP,
+          Math.max(VIEWPORT_EDGE_GAP, viewportHeight - POINTER_SIZE - VIEWPORT_EDGE_GAP),
+        );
+        setPosition({
+          left,
+          top,
+          step: currentState.step,
+          targetKey: "test-mode",
+        });
+      } else {
+        setPosition(null);
+      }
       return;
     }
 
@@ -161,7 +175,7 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if (completed || !isMobile || !position) {
+  if (!TEST_MODE && (completed || !isMobile || !position)) {
     return null;
   }
 
@@ -208,20 +222,6 @@ function findVisibleElement(selector: string) {
   return Array.from(document.querySelectorAll(selector)).find(isElementVisible) ?? null;
 }
 
-function isAnyOverlayOpen(): boolean {
-  if (typeof document === "undefined") return false;
-
-  return (
-    document.querySelectorAll(
-      '[role="dialog"]:not([aria-hidden="true"]):not([inert]), ' +
-        '[role="menu"]:not([aria-hidden="true"]):not([inert]), ' +
-        '[role="listbox"]:not([aria-hidden="true"]):not([inert]), ' +
-        '[data-mobile-auth-gateway], ' +
-        '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
-    ).length > 0
-  );
-}
-
 function isTargetObscuredByOverlay(element: Element): boolean {
   if (typeof document === "undefined") return false;
 
@@ -229,12 +229,12 @@ function isTargetObscuredByOverlay(element: Element): boolean {
     '[role="dialog"]:not([aria-hidden="true"]):not([inert]), ' +
       '[role="menu"]:not([aria-hidden="true"]):not([inert]), ' +
       '[role="listbox"]:not([aria-hidden="true"]):not([inert]), ' +
-      '[data-mobile-auth-gateway], ' +
+      '[data-mobile-auth-gateway]:not([aria-hidden="true"]):not([inert]), ' +
       '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
   );
 
   for (const overlay of overlays) {
-    if (!overlay.contains(element)) {
+    if (isElementVisible(overlay) && !overlay.contains(element)) {
       return true;
     }
   }

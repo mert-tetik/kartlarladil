@@ -286,12 +286,16 @@ export async function syncGooglePlayPurchasesAction(
 async function getFreshCustomerPortalUrl(userId: string): Promise<string> {
   const source = await getUserSubscriptionManagementSource(userId);
 
-  if (source.effectivePlan === "free" || !source.subscriptionId) {
+  if (source.effectivePlan === "free") {
     throw new Error("No active subscription is available for this user.");
   }
 
   if (source.provider === "google_play" && source.managementUrl) {
     return source.managementUrl;
+  }
+
+  if (!source.subscriptionId) {
+    throw new Error("No active subscription is available for this user.");
   }
 
   const subscription = await fetchSubscription(source.subscriptionId);

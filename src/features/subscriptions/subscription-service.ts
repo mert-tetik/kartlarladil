@@ -1,5 +1,6 @@
 import "server-only";
 
+import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -200,10 +201,9 @@ function normalizeSubscriptionProvider(value: string | null | undefined): Subscr
   return "lemon_squeezy";
 }
 
-function buildManagementUrl(provider: SubscriptionProvider, subscriptionId: string | null): string | null {
-  if (provider === "google_play" && subscriptionId) {
-    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.LigidTools.Glidecore";
-    return `https://play.google.com/store/account/subscriptions?package=${encodeURIComponent(packageName)}&sku=${encodeURIComponent(subscriptionId)}`;
+function buildManagementUrl(provider: SubscriptionProvider, _subscriptionId: string | null): string | null {
+  if (provider === "google_play") {
+    return GOOGLE_PLAY_SUBSCRIPTIONS_URL;
   }
 
   return null;

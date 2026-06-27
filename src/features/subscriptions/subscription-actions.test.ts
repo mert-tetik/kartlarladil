@@ -163,6 +163,25 @@ describe("subscription actions", () => {
     });
   });
 
+  it("returns the Google Play subscriptions page on demand", async () => {
+    mockGetUserSubscriptionManagementSource.mockResolvedValue({
+      effectivePlan: "basic",
+      provider: "google_play",
+      subscriptionId: null,
+      customerId: null,
+      managementUrl: "https://play.google.com/store/account/subscriptions",
+    });
+
+    const result = await createCustomerPortalAction({ status: "idle", message: "" });
+
+    expect(result).toEqual({
+      status: "success",
+      message: "",
+      customerPortalUrl: "https://play.google.com/store/account/subscriptions",
+    });
+    expect(mockFetchSubscription).not.toHaveBeenCalled();
+  });
+
   it("returns an error when a paid portal URL cannot be refreshed", async () => {
     mockGetUserSubscriptionManagementSource.mockResolvedValue({
       effectivePlan: "pro",

@@ -11,7 +11,7 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
-import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
+import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -387,7 +387,7 @@ function GooglePlayCheckoutButton({
 
     if (isPaidUser) {
       window.open(
-        `https://play.google.com/store/account/subscriptions?package=${TWA_PACKAGE_NAME}&sku=${getGooglePlaySku(plan, cycle)}`,
+        GOOGLE_PLAY_SUBSCRIPTIONS_URL,
         "_blank",
         "noopener,noreferrer",
       );
