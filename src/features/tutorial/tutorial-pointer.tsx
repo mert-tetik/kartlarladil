@@ -44,7 +44,10 @@ export function TutorialPointer() {
       return;
     }
 
-    const resolvedTarget = resolveRenderedTutorialTarget(currentState.step, currentPathname);
+    const resolvedTarget = resolveRenderedTutorialTarget(
+      currentState.step,
+      currentPathname,
+    );
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
@@ -155,6 +158,13 @@ export function TutorialPointer() {
       const element = findVisibleElement(target.selector);
       if (!element) return;
       if (target.step !== currentState.step || target.key === "tier-choice") return;
+      if (isTargetObscuredByOverlay(element)) return;
+      if (
+        element.getAttribute("aria-disabled") === "true" ||
+        (element as HTMLButtonElement).disabled
+      ) {
+        return;
+      }
 
       if (element === event.target || element.contains(event.target as Node)) {
         advance();
@@ -200,9 +210,20 @@ function resolveRenderedTutorialTarget(step: number, pathname: string): Resolved
     }
 
     const element = findVisibleElement(target.selector);
-    if (element && isElementVisible(element)) {
-      return { target, element };
+    if (!element || !isElementVisible(element)) {
+      continue;
     }
+
+    if (isTargetObscuredByOverlay(element)) {
+      continue;
+    }
+
+    if (target.key === "start-learning" && element.getAttribute("aria-disabled") === "true") {
+      useTutorialStore.getState().complete();
+      continue;
+    }
+
+    return { target, element };
   }
 
   return null;
@@ -210,6 +231,26 @@ function resolveRenderedTutorialTarget(step: number, pathname: string): Resolved
 
 function findVisibleElement(selector: string) {
   return Array.from(document.querySelectorAll(selector)).find(isElementVisible) ?? null;
+}
+
+function isTargetObscuredByOverlay(element: Element): boolean {
+  if (typeof document === "undefined") return false;
+
+  const overlays = document.querySelectorAll(
+    '[role="dialog"]:not([aria-hidden="true"]):not([inert]), ' +
+      '[role="menu"]:not([aria-hidden="true"]):not([inert]), ' +
+      '[role="listbox"]:not([aria-hidden="true"]):not([inert]), ' +
+      '[data-mobile-auth-gateway], ' +
+      '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
+  );
+
+  for (const overlay of overlays) {
+    if (!overlay.contains(element)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function isElementVisible(element: Element) {

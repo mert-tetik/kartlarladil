@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Medal,
   RotateCcw,
+  Star,
   Trophy,
   Volume2,
   X,
@@ -42,6 +43,7 @@ import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
@@ -55,9 +57,16 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
+import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { formatCards, getLanguageDisplayName } from "@/i18n/labels";
+import {
+  formatCards,
+  formatNumber,
+  formatPoints,
+  getLanguageDisplayName,
+  getRankLabel,
+} from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -101,6 +110,8 @@ const CHOICE_OPTION_COLORS = [
   "bg-amber-400",
   "bg-emerald-500",
 ] as const;
+
+const QUIZ_COUNT_MIN = 10;
 
 interface QuizItem {
   card: VocabularyCard;
@@ -206,7 +217,7 @@ export function QuizStation({
   const t = useT();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
-  const { refreshStats } = useProgressStats();
+  const { stats, refreshStats } = useProgressStats();
   const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
@@ -214,6 +225,7 @@ export function QuizStation({
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
+
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
   );
@@ -236,6 +248,7 @@ export function QuizStation({
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [chestOpened, setChestOpened] = useState(false);
+  const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">(
     "back",
@@ -328,6 +341,20 @@ export function QuizStation({
     [cards, mode, locale],
   );
 
+  useEffect(() => {
+    if (phase !== "count" || !selectedLanguage) return;
+    const count = filterInventoryCards({
+      cards,
+      language: selectedLanguage,
+      status: mode,
+    }).length;
+    if (count < QUIZ_COUNT_MIN) {
+      // Auto-start the quiz when not enough cards are available for a count selection.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      buildDeck(selectedLanguage, null);
+    }
+  }, [phase, selectedLanguage, cards, mode, buildDeck]);
+
   const resetQuestionUi = useCallback(() => {
     setShowingAnswer(false);
     setTextAnswer("");
@@ -411,7 +438,7 @@ export function QuizStation({
       status: mode,
     }).length;
 
-    if (count < 10) {
+    if (count < QUIZ_COUNT_MIN) {
       buildDeck(language, null);
       return;
     }
@@ -482,6 +509,7 @@ export function QuizStation({
 
         if (willLearn) {
           setLastLearned(item.card);
+          setCelebrationBasePoints(stats.totalPoints);
         }
 
         setShowingAnswer(true);
@@ -510,6 +538,7 @@ export function QuizStation({
 
   function handleContinueFromCelebration() {
     setLastLearned(null);
+    setCelebrationBasePoints(null);
     advanceQuiz({ bypassCelebration: true });
   }
 
@@ -521,7 +550,7 @@ export function QuizStation({
         status: mode,
       }).length;
 
-      if (count < 10) {
+      if (count < QUIZ_COUNT_MIN) {
         buildDeck(selectedLanguage, null);
         return;
       }
@@ -618,6 +647,7 @@ export function QuizStation({
     return (
       <CelebrationView
         card={lastLearned}
+        basePoints={celebrationBasePoints ?? stats.totalPoints}
         onContinue={handleContinueFromCelebration}
       />
     );
@@ -655,6 +685,7 @@ export function QuizStation({
         >
           <ChestOpeningView
             tier={tier}
+            totalPoints={stats.totalPoints}
             onComplete={() => handleChestComplete(tier.tier)}
           />
         </QuizViewportOverlay>
@@ -713,7 +744,7 @@ export function QuizStation({
 
           <div
             className={cn(
-              "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+              "flex w-full max-w-md flex-col justify-center gap-3 max-lg:pb-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
               item.questionType === "choice" ? "order-3" : "order-1",
             )}
             data-quiz-mobile-question
@@ -1231,7 +1262,7 @@ function ChoiceQuestion({
         </h2>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
           const optionColor =
@@ -1245,7 +1276,7 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "flex min-h-14 items-center justify-center rounded-md px-3 py-2.5 text-center text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-16 lg:min-h-20 lg:py-3 lg:text-base",
+                "flex min-h-12 items-center justify-center rounded-md px-3 py-2 text-center text-sm font-semibold text-foreground-inverse transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-14 lg:min-h-20 lg:py-3 lg:text-base",
                 optionColor,
                 showingAnswer &&
                   isCorrectOption &&
@@ -1374,7 +1405,7 @@ function TextQuestion({
             disabled={showingAnswer}
             placeholder={t("quiz.learningQuizPlaceholder")}
             className={cn(
-              "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground",
+              "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground sm:py-3",
               showingAnswer &&
                 textResult === "correct" &&
                 "border-emerald-500 bg-emerald-50",
@@ -1415,7 +1446,7 @@ function TextQuestion({
             </div>
           ) : (
             <Button
-              className="mt-2 w-full lg:mt-4"
+              className="mt-1 w-full sm:mt-2 lg:mt-4"
               onClick={handleSubmit}
               disabled={textAnswer.trim().length === 0}
             >
@@ -1497,14 +1528,20 @@ export function MobileQuizFeedback({
 
 function CelebrationView({
   card,
+  basePoints,
   onContinue,
 }: {
   card: VocabularyCard;
+  basePoints: number;
   onContinue: () => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
+  const [displayPoints, setDisplayPoints] = useState(basePoints);
+  const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
   const hasTriggered = useRef(false);
+  const gainedPoints = getPointsForTier(card.tier);
 
   useEffect(() => {
     if (hasTriggered.current) return;
@@ -1522,13 +1559,45 @@ function CelebrationView({
       colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
       disableForReducedMotion: true,
     });
+
+    const timer = window.setTimeout(() => {
+      setBonusPhase("dropping");
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, []);
+
+  function handleBonusAnimationEnd() {
+    setDisplayPoints(basePoints + gainedPoints);
+    setBonusPhase("bobble");
+  }
 
   return (
     <div
-      className="animate-screen-pop mx-auto flex h-full w-full max-w-md items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0"
+      className="animate-screen-pop relative mx-auto flex h-full w-full max-w-md items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0"
       data-quiz-celebration
     >
+      <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2">
+        <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+          <Star className="size-5 fill-current" aria-hidden="true" />
+          <span
+            className={cn(
+              "text-lg font-bold",
+              bonusPhase === "bobble" && "animate-score-bobble",
+            )}
+          >
+            {formatPoints(locale, displayPoints)}
+          </span>
+          {bonusPhase === "dropping" ? (
+            <span
+              className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full text-2xl font-extrabold text-amber-400 animate-celebration-points-drop"
+              onAnimationEnd={handleBonusAnimationEnd}
+            >
+              +{gainedPoints}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
       <div
         className="flex w-full max-w-sm flex-col items-center justify-center"
         data-quiz-celebration-content
@@ -1752,6 +1821,8 @@ export function ResultView({
   ];
 
   const menuVisible = introPhase === "done";
+  const { locale } = useLocale();
+  const { stats } = useProgressStats();
 
   return (
     <div
@@ -1779,9 +1850,37 @@ export function ResultView({
           menuVisible ? "opacity-100" : "opacity-0",
         )}
       >
+        <div className="mb-4 flex flex-col items-center lg:hidden">
+          <RankIcon icon={stats.rank.icon} className="size-20" sizes="80px" />
+          <h3 className="mt-2 text-lg font-bold text-foreground">
+            {getRankLabel(stats.rank, locale)}
+          </h3>
+          <p className="text-2xl font-extrabold text-brand">
+            {formatPoints(locale, stats.totalPoints)}
+          </p>
+          {stats.nextRank ? (
+            <div className="mt-2 w-full max-w-xs">
+              <div className="flex justify-between text-xs font-semibold text-foreground-secondary">
+                <span>
+                  {t("profile.nextRank", {
+                    points: formatNumber(locale, stats.pointsToNextRank),
+                    rank: getRankLabel(stats.nextRank, locale),
+                  })}
+                </span>
+                <span>{stats.rankProgressPercent}%</span>
+              </div>
+              <Progress
+                value={stats.rankProgressPercent}
+                className="mt-1 bg-background-muted"
+                indicatorClassName="bg-brand"
+              />
+            </div>
+          ) : null}
+        </div>
+
         <div
           className={cn(
-            "mx-auto flex w-full flex-col items-center justify-center rounded-xl bg-black p-5 text-center transition-opacity duration-300 dark:bg-white sm:p-6",
+            "mx-auto flex w-full flex-col items-center justify-center rounded-xl bg-black p-5 text-center transition-opacity duration-300 dark:bg-white sm:p-6 max-lg:max-w-sm max-lg:p-4",
             mode === "active" ? "col-span-2 lg:max-w-[33%]" : "max-w-xs",
           )}
         >
@@ -1807,7 +1906,7 @@ export function ResultView({
 
         <div
           className={cn(
-            "mt-5 grid gap-2 sm:mt-6 sm:gap-3",
+            "mt-4 grid gap-2 sm:mt-6 sm:gap-3",
             mode === "active" ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-2",
           )}
         >

@@ -37,6 +37,8 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}
+      role="dialog"
+      aria-modal={isOpen}
     >
       <div
         className="absolute inset-0 bg-black/50"

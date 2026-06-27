@@ -56,6 +56,8 @@ export function MobileRankInfoSheet({
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}
+      role="dialog"
+      aria-modal={isOpen}
     >
       <div
         className="absolute inset-0 bg-black/50"

@@ -902,6 +902,41 @@ body:has([data-ask-page]) footer {
   animation: points-pop 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes celebration-points-drop {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -140%, 0);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(-50%, 10%, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-celebration-points-drop {
+  animation: celebration-points-drop 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes score-bobble {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-score-bobble {
+  animation: score-bobble 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes sparkle-rise {
   0% {
     opacity: 1;

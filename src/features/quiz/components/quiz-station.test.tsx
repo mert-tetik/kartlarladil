@@ -4,6 +4,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
 import { MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -37,7 +38,7 @@ vi.mock("@/lib/sound-effects", () => ({
 }));
 
 vi.mock("@/features/progress/progress-client", () => ({
-  useProgressStats: () => ({ refreshStats: vi.fn() }),
+  useProgressStats: () => ({ refreshStats: vi.fn(), stats: EMPTY_PROGRESS_STATS }),
 }));
 
 const testUser: AuthShellUser = {

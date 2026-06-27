@@ -445,6 +445,8 @@ function TierDetailMenu({
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}
+      role="dialog"
+      aria-modal={isOpen}
     >
       <div className="flex h-full flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
@@ -530,19 +532,21 @@ function TierDetailMenu({
                 aria-label={card.term}
                 className="relative rounded-xl border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleDeleteCard(card.id);
-                  }}
-                  onKeyDown={(event) => event.stopPropagation()}
-                  aria-label={`${card.term} ${t("common.delete")}`}
-                  title={t("inventory.deleteConfirm")}
-                  className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </button>
+                {status === "active" && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteCard(card.id);
+                    }}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    aria-label={`${card.term} ${t("common.delete")}`}
+                    title={t("inventory.deleteConfirm")}
+                    className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </button>
+                )}
                 <p className="pr-6 text-sm font-bold text-foreground">{card.term}</p>
                 <p className="mt-1 text-xs text-foreground-secondary line-clamp-2">
                   {card.translations[locale] || card.translation}

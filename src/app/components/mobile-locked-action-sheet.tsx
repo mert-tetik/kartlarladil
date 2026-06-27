@@ -40,6 +40,8 @@ export function MobileLockedActionSheet({ isOpen, onClose, variant }: MobileLock
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}
+      role="dialog"
+      aria-modal={isOpen}
     >
       <div
         className="absolute inset-0 bg-black/50"

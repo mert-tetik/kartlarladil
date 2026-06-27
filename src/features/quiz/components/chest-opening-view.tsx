@@ -1,39 +1,61 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Gift, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Gift, Sparkles, Star } from "lucide-react";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { formatPoints } from "@/i18n/labels";
+import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { CHEST_TIER_UI_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
-import { useT } from "@/i18n/locale-provider";
-import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
+  totalPoints: number;
   onComplete: () => void;
 }
 
 type ChestPhase = "appearing" | "idle" | "shake" | "opening" | "revealed" | "disappearing";
+type PointsPhase = "hidden" | "shown" | "flying" | "added";
 type LidMotion = { x: number; y: number; rotation: number };
 
-export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
+export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
   const t = useT();
+  const { locale } = useLocale();
   const [phase, setPhase] = useState<ChestPhase>("appearing");
+  const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
+  const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
+  const [flyStyle, setFlyStyle] = useState<{
+    left: number;
+    top: number;
+    transform: string;
+    transition: string;
+  } | null>(null);
   const hasAwarded = useRef(false);
   const lidRef = useRef<HTMLDivElement | null>(null);
+  const topBarRef = useRef<HTMLDivElement | null>(null);
+  const rewardStackRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const revealTimeoutRef = useRef<number | null>(null);
   const pointsTimeoutRef = useRef<number | null>(null);
+  const flyTimeoutRef = useRef<number | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
 
   const ui = CHEST_TIER_UI_CLASSES[tier.tier];
 
+  const handleCollect = useCallback(() => {
+    if (hasAwarded.current) return;
+    hasAwarded.current = true;
+    setPhase("disappearing");
+    window.setTimeout(() => onComplete(), 350);
+  }, [onComplete]);
+
   useEffect(() => {
-    const timer = setTimeout(() => setPhase("idle"), 500);
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => setPhase("idle"), 500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -47,8 +69,56 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
       if (pointsTimeoutRef.current !== null) {
         window.clearTimeout(pointsTimeoutRef.current);
       }
+      if (flyTimeoutRef.current !== null) {
+        window.clearTimeout(flyTimeoutRef.current);
+      }
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (pointsPhase !== "flying" || !rewardStackRef.current || !topBarRef.current) return;
+
+    const start = rewardStackRef.current.getBoundingClientRect();
+    const end = topBarRef.current.getBoundingClientRect();
+
+    const startX = start.left + start.width / 2;
+    const startY = start.top;
+    const endX = end.left + end.width / 2;
+    const endY = end.top + end.height / 2;
+
+    setFlyStyle({
+      left: startX,
+      top: startY,
+      transform: "translate3d(-50%, 0, 0) scale(1)",
+      transition: "none",
+    });
+
+    const raf = window.requestAnimationFrame(() => {
+      setFlyStyle({
+        left: startX,
+        top: startY,
+        transform: `translate3d(calc(-50% + ${endX - startX}px), ${endY - startY}px, 0) scale(0.65)`,
+        transition: "transform 650ms cubic-bezier(0.22, 1, 0.36, 1), opacity 650ms ease",
+      });
+    });
+
+    flyTimeoutRef.current = window.setTimeout(() => {
+      setDisplayPoints(totalPoints + tier.points);
+      setPointsPhase("added");
+      closeTimeoutRef.current = window.setTimeout(() => {
+        handleCollect();
+      }, 1000);
+    }, 650);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (flyTimeoutRef.current !== null) window.clearTimeout(flyTimeoutRef.current);
+      if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
+    };
+  }, [pointsPhase, tier.points, totalPoints, handleCollect]);
 
   function spawnSparkles() {
     const next = Array.from({ length: 18 }, (_, index) => ({
@@ -127,6 +197,10 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
 
     revealTimeoutRef.current = window.setTimeout(() => {
       setPhase("revealed");
+      setPointsPhase("shown");
+      pointsTimeoutRef.current = window.setTimeout(() => {
+        setPointsPhase("flying");
+      }, 800);
     }, 900);
 
     try {
@@ -153,18 +227,28 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
     }, 900);
   }
 
-  function handleCollect() {
-    if (hasAwarded.current) return;
-    hasAwarded.current = true;
-    setPhase("disappearing");
-    setTimeout(() => onComplete(), 350);
-  }
-
   return (
     <div
       data-chest-opening-view
       className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-2 text-center sm:py-4"
     >
+      <div
+        ref={topBarRef}
+        className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
+      >
+        <div className="flex items-center gap-2">
+          <Star className="size-5 fill-current" aria-hidden="true" />
+          <span
+            className={cn(
+              "text-lg font-bold",
+              pointsPhase === "added" && "animate-score-bobble",
+            )}
+          >
+            {formatPoints(locale, displayPoints)}
+          </span>
+        </div>
+      </div>
+
       <div
         className={cn(
           "relative flex flex-col items-center transition-all duration-300",
@@ -192,6 +276,7 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
           >
             {phase === "revealed" ? (
               <div
+                ref={rewardStackRef}
                 data-chest-reward-stack
                 className="pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 animate-points-pop flex-col items-center text-center sm:top-[16px] md:top-[20px]"
               >
@@ -257,11 +342,18 @@ export function ChestOpeningView({ tier, onComplete }: ChestOpeningViewProps) {
           </p>
         ) : null}
 
-        {phase === "revealed" ? (
-          <div className="mt-4 flex w-full animate-points-pop flex-col items-center sm:mt-6">
-            <Button className="w-full max-w-xs bg-brand hover:bg-brand-hover" onClick={handleCollect}>
-              {t("chest.collect")}
-            </Button>
+        {pointsPhase === "flying" && flyStyle ? (
+          <div
+            className="pointer-events-none fixed z-[60] flex items-center gap-1 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-white shadow-lg"
+            style={{
+              left: flyStyle.left,
+              top: flyStyle.top,
+              transform: flyStyle.transform,
+              transition: flyStyle.transition,
+            }}
+          >
+            <Star className="size-4 fill-current" aria-hidden="true" />
+            <span className="text-base font-bold">+{tier.points}</span>
           </div>
         ) : null}
       </div>

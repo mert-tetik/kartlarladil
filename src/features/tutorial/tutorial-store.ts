@@ -7,6 +7,7 @@ interface TutorialState {
   completed: boolean;
   step: number;
   advance: () => void;
+  complete: () => void;
   reset: () => void;
 }
 
@@ -14,13 +15,16 @@ const TOTAL_STEPS = 7;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       completed: false,
       step: 0,
       advance: () => {
-        const nextStep = get().step + 1;
-        set({ step: nextStep, completed: nextStep >= TOTAL_STEPS });
+        set((state) => {
+          const nextStep = state.step + 1;
+          return { step: nextStep, completed: nextStep >= TOTAL_STEPS };
+        });
       },
+      complete: () => set({ completed: true }),
       reset: () => set({ completed: false, step: 0 }),
     }),
     {
