@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
+const LANDING_CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
 import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
@@ -40,6 +42,13 @@ export function MobileLandingDashboard() {
   const cards = useInventoryStore((state) => state.cards);
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(LANDING_CARD_LANGUAGE_KEY);
+      if (stored && LANGUAGES.some((item) => item.code === stored)) {
+        return stored as LanguageCode;
+      }
+    }
+
     const preferred = user?.profile.preferredLanguageCode;
     if (preferred && LANGUAGES.some((item) => item.code === preferred)) {
       return preferred;
@@ -160,10 +169,15 @@ export function MobileLandingDashboard() {
   function handleSelectLanguage(language: LanguageCode) {
     vibrate("tap");
     const resolved = resolveMobileLandingLanguage(language, locale, detectedLocale);
+    const nextCardLanguage = resolved.cardLanguage;
+
+    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, nextCardLanguage);
+
     if (resolved.siteLocale !== locale) {
       setLocale(resolved.siteLocale);
     }
-    setSelectedLanguage(resolved.cardLanguage);
+
+    setSelectedLanguage(nextCardLanguage);
   }
 
   return (

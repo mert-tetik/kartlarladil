@@ -49,6 +49,7 @@ import { awardChestPoints } from "@/features/quiz/actions";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import {
   getChestTierByCount,
+  resolveAwardedChestTier,
   QUIZ_COUNT_OPTIONS,
   getChestPreviewPairForCount,
   getChestLabelKey,
@@ -230,6 +231,7 @@ export function QuizStation({
     initialLanguage ?? null,
   );
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
+  const [awardedChestTier, setAwardedChestTier] = useState<ChestTierDefinition | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
@@ -336,6 +338,7 @@ export function QuizStation({
       setLastAnswerCorrect(null);
       setResults({ correct: [], incorrect: [], learned: [] });
       setChestOpened(false);
+      setAwardedChestTier(null);
       setPhase("quiz");
     },
     [cards, mode, locale],
@@ -384,7 +387,8 @@ export function QuizStation({
           selectedCount,
           chestOpened,
         );
-        if (summary.chestUnlocked) {
+        if (summary.chestUnlocked && selectedCount !== null) {
+          setAwardedChestTier(resolveAwardedChestTier(selectedCount) ?? null);
           setPhase("chest");
           return;
         }
@@ -445,11 +449,14 @@ export function QuizStation({
 
     setSelectedCount(null);
     setChestOpened(false);
+    setAwardedChestTier(null);
     setPhase("count");
   }
 
   function handleStartCount(count: number) {
     if (!selectedLanguage) return;
+    setSelectedCount(count);
+    setAwardedChestTier(null);
     buildDeck(selectedLanguage, count);
   }
 
@@ -675,7 +682,7 @@ export function QuizStation({
   }
 
   if (chestRewardsEnabled && phase === "chest" && selectedCount) {
-    const tier = getChestTierByCount(selectedCount);
+    const tier = awardedChestTier ?? getChestTierByCount(selectedCount);
 
     if (tier) {
       return (
@@ -1907,11 +1914,11 @@ export function getQuizPerformanceSummary(
     totalAnswered > 0
       ? Math.round((results.correct.length / totalAnswered) * 100)
       : 0;
-  const chestTier =
+  const previewPair =
     mode === "active" && selectedCount
-      ? getChestTierByCount(selectedCount)
+      ? getChestPreviewPairForCount(selectedCount)
       : undefined;
-  const chestUnlocked = accuracy >= 80 && Boolean(chestTier) && !chestOpened;
+  const chestUnlocked = accuracy >= 80 && Boolean(previewPair) && !chestOpened;
 
   if (accuracy >= 80) {
     return {

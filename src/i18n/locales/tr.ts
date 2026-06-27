@@ -163,7 +163,7 @@ const dictionary = {
   "cards.notes": "Notlar",
   "cards.owned": "Haznede",
   "cards.poolPreparingDescription": "Kart koleksiyonun tarayıcıda açılıyor.",
-  "cards.poolPreparingTitle": "Hazne hazırlanıyor",
+  "cards.poolPreparingTitle": "Kart haznesi hazırlanıyor",
   "cards.progress": "İlerleme",
   "cards.rules": "Kurallar",
   "cards.searchPlaceholder": "Kelime, çeviri veya örnek cümle ara",

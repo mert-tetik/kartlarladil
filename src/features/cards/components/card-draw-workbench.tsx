@@ -31,7 +31,7 @@ import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
-type CardDrawDismissKind = "skip" | "add";
+type CardDrawDismissKind = "skip" | "add";  
 
 interface ExitingCardDrawCard {
   key: string;
@@ -444,15 +444,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     cardRefs.current.delete(cardId);
   }
 
-  if (!hydrated) {
-    return (
-      <EmptyState
-        title={t("cards.poolPreparingTitle")}
-        description={t("cards.poolPreparingDescription")}
-      />
-    );
-  }
-
   function renderSearchInputSection(variant: "mobile" | "desktop") {
     const dropdownRef = variant === "mobile" ? mobileDropdownRef : desktopDropdownRef;
     const searchInputRef = variant === "mobile" ? mobileSearchInputRef : desktopSearchInputRef;
@@ -556,12 +547,13 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
             >
               <Button
                 size="lg"
+                disabled={!hydrated}
                 onClick={() => drawCards(5)}
                 className="border-0 bg-brand text-brand-foreground hover:bg-brand-hover focus-visible:outline-brand"
               >
                 {t("cards.drawFive")}
               </Button>
-              <Button size="lg" onClick={() => drawCards(10)}>
+              <Button size="lg" disabled={!hydrated} onClick={() => drawCards(10)}>
                 {t("cards.drawTen")}
               </Button>
             </div>
@@ -572,6 +564,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           >
             <Button
               size="lg"
+              disabled={!hydrated}
               onClick={() => drawCards(10)}
               data-tutorial-target="draw-cards-action"
               className="h-12 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground hover:bg-brand-hover"
@@ -661,11 +654,26 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
               </div>
             ) : (
               <div className="max-lg:flex max-lg:flex-1 max-lg:items-center max-lg:justify-center">
-                <EmptyState
-                  mascot="/mascots/mascot17.png"
-                  title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
-                  description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
-                />
+                {!hydrated ? (
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div
+                      className="size-12 animate-spin rounded-full border-4 border-brand border-t-transparent"
+                      aria-hidden="true"
+                    />
+                    <h2 className="mt-4 text-lg font-semibold text-foreground">
+                      {t("cards.poolPreparingTitle")}
+                    </h2>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground-secondary">
+                      {t("cards.poolPreparingDescription")}
+                    </p>
+                  </div>
+                ) : (
+                  <EmptyState
+                    mascot="/mascots/mascot17.png"
+                    title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
+                    description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
+                  />
+                )}
               </div>
             )}
           </div>

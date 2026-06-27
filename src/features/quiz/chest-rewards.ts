@@ -62,6 +62,16 @@ export function getChestTierByCount(count: number): ChestTierDefinition | undefi
   return TIER_BY_COUNT.get(count);
 }
 
+export function resolveAwardedChestTier(count: number): ChestTierDefinition | undefined {
+  const pair = getChestPreviewPairForCount(count);
+  if (!pair) {
+    return undefined;
+  }
+
+  const tier = Math.random() < 0.5 ? pair[0] : pair[1];
+  return CHEST_TIERS.find((candidate) => candidate.tier === tier);
+}
+
 export function getChestFrameIndex(tapCount: number): number {
   return Math.min(6, tapCount * 2);
 }
@@ -79,9 +89,9 @@ export const QUIZ_COUNT_OPTIONS = [10, 20, 30, 50] as const;
 
 export const COUNT_CHEST_PREVIEW_PAIRS: Record<number, [ChestTier, ChestTier]> = {
   10: ["wood", "iron"],
-  20: ["bronze", "silver"],
-  30: ["gold", "diamond"],
-  50: ["diamond", "legendary"],
+  20: ["iron", "bronze"],
+  30: ["bronze", "silver"],
+  50: ["gold", "diamond"],
 };
 
 export function getChestPreviewPairForCount(count: number): [ChestTier, ChestTier] | undefined {
