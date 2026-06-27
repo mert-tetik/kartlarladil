@@ -570,14 +570,14 @@ export function QuizStation({
       return;
     }
 
+    setChestOpened(true);
+    setPhase("result");
+
     const result = await awardChestPoints(tier);
 
     if (result.success) {
-      setChestOpened(true);
       await refreshStats();
     }
-
-    setPhase("result");
   }
 
   if (!hydrated) {
