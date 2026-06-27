@@ -53,14 +53,14 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
 export function getTargetForStep(step: number, pathname: string): TutorialTarget | null {
   if (step < 0) return null;
 
-  for (let candidateStep = step; candidateStep >= 0; candidateStep -= 1) {
-    const target = TUTORIAL_TARGETS.find((item) => item.step === candidateStep);
-    if (target && target.pages.some((page) => pathname === page || pathname.startsWith(`${page}/`))) {
-      return target;
-    }
+  const target = TUTORIAL_TARGETS.find((item) => item.step === step);
+  if (!target) return null;
+
+  if (!target.pages.some((page) => pathname === page || pathname.startsWith(`${page}/`))) {
+    return null;
   }
 
-  return null;
+  return target;
 }
 
 export function isTargetPage(pathname: string): boolean {

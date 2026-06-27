@@ -110,7 +110,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       setPointsPhase("added");
       closeTimeoutRef.current = window.setTimeout(() => {
         handleCollect();
-      }, 1000);
+      }, 600);
     }, 650);
 
     return () => {
@@ -343,8 +343,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         ) : null}
 
         {pointsPhase === "flying" && flyStyle ? (
-          <div
-            className="pointer-events-none fixed z-[60] flex items-center gap-1 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-white shadow-lg"
+          <span
+            className="pointer-events-none fixed z-[60] text-3xl font-bold text-amber-400"
             style={{
               left: flyStyle.left,
               top: flyStyle.top,
@@ -352,9 +352,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
               transition: flyStyle.transition,
             }}
           >
-            <Star className="size-4 fill-current" aria-hidden="true" />
-            <span className="text-base font-bold">+{tier.points}</span>
-          </div>
+            +{tier.points}
+          </span>
         ) : null}
       </div>
     </div>

@@ -125,23 +125,19 @@ describe("TutorialPointer", () => {
     expect(useTutorialStore.getState().step).toBe(1);
   });
 
-  it("does not advance when a fallback target is clicked", async () => {
+  it("does not render when the current step target is missing", async () => {
     setMobileViewport();
     useTutorialStore.setState({ completed: false, step: 2 });
-    const target = createTarget();
+    createTarget();
 
     render(<TutorialPointer />);
 
     await waitFor(() => {
-      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
     });
-
-    fireEvent.pointerDown(target);
-
-    expect(useTutorialStore.getState().step).toBe(2);
   });
 
-  it("ignores hidden fallback targets that remain mounted", async () => {
+  it("does not fall back to an earlier step when the current step target is missing", async () => {
     setMobileViewport();
     useTutorialStore.setState({ completed: false, step: 2 });
     createTarget({ name: "landing-draw-cards" });
@@ -154,11 +150,7 @@ describe("TutorialPointer", () => {
     render(<TutorialPointer />);
 
     await waitFor(() => {
-      const pointer = document.querySelector(".tutorial-pointer") as HTMLElement;
-      expect(pointer).toBeInTheDocument();
-      expect(pointer.getAttribute("data-tutorial-target-key")).toBe("landing-draw-cards");
-      expect(pointer.style.left).toBe("118px");
-      expect(pointer.style.top).toBe("204px");
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
     });
   });
 
