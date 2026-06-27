@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *));
+@variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *):not([data-theme="default"]):not(:where([data-theme="default"] *)));
 
 :root {
   --brand: #f76808;
@@ -564,7 +564,19 @@ body:has([data-ask-page]) footer {
 /* Theme overrides */
 [data-theme="default"] {
   --brand: #f76808;
+  --brand-hover: color-mix(in oklab, var(--brand) 85%, black);
   --brand-foreground: #ffffff;
+  --background: #f8fafc;
+  --background-card: #ffffff;
+  --background-muted: #f1f5f9;
+  --background-inverse: #0f172a;
+  --foreground: #0f172a;
+  --foreground-secondary: #475569;
+  --foreground-muted: #94a3b8;
+  --foreground-inverse: #ffffff;
+  --foreground-inverse-secondary: #cbd5e1;
+  --foreground-inverse-muted: #94a3b8;
+  --border: #e2e8f0;
   --ring-brand: #f76808;
 }
 

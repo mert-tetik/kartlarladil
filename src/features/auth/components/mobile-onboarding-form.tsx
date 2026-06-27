@@ -6,10 +6,12 @@ import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
+import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { useT } from "@/i18n/locale-provider";
 
 export function MobileOnboardingForm() {
   const t = useT();
+  const detectedLocale = useDetectedLocale();
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
 
   return (
@@ -28,8 +30,8 @@ export function MobileOnboardingForm() {
 
         <PreferenceFields
           hideTier
-          defaultLanguage="en"
-          defaultUiLocale="tr"
+          defaultLanguage={detectedLocale === "en" ? "tr" : "en"}
+          defaultUiLocale={detectedLocale}
           languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
           uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
         />

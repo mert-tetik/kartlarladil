@@ -133,6 +133,7 @@ export function VocabularyCardView({
   return (
     <article
       data-card-face={isFaceUp ? "front" : "back"}
+      data-theme="default"
       {...flipRoleProps}
       onClick={handleCardClick}
       className={cn(

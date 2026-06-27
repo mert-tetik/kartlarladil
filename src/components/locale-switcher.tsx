@@ -77,7 +77,7 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
             role="listbox"
             aria-labelledby={buttonId}
             className={cn(
-              "animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:left-0 max-lg:right-auto",
+              "animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg max-lg:right-0 max-lg:left-auto",
               navbar && "border-white/10 bg-black text-white shadow-sm",
             )}
           >

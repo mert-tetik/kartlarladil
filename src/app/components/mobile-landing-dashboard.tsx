@@ -21,7 +21,9 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { cn } from "@/lib/utils";
+import { resolveMobileLandingLanguage } from "@/app/components/mobile-landing-language-guard";
 
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -31,6 +33,7 @@ export function MobileLandingDashboard() {
   const { user } = useAuthSession();
   const { stats } = useProgressStats();
   const { locale, setLocale } = useLocale();
+  const detectedLocale = useDetectedLocale();
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
@@ -151,12 +154,11 @@ export function MobileLandingDashboard() {
 
   function handleSelectLanguage(language: LanguageCode) {
     vibrate("tap");
-    if (language === locale) {
-      setLocale(selectedLanguage);
-      setSelectedLanguage(locale);
-    } else {
-      setSelectedLanguage(language);
+    const resolved = resolveMobileLandingLanguage(language, locale, detectedLocale);
+    if (resolved.siteLocale !== locale) {
+      setLocale(resolved.siteLocale);
     }
+    setSelectedLanguage(resolved.cardLanguage);
   }
 
   return (

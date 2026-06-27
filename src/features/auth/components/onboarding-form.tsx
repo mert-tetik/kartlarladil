@@ -1,22 +1,13 @@
 "use client";
 
-import { useActionState, useSyncExternalStore } from "react";
+import { useActionState } from "react";
 import { completeOnboardingAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
-import { matchSupportedLocale } from "@/data/languages";
+import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { useT } from "@/i18n/locale-provider";
-import type { LocaleCode } from "@/types/domain";
-
-function useDetectedLocale(): LocaleCode {
-  return useSyncExternalStore<LocaleCode>(
-    () => () => {},
-    () => matchSupportedLocale(navigator.language) ?? "tr",
-    () => "tr",
-  );
-}
 
 export function OnboardingForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
