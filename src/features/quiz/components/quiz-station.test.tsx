@@ -298,7 +298,7 @@ describe("QuizStation sound feedback", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Alıştırma sonucu" })).toBeVisible();
+      expect(screen.getByTestId("quiz-result-panel")).toBeVisible();
     });
   });
 });

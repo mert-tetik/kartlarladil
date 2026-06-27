@@ -60,9 +60,9 @@ import { Badge } from "@/components/ui/badge";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+
 import {
   formatCards,
-  formatNumber,
   formatPoints,
   getLanguageDisplayName,
   getRankLabel,
@@ -1607,7 +1607,7 @@ function CelebrationView({
         </h2>
 
         <div
-          className="mt-5 w-[min(292px,76vw)] max-w-full"
+          className="mt-5 w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]"
           data-quiz-celebration-card
         >
           <VocabularyCardView
@@ -1681,14 +1681,11 @@ export function ResultView({
   onExit: () => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
+  const { stats } = useProgressStats();
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
-  const [introPhase, setIntroPhase] = useState<"entering" | "flying" | "done">(
-    "entering",
-  );
-  const introRef = useRef<HTMLDivElement | null>(null);
-  const summaryIconRef = useRef<HTMLDivElement | null>(null);
   const hasTriggeredResult = useRef(false);
   const performance = getQuizPerformanceSummary(
     mode,
@@ -1696,7 +1693,6 @@ export function ResultView({
     selectedCount,
     chestOpened,
   );
-  const SummaryIcon = performance.icon;
   const messageKey = useMemo(
     () =>
       getQuizResultMessageKey(
@@ -1714,18 +1710,9 @@ export function ResultView({
 
     playSoundEffect("quiz-complete");
     vibrate("result");
-  }, []);
 
-  useEffect(() => {
-    if (introPhase !== "entering") return;
-    const el = introRef.current;
-    if (!el) return;
-    let finished = false;
-
-    function onAnimationEnd() {
-      if (finished) return;
-      finished = true;
-      if (performance.level === "high") {
+    if (performance.level === "high") {
+      window.setTimeout(() => {
         playSoundEffect("confetti");
         vibrate("confetti");
         void confetti({
@@ -1735,57 +1722,9 @@ export function ResultView({
           colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
           disableForReducedMotion: true,
         });
-      }
-      setIntroPhase("flying");
+      }, 350);
     }
-
-    const fallbackTimer = window.setTimeout(onAnimationEnd, 900);
-    el.addEventListener("animationend", onAnimationEnd);
-    return () => {
-      finished = true;
-      window.clearTimeout(fallbackTimer);
-      el.removeEventListener("animationend", onAnimationEnd);
-    };
-  }, [introPhase, performance.level]);
-
-  useEffect(() => {
-    if (introPhase !== "flying") return;
-    const introEl = introRef.current;
-    const summaryIconEl = summaryIconRef.current;
-
-    if (!introEl || !summaryIconEl) {
-      setIntroPhase("done");
-      return;
-    }
-    let finished = false;
-
-    const first = introEl.getBoundingClientRect();
-    const last = summaryIconEl.getBoundingClientRect();
-    const translateX =
-      last.left + last.width / 2 - (first.left + first.width / 2);
-    const translateY =
-      last.top + last.height / 2 - (first.top + first.height / 2);
-    const scale = last.width / first.width;
-
-    introEl.style.transition =
-      "transform 550ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms ease 350ms";
-    introEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    introEl.style.opacity = "0";
-
-    function onTransitionEnd() {
-      if (finished) return;
-      finished = true;
-      setIntroPhase("done");
-    }
-
-    const fallbackTimer = window.setTimeout(onTransitionEnd, 700);
-    introEl.addEventListener("transitionend", onTransitionEnd);
-    return () => {
-      finished = true;
-      window.clearTimeout(fallbackTimer);
-      introEl.removeEventListener("transitionend", onTransitionEnd);
-    };
-  }, [introPhase]);
+  }, [performance.level]);
 
   const menuConfig = {
     correct: { title: t("quiz.resultCorrect"), cards: results.correct },
@@ -1820,94 +1759,52 @@ export function ResultView({
       : []),
   ];
 
-  const menuVisible = introPhase === "done";
-  const { locale } = useLocale();
-  const { stats } = useProgressStats();
-
   return (
     <div
       data-quiz-result-view
-      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-2 sm:p-4 max-lg:p-0"
+      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4 sm:p-6 max-lg:p-0"
     >
-      {introPhase !== "done" ? (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            ref={introRef}
-            className={cn(
-              "flex size-32 items-center justify-center rounded-full bg-black text-white transition-colors duration-300 dark:bg-white dark:text-black",
-              introPhase === "entering" && "animate-trophy-intro-grow",
-            )}
-          >
-            <SummaryIcon className="size-16" aria-hidden="true" />
-          </div>
-        </div>
-      ) : null}
-
       <div
         data-quiz-result-panel
-        className={cn(
-          "flex w-full flex-col rounded-xl border border-border bg-background-card p-4 text-center shadow-sm transition-opacity duration-500 sm:rounded-2xl sm:p-10 max-lg:h-full max-lg:justify-center max-lg:rounded-none max-lg:border-0 max-lg:p-5",
-          menuVisible ? "opacity-100" : "opacity-0",
-        )}
+        data-testid="quiz-result-panel"
+        className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-5 text-center shadow-sm sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-6"
       >
-        <div className="mb-4 flex flex-col items-center lg:hidden">
-          <RankIcon icon={stats.rank.icon} className="size-20" sizes="80px" />
-          <h3 className="mt-2 text-lg font-bold text-foreground">
-            {getRankLabel(stats.rank, locale)}
-          </h3>
-          <p className="text-2xl font-extrabold text-brand">
-            {formatPoints(locale, stats.totalPoints)}
-          </p>
-          {stats.nextRank ? (
-            <div className="mt-2 w-full max-w-xs">
-              <div className="flex justify-between text-xs font-semibold text-foreground-secondary">
-                <span>
-                  {t("profile.nextRank", {
-                    points: formatNumber(locale, stats.pointsToNextRank),
-                    rank: getRankLabel(stats.nextRank, locale),
-                  })}
-                </span>
-                <span>{stats.rankProgressPercent}%</span>
-              </div>
-              <Progress
-                value={stats.rankProgressPercent}
-                className="mt-1 bg-background-muted"
-                indicatorClassName="bg-brand"
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <div
-          className={cn(
-            "mx-auto flex w-full flex-col items-center justify-center rounded-xl bg-black p-5 text-center transition-opacity duration-300 dark:bg-white sm:p-6 max-lg:max-w-sm max-lg:p-4",
-            mode === "active" ? "col-span-2 lg:max-w-[33%]" : "max-w-xs",
-          )}
-        >
-          <div
-            ref={summaryIconRef}
-            className="flex size-16 items-center justify-center rounded-full bg-white text-black dark:bg-black dark:text-white sm:size-20"
-          >
-            <SummaryIcon className="size-8 sm:size-10" aria-hidden="true" />
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
+            {t("home.mobile.rankLabel")}
+          </span>
+          <div className="relative mt-2 flex size-28 items-center justify-center rounded-full bg-background-muted shadow-lg ring-4 ring-background sm:size-36">
+            <RankIcon
+              icon={stats.rank.icon}
+              className="size-20 animate-trophy-intro-grow sm:size-28"
+              sizes="144px"
+            />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-white dark:text-black sm:text-lg">
-            {t("quiz.resultTitle")}
+          <h2 className="mt-3 text-xl font-bold text-foreground sm:text-2xl">
+            {getRankLabel(stats.rank, locale)}
           </h2>
-          <p className="text-4xl font-bold text-white dark:text-black sm:text-5xl">
-            {performance.accuracy}%
-          </p>
-          <p
-            className="mt-2 text-lg font-bold leading-tight text-yellow-300 sm:text-xl"
-            data-result-message-level={performance.level}
-          >
-            {t(messageKey)}
-          </p>
         </div>
+
+        <div className="mt-4">
+          <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+            <Star className="size-5 fill-current" aria-hidden="true" />
+            <span className="text-lg font-bold">
+              {formatPoints(locale, stats.totalPoints)}
+            </span>
+          </div>
+        </div>
+
+        <p
+          className="mt-3 text-lg font-bold leading-tight text-brand sm:text-xl"
+          data-result-message-level={performance.level}
+        >
+          {t(messageKey)}
+        </p>
 
         <div
           className={cn(
-            "mt-4 grid gap-2 sm:mt-6 sm:gap-3",
-            mode === "active" ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-2",
+            "mt-5 grid w-full gap-2 sm:gap-3",
+            resultCards.length === 3 ? "grid-cols-3" : "grid-cols-2",
           )}
         >
           {resultCards.map((card) => (
@@ -1918,25 +1815,25 @@ export function ResultView({
               label={card.label}
               count={card.count}
               tone={card.tone}
-              className={
-                card.key === "learned" ? "col-span-2 lg:col-span-1" : undefined
-              }
               disabled={card.count === 0}
               onClick={() => setOpenMenu(card.key)}
             />
           ))}
         </div>
 
-        <div className="mt-4 grid w-full gap-2 sm:mt-6 sm:flex sm:w-auto sm:justify-center sm:gap-3">
+        <div className="mt-5 grid w-full grid-cols-2 gap-3">
           <Button
-            className="w-full bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 sm:w-auto"
+            className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500"
             onClick={onRestart}
           >
-            <RotateCcw className="size-4" aria-hidden="true" />
+            <RotateCcw className="size-5" aria-hidden="true" />
             {t("quiz.restart")}
           </Button>
-          <Button className="w-full sm:w-auto" onClick={onExit}>
-            <X className="size-4" aria-hidden="true" />
+          <Button
+            className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500"
+            onClick={onExit}
+          >
+            <X className="size-5" aria-hidden="true" />
             {t("quiz.exit")}
           </Button>
         </div>
@@ -1959,7 +1856,6 @@ function ResultCard({
   label,
   count,
   tone,
-  className,
   disabled,
   onClick,
 }: {
@@ -1968,7 +1864,6 @@ function ResultCard({
   label: string;
   count: number;
   tone: "emerald" | "rose" | "amber";
-  className?: string;
   disabled?: boolean;
   onClick?: () => void;
 }) {
@@ -1985,17 +1880,16 @@ function ResultCard({
       onClick={onClick}
       data-result-card={resultKey}
       className={cn(
-        "flex min-h-[108px] w-full flex-col items-center justify-center rounded-lg p-3 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-[132px] sm:p-4",
+        "flex min-h-[76px] w-full flex-col items-center justify-center rounded-lg p-2 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-[96px] sm:p-3",
         toneClasses[tone],
-        className,
         disabled
-          ? "cursor-not-allowed"
+          ? "cursor-not-allowed opacity-60"
           : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
       )}
     >
-      <Icon className="mx-auto size-5 sm:size-6" aria-hidden="true" />
-      <p className="mt-1 text-xl font-bold sm:mt-2 sm:text-2xl">{count}</p>
-      <p className="text-[11px] font-semibold text-white/90 sm:text-xs">
+      <Icon className="mx-auto size-4 sm:size-5" aria-hidden="true" />
+      <p className="mt-0.5 text-lg font-bold sm:text-xl">{count}</p>
+      <p className="text-[10px] font-semibold text-white/90 sm:text-xs">
         {label}
       </p>
     </button>
