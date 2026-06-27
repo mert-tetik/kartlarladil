@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Gift, Sparkles, Star } from "lucide-react";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
@@ -90,7 +91,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pointsPhase !== "flying" || !rewardPointsRef.current || !totalPointsRef.current) return;
 
     const start = rewardPointsRef.current.getBoundingClientRect();
@@ -330,10 +331,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                   data-chest-reward-points
                   className={cn(
                     "mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
-                    pointsPhase === "flying" && flyStyle && "fixed z-[60] mt-0 text-center will-change-transform",
-                    pointsPhase === "added" && "opacity-0",
+                    (pointsPhase === "flying" || pointsPhase === "added") && "opacity-0",
                   )}
-                  style={rewardPointsStyle}
                 >
                   +{tier.points}
                 </p>
@@ -393,6 +392,19 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         ) : null}
 
       </div>
+      {pointsPhase === "flying" && flyStyle
+        ? createPortal(
+            <p
+              data-chest-flying-reward-points
+              className="pointer-events-none fixed z-[60] mt-0 text-center text-4xl font-bold leading-none text-amber-400 will-change-transform sm:text-5xl"
+              style={rewardPointsStyle}
+              aria-hidden="true"
+            >
+              +{tier.points}
+            </p>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

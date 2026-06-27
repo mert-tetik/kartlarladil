@@ -735,7 +735,7 @@ export function QuizStation({
         >
           {item.questionType === "choice" ? (
             <p
-              className="order-1 text-center text-sm font-semibold text-foreground-muted lg:hidden"
+              className="order-1 mt-6 text-center text-sm font-semibold text-foreground-muted lg:hidden"
               data-quiz-mobile-prompt
             >
               {t("quiz.recallPrompt")}

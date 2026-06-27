@@ -45,7 +45,7 @@ describe("ChestOpeningView", () => {
     });
   });
 
-  it("moves the reward points element to the total score and closes after the flight", () => {
+  it("flies a portal copy from the reward text to the total score without moving the source text", () => {
     const onComplete = vi.fn();
 
     render(
@@ -99,14 +99,26 @@ describe("ChestOpeningView", () => {
 
     expect(document.querySelectorAll("[data-chest-reward-points]")).toHaveLength(1);
     expect(document.querySelector("[data-chest-reward-points]")).toBe(rewardPoints);
-    expect(rewardPoints).toHaveClass("fixed");
-    expect(rewardPoints.style.transition).toContain("1400ms");
+    expect(rewardPoints).not.toHaveClass("fixed");
+    expect(rewardPoints).toHaveClass("opacity-0");
+
+    const flyingRewardPoints = document.querySelector<HTMLElement>("[data-chest-flying-reward-points]")!;
+
+    expect(flyingRewardPoints).toBeInTheDocument();
+    expect(flyingRewardPoints).toHaveClass("fixed");
+    expect(flyingRewardPoints.style.left).toBe("208px");
+    expect(flyingRewardPoints.style.top).toBe("220px");
+    expect(flyingRewardPoints.style.width).toBe("96px");
+    expect(flyingRewardPoints.style.transition).toContain("1400ms");
+    expect(flyingRewardPoints.style.transform).toContain("calc(-50% + 2px)");
+    expect(flyingRewardPoints.style.transform).toContain("-192px");
 
     act(() => {
       vi.advanceTimersByTime(1400);
     });
 
     expect(totalPoints).toHaveTextContent("120");
+    expect(document.querySelector("[data-chest-flying-reward-points]")).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(999);
