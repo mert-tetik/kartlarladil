@@ -12,6 +12,12 @@ function setDesktopViewport() {
   window.dispatchEvent(new Event("resize"));
 }
 
+function setSearchParams(search: string) {
+  const url = new URL(window.location.href);
+  url.search = search;
+  window.history.pushState({}, "", url.toString());
+}
+
 function createTarget({
   name = "landing-draw-cards",
   rect = { left: 100, top: 200, width: 80, height: 40 },
@@ -87,9 +93,10 @@ function createVisibleCookieNotice() {
 
 describe("TutorialPointer", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ completed: false, step: 0 });
+    useTutorialStore.setState({ completed: false, step: 0, testMode: false });
     document.body.innerHTML = "";
     window.history.pushState({}, "", "/");
+    setSearchParams("");
   });
 
   afterEach(() => {
@@ -287,5 +294,55 @@ describe("TutorialPointer", () => {
 
     expect(useTutorialStore.getState().step).toBe(7);
     expect(useTutorialStore.getState().completed).toBe(true);
+  });
+
+  it("renders when completed if test mode is enabled", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ completed: true, step: 0, testMode: true });
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+  });
+
+  it("does not render on desktop even if test mode is enabled", async () => {
+    setDesktopViewport();
+    useTutorialStore.setState({ testMode: true });
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not render on suppressed pages even if test mode is enabled", async () => {
+    setMobileViewport();
+    window.history.pushState({}, "", "/pricing");
+    useTutorialStore.setState({ testMode: true });
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("enables test mode from the tutorial-test query param", async () => {
+    setMobileViewport();
+    setSearchParams("?tutorial-test=1");
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(useTutorialStore.getState().testMode).toBe(true);
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
   });
 });

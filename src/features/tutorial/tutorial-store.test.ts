@@ -2,7 +2,7 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 describe("useTutorialStore", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ completed: false, step: 0 });
+    useTutorialStore.setState({ completed: false, step: 0, testMode: false });
   });
 
   it("starts at step 0 and not completed", () => {
@@ -10,6 +10,7 @@ describe("useTutorialStore", () => {
 
     expect(state.step).toBe(0);
     expect(state.completed).toBe(false);
+    expect(state.testMode).toBe(false);
   });
 
   it("advances through steps", () => {
@@ -42,5 +43,16 @@ describe("useTutorialStore", () => {
 
     expect(useTutorialStore.getState().step).toBe(0);
     expect(useTutorialStore.getState().completed).toBe(false);
+    expect(useTutorialStore.getState().testMode).toBe(false);
+  });
+
+  it("can enable and disable test mode", () => {
+    const { enableTestMode, disableTestMode } = useTutorialStore.getState();
+
+    enableTestMode();
+    expect(useTutorialStore.getState().testMode).toBe(true);
+
+    disableTestMode();
+    expect(useTutorialStore.getState().testMode).toBe(false);
   });
 });

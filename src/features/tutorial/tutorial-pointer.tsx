@@ -29,9 +29,21 @@ export function TutorialPointer() {
   const pathname = usePathname();
   const completed = useTutorialStore((state) => state.completed);
   const step = useTutorialStore((state) => state.step);
+  const testMode = useTutorialStore((state) => state.testMode);
   const advance = useTutorialStore((state) => state.advance);
+  const enableTestMode = useTutorialStore((state) => state.enableTestMode);
   const [position, setPosition] = useState<PointerPosition | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const isTestUrl = params.get("tutorial-test") === "1" || params.get("tutorial-debug") === "1";
+    if (isTestUrl && !testMode) {
+      enableTestMode();
+    }
+  }, [pathname, testMode, enableTestMode]);
 
   const updatePosition = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -41,7 +53,7 @@ export function TutorialPointer() {
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!mobile || currentState.completed || isSuppressedPath(currentPathname)) {
+    if (!mobile || (!currentState.testMode && currentState.completed) || isSuppressedPath(currentPathname)) {
       setPosition(null);
       return;
     }
@@ -133,9 +145,9 @@ export function TutorialPointer() {
   useEffect(() => {
     function handleClick(event: PointerEvent) {
       const currentState = useTutorialStore.getState();
-      if (currentState.completed) return;
-      if (window.innerWidth > MOBILE_BREAKPOINT) return;
-      if (isSuppressedPath(window.location.pathname)) return;
+      if (window.innerWidth > MOBILE_BREAKPOINT || (!currentState.testMode && currentState.completed) || isSuppressedPath(window.location.pathname)) {
+        return;
+      }
 
       const target = getTargetForStep(currentState.step, window.location.pathname);
       if (!target) return;
@@ -161,7 +173,7 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if (completed || !isMobile || !position || isSuppressedPath(pathname)) {
+  if ((!testMode && completed) || !isMobile || isSuppressedPath(pathname)) {
     return null;
   }
 
