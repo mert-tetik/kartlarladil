@@ -43,7 +43,6 @@ export function PreferenceFields({
     if (defaultUiLocale && defaultUiLocale !== selectedUiLocale) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedUiLocale(defaultUiLocale);
-      setLocale(defaultUiLocale);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultUiLocale]);

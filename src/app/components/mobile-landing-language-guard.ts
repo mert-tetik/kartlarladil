@@ -11,6 +11,25 @@ function pickRandomLanguage(exclude: LanguageCode): LanguageCode {
   return candidates[index] ?? "en";
 }
 
+export function resolveCardLanguageOnSiteLocaleChange(
+  currentCardLanguage: LanguageCode,
+  newSiteLocale: LocaleCode,
+  browserLocale?: LocaleCode,
+): LanguageCode {
+  if (currentCardLanguage !== newSiteLocale) {
+    return currentCardLanguage;
+  }
+
+  const fallbackBrowserLocale = browserLocale ?? getBrowserLocale();
+  const fallbackLanguage = LANGUAGE_CODES.find((code) => code === fallbackBrowserLocale);
+
+  if (fallbackLanguage && fallbackLanguage !== currentCardLanguage) {
+    return fallbackLanguage;
+  }
+
+  return pickRandomLanguage(newSiteLocale);
+}
+
 export function resolveMobileLandingLanguage(
   selectedCardLanguage: LanguageCode,
   currentSiteLocale: LocaleCode,

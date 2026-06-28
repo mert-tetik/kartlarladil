@@ -386,6 +386,8 @@ const dictionary = {
   "pricing.featureCards": "بطاقات جديدة غير محدودة",
   "pricing.featureLearned": "بطاقات متعلمة غير محدودة",
   "pricing.featureThemes": "سمات مخصصة",
+  "pricing.firstMonthFree": "الشهر الأول مجاني",
+  "pricing.firstMonthFreeBanner": "الشهر الأول مجاني على جميع الاشتراكات",
   "pricing.free": "مجاني",
   "pricing.monthlyEquivalent": "~%{price}/شهر",
   "pricing.mostPopular": "الأكثر شعبية",

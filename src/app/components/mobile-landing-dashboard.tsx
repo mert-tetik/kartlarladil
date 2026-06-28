@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const LANDING_CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
@@ -26,7 +26,10 @@ import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/label
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { cn } from "@/lib/utils";
-import { resolveMobileLandingLanguage } from "@/app/components/mobile-landing-language-guard";
+import {
+  resolveCardLanguageOnSiteLocaleChange,
+  resolveMobileLandingLanguage,
+} from "@/app/components/mobile-landing-language-guard";
 
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -60,6 +63,30 @@ export function MobileLandingDashboard() {
   }, [user?.profile.preferredLanguageCode, locale]);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(defaultLanguage);
+
+  useEffect(() => {
+    if (selectedLanguage !== locale) {
+      return;
+    }
+
+    const nextLanguage = resolveCardLanguageOnSiteLocaleChange(
+      selectedLanguage,
+      locale,
+      detectedLocale,
+    );
+
+    if (nextLanguage === selectedLanguage) {
+      return;
+    }
+
+    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, nextLanguage);
+    const timeoutId = window.setTimeout(() => {
+      setSelectedLanguage(nextLanguage);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [locale, selectedLanguage, detectedLocale]);
+
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const [tierSelectorOpen, setTierSelectorOpen] = useState(false);
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
@@ -196,7 +223,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[56vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
+      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>

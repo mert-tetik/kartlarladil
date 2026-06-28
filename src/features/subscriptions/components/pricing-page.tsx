@@ -52,6 +52,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const { entitlements } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const localizedPricing = useLocalizedPricing(currencyCode);
+  const isTwa = useTwaMode();
 
   return (
     <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -65,6 +66,11 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">
           {t("pricing.description")}
         </p>
+        {isTwa ? (
+          <p className="mt-3 text-sm font-bold uppercase text-brand">
+            {t("pricing.firstMonthFreeBanner")}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-8 flex justify-center">
@@ -86,6 +92,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
             user={user}
             localizedPricing={localizedPricing}
             uiLocale={locale}
+            isTwa={isTwa}
           />
         ))}
       </div>
@@ -148,6 +155,7 @@ function PricingCard({
   user,
   localizedPricing,
   uiLocale,
+  isTwa,
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
@@ -155,6 +163,7 @@ function PricingCard({
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   uiLocale: string;
+  isTwa: boolean;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
@@ -225,6 +234,12 @@ function PricingCard({
                 ? formatCurrency(localizedYearly.amount / 12, localizedYearly.currencyCode, uiLocale)
                 : (yearlyPrice / 12).toFixed(2),
           })}
+        </p>
+      ) : null}
+
+      {isTwa && cycle === "monthly" && plan !== "free" ? (
+        <p className="mt-2 text-sm font-bold uppercase text-brand">
+          {t("pricing.firstMonthFree")}
         </p>
       ) : null}
 
@@ -428,8 +443,25 @@ function GooglePlayCheckoutButton({
   );
 }
 
-function getGooglePlaySku(plan: Exclude<SubscriptionPlan, "free">, cycle: BillingCycle): string {
-  return `${plan}_${cycle}`;
+const GOOGLE_PLAY_SKUS: Record<
+  Exclude<SubscriptionPlan, "free">,
+  Record<BillingCycle, string>
+> = {
+  basic: {
+    monthly: "basic-monthly-first-month-free",
+    yearly: "basic_yearly",
+  },
+  pro: {
+    monthly: "pro-monthly-one-month-free",
+    yearly: "pro_yearly",
+  },
+};
+
+function getGooglePlaySku(
+  plan: Exclude<SubscriptionPlan, "free">,
+  cycle: BillingCycle,
+): string {
+  return GOOGLE_PLAY_SKUS[plan][cycle];
 }
 
 function PaymentProviderNotes() {

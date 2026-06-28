@@ -42,16 +42,8 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
       tutorialState.advance();
     }
     const nextHref = `/card-draw?language=${encodeURIComponent(language)}&tier=${encodeURIComponent(tier)}`;
-    const currentHref = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : null;
     onClose();
     router.push(nextHref);
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        if (`${window.location.pathname}${window.location.search}` === currentHref) {
-          window.location.assign(nextHref);
-        }
-      }, 250);
-    }
   }
 
   const content = (

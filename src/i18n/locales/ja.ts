@@ -386,6 +386,8 @@ const dictionary = {
   "pricing.featureCards": "無制限の新しいカード",
   "pricing.featureLearned": "無制限の学習済みカード",
   "pricing.featureThemes": "カスタムテーマ",
+  "pricing.firstMonthFree": "初月無料",
+  "pricing.firstMonthFreeBanner": "すべてのサブスクリプションで初月無料",
   "pricing.free": "無料",
   "pricing.monthlyEquivalent": "~%{price}/月",
   "pricing.mostPopular": "最も人気",

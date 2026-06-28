@@ -386,6 +386,8 @@ const dictionary = {
   "pricing.featureCards": "无限新卡片",
   "pricing.featureLearned": "无限已学习卡片",
   "pricing.featureThemes": "自定义主题",
+  "pricing.firstMonthFree": "首月免费",
+  "pricing.firstMonthFreeBanner": "所有订阅首月免费",
   "pricing.free": "免费",
   "pricing.monthlyEquivalent": "~%{price}/月",
   "pricing.mostPopular": "最受欢迎",

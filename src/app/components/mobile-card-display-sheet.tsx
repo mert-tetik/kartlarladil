@@ -52,7 +52,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
     <div
       key={`${card.id}-${isOpen ? "open" : "closed"}`}
       className={cn(
-        "fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 transition-opacity duration-300 max-lg:flex lg:hidden",
+        "fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 transition-opacity duration-300 max-lg:flex lg:hidden",
         isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!isOpen}
@@ -61,7 +61,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
       data-mobile-card-display-sheet
     >
       <div
-        className="relative w-full max-w-[320px]"
+        className="relative w-full max-w-[260px]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute -top-12 right-0 flex items-center gap-2">
@@ -104,7 +104,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
             flippable={false}
             showActions={false}
             frontFit
-            className="w-full h-[clamp(420px,70vh,540px)]"
+            className="h-auto w-full max-w-[260px]"
           />
         </div>
       </div>

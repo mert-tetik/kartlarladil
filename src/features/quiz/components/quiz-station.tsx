@@ -1777,8 +1777,8 @@ export function ResultView({
         data-testid="quiz-result-panel"
         className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-5 text-center shadow-sm sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-6"
       >
-        <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
+        <div className="flex flex-col items-center max-lg:-translate-y-6">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted max-lg:-translate-y-3 sm:text-xs">
             {t("home.mobile.rankLabel")}
           </span>
           <RankIcon

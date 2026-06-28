@@ -386,6 +386,8 @@ const dictionary = {
   "pricing.featureCards": "무제한 신규 카드",
   "pricing.featureLearned": "무제한 학습된 카드",
   "pricing.featureThemes": "사용자 정의 테마",
+  "pricing.firstMonthFree": "첫 달 무료",
+  "pricing.firstMonthFreeBanner": "모든 구독 첫 달 무료",
   "pricing.free": "무료",
   "pricing.monthlyEquivalent": "~%{price}/월",
   "pricing.mostPopular": "가장 인기 있는",

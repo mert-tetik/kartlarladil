@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
@@ -32,11 +32,20 @@ function subscribe(callback: () => void) {
 
 export function CookieNotice() {
   const t = useT();
+  const [mounted, setMounted] = useState(false);
   const visible = useSyncExternalStore(
     subscribe,
     readDismissedState,
     () => true,
   );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   function dismiss() {
     try {
@@ -50,7 +59,7 @@ export function CookieNotice() {
     }
   }
 
-  if (!visible) {
+  if (!mounted || !visible) {
     return null;
   }
 

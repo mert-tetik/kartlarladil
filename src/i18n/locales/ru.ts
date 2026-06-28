@@ -386,6 +386,8 @@ const dictionary = {
   "pricing.featureCards": "Неограниченные новые карточки",
   "pricing.featureLearned": "Неограниченные изученные карточки",
   "pricing.featureThemes": "Пользовательские темы",
+  "pricing.firstMonthFree": "ПЕРВЫЙ МЕСЯЦ БЕСПЛАТНО",
+  "pricing.firstMonthFreeBanner": "ПЕРВЫЙ МЕСЯЦ БЕСПЛАТНО ДЛЯ ВСЕХ ПОДПИСОК",
   "pricing.free": "Бесплатно",
   "pricing.monthlyEquivalent": "~%{price}/мес",
   "pricing.mostPopular": "Самый популярный",

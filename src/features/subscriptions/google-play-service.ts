@@ -22,10 +22,17 @@ function getAndroidPublisher() {
   return google.androidpublisher({ version: "v3", auth });
 }
 
+const GOOGLE_PLAY_PLAN_BY_SKU: Record<string, SubscriptionPlan> = {
+  "basic_monthly": "basic",
+  "basic_yearly": "basic",
+  "pro_monthly": "pro",
+  "pro_yearly": "pro",
+  "basic-monthly-first-month-free": "basic",
+  "pro-monthly-one-month-free": "pro",
+};
+
 function resolvePlanFromSku(sku: string): SubscriptionPlan | null {
-  if (sku.startsWith("basic_")) return "basic";
-  if (sku.startsWith("pro_")) return "pro";
-  return null;
+  return GOOGLE_PLAY_PLAN_BY_SKU[sku] ?? null;
 }
 
 function toIsoDate(millis: string | number | undefined | null): string | null {

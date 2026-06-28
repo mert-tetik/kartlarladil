@@ -89,6 +89,32 @@ describe("verifyGooglePlaySubscription", () => {
     expect(result.plan).toBe("pro");
   });
 
+  it("resolves basic plan from basic-monthly-first-month-free sku", async () => {
+    const publisher = makeMockPublisher();
+
+    const result = await verifyGooglePlaySubscription(
+      "token-7",
+      "basic-monthly-first-month-free",
+      "user-7",
+      publisher as never,
+    );
+
+    expect(result.plan).toBe("basic");
+  });
+
+  it("resolves pro plan from pro-monthly-one-month-free sku", async () => {
+    const publisher = makeMockPublisher();
+
+    const result = await verifyGooglePlaySubscription(
+      "token-8",
+      "pro-monthly-one-month-free",
+      "user-8",
+      publisher as never,
+    );
+
+    expect(result.plan).toBe("pro");
+  });
+
   it("treats paymentState 2 as on_trial", async () => {
     const publisher = makeMockPublisher({ paymentState: 2 });
 
