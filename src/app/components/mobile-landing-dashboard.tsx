@@ -96,7 +96,6 @@ export function MobileLandingDashboard() {
   const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
   const [detailMenuOpen, setDetailMenuOpen] = useState(false);
   const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">("active");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
 
   const languageStats = useMemo(
@@ -402,6 +401,12 @@ export function MobileLandingDashboard() {
         status={detailMenuStatus}
         onStatusChange={setDetailMenuStatus}
       />
+
+      <UpgradeDialog
+        open={showLanguageMatchDialog}
+        errorCode="language_match_not_allowed"
+        onOpenChange={(nextOpen) => setShowLanguageMatchDialog(nextOpen)}
+      />
     </section>
   );
 }
@@ -628,11 +633,6 @@ function TierDetailMenu({
     onClose={() => setDisplayCard(null)}
   />
 
-  <UpgradeDialog
-    open={showLanguageMatchDialog}
-    errorCode="language_match_not_allowed"
-    onOpenChange={(nextOpen) => setShowLanguageMatchDialog(nextOpen)}
-  />
 </div>
   );
 }

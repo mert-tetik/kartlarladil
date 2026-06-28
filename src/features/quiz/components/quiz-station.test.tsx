@@ -301,6 +301,98 @@ describe("QuizStation sound feedback", () => {
       expect(screen.getByTestId("quiz-result-panel")).toBeVisible();
     });
   });
+
+  it("does not call AI validation when the text answer is directly correct", async () => {
+    const fetchSpy = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }),
+    );
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr");
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    const input = await screen.findByRole("textbox");
+    fireEvent.change(input, { target: { value: testCard.term } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("correct");
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses AI validation for a wrong text answer when the free daily limit is available", async () => {
+    const fetchSpy = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }),
+    );
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr");
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    const input = await screen.findByRole("textbox");
+    fireEvent.change(input, { target: { value: "obviously wrong guess" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(playSoundEffect).toHaveBeenCalledWith("correct");
+  });
+
+  it("falls back to incorrect when the free daily AI validation limit is exhausted", async () => {
+    const fetchSpy = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }),
+    );
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+
+    window.localStorage.setItem(
+      "foxiesdeck:ai-quiz-validation:daily",
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), count: 15 }),
+    );
+
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr");
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    const input = await screen.findByRole("textbox");
+    fireEvent.change(input, { target: { value: "wrong again" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
 
 function renderQuizStation(locale: LocaleCode = "tr") {

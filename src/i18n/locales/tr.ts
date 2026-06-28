@@ -493,6 +493,7 @@ const dictionary = {
   "quiz.showDetails": "Detayları gör",
   "quiz.start": "Alıştırmayı başlat",
   "quiz.submitAnswer": "Cevabı kontrol et",
+  "quiz.aiValidating": "Cevabın kontrol ediliyor...",
   "quiz.openChest": "Ödül sandığı aç",
   "chest.title": "Ödül Sandığı",
   "chest.tapToOpen": "Açmak için sandığa dokun",

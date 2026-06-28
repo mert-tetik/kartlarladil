@@ -493,6 +493,7 @@ const dictionary = {
   "quiz.showDetails": "Show details",
   "quiz.start": "Start practice",
   "quiz.submitAnswer": "Check answer",
+  "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "Open reward chest",
   "chest.title": "Reward Chest",
   "chest.tapToOpen": "Tap the chest to open it",

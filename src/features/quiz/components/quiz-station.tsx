@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  Loader2,
   Medal,
   RotateCcw,
   Star,
@@ -45,7 +46,9 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
+import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import {
   getChestTierByCount,
@@ -252,7 +255,12 @@ export function QuizStation({
   const [chestOpened, setChestOpened] = useState(false);
   const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isAiValidating, setIsAiValidating] = useState(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
+
+  const effectivePlan = entitlements?.effectivePlan ?? "free";
+  const { canUse: canUseAiValidation, consume: consumeAiValidation } =
+    useAiQuizValidationLimit(effectivePlan);
 
   const languageStats = useMemo(
     () =>
@@ -452,6 +460,52 @@ export function QuizStation({
     buildDeck(selectedLanguage, count);
   }
 
+  async function handleTextSubmit(rawAnswer: string) {
+    if (showingAnswer || isAiValidating) return;
+
+    const item = deck[currentIndex];
+    if (item.questionType !== "text") return;
+
+    const question = item.question as { correctAnswer: string };
+    const isDirectlyCorrect = isAnswerSimilarEnough(rawAnswer, question.correctAnswer);
+
+    if (isDirectlyCorrect) {
+      handleAnswer(rawAnswer, true);
+      return;
+    }
+
+    if (!canUseAiValidation()) {
+      handleAnswer(rawAnswer, false);
+      return;
+    }
+
+    setIsAiValidating(true);
+    consumeAiValidation();
+
+    const promptContext = [
+      getCardTranslation(item.card, locale),
+      item.card.examples[0]?.sentence,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    try {
+      const result = await aiValidateTextAnswer({
+        userAnswer: rawAnswer,
+        correctAnswers: [question.correctAnswer],
+        targetLanguage: item.card.language,
+        sourceLanguage: locale,
+        promptContext,
+      });
+
+      handleAnswer(rawAnswer, result.accepted);
+    } catch {
+      handleAnswer(rawAnswer, false);
+    } finally {
+      setIsAiValidating(false);
+    }
+  }
+
   async function handleAnswer(answer: string, isCorrect: boolean) {
     if (showingAnswer) return;
 
@@ -462,7 +516,6 @@ export function QuizStation({
         : (item.question as { correctAnswer: string }).correctAnswer;
 
     if (item.willLearn && isCorrect) {
-      const effectivePlan = entitlements?.effectivePlan ?? "free";
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
 
       if (effectivePlan === "free" && typeof learnedLimit === "number") {
@@ -765,8 +818,9 @@ export function QuizStation({
                   textAnswer={textAnswer}
                   textResult={textResult}
                   showingAnswer={showingAnswer}
+                  isAiValidating={isAiValidating}
                   onChange={setTextAnswer}
-                  onSubmit={handleAnswer}
+                  onSubmitText={handleTextSubmit}
                   onNext={handleNext}
                 />
               )}
@@ -1311,16 +1365,18 @@ function TextQuestion({
   textAnswer,
   textResult,
   showingAnswer,
+  isAiValidating,
   onChange,
-  onSubmit,
+  onSubmitText,
   onNext,
 }: {
   item: QuizItem;
   textAnswer: string;
   textResult: "idle" | "correct" | "incorrect";
   showingAnswer: boolean;
+  isAiValidating: boolean;
   onChange: (value: string) => void;
-  onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSubmitText: (answer: string) => Promise<void>;
   onNext: () => void;
 }) {
   const { locale } = useLocale();
@@ -1348,10 +1404,9 @@ function TextQuestion({
     return () => window.clearTimeout(timer);
   }, [isMobileViewport]);
 
-  function handleSubmit() {
-    if (showingAnswer) return;
-    const isCorrect = isAnswerSimilarEnough(textAnswer, question.correctAnswer);
-    onSubmit(textAnswer, isCorrect);
+  async function handleSubmit() {
+    if (showingAnswer || isAiValidating) return;
+    await onSubmitText(textAnswer);
   }
 
   return (
@@ -1395,11 +1450,11 @@ function TextQuestion({
             value={textAnswer}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !showingAnswer) {
+              if (event.key === "Enter" && !showingAnswer && !isAiValidating) {
                 handleSubmit();
               }
             }}
-            disabled={showingAnswer}
+            disabled={showingAnswer || isAiValidating}
             placeholder={t("quiz.learningQuizPlaceholder")}
             className={cn(
               "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground sm:py-3",
@@ -1445,9 +1500,16 @@ function TextQuestion({
             <Button
               className="mt-1 w-full sm:mt-2 lg:mt-4"
               onClick={handleSubmit}
-              disabled={textAnswer.trim().length === 0}
+              disabled={textAnswer.trim().length === 0 || isAiValidating}
             >
-              {t("quiz.submitAnswer")}
+              {isAiValidating ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                  {t("quiz.aiValidating")}
+                </>
+              ) : (
+                t("quiz.submitAnswer")
+              )}
             </Button>
           )}
         </div>
