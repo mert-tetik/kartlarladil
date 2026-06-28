@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const LANDING_CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
 import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
@@ -16,6 +15,8 @@ import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-she
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
+import { LANDING_CARD_LANGUAGE_KEY } from "@/app/components/landing-card-language";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -95,6 +96,8 @@ export function MobileLandingDashboard() {
   const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
   const [detailMenuOpen, setDetailMenuOpen] = useState(false);
   const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">("active");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
 
   const languageStats = useMemo(
     () =>
@@ -195,6 +198,12 @@ export function MobileLandingDashboard() {
 
   function handleSelectLanguage(language: LanguageCode) {
     vibrate("tap");
+
+    if (language === locale) {
+      setShowLanguageMatchDialog(true);
+      return;
+    }
+
     const resolved = resolveMobileLandingLanguage(language, locale, detectedLocale);
     const nextCardLanguage = resolved.cardLanguage;
 
@@ -617,6 +626,12 @@ function TierDetailMenu({
     card={displayCard}
     isOpen={displayCard !== null}
     onClose={() => setDisplayCard(null)}
+  />
+
+  <UpgradeDialog
+    open={showLanguageMatchDialog}
+    errorCode="language_match_not_allowed"
+    onOpenChange={(nextOpen) => setShowLanguageMatchDialog(nextOpen)}
   />
 </div>
   );

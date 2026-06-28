@@ -272,7 +272,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-2 text-center sm:py-4"
     >
       <div
-        className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
+        className="absolute left-1/2 top-[calc(var(--app-header-height)+1rem)] z-10 -translate-x-1/2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg lg:top-4"
       >
         <div className="flex items-center gap-2">
           <Star className="size-5 fill-current" aria-hidden="true" />

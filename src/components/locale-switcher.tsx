@@ -4,6 +4,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LANGUAGES } from "@/data/languages";
+import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
@@ -94,6 +95,13 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
                   onClick={() => {
                     if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
                       setDialogError("learn_locale_locked");
+                      setOpen(false);
+                      return;
+                    }
+
+                    const cardLanguage = readLandingCardLanguage();
+                    if (cardLanguage && cardLanguage === nextLocale) {
+                      setDialogError("language_match_not_allowed");
                       setOpen(false);
                       return;
                     }

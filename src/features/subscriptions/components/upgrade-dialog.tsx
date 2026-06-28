@@ -10,7 +10,8 @@ export type UpgradeDialogErrorCode =
   | LimitErrorCode
   | "learn_locale_locked"
   | "inventory_card_already_active"
-  | "inventory_card_already_learned";
+  | "inventory_card_already_learned"
+  | "language_match_not_allowed";
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -127,6 +128,12 @@ function getLimitContent(
       return {
         title: t("limit.cardAlreadyLearnedTitle"),
         description: t("limit.cardAlreadyLearnedDescription"),
+        variant: "message",
+      };
+    case "language_match_not_allowed":
+      return {
+        title: t("locale.languageMatchTitle"),
+        description: t("locale.languageMatchDescription"),
         variant: "message",
       };
     default:

@@ -308,6 +308,8 @@ const dictionary = {
   "limit.upgradeButton": "Planını yükselt",
   "locale.change": "Site dilini değiştir",
   "locale.current": "Seçili site dili",
+  "locale.languageMatchDescription": "Kartları çözerken çeviri gerektiği için site dili ile kart dili aynı olamaz. Lütfen farklı bir dil seç.",
+  "locale.languageMatchTitle": "Site dili ve kart dili aynı olamaz",
   "locale.lockedOnLearnDescription": "Site dilini değiştirmek için önce Öğren sayfasından çık.",
   "locale.lockedOnLearnTitle": "Öğren sayfasındayken site dili değiştirilemez",
   "metadata.description": "Çok dilli kelime haznesini koleksiyon kartlarıyla geliştiren öğrenme uygulaması.",

@@ -308,6 +308,8 @@ const dictionary = {
   "limit.upgradeButton": "Upgrade your plan",
   "locale.change": "Change site language",
   "locale.current": "Current site language",
+  "locale.languageMatchDescription": "Site language and card language must be different so the quiz can show translations. Please choose a different language.",
+  "locale.languageMatchTitle": "Site language and card language can't be the same",
   "locale.lockedOnLearnDescription": "Leave the Learn page before changing the site language.",
   "locale.lockedOnLearnTitle": "Site language can't be changed during Learn",
   "metadata.description": "A multilingual vocabulary learning app built around collectible cards.",

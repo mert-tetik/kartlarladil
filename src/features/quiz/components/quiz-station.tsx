@@ -252,12 +252,6 @@ export function QuizStation({
   const [chestOpened, setChestOpened] = useState(false);
   const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [desktopCardFace, setDesktopCardFace] = useState<"front" | "back">(
-    "back",
-  );
-  const [mobileCardFace, setMobileCardFace] = useState<"front" | "back">(
-    "back",
-  );
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
 
   const languageStats = useMemo(
@@ -363,8 +357,6 @@ export function QuizStation({
     setTextAnswer("");
     setTextResult("idle");
     setLastAnswerCorrect(null);
-    setDesktopCardFace("back");
-    setMobileCardFace("back");
   }, []);
 
   const advanceQuiz = useCallback(
@@ -522,8 +514,6 @@ export function QuizStation({
         setShowingAnswer(true);
         setTextResult(isCorrect ? "correct" : "incorrect");
         setLastAnswerCorrect(isCorrect);
-        setDesktopCardFace("front");
-        setMobileCardFace("front");
 
         void recordAnswer({
           cardId: item.card.id,
@@ -787,7 +777,7 @@ export function QuizStation({
             className="order-2 flex items-center justify-center lg:hidden"
             data-quiz-mobile-card-slot
           >
-            <MobileQuizCard item={item} face={mobileCardFace} />
+            <MobileQuizCard item={item} face={showingAnswer ? "front" : "back"} />
           </div>
 
           <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
@@ -800,7 +790,7 @@ export function QuizStation({
                 inventory={item.inventoryCard}
                 owned
                 initialFace="back"
-                face={desktopCardFace}
+                face={showingAnswer ? "front" : "back"}
                 flippable={false}
                 className="h-full w-auto min-h-0 max-w-full"
               />
@@ -1777,16 +1767,18 @@ export function ResultView({
         data-testid="quiz-result-panel"
         className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-5 text-center shadow-sm sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-6"
       >
-        <div className="flex flex-col items-center max-lg:-translate-y-6">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted max-lg:-translate-y-3 sm:text-xs">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
             {t("home.mobile.rankLabel")}
           </span>
-          <RankIcon
-            icon={stats.rank.icon}
-            className="mt-2 size-20 animate-trophy-intro-grow sm:size-28"
-            sizes="144px"
-          />
-          <h2 className="mt-3 text-xl font-bold text-foreground sm:text-2xl">
+          <div className="relative flex h-40 w-full items-end justify-center sm:h-52">
+            <RankIcon
+              icon={stats.rank.icon}
+              className="size-24 origin-bottom animate-trophy-intro-grow sm:size-32"
+              sizes="(max-width: 640px) 160px, 220px"
+            />
+          </div>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             {getRankLabel(stats.rank, locale)}
           </h2>
         </div>
