@@ -111,6 +111,9 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       </div>
 
       <PaymentProviderNotes />
+      <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-foreground-muted lg:hidden">
+        {t("pricing.contactEmail")}
+      </p>
     </div>
   );
 }

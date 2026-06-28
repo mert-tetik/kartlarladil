@@ -1,48 +1,50 @@
+import { describe, expect, it, vi } from "vitest";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
-import { vi } from "vitest";
 
 describe("aiValidateTextAnswer", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("returns accepted: true when the API responds with 't'", async () => {
+  it("returns accepted: true when the API accepts the answer", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          ok: true,
           json: () => Promise.resolve({ accepted: true }),
         }),
       ) as unknown as typeof fetch,
     );
 
     const result = await aiValidateTextAnswer({
-      userAnswer: "apple",
-      correctAnswers: ["apple"],
+      userAnswer: "hot",
+      correctAnswers: ["warm"],
       targetLanguage: "en",
       sourceLanguage: "tr",
-      promptContext: "elma",
+      promptContext: "warm -> ılık",
     });
 
     expect(result.accepted).toBe(true);
   });
 
-  it("returns accepted: false when the API responds with 'y'", async () => {
+  it("returns accepted: false when the API rejects the answer", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          ok: true,
           json: () => Promise.resolve({ accepted: false }),
         }),
       ) as unknown as typeof fetch,
     );
 
     const result = await aiValidateTextAnswer({
-      userAnswer: "banana",
-      correctAnswers: ["apple"],
+      userAnswer: "cold",
+      correctAnswers: ["warm"],
       targetLanguage: "en",
       sourceLanguage: "tr",
-      promptContext: "elma",
+      promptContext: "warm -> ılık",
     });
 
     expect(result.accepted).toBe(false);
@@ -55,11 +57,11 @@ describe("aiValidateTextAnswer", () => {
     );
 
     const result = await aiValidateTextAnswer({
-      userAnswer: "apple",
-      correctAnswers: ["apple"],
+      userAnswer: "hot",
+      correctAnswers: ["warm"],
       targetLanguage: "en",
       sourceLanguage: "tr",
-      promptContext: "elma",
+      promptContext: "warm -> ılık",
     });
 
     expect(result.accepted).toBe(false);
@@ -70,17 +72,18 @@ describe("aiValidateTextAnswer", () => {
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          ok: true,
           json: () => Promise.resolve({ unexpected: true }),
         }),
       ) as unknown as typeof fetch,
     );
 
     const result = await aiValidateTextAnswer({
-      userAnswer: "apple",
-      correctAnswers: ["apple"],
+      userAnswer: "hot",
+      correctAnswers: ["warm"],
       targetLanguage: "en",
       sourceLanguage: "tr",
-      promptContext: "elma",
+      promptContext: "warm -> ılık",
     });
 
     expect(result.accepted).toBe(false);

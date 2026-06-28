@@ -71,10 +71,14 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
           {showsUpgradeCta ? (
             <Link
               href="/pricing"
-              className={buttonClassName("primary", "md")}
+              className={buttonClassName(
+                "primary",
+                "md",
+                "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
+              )}
               onClick={() => onOpenChange(false)}
             >
-              {t("limit.upgradeButton")}
+              {t("limit.upgradeButtonFirstMonthFree")}
             </Link>
           ) : null}
         </div>

@@ -2,7 +2,7 @@ import type { AiValidateAnswerRequest, AiValidateAnswerResponse } from "@/featur
 import type { LanguageCode } from "@/types/domain";
 
 const API_ROUTE = "/api/quiz/validate-answer";
-const CLIENT_TIMEOUT_MS = 3_500;
+const CLIENT_TIMEOUT_MS = 5_500;
 
 export interface AiValidateTextAnswerOptions {
   userAnswer: string;
