@@ -31,10 +31,11 @@ export function useGooglePlayBilling() {
   }, [isSupported]);
 
   const getProductDetails = useCallback(
-    async (sku: string) => {
+    async (sku: string | string[]) => {
       const service = await getService();
-      const details = await service.getDetails([sku]);
-      return details[0] ?? null;
+      const skus = Array.isArray(sku) ? sku : [sku];
+      const details = await service.getDetails(skus);
+      return Array.isArray(sku) ? details : (details[0] ?? null);
     },
     [getService],
   );

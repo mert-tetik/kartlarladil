@@ -10,6 +10,13 @@ import { createCheckoutAction } from "@/features/subscriptions/subscription-acti
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
+import {
+  getGooglePlayPricingDetails,
+  getGooglePlaySku,
+  useGooglePlayPricing,
+  type GooglePlayPricingStatus,
+  type BillingCycle as GooglePlayBillingCycle,
+} from "@/features/subscriptions/use-google-play-pricing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
@@ -25,7 +32,7 @@ import {
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
 
-type BillingCycle = "monthly" | "yearly";
+type BillingCycle = GooglePlayBillingCycle;
 
 interface PricingPageProps {
   user: AuthShellUser | null;
@@ -52,6 +59,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const { entitlements } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const localizedPricing = useLocalizedPricing(currencyCode);
+  const googlePlayPricing = useGooglePlayPricing();
   const isTwa = useTwaMode();
 
   return (
@@ -91,6 +99,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
             provider={entitlements?.provider ?? "lemon_squeezy"}
             user={user}
             localizedPricing={localizedPricing}
+            googlePlayPricing={googlePlayPricing}
             uiLocale={locale}
             isTwa={isTwa}
           />
@@ -154,6 +163,7 @@ function PricingCard({
   provider,
   user,
   localizedPricing,
+  googlePlayPricing,
   uiLocale,
   isTwa,
 }: PricingPlan & {
@@ -162,29 +172,93 @@ function PricingCard({
   provider: SubscriptionProvider;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
+  googlePlayPricing: GooglePlayPricingStatus;
   uiLocale: string;
   isTwa: boolean;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
-  const price = cycle === "yearly" ? yearlyPrice : monthlyPrice;
+  const googlePlayDetails =
+    plan !== "free" ? getGooglePlayPricingDetails(googlePlayPricing, plan, cycle) : null;
+  const googlePlayYearlyDetails =
+    plan !== "free" ? getGooglePlayPricingDetails(googlePlayPricing, plan, "yearly") : null;
+  const fallbackPrice = cycle === "yearly" ? yearlyPrice : monthlyPrice;
+  const fallbackYearlyPrice = yearlyPrice;
   const localized = getLocalizedPrice(localizedPricing, plan, cycle);
-  const localizedYearly = cycle === "yearly" ? localized : getLocalizedPrice(localizedPricing, plan, "yearly");
+  const localizedYearly = getLocalizedPrice(localizedPricing, plan, "yearly");
+
+  const monthlyReferencePrice = useMemo(() => {
+    if (plan === "free") return null;
+    if (cycle === "monthly") {
+      if (googlePlayDetails) return Number.parseFloat(googlePlayDetails.price.value);
+      return monthlyPrice;
+    }
+    if (googlePlayYearlyDetails) {
+      const yearly = Number.parseFloat(googlePlayYearlyDetails.price.value);
+      return yearly / 12;
+    }
+    if (yearlyPrice != null) return yearlyPrice / 12;
+    return monthlyPrice;
+  }, [plan, cycle, googlePlayDetails, googlePlayYearlyDetails, monthlyPrice, yearlyPrice]);
+
+  const yearlyReferencePrice = useMemo(() => {
+    if (plan === "free") return null;
+    if (cycle === "yearly") {
+      if (googlePlayYearlyDetails) return Number.parseFloat(googlePlayYearlyDetails.price.value);
+      return yearlyPrice;
+    }
+    if (googlePlayDetails) return Number.parseFloat(googlePlayDetails.price.value) * 12;
+    if (monthlyPrice != null) return monthlyPrice * 12;
+    return yearlyPrice;
+  }, [plan, cycle, googlePlayDetails, googlePlayYearlyDetails, monthlyPrice, yearlyPrice]);
+
   const discountRate = useMemo(() => {
-    if (monthlyPrice == null || yearlyPrice == null) return null;
-    return Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
-  }, [monthlyPrice, yearlyPrice]);
+    if (monthlyReferencePrice == null || yearlyReferencePrice == null) return null;
+    if (monthlyReferencePrice <= 0) return null;
+    return Math.round((1 - yearlyReferencePrice / (monthlyReferencePrice * 12)) * 100);
+  }, [monthlyReferencePrice, yearlyReferencePrice]);
 
   const priceDisplay = useMemo(() => {
-    if (price === null) return { primary: t("pricing.priceFree"), original: "" };
+    if (fallbackPrice === null) return { primary: t("pricing.priceFree"), original: "" };
+
+    if (googlePlayDetails) {
+      const amount = Number.parseFloat(googlePlayDetails.price.value);
+      return {
+        primary: formatCurrency(amount, googlePlayDetails.price.currency, uiLocale),
+        original: `≈ $${fallbackPrice}`,
+      };
+    }
+
     if (localized) {
       return {
         primary: formatCurrency(localized.amount, localized.currencyCode, uiLocale),
-        original: `≈ $${price}`,
+        original: `≈ $${fallbackPrice}`,
       };
     }
-    return { primary: `$${price}`, original: "" };
-  }, [price, localized, uiLocale, t]);
+
+    return { primary: `$${fallbackPrice}`, original: "" };
+  }, [fallbackPrice, googlePlayDetails, localized, uiLocale, t]);
+
+  const monthlyEquivalentDisplay = useMemo(() => {
+    if (cycle !== "yearly" || plan === "free" || fallbackYearlyPrice == null) return null;
+
+    if (googlePlayYearlyDetails) {
+      const yearlyAmount = Number.parseFloat(googlePlayYearlyDetails.price.value);
+      return formatCurrency(yearlyAmount / 12, googlePlayYearlyDetails.price.currency, uiLocale);
+    }
+
+    if (localizedYearly) {
+      return formatCurrency(localizedYearly.amount / 12, localizedYearly.currencyCode, uiLocale);
+    }
+
+    return (fallbackYearlyPrice / 12).toFixed(2);
+  }, [cycle, plan, fallbackYearlyPrice, googlePlayYearlyDetails, localizedYearly, uiLocale]);
+
+  const showIntroOffer =
+    isTwa &&
+    cycle === "monthly" &&
+    plan !== "free" &&
+    googlePlayDetails?.hasIntroductoryOffer;
 
   return (
     <div
@@ -208,7 +282,7 @@ function PricingCard({
       </div>
       <div className="mt-4 flex flex-wrap items-baseline gap-1">
         <span className="font-display text-4xl font-semibold">{priceDisplay.primary}</span>
-        {price !== null ? (
+        {fallbackPrice !== null ? (
           <>
             <span className={cn("text-sm", "text-foreground-muted")}>
               {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
@@ -220,24 +294,19 @@ function PricingCard({
         ) : null}
       </div>
 
-      {cycle === "yearly" && price !== null && discountRate != null ? (
+      {cycle === "yearly" && fallbackPrice !== null && discountRate != null && discountRate > 0 ? (
         <p className={cn("mt-1 text-xs font-medium", "text-emerald-600")}>
           {t("pricing.yearlyDiscount", { rate: discountRate })}
         </p>
       ) : null}
 
-      {cycle === "yearly" && monthlyPrice != null && yearlyPrice != null ? (
+      {cycle === "yearly" && monthlyEquivalentDisplay ? (
         <p className={cn("mt-1 text-xs", "text-foreground-muted")}>
-          {t("pricing.monthlyEquivalent", {
-            price:
-              localizedYearly
-                ? formatCurrency(localizedYearly.amount / 12, localizedYearly.currencyCode, uiLocale)
-                : (yearlyPrice / 12).toFixed(2),
-          })}
+          {t("pricing.monthlyEquivalent", { price: monthlyEquivalentDisplay })}
         </p>
       ) : null}
 
-      {isTwa && cycle === "monthly" && plan !== "free" ? (
+      {showIntroOffer ? (
         <p className="mt-2 text-sm font-bold uppercase text-brand">
           {t("pricing.firstMonthFree")}
         </p>
@@ -453,27 +522,6 @@ function GooglePlayCheckoutButton({
       ) : null}
     </div>
   );
-}
-
-const GOOGLE_PLAY_SKUS: Record<
-  Exclude<SubscriptionPlan, "free">,
-  Record<BillingCycle, string>
-> = {
-  basic: {
-    monthly: "basic-monthly-first-month-free",
-    yearly: "basic_yearly",
-  },
-  pro: {
-    monthly: "pro-monthly-one-month-free",
-    yearly: "pro_yearly",
-  },
-};
-
-function getGooglePlaySku(
-  plan: Exclude<SubscriptionPlan, "free">,
-  cycle: BillingCycle,
-): string {
-  return GOOGLE_PLAY_SKUS[plan][cycle];
 }
 
 function PaymentProviderNotes() {
