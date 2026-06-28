@@ -226,7 +226,11 @@ export async function verifyGooglePlayPurchaseAction(
     const t = await getSubscriptionActionText();
     return {
       status: "error",
-      message: getGooglePlayErrorMessage(error, t("pricing.error.checkoutFailed")),
+      message: getGooglePlayErrorMessage(
+        error,
+        t("pricing.error.checkoutFailed"),
+        t("pricing.error.clientAppUnavailable"),
+      ),
     };
   }
 }

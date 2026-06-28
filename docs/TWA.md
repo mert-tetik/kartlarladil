@@ -69,6 +69,16 @@ TWA_SHA256_FINGERPRINT=AA:BB:CC:...
 3. Redeploy the site so that `/.well-known/assetlinks.json` returns the correct content.
 4. Rebuild the APK/AAB and reinstall.
 
+## Chrome enforcement
+
+The launcher activity is customized to force Chrome as the TWA provider:
+
+- `LauncherActivity.createTwaLauncher()` is overridden to pass `com.android.chrome` as the provider package. This prevents Samsung devices from opening the app in Samsung Internet even when Chrome is installed.
+- If Chrome is not installed, the app shows a toast and redirects the user to the Google Play Store to install Chrome instead of launching.
+- `AndroidManifest.xml` declares a `<queries>` block limited to `com.android.chrome` and keeps `DelegationService` always enabled/exported.
+
+When a `clientAppUnavailable` error is returned by Google Play Billing inside the TWA, the pricing UI shows a localized message asking the user to set Google Chrome as the default browser and try again.
+
 ## Notes
 
 - The site must be served over HTTPS.

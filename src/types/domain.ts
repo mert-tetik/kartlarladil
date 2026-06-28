@@ -210,7 +210,6 @@ export interface CardFilters {
 export interface CardRepository {
   list(filters?: CardFilters): VocabularyCard[];
   findById(cardId: string): VocabularyCard | undefined;
-  draw(count: number, filters?: CardFilters, excludedIds?: string[]): VocabularyCard[];
 }
 
 export interface InventoryRepository {

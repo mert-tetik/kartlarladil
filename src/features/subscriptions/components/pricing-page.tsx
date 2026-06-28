@@ -6,7 +6,10 @@ import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
+import {
+  createCheckoutAction,
+  createCustomerPortalAction,
+} from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
@@ -97,6 +100,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
             cycle={cycle}
             currentPlan={entitlements?.effectivePlan ?? null}
             provider={entitlements?.provider ?? "lemon_squeezy"}
+            customerPortalUrl={entitlements?.customerPortalUrl ?? null}
             user={user}
             localizedPricing={localizedPricing}
             googlePlayPricing={googlePlayPricing}
@@ -161,6 +165,7 @@ function PricingCard({
   cycle,
   currentPlan,
   provider,
+  customerPortalUrl,
   user,
   localizedPricing,
   googlePlayPricing,
@@ -170,6 +175,7 @@ function PricingCard({
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   provider: SubscriptionProvider;
+  customerPortalUrl: string | null;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
@@ -322,9 +328,12 @@ function PricingCard({
 
       <div className="mt-8">
         {isCurrent ? (
-          <Button variant="secondary" className="w-full" disabled>
-            {t("pricing.ctaCurrent")}
-          </Button>
+          <CurrentPlanButton
+            plan={plan}
+            provider={provider}
+            customerPortalUrl={customerPortalUrl}
+            isTwa={isTwa}
+          />
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
@@ -484,7 +493,13 @@ function GooglePlayCheckoutButton({
       await purchase(getGooglePlaySku(plan, cycle));
     } catch (error) {
       console.error("Google Play purchase failed:", error);
-      setPurchaseError(getGooglePlayErrorMessage(error, t("pricing.error.checkoutFailed")));
+      setPurchaseError(
+        getGooglePlayErrorMessage(
+          error,
+          t("pricing.error.checkoutFailed"),
+          t("pricing.error.clientAppUnavailable"),
+        ),
+      );
     }
   };
 
@@ -521,6 +536,93 @@ function GooglePlayCheckoutButton({
         <p className="text-center text-xs text-rose-600">{purchaseError}</p>
       ) : null}
     </div>
+  );
+}
+
+function CurrentPlanButton({
+  plan,
+  provider,
+  customerPortalUrl,
+  isTwa,
+}: {
+  plan: SubscriptionPlan;
+  provider: SubscriptionProvider;
+  customerPortalUrl: string | null;
+  isTwa: boolean;
+}) {
+  const t = useT();
+
+  if (plan === "free") {
+    return (
+      <Button variant="secondary" className="w-full" disabled>
+        {t("pricing.ctaCurrent")}
+      </Button>
+    );
+  }
+
+  const isMismatch =
+    (isTwa && provider === "lemon_squeezy") || (!isTwa && provider === "google_play");
+
+  if (isMismatch) {
+    return <SubscriptionMismatchNotice provider={provider} context="pricing" />;
+  }
+
+  if (isTwa && provider === "google_play") {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        onClick={() =>
+          window.open(GOOGLE_PLAY_SUBSCRIPTIONS_URL, "_blank", "noopener,noreferrer")
+        }
+      >
+        {t("pricing.ctaCurrentAndManage")}
+      </Button>
+    );
+  }
+
+  return <CustomerPortalButton customerPortalUrl={customerPortalUrl} />;
+}
+
+function CustomerPortalButton({ customerPortalUrl }: { customerPortalUrl: string | null }) {
+  const t = useT();
+  const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
+    status: "idle" as const,
+    message: "",
+  });
+
+  useEffect(() => {
+    if (state.status === "success" && state.customerPortalUrl) {
+      const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
+      if (!portalWindow) {
+        window.location.assign(state.customerPortalUrl);
+      }
+    }
+  }, [state]);
+
+  if (customerPortalUrl) {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        onClick={() => window.open(customerPortalUrl, "_blank", "noopener,noreferrer")}
+      >
+        {t("pricing.ctaCurrentAndManage")}
+      </Button>
+    );
+  }
+
+  return (
+    <form action={formAction} className="w-full">
+      <Button type="submit" variant="secondary" className="w-full" disabled={pending}>
+        {pending ? t("common.loading") : t("pricing.ctaCurrentAndManage")}
+      </Button>
+      {state.status === "error" ? (
+        <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p>
+      ) : null}
+    </form>
   );
 }
 

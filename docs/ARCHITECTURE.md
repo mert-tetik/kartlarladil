@@ -30,11 +30,12 @@ Kart cevirileri `src/features/cards/card-localization.ts` uzerinden okunur. Ogre
 
 1. `src/data/card-seeds/*.ts` dosyalari kompakt seed satirlarini tutar.
 2. `src/data/cards.ts` seed satirlarindan lazy `VocabularyCard` objeleri uretir.
-3. `localCardRepository` katalog uzerinde filtre, arama ve draw islemlerini saglar.
+3. `localCardRepository` katalog uzerinde filtre ve arama islemlerini saglar.
 4. Guest inventory `localStorage` altinda `foxiesdeck:v3` ile tutulur.
 5. Authenticated inventory Supabase `user_cards` ve `practice_attempts` tablolarindan gelir.
 6. Cloud inventory `sourceKey` degerlerini dogrudan Supabase `user_cards.card_source_key` ve `practice_attempts.card_source_key` alanlarinda tutar.
 7. Card draw varsayilan filtresi kullanici profilindeki `preferred_language_code` ve `preferred_tier` alanlarindan turetilir; `preferred_tier = 'all'` ise tum tier'lar varsayilan secilir.
+8. Draw islemi `src/features/cards/draw-deck.ts` tarafindan cyclic deck mantigiyla yurutulur: cekilen kartlar `drawn` havuzuna, cekilmemis kartlar `remaining` havuzuna ayrilir; `remaining` bittiginde `drawn` havuzu karilarak yeni `remaining` olur. Deck durumu `localStorage` uzerinde her dil/tier kombinasyonu icin ayrı olarak saklanir.
 
 ## Catalog Generation
 

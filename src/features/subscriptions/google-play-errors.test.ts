@@ -21,4 +21,14 @@ describe("google play error formatting", () => {
 
     expect(detail).toBe("Verification failed for token [redacted]");
   });
+
+  it("returns the localized clientAppUnavailable message when the error contains it", () => {
+    const message = getGooglePlayErrorMessage(
+      new Error("PaymentService returned clientAppUnavailable"),
+      "Checkout failed.",
+      "Please make Chrome your default browser and try again.",
+    );
+
+    expect(message).toBe("Please make Chrome your default browser and try again.");
+  });
 });

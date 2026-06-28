@@ -41,9 +41,20 @@ export function getGooglePlayErrorDetail(error: unknown): string | null {
   return `${redacted.slice(0, MAX_PUBLIC_ERROR_LENGTH).trim()}...`;
 }
 
-export function getGooglePlayErrorMessage(error: unknown, fallbackMessage: string): string {
+export function getGooglePlayErrorMessage(
+  error: unknown,
+  fallbackMessage: string,
+  clientAppUnavailableMessage?: string,
+): string {
   const detail = getGooglePlayErrorDetail(error);
   if (!detail) return fallbackMessage;
+
+  if (
+    clientAppUnavailableMessage &&
+    detail.toLowerCase().includes("clientappunavailable")
+  ) {
+    return clientAppUnavailableMessage;
+  }
 
   if (detail === fallbackMessage || detail.startsWith(`${fallbackMessage} `)) {
     return detail;

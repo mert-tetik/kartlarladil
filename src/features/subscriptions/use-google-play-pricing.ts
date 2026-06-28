@@ -110,9 +110,10 @@ function parseGooglePlayItemDetails(item: DigitalGoodsItemDetails): GooglePlayPr
     introductoryPricePeriod: item.introductoryPricePeriod ?? null,
     introductoryPriceCycles: item.introductoryPriceCycles ?? null,
     hasIntroductoryOffer:
-      item.introductoryPrice != null &&
-      item.introductoryPriceCycles != null &&
-      item.introductoryPriceCycles > 0,
+      (item.introductoryPrice != null &&
+        item.introductoryPriceCycles != null &&
+        item.introductoryPriceCycles > 0) ||
+      item.freeTrialPeriod != null,
   };
 }
 

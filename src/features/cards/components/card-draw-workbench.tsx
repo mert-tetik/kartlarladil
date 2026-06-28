@@ -6,6 +6,12 @@ import { CardsIcon } from "@/components/icons/cards-icon";
 import { TIER_STYLES } from "@/data/tiers";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { getSearchableCardText } from "@/features/cards/card-localization";
+import {
+  drawCardsFromDeck,
+  markCardsAsDrawn,
+  readDrawDeckState,
+  writeDrawDeckState,
+} from "@/features/cards/draw-deck";
 import { FilterControls } from "@/features/cards/components/filter-controls";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
@@ -114,6 +120,24 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   );
   const { language, tier } = preferences;
   const hasInitialFilters = Boolean(initialLanguage && initialTier);
+
+  useEffect(() => {
+    const current = readDrawDeckState(window.localStorage, language, tier);
+    if (!current) return;
+
+    const nextRemaining = current.remaining.filter((id) => !ownedIds.has(id));
+    const nextDrawn = current.drawn.filter((id) => !ownedIds.has(id));
+
+    if (
+      nextRemaining.length !== current.remaining.length ||
+      nextDrawn.length !== current.drawn.length
+    ) {
+      writeDrawDeckState(window.localStorage, language, tier, {
+        remaining: nextRemaining,
+        drawn: nextDrawn,
+      });
+    }
+  }, [ownedIds, language, tier]);
   const showCardGrid = cards.length > 0 || exitingCards.length > 0;
 
   const suggestions = useMemo(() => {
@@ -281,6 +305,11 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     setIsDropdownOpen(false);
     setRawHighlightedIndex(-1);
     vibrate("draw");
+
+    const currentDeck = readDrawDeckState(window.localStorage, language, tier);
+    const nextDeck = markCardsAsDrawn(currentDeck, [card.id]);
+    writeDrawDeckState(window.localStorage, language, tier, nextDeck);
+
     dealCards([card]);
   }
 
@@ -336,9 +365,20 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     setRawHighlightedIndex(-1);
   }
 
-  function drawCards(count: number) {
+  function handleDrawCards(count: number) {
     vibrate("draw");
-    dealCards(localCardRepository.draw(count, { language, tier }, [...ownedIds]));
+
+    const currentDeck = readDrawDeckState(window.localStorage, language, tier);
+    const candidates = localCardRepository.list({ language, tier });
+    const { cards, state } = drawCardsFromDeck(
+      currentDeck,
+      count,
+      candidates,
+      ownedIds,
+    );
+
+    writeDrawDeckState(window.localStorage, language, tier, state);
+    dealCards(cards);
   }
 
   function skipCard(cardId: string) {
@@ -548,12 +588,12 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
               <Button
                 size="lg"
                 disabled={!hydrated}
-                onClick={() => drawCards(5)}
+                onClick={() => handleDrawCards(5)}
                 className="border-0 bg-brand text-brand-foreground hover:bg-brand-hover focus-visible:outline-brand"
               >
                 {t("cards.drawFive")}
               </Button>
-              <Button size="lg" disabled={!hydrated} onClick={() => drawCards(10)}>
+              <Button size="lg" disabled={!hydrated} onClick={() => handleDrawCards(10)}>
                 {t("cards.drawTen")}
               </Button>
             </div>
@@ -565,7 +605,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
             <Button
               size="lg"
               disabled={!hydrated}
-              onClick={() => drawCards(10)}
+              onClick={() => handleDrawCards(10)}
               data-tutorial-target="draw-cards-action"
               className="h-12 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground hover:bg-brand-hover"
             >
