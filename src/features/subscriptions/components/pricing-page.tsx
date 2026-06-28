@@ -395,12 +395,14 @@ function GooglePlayCheckoutButton({
   const t = useT();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
+  const isCurrentPlan = currentPlan === plan;
+  const isUpgradeToPro = currentPlan === "basic" && plan === "pro";
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const handleClick = async () => {
     setPurchaseError(null);
 
-    if (isPaidUser) {
+    if (isPaidUser && !isUpgradeToPro) {
       window.open(
         GOOGLE_PLAY_SUBSCRIPTIONS_URL,
         "_blank",
@@ -417,6 +419,16 @@ function GooglePlayCheckoutButton({
     }
   };
 
+  const buttonLabel = isLoading
+    ? t("common.loading")
+    : isCurrentPlan
+      ? t("pricing.ctaCurrent")
+      : isUpgradeToPro
+        ? t("pricing.ctaUpgrade")
+        : isPaidUser
+          ? t("pricing.ctaManage")
+          : t("pricing.ctaUpgrade");
+
   return (
     <div className="w-full space-y-2">
       <Button
@@ -429,7 +441,7 @@ function GooglePlayCheckoutButton({
         disabled={isLoading || !isSupported}
         onClick={handleClick}
       >
-        {isLoading ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
+        {buttonLabel}
       </Button>
 
       {!isSupported ? (
