@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
@@ -10,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const MOBILE_BREAKPOINT = 1024;
+
+const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen"];
 
 function getIsMobileViewport() {
   if (typeof window === "undefined") return false;
@@ -28,6 +31,7 @@ function saveWebChoice() {
 
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
+  const pathname = usePathname();
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
 
@@ -47,7 +51,11 @@ export function MobileAuthGateway() {
     return !user.profile.onboardingCompleted;
   }, [user]);
 
-  if (!isMobileViewport || !needsAuth) {
+  const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  if (!isMobileViewport || !needsAuth || isPublicMobilePath) {
     return null;
   }
 

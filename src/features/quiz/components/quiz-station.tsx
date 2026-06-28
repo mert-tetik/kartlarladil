@@ -1570,7 +1570,9 @@ export function MobileQuizFeedback({
           <p className="text-sm font-semibold text-white">
             {display.isCorrect
               ? t("quiz.correctAnswer")
-              : t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })}
+              : display.correctAnswer
+                ? t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })
+                : t("quiz.wrongAnswer")}
           </p>
         </div>
         <Button
