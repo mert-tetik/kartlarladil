@@ -120,6 +120,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   );
   const { language, tier } = preferences;
   const hasInitialFilters = Boolean(initialLanguage && initialTier);
+  const initialPropsAppliedRef = useRef(false);
 
   useEffect(() => {
     const current = readDrawDeckState(window.localStorage, language, tier);
@@ -216,10 +217,25 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   }, []);
 
   useEffect(() => {
-    if (!tutorialCompleted && tutorialStep === 1 && initialTier) {
-      advanceTutorial();
+    if (initialPropsAppliedRef.current) return;
+    initialPropsAppliedRef.current = true;
+
+    if (!initialLanguage && !initialTier) return;
+
+    const currentLang = preferences.language;
+    const currentTier = preferences.tier;
+    const needsSync =
+      (initialLanguage && initialLanguage !== currentLang) ||
+      (initialTier && initialTier !== currentTier);
+
+    if (needsSync) {
+      const updatedPreferences = {
+        language: initialLanguage ?? currentLang,
+        tier: initialTier ?? currentTier,
+      };
+      writeCardDrawPreferences(window.localStorage, updatedPreferences);
     }
-  }, [advanceTutorial, initialTier, tutorialCompleted, tutorialStep]);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -294,6 +310,19 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     };
 
     writeCardDrawPreferences(window.localStorage, updatedPreferences);
+
+    const url = new URL(window.location.href);
+    if (updatedPreferences.language && updatedPreferences.language !== "all") {
+      url.searchParams.set("language", updatedPreferences.language);
+    } else {
+      url.searchParams.delete("language");
+    }
+    if (updatedPreferences.tier && updatedPreferences.tier !== "all") {
+      url.searchParams.set("tier", updatedPreferences.tier);
+    } else {
+      url.searchParams.delete("tier");
+    }
+    window.history.replaceState(null, "", url.toString());
 
     if (!tutorialCompleted && nextPreferences.tier !== undefined && nextPreferences.tier !== tier && tutorialStep === 1) {
       advanceTutorial();
@@ -615,7 +644,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           </div>
           <div
             data-card-draw-filters
-            className={cn(hasInitialFilters && "max-lg:hidden")}
           >
             <FilterControls
               language={language}
