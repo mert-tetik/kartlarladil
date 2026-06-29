@@ -18,6 +18,7 @@ interface UserSubscriptionRow {
   plan: string;
   status: string;
   provider: string | null;
+  display_name?: string | null;
   customer_portal_url: string | null;
   lemon_squeezy_customer_id?: string | null;
   lemon_squeezy_subscription_id?: string | null;
@@ -157,6 +158,7 @@ function normalizeSubscription(row: UserSubscriptionRow | null): UserSubscriptio
     plan,
     status,
     provider,
+    displayName: row?.display_name ?? null,
     customerPortalUrl: row?.customer_portal_url ?? null,
     googlePlayPurchaseToken: row?.google_play_purchase_token ?? null,
     googlePlaySubscriptionId: row?.google_play_subscription_id ?? null,

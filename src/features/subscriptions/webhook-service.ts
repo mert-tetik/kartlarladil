@@ -142,6 +142,7 @@ export async function processWebhookEvent(
       renews_at: subscriptionUpdate.renewsAt,
       ends_at: subscriptionUpdate.endsAt,
       updated_at: new Date().toISOString(),
+      display_name: null,
     },
     { onConflict: "user_id" },
   );

@@ -118,6 +118,7 @@ export async function verifyGooglePlaySubscription(
       renews_at: endsAt,
       ends_at: endsAt,
       updated_at: new Date().toISOString(),
+      display_name: null,
     },
     { onConflict: "user_id" },
   );

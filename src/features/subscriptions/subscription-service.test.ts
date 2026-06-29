@@ -34,6 +34,7 @@ function makeSubscription(
     plan: plan as UserSubscription["plan"],
     status,
     provider: "lemon_squeezy",
+    displayName: null,
     customerPortalUrl: null,
     googlePlayPurchaseToken: null,
     googlePlaySubscriptionId: null,

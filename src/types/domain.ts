@@ -184,6 +184,7 @@ export interface UserSubscription {
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
   provider: SubscriptionProvider;
+  displayName: string | null;
   customerPortalUrl: string | null;
   googlePlayPurchaseToken: string | null;
   googlePlaySubscriptionId: string | null;
