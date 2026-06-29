@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "Kartı görmek için önce soruyu cevapla",
   "quiz.showDetails": "Detayları gör",
   "quiz.start": "Alıştırmayı başlat",
+  "quiz.startSplash": "BAŞLA",
   "quiz.submitAnswer": "Cevabı kontrol et",
   "quiz.aiValidating": "Cevabın kontrol ediliyor...",
   "quiz.openChest": "Ödül sandığı aç",

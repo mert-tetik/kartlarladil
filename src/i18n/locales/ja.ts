@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "まず質問に答えてからカードを表示",
   "quiz.showDetails": "詳細を表示",
   "quiz.start": "練習を開始",
+  "quiz.startSplash": "スタート",
   "quiz.submitAnswer": "回答を確認",
   "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "報酬の宝箱を開ける",

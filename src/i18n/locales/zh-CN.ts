@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "首先回答问题才能查看卡片",
   "quiz.showDetails": "显示详情",
   "quiz.start": "开始练习",
+  "quiz.startSplash": "开始",
   "quiz.submitAnswer": "检查答案",
   "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "打开奖励宝箱",

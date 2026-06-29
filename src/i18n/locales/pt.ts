@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "Responda a pergunta primeiro para ver o cartão",
   "quiz.showDetails": "Mostrar detalhes",
   "quiz.start": "Começar prática",
+  "quiz.startSplash": "COMEÇAR",
   "quiz.submitAnswer": "Verificar resposta",
   "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "Abrir baú de recompensa",

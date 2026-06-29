@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -39,6 +40,16 @@ vi.mock("@/lib/sound-effects", () => ({
 
 vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({ refreshStats: vi.fn(), stats: EMPTY_PROGRESS_STATS }),
+}));
+
+vi.mock("@/features/quiz/components/quiz-start-splash", () => ({
+  QuizStartSplash: ({ onComplete }: { onComplete: () => void }) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+      onComplete();
+    }, []);
+    return null;
+  },
 }));
 
 const testUser: AuthShellUser = {

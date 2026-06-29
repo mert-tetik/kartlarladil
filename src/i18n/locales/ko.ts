@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "먼저 질문에 답해야 카드를 볼 수 있습니다",
   "quiz.showDetails": "세부정보 보기",
   "quiz.start": "연습 시작",
+  "quiz.startSplash": "시작",
   "quiz.submitAnswer": "답변 확인",
   "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "보상 상자 열기",

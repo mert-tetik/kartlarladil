@@ -521,6 +521,7 @@ const dictionary = {
   "quiz.showCardLocked": "Сначала ответьте на вопрос, чтобы увидеть карточку",
   "quiz.showDetails": "Показать детали",
   "quiz.start": "Начать практику",
+  "quiz.startSplash": "СТАРТ",
   "quiz.submitAnswer": "Проверить ответ",
   "quiz.aiValidating": "Checking your answer...",
   "quiz.openChest": "Открыть сундук с наградой",

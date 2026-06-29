@@ -971,6 +971,25 @@ body:has([data-ask-page]) footer {
   animation: learning-quiz-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes quiz-start-splash {
+  0% {
+    transform: translate3d(0, -100%, 0);
+  }
+  40% {
+    transform: translate3d(0, 0, 0);
+  }
+  60% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.animate-quiz-start-splash {
+  animation: quiz-start-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Mobile auth gateway: full-screen overlay that replaces the normal UI */
 body:has([data-mobile-auth-gateway]) {
   overflow: hidden;

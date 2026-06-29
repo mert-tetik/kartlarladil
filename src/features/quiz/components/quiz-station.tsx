@@ -51,6 +51,7 @@ import { awardChestPoints } from "@/features/quiz/actions";
 import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
+import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -89,6 +90,7 @@ import type {
 type QuizPhase =
   | "language"
   | "count"
+  | "quiz-start"
   | "quiz"
   | "celebration"
   | "result"
@@ -379,7 +381,7 @@ export function QuizStation({
       setResults({ correct: [], incorrect: [], learned: [] });
       setChestOpened(false);
       setAwardedChestTier(null);
-      setPhase("quiz");
+      setPhase("quiz-start");
     },
     [cards, mode, locale],
   );
@@ -759,6 +761,14 @@ export function QuizStation({
           />
         </div>
       </QuizViewportOverlay>
+    );
+  }
+
+  if (phase === "quiz-start") {
+    return (
+      <QuizStartSplash
+        onComplete={() => setPhase("quiz")}
+      />
     );
   }
 
