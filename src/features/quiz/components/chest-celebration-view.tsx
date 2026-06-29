@@ -18,7 +18,7 @@ const CELEBRATION_MESSAGE_KEYS = [
   "quiz.chestCelebration6",
   "quiz.chestCelebration7",
   "quiz.chestCelebration8",
-] as const;
+] as const satisfies readonly string[];
 
 const CELEBRATION_DURATION_MS = 2500;
 

@@ -133,17 +133,34 @@ interface QuizResult {
   learned: VocabularyCard[];
 }
 
-type QuizPerformanceLevel = "high" | "medium" | "low";
+type QuizPerformanceLevel = "high" | "mediumHigh" | "mediumLow" | "low";
 type QuizPerformanceMessageKey =
   | "quiz.resultMessageHigh1"
   | "quiz.resultMessageHigh2"
   | "quiz.resultMessageHigh3"
-  | "quiz.resultMessageMedium1"
-  | "quiz.resultMessageMedium2"
-  | "quiz.resultMessageMedium3"
+  | "quiz.resultMessageHigh4"
+  | "quiz.resultMessageHigh5"
+  | "quiz.resultMessageHigh6"
+  | "quiz.resultMessageHigh7"
+  | "quiz.resultMessageHigh8"
+  | "quiz.resultMessageMediumHigh1"
+  | "quiz.resultMessageMediumHigh2"
+  | "quiz.resultMessageMediumHigh3"
+  | "quiz.resultMessageMediumHigh4"
+  | "quiz.resultMessageMediumHigh5"
+  | "quiz.resultMessageMediumHigh6"
+  | "quiz.resultMessageMediumHigh7"
+  | "quiz.resultMessageMediumLow1"
+  | "quiz.resultMessageMediumLow2"
+  | "quiz.resultMessageMediumLow3"
+  | "quiz.resultMessageMediumLow4"
+  | "quiz.resultMessageMediumLow5"
   | "quiz.resultMessageLow1"
   | "quiz.resultMessageLow2"
-  | "quiz.resultMessageLow3";
+  | "quiz.resultMessageLow3"
+  | "quiz.resultMessageLow4"
+  | "quiz.resultMessageLow5"
+  | "quiz.resultMessageLow6";
 
 type QuizPerformanceSummary = {
   accuracy: number;
@@ -163,16 +180,35 @@ const QUIZ_RESULT_MESSAGE_KEYS: Record<
     "quiz.resultMessageHigh1",
     "quiz.resultMessageHigh2",
     "quiz.resultMessageHigh3",
+    "quiz.resultMessageHigh4",
+    "quiz.resultMessageHigh5",
+    "quiz.resultMessageHigh6",
+    "quiz.resultMessageHigh7",
+    "quiz.resultMessageHigh8",
   ],
-  medium: [
-    "quiz.resultMessageMedium1",
-    "quiz.resultMessageMedium2",
-    "quiz.resultMessageMedium3",
+  mediumHigh: [
+    "quiz.resultMessageMediumHigh1",
+    "quiz.resultMessageMediumHigh2",
+    "quiz.resultMessageMediumHigh3",
+    "quiz.resultMessageMediumHigh4",
+    "quiz.resultMessageMediumHigh5",
+    "quiz.resultMessageMediumHigh6",
+    "quiz.resultMessageMediumHigh7",
+  ],
+  mediumLow: [
+    "quiz.resultMessageMediumLow1",
+    "quiz.resultMessageMediumLow2",
+    "quiz.resultMessageMediumLow3",
+    "quiz.resultMessageMediumLow4",
+    "quiz.resultMessageMediumLow5",
   ],
   low: [
     "quiz.resultMessageLow1",
     "quiz.resultMessageLow2",
     "quiz.resultMessageLow3",
+    "quiz.resultMessageLow4",
+    "quiz.resultMessageLow5",
+    "quiz.resultMessageLow6",
   ],
 };
 
@@ -183,7 +219,7 @@ function getQuizResultMessageKey(
   chestOpened: boolean,
 ) {
   if (messageKeys.length === 0) {
-    return "quiz.resultMessageMedium1" as const;
+    return "quiz.resultMessageMediumHigh1" as const;
   }
 
   const seed = [
@@ -1985,7 +2021,7 @@ export function getQuizPerformanceSummary(
       : undefined;
   const chestUnlocked = accuracy >= 80 && Boolean(previewPair) && !chestOpened;
 
-  if (accuracy >= 80) {
+  if (accuracy >= 90) {
     return {
       accuracy,
       chestUnlocked,
@@ -1997,15 +2033,27 @@ export function getQuizPerformanceSummary(
     };
   }
 
+  if (accuracy >= 70) {
+    return {
+      accuracy,
+      chestUnlocked,
+      icon: Medal,
+      level: "mediumHigh",
+      messageKeys: QUIZ_RESULT_MESSAGE_KEYS.mediumHigh,
+      ringClassName: "border-sky-200 bg-sky-50",
+      textClassName: "text-sky-700",
+    };
+  }
+
   if (accuracy >= 50) {
     return {
       accuracy,
       chestUnlocked: false,
-      icon: Medal,
-      level: "medium",
-      messageKeys: QUIZ_RESULT_MESSAGE_KEYS.medium,
-      ringClassName: "border-sky-200 bg-sky-50",
-      textClassName: "text-sky-700",
+      icon: Star,
+      level: "mediumLow",
+      messageKeys: QUIZ_RESULT_MESSAGE_KEYS.mediumLow,
+      ringClassName: "border-emerald-200 bg-emerald-50",
+      textClassName: "text-emerald-700",
     };
   }
 
