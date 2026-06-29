@@ -44,12 +44,19 @@ vi.mock("@/features/progress/progress-client", () => ({
 
 vi.mock("@/features/quiz/components/quiz-start-splash", () => ({
   QuizStartSplash: ({ onComplete }: { onComplete: () => void }) => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
       onComplete();
-    }, []);
+    }, [onComplete]);
     return null;
   },
+}));
+
+vi.mock("@/features/quiz/components/quiz-streak-celebration-view", () => ({
+  QuizStreakCelebrationView: ({ streak }: { streak: number }) => (
+    <div data-streak-celebration-view data-streak-count={streak}>
+      {streak}
+    </div>
+  ),
 }));
 
 const testUser: AuthShellUser = {
@@ -115,6 +122,117 @@ describe("MobileQuizFeedback", () => {
   });
 });
 
+describe("QuizStation streak celebration", () => {
+  function getCurrentCard(cards: typeof VOCABULARY_CARDS) {
+    const term = document.querySelector("[data-quiz-card-term]")?.getAttribute("data-quiz-card-term");
+    return cards.find((card) => card.term === term);
+  }
+
+  async function answerCurrentCardCorrectly(cards: typeof VOCABULARY_CARDS) {
+    const card = getCurrentCard(cards);
+    expect(card).toBeDefined();
+    const answer = getPrimaryCardTranslation(card!, "tr");
+    fireEvent.click(screen.getByRole("button", { name: answer }));
+  }
+
+  it("shows a streak celebration after 5 consecutive correct answers", async () => {
+    const englishCards = VOCABULARY_CARDS.filter(
+      (card) => card.language === "en" && card.tier === "A1",
+    ).slice(0, 6);
+
+    useInventoryStore.setState({
+      cards: englishCards.map((card) => ({
+        cardId: card.id,
+        status: "active",
+        correctCount: 0,
+        addedAt: "2026-06-09T00:00:00.000Z",
+      })),
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(getCurrentCard(englishCards)).toBeDefined();
+    });
+
+    for (let index = 0; index < 4; index += 1) {
+      await answerCurrentCardCorrectly(englishCards);
+      const nextButton = await waitFor(() => {
+        const button = document.querySelector<HTMLElement>("[data-quiz-next-button]");
+        expect(button).toBeEnabled();
+        return button!;
+      });
+      fireEvent.click(nextButton);
+      if (index < 3) {
+        await waitFor(() => {
+          expect(document.querySelector("[data-streak-celebration-view]")).not.toBeInTheDocument();
+        });
+      }
+    }
+
+    await answerCurrentCardCorrectly(englishCards);
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-streak-celebration-view]")).toBeInTheDocument();
+    });
+    expect(document.querySelector("[data-streak-count]")).toHaveAttribute("data-streak-count", "5");
+  });
+
+  it("resets the streak after an incorrect answer", async () => {
+    const englishCards = VOCABULARY_CARDS.filter(
+      (card) => card.language === "en" && card.tier === "A1",
+    ).slice(0, 6);
+
+    useInventoryStore.setState({
+      cards: englishCards.map((card) => ({
+        cardId: card.id,
+        status: "active",
+        correctCount: 0,
+        addedAt: "2026-06-09T00:00:00.000Z",
+      })),
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(getCurrentCard(englishCards)).toBeDefined();
+    });
+
+    for (let index = 0; index < 4; index += 1) {
+      await answerCurrentCardCorrectly(englishCards);
+      const nextButton = await waitFor(() => {
+        const button = document.querySelector<HTMLElement>("[data-quiz-next-button]");
+        expect(button).toBeEnabled();
+        return button!;
+      });
+      fireEvent.click(nextButton);
+    }
+
+    const currentCard = getCurrentCard(englishCards);
+    expect(currentCard).toBeDefined();
+    const wrongOption = Array.from(document.querySelectorAll("[data-quiz-option]")).find(
+      (button) => button.textContent?.trim() !== getPrimaryCardTranslation(currentCard!, "tr"),
+    );
+    expect(wrongOption).toBeDefined();
+    fireEvent.click(wrongOption!);
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-streak-celebration-view]")).not.toBeInTheDocument();
+    });
+  });
+});
 describe("QuizStation sound feedback", () => {
   beforeEach(() => {
     useInventoryStore.setState({

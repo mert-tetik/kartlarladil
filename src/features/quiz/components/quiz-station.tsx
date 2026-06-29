@@ -52,6 +52,7 @@ import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
+import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -92,6 +93,7 @@ type QuizPhase =
   | "count"
   | "quiz-start"
   | "quiz"
+  | "streak-celebration"
   | "celebration"
   | "result"
   | "chest-celebration"
@@ -296,6 +298,7 @@ export function QuizStation({
   const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAiValidating, setIsAiValidating] = useState(false);
+  const [streak, setStreak] = useState(0);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
@@ -381,6 +384,7 @@ export function QuizStation({
       setResults({ correct: [], incorrect: [], learned: [] });
       setChestOpened(false);
       setAwardedChestTier(null);
+      setStreak(0);
       setPhase("quiz-start");
     },
     [cards, mode, locale],
@@ -473,6 +477,16 @@ export function QuizStation({
     },
     [],
   );
+
+  useEffect(() => {
+    if (phase !== "streak-celebration") return;
+
+    const timer = window.setTimeout(() => {
+      advanceQuiz();
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [phase, advanceQuiz]);
 
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
@@ -607,6 +621,12 @@ export function QuizStation({
         setShowingAnswer(true);
         setTextResult(isCorrect ? "correct" : "incorrect");
         setLastAnswerCorrect(isCorrect);
+
+        const nextStreak = isCorrect ? streak + 1 : 0;
+        setStreak(nextStreak);
+        if (nextStreak > 0 && nextStreak % 5 === 0) {
+          setPhase("streak-celebration");
+        }
 
         void recordAnswer({
           cardId: item.card.id,
@@ -770,6 +790,10 @@ export function QuizStation({
         onComplete={() => setPhase("quiz")}
       />
     );
+  }
+
+  if (phase === "streak-celebration") {
+    return <QuizStreakCelebrationView streak={streak} />;
   }
 
   if (phase === "chest-celebration") {

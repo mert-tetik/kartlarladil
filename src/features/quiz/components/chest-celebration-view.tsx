@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -25,14 +25,14 @@ const CELEBRATION_DURATION_MS = 2500;
 export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) {
   const t = useT();
   const [visible, setVisible] = useState(false);
+  const [messageKey] = useState(() =>
+    CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
+  );
   const completeRef = useRef(onComplete);
 
-  completeRef.current = onComplete;
-
-  const messageKey = useMemo(
-    () => CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
-    [],
-  );
+  useEffect(() => {
+    completeRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const enterTimer = window.setTimeout(() => setVisible(true), 50);
