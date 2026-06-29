@@ -50,6 +50,7 @@ import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
+import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -91,6 +92,7 @@ type QuizPhase =
   | "quiz"
   | "celebration"
   | "result"
+  | "chest-celebration"
   | "chest";
 
 export type { QuizPhase };
@@ -389,7 +391,7 @@ export function QuizStation({
         );
         if (summary.chestUnlocked && selectedCount !== null) {
           setAwardedChestTier(resolveAwardedChestTier(selectedCount) ?? null);
-          setPhase("chest");
+          setPhase("chest-celebration");
           return;
         }
         setPhase("result");
@@ -721,6 +723,14 @@ export function QuizStation({
           />
         </div>
       </QuizViewportOverlay>
+    );
+  }
+
+  if (phase === "chest-celebration") {
+    return (
+      <ChestCelebrationView
+        onComplete={() => setPhase("chest")}
+      />
     );
   }
 
