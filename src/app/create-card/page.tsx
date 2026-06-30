@@ -81,6 +81,7 @@ export default function CreateCardPage() {
       router.push("/?menu=active");
     } catch (error) {
       setErrorCode(error instanceof Error ? error.message : "unknown");
+    } finally {
       setAdding(false);
     }
   }
@@ -145,50 +146,49 @@ export default function CreateCardPage() {
       </div>
 
       {previewCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="flex max-h-full w-full max-w-md flex-col items-center justify-center gap-4">
+        <div className="fixed inset-x-0 top-[var(--app-header-height)] bottom-[var(--mobile-nav-bar-height)] z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm lg:bottom-0">
+          <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-hidden">
             <div
               className={cn(
-                "relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black p-4 shadow-2xl",
-                "sm:p-6",
+                "relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
+                "sm:p-4",
               )}
             >
-              <div className="mb-3 text-center sm:mb-4">
-                <h2 className="text-base font-semibold text-white sm:text-lg">{t("createCard.previewTitle")}</h2>
-                <p className="text-xs text-white/70 sm:text-sm">{t("createCard.previewDescription")}</p>
+              <div className="mb-2 text-center">
+                <h2 className="text-sm font-semibold text-white sm:text-base">{t("createCard.previewTitle")}</h2>
+                <p className="text-xs text-white/70">{t("createCard.previewDescription")}</p>
               </div>
 
-              <div className="flex justify-center">
-                <div className="w-full max-w-[260px] sm:max-w-[320px]">
-                  <VocabularyCardView
-                    card={previewCard}
-                    initialFace="front"
-                    flippable
-                    showActions={false}
-                    className="w-full"
-                  />
-                </div>
+              <div className="flex max-h-[42vh] w-auto justify-center">
+                <VocabularyCardView
+                  card={previewCard}
+                  initialFace="front"
+                  flippable
+                  showActions={false}
+                  frontFit
+                  className="h-full w-full min-h-0 max-sm:aspect-[3/4]"
+                />
               </div>
             </div>
 
-            <div className="grid w-full grid-cols-2 gap-3">
+            <div className="grid w-full shrink-0 grid-cols-2 gap-3">
               <Button
                 variant="secondary"
-                size="md"
+                size="sm"
                 onClick={handleSkip}
                 disabled={adding}
                 className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
               >
-                <RefreshCcw className="mr-2 size-4" />
+                <RefreshCcw className="mr-1.5 size-3.5" />
                 {t("createCard.skip")}
               </Button>
               <Button
-                size="md"
+                size="sm"
                 onClick={handleAdd}
                 disabled={adding}
                 className="bg-brand text-brand-foreground hover:bg-brand-hover"
               >
-                {adding ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                {adding ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : null}
                 {t("createCard.add")}
               </Button>
             </div>

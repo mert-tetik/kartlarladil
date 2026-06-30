@@ -290,16 +290,19 @@ export const useInventoryStore = create<InventoryState>()(
 
         if (result.status === "error" || !result.data) {
           set({ cloudLoading: false, cloudError: result.message });
-          return;
+          throw new Error(result.message);
         }
 
         const customCardsResult = await loadCustomCardsAction();
 
-        if (customCardsResult.status === "success" && customCardsResult.data) {
-          customCardRegistry.clear();
-          for (const card of customCardsResult.data) {
-            customCardRegistry.register(card);
-          }
+        if (customCardsResult.status === "error" || !customCardsResult.data) {
+          set({ cloudLoading: false, cloudError: customCardsResult.message });
+          throw new Error(customCardsResult.message);
+        }
+
+        customCardRegistry.clear();
+        for (const card of customCardsResult.data) {
+          customCardRegistry.register(card);
         }
 
         set({
