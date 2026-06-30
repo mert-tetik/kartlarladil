@@ -22,7 +22,10 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
 
   return (
     <div
-      className={cn("flex items-center justify-center gap-1 sm:gap-1.5", className)}
+      className={cn(
+        "relative flex h-10 items-end justify-center gap-1 overflow-visible sm:h-12 sm:gap-1.5",
+        className,
+      )}
       role="img"
       aria-label={`${clampedRating} out of ${max} stars`}
       data-quiz-star-rating
@@ -34,7 +37,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
           <Star
             key={index}
             className={cn(
-              "size-7 transition-all duration-300 sm:size-9",
+              "size-7 origin-bottom scale-150 transition-all duration-300 sm:size-9",
               ARC_OFFSETS[index],
               filled
                 ? "fill-amber-400 text-amber-400"

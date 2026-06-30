@@ -28,11 +28,11 @@ export function QuizStartSplash({ onComplete }: QuizStartSplashProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-brand animate-quiz-start-splash"
+      className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-brand animate-quiz-start-splash"
       data-quiz-start-splash
       aria-hidden="true"
     >
-      <span className="px-6 text-center text-5xl font-black uppercase tracking-widest text-white sm:text-6xl lg:text-7xl">
+      <span className="break-words px-6 text-center text-5xl font-black uppercase tracking-widest text-white sm:text-6xl lg:text-7xl">
         {t("quiz.startSplash")}
       </span>
     </div>,

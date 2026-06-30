@@ -479,15 +479,21 @@ export function QuizStation({
     [],
   );
 
+  const advanceQuizRef = useRef(advanceQuiz);
+
+  useEffect(() => {
+    advanceQuizRef.current = advanceQuiz;
+  });
+
   useEffect(() => {
     if (phase !== "streak-celebration") return;
 
     const timer = window.setTimeout(() => {
-      advanceQuiz();
+      advanceQuizRef.current();
     }, 1500);
 
     return () => window.clearTimeout(timer);
-  }, [phase, advanceQuiz]);
+  }, [phase]);
 
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
