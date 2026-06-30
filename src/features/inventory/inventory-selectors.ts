@@ -1,4 +1,4 @@
-import { VOCABULARY_CARDS } from "@/data/cards";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import type { CardStatus, InventoryCard, LanguageCode, VocabularyCard } from "@/types/domain";
 
 export interface InventoryCardView {
@@ -7,7 +7,14 @@ export interface InventoryCardView {
 }
 
 export function joinInventoryCards(cards: InventoryCard[]): InventoryCardView[] {
-  const cardById = new Map(VOCABULARY_CARDS.map((card) => [card.id, card]));
+  const cardById = new Map(
+    customCardRegistry
+      .getAllCards()
+      .flatMap((card) => [
+        [card.id, card],
+        [card.sourceKey, card],
+      ]),
+  );
 
   return cards.flatMap((inventory) => {
     const card = cardById.get(inventory.cardId);

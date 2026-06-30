@@ -78,7 +78,7 @@ export default function CreateCardPage() {
         },
       });
 
-      router.push("/?menu=active");
+      router.push(`/?menu=active&language=${encodeURIComponent(generated.language)}`);
     } catch (error) {
       setErrorCode(error instanceof Error ? error.message : "unknown");
     } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { GraduationCap, Info, Plus, RotateCcw, Trash2, X } from "lucide-react";
@@ -35,6 +35,10 @@ import {
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
+function parseLandingLanguage(value: string | null): LanguageCode | null {
+  return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
+}
+
 export function MobileLandingDashboard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,6 +52,12 @@ export function MobileLandingDashboard() {
   const cards = useInventoryStore((state) => state.cards);
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
+    const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
+
+    if (requestedLanguage) {
+      return requestedLanguage;
+    }
+
     if (typeof window !== "undefined") {
       const stored = window.localStorage.getItem(LANDING_CARD_LANGUAGE_KEY);
       if (stored && LANGUAGES.some((item) => item.code === stored)) {
@@ -63,7 +73,7 @@ export function MobileLandingDashboard() {
       return locale;
     }
     return "en";
-  }, [user?.profile.preferredLanguageCode, locale]);
+  }, [searchParams, user?.profile.preferredLanguageCode, locale]);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(defaultLanguage);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
@@ -81,8 +91,13 @@ export function MobileLandingDashboard() {
     return menu === "active" || menu === "learned" ? menu : "active";
   });
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
+  const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
+    if (allowRequestedLanguageRef.current) {
+      return;
+    }
+
     if (selectedLanguage !== locale) {
       return;
     }
@@ -107,6 +122,14 @@ export function MobileLandingDashboard() {
 
   useEffect(() => {
     const menu = searchParams.get("menu");
+    const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
+
+    if (requestedLanguage) {
+      allowRequestedLanguageRef.current = true;
+      window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, requestedLanguage);
+      setSelectedLanguage(requestedLanguage);
+    }
+
     if (menu === "active" || menu === "learned") {
       router.replace(pathname, { scroll: false });
     }
@@ -218,6 +241,7 @@ export function MobileLandingDashboard() {
 
   function handleSelectLanguage(language: LanguageCode) {
     vibrate("tap");
+    allowRequestedLanguageRef.current = false;
 
     if (language === locale) {
       setShowLanguageMatchDialog(true);
