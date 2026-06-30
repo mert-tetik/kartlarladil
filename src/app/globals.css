@@ -1040,7 +1040,11 @@ body:has([data-ask-page]) footer {
 @keyframes star-drop {
   0% {
     opacity: 0;
-    transform: scale(2.4) translateY(-40px);
+    transform: scale(3) translateY(-60px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.95) translateY(4px);
   }
   100% {
     opacity: 1;
@@ -1049,7 +1053,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-star-drop {
-  animation: star-drop 420ms cubic-bezier(0.22, 1.6, 0.36, 1) both;
+  animation: star-drop 500ms cubic-bezier(0.34, 1.8, 0.64, 1) both;
 }
 
 /* Mobile auth gateway: full-screen overlay that replaces the normal UI */

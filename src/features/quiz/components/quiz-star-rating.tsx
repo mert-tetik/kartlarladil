@@ -19,8 +19,8 @@ const ARC_OFFSETS = [
 ] as const;
 
 const PANEL_REVEAL_DELAY_MS = 260;
-const DROP_DURATION_MS = 420;
-const STAGGER_MS = 130;
+const DROP_DURATION_MS = 500;
+const STAGGER_MS = 120;
 
 export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
@@ -43,7 +43,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
   return (
     <div
       className={cn(
-        "relative flex h-10 items-end justify-center gap-3 overflow-visible sm:h-12 sm:gap-4",
+        "relative flex h-10 items-end justify-center gap-4 overflow-visible sm:h-12 sm:gap-5",
         className,
       )}
       role="img"

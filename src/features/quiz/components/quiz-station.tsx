@@ -1921,18 +1921,18 @@ export function ResultView({
   return (
     <div
       data-quiz-result-view
-      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4 sm:p-6 max-lg:p-0"
+      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-start overflow-hidden p-4 pt-6 sm:p-6 sm:pt-8 max-lg:p-0 max-lg:pt-4"
     >
       <div
         data-quiz-result-panel
         data-testid="quiz-result-panel"
-        className="animate-screen-pop -mt-12 flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-5 text-center shadow-sm sm:p-8 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-6"
+        className="animate-screen-pop -mt-16 flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-4 text-center shadow-sm sm:p-6 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-5"
       >
         <div className="flex flex-col items-center gap-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
             {t("home.mobile.rankLabel")}
           </span>
-          <div className="relative flex h-40 w-full items-end justify-center sm:h-52">
+          <div className="relative flex h-32 w-full items-end justify-center sm:h-44">
             <RankIcon
               icon={stats.rank.icon}
               className="size-24 origin-bottom animate-trophy-intro-grow sm:size-32"
