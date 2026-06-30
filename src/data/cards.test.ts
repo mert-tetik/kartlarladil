@@ -11,6 +11,15 @@ import { masterCardEntries } from "@/data/card-seeds/master-list";
 import { CARD_SEED_LOCALE_ORDER } from "@/data/card-seeds/types";
 import { LANGUAGES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
+import {
+  createCardRequestSchema,
+  generatedCardSchema,
+} from "@/features/cards/create-card-schema";
+import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import { mapDbCustomCardToVocabularyCard } from "@/features/cards/custom-card-mapper";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
+import type { DbCustomCard } from "@/features/cards/custom-card-types";
+import type { VocabularyCard } from "@/types/domain";
 
 const LATIN_SCRIPT_LOCALES = ["tr", "en", "de", "fr", "es", "it", "pt", "nl", "pl"] as const;
 const NON_LATIN_SCRIPT_PATTERN = /[\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/u;
@@ -179,5 +188,124 @@ describe("multilingual card catalog", () => {
     );
 
     expect(invalidEntries).toEqual([]);
+  });
+});
+
+describe("custom card mapper", () => {
+  it("maps a complete custom card row to a vocabulary card", () => {
+    const db: DbCustomCard = {
+      id: "00000000-0000-0000-0000-000000000000",
+      user_id: "user-1",
+      source_key: "custom:user:1",
+      language: "en",
+      tier: "A1",
+      term: "custom",
+      term_kind: "word",
+      translations: { en: "custom", tr: "özel" },
+      translation_meanings: {},
+      part_of_speech: "noun",
+      pronunciation: "/ˈkʌstəm/",
+      examples: [{ example: "This is a custom card.", translation: "Bu özel bir kart." }],
+      grammar: { notes: ["Often used as an adjective."] },
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    const card = mapDbCustomCardToVocabularyCard(db);
+
+    expect(card.id).toBe(db.source_key);
+    expect(card.term).toBe("custom");
+    expect(card.example).toBe("This is a custom card.");
+    expect(card.grammar.rules).toContain("Often used as an adjective.");
+  });
+
+  it("defaults term kind to word when unknown", () => {
+    const db: DbCustomCard = {
+      id: "00000000-0000-0000-0000-000000000000",
+      user_id: "user-1",
+      source_key: "custom:user:2",
+      language: "en",
+      tier: "A1",
+      term: "custom",
+      term_kind: "unknown",
+      translations: { en: "custom" },
+      translation_meanings: {},
+      part_of_speech: "noun",
+      pronunciation: "",
+      examples: [],
+      grammar: { notes: [] },
+      created_at: "2026-01-01T00:00:00Z",
+    };
+
+    expect(mapDbCustomCardToVocabularyCard(db).termKind).toBe("word");
+  });
+});
+
+describe("custom card preview", () => {
+  it("builds a preview card from generated response", () => {
+    const card = buildPreviewVocabularyCard("en", "A2", "word", {
+      term: "journey",
+      partOfSpeech: "noun",
+      pronunciation: "/ˈdʒɜːni/",
+      translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, locale === "en" ? "journey" : "x"])),
+      example: "The journey was long.",
+      exampleTranslation: "Yolculuk uzundu.",
+      grammar: ["Countable noun"],
+    });
+
+    expect(card.term).toBe("journey");
+    expect(card.tier).toBe("A2");
+    expect(card.termKind).toBe("word");
+  });
+});
+
+describe("create card schema", () => {
+  it("accepts a valid request", () => {
+    const result = createCardRequestSchema.safeParse({
+      language: "en",
+      locale: "en",
+      tier: "A1",
+      termKind: "word",
+      topic: "travel",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects generated cards missing a translation locale", () => {
+    const result = generatedCardSchema.safeParse({
+      term: "journey",
+      partOfSpeech: "noun",
+      pronunciation: "",
+      translations: { en: "journey" },
+      example: "The journey was long.",
+      exampleTranslation: "Yolculuk uzundu.",
+      grammar: [],
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("custom card registry", () => {
+  beforeEach(() => {
+    customCardRegistry.clear();
+  });
+
+  it("overrides bundled cards with the same source key", () => {
+    const bundled = VOCABULARY_CARDS[0];
+    const custom: VocabularyCard = {
+      ...bundled,
+      sourceKey: bundled.sourceKey,
+      id: bundled.sourceKey,
+      term: "custom",
+    };
+    customCardRegistry.register(custom);
+
+    expect(customCardRegistry.findBySourceKey(bundled.sourceKey)).toBe(custom);
+    expect(customCardRegistry.list()).toHaveLength(1);
+
+    const all = customCardRegistry.getAllCards();
+    const found = all.find((card) => card.sourceKey === bundled.sourceKey);
+    expect(found?.term).toBe("custom");
+    expect(all.filter((card) => card.sourceKey === bundled.sourceKey)).toHaveLength(1);
   });
 });

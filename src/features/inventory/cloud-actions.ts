@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import type { User } from "@supabase/supabase-js";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { mapDbCustomCardToVocabularyCard } from "@/features/cards/custom-card-mapper";
+import type { DbCustomCard, GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import { applyAnswerProgress } from "@/features/quiz/quiz-engine";
 import { calculateProgressStats } from "@/features/progress/progress-stats";
 import {
@@ -14,12 +16,16 @@ import { getServerLocale } from "@/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   InventoryCard,
+  LanguageCode,
   LimitErrorCode,
   PracticeAttempt,
   PracticeMode,
   ProgressStats,
+  TermKind,
+  Tier,
   VocabularyCard,
 } from "@/types/domain";
+import { randomUUID } from "node:crypto";
 
 interface CloudInventoryPayload {
   cards: InventoryCard[];
@@ -76,7 +82,7 @@ export async function listCloudInventoryAction(): Promise<CloudActionResult<Clou
 export async function addCloudInventoryCardAction(sourceKey: string): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
-    const card = resolveLocalCard(sourceKey);
+    const card = await resolveLocalCard(supabase, sourceKey);
     const t = await getCloudActionText();
     const entitlements = await getUserEntitlements(user.id);
 
@@ -129,7 +135,7 @@ export async function recordCloudPracticeAttemptAction(input: {
 }): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
-    const localCard = resolveLocalCard(input.cardId);
+    const localCard = await resolveLocalCard(supabase, input.cardId);
     const t = await getCloudActionText();
     const currentCard = await readUserCard(supabase, user, localCard.sourceKey);
     const nextCard =
@@ -224,7 +230,7 @@ export async function resetCloudInventoryAction(): Promise<CloudActionResult<Clo
 export async function removeCloudInventoryCardAction(sourceKey: string): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
-    const card = resolveLocalCard(sourceKey);
+    const card = await resolveLocalCard(supabase, sourceKey);
 
     const { error: attemptsError } = await supabase
       .from("practice_attempts")
@@ -274,12 +280,10 @@ export async function migrateLocalInventoryToCloudAction(
     }
 
     for (const sourceKey of sourceKeys) {
-      resolveLocalCard(sourceKey);
+      await resolveLocalCard(supabase, sourceKey);
     }
 
     const rows = localCards.map((card) => {
-      resolveLocalCard(card.cardId);
-
       return {
         user_id: user.id,
         card_source_key: card.cardId,
@@ -320,7 +324,78 @@ export async function getCloudProgressStatsAction(): Promise<CloudActionResult<P
     return {
       status: "success",
       message: "",
-      data: calculateProgressStats(toInventoryViews(payload.cards)),
+      data: calculateProgressStats(await toInventoryViews(supabase, user, payload.cards)),
+    };
+  } catch (error) {
+    return await cloudError(error);
+  }
+}
+
+export async function loadCustomCardsAction(): Promise<CloudActionResult<VocabularyCard[]>> {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    const cards = await fetchCustomCards(supabase, user.id);
+
+    return {
+      status: "success",
+      message: "",
+      data: cards,
+    };
+  } catch (error) {
+    return await cloudError(error);
+  }
+}
+
+export async function createCustomCardAction(input: {
+  language: LanguageCode;
+  tier: Tier;
+  termKind: TermKind;
+  draft: GeneratedCardDraft;
+}): Promise<CloudActionResult<CloudInventoryPayload>> {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    const sourceKey = buildCustomCardSourceKey(user.id);
+
+    const { error: insertError } = await supabase.from("custom_cards").insert({
+      user_id: user.id,
+      source_key: sourceKey,
+      language: input.language,
+      tier: input.tier,
+      term: input.draft.term,
+      term_kind: input.termKind,
+      translations: input.draft.translations,
+      translation_meanings: {},
+      part_of_speech: input.draft.partOfSpeech,
+      pronunciation: input.draft.pronunciation,
+      examples: [{ example: input.draft.example, translation: input.draft.exampleTranslation }],
+      grammar: { notes: input.draft.grammar },
+    });
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    const { error: inventoryError } = await supabase.from("user_cards").upsert(
+      {
+        user_id: user.id,
+        card_source_key: sourceKey,
+      },
+      {
+        ignoreDuplicates: true,
+        onConflict: "user_id,card_source_key",
+      },
+    );
+
+    if (inventoryError) {
+      throw inventoryError;
+    }
+
+    revalidateProgressPaths();
+
+    return {
+      status: "success",
+      message: "",
+      data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
     return await cloudError(error);
@@ -449,21 +524,78 @@ function mapAttemptRow(row: AttemptRow): PracticeAttempt[] {
   ];
 }
 
-function resolveLocalCard(sourceKey: string): VocabularyCard {
-  const card = VOCABULARY_CARDS.find((item) => item.sourceKey === sourceKey || item.id === sourceKey);
-
-  if (!card) {
-    throw new Error(CLOUD_LOCAL_CARD_MISSING_ERROR);
-  }
-
-  return card;
+function findBundledCard(sourceKey: string): VocabularyCard | undefined {
+  return VOCABULARY_CARDS.find((item) => item.sourceKey === sourceKey || item.id === sourceKey);
 }
 
-function toInventoryViews(cards: InventoryCard[]) {
-  const cardById = new Map(VOCABULARY_CARDS.map((card) => [card.id, card]));
+async function resolveLocalCard(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sourceKey: string,
+): Promise<VocabularyCard> {
+  const bundled = findBundledCard(sourceKey);
+
+  if (bundled) {
+    return bundled;
+  }
+
+  const card = await fetchCustomCardBySourceKey(supabase, sourceKey);
+
+  if (card) {
+    return card;
+  }
+
+  throw new Error(CLOUD_LOCAL_CARD_MISSING_ERROR);
+}
+
+async function fetchCustomCardBySourceKey(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sourceKey: string,
+): Promise<VocabularyCard | null> {
+  const { data, error } = await supabase
+    .from("custom_cards")
+    .select("*")
+    .eq("source_key", sourceKey)
+    .maybeSingle<DbCustomCard>();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapDbCustomCardToVocabularyCard(data) : null;
+}
+
+async function fetchCustomCards(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+): Promise<VocabularyCard[]> {
+  const { data, error } = await supabase
+    .from("custom_cards")
+    .select("*")
+    .eq("user_id", userId)
+    .returns<DbCustomCard[]>();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map(mapDbCustomCardToVocabularyCard);
+}
+
+function buildCustomCardSourceKey(userId: string): string {
+  return `custom:${userId}:${randomUUID()}`;
+}
+
+async function toInventoryViews(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  user: User,
+  cards: InventoryCard[],
+) {
+  const bundledById = new Map(VOCABULARY_CARDS.map((card) => [card.id, card]));
+  const customCards = await fetchCustomCards(supabase, user.id);
+  const customBySourceKey = new Map(customCards.map((card) => [card.sourceKey, card]));
 
   return cards.flatMap((inventory) => {
-    const card = cardById.get(inventory.cardId);
+    const card = bundledById.get(inventory.cardId) ?? customBySourceKey.get(inventory.cardId);
     return card ? [{ inventory, card }] : [];
   });
 }

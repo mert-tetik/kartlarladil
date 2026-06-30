@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
 import { TIER_STYLES } from "@/data/tiers";
 import { localCardRepository } from "@/features/cards/card-repository";
@@ -106,6 +107,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   const cloudError = useInventoryStore((state) => state.cloudError);
   const addCard = useInventoryStore((state) => state.addCard);
   const requireAuthAction = useRequireAuthAction();
+  const router = useRouter();
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
@@ -629,7 +631,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           </div>
           <div
             data-card-draw-main-action
-            className="lg:hidden"
+            className="grid grid-cols-[1fr_auto] gap-2 lg:hidden"
           >
             <Button
               size="lg"
@@ -640,6 +642,20 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
             >
               <CardsIcon className="size-5" aria-hidden="true" />
               {t("home.mobile.drawCards")}
+            </Button>
+            <Button
+              size="lg"
+              disabled={!hydrated}
+              onClick={() =>
+                user
+                  ? router.push("/create-card")
+                  : router.push(`/register?next=${encodeURIComponent("/create-card")}`)
+              }
+              data-create-card-action
+              className="h-12 gap-2 border-0 bg-red-600 px-4 text-base font-bold text-white hover:bg-red-700 focus-visible:outline-red-600"
+            >
+              <Plus className="size-5" aria-hidden="true" />
+              <span className="hidden sm:inline">{t("cards.createCard")}</span>
             </Button>
           </div>
           <div

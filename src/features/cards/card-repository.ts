@@ -1,4 +1,5 @@
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { getSearchableCardText } from "@/features/cards/card-localization";
 import type { CardFilters, CardRepository, VocabularyCard } from "@/types/domain";
 import { normalizeSearch } from "@/lib/utils";
@@ -22,12 +23,22 @@ function matchesFilters(card: VocabularyCard, filters: CardFilters = {}) {
   return searchableText.includes(query);
 }
 
+function getAllCards(): VocabularyCard[] {
+  const customBySourceKey = new Map(customCardRegistry.list().map((card) => [card.sourceKey, card]));
+
+  return [
+    ...VOCABULARY_CARDS.filter((card) => !customBySourceKey.has(card.sourceKey)),
+    ...customCardRegistry.list(),
+  ];
+}
+
 export const localCardRepository: CardRepository = {
   list(filters) {
-    return VOCABULARY_CARDS.filter((card) => matchesFilters(card, filters));
+    return getAllCards().filter((card) => matchesFilters(card, filters));
   },
-
   findById(cardId) {
-    return VOCABULARY_CARDS.find((card) => card.id === cardId);
+    return (
+      VOCABULARY_CARDS.find((card) => card.id === cardId) ?? customCardRegistry.findById(cardId)
+    );
   },
 };

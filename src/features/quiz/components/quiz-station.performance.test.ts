@@ -1,4 +1,4 @@
-import { Medal, Trophy, XCircle } from "lucide-react";
+import { Medal, Star, XCircle } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getQuizPerformanceSummary } from "@/features/quiz/components/quiz-station";
@@ -20,21 +20,21 @@ describe("getQuizPerformanceSummary", () => {
   it("unlocks the chest for high accuracy without double-counting learned cards", () => {
     const summary = getQuizPerformanceSummary("active", buildResults(8, 2, 3), 10, false);
 
-    expect(summary.level).toBe("high");
+    expect(summary.level).toBe("mediumHigh");
     expect(summary.accuracy).toBe(80);
     expect(summary.chestUnlocked).toBe(true);
-    expect(summary.icon).toBe(Trophy);
-    expect(summary.messageKeys).toContain("quiz.resultMessageHigh1");
+    expect(summary.icon).toBe(Medal);
+    expect(summary.messageKeys).toContain("quiz.resultMessageMediumHigh1");
   });
 
   it("uses the medium state at the passing threshold without chest access", () => {
     const summary = getQuizPerformanceSummary("active", buildResults(5, 5, 1), 10, false);
 
-    expect(summary.level).toBe("medium");
+    expect(summary.level).toBe("mediumLow");
     expect(summary.accuracy).toBe(50);
     expect(summary.chestUnlocked).toBe(false);
-    expect(summary.icon).toBe(Medal);
-    expect(summary.messageKeys).toContain("quiz.resultMessageMedium1");
+    expect(summary.icon).toBe(Star);
+    expect(summary.messageKeys).toContain("quiz.resultMessageMediumLow1");
   });
 
   it("uses the low state for weaker runs", () => {

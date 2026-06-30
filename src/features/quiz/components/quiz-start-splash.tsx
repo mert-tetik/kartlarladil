@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/i18n/locale-provider";
 
@@ -12,14 +12,19 @@ const SPLASH_DURATION_MS = 1200;
 
 export function QuizStartSplash({ onComplete }: QuizStartSplashProps) {
   const t = useT();
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      onComplete();
+      onCompleteRef.current();
     }, SPLASH_DURATION_MS);
 
     return () => window.clearTimeout(timer);
-  }, [onComplete]);
+  }, []);
 
   return createPortal(
     <div

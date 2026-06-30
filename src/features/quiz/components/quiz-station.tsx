@@ -53,6 +53,7 @@ import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view"
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
+import { QuizStarRating } from "@/features/quiz/components/quiz-star-rating";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -1845,6 +1846,15 @@ export function ResultView({
     [chestOpened, performance.messageKeys, results, selectedCount],
   );
 
+  const starRating = useMemo(() => {
+    const accuracy = performance.accuracy;
+    if (accuracy >= 90) return 5;
+    if (accuracy >= 75) return 4;
+    if (accuracy >= 60) return 3;
+    if (accuracy >= 40) return 2;
+    return 1;
+  }, [performance.accuracy]);
+
   useEffect(() => {
     if (hasTriggeredResult.current) return;
     hasTriggeredResult.current = true;
@@ -1925,6 +1935,7 @@ export function ResultView({
           <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             {getRankLabel(stats.rank, locale)}
           </h2>
+          <QuizStarRating rating={starRating} className="mt-1" />
         </div>
 
         <div className="mt-4">

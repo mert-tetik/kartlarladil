@@ -40,7 +40,7 @@ describe("UpgradeDialog", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart kotan doldu/i);
-    expect(screen.getByRole("link", { name: /Planını yükselt/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
     expect(screen.getByRole("link", { name: /Kartları öğren/i })).toHaveAttribute("href", "/learn");
   });
 
@@ -66,7 +66,7 @@ describe("UpgradeDialog", () => {
     renderDialog({ open: true, errorCode: "learn_locale_locked" });
 
     expect(screen.getByRole("heading")).toHaveTextContent(/Öğren sayfasındayken site dili değiştirilemez/i);
-    expect(screen.queryByRole("link", { name: /Planını yükselt/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /İLK AY ÜCRETSİZ/i })).not.toBeInTheDocument();
   });
 
   it("shows the already learning card message without a pricing link", () => {

@@ -5,10 +5,8 @@ const mockCreate = vi.hoisted(() => vi.fn());
 
 vi.mock("openai", () => ({
   default: class MockOpenAI {
-    chat = {
-      completions: {
-        create: mockCreate,
-      },
+    responses = {
+      create: mockCreate,
     };
   },
 }));
@@ -32,9 +30,9 @@ describe("POST /api/quiz/validate-answer", () => {
     process.env.OPENAI_API_KEY = originalApiKey;
   });
 
-  it("returns accepted: true when the model responds with 't'", async () => {
+  it("returns accepted: true when the model accepts the answer", async () => {
     mockCreate.mockResolvedValue({
-      choices: [{ message: { content: "t" } }],
+      output_text: '{"accepted": true}',
     });
 
     const response = await POST(
@@ -52,9 +50,9 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.accepted).toBe(true);
   });
 
-  it("returns accepted: false when the model responds with 'y'", async () => {
+  it("returns accepted: false when the model rejects the answer", async () => {
     mockCreate.mockResolvedValue({
-      choices: [{ message: { content: "y" } }],
+      output_text: '{"accepted": false}',
     });
 
     const response = await POST(

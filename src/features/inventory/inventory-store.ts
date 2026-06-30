@@ -2,12 +2,16 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { VOCABULARY_CARDS } from "@/data/cards";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
+import { localCardRepository } from "@/features/cards/card-repository";
 import { STORAGE_KEY } from "@/lib/constants";
-import type { InventoryCard, PracticeAttempt, PracticeMode } from "@/types/domain";
+import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier } from "@/types/domain";
+import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
   addCloudInventoryCardAction,
+  createCustomCardAction,
   listCloudInventoryAction,
+  loadCustomCardsAction,
   migrateLocalInventoryToCloudAction,
   recordCloudPracticeAttemptAction,
   removeCloudInventoryCardAction,
@@ -49,6 +53,12 @@ interface InventoryState {
     mode: PracticeMode;
   }) => Promise<RecordAnswerResult | undefined>;
   reset: () => Promise<void>;
+  createCustomCard: (input: {
+    language: LanguageCode;
+    tier: Tier;
+    termKind: TermKind;
+    draft: GeneratedCardDraft;
+  }) => Promise<void>;
 }
 
 export const useInventoryStore = create<InventoryState>()(
@@ -84,19 +94,37 @@ export const useInventoryStore = create<InventoryState>()(
         }
 
         set({ cloudLoading: true, cloudError: "" });
-        const result = await listCloudInventoryAction();
 
-        if (result.status === "error" || !result.data) {
-          set({ cloudLoading: false, cloudError: result.message });
-          return;
+        try {
+          const [inventoryResult, customCardsResult] = await Promise.all([
+            listCloudInventoryAction(),
+            loadCustomCardsAction(),
+          ]);
+
+          if (customCardsResult.status === "success" && customCardsResult.data) {
+            customCardRegistry.clear();
+            for (const card of customCardsResult.data) {
+              customCardRegistry.register(card);
+            }
+          }
+
+          if (inventoryResult.status === "error" || !inventoryResult.data) {
+            set({ cloudLoading: false, cloudError: inventoryResult.message });
+            return;
+          }
+
+          set({
+            cards: inventoryResult.data.cards,
+            attempts: inventoryResult.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+        } catch (error) {
+          set({
+            cloudLoading: false,
+            cloudError: error instanceof Error ? error.message : "Failed to load cloud inventory",
+          });
         }
-
-        set({
-          cards: result.data.cards,
-          attempts: result.data.attempts,
-          cloudLoading: false,
-          cloudError: "",
-        });
       },
 
       async migrateLocalInventoryToCloud() {
@@ -201,7 +229,7 @@ export const useInventoryStore = create<InventoryState>()(
           return inventoryCard && attempt ? { inventoryCard, attempt } : undefined;
         }
 
-        const vocabularyCard = VOCABULARY_CARDS.find((card) => card.id === input.cardId);
+        const vocabularyCard = localCardRepository.findById(input.cardId);
         const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
 
         if (!vocabularyCard || !ownedCard) {
@@ -235,6 +263,8 @@ export const useInventoryStore = create<InventoryState>()(
             return;
           }
 
+          customCardRegistry.clear();
+
           set({
             cards: result.data.cards,
             attempts: result.data.attempts,
@@ -244,10 +274,43 @@ export const useInventoryStore = create<InventoryState>()(
           return;
         }
 
+        customCardRegistry.clear();
+
         set({
           cards: [],
           attempts: [],
           ownerUserId: null,
+        });
+      },
+
+      async createCustomCard(input) {
+        if (!get().cloudEnabled) {
+          return;
+        }
+
+        set({ cloudLoading: true, cloudError: "" });
+
+        const result = await createCustomCardAction(input);
+
+        if (result.status === "error" || !result.data) {
+          set({ cloudLoading: false, cloudError: result.message });
+          return;
+        }
+
+        const customCardsResult = await loadCustomCardsAction();
+
+        if (customCardsResult.status === "success" && customCardsResult.data) {
+          customCardRegistry.clear();
+          for (const card of customCardsResult.data) {
+            customCardRegistry.register(card);
+          }
+        }
+
+        set({
+          cards: result.data.cards,
+          attempts: result.data.attempts,
+          cloudLoading: false,
+          cloudError: "",
         });
       },
     }),

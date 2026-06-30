@@ -6,7 +6,7 @@ import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
-import { MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
+import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
@@ -119,6 +119,61 @@ describe("MobileQuizFeedback", () => {
     expect(newBar).toHaveClass("bg-emerald-500");
     expect(screen.queryByText(/apple/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Correct answer/i)).toBeInTheDocument();
+  });
+});
+
+describe("ResultView star rating", () => {
+  function renderResultView(correctCount: number, incorrectCount: number, learnedCount = 0) {
+    const correctCards = VOCABULARY_CARDS.slice(0, correctCount);
+    const incorrectCards = VOCABULARY_CARDS.slice(correctCount, correctCount + incorrectCount);
+    const learnedCards = VOCABULARY_CARDS.slice(
+      correctCount + incorrectCount,
+      correctCount + incorrectCount + learnedCount,
+    );
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: correctCards, incorrect: incorrectCards, learned: learnedCards }}
+          selectedCount={10}
+          chestOpened={false}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+  }
+
+  it("shows 5 filled stars for 100% accuracy", () => {
+    renderResultView(10, 0);
+    expect(document.querySelector('[data-quiz-star-rating-value="5"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(5);
+  });
+
+  it("shows 4 filled stars for 80% accuracy", () => {
+    renderResultView(8, 2);
+    expect(document.querySelector('[data-quiz-star-rating-value="4"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(4);
+    expect(document.querySelectorAll('[data-quiz-star="empty"]')).toHaveLength(1);
+  });
+
+  it("shows 3 filled stars for 70% accuracy", () => {
+    renderResultView(7, 3);
+    expect(document.querySelector('[data-quiz-star-rating-value="3"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(3);
+  });
+
+  it("shows 2 filled stars for 50% accuracy", () => {
+    renderResultView(5, 5);
+    expect(document.querySelector('[data-quiz-star-rating-value="2"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(2);
+  });
+
+  it("shows 1 filled star for 0% accuracy", () => {
+    renderResultView(0, 5);
+    expect(document.querySelector('[data-quiz-star-rating-value="1"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(1);
   });
 });
 
