@@ -7,7 +7,8 @@ export type SoundEffectName =
   | "confetti"
   | "quiz-complete"
   | "chest-tap"
-  | "chest-open";
+  | "chest-open"
+  | "streak-fire";
 
 interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
@@ -227,6 +228,27 @@ function chestOpen(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.C6, startTime: now + 0.45, duration: 0.35, gain: 0.04 });
 }
 
+function streakFire(context: AudioContext, now: number) {
+  // Punchy, fast fire burst: low sawtooth thump + filtered noise + crackles.
+  playTone(context, {
+    frequency: 120,
+    startTime: now,
+    duration: 0.12,
+    gain: 0.14,
+    type: "sawtooth",
+  });
+  playNoise(context, { startTime: now, duration: 0.18, gain: 0.16, filterFrequency: 450 });
+
+  for (let i = 0; i < 6; i++) {
+    playNoise(context, {
+      startTime: now + 0.02 + i * 0.025,
+      duration: 0.02,
+      gain: 0.07,
+      filterFrequency: 2800,
+    });
+  }
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -237,6 +259,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
+  "streak-fire": streakFire,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {

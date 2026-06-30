@@ -11,6 +11,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "quiz-complete",
   "chest-tap",
   "chest-open",
+  "streak-fire",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {

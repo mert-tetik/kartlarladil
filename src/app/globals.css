@@ -1003,6 +1003,55 @@ body:has([data-ask-page]) footer {
   animation: streak-fire 0.6s ease-in-out infinite;
 }
 
+@keyframes streak-celebration-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(20px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes streak-celebration-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.animate-streak-celebration-enter {
+  animation: streak-celebration-enter 400ms cubic-bezier(0.22, 1.6, 0.36, 1) both;
+}
+
+.animate-streak-celebration-exit {
+  animation: streak-celebration-exit 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes star-drop {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) translateY(-40px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-star-drop {
+  animation: star-drop 420ms cubic-bezier(0.22, 1.6, 0.36, 1) both;
+}
+
 /* Mobile auth gateway: full-screen overlay that replaces the normal UI */
 body:has([data-mobile-auth-gateway]) {
   overflow: hidden;

@@ -2,15 +2,44 @@
 
 import { createPortal } from "react-dom";
 import { Flame } from "lucide-react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import { playSoundEffect } from "@/lib/sound-effects";
 
 interface QuizStreakCelebrationViewProps {
   streak: number;
+  onComplete?: () => void;
 }
 
-export function QuizStreakCelebrationView({ streak }: QuizStreakCelebrationViewProps) {
+const VISIBLE_DURATION_MS = 1300;
+const EXIT_DURATION_MS = 220;
+
+export function QuizStreakCelebrationView({
+  streak,
+  onComplete,
+}: QuizStreakCelebrationViewProps) {
+  const [exiting, setExiting] = useState(false);
+
+  useEffect(() => {
+    playSoundEffect("streak-fire");
+
+    const timer = window.setTimeout(() => setExiting(true), VISIBLE_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!exiting) return;
+
+    const timer = window.setTimeout(() => onComplete?.(), EXIT_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [exiting, onComplete]);
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-emerald-500 animate-screen-pop"
+      className={cn(
+        "fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-emerald-500",
+        exiting ? "animate-streak-celebration-exit" : "animate-streak-celebration-enter",
+      )}
       data-streak-celebration-view
       aria-hidden="true"
     >
