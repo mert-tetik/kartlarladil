@@ -105,7 +105,7 @@ export default function CreateCardPage() {
   }
 
   return (
-    <main className="relative mx-auto max-w-xl px-4 py-6 sm:py-10">
+    <main className="mx-auto flex min-h-[calc(100vh-var(--app-header-height))] w-full max-w-xl flex-col justify-center px-4 py-6 sm:py-10">
       <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>

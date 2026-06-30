@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       reasoning: { effort: "minimal" },
       stream: false,
       store: false,
-      text: { format: { type: "json_object" }, verbosity: "low" },
+      text: { format: { type: "text" }, verbosity: "low" },
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
     });
