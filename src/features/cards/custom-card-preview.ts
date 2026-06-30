@@ -35,7 +35,7 @@ export function buildPreviewVocabularyCard(generated: GeneratedCardResponse): Vo
 
   const translationMeaningsByLocale: Record<string, string[]> = {};
   for (const locale of LOCALE_CODES) {
-    translationMeaningsByLocale[locale] = [];
+    translationMeaningsByLocale[locale] = [translations[locale]];
   }
 
   const grammarByLocale: Record<string, typeof grammar> = {};

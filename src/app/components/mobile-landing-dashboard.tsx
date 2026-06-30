@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { GraduationCap, Info, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
@@ -37,6 +37,8 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuthSession();
   const { stats } = useProgressStats();
   const { locale, setLocale } = useLocale();
@@ -64,6 +66,21 @@ export function MobileLandingDashboard() {
   }, [user?.profile.preferredLanguageCode, locale]);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(defaultLanguage);
+  const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const [tierSelectorOpen, setTierSelectorOpen] = useState(false);
+  const [infoSheetOpen, setInfoSheetOpen] = useState(false);
+  const [rankInfoOpen, setRankInfoOpen] = useState(false);
+  const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
+  const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
+  const [detailMenuOpen, setDetailMenuOpen] = useState(() => {
+    const menu = searchParams.get("menu");
+    return menu === "active" || menu === "learned";
+  });
+  const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">(() => {
+    const menu = searchParams.get("menu");
+    return menu === "active" || menu === "learned" ? menu : "active";
+  });
+  const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
 
   useEffect(() => {
     if (selectedLanguage !== locale) {
@@ -88,15 +105,12 @@ export function MobileLandingDashboard() {
     return () => window.clearTimeout(timeoutId);
   }, [locale, selectedLanguage, detectedLocale]);
 
-  const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
-  const [tierSelectorOpen, setTierSelectorOpen] = useState(false);
-  const [infoSheetOpen, setInfoSheetOpen] = useState(false);
-  const [rankInfoOpen, setRankInfoOpen] = useState(false);
-  const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
-  const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
-  const [detailMenuOpen, setDetailMenuOpen] = useState(false);
-  const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">("active");
-  const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
+  useEffect(() => {
+    const menu = searchParams.get("menu");
+    if (menu === "active" || menu === "learned") {
+      router.replace(pathname, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
 
   const languageStats = useMemo(
     () =>

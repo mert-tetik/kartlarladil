@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { User } from "@supabase/supabase-js";
+import { LOCALE_CODES } from "@/data/languages";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { mapDbCustomCardToVocabularyCard } from "@/features/cards/custom-card-mapper";
 import type { DbCustomCard, GeneratedCardDraft } from "@/features/cards/custom-card-types";
@@ -364,7 +365,9 @@ export async function createCustomCardAction(input: {
       term: input.draft.term,
       term_kind: input.termKind,
       translations: input.draft.translations,
-      translation_meanings: {},
+      translation_meanings: Object.fromEntries(
+        LOCALE_CODES.map((code) => [code, [input.draft.translations[code]]]),
+      ),
       part_of_speech: input.draft.partOfSpeech,
       pronunciation: input.draft.pronunciation,
       examples: [{ example: input.draft.example, translation: input.draft.exampleTranslation }],

@@ -284,10 +284,6 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async createCustomCard(input) {
-        if (!get().cloudEnabled) {
-          return;
-        }
-
         set({ cloudLoading: true, cloudError: "" });
 
         const result = await createCustomCardAction(input);

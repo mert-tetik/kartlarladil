@@ -78,7 +78,7 @@ export default function CreateCardPage() {
         },
       });
 
-      router.push("/my-cards");
+      router.push("/?menu=active");
     } catch (error) {
       setErrorCode(error instanceof Error ? error.message : "unknown");
       setAdding(false);
@@ -145,7 +145,7 @@ export default function CreateCardPage() {
       </div>
 
       {previewCard && (
-        <div className="fixed inset-x-0 top-[var(--app-header-height)] bottom-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm max-lg:bottom-[var(--mobile-nav-bar-height)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="flex max-h-full w-full max-w-md flex-col items-center justify-center gap-4">
             <div
               className={cn(
@@ -159,13 +159,15 @@ export default function CreateCardPage() {
               </div>
 
               <div className="flex justify-center">
-                <VocabularyCardView
-                  card={previewCard}
-                  initialFace="front"
-                  flippable
-                  showActions={false}
-                  className="scale-90 sm:scale-100"
-                />
+                <div className="w-full max-w-[260px] sm:max-w-[320px]">
+                  <VocabularyCardView
+                    card={previewCard}
+                    initialFace="front"
+                    flippable
+                    showActions={false}
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
 

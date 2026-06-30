@@ -64,11 +64,19 @@ export function mapDbCustomCardToVocabularyCard(db: DbCustomCard): VocabularyCar
     }
   }
 
+  const rawTranslations = (db.translations as Record<string, string>) ?? {};
+  const translations: Record<string, string> = {};
+  for (const locale of LOCALE_CODES) {
+    const value = rawTranslations[locale];
+    translations[locale] = typeof value === "string" ? value : rawTranslations["en"] ?? db.term;
+  }
+
   const rawMeanings = (db.translation_meanings as Record<string, string[] | undefined>) ?? {};
   const translationMeaningsByLocale: Record<string, string[]> = {};
   for (const locale of LOCALE_CODES) {
     const meanings = rawMeanings[locale];
-    translationMeaningsByLocale[locale] = Array.isArray(meanings) ? meanings : [];
+    translationMeaningsByLocale[locale] =
+      Array.isArray(meanings) && meanings.length > 0 ? meanings : [translations[locale]];
   }
 
   const grammar = toGrammarGuide(db.grammar);
@@ -78,13 +86,6 @@ export function mapDbCustomCardToVocabularyCard(db: DbCustomCard): VocabularyCar
   }
 
   const termKind: TermKind = db.term_kind === "fixed_phrase" ? "fixed_phrase" : "word";
-
-  const rawTranslations = (db.translations as Record<string, string>) ?? {};
-  const translations: Record<string, string> = {};
-  for (const locale of LOCALE_CODES) {
-    const value = rawTranslations[locale];
-    translations[locale] = typeof value === "string" ? value : rawTranslations["en"] ?? db.term;
-  }
 
   const firstExample = examples[0];
   const example = firstExample?.sentence ?? "";
