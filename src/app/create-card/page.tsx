@@ -14,6 +14,8 @@ import type { GeneratedCardResponse } from "@/features/cards/create-card-schema"
 import type { TranslationKey } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
+const ADD_TO_DECK_TIMEOUT_MS = 20000;
+
 export default function CreateCardPage() {
   const { user } = useAuthSession();
   const router = useRouter();
@@ -62,21 +64,24 @@ export default function CreateCardPage() {
     setErrorCode(null);
 
     try {
-      await createCustomCard({
-        language: generated.language,
-        tier: generated.tier,
-        termKind: generated.termKind,
-        draft: {
-          term: generated.term,
-          partOfSpeech: generated.partOfSpeech,
-          pronunciation: generated.pronunciation,
-          translations: generated.translations,
-          example: generated.example,
-          exampleTranslation: generated.exampleTranslation,
-          grammar: generated.grammar,
+      await withTimeout(
+        createCustomCard({
+          language: generated.language,
+          tier: generated.tier,
           termKind: generated.termKind,
-        },
-      });
+          draft: {
+            term: generated.term,
+            partOfSpeech: generated.partOfSpeech,
+            pronunciation: generated.pronunciation,
+            translations: generated.translations,
+            example: generated.example,
+            exampleTranslation: generated.exampleTranslation,
+            grammar: generated.grammar,
+            termKind: generated.termKind,
+          },
+        }),
+        ADD_TO_DECK_TIMEOUT_MS,
+      );
 
       router.push(`/?menu=active&language=${encodeURIComponent(generated.language)}`);
     } catch (error) {
@@ -133,7 +138,7 @@ export default function CreateCardPage() {
         </div>
 
         {errorCode && (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {getErrorMessage(errorCode)}
           </div>
         )}
@@ -175,6 +180,12 @@ export default function CreateCardPage() {
               </div>
             </div>
 
+            {errorCode && (
+              <div role="alert" className="w-full rounded-lg border border-red-400/30 bg-red-500/15 px-3 py-2 text-sm font-medium text-red-100">
+                {getErrorMessage(errorCode)}
+              </div>
+            )}
+
             <div className="grid w-full shrink-0 grid-cols-2 gap-3">
               <Button
                 variant="secondary"
@@ -201,4 +212,24 @@ export default function CreateCardPage() {
       )}
     </main>
   );
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new Error(
+          `Add-to-deck request timed out after ${Math.round(timeoutMs / 1000)} seconds. Check the server action, Supabase request, or browser Network tab for the stalled request.`,
+        ),
+      );
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  });
 }
