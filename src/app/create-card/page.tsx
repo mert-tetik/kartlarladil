@@ -105,7 +105,7 @@ export default function CreateCardPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-var(--app-header-height))] w-full max-w-xl flex-col justify-center px-4 py-6 sm:py-10">
+    <main className="mx-auto flex min-h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] w-full max-w-xl flex-col items-center justify-center px-4 py-6 sm:py-10">
       <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
@@ -145,28 +145,34 @@ export default function CreateCardPage() {
       </div>
 
       {previewCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md space-y-4">
+        <div className="fixed inset-x-0 top-[var(--app-header-height)] bottom-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm max-lg:bottom-[var(--mobile-nav-bar-height)]">
+          <div className="flex max-h-full w-full max-w-md flex-col items-center justify-center gap-4">
             <div
               className={cn(
-                "relative rounded-2xl border border-white/10 bg-black p-4 shadow-2xl",
+                "relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black p-4 shadow-2xl",
                 "sm:p-6",
               )}
             >
-              <div className="mb-4 text-center">
-                <h2 className="text-lg font-semibold text-white">{t("createCard.previewTitle")}</h2>
-                <p className="text-sm text-white/70">{t("createCard.previewDescription")}</p>
+              <div className="mb-3 text-center sm:mb-4">
+                <h2 className="text-base font-semibold text-white sm:text-lg">{t("createCard.previewTitle")}</h2>
+                <p className="text-xs text-white/70 sm:text-sm">{t("createCard.previewDescription")}</p>
               </div>
 
               <div className="flex justify-center">
-                <VocabularyCardView card={previewCard} initialFace="front" flippable showActions={false} />
+                <VocabularyCardView
+                  card={previewCard}
+                  initialFace="front"
+                  flippable
+                  showActions={false}
+                  className="scale-90 sm:scale-100"
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid w-full grid-cols-2 gap-3">
               <Button
                 variant="secondary"
-                size="lg"
+                size="md"
                 onClick={handleSkip}
                 disabled={adding}
                 className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
@@ -175,7 +181,7 @@ export default function CreateCardPage() {
                 {t("createCard.skip")}
               </Button>
               <Button
-                size="lg"
+                size="md"
                 onClick={handleAdd}
                 disabled={adding}
                 className="bg-brand text-brand-foreground hover:bg-brand-hover"
