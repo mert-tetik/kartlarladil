@@ -560,4 +560,34 @@ describe("cloud-actions", () => {
     expect(result.message).toContain("Hint: Check custom_cards insert policy.");
     expect(result.message).toContain("Code: 42501");
   });
+
+  it("returns the created custom vocabulary card without reloading custom cards", async () => {
+    const state = createState();
+    currentSupabase = createSupabaseMock(state);
+
+    const result = await createCustomCardAction({
+      language: "de",
+      tier: "A2",
+      termKind: "word",
+      draft: {
+        term: "custom",
+        partOfSpeech: "noun",
+        pronunciation: "",
+        translations: Object.fromEntries(LOCALE_CODES.map((code) => [code, code === "tr" ? "ozel" : "custom"])),
+        example: "Das ist custom.",
+        exampleTranslation: "This is custom.",
+        grammar: ["Used as a custom card."],
+        termKind: "word",
+      },
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.data?.card.cardId).toMatch(/^custom:user-1:/);
+    expect(result.data?.card.status).toBe("active");
+    expect(result.data?.vocabularyCard.sourceKey).toBe(result.data?.card.cardId);
+    expect(result.data?.vocabularyCard.language).toBe("de");
+    expect(result.data?.vocabularyCard.term).toBe("custom");
+    expect(state.userCards).toHaveLength(1);
+    expect(state.userCards[0]?.card_source_key).toBe(result.data?.card.cardId);
+  });
 });

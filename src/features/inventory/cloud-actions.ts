@@ -33,6 +33,11 @@ interface CloudInventoryPayload {
   attempts: PracticeAttempt[];
 }
 
+interface CustomCardCreationPayload {
+  card: InventoryCard;
+  vocabularyCard: VocabularyCard;
+}
+
 interface CloudActionResult<T> {
   status: "success" | "error";
   message: string;
@@ -352,12 +357,13 @@ export async function createCustomCardAction(input: {
   tier: Tier;
   termKind: TermKind;
   draft: GeneratedCardDraft;
-}): Promise<CloudActionResult<CloudInventoryPayload>> {
+}): Promise<CloudActionResult<CustomCardCreationPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
     const sourceKey = buildCustomCardSourceKey(user.id);
-
-    const { error: insertError } = await supabase.from("custom_cards").insert({
+    const now = new Date().toISOString();
+    const dbCustomCard: DbCustomCard = {
+      id: sourceKey,
       user_id: user.id,
       source_key: sourceKey,
       language: input.language,
@@ -372,6 +378,22 @@ export async function createCustomCardAction(input: {
       pronunciation: input.draft.pronunciation,
       examples: [{ example: input.draft.example, translation: input.draft.exampleTranslation }],
       grammar: { notes: input.draft.grammar },
+      created_at: now,
+    };
+
+    const { error: insertError } = await supabase.from("custom_cards").insert({
+      user_id: dbCustomCard.user_id,
+      source_key: dbCustomCard.source_key,
+      language: dbCustomCard.language,
+      tier: dbCustomCard.tier,
+      term: dbCustomCard.term,
+      term_kind: dbCustomCard.term_kind,
+      translations: dbCustomCard.translations,
+      translation_meanings: dbCustomCard.translation_meanings,
+      part_of_speech: dbCustomCard.part_of_speech,
+      pronunciation: dbCustomCard.pronunciation,
+      examples: dbCustomCard.examples,
+      grammar: dbCustomCard.grammar,
     });
 
     if (insertError) {
@@ -398,7 +420,15 @@ export async function createCustomCardAction(input: {
     return {
       status: "success",
       message: "",
-      data: await listCloudInventory(supabase, user),
+      data: {
+        card: {
+          cardId: sourceKey,
+          status: "active",
+          correctCount: 0,
+          addedAt: now,
+        },
+        vocabularyCard: mapDbCustomCardToVocabularyCard(dbCustomCard),
+      },
     };
   } catch (error) {
     return await cloudError(error, { exposeSystemMessage: true });

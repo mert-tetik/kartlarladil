@@ -289,25 +289,19 @@ export const useInventoryStore = create<InventoryState>()(
         const result = await createCustomCardAction(input);
 
         if (result.status === "error" || !result.data) {
-          set({ cloudLoading: false, cloudError: result.message });
-          throw new Error(result.message);
+          const message = getCloudActionErrorMessage(result);
+          set({ cloudLoading: false, cloudError: message });
+          throw new Error(message);
         }
 
-        const customCardsResult = await loadCustomCardsAction();
-
-        if (customCardsResult.status === "error" || !customCardsResult.data) {
-          set({ cloudLoading: false, cloudError: customCardsResult.message });
-          throw new Error(customCardsResult.message);
-        }
-
-        customCardRegistry.clear();
-        for (const card of customCardsResult.data) {
-          customCardRegistry.register(card);
-        }
+        const created = result.data;
+        customCardRegistry.register(created.vocabularyCard);
 
         set({
-          cards: result.data.cards,
-          attempts: result.data.attempts,
+          cards: [
+            created.card,
+            ...get().cards.filter((card) => card.cardId !== created.card.cardId),
+          ],
           cloudLoading: false,
           cloudError: "",
         });
@@ -327,3 +321,13 @@ export const useInventoryStore = create<InventoryState>()(
     },
   ),
 );
+
+function getCloudActionErrorMessage(result: { message?: string; errorCode?: string }) {
+  const message = result.message?.trim();
+
+  if (message) {
+    return message;
+  }
+
+  return result.errorCode?.trim() || "unknown";
+}

@@ -51,7 +51,7 @@ export default function CreateCardPage() {
       const result = await generateCardRequest({ locale, term: term.trim() });
       setGenerated(result);
     } catch (error) {
-      setErrorCode(error instanceof Error ? error.message : "unknown");
+      setErrorCode(getThrownErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export default function CreateCardPage() {
 
       router.push(`/?menu=active&language=${encodeURIComponent(generated.language)}`);
     } catch (error) {
-      setErrorCode(error instanceof Error ? error.message : "unknown");
+      setErrorCode(getThrownErrorMessage(error));
     } finally {
       setAdding(false);
     }
@@ -97,13 +97,15 @@ export default function CreateCardPage() {
   }
 
   function getErrorMessage(code: string) {
-    if (code === "unknown") {
+    const normalizedCode = code.trim();
+
+    if (!normalizedCode || normalizedCode === "unknown") {
       return t("createCard.error.unknown");
     }
 
-    const key = `createCard.error.${code}` as const;
+    const key = `createCard.error.${normalizedCode}` as const;
     const message = t(key as TranslationKey);
-    return message === key ? `System: ${code}` : message;
+    return message === key ? `System: ${normalizedCode}` : message;
   }
 
   if (!user) {
@@ -232,4 +234,31 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
       clearTimeout(timeoutId);
     }
   });
+}
+
+function getThrownErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message.trim() || "unknown";
+  }
+
+  if (typeof error === "string") {
+    return error.trim() || "unknown";
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const record = error as Record<string, unknown>;
+
+    if (typeof record.message === "string" && record.message.trim()) {
+      return record.message.trim();
+    }
+
+    try {
+      const serialized = JSON.stringify(record);
+      return serialized && serialized !== "{}" ? serialized : "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+
+  return "unknown";
 }
