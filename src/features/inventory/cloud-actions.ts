@@ -401,7 +401,7 @@ export async function createCustomCardAction(input: {
       data: await listCloudInventory(supabase, user),
     };
   } catch (error) {
-    return await cloudError(error);
+    return await cloudError(error, { exposeSystemMessage: true });
   }
 }
 
@@ -621,7 +621,10 @@ async function countUserCardsByStatus(
   return count ?? 0;
 }
 
-async function cloudError(error: unknown): Promise<CloudActionResult<never>> {
+async function cloudError(
+  error: unknown,
+  options: { exposeSystemMessage?: boolean } = {},
+): Promise<CloudActionResult<never>> {
   const t = await getCloudActionText();
 
   if (error instanceof Error && error.message === CLOUD_AUTH_REQUIRED_ERROR) {
@@ -638,10 +641,41 @@ async function cloudError(error: unknown): Promise<CloudActionResult<never>> {
     };
   }
 
+  if (options.exposeSystemMessage) {
+    const systemMessage = getSystemErrorMessage(error);
+
+    if (systemMessage) {
+      return {
+        status: "error",
+        message: systemMessage,
+      };
+    }
+  }
+
   return {
     status: "error",
     message: t("inventory.error.operationFailed"),
   };
+}
+
+function getSystemErrorMessage(error: unknown): string | null {
+  if (error instanceof Error) {
+    return error.message.trim() || null;
+  }
+
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  const record = error as Record<string, unknown>;
+  const parts = [
+    typeof record.message === "string" ? record.message : null,
+    typeof record.details === "string" ? `Details: ${record.details}` : null,
+    typeof record.hint === "string" ? `Hint: ${record.hint}` : null,
+    typeof record.code === "string" ? `Code: ${record.code}` : null,
+  ].filter((part): part is string => Boolean(part?.trim()));
+
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 function revalidateProgressPaths() {

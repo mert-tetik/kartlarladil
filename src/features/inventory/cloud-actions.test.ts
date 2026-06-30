@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { LOCALE_CODES } from "@/data/languages";
 import type { InventoryCard, UserEntitlements } from "@/types/domain";
 import {
   addCloudInventoryCardAction,
+  createCustomCardAction,
   listCloudInventoryAction,
   migrateLocalInventoryToCloudAction,
   recordCloudPracticeAttemptAction,
@@ -61,9 +63,28 @@ interface MockState {
   userCards: UserCardRecord[];
   practiceAttempts: PracticeAttemptRecord[];
   nextAttemptId: number;
+  customCardInsertError?: unknown;
 }
 
 function createSupabaseMock(state: MockState, userId = "user-1") {
+  class EmptyQueryBuilder {
+    select() {
+      return this;
+    }
+
+    eq() {
+      return this;
+    }
+
+    maybeSingle<T>() {
+      return Promise.resolve({ data: null as T | null, error: null });
+    }
+
+    returns<T>() {
+      return Promise.resolve({ data: [] as T, error: null });
+    }
+  }
+
   class QueryBuilder {
     private filters: Array<{ field: string; value: unknown }> = [];
     private orderBy: { field: string; ascending: boolean } | null = null;
@@ -213,7 +234,13 @@ function createSupabaseMock(state: MockState, userId = "user-1") {
         error: null,
       })),
     },
-    from(table: "user_cards" | "practice_attempts") {
+    from(table: "user_cards" | "practice_attempts" | "custom_cards") {
+      if (table === "custom_cards") {
+        return Object.assign(new EmptyQueryBuilder(), {
+          insert: async () => ({ error: state.customCardInsertError ?? null }),
+        });
+      }
+
       if (table === "user_cards") {
         return Object.assign(new QueryBuilder("user_cards"), {
           insert: async (value: Partial<UserCardRecord>) => {
@@ -308,6 +335,7 @@ function createState(overrides?: Partial<MockState>): MockState {
     userCards: [],
     practiceAttempts: [],
     nextAttemptId: 1,
+    customCardInsertError: undefined,
     ...overrides,
   };
 }
@@ -497,5 +525,39 @@ describe("cloud-actions", () => {
         ],
       },
     });
+  });
+
+  it("returns the system error message when custom card creation fails", async () => {
+    const state = createState({
+      customCardInsertError: {
+        message: "new row violates row-level security policy for table custom_cards",
+        details: "Failing row contains user_id user-1.",
+        hint: "Check custom_cards insert policy.",
+        code: "42501",
+      },
+    });
+    currentSupabase = createSupabaseMock(state);
+
+    const result = await createCustomCardAction({
+      language: "en",
+      tier: "A1",
+      termKind: "word",
+      draft: {
+        term: "custom",
+        partOfSpeech: "noun",
+        pronunciation: "",
+        translations: Object.fromEntries(LOCALE_CODES.map((code) => [code, "custom"])),
+        example: "This is custom.",
+        exampleTranslation: "This is custom.",
+        grammar: ["Used as a noun."],
+        termKind: "word",
+      },
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.message).toContain("new row violates row-level security policy");
+    expect(result.message).toContain("Details: Failing row contains user_id user-1.");
+    expect(result.message).toContain("Hint: Check custom_cards insert policy.");
+    expect(result.message).toContain("Code: 42501");
   });
 });

@@ -92,9 +92,13 @@ export default function CreateCardPage() {
   }
 
   function getErrorMessage(code: string) {
+    if (code === "unknown") {
+      return t("createCard.error.unknown");
+    }
+
     const key = `createCard.error.${code}` as const;
     const message = t(key as TranslationKey);
-    return message === key ? t("createCard.error.unknown") : message;
+    return message === key ? `System: ${code}` : message;
   }
 
   if (!user) {
