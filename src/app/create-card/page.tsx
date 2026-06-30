@@ -7,19 +7,12 @@ import { Button } from "@/components/ui/button";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generateCardRequest } from "@/features/cards/create-card-client";
-import { LANGUAGE_CODES, LANGUAGE_NAMES } from "@/data/languages";
-import { TIERS } from "@/data/tiers";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import type { LanguageCode, Tier, TermKind } from "@/types/domain";
+import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { TranslationKey } from "@/i18n/types";
 import { cn } from "@/lib/utils";
-
-const TERM_KIND_OPTIONS = [
-  { value: "word", labelKey: "createCard.termKindWord" },
-  { value: "fixed_phrase", labelKey: "createCard.termKindPhrase" },
-] as const satisfies { value: TermKind; labelKey: string }[];
 
 export default function CreateCardPage() {
   const { user } = useAuthSession();
@@ -28,11 +21,8 @@ export default function CreateCardPage() {
   const { locale } = useLocale();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
 
-  const [language, setLanguage] = useState<LanguageCode>("en");
-  const [tier, setTier] = useState<Tier>("A1");
-  const [termKind, setTermKind] = useState<TermKind>("word");
-  const [topic, setTopic] = useState("");
-  const [generated, setGenerated] = useState<Awaited<ReturnType<typeof generateCardRequest>> | null>(null);
+  const [term, setTerm] = useState("");
+  const [generated, setGenerated] = useState<GeneratedCardResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -45,22 +35,18 @@ export default function CreateCardPage() {
 
   const previewCard = useMemo(() => {
     if (!generated) return null;
-    return buildPreviewVocabularyCard(language, tier, termKind, generated);
-  }, [generated, language, tier, termKind]);
+    return buildPreviewVocabularyCard(generated);
+  }, [generated]);
 
   async function handleGenerate() {
+    if (!term.trim()) return;
+
     setLoading(true);
     setErrorCode(null);
     setGenerated(null);
 
     try {
-      const result = await generateCardRequest({
-        language,
-        locale,
-        tier,
-        termKind,
-        topic: topic.trim() || undefined,
-      });
+      const result = await generateCardRequest({ locale, term: term.trim() });
       setGenerated(result);
     } catch (error) {
       setErrorCode(error instanceof Error ? error.message : "unknown");
@@ -77,9 +63,9 @@ export default function CreateCardPage() {
 
     try {
       await createCustomCard({
-        language,
-        tier,
-        termKind,
+        language: generated.language,
+        tier: generated.tier,
+        termKind: generated.termKind,
         draft: {
           term: generated.term,
           partOfSpeech: generated.partOfSpeech,
@@ -88,7 +74,7 @@ export default function CreateCardPage() {
           example: generated.example,
           exampleTranslation: generated.exampleTranslation,
           grammar: generated.grammar,
-          termKind,
+          termKind: generated.termKind,
         },
       });
 
@@ -119,82 +105,26 @@ export default function CreateCardPage() {
   }
 
   return (
-    <main className="relative mx-auto max-w-2xl px-4 py-6 sm:py-10">
+    <main className="relative mx-auto max-w-xl px-4 py-6 sm:py-10">
       <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
           <p className="text-foreground-muted">{t("createCard.description")}</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label htmlFor="language" className="text-sm font-medium">
-              {t("createCard.language")}
-            </label>
-            <select
-              id="language"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as LanguageCode)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {LANGUAGE_CODES.map((code) => (
-                <option key={code} value={code}>
-                  {LANGUAGE_NAMES[code]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="tier" className="text-sm font-medium">
-              {t("createCard.tier")}
-            </label>
-            <select
-              id="tier"
-              value={tier}
-              onChange={(event) => setTier(event.target.value as Tier)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {TIERS.map((tierOption) => (
-                <option key={tierOption} value={tierOption}>
-                  {tierOption}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="termKind" className="text-sm font-medium">
-              {t("createCard.termKind")}
-            </label>
-            <select
-              id="termKind"
-              value={termKind}
-              onChange={(event) => setTermKind(event.target.value as TermKind)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {TERM_KIND_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey as TranslationKey)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="topic" className="text-sm font-medium">
-              {t("createCard.topic")}
-            </label>
-            <input
-              id="topic"
-              type="text"
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder={t("createCard.topicPlaceholder")}
-              maxLength={120}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            />
-          </div>
+        <div className="space-y-2">
+          <label htmlFor="term" className="text-sm font-medium">
+            {t("createCard.term")}
+          </label>
+          <input
+            id="term"
+            type="text"
+            value={term}
+            onChange={(event) => setTerm(event.target.value)}
+            placeholder={t("createCard.termPlaceholder")}
+            maxLength={120}
+            className="h-12 w-full rounded-md border border-border bg-background px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          />
         </div>
 
         {errorCode && (
@@ -206,7 +136,7 @@ export default function CreateCardPage() {
         <Button
           size="lg"
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || !term.trim()}
           className="w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
         >
           {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}

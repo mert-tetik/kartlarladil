@@ -306,7 +306,7 @@ RLS:
 - `reviews` public read; authenticated kullanıcı kendi satırını insert/update edebilir.
 - `custom_cards` — authenticated kullanıcı sadece kendi satırlarını okur/yazar/siler.
 
-Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullanıcılar `/create-card` sayfasında GPT ile özel kart oluşturabilir. Özel kartlar `custom_cards` tablosunda saklanır ve runtime'da `customCardRegistry` üzerinden `VOCABULARY_CARDS`'in üzerine bindlenir. Cloud action'lar `sourceKey`'i önce bundle kataloğunda, bulunamazsa `custom_cards`'ta çözümler.
+Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullanıcılar `/create-card` sayfasında sadece bir kelime/kelime grubu girerek GPT ile özel kart oluşturabilir; GPT hedef dil, CEFR seviyesi, tür ve diğer kart alanlarını kendi belirler. Özel kartlar `custom_cards` tablosunda saklanır ve runtime'da `customCardRegistry` üzerinden `VOCABULARY_CARDS`'in üzerine bindlenir. Cloud action'lar `sourceKey`'i önce bundle kataloğunda, bulunamazsa `custom_cards`'ta çözümler.
 
 ## Güvenlik Dikkatleri
 

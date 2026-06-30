@@ -1,13 +1,9 @@
 import { LOCALE_CODES } from "@/data/languages";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
-import type { LanguageCode, Tier, TermKind, VocabularyCard } from "@/types/domain";
+import type { VocabularyCard } from "@/types/domain";
 
-export function buildPreviewVocabularyCard(
-  language: LanguageCode,
-  tier: Tier,
-  termKind: TermKind,
-  generated: GeneratedCardResponse,
-): VocabularyCard {
+export function buildPreviewVocabularyCard(generated: GeneratedCardResponse): VocabularyCard {
+  const { language, tier, termKind } = generated;
   const id = `preview:${language}:${tier}:${encodeURIComponent(generated.term)}`;
 
   const translations: Record<string, string> = {};

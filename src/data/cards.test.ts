@@ -241,7 +241,10 @@ describe("custom card mapper", () => {
 
 describe("custom card preview", () => {
   it("builds a preview card from generated response", () => {
-    const card = buildPreviewVocabularyCard("en", "A2", "word", {
+    const card = buildPreviewVocabularyCard({
+      language: "en",
+      tier: "A2",
+      termKind: "word",
       term: "journey",
       partOfSpeech: "noun",
       pronunciation: "/ˈdʒɜːni/",
@@ -260,11 +263,8 @@ describe("custom card preview", () => {
 describe("create card schema", () => {
   it("accepts a valid request", () => {
     const result = createCardRequestSchema.safeParse({
-      language: "en",
       locale: "en",
-      tier: "A1",
-      termKind: "word",
-      topic: "travel",
+      term: "journey",
     });
 
     expect(result.success).toBe(true);
@@ -272,6 +272,9 @@ describe("create card schema", () => {
 
   it("rejects generated cards missing a translation locale", () => {
     const result = generatedCardSchema.safeParse({
+      language: "en",
+      tier: "A1",
+      termKind: "word",
       term: "journey",
       partOfSpeech: "noun",
       pronunciation: "",

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -164,6 +164,13 @@ export function MobileLandingDashboard() {
     }, { nextPath: "/card-draw" });
   }
 
+  function handleCreateCard() {
+    vibrate("tap");
+    requireAuthAction(() => {
+      router.push("/create-card");
+    }, { nextPath: "/create-card" });
+  }
+
   function handleStartLearning() {
     vibrate("tap");
     if (activeCount === 0) {
@@ -281,16 +288,27 @@ export function MobileLandingDashboard() {
         </span>
       </button>
 
-      {/* Draw cards button */}
-      <Button
-        size="lg"
-        onClick={handleDrawCards}
-        data-tutorial-target="landing-draw-cards"
-        className="h-14 w-full shrink-0 gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
-      >
-        <CardsIcon className="size-6" aria-hidden="true" />
-        {t("home.mobile.drawCards")}
-      </Button>
+      {/* Draw cards + Create card buttons */}
+      <div className="grid shrink-0 grid-cols-[1fr_auto] gap-2">
+        <Button
+          size="lg"
+          onClick={handleDrawCards}
+          data-tutorial-target="landing-draw-cards"
+          className="h-14 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
+        >
+          <CardsIcon className="size-6" aria-hidden="true" />
+          {t("home.mobile.drawCards")}
+        </Button>
+        <Button
+          size="lg"
+          onClick={handleCreateCard}
+          data-create-card-action
+          className="h-14 shrink-0 gap-2 border-0 bg-red-600 px-4 text-base font-bold text-white hover:bg-red-700 focus-visible:outline-red-600"
+        >
+          <Plus className="size-5" aria-hidden="true" />
+          <span className="hidden sm:inline">{t("cards.createCard")}</span>
+        </Button>
+      </div>
 
       {/* Active / Learned row */}
       <div className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
