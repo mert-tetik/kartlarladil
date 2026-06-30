@@ -443,6 +443,10 @@ export function QuizStation({
 
       setCurrentIndex((current) => current + 1);
       resetQuestionUi();
+
+      if (phase === "streak-celebration") {
+        setPhase("quiz");
+      }
     },
     [
       chestOpened,
@@ -450,6 +454,7 @@ export function QuizStation({
       deck.length,
       lastLearned,
       mode,
+      phase,
       resetQuestionUi,
       results,
       selectedCount,

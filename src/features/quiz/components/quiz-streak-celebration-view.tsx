@@ -15,11 +15,6 @@ export function QuizStreakCelebrationView({ streak }: QuizStreakCelebrationViewP
       aria-hidden="true"
     >
       <div className="flex items-center gap-4">
-        <Flame
-          className="size-16 text-red-500 animate-streak-fire sm:size-20"
-          fill="currentColor"
-          data-streak-fire-icon
-        />
         <span
           className="text-7xl font-black text-white sm:text-8xl lg:text-9xl"
           data-streak-count
@@ -29,6 +24,7 @@ export function QuizStreakCelebrationView({ streak }: QuizStreakCelebrationViewP
         <Flame
           className="size-16 text-red-500 animate-streak-fire sm:size-20"
           fill="currentColor"
+          data-streak-fire-icon
         />
       </div>
     </div>,
