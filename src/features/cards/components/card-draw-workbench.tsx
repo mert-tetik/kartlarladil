@@ -36,6 +36,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";  
@@ -113,6 +114,13 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   const tutorialStep = useTutorialStore((state) => state.step);
   const tutorialCompleted = useTutorialStore((state) => state.completed);
   const advanceTutorial = useTutorialStore((state) => state.advance);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (document.referrer.includes("/register/preferences")) {
+      sendTwaAnalyticsEvent("fd_tutorial_complete", { once: true });
+    }
+  }, []);
 
   const ownedIds = useMemo(() => new Set(inventoryCards.map((card) => card.cardId)), [inventoryCards]);
   const inventoryById = useMemo(

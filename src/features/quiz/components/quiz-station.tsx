@@ -79,6 +79,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import confetti from "canvas-confetti";
 import type {
   InventoryCard,
@@ -1920,6 +1921,7 @@ export function ResultView({
     if (hasTriggeredResult.current) return;
     hasTriggeredResult.current = true;
 
+    sendTwaAnalyticsEvent("fd_quiz_completed");
     void refreshStats();
     playSoundEffect("quiz-complete");
     vibrate("result");

@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { STORAGE_KEY } from "@/lib/constants";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
@@ -164,12 +165,19 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: false,
             cloudError: "",
           });
+
+          if (result.data.cards.length > 0) {
+            sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+          }
           return;
         }
 
-        set((state) => ({
-          cards: addCardToInventory(state.cards, cardId),
-        }));
+        const nextCards = addCardToInventory(get().cards, cardId);
+        set({ cards: nextCards });
+
+        if (nextCards.length > 0) {
+          sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+        }
       },
 
       async removeCard(cardId) {
