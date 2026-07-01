@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "레벨 {level} 실패!",
   "games.pointsEarned": "{points}점 획득",
   "games.startSplash": "시작",
-  "games.memory.progress": "{matched}/{total} 매칭",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "숨겨진 카드",
   "games.wordChallenge.question": "이 단어의 뜻이 맞습니까?",
   "games.wordChallenge.correct": "맞음",

@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "Уровень {level} не пройден!",
   "games.pointsEarned": "Заработано {points} очков",
   "games.startSplash": "СТАРТ",
-  "games.memory.progress": "{matched}/{total} совпадений",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "Скрытая карта",
   "games.wordChallenge.question": "Значение этого слова верно?",
   "games.wordChallenge.correct": "Верно",

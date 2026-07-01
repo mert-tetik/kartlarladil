@@ -1200,3 +1200,10 @@ body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
 body:has([data-mobile-hide-bottom-nav="true"]) [data-games-active] {
   height: calc(100dvh - var(--app-header-height));
 }
+
+/* Lock vertical scroll / bounce on mobile game pages */
+body:has([data-games-active]) {
+  overflow: hidden;
+  overscroll-behavior-y: none;
+  touch-action: none;
+}

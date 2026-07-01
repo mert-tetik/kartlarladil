@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "レベル {level} 失敗！",
   "games.pointsEarned": "{points} ポイント獲得",
   "games.startSplash": "スタート",
-  "games.memory.progress": "{matched}/{total} ペア",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "隠しカード",
   "games.wordChallenge.question": "この単語の意味は正しいですか？",
   "games.wordChallenge.correct": "正しい",

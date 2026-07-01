@@ -1,12 +1,13 @@
-import { generateMemoryCards, generateWordChallengeItems, WORD_CHALLENGE_QUESTION_COUNT } from "./game-cards";
+import { generateMemoryCards, generateWordChallengeItems } from "./game-cards";
+
 describe("generateMemoryCards", () => {
   it("produces twice the requested pair count of cards", () => {
-    const cards = generateMemoryCards(["A1"], 6);
+    const cards = generateMemoryCards(6, ["A1"]);
     expect(cards).toHaveLength(12);
   });
 
   it("creates matching pairs", () => {
-    const cards = generateMemoryCards(["A1"], 4);
+    const cards = generateMemoryCards(8, ["A1", "A2"]);
     const pairs = new Map<string, number>();
     for (const card of cards) {
       pairs.set(card.pairId, (pairs.get(card.pairId) ?? 0) + 1);
@@ -16,13 +17,13 @@ describe("generateMemoryCards", () => {
 });
 
 describe("generateWordChallengeItems", () => {
-  it("produces the expected number of questions", () => {
-    const items = generateWordChallengeItems(["A1"]);
-    expect(items).toHaveLength(WORD_CHALLENGE_QUESTION_COUNT);
+  it("produces the requested number of questions", () => {
+    const items = generateWordChallengeItems(7, ["A1"]);
+    expect(items).toHaveLength(7);
   });
 
   it("includes both true and false statements", () => {
-    const items = generateWordChallengeItems(["A1", "A2"]);
+    const items = generateWordChallengeItems(12, ["A1", "A2"]);
     const hasTrue = items.some((item) => item.isTrue);
     const hasFalse = items.some((item) => !item.isTrue);
     expect(hasTrue).toBe(true);

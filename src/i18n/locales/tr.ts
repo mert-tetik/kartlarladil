@@ -665,7 +665,7 @@ const dictionary = {
   "games.failed": "Seviye {level} Başarısız!",
   "games.pointsEarned": "{points} puan kazandın",
   "games.startSplash": "BAŞLA",
-  "games.memory.progress": "{matched}/{total} eşleşme",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "Gizli kart",
   "games.wordChallenge.question": "Bu kelimenin anlamı doğru mu?",
   "games.wordChallenge.correct": "Doğru",

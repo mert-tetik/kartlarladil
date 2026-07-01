@@ -1,72 +1,64 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Star } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
-import { useLocale, useT } from "@/i18n/locale-provider";
-import { formatPoints } from "@/i18n/labels";
+import { useAuthSession } from "@/features/auth/auth-client";
+import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import type { GameName } from "../game-types";
-import { useGameProgressStore } from "../game-progress-store";
 
 interface GameResultScreenProps {
-  game: GameName;
   level: number;
   success: boolean;
   points?: number;
   onPrimary: () => void;
 }
 
-export function GameResultScreen({ game, level, success, points = 0, onPrimary }: GameResultScreenProps) {
+export function GameResultScreen({ level, success, points = 0, onPrimary }: GameResultScreenProps) {
   const t = useT();
-  const { locale } = useLocale();
-  const totalPoints = useGameProgressStore((state) => state.getProgress(game).totalPoints);
-  const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("bobble");
-  const hasTriggered = useRef(false);
-
-  const basePoints = Math.max(0, totalPoints - points);
+  const { user } = useAuthSession();
+  const basePoints = user?.profile.aiPracticePoints ?? 0;
+  const [displayPoints, setDisplayPoints] = useState(basePoints);
+  const [showGain, setShowGain] = useState(false);
+  const animatedRef = useRef(false);
 
   useEffect(() => {
-    if (hasTriggered.current) return;
-    hasTriggered.current = true;
-
-    if (success) {
-      setBonusPhase("idle");
-      const timer = window.setTimeout(() => setBonusPhase("dropping"), 350);
-      return () => window.clearTimeout(timer);
+    if (!success || animatedRef.current) {
+      setDisplayPoints(basePoints);
+      return;
     }
-    return undefined;
-  }, [success]);
 
-  const handleBonusAnimationEnd = useCallback(() => {
-    setBonusPhase("bobble");
-  }, []);
+    animatedRef.current = true;
+    setDisplayPoints(basePoints);
+    setShowGain(true);
+
+    const timer = window.setTimeout(() => {
+      setDisplayPoints(basePoints + points);
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [basePoints, points, success]);
 
   return (
     <div className="animate-screen-pop flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
-        <Star className="size-5 fill-current" aria-hidden="true" />
-        <span className={cn("text-lg font-bold", bonusPhase === "bobble" && "animate-score-bobble")}>
-          {formatPoints(locale, bonusPhase === "bobble" ? totalPoints : basePoints)}
-        </span>
-        {success && bonusPhase === "dropping" ? (
-          <span
-            className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full text-2xl font-extrabold text-amber-400 animate-celebration-points-drop"
-            onAnimationEnd={handleBonusAnimationEnd}
-          >
-            +{points}
-          </span>
-        ) : null}
-      </div>
-
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-3xl font-black text-foreground sm:text-4xl">
           {success ? t("games.completed", { level }) : t("games.failed", { level })}
         </h1>
-        {success ? (
-          <p className="text-lg font-semibold text-foreground-secondary">{t("games.pointsEarned", { points })}</p>
-        ) : null}
+
+        <div className="relative mt-2 flex flex-col items-center">
+          <span className="text-4xl font-black text-brand">{displayPoints}</span>
+          {showGain && success ? (
+            <span
+              className={cn(
+                "absolute -right-8 -top-2 text-lg font-bold text-emerald-500",
+                displayPoints > basePoints && "animate-points-pop",
+              )}
+            >
+              +{points}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">

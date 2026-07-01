@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "Nível {level} falhou!",
   "games.pointsEarned": "{points} pontos ganhos",
   "games.startSplash": "COMEÇAR",
-  "games.memory.progress": "{matched}/{total} pares",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "Carta escondida",
   "games.wordChallenge.question": "O significado desta palavra está correto?",
   "games.wordChallenge.correct": "Correto",

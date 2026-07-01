@@ -1,4 +1,4 @@
-import type { LanguageCode, Tier } from "@/types/domain";
+import type { Tier } from "@/types/domain";
 import type { GameLevelConfig, GameName } from "./game-types";
 
 const TIER_BASE_POINTS: Record<Tier, number> = {
@@ -9,22 +9,20 @@ const TIER_BASE_POINTS: Record<Tier, number> = {
   C1: 100,
 };
 
-export function getTiersForLevel(level: number): Tier[] {
-  if (level <= 5) return ["A1"];
-  if (level <= 10) return ["A1", "A2"];
-  if (level <= 15) return ["A2"];
-  if (level <= 20) return ["A2", "B1"];
-  if (level <= 30) return ["B1"];
-  if (level <= 40) return ["B1", "B2"];
-  if (level <= 50) return ["B2"];
-  if (level <= 75) return ["B2", "C1"];
-  return ["C1"];
-}
+const TIER_ORDER: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 export function getHighestTierForLevel(level: number): Tier {
-  const tiers = getTiersForLevel(level);
-  // Tiers are ordered by difficulty in the returned arrays, so the last one is highest.
-  return tiers[tiers.length - 1];
+  if (level <= 10) return "A1";
+  if (level <= 20) return "A2";
+  if (level <= 30) return "B1";
+  if (level <= 40) return "B2";
+  return "C1";
+}
+
+export function getCardTiersForLevel(level: number): Tier[] {
+  const highest = getHighestTierForLevel(level);
+  const index = TIER_ORDER.indexOf(highest);
+  return TIER_ORDER.slice(0, index + 1);
 }
 
 export function getPointsForLevel(level: number): number {
@@ -39,39 +37,54 @@ export function getPointsForLevel(level: number): number {
 }
 
 export function getMemoryCardCountForLevel(level: number): number {
-  if (level <= 5) return 8;
-  if (level <= 10) return 12;
-  if (level <= 15) return 16;
-  if (level <= 25) return 20;
+  if (level <= 10) return 8;
+  if (level <= 20) return 12;
+  if (level <= 30) return 16;
+  if (level <= 40) return 20;
   return 24;
 }
 
-export function getMemoryPairCountForLevel(level: number): number {
-  return getMemoryCardCountForLevel(level) / 2;
-}
-
-export function getLevelTimeLimit(level: number, game: GameName, cardCount?: number): number {
-  if (game === "memory") {
-    const count = cardCount ?? getMemoryCardCountForLevel(level);
-    // 3 seconds per card.
-    return count * 3;
+export function getMemoryRevealDurationMs(cardCount: number): number {
+  switch (cardCount) {
+    case 8:
+      return 3000;
+    case 12:
+      return 4000;
+    case 16:
+    case 20:
+      return 6000;
+    case 24:
+      return 7000;
+    default:
+      return 4000;
   }
-  // Word challenge: 10s base + 5s per question. 12 questions per level.
-  return 10 + 12 * 5 + level;
 }
 
-export function buildLevelConfig(
-  level: number,
-  game: GameName,
-  language: LanguageCode | "all" = "all",
-): GameLevelConfig {
-  const cardCount = game === "memory" ? getMemoryCardCountForLevel(level) : 12;
+export function getWordChallengeQuestionCountForLevel(level: number): number {
+  if (level <= 10) return 7;
+  if (level <= 20) return 15;
+  if (level <= 30) return 20;
+  return 25;
+}
+
+export function getLevelTimeLimit(level: number, game: GameName): number {
+  if (game === "memory") {
+    const cardCount = getMemoryCardCountForLevel(level);
+    return cardCount * 3;
+  }
+  return getWordChallengeQuestionCountForLevel(level) * 2;
+}
+
+export function buildLevelConfig(level: number, game: GameName): GameLevelConfig {
+  const cardCount =
+    game === "memory" ? getMemoryCardCountForLevel(level) : getWordChallengeQuestionCountForLevel(level);
+
   return {
     level,
-    tiers: getTiersForLevel(level),
-    seconds: getLevelTimeLimit(level, game, cardCount),
+    tiers: getCardTiersForLevel(level),
+    seconds: getLevelTimeLimit(level, game),
     cardCount,
-    language,
+    language: "all",
   };
 }
 

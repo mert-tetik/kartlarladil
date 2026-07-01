@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "فشل المستوى {level}!",
   "games.pointsEarned": "ربحت {points} نقطة",
   "games.startSplash": "ابدأ",
-  "games.memory.progress": "{matched}/{total} تطابق",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "بطاقة مخفية",
   "games.wordChallenge.question": "هل معنى هذه الكلمة صحيح؟",
   "games.wordChallenge.correct": "صحيح",

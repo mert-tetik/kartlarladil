@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "第 {level} 关失败！",
   "games.pointsEarned": "获得 {points} 分",
   "games.startSplash": "开始",
-  "games.memory.progress": "{matched}/{total} 对",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "隐藏卡片",
   "games.wordChallenge.question": "这个单词的意思正确吗？",
   "games.wordChallenge.correct": "正确",

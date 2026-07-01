@@ -666,7 +666,7 @@ const dictionary = {
   "games.failed": "Poziom {level} niezaliczony!",
   "games.pointsEarned": "Zdobyto {points} punktów",
   "games.startSplash": "START",
-  "games.memory.progress": "{matched}/{total} dopasowań",
+  "games.memory.progress": "{matched}/{total}",
   "games.memory.cardHidden": "Ukryta karta",
   "games.wordChallenge.question": "Czy znaczenie tego słowa jest poprawne?",
   "games.wordChallenge.correct": "Prawda",

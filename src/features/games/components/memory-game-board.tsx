@@ -1,16 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useT } from "@/i18n/locale-provider";
-import { cn } from "@/lib/utils";
-import { buildLevelConfig, getMemoryCardCountForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
+import {
+  buildLevelConfig,
+  getHighestTierForLevel,
+  getMemoryRevealDurationMs,
+  getPointsForLevel,
+  isGameLevelLocked,
+} from "../game-levels";
 import { generateMemoryCards } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
 import { useGameSounds } from "../use-game-sounds";
 import { useGameTimer } from "../game-timer";
 import type { MemoryCardItem } from "../game-types";
+import { addGamePointsAction } from "../game-actions";
 import { GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
@@ -23,23 +30,21 @@ interface MemoryGameBoardProps {
   initialLevel: number;
 }
 
-const REVEAL_DURATION_MS = 3000;
-
 export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const t = useT();
+  const { user, refreshProfile } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
-
-  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+  const addLocalPoints = useGameProgressStore((state) => state.addPoints);
 
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<MemoryPhase>("splash");
-  const [cards, setCards] = useState<MemoryCardItem[]>(() => {
-    const initialConfig = buildLevelConfig(initialLevel, "memory", selectedLanguage);
-    return generateMemoryCards(initialConfig.tiers, initialConfig.cardCount / 2, selectedLanguage);
-  });
+  const config = useMemo(() => buildLevelConfig(level, "memory"), [level]);
+  const pairCount = config.cardCount / 2;
+  const revealDurationMs = useMemo(() => getMemoryRevealDurationMs(config.cardCount), [config.cardCount]);
+  const [cards, setCards] = useState<MemoryCardItem[]>(() => generateMemoryCards(pairCount, config.tiers));
   const [matchedCount, setMatchedCount] = useState(0);
   const [flippedIds, setFlippedIds] = useState<string[]>([]);
   const [showSplash, setShowSplash] = useState(true);
@@ -47,37 +52,19 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const [isChecking, setIsChecking] = useState(false);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const config = useMemo(() => buildLevelConfig(level, "memory", selectedLanguage), [level, selectedLanguage]);
-  const totalPairs = config.cardCount / 2;
-
   const handleTimeExpired = useCallback(() => {
-    sounds.fail();
     setPhase("failed");
-  }, [sounds]);
-
-  const handleTick = useCallback(
-    (remainingSeconds: number) => {
-      if (remainingSeconds <= 10 && remainingSeconds > 0) {
-        if (remainingSeconds <= 3) {
-          sounds.tickHigh();
-        } else {
-          sounds.tickLow();
-        }
-      }
-    },
-    [sounds],
-  );
+  }, []);
 
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
-    onTick: handleTick,
   });
 
   useEffect(() => {
     startLevel("memory", level);
-    setCards(generateMemoryCards(config.tiers, config.cardCount / 2, selectedLanguage));
+    setCards(generateMemoryCards(pairCount, config.tiers));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -88,15 +75,20 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
       revealTimerRef.current = null;
     }
     reset(config.seconds);
-  }, [level, config.seconds, config.tiers, startLevel, reset]);
+  }, [level, config.seconds, config.tiers, pairCount, startLevel, reset]);
 
   useEffect(() => {
-    if (matchedCount > 0 && matchedCount === totalPairs && phase === "playing") {
+    if (matchedCount > 0 && matchedCount === pairCount && phase === "playing") {
       sounds.complete();
+      const points = getPointsForLevel(level);
       completeLevel("memory", level);
+      addLocalPoints("memory", points);
+      if (user) {
+        void addGamePointsAction(points).then(() => refreshProfile());
+      }
       setPhase("completed");
     }
-  }, [matchedCount, totalPairs, phase, sounds, completeLevel, level]);
+  }, [matchedCount, pairCount, phase, sounds, completeLevel, addLocalPoints, level, user, refreshProfile]);
 
   const isFreePlan = entitlements?.effectivePlan === "free" || !entitlements;
 
@@ -108,8 +100,8 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
     setPhase("reveal");
     revealTimerRef.current = setTimeout(() => {
       setPhase("playing");
-    }, REVEAL_DURATION_MS);
-  }, [level, isFreePlan]);
+    }, revealDurationMs);
+  }, [level, isFreePlan, revealDurationMs]);
 
   const handleCardClick = useCallback(
     (id: string) => {
@@ -141,7 +133,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
           setTimeout(() => {
             setFlippedIds([]);
             setIsChecking(false);
-          }, 700);
+          }, 600);
         }
       }
     },
@@ -153,7 +145,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setCards(generateMemoryCards(config.tiers, config.cardCount / 2, selectedLanguage));
+    setCards(generateMemoryCards(pairCount, config.tiers));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -163,22 +155,19 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
       revealTimerRef.current = null;
     }
     reset(config.seconds);
-  }, [config.tiers, config.seconds, reset]);
+  }, [config.tiers, config.seconds, pairCount, reset]);
 
-  const progressLabel = t("games.memory.progress", { matched: matchedCount, total: totalPairs });
+  const progressLabel = t("games.memory.progress", { matched: matchedCount, total: pairCount });
   const revealAll = phase === "reveal";
-
-  const gridRowsClass = {
-    8: "grid-rows-2 sm:grid-rows-1",
-    12: "grid-rows-3 sm:grid-rows-2",
-    16: "grid-rows-4 sm:grid-rows-2",
-    20: "grid-rows-5 sm:grid-rows-3",
-    24: "grid-rows-6 sm:grid-rows-4",
-  }[config.cardCount];
 
   return (
     <GameShell>
-      <GameHeader level={level} tiers={config.tiers} remainingSeconds={remaining} progressLabel={progressLabel} />
+      <GameHeader
+        level={level}
+        tiers={[getHighestTierForLevel(level)]}
+        remainingSeconds={remaining}
+        progressLabel={progressLabel}
+      />
 
       {showSplash ? (
         <GameStartSplash
@@ -189,7 +178,6 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
-          game="memory"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}
@@ -197,7 +185,12 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center p-3">
-          <div className={cn("grid w-full max-w-3xl grid-cols-4 gap-2 sm:grid-cols-6", gridRowsClass)}>
+          <div
+            className="grid w-full max-w-2xl gap-2"
+            style={{
+              gridTemplateColumns: `repeat(${config.cardCount <= 12 ? 3 : 4}, minmax(0, 1fr))`,
+            }}
+          >
             {cards.map((card) => (
               <MemoryCard
                 key={card.id}

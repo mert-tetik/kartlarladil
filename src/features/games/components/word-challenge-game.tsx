@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { buildLevelConfig, getPointsForLevel, isGameLevelLocked } from "../game-levels";
-import { generateWordChallengeItems, WORD_CHALLENGE_QUESTION_COUNT } from "../game-cards";
+import { buildLevelConfig, getHighestTierForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
+import { generateWordChallengeItems } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
 import { useGameSounds } from "../use-game-sounds";
 import { useGameTimer } from "../game-timer";
 import type { WordChallengeItem } from "../game-types";
+import { addGamePointsAction } from "../game-actions";
 import { GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
@@ -25,57 +27,43 @@ interface WordChallengeGameProps {
 
 export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const t = useT();
+  const { user, refreshProfile } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
-  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+  const addLocalPoints = useGameProgressStore((state) => state.addPoints);
 
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<WordChallengePhase>("splash");
+  const config = useMemo(() => buildLevelConfig(level, "wordChallenge"), [level]);
+  const questionCount = config.cardCount;
   const [items, setItems] = useState<WordChallengeItem[]>(() =>
-    generateWordChallengeItems(buildLevelConfig(initialLevel, "wordChallenge", selectedLanguage).tiers, selectedLanguage),
+    generateWordChallengeItems(questionCount, config.tiers),
   );
   const [index, setIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-
-  const config = useMemo(() => buildLevelConfig(level, "wordChallenge", selectedLanguage), [level, selectedLanguage]);
   const currentItem = items[index];
 
   const handleTimeExpired = useCallback(() => {
-    sounds.fail();
     setPhase("failed");
-  }, [sounds]);
-
-  const handleTick = useCallback(
-    (remainingSeconds: number) => {
-      if (remainingSeconds <= 10 && remainingSeconds > 0) {
-        if (remainingSeconds <= 3) {
-          sounds.tickHigh();
-        } else {
-          sounds.tickLow();
-        }
-      }
-    },
-    [sounds],
-  );
+  }, []);
 
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
-    onTick: handleTick,
   });
 
   useEffect(() => {
     startLevel("wordChallenge", level);
-    setItems(generateWordChallengeItems(config.tiers, selectedLanguage));
+    setItems(generateWordChallengeItems(questionCount, config.tiers));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
     reset(config.seconds);
-  }, [level, config.seconds, config.tiers, startLevel, reset]);
+  }, [level, config.seconds, config.tiers, questionCount, startLevel, reset]);
 
   const isFreePlan = entitlements?.effectivePlan === "free" || !entitlements;
 
@@ -95,7 +83,12 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         sounds.correct();
         if (index + 1 >= items.length) {
           sounds.complete();
+          const points = getPointsForLevel(level);
           completeLevel("wordChallenge", level);
+          addLocalPoints("wordChallenge", points);
+          if (user) {
+            void addGamePointsAction(points).then(() => refreshProfile());
+          }
           setPhase("completed");
         } else {
           setIndex((prev) => prev + 1);
@@ -105,7 +98,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         setPhase("failed");
       }
     },
-    [phase, currentItem, index, items.length, sounds, completeLevel, level],
+    [phase, currentItem, index, items.length, sounds, completeLevel, addLocalPoints, level, user, refreshProfile],
   );
 
   const handleNextLevel = useCallback(() => {
@@ -113,18 +106,23 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setItems(generateWordChallengeItems(config.tiers, selectedLanguage));
+    setItems(generateWordChallengeItems(questionCount, config.tiers));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
     reset(config.seconds);
-  }, [config.tiers, config.seconds, reset]);
+  }, [config.tiers, config.seconds, questionCount, reset]);
 
-  const progressLabel = t("games.wordChallenge.progress", { current: index + 1, total: WORD_CHALLENGE_QUESTION_COUNT });
+  const progressLabel = t("games.wordChallenge.progress", { current: index + 1, total: questionCount });
 
   return (
     <GameShell>
-      <GameHeader level={level} tiers={config.tiers} remainingSeconds={remaining} progressLabel={progressLabel} />
+      <GameHeader
+        level={level}
+        tiers={[getHighestTierForLevel(level)]}
+        remainingSeconds={remaining}
+        progressLabel={progressLabel}
+      />
 
       {showSplash ? (
         <GameStartSplash
@@ -135,7 +133,6 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
-          game="wordChallenge"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}
