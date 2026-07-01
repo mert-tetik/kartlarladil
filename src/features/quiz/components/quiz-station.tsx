@@ -446,7 +446,7 @@ export function QuizStation({
       setCurrentIndex((current) => current + 1);
       resetQuestionUi();
 
-      if (phase === "streak-celebration") {
+      if (phase === "streak-celebration" || phase === "celebration") {
         setPhase("quiz");
       }
     },
