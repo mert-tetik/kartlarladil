@@ -170,8 +170,9 @@ export function VocabularyCardView({
           showActions={showActions}
           frontFit={frontFit}
           frontMinimal={frontMinimal}
+          isControlled={isControlled}
         />
-        <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} />
+        <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} isControlled={isControlled} />
       </div>
 
       <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} />
@@ -203,6 +204,7 @@ function CardFront({
   showActions?: boolean;
   frontFit?: boolean;
   frontMinimal?: boolean;
+  isControlled?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -407,10 +409,12 @@ function CardBack({
   card,
   isFaceUp,
   backDisplayTier,
+  isControlled = false,
 }: {
   card: VocabularyCard;
   isFaceUp: boolean;
   backDisplayTier?: Tier;
+  isControlled?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -419,8 +423,8 @@ function CardBack({
 
   return (
     <div
-      aria-hidden={isFaceUp}
-      inert={isFaceUp}
+      aria-hidden={isFaceUp && !isControlled}
+      inert={isFaceUp && !isControlled}
       className={cn(
         "absolute inset-0 overflow-hidden rounded-lg border border-border bg-background-card shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
         "p-1.5 sm:p-2.5",
