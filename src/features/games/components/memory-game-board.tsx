@@ -181,8 +181,8 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
           onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
         />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center p-3">
-          <div className="grid aspect-[8/9] max-h-full w-auto grid-cols-4 gap-2 sm:aspect-[2/1] sm:grid-cols-6">
+        <div className="flex flex-1 flex-col items-center overflow-y-auto p-3">
+          <div className="grid w-full max-w-3xl grid-cols-4 gap-2 sm:grid-cols-6">
             {cards.map((card) => (
               <MemoryCard
                 key={card.id}
