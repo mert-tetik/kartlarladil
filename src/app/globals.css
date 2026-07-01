@@ -573,6 +573,10 @@ body:has([data-create-card-page]) footer {
   display: none;
 }
 
+body:has([data-create-card-page]) [data-cookie-notice] {
+  display: none;
+}
+
 body:has([data-create-card-page]) .page-transition-shell {
   animation: none;
   bottom: 0;
@@ -603,6 +607,16 @@ body:has([data-create-card-page]) [data-create-card-page] {
   display: flex;
   flex: 1;
   min-height: 0;
+}
+
+@media (max-width: 1023px) {
+  body:has([data-create-card-page]) .page-transition-shell {
+    bottom: var(--mobile-nav-bar-height);
+  }
+
+  html[data-mobile-keyboard-open="true"] body:has([data-create-card-page]) .page-transition-shell {
+    bottom: var(--mobile-keyboard-offset);
+  }
 }
 
 /* Hide the site footer on Ask pages */

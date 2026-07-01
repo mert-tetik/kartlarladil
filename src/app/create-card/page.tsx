@@ -30,12 +30,17 @@ export default function CreateCardPage() {
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [clientReady, setClientReady] = useState(false);
 
   useEffect(() => {
     if (!user) {
       router.replace(`/register?next=${encodeURIComponent("/create-card")}`);
     }
   }, [user, router]);
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const previewCard = useMemo(() => {
     if (!generated) return null;
@@ -112,14 +117,14 @@ export default function CreateCardPage() {
 
   if (!user) {
     return (
-      <main data-create-card-page className={CREATE_CARD_FRAME_CLASS_NAME}>
+      <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
         <Loader2 className="size-8 animate-spin text-foreground-muted" />
       </main>
     );
   }
 
   return (
-    <main data-create-card-page className={CREATE_CARD_FRAME_CLASS_NAME}>
+    <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
       <section className="flex h-full w-full items-center justify-center">
         <div data-create-card-form className="flex w-full max-w-md flex-col items-center justify-center gap-4 text-center sm:gap-5">
           <div className="space-y-2">
@@ -169,7 +174,7 @@ export default function CreateCardPage() {
             <div
               data-create-card-overlay-panel
               className={cn(
-                "relative flex w-full min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
+                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
                 "sm:p-4",
               )}
             >
@@ -179,7 +184,7 @@ export default function CreateCardPage() {
               </div>
 
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-                <div className="w-full max-w-[18rem] sm:max-w-[20rem]">
+                <div className="w-full max-w-[15rem] sm:max-w-[18rem]">
                   <VocabularyCardView
                     card={previewCard}
                     initialFace="front"
