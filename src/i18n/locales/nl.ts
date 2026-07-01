@@ -641,7 +641,6 @@ const dictionary = {
   "createCard.generating": "Creating card...",
   "createCard.previewTitle": "Your Card is Ready",
   "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
-  "createCard.skip": "Regenerate",
   "createCard.add": "Add to Deck",
   "createCard.error.unknown": "Something went wrong while creating your card.",
   "createCard.error.auth_required": "Sign in to create cards.",

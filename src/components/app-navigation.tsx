@@ -60,7 +60,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const showMobileBackButton =
     isMobileViewport &&
-    (pathname === "/card-draw" || pathname === "/learn" || pathname.startsWith("/ai-practice/"));
+    (pathname === "/card-draw" || pathname === "/learn" || pathname.startsWith("/ai-practice/") || pathname === "/create-card");
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {

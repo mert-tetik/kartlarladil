@@ -640,7 +640,6 @@ const dictionary = {
   "createCard.generating": "Kart oluşturuluyor...",
   "createCard.previewTitle": "Yeni Kartın Hazır",
   "createCard.previewDescription": "Beğendiysen destene ekle, beğenmediysen yeniden oluştur.",
-  "createCard.skip": "Yeniden Oluştur",
   "createCard.add": "Desteye Ekle",
   "createCard.error.unknown": "Kart oluşturulurken beklenmeyen bir hata oluştu.",
   "createCard.error.auth_required": "Kart oluşturmak için giriş yapmalısın.",

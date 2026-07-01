@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCcw, Sparkles } from "lucide-react";
+import { ChevronLeft, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
@@ -98,7 +98,7 @@ export default function CreateCardPage() {
     }
   }
 
-  function handleSkip() {
+  function handleBack() {
     setGenerated(null);
     setErrorCode(null);
   }
@@ -207,12 +207,12 @@ export default function CreateCardPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={handleSkip}
+                onClick={handleBack}
                 disabled={adding}
                 className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
               >
-                <RefreshCcw className="mr-1.5 size-3.5" />
-                {t("createCard.skip")}
+                <ChevronLeft className="mr-1.5 size-3.5" />
+                {t("common.back")}
               </Button>
               <Button
                 size="sm"
