@@ -94,6 +94,10 @@ export function MobileLandingDashboard() {
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
+    router.prefetch("/create-card");
+  }, [router]);
+
+  useEffect(() => {
     if (allowRequestedLanguageRef.current) {
       return;
     }

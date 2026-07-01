@@ -14,6 +14,8 @@ import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-b
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import type { UserEntitlements } from "@/types/domain";
 
+const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
+
 interface SubscriptionContextValue {
   entitlements: UserEntitlements | null;
   isLoading: boolean;
@@ -23,8 +25,38 @@ interface SubscriptionContextValue {
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
+function readCachedEntitlements(): UserEntitlements | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(ENTITLEMENTS_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as UserEntitlements;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedEntitlements(entitlements: UserEntitlements | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (entitlements) {
+      window.localStorage.setItem(ENTITLEMENTS_CACHE_KEY, JSON.stringify(entitlements));
+    } else {
+      window.localStorage.removeItem(ENTITLEMENTS_CACHE_KEY);
+    }
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const [entitlements, setEntitlements] = useState<UserEntitlements | null>(null);
+  const [entitlements, setEntitlements] = useState<UserEntitlements | null>(readCachedEntitlements);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,8 +68,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     if (result.status === "success" && result.data) {
       setEntitlements(result.data);
+      writeCachedEntitlements(result.data);
     } else {
       setEntitlements(null);
+      writeCachedEntitlements(null);
       setError(result.message);
     }
 

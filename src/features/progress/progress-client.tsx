@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -20,6 +21,7 @@ import {
 import type { ProgressStats } from "@/types/domain";
 
 const CLOUD_MIGRATION_KEY = "foxiesdeck:cloud-migrated:v1";
+const PROGRESS_STATS_CACHE_KEY = "foxiesdeck:progress-stats";
 
 interface ProgressStatsContextValue {
   stats: ProgressStats;
@@ -29,6 +31,32 @@ interface ProgressStatsContextValue {
 }
 
 const ProgressStatsContext = createContext<ProgressStatsContextValue | null>(null);
+
+function readCachedProgressStats(): ProgressStats | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PROGRESS_STATS_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as ProgressStats;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProgressStats(stats: ProgressStats) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PROGRESS_STATS_CACHE_KEY, JSON.stringify(stats));
+  } catch {
+    // Ignore storage errors.
+  }
+}
 
 export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const { user, refreshProfile } = useAuthSession();
@@ -42,6 +70,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const loadCloudInventory = useInventoryStore((state) => state.loadCloudInventory);
   const migrateLocalInventoryToCloud = useInventoryStore((state) => state.migrateLocalInventoryToCloud);
   const migrationStartedRef = useRef(false);
+  const [cachedStats, setCachedStats] = useState<ProgressStats | null>(readCachedProgressStats);
 
   useEffect(() => {
     setCloudEnabled(Boolean(user));
@@ -92,7 +121,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     })();
   }, [cards.length, hydrated, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
 
-  const stats = useMemo(() => {
+  const computedStats = useMemo(() => {
     if (!hydrated) {
       return EMPTY_PROGRESS_STATS;
     }
@@ -102,6 +131,20 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
 
     return mergeBonusPoints(baseStats, bonusPoints);
   }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints]);
+
+  const stats = useMemo(() => {
+    const isLoading = !hydrated || cloudLoading;
+    if (isLoading && cachedStats) {
+      return cachedStats;
+    }
+    return computedStats;
+  }, [cachedStats, cloudLoading, computedStats, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeCachedProgressStats(computedStats);
+    setCachedStats(computedStats);
+  }, [computedStats, hydrated]);
 
   const refreshStats = useCallback(async () => {
     if (user) {

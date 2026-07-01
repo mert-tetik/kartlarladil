@@ -54,7 +54,7 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
     >
       <div
         className={cn(
-          "flex max-w-sm flex-col items-center justify-center rounded-2xl border border-border bg-background-card p-8 text-center shadow-lg transition-all duration-300",
+          "flex flex-col items-center justify-center text-center transition-all duration-300",
           visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
         )}
       >

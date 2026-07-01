@@ -92,6 +92,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           {showMobileBackButton ? (
             <Link
               href="/"
+              prefetch
               onClick={() => vibrate("tap")}
               data-tutorial-target="navbar-back"
               className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
@@ -100,7 +101,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               <span className="sr-only">{t("common.back")}</span>
             </Link>
           ) : (
-            <Link href="/" className="flex shrink-0 items-center gap-3 font-semibold text-white">
+            <Link href="/" prefetch className="flex shrink-0 items-center gap-3 font-semibold text-white">
               <Logo size={40} priority />
               <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
             </Link>
@@ -109,8 +110,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
               return (
-                <DesktopNavLink key={item.href} href={item.href} active={active}>
+                <DesktopNavLink key={item.href} href={item.href} active={active} prefetch={shouldPrefetch ? true : undefined}>
                   {t(item.labelKey)}
                 </DesktopNavLink>
               );
@@ -164,11 +166,13 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={shouldPrefetch ? true : undefined}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
@@ -193,15 +197,18 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 function DesktopNavLink({
   href,
   active,
+  prefetch,
   children,
 }: {
   href: string;
   active: boolean;
+  prefetch?: boolean;
   children: ReactNode;
 }) {
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className={cn(
         "rounded-md px-3 py-2 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white",
         active && "bg-white text-black hover:bg-white hover:text-black",
