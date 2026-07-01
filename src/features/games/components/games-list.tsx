@@ -21,6 +21,7 @@ interface GameEntry {
   icon: typeof Brain;
   titleKey: "games.memory.title" | "games.wordChallenge.title";
   descriptionKey: "games.memory.description" | "games.wordChallenge.description";
+  variant: "red" | "blue";
 }
 
 const GAMES: GameEntry[] = [
@@ -30,6 +31,7 @@ const GAMES: GameEntry[] = [
     icon: Shuffle,
     titleKey: "games.memory.title",
     descriptionKey: "games.memory.description",
+    variant: "red",
   },
   {
     name: "wordChallenge",
@@ -37,6 +39,7 @@ const GAMES: GameEntry[] = [
     icon: Brain,
     titleKey: "games.wordChallenge.title",
     descriptionKey: "games.wordChallenge.description",
+    variant: "blue",
   },
 ];
 
@@ -87,17 +90,18 @@ export function GamesList() {
                 key={game.name}
                 href={game.href}
                 className={cn(
-                  "flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-background-card p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:flex-1",
+                  "flex w-full flex-col items-center justify-center gap-3 rounded-2xl p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:flex-1",
+                  game.variant === "red"
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "bg-blue-500 text-white hover:bg-blue-600",
                 )}
               >
-                <div className="flex size-16 items-center justify-center rounded-full bg-brand/10 text-brand">
-                  <Icon className="size-8" aria-hidden="true" />
-                </div>
+                <Icon className="size-10" aria-hidden="true" />
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">{t(game.titleKey)}</h2>
-                  <p className="mt-1 text-sm text-foreground-secondary">{t(game.descriptionKey)}</p>
+                  <h2 className="text-xl font-bold">{t(game.titleKey)}</h2>
+                  <p className="mt-1 text-sm text-white/90">{t(game.descriptionKey)}</p>
                 </div>
-                <div className="mt-2 text-sm font-semibold text-foreground-muted">
+                <div className="mt-2 text-sm font-semibold text-white/80">
                   {t("games.level", { level: progress.currentLevel })} · {tier}
                 </div>
               </Link>

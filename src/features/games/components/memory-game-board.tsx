@@ -189,13 +189,14 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
+          game="memory"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}
           onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
         />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-3">
+        <div className="flex flex-1 flex-col items-center justify-center p-3">
           <div className={cn("grid w-full max-w-3xl grid-cols-4 gap-2 sm:grid-cols-6", gridRowsClass)}>
             {cards.map((card) => (
               <MemoryCard

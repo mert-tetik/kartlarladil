@@ -135,6 +135,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
+          game="wordChallenge"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}
