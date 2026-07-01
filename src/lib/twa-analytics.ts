@@ -1,6 +1,7 @@
 "use client";
 
 const TWA_ANALYTICS_SENT_KEY = "foxiesdeck:twa-analytics-sent";
+const TWA_REFERRER = "android-app://com.LigidTools.Glidecore";
 
 function getSentSet(): Set<string> {
   if (typeof window === "undefined") {
@@ -33,15 +34,20 @@ export function isTwaMode(): boolean {
     return false;
   }
 
-  const ua = window.navigator.userAgent;
-  const referrer = document.referrer;
+  const referrer = document.referrer ?? "";
 
-  return (
-    window.navigator.standalone === true ||
-    referrer.includes("android-app://com.LigidTools.Glidecore") ||
-    referrer.includes("android-app://") ||
-    /Android.*Chrome/.test(ua)
-  );
+  // The most reliable TWA signal is the android-app referrer sent by Chrome
+  // when launching a Trusted Web Activity.
+  if (referrer.includes(TWA_REFERRER)) {
+    return true;
+  }
+
+  // Fallback: standalone display mode can indicate a PWA/TWA install.
+  if (window.navigator.standalone === true) {
+    return true;
+  }
+
+  return false;
 }
 
 export interface TwaAnalyticsOptions {
@@ -75,7 +81,7 @@ export function sendTwaAnalyticsEvent(
 
     const url = `foxiesdeck://event?${searchParams.toString()}`;
 
-    // Use a hidden iframe so the TWA web page does not navigate away.
+    // Try a hidden iframe first so the TWA web page does not navigate away.
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     iframe.style.position = "absolute";
@@ -88,9 +94,26 @@ export function sendTwaAnalyticsEvent(
 
     document.body.appendChild(iframe);
 
-    window.setTimeout(() => {
+    // Fallback to a direct navigation if the iframe approach did not trigger
+    // the intent within a short window (e.g. blocked by Chrome Custom Tab).
+    const fallbackTimer = window.setTimeout(() => {
       iframe.remove();
-    }, 1000);
+      try {
+        window.location.href = url;
+      } catch {
+        // ignore
+      }
+    }, 300);
+
+    iframe.onload = () => {
+      window.clearTimeout(fallbackTimer);
+      window.setTimeout(() => iframe.remove(), 1000);
+    };
+
+    iframe.onerror = () => {
+      window.clearTimeout(fallbackTimer);
+      iframe.remove();
+    };
 
     if (options.once) {
       markSent(eventName);
