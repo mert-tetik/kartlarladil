@@ -321,6 +321,8 @@ const dictionary = {
   "nav.askShort": "问",
   "nav.cardDraw": "抽卡",
   "nav.home": "首页",
+  "nav.games": "游戏",
+  "nav.gamesShort": "游戏",
   "nav.inventory": "我的卡片",
   "nav.learn": "学习",
   "nav.learned": "已学会",

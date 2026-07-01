@@ -321,6 +321,8 @@ const dictionary = {
   "nav.askShort": "Ask",
   "nav.cardDraw": "Kart çek",
   "nav.home": "Ana sayfa",
+  "nav.games": "Oyunlar",
+  "nav.gamesShort": "Oyunlar",
   "nav.inventory": "Kartlarım",
   "nav.learn": "Öğren",
   "nav.learned": "Öğrenilenler",

@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   CircleHelp,
   CreditCard,
+  Gamepad2,
   Home,
   MessageCircle,
   type LucideIcon,
@@ -39,6 +40,7 @@ const navItems: readonly NavItem[] = [
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
   { href: "/my-cards", labelKey: "nav.inventory", icon: CardDecksIcon },
   { href: "/learn", labelKey: "nav.learn", icon: BookOpen },
+  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2 },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
   { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
@@ -46,6 +48,7 @@ const navItems: readonly NavItem[] = [
 
 const mobileNavItems: readonly NavItem[] = [
   { href: "/", labelKey: "nav.home", icon: Home },
+  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2 },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
   { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
@@ -169,7 +172,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           data-mobile-main-nav
           className="mobile-main-nav-bar border-t border-border bg-background-card"
         >
-          <div className="grid h-full grid-cols-4">
+          <div className="grid h-full grid-cols-5">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

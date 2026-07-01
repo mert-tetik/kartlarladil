@@ -321,6 +321,8 @@ const dictionary = {
   "nav.askShort": "Zapytaj",
   "nav.cardDraw": "Losuj karty",
   "nav.home": "Start",
+  "nav.games": "Gry",
+  "nav.gamesShort": "Gry",
   "nav.inventory": "Moje karty",
   "nav.learn": "Ucz się",
   "nav.learned": "Nauczone",

@@ -321,6 +321,8 @@ const dictionary = {
   "nav.askShort": "질문하기",
   "nav.cardDraw": "카드 뽑기",
   "nav.home": "홈",
+  "nav.games": "게임",
+  "nav.gamesShort": "게임",
   "nav.inventory": "내 카드",
   "nav.learn": "학습",
   "nav.learned": "학습 완료",

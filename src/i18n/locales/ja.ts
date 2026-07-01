@@ -321,6 +321,8 @@ const dictionary = {
   "nav.askShort": "Ask",
   "nav.cardDraw": "カードを引く",
   "nav.home": "ホーム",
+  "nav.games": "ゲーム",
+  "nav.gamesShort": "ゲーム",
   "nav.inventory": "マイカード",
   "nav.learn": "学習",
   "nav.learned": "習得済み",
