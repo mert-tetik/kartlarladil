@@ -514,6 +514,14 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
   html[data-mobile-keyboard-open="true"] body:has([data-ask-chat-page]) .page-transition-shell {
     bottom: var(--mobile-keyboard-offset);
   }
+
+  body:has([data-create-card-page]) .page-transition-shell {
+    bottom: var(--mobile-nav-bar-height);
+  }
+
+  html[data-mobile-keyboard-open="true"] body:has([data-create-card-page]) .page-transition-shell {
+    bottom: var(--mobile-keyboard-offset);
+  }
 }
 
 @media (max-width: 1023px) {
@@ -554,6 +562,47 @@ body:has([data-card-draw-page]) footer {
 /* Hide the site footer on AI practice pages */
 body:has([data-ai-practice-page]) footer {
   display: none;
+}
+
+/* Keep create-card inside the viewport band between the app header and bottom nav */
+body:has([data-create-card-page]) {
+  overflow: hidden;
+}
+
+body:has([data-create-card-page]) footer {
+  display: none;
+}
+
+body:has([data-create-card-page]) .page-transition-shell {
+  animation: none;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+  position: fixed;
+  right: 0;
+  top: var(--app-header-height);
+  transform: none;
+  will-change: auto;
+}
+
+body:has([data-create-card-page]) #main-content {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+body:has([data-create-card-page]) .page-transition-shell > * {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+body:has([data-create-card-page]) [data-create-card-page] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Hide the site footer on Ask pages */

@@ -15,6 +15,8 @@ import type { TranslationKey } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
+const CREATE_CARD_FRAME_CLASS_NAME =
+  "relative flex h-full w-full items-center justify-center overflow-hidden px-4 py-4 sm:px-6 sm:py-6";
 
 export default function CreateCardPage() {
   const { user } = useAuthSession();
@@ -110,75 +112,83 @@ export default function CreateCardPage() {
 
   if (!user) {
     return (
-      <main className="flex min-h-[50vh] items-center justify-center px-4">
+      <main data-create-card-page className={CREATE_CARD_FRAME_CLASS_NAME}>
         <Loader2 className="size-8 animate-spin text-foreground-muted" />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] w-full max-w-xl flex-col items-center justify-center px-4 py-6 sm:py-10">
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
-          <p className="text-foreground-muted">{t("createCard.description")}</p>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="term" className="text-sm font-medium">
-            {t("createCard.term")}
-          </label>
-          <input
-            id="term"
-            type="text"
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-            placeholder={t("createCard.termPlaceholder")}
-            maxLength={120}
-            className="h-12 w-full rounded-md border border-border bg-background px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          />
-        </div>
-
-        {errorCode && (
-          <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {getErrorMessage(errorCode)}
+    <main data-create-card-page className={CREATE_CARD_FRAME_CLASS_NAME}>
+      <section className="flex h-full w-full items-center justify-center">
+        <div data-create-card-form className="flex w-full max-w-md flex-col items-center justify-center gap-4 text-center sm:gap-5">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
+            <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
           </div>
-        )}
 
-        <Button
-          size="lg"
-          onClick={handleGenerate}
-          disabled={loading || !term.trim()}
-          className="w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
-        >
-          {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
-          {loading ? t("createCard.generating") : t("createCard.generate")}
-        </Button>
-      </div>
+          <div className="w-full space-y-2 text-left">
+            <label htmlFor="term" className="text-sm font-medium">
+              {t("createCard.term")}
+            </label>
+            <input
+              id="term"
+              type="text"
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+              placeholder={t("createCard.termPlaceholder")}
+              maxLength={120}
+              className="h-12 w-full rounded-md border border-border bg-background px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            />
+          </div>
+
+          {errorCode && (
+            <div role="alert" className="w-full rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-left text-sm text-destructive">
+              {getErrorMessage(errorCode)}
+            </div>
+          )}
+
+          <Button
+            size="lg"
+            onClick={handleGenerate}
+            disabled={loading || !term.trim()}
+            className="h-12 w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
+          >
+            {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
+            {loading ? t("createCard.generating") : t("createCard.generate")}
+          </Button>
+        </div>
+      </section>
 
       {previewCard && (
-        <div className="fixed inset-x-0 top-[var(--app-header-height)] bottom-[var(--mobile-nav-bar-height)] z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm lg:bottom-0">
+        <div
+          data-create-card-overlay
+          className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+        >
           <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-hidden">
             <div
+              data-create-card-overlay-panel
               className={cn(
-                "relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
+                "relative flex w-full min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
                 "sm:p-4",
               )}
             >
-              <div className="mb-2 text-center">
+              <div className="mb-2 shrink-0 text-center">
                 <h2 className="text-sm font-semibold text-white sm:text-base">{t("createCard.previewTitle")}</h2>
                 <p className="text-xs text-white/70">{t("createCard.previewDescription")}</p>
               </div>
 
-              <div className="flex max-h-[42vh] w-auto justify-center">
-                <VocabularyCardView
-                  card={previewCard}
-                  initialFace="front"
-                  flippable
-                  showActions={false}
-                  frontFit
-                  className="h-full w-full min-h-0 max-sm:aspect-[3/4]"
-                />
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+                <div className="w-full max-w-[18rem] sm:max-w-[20rem]">
+                  <VocabularyCardView
+                    card={previewCard}
+                    initialFace="front"
+                    flippable
+                    showActions={false}
+                    frontFit
+                    className="h-auto min-h-0 w-full max-sm:aspect-[3/4]"
+                  />
+                </div>
               </div>
             </div>
 
