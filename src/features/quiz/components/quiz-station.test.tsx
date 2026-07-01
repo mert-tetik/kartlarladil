@@ -383,7 +383,7 @@ describe("QuizStation sound feedback", () => {
     expect(card).not.toHaveClass("origin-top", "scale-[1.12]");
   });
 
-  it("renders the mobile learning splash against the viewport body", async () => {
+  it("does not show the mobile learning splash on the first text question", async () => {
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 390,
@@ -401,10 +401,7 @@ describe("QuizStation sound feedback", () => {
     fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
     await screen.findByRole("textbox");
 
-    const splash = document.querySelector("[data-learning-quiz-splash]");
-
-    expect(splash?.parentElement).toBe(document.body);
-    expect(splash).toHaveClass("fixed", "inset-0", "z-[60]");
+    expect(document.querySelector("[data-learning-quiz-splash]")).not.toBeInTheDocument();
 
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

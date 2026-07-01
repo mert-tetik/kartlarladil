@@ -300,7 +300,9 @@ export function QuizStation({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAiValidating, setIsAiValidating] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [pendingStreak, setPendingStreak] = useState(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
+  const streakTimeoutRef = useRef<number | null>(null);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
   const { canUse: canUseAiValidation, consume: consumeAiValidation } =
@@ -480,6 +482,9 @@ export function QuizStation({
       if (autoAdvanceTimeoutRef.current !== null) {
         window.clearTimeout(autoAdvanceTimeoutRef.current);
       }
+      if (streakTimeoutRef.current !== null) {
+        window.clearTimeout(streakTimeoutRef.current);
+      }
     },
     [],
   );
@@ -628,7 +633,12 @@ export function QuizStation({
         const nextStreak = isCorrect ? streak + 1 : 0;
         setStreak(nextStreak);
         if (nextStreak > 0 && nextStreak % 5 === 0) {
-          setPhase("streak-celebration");
+          setPendingStreak(true);
+          streakTimeoutRef.current = window.setTimeout(() => {
+            setPhase("streak-celebration");
+            setPendingStreak(false);
+            streakTimeoutRef.current = null;
+          }, 1000);
         }
 
         void recordAnswer({
@@ -646,6 +656,7 @@ export function QuizStation({
   }
 
   function handleNext() {
+    if (pendingStreak) return;
     advanceQuiz();
   }
 
@@ -787,14 +798,6 @@ export function QuizStation({
     );
   }
 
-  if (phase === "quiz-start") {
-    return (
-      <QuizStartSplash
-        onComplete={() => setPhase("quiz")}
-      />
-    );
-  }
-
   if (phase === "streak-celebration") {
     return (
       <QuizStreakCelebrationView
@@ -831,6 +834,12 @@ export function QuizStation({
     }
   }
 
+  const isQuizPhase = phase === "quiz" || phase === "quiz-start";
+
+  if (!isQuizPhase) {
+    return null;
+  }
+
   const item = deck[currentIndex];
 
   if (!item) {
@@ -853,18 +862,26 @@ export function QuizStation({
     );
   }
 
+  const isSplash = phase === "quiz-start";
+
   return (
     <>
-      <MobileQuizTopBars
-        mode={mode}
-        item={item}
-        currentIndex={currentIndex}
-        total={deck.length}
-        showingAnswer={showingAnswer}
-        lastAnswerCorrect={lastAnswerCorrect}
-      />
+      {isSplash ? <QuizStartSplash onComplete={() => setPhase("quiz")} /> : null}
+      {!isSplash ? (
+        <MobileQuizTopBars
+          mode={mode}
+          item={item}
+          currentIndex={currentIndex}
+          total={deck.length}
+          showingAnswer={showingAnswer}
+          lastAnswerCorrect={lastAnswerCorrect}
+        />
+      ) : null}
       <div
-        className="animate-screen-pop mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
+        className={cn(
+          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
+          isSplash ? "opacity-0" : "animate-screen-pop",
+        )}
         data-learn-quiz-page="quiz"
       >
         <div
@@ -898,6 +915,7 @@ export function QuizStation({
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onNext={handleNext}
+                  showNextButton={!pendingStreak}
                 />
               ) : (
                 <TextQuestion
@@ -910,6 +928,8 @@ export function QuizStation({
                   onChange={setTextAnswer}
                   onSubmitText={handleTextSubmit}
                   onNext={handleNext}
+                  showNextButton={!pendingStreak}
+                  isFirstQuestion={currentIndex === 0}
                 />
               )}
             </div>
@@ -942,7 +962,7 @@ export function QuizStation({
       </div>
 
       <MobileQuizFeedback
-        isOpen={showingAnswer && lastAnswerCorrect !== null}
+        isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
         isCorrect={lastAnswerCorrect ?? false}
         correctAnswer={
           item.questionType === "text"
@@ -950,6 +970,7 @@ export function QuizStation({
             : undefined
         }
         onNext={handleNext}
+        showNextButton={!pendingStreak}
       />
 
       <CardDetailsDialog
@@ -1360,6 +1381,7 @@ function ChoiceQuestion({
   promptClassName,
   onAnswer,
   onNext,
+  showNextButton = true,
 }: {
   item: QuizItem;
   showingAnswer: boolean;
@@ -1367,6 +1389,7 @@ function ChoiceQuestion({
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onNext: () => void;
+  showNextButton?: boolean;
 }) {
   const t = useT();
   const question = item.question as QuizQuestion;
@@ -1435,10 +1458,10 @@ function ChoiceQuestion({
         <Button
           className={cn(
             "w-full bg-brand hover:bg-brand-hover max-lg:hidden",
-            !showingAnswer && "invisible pointer-events-none",
+            (!showingAnswer || !showNextButton) && "invisible pointer-events-none",
           )}
           data-quiz-next-button
-          disabled={!showingAnswer}
+          disabled={!showingAnswer || !showNextButton}
           onClick={onNext}
         >
           {t("quiz.nextCard")}
@@ -1457,6 +1480,8 @@ function TextQuestion({
   onChange,
   onSubmitText,
   onNext,
+  showNextButton = true,
+  isFirstQuestion = false,
 }: {
   item: QuizItem;
   textAnswer: string;
@@ -1466,6 +1491,8 @@ function TextQuestion({
   onChange: (value: string) => void;
   onSubmitText: (answer: string) => Promise<void>;
   onNext: () => void;
+  showNextButton?: boolean;
+  isFirstQuestion?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -1486,11 +1513,16 @@ function TextQuestion({
       ],
   );
 
+  const skipSplash = isFirstQuestion;
+
   useEffect(() => {
-    if (!isMobileViewport) return;
+    if (!isMobileViewport || skipSplash) {
+      setSplashDone(true);
+      return;
+    }
     const timer = window.setTimeout(() => setSplashDone(true), 1200);
     return () => window.clearTimeout(timer);
-  }, [isMobileViewport]);
+  }, [isMobileViewport, skipSplash]);
 
   async function handleSubmit() {
     if (showingAnswer || isAiValidating) return;
@@ -1499,7 +1531,7 @@ function TextQuestion({
 
   return (
     <>
-      {isMobileViewport && !splashDone
+      {!skipSplash && isMobileViewport && !splashDone
         ? createPortal(
             <div
               className={cn(
@@ -1578,8 +1610,12 @@ function TextQuestion({
                 </p>
               </div>
               <Button
-                className="w-full bg-brand hover:bg-brand-hover"
+                className={cn(
+                  "w-full bg-brand hover:bg-brand-hover",
+                  !showNextButton && "invisible pointer-events-none",
+                )}
                 onClick={onNext}
+                disabled={!showNextButton}
               >
                 {t("quiz.nextCard")}
               </Button>
@@ -1611,11 +1647,13 @@ export function MobileQuizFeedback({
   isCorrect,
   correctAnswer,
   onNext,
+  showNextButton = true,
 }: {
   isOpen: boolean;
   isCorrect: boolean;
   correctAnswer?: string;
   onNext: () => void;
+  showNextButton?: boolean;
 }) {
   const t = useT();
   const [snapshot, setSnapshot] = useState<{
@@ -1664,9 +1702,13 @@ export function MobileQuizFeedback({
           </p>
         </div>
         <Button
-          className="shrink-0 bg-white text-black hover:bg-white/90"
+          className={cn(
+            "shrink-0 bg-white text-black hover:bg-white/90",
+            !showNextButton && "invisible pointer-events-none",
+          )}
           onClick={onNext}
           data-quiz-mobile-feedback-next
+          disabled={!showNextButton}
         >
           {t("quiz.nextCard")}
         </Button>
