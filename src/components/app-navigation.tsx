@@ -60,7 +60,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const showMobileBackButton =
     isMobileViewport &&
-    (pathname === "/card-draw" || pathname === "/learn" || pathname.startsWith("/ai-practice/") || pathname === "/create-card");
+    (pathname === "/card-draw" ||
+      pathname === "/learn" ||
+      pathname.startsWith("/ai-practice/") ||
+      pathname === "/create-card" ||
+      pathname === "/games" ||
+      pathname.startsWith("/games/"));
+
+  const mobileBackHref = pathname === "/games" ? "/" : pathname.startsWith("/games/") ? "/games" : "/";
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -91,7 +98,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           {showMobileBackButton ? (
             <Link
-              href="/"
+              href={mobileBackHref}
               prefetch
               onClick={() => vibrate("tap")}
               data-tutorial-target="navbar-back"

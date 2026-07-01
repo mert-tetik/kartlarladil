@@ -43,7 +43,7 @@ export function isTwaMode(): boolean {
   }
 
   // Fallback: standalone display mode can indicate a PWA/TWA install.
-  if (window.navigator.standalone === true) {
+  if ((window.navigator as Navigator & { standalone?: boolean }).standalone === true) {
     return true;
   }
 

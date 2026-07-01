@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export function RouteAwareShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAccountPage = pathname === "/profile" || pathname.startsWith("/account/");
-  const isFullScreenStudy = pathname === "/learn" || pathname === "/learned";
+  const isFullScreenStudy = pathname === "/learn" || pathname === "/learned" || pathname === "/games" || pathname.startsWith("/games/");
 
   return (
     <main
@@ -17,6 +17,7 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
       className={cn(
         "flex-1 outline-none",
         !isAccountPage && !isFullScreenStudy && "max-lg:pb-[var(--mobile-nav-bar-height)]",
+        (pathname === "/games" || pathname.startsWith("/games/")) && "h-[calc(100dvh-var(--app-header-height))] overflow-hidden",
       )}
       tabIndex={-1}
     >

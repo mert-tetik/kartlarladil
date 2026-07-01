@@ -11,7 +11,8 @@ export type UpgradeDialogErrorCode =
   | "learn_locale_locked"
   | "inventory_card_already_active"
   | "inventory_card_already_learned"
-  | "language_match_not_allowed";
+  | "language_match_not_allowed"
+  | "game_level_locked";
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -139,6 +140,12 @@ function getLimitContent(
         title: t("locale.languageMatchTitle"),
         description: t("locale.languageMatchDescription"),
         variant: "message",
+      };
+    case "game_level_locked":
+      return {
+        title: t("games.levelLockedTitle"),
+        description: t("games.levelLockedDescription"),
+        variant: "upgrade",
       };
     default:
       return {

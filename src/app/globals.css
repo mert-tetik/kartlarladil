@@ -1191,3 +1191,12 @@ body:has([data-learn-phase="count"]) #main-content {
   animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
   transition: top 0.2s ease-out, left 0.2s ease-out;
 }
+
+/* Games feature layout rules */
+body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
+  display: none;
+}
+
+body:has([data-mobile-hide-bottom-nav="true"]) [data-games-active] {
+  height: calc(100dvh - var(--app-header-height));
+}
