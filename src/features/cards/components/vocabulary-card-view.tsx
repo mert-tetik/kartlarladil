@@ -34,6 +34,7 @@ interface VocabularyCardViewProps {
   showActions?: boolean;
   frontFit?: boolean;
   frontMinimal?: boolean;
+  compact?: boolean;
   onClick?: () => void;
 }
 
@@ -66,6 +67,7 @@ export function VocabularyCardView({
   showActions = true,
   frontFit = false,
   frontMinimal = false,
+  compact = false,
   onClick,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -150,6 +152,7 @@ export function VocabularyCardView({
         "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
         className,
+        compact && "min-h-0 max-sm:min-h-0",
       )}
     >
       <div
@@ -172,7 +175,13 @@ export function VocabularyCardView({
           frontMinimal={frontMinimal}
           isControlled={isControlled}
         />
-        <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} isControlled={isControlled} />
+        <CardBack
+          card={card}
+          isFaceUp={isFaceUp}
+          backDisplayTier={backDisplayTier}
+          isControlled={isControlled}
+          compact={compact}
+        />
       </div>
 
       <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} />
@@ -296,37 +305,48 @@ function CardFront({
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-4 text-center max-sm:py-2">
-        <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
-          <span>{getLanguageDisplayName(card.language, locale)}</span>
-          <span
-            aria-label={`${tierPoints} ${t("common.points")}`}
-            className={cn("inline-flex items-center gap-1", style.text)}
-            title={`${tierPoints} ${t("common.points")}`}
-          >
-            <Coins className="size-3.5" aria-hidden="true" />
-            <span>{tierPoints}</span>
-          </span>
-        </div>
+      <div className={cn("flex flex-1 flex-col justify-center py-4 text-center max-sm:py-2", frontMinimal && "gap-2")}>
+        {!frontMinimal ? (
+          <>
+            <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
+              <span>{getLanguageDisplayName(card.language, locale)}</span>
+              <span
+                aria-label={`${tierPoints} ${t("common.points")}`}
+                className={cn("inline-flex items-center gap-1", style.text)}
+                title={`${tierPoints} ${t("common.points")}`}
+              >
+                <Coins className="size-3.5" aria-hidden="true" />
+                <span>{tierPoints}</span>
+              </span>
+            </div>
 
-        <div className="flex items-center justify-center gap-2 text-foreground-muted">
-          <button
-            type="button"
-            aria-label={`${card.term} ${t("cards.speak")}`}
-            title={t("cards.speak")}
-            onClick={handleSpeakClick}
-            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-white dark:hover:bg-white/20 dark:hover:text-white max-sm:size-6"
-          >
-            <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
-          </button>
-          <span className="text-sm text-foreground-muted dark:text-white/80 max-sm:text-xs">{card.pronunciation}</span>
-        </div>
-        <h3 className="mt-3 font-display text-2xl font-semibold leading-none text-foreground dark:text-white max-sm:mt-1 sm:text-4xl">
+            <div className="flex items-center justify-center gap-2 text-foreground-muted">
+              <button
+                type="button"
+                aria-label={`${card.term} ${t("cards.speak")}`}
+                title={t("cards.speak")}
+                onClick={handleSpeakClick}
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-white dark:hover:bg-white/20 dark:hover:text-white max-sm:size-6"
+              >
+                <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
+              </button>
+              <span className="text-sm text-foreground-muted dark:text-white/80 max-sm:text-xs">{card.pronunciation}</span>
+            </div>
+          </>
+        ) : null}
+        <h3
+          className={cn(
+            "font-display font-semibold leading-none text-foreground dark:text-white",
+            frontMinimal ? "text-xl max-sm:text-lg" : "mt-3 text-2xl max-sm:mt-1 sm:text-4xl",
+          )}
+        >
           {card.term}
         </h3>
-        <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
-          {getPartOfSpeechLabel(card.termKind, locale)}
-        </p>
+        {!frontMinimal ? (
+          <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
+            {getPartOfSpeechLabel(card.termKind, locale)}
+          </p>
+        ) : null}
         <div
           className={cn(
             "flex items-start justify-center",
@@ -338,6 +358,7 @@ function CardFront({
             className={cn(
               "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
               frontFit ? "line-clamp-3" : "line-clamp-2",
+              frontMinimal && "text-base max-sm:text-sm",
             )}
           >
             {cardTranslation}
@@ -410,11 +431,13 @@ function CardBack({
   isFaceUp,
   backDisplayTier,
   isControlled = false,
+  compact = false,
 }: {
   card: VocabularyCard;
   isFaceUp: boolean;
   backDisplayTier?: Tier;
   isControlled?: boolean;
+  compact?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -428,12 +451,14 @@ function CardBack({
       className={cn(
         "absolute inset-0 overflow-hidden rounded-lg border border-border bg-background-card shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
         "p-1.5 sm:p-2.5",
+        compact && "p-1 sm:p-1.5",
       )}
     >
       <div
         data-card-back-tier={visibleBackTier}
         className={cn(
           "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-foreground-inverse max-sm:p-2.5",
+          compact && "p-2 max-sm:p-1.5",
           style.backPanel,
           style.backBorder,
         )}
@@ -447,25 +472,48 @@ function CardBack({
             backgroundSize: "18px 18px",
           }}
         />
-        <PlayingCardBackPattern />
+        <div className={cn("pointer-events-none absolute inset-0", compact && "scale-75")}>
+          <PlayingCardBackPattern />
+        </div>
 
         <div className="relative flex flex-1 flex-col">
           <div className="flex items-start justify-between gap-3">
-            <span className="text-xs font-semibold text-foreground-inverse/75 max-sm:text-[10px]">{getTierLabel(visibleBackTier, locale)}</span>
-            <span className="text-xs font-semibold text-foreground-inverse/75 max-sm:text-[10px]">{getLanguageDisplayName(card.language, locale)}</span>
+            <span className={cn("font-semibold text-foreground-inverse/75", compact ? "text-[10px] max-sm:text-[8px]" : "text-xs max-sm:text-[10px]")}>
+              {getTierLabel(visibleBackTier, locale)}
+            </span>
+            <span className={cn("font-semibold text-foreground-inverse/75", compact ? "text-[10px] max-sm:text-[8px]" : "text-xs max-sm:text-[10px]")}>
+              {getLanguageDisplayName(card.language, locale)}
+            </span>
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div data-card-back-medallion="true" className="relative flex size-24 items-center justify-center rounded-full border border-foreground-inverse/80 bg-background-card shadow-sm max-sm:size-16">
-              <span className={cn("font-display text-5xl font-semibold leading-none max-sm:text-3xl", style.backText)}>
+            <div
+              data-card-back-medallion="true"
+              className={cn(
+                "relative flex items-center justify-center rounded-full border border-foreground-inverse/80 bg-background-card shadow-sm",
+                compact ? "size-14 max-sm:size-10" : "size-24 max-sm:size-16",
+              )}
+            >
+              <span
+                className={cn(
+                  "font-display font-semibold leading-none",
+                  compact ? "text-3xl max-sm:text-2xl" : "text-5xl max-sm:text-3xl",
+                  style.backText,
+                )}
+              >
                 {visibleBackTier}
               </span>
-              <span className={cn("pointer-events-none absolute inset-2 rounded-full border max-sm:inset-1", style.border)} aria-hidden="true" />
+              <span
+                className={cn("pointer-events-none absolute rounded-full border", compact ? "inset-1 max-sm:inset-0.5" : "inset-2 max-sm:inset-1", style.border)}
+                aria-hidden="true"
+              />
             </div>
-            <p className="mt-4 text-sm font-semibold text-foreground-inverse/95 max-sm:mt-2 max-sm:text-xs">{t("cards.flip")}</p>
+            <p className={cn("font-semibold text-foreground-inverse/95", compact ? "mt-2 text-xs max-sm:text-[10px]" : "mt-4 text-sm max-sm:mt-2 max-sm:text-xs")}>
+              {t("cards.flip")}
+            </p>
           </div>
 
-          <div className="flex items-end justify-between gap-3 text-xs font-semibold text-foreground-inverse/75 max-sm:text-[10px]">
+          <div className={cn("flex items-end justify-between gap-3 font-semibold text-foreground-inverse/75", compact ? "text-[10px] max-sm:text-[8px]" : "text-xs max-sm:text-[10px]")}>
             <span>FoxiesDeck</span>
             <span>{t("cards.collection")}</span>
           </div>

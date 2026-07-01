@@ -6,21 +6,29 @@ interface UseGameTimerOptions {
   seconds: number;
   running: boolean;
   onExpired: () => void;
+  onTick?: (remaining: number) => void;
 }
 
-export function useGameTimer({ seconds, running, onExpired }: UseGameTimerOptions) {
+export function useGameTimer({ seconds, running, onExpired, onTick }: UseGameTimerOptions) {
   const [remaining, setRemaining] = useState(seconds);
   const onExpiredRef = useRef(onExpired);
+  const onTickRef = useRef(onTick);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const endTimeRef = useRef<number>(0);
+  const lastTickRef = useRef<number>(seconds);
 
   useEffect(() => {
     onExpiredRef.current = onExpired;
   });
 
+  useEffect(() => {
+    onTickRef.current = onTick;
+  });
+
   const reset = useCallback((newSeconds: number) => {
     setRemaining(newSeconds);
     endTimeRef.current = Date.now() + newSeconds * 1000;
+    lastTickRef.current = newSeconds;
   }, []);
 
   useEffect(() => {
@@ -37,6 +45,11 @@ export function useGameTimer({ seconds, running, onExpired }: UseGameTimerOption
     intervalRef.current = setInterval(() => {
       const next = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
       setRemaining(next);
+
+      if (next !== lastTickRef.current) {
+        lastTickRef.current = next;
+        onTickRef.current?.(next);
+      }
 
       if (next <= 0) {
         if (intervalRef.current) {

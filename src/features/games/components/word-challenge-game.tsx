@@ -43,13 +43,28 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const currentItem = items[index];
 
   const handleTimeExpired = useCallback(() => {
+    sounds.fail();
     setPhase("failed");
-  }, []);
+  }, [sounds]);
+
+  const handleTick = useCallback(
+    (remainingSeconds: number) => {
+      if (remainingSeconds <= 10 && remainingSeconds > 0) {
+        if (remainingSeconds <= 3) {
+          sounds.tickHigh();
+        } else {
+          sounds.tickLow();
+        }
+      }
+    },
+    [sounds],
+  );
 
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
+    onTick: handleTick,
   });
 
   useEffect(() => {

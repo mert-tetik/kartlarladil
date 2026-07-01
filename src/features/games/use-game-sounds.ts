@@ -17,5 +17,8 @@ export function useGameSounds() {
     correct: useCallback(() => play("correct", "correct"), [play]),
     incorrect: useCallback(() => play("incorrect", "incorrect"), [play]),
     complete: useCallback(() => play("quiz-complete", "result"), [play]),
+    fail: useCallback(() => play("level-fail", "incorrect"), [play]),
+    tickLow: useCallback(() => play("clock-tick-low"), [play]),
+    tickHigh: useCallback(() => play("clock-tick-high"), [play]),
   };
 }

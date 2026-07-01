@@ -45,13 +45,28 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const totalPairs = cards.length / 2;
 
   const handleTimeExpired = useCallback(() => {
+    sounds.fail();
     setPhase("failed");
-  }, []);
+  }, [sounds]);
+
+  const handleTick = useCallback(
+    (remainingSeconds: number) => {
+      if (remainingSeconds <= 10 && remainingSeconds > 0) {
+        if (remainingSeconds <= 3) {
+          sounds.tickHigh();
+        } else {
+          sounds.tickLow();
+        }
+      }
+    },
+    [sounds],
+  );
 
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
+    onTick: handleTick,
   });
 
   useEffect(() => {
@@ -167,7 +182,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center p-3">
-          <div className="grid w-full max-w-2xl grid-cols-4 gap-2">
+          <div className="grid aspect-[8/9] max-h-full w-auto grid-cols-4 gap-2 sm:aspect-[2/1] sm:grid-cols-6">
             {cards.map((card) => (
               <MemoryCard
                 key={card.id}

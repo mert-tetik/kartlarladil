@@ -18,7 +18,7 @@ export function MemoryCard({ item, isFlipped, onClick, disabled, revealAll }: Me
   return (
     <div
       className={cn(
-        "relative aspect-[3/4] w-full transition-opacity duration-200",
+        "relative aspect-[3/4] h-full w-full transition-opacity duration-200",
         item.isMatched && "opacity-60",
         disabled && !item.isMatched && "pointer-events-none",
       )}
@@ -30,6 +30,7 @@ export function MemoryCard({ item, isFlipped, onClick, disabled, revealAll }: Me
         showActions={false}
         frontMinimal
         frontFit
+        compact
         onClick={onClick}
         className="h-full w-full"
       />

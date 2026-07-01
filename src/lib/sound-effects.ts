@@ -8,7 +8,10 @@ export type SoundEffectName =
   | "quiz-complete"
   | "chest-tap"
   | "chest-open"
-  | "streak-fire";
+  | "streak-fire"
+  | "clock-tick-low"
+  | "clock-tick-high"
+  | "level-fail";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -293,6 +296,23 @@ function streakFire(context: AudioContext, now: number) {
   }
 }
 
+function clockTickLow(context: AudioContext, now: number) {
+  // Soft, short tick for the last 10 seconds.
+  playTone(context, { frequency: 800, startTime: now, duration: 0.04, gain: 0.025 });
+}
+
+function clockTickHigh(context: AudioContext, now: number) {
+  // Sharper, louder tick for the final 3 seconds.
+  playTone(context, { frequency: 1200, startTime: now, duration: 0.05, gain: 0.06 });
+}
+
+function levelFail(context: AudioContext, now: number) {
+  // Disappointing descending two-tone buzz.
+  playTone(context, { frequency: 220, startTime: now, duration: 0.18, gain: 0.1, type: "sawtooth" });
+  playTone(context, { frequency: 165, startTime: now + 0.14, duration: 0.28, gain: 0.1, type: "sawtooth" });
+  playNoise(context, { startTime: now, duration: 0.35, gain: 0.06, filterFrequency: 220 });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -304,6 +324,9 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "chest-tap": chestTap,
   "chest-open": chestOpen,
   "streak-fire": streakFire,
+  "clock-tick-low": clockTickLow,
+  "clock-tick-high": clockTickHigh,
+  "level-fail": levelFail,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {
