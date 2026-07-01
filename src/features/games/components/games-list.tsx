@@ -1,9 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Brain, Shuffle } from "lucide-react";
-import { useT } from "@/i18n/locale-provider";
+import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
+import { LanguageFlag } from "@/components/language-flag";
+import { LANGUAGES } from "@/data/languages";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
+import type { LanguageCode } from "@/types/domain";
 import type { GameName } from "../game-types";
 import { useGameProgressStore } from "../game-progress-store";
 import { getHighestTierForLevel } from "../game-levels";
@@ -35,36 +42,80 @@ const GAMES: GameEntry[] = [
 
 export function GamesList() {
   const t = useT();
+  const { locale } = useLocale();
   const getProgress = useGameProgressStore((state) => state.getProgress);
+  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+  const setSelectedLanguage = useGameProgressStore((state) => state.setSelectedLanguage);
+  const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+
+  const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
+
+  function handleSelect(language: LanguageCode) {
+    setSelectedLanguage(language);
+  }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:flex-row sm:gap-6">
-      {GAMES.map((game) => {
-        const progress = getProgress(game.name);
-        const tier = getHighestTierForLevel(progress.currentLevel);
-        const Icon = game.icon;
+      <div className="flex w-full max-w-sm flex-col gap-4 sm:max-w-none sm:flex-1">
+        <button
+          type="button"
+          onClick={() => {
+            vibrate("tap");
+            setLanguageSheetOpen(true);
+          }}
+          className="flex w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 py-1.5 text-left transition-colors hover:bg-background-muted"
+        >
+          <span className="flex items-center gap-3">
+            <LanguageFlag code={selectedLanguage === "all" ? locale : selectedLanguage} className="h-6 w-9" />
+            <span className="text-base font-semibold text-foreground">
+              {selectedLanguage === "all"
+                ? t("home.mobile.allTiers")
+                : getLanguageDisplayName(selectedLanguage, locale)}
+            </span>
+          </span>
+          <span className="text-xs font-semibold text-foreground-muted">{t("home.mobile.cardLanguage")}</span>
+        </button>
 
-        return (
-          <Link
-            key={game.name}
-            href={game.href}
-            className={cn(
-              "flex w-full max-w-sm flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-background-card p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:max-w-none sm:flex-1",
-            )}
-          >
-            <div className="flex size-16 items-center justify-center rounded-full bg-brand/10 text-brand">
-              <Icon className="size-8" aria-hidden="true" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{t(game.titleKey)}</h2>
-              <p className="mt-1 text-sm text-foreground-secondary">{t(game.descriptionKey)}</p>
-            </div>
-            <div className="mt-2 text-sm font-semibold text-foreground-muted">
-              {t("games.level", { level: progress.currentLevel })} · {tier}
-            </div>
-          </Link>
-        );
-      })}
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+          {GAMES.map((game) => {
+            const progress = getProgress(game.name);
+            const tier = getHighestTierForLevel(progress.currentLevel);
+            const Icon = game.icon;
+
+            return (
+              <Link
+                key={game.name}
+                href={game.href}
+                className={cn(
+                  "flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-background-card p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:flex-1",
+                )}
+              >
+                <div className="flex size-16 items-center justify-center rounded-full bg-brand/10 text-brand">
+                  <Icon className="size-8" aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">{t(game.titleKey)}</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary">{t(game.descriptionKey)}</p>
+                </div>
+                <div className="mt-2 text-sm font-semibold text-foreground-muted">
+                  {t("games.level", { level: progress.currentLevel })} · {tier}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <MobileLanguageBottomSheet
+        isOpen={languageSheetOpen}
+        onClose={() => setLanguageSheetOpen(false)}
+        options={languageOptions}
+        selectedLanguage={selectedLanguage === "all" ? locale : selectedLanguage}
+        onSelect={handleSelect}
+        allowAll
+        isAllSelected={selectedLanguage === "all"}
+        onSelectAll={() => setSelectedLanguage("all")}
+      />
     </div>
   );
 }

@@ -1,13 +1,12 @@
-import { generateMemoryCards, generateWordChallengeItems, MEMORY_PAIR_COUNT, WORD_CHALLENGE_QUESTION_COUNT } from "./game-cards";
-
+import { generateMemoryCards, generateWordChallengeItems, WORD_CHALLENGE_QUESTION_COUNT } from "./game-cards";
 describe("generateMemoryCards", () => {
-  it("produces twice the pair count of cards", () => {
-    const cards = generateMemoryCards(["A1"]);
-    expect(cards).toHaveLength(MEMORY_PAIR_COUNT * 2);
+  it("produces twice the requested pair count of cards", () => {
+    const cards = generateMemoryCards(["A1"], 6);
+    expect(cards).toHaveLength(12);
   });
 
   it("creates matching pairs", () => {
-    const cards = generateMemoryCards(["A1"]);
+    const cards = generateMemoryCards(["A1"], 4);
     const pairs = new Map<string, number>();
     for (const card of cards) {
       pairs.set(card.pairId, (pairs.get(card.pairId) ?? 0) + 1);

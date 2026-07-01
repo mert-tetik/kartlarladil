@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useT } from "@/i18n/locale-provider";
-import { buildLevelConfig, getPointsForLevel, isGameLevelLocked } from "../game-levels";
+import { cn } from "@/lib/utils";
+import { buildLevelConfig, getMemoryCardCountForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
 import { generateMemoryCards } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
 import { useGameSounds } from "../use-game-sounds";
@@ -31,9 +32,14 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
 
+  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<MemoryPhase>("splash");
-  const [cards, setCards] = useState<MemoryCardItem[]>(() => generateMemoryCards(buildLevelConfig(level, "memory").tiers));
+  const [cards, setCards] = useState<MemoryCardItem[]>(() => {
+    const initialConfig = buildLevelConfig(initialLevel, "memory", selectedLanguage);
+    return generateMemoryCards(initialConfig.tiers, initialConfig.cardCount / 2, selectedLanguage);
+  });
   const [matchedCount, setMatchedCount] = useState(0);
   const [flippedIds, setFlippedIds] = useState<string[]>([]);
   const [showSplash, setShowSplash] = useState(true);
@@ -41,8 +47,8 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const [isChecking, setIsChecking] = useState(false);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const config = useMemo(() => buildLevelConfig(level, "memory"), [level]);
-  const totalPairs = cards.length / 2;
+  const config = useMemo(() => buildLevelConfig(level, "memory", selectedLanguage), [level, selectedLanguage]);
+  const totalPairs = config.cardCount / 2;
 
   const handleTimeExpired = useCallback(() => {
     sounds.fail();
@@ -71,7 +77,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
   useEffect(() => {
     startLevel("memory", level);
-    setCards(generateMemoryCards(config.tiers));
+    setCards(generateMemoryCards(config.tiers, config.cardCount / 2, selectedLanguage));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -147,7 +153,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setCards(generateMemoryCards(config.tiers));
+    setCards(generateMemoryCards(config.tiers, config.cardCount / 2, selectedLanguage));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -161,6 +167,14 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
   const progressLabel = t("games.memory.progress", { matched: matchedCount, total: totalPairs });
   const revealAll = phase === "reveal";
+
+  const gridRowsClass = {
+    8: "grid-rows-2 sm:grid-rows-1",
+    12: "grid-rows-3 sm:grid-rows-2",
+    16: "grid-rows-4 sm:grid-rows-2",
+    20: "grid-rows-5 sm:grid-rows-3",
+    24: "grid-rows-6 sm:grid-rows-4",
+  }[config.cardCount];
 
   return (
     <GameShell>
@@ -181,8 +195,8 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
           onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
         />
       ) : (
-        <div className="flex flex-1 flex-col items-center overflow-y-auto p-3">
-          <div className="grid w-full max-w-3xl grid-cols-4 gap-2 sm:grid-cols-6">
+        <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-3">
+          <div className={cn("grid w-full max-w-3xl grid-cols-4 gap-2 sm:grid-cols-6", gridRowsClass)}>
             {cards.map((card) => (
               <MemoryCard
                 key={card.id}

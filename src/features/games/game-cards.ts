@@ -1,8 +1,7 @@
 import { localCardRepository } from "@/features/cards/card-repository";
-import type { Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 import type { MemoryCardItem, WordChallengeItem } from "./game-types";
 
-export const MEMORY_PAIR_COUNT = 12;
 export const WORD_CHALLENGE_QUESTION_COUNT = 12;
 
 function shuffle<T>(items: T[]): T[] {
@@ -14,8 +13,10 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-function getRandomCards(tiers: Tier[], count: number): VocabularyCard[] {
-  const pool = localCardRepository.list({ language: "all", tier: "all" }).filter((card) => tiers.includes(card.tier));
+function getRandomCards(tiers: Tier[], count: number, language: LanguageCode | "all" = "all"): VocabularyCard[] {
+  const pool = localCardRepository
+    .list({ language, tier: "all" })
+    .filter((card) => tiers.includes(card.tier));
 
   if (pool.length === 0) {
     return [];
@@ -35,8 +36,22 @@ function getRandomCards(tiers: Tier[], count: number): VocabularyCard[] {
   return result;
 }
 
-export function generateMemoryCards(tiers: Tier[]): MemoryCardItem[] {
-  const uniqueCards = getRandomCards(tiers, MEMORY_PAIR_COUNT);
+export function generateMemoryCards(
+  tiers: Tier[],
+  pairCount: number,
+  language: LanguageCode | "all" = "all",
+): MemoryCardItem[] {
+  const uniqueCards = getRandomCards(tiers, pairCount, language);
+
+  // If the requested language does not have enough cards, fall back to all languages.
+  if (uniqueCards.length < pairCount && language !== "all") {
+    const fallback = getRandomCards(tiers, pairCount, "all").filter(
+      (card) => !uniqueCards.some((existing) => existing.sourceKey === card.sourceKey),
+    );
+    while (uniqueCards.length < pairCount && fallback.length > 0) {
+      uniqueCards.push(fallback.shift()!);
+    }
+  }
 
   const items: MemoryCardItem[] = [];
   uniqueCards.forEach((card, index) => {
@@ -62,9 +77,25 @@ export function generateMemoryCards(tiers: Tier[]): MemoryCardItem[] {
   return shuffle(items);
 }
 
-export function generateWordChallengeItems(tiers: Tier[]): WordChallengeItem[] {
-  const uniqueCards = getRandomCards(tiers, WORD_CHALLENGE_QUESTION_COUNT);
-  const pool = localCardRepository.list({ language: "all", tier: "all" }).filter((card) => tiers.includes(card.tier));
+export function generateWordChallengeItems(
+  tiers: Tier[],
+  language: LanguageCode | "all" = "all",
+): WordChallengeItem[] {
+  const uniqueCards = getRandomCards(tiers, WORD_CHALLENGE_QUESTION_COUNT, language);
+
+  // If the requested language does not have enough cards, fall back to all languages.
+  if (uniqueCards.length < WORD_CHALLENGE_QUESTION_COUNT && language !== "all") {
+    const fallback = getRandomCards(tiers, WORD_CHALLENGE_QUESTION_COUNT, "all").filter(
+      (card) => !uniqueCards.some((existing) => existing.sourceKey === card.sourceKey),
+    );
+    while (uniqueCards.length < WORD_CHALLENGE_QUESTION_COUNT && fallback.length > 0) {
+      uniqueCards.push(fallback.shift()!);
+    }
+  }
+
+  const pool = localCardRepository
+    .list({ language: "all", tier: "all" })
+    .filter((card) => tiers.includes(card.tier));
 
   return uniqueCards.map((card) => {
     const isTrue = Math.random() >= 0.5;

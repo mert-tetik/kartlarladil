@@ -22,6 +22,10 @@ interface MobileLanguageBottomSheetProps {
   options: LanguageOption[];
   selectedLanguage: LanguageCode;
   onSelect: (language: LanguageCode) => void;
+  allowAll?: boolean;
+  isAllSelected?: boolean;
+  onSelectAll?: () => void;
+  allLabel?: string;
 }
 
 export function MobileLanguageBottomSheet({
@@ -30,6 +34,10 @@ export function MobileLanguageBottomSheet({
   options,
   selectedLanguage,
   onSelect,
+  allowAll = false,
+  isAllSelected = false,
+  onSelectAll,
+  allLabel,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -135,13 +143,33 @@ export function MobileLanguageBottomSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {sortedOptions.length === 0 ? (
-            <p className="py-8 text-center text-sm text-foreground-secondary">
-              {t("quiz.noPracticeLanguagesDescription")}
-            </p>
-          ) : (
-            <div className="grid gap-2">
-              {sortedOptions.map((option) => {
+          <div className="grid gap-2">
+            {allowAll ? (
+              <button
+                type="button"
+                onClick={() => {
+                  vibrate("tap");
+                  onSelectAll?.();
+                  onClose();
+                }}
+                className={cn(
+                  "flex items-center justify-between rounded-xl border p-3 text-left transition-colors",
+                  isAllSelected
+                    ? "border-foreground bg-background-muted"
+                    : "border-border bg-background hover:bg-background-muted",
+                )}
+              >
+                <span className="text-base font-semibold text-foreground">
+                  {allLabel ?? t("home.mobile.allTiers")}
+                </span>
+              </button>
+            ) : null}
+            {sortedOptions.length === 0 ? (
+              <p className="py-8 text-center text-sm text-foreground-secondary">
+                {t("quiz.noPracticeLanguagesDescription")}
+              </p>
+            ) : (
+              sortedOptions.map((option) => {
                 const language = LANGUAGES.find((item) => item.code === option.code);
                 if (!language) return null;
                 const selected = option.code === selectedLanguage;
@@ -174,9 +202,9 @@ export function MobileLanguageBottomSheet({
                     </span>
                   </button>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

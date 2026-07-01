@@ -29,17 +29,18 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
+  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
 
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<WordChallengePhase>("splash");
   const [items, setItems] = useState<WordChallengeItem[]>(() =>
-    generateWordChallengeItems(buildLevelConfig(level, "wordChallenge").tiers),
+    generateWordChallengeItems(buildLevelConfig(initialLevel, "wordChallenge", selectedLanguage).tiers, selectedLanguage),
   );
   const [index, setIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
-  const config = useMemo(() => buildLevelConfig(level, "wordChallenge"), [level]);
+  const config = useMemo(() => buildLevelConfig(level, "wordChallenge", selectedLanguage), [level, selectedLanguage]);
   const currentItem = items[index];
 
   const handleTimeExpired = useCallback(() => {
@@ -69,7 +70,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
   useEffect(() => {
     startLevel("wordChallenge", level);
-    setItems(generateWordChallengeItems(config.tiers));
+    setItems(generateWordChallengeItems(config.tiers, selectedLanguage));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
@@ -112,7 +113,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setItems(generateWordChallengeItems(config.tiers));
+    setItems(generateWordChallengeItems(config.tiers, selectedLanguage));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);

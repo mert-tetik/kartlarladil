@@ -1,4 +1,4 @@
-import type { Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export type GameName = "memory" | "wordChallenge";
 
@@ -14,6 +14,8 @@ export interface GameLevelConfig {
   level: number;
   tiers: Tier[];
   seconds: number;
+  cardCount: number;
+  language: LanguageCode | "all";
 }
 
 export interface MemoryCardItem {

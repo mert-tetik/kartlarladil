@@ -3,6 +3,7 @@ import {
   buildLevelConfig,
   getHighestTierForLevel,
   getLevelTimeLimit,
+  getMemoryCardCountForLevel,
   getPointsForLevel,
   getTiersForLevel,
   isGameLevelLocked,
@@ -46,10 +47,27 @@ describe("getPointsForLevel", () => {
   });
 });
 
+describe("getMemoryCardCountForLevel", () => {
+  it.each([
+    [1, 8],
+    [5, 8],
+    [6, 12],
+    [10, 12],
+    [11, 16],
+    [15, 16],
+    [16, 20],
+    [25, 20],
+    [26, 24],
+  ])("level %i uses %i cards", (level, expected) => {
+    expect(getMemoryCardCountForLevel(level)).toBe(expected);
+  });
+});
+
 describe("getLevelTimeLimit", () => {
-  it("grows with level for memory", () => {
-    expect(getLevelTimeLimit(1, "memory")).toBe(62);
-    expect(getLevelTimeLimit(10, "memory")).toBe(80);
+  it("gives 3 seconds per memory card", () => {
+    expect(getLevelTimeLimit(1, "memory")).toBe(24);
+    expect(getLevelTimeLimit(10, "memory")).toBe(36);
+    expect(getLevelTimeLimit(26, "memory")).toBe(72);
   });
 
   it("is based on question count for word challenge", () => {
@@ -58,11 +76,12 @@ describe("getLevelTimeLimit", () => {
 });
 
 describe("buildLevelConfig", () => {
-  it("includes level, tiers and seconds", () => {
+  it("includes level, tiers, seconds and cardCount", () => {
     const config = buildLevelConfig(5, "memory");
     expect(config.level).toBe(5);
     expect(config.tiers).toEqual(["A1"]);
-    expect(config.seconds).toBeGreaterThan(0);
+    expect(config.seconds).toBe(24);
+    expect(config.cardCount).toBe(8);
   });
 });
 
