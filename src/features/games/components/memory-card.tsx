@@ -6,13 +6,14 @@ import type { MemoryCardItem } from "../game-types";
 
 interface MemoryCardProps {
   item: MemoryCardItem;
+  isFlipped: boolean;
   onClick: () => void;
   disabled: boolean;
   revealAll?: boolean;
 }
 
-export function MemoryCard({ item, onClick, disabled, revealAll }: MemoryCardProps) {
-  const face = item.isMatched || item.isFlipped || revealAll ? "front" : "back";
+export function MemoryCard({ item, isFlipped, onClick, disabled, revealAll }: MemoryCardProps) {
+  const face = item.isMatched || isFlipped || revealAll ? "front" : "back";
 
   return (
     <div

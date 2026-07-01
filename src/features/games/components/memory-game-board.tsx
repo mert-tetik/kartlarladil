@@ -120,7 +120,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
           setTimeout(() => {
             setFlippedIds([]);
             setIsChecking(false);
-          }, 600);
+          }, 700);
         }
       }
     },
@@ -172,6 +172,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
               <MemoryCard
                 key={card.id}
                 item={card}
+                isFlipped={flippedIds.includes(card.id)}
                 onClick={() => handleCardClick(card.id)}
                 disabled={isChecking || flippedIds.length >= 2 || card.isMatched}
                 revealAll={revealAll}
