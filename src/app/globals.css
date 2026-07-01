@@ -619,6 +619,17 @@ body:has([data-create-card-page]) [data-create-card-page] {
   }
 }
 
+/* Hide the mobile bottom nav on the quiz count selection screen */
+@media (max-width: 1023px) {
+  body:has([data-quiz-count-selection]) [data-mobile-main-nav-frame] {
+    display: none;
+  }
+
+  body:has([data-quiz-count-selection]) .page-transition-shell {
+    bottom: 0;
+  }
+}
+
 /* Hide the site footer on Ask pages */
 body:has([data-ask-page]) footer {
   display: none;
@@ -1037,15 +1048,23 @@ body:has([data-ask-page]) footer {
 @keyframes quiz-start-splash {
   0% {
     transform: translate3d(0, -100%, 0);
+    opacity: 1;
   }
   40% {
     transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
   60% {
     transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  75% {
+    transform: translate3d(0, 50%, 0);
+    opacity: 0;
   }
   100% {
     transform: translate3d(0, 100%, 0);
+    opacity: 0;
   }
 }
 

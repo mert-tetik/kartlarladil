@@ -18,6 +18,14 @@ const ARC_OFFSETS = [
   "translate-y-3",
 ] as const;
 
+const STAR_SIZES = [
+  "size-7 sm:size-9",
+  "size-8 sm:size-10",
+  "size-9 sm:size-11",
+  "size-8 sm:size-10",
+  "size-7 sm:size-9",
+] as const;
+
 const PANEL_REVEAL_DELAY_MS = 260;
 const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
@@ -43,7 +51,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
   return (
     <div
       className={cn(
-        "relative flex h-10 items-end justify-center gap-4 overflow-visible sm:h-12 sm:gap-5",
+        "relative flex h-12 items-end justify-center gap-4 overflow-visible sm:h-14 sm:gap-5",
         className,
       )}
       role="img"
@@ -54,13 +62,15 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
       {Array.from({ length: max }, (_, index) => {
         const filled = index < clampedRating;
         const offset = ARC_OFFSETS[index];
+        const sizeClass = STAR_SIZES[index];
 
         if (filled) {
           return (
             <div key={index} className={cn("flex items-end", offset)}>
               <Star
                 className={cn(
-                  "size-7 origin-bottom sm:size-9",
+                  sizeClass,
+                  "origin-bottom",
                   "fill-amber-400 text-amber-400",
                   ready ? "animate-star-drop" : "opacity-0",
                 )}
@@ -77,7 +87,8 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
           <div key={index} className={cn("flex items-end", offset)}>
             <Star
               className={cn(
-                "size-7 origin-bottom sm:size-9",
+                sizeClass,
+                "origin-bottom",
                 "fill-transparent text-foreground-muted",
                 showEmpty ? "opacity-100" : "opacity-0",
                 "transition-none",

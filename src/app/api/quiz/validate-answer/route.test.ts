@@ -113,4 +113,30 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(response.status).toBe(504);
     expect(payload.accepted).toBe(false);
   });
+
+  it("tells the model to accept lemma or inflection matches like found -> find", async () => {
+    mockCreate.mockResolvedValue({
+      output_text: '{"accepted": true}',
+    });
+
+    await POST(
+      makeRequest({
+        userAnswer: "find",
+        correctAnswers: ["found"],
+        targetLanguage: "en",
+        sourceLanguage: "tr",
+        promptContext: "bulmak",
+      }),
+    );
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    const call = mockCreate.mock.calls[0]?.[0] as {
+      input?: Array<{ role: string; content: string }>;
+    };
+    const systemMessage = call.input?.find((message) => message.role === "system")?.content ?? "";
+
+    expect(systemMessage).toContain("find -> found");
+    expect(systemMessage).toContain("found -> find");
+    expect(systemMessage).toContain("ran -> run");
+  });
 });

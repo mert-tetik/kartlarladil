@@ -273,6 +273,12 @@ export function QuizStation({
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
 
+  useEffect(() => {
+    if (phase === "quiz-start") {
+      setShowSplash(true);
+    }
+  }, [phase]);
+
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
   );
@@ -301,6 +307,7 @@ export function QuizStation({
   const [isAiValidating, setIsAiValidating] = useState(false);
   const [streak, setStreak] = useState(0);
   const [pendingStreak, setPendingStreak] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
 
@@ -866,7 +873,12 @@ export function QuizStation({
 
   return (
     <>
-      {isSplash ? <QuizStartSplash onComplete={() => setPhase("quiz")} /> : null}
+      {isSplash || showSplash ? (
+        <QuizStartSplash
+          onComplete={() => setPhase("quiz")}
+          onExited={() => setShowSplash(false)}
+        />
+      ) : null}
       {!isSplash ? (
         <MobileQuizTopBars
           mode={mode}
@@ -1974,10 +1986,10 @@ export function ResultView({
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
             {t("home.mobile.rankLabel")}
           </span>
-          <div className="relative flex h-32 w-full items-end justify-center sm:h-44">
+          <div className="relative flex h-44 w-full items-center justify-center sm:h-56">
             <RankIcon
               icon={stats.rank.icon}
-              className="size-24 origin-bottom animate-trophy-intro-grow sm:size-32"
+              className="size-24 animate-trophy-intro-grow sm:size-32"
               sizes="(max-width: 640px) 160px, 220px"
             />
           </div>

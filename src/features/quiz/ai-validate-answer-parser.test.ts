@@ -21,4 +21,14 @@ describe("parseAiValidationResponse", () => {
   it("rejects empty response", () => {
     expect(parseAiValidationResponse("")).toBe(false);
   });
+
+  it("accepts JSON wrapped in a markdown code fence", () => {
+    expect(parseAiValidationResponse('```json\n{"accepted": true}\n```')).toBe(true);
+  });
+
+  it("accepts prose that still contains an accepted field", () => {
+    expect(
+      parseAiValidationResponse('Answer looks acceptable.\nResult: {"accepted": true}'),
+    ).toBe(true);
+  });
 });

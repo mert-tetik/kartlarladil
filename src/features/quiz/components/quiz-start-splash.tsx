@@ -1,30 +1,50 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/i18n/locale-provider";
 
 interface QuizStartSplashProps {
   onComplete: () => void;
+  onExited?: () => void;
 }
 
-const SPLASH_DURATION_MS = 1200;
+const SPLASH_REVEAL_DURATION_MS = 720;
+const SPLASH_EXIT_DURATION_MS = 1200;
 
-export function QuizStartSplash({ onComplete }: QuizStartSplashProps) {
+export function QuizStartSplash({ onComplete, onExited }: QuizStartSplashProps) {
   const t = useT();
   const onCompleteRef = useRef(onComplete);
+  const onExitedRef = useRef(onExited);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   });
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      onCompleteRef.current();
-    }, SPLASH_DURATION_MS);
+    onExitedRef.current = onExited;
+  });
 
-    return () => window.clearTimeout(timer);
+  useEffect(() => {
+    const completeTimer = window.setTimeout(() => {
+      onCompleteRef.current();
+    }, SPLASH_REVEAL_DURATION_MS);
+
+    const exitTimer = window.setTimeout(() => {
+      setExiting(true);
+      onExitedRef.current?.();
+    }, SPLASH_EXIT_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(completeTimer);
+      window.clearTimeout(exitTimer);
+    };
   }, []);
+
+  if (exiting) {
+    return null;
+  }
 
   return createPortal(
     <div

@@ -11,11 +11,17 @@ export type SoundEffectName =
   | "streak-fire";
 
 interface BrowserAudioWindow extends Window {
+  Audio?: typeof Audio;
   AudioContext?: typeof AudioContext;
   webkitAudioContext?: typeof AudioContext;
 }
 
 const SOUND_EFFECTS_ENABLED = true;
+const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
+  incorrect: "/sounds/false.mp3",
+  "chest-open": "/sounds/chest.mp3",
+  "streak-fire": "/sounds/streak.mp3",
+};
 
 let audioContext: AudioContext | null = null;
 
@@ -38,6 +44,44 @@ function getAudioContext(): AudioContext | null {
   }
 
   return audioContext;
+}
+
+function playAudioFile(effect: SoundEffectName) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent)) {
+    return false;
+  }
+
+  const src = SOUND_EFFECT_AUDIO_FILES[effect];
+  if (!src) {
+    return false;
+  }
+
+  const audioWindow = window as BrowserAudioWindow;
+  const AudioConstructor = audioWindow.Audio;
+
+  if (typeof AudioConstructor !== "function") {
+    return false;
+  }
+
+  try {
+    const audio = new AudioConstructor(src);
+    audio.preload = "auto";
+
+    const playResult = audio.play();
+    if (playResult && typeof playResult.catch === "function") {
+      void playResult.catch(() => {
+        // Ignore playback promise failures; this should never block the UI.
+      });
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface ToneOptions {
@@ -264,6 +308,10 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
 
 export function playSoundEffect(effect: SoundEffectName) {
   if (!SOUND_EFFECTS_ENABLED) {
+    return;
+  }
+
+  if (playAudioFile(effect)) {
     return;
   }
 
