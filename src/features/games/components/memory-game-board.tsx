@@ -41,10 +41,13 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<MemoryPhase>("splash");
-  const config = useMemo(() => buildLevelConfig(level, "memory"), [level]);
+  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+  const config = useMemo(() => buildLevelConfig(level, "memory", selectedLanguage), [level, selectedLanguage]);
   const pairCount = config.cardCount / 2;
   const revealDurationMs = useMemo(() => getMemoryRevealDurationMs(config.cardCount), [config.cardCount]);
-  const [cards, setCards] = useState<MemoryCardItem[]>(() => generateMemoryCards(pairCount, config.tiers));
+  const [cards, setCards] = useState<MemoryCardItem[]>(() =>
+    generateMemoryCards(pairCount, config.tiers, selectedLanguage),
+  );
   const [matchedCount, setMatchedCount] = useState(0);
   const [flippedIds, setFlippedIds] = useState<string[]>([]);
   const [showSplash, setShowSplash] = useState(true);
@@ -64,7 +67,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
   useEffect(() => {
     startLevel("memory", level);
-    setCards(generateMemoryCards(pairCount, config.tiers));
+    setCards(generateMemoryCards(pairCount, config.tiers, selectedLanguage));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -75,7 +78,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
       revealTimerRef.current = null;
     }
     reset(config.seconds);
-  }, [level, config.seconds, config.tiers, pairCount, startLevel, reset]);
+  }, [level, config.seconds, config.tiers, pairCount, selectedLanguage, startLevel, reset]);
 
   useEffect(() => {
     if (matchedCount > 0 && matchedCount === pairCount && phase === "playing") {
@@ -145,7 +148,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setCards(generateMemoryCards(pairCount, config.tiers));
+    setCards(generateMemoryCards(pairCount, config.tiers, selectedLanguage));
     setMatchedCount(0);
     setFlippedIds([]);
     setPhase("splash");
@@ -155,7 +158,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
       revealTimerRef.current = null;
     }
     reset(config.seconds);
-  }, [config.tiers, config.seconds, pairCount, reset]);
+  }, [config.tiers, config.seconds, pairCount, selectedLanguage, reset]);
 
   const progressLabel = t("games.memory.progress", { matched: matchedCount, total: pairCount });
   const revealAll = phase === "reveal";
@@ -188,7 +191,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
           <div
             className="grid w-full max-w-2xl gap-2"
             style={{
-              gridTemplateColumns: `repeat(${config.cardCount <= 12 ? 3 : 4}, minmax(0, 1fr))`,
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
             }}
           >
             {cards.map((card) => (

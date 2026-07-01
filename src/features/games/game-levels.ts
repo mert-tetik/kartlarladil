@@ -1,4 +1,4 @@
-import type { Tier } from "@/types/domain";
+import type { LanguageCode, Tier } from "@/types/domain";
 import type { GameLevelConfig, GameName } from "./game-types";
 
 const TIER_BASE_POINTS: Record<Tier, number> = {
@@ -75,7 +75,11 @@ export function getLevelTimeLimit(level: number, game: GameName): number {
   return getWordChallengeQuestionCountForLevel(level) * 2;
 }
 
-export function buildLevelConfig(level: number, game: GameName): GameLevelConfig {
+export function buildLevelConfig(
+  level: number,
+  game: GameName,
+  language: LanguageCode | "all" = "all",
+): GameLevelConfig {
   const cardCount =
     game === "memory" ? getMemoryCardCountForLevel(level) : getWordChallengeQuestionCountForLevel(level);
 
@@ -84,7 +88,7 @@ export function buildLevelConfig(level: number, game: GameName): GameLevelConfig
     tiers: getCardTiersForLevel(level),
     seconds: getLevelTimeLimit(level, game),
     cardCount,
-    language: "all",
+    language,
   };
 }
 

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { GameName, GameProgress, GamesProgress } from "./game-types";
+import type { LanguageCode } from "@/types/domain";
 import { getPointsForLevel } from "./game-levels";
 
 const STORAGE_KEY = "foxiesdeck:games:progress";
@@ -17,11 +18,13 @@ function defaultProgress(): GameProgress {
 
 interface GameProgressState {
   progress: GamesProgress;
+  selectedLanguage: LanguageCode | "all";
   getProgress: (game: GameName) => GameProgress;
   startLevel: (game: GameName, level: number) => void;
   completeLevel: (game: GameName, level: number) => void;
   addPoints: (game: GameName, points: number) => void;
   resetGame: (game: GameName) => void;
+  setSelectedLanguage: (language: LanguageCode | "all") => void;
 }
 
 export const useGameProgressStore = create<GameProgressState>()(
@@ -31,6 +34,7 @@ export const useGameProgressStore = create<GameProgressState>()(
         memory: defaultProgress(),
         wordChallenge: defaultProgress(),
       },
+      selectedLanguage: "all",
       getProgress(game) {
         return get().progress[game] ?? defaultProgress();
       },
@@ -82,6 +86,9 @@ export const useGameProgressStore = create<GameProgressState>()(
             [game]: defaultProgress(),
           },
         }));
+      },
+      setSelectedLanguage(language) {
+        set({ selectedLanguage: language });
       },
     }),
     {

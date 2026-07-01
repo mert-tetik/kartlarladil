@@ -1,5 +1,5 @@
 import { localCardRepository } from "@/features/cards/card-repository";
-import type { Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 import type { MemoryCardItem, WordChallengeItem } from "./game-types";
 
 function shuffle<T>(items: T[]): T[] {
@@ -11,8 +11,14 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-function getRandomCards(tiers: Tier[], count: number): VocabularyCard[] {
-  const pool = localCardRepository.list({ language: "all", tier: "all" }).filter((card) => tiers.includes(card.tier));
+function getPool(tiers: Tier[], language: LanguageCode | "all"): VocabularyCard[] {
+  return localCardRepository
+    .list({ language, tier: "all" })
+    .filter((card) => tiers.includes(card.tier));
+}
+
+function getRandomCards(tiers: Tier[], language: LanguageCode | "all", count: number): VocabularyCard[] {
+  const pool = getPool(tiers, language);
 
   if (pool.length === 0) {
     return [];
@@ -32,8 +38,12 @@ function getRandomCards(tiers: Tier[], count: number): VocabularyCard[] {
   return result;
 }
 
-export function generateMemoryCards(pairCount: number, tiers: Tier[]): MemoryCardItem[] {
-  const uniqueCards = getRandomCards(tiers, pairCount);
+export function generateMemoryCards(
+  pairCount: number,
+  tiers: Tier[],
+  language: LanguageCode | "all",
+): MemoryCardItem[] {
+  const uniqueCards = getRandomCards(tiers, language, pairCount);
 
   const items: MemoryCardItem[] = [];
   uniqueCards.forEach((card, index) => {
@@ -59,9 +69,13 @@ export function generateMemoryCards(pairCount: number, tiers: Tier[]): MemoryCar
   return shuffle(items);
 }
 
-export function generateWordChallengeItems(questionCount: number, tiers: Tier[]): WordChallengeItem[] {
-  const uniqueCards = getRandomCards(tiers, questionCount);
-  const pool = localCardRepository.list({ language: "all", tier: "all" }).filter((card) => tiers.includes(card.tier));
+export function generateWordChallengeItems(
+  questionCount: number,
+  tiers: Tier[],
+  language: LanguageCode | "all",
+): WordChallengeItem[] {
+  const uniqueCards = getRandomCards(tiers, language, questionCount);
+  const pool = getPool(tiers, language);
 
   return uniqueCards.map((card) => {
     const isTrue = Math.random() >= 0.5;

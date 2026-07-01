@@ -36,10 +36,11 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
   const [level, setLevel] = useState(initialLevel);
   const [phase, setPhase] = useState<WordChallengePhase>("splash");
-  const config = useMemo(() => buildLevelConfig(level, "wordChallenge"), [level]);
+  const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
+  const config = useMemo(() => buildLevelConfig(level, "wordChallenge", selectedLanguage), [level, selectedLanguage]);
   const questionCount = config.cardCount;
   const [items, setItems] = useState<WordChallengeItem[]>(() =>
-    generateWordChallengeItems(questionCount, config.tiers),
+    generateWordChallengeItems(questionCount, config.tiers, selectedLanguage),
   );
   const [index, setIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
@@ -58,12 +59,12 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
   useEffect(() => {
     startLevel("wordChallenge", level);
-    setItems(generateWordChallengeItems(questionCount, config.tiers));
+    setItems(generateWordChallengeItems(questionCount, config.tiers, selectedLanguage));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
     reset(config.seconds);
-  }, [level, config.seconds, config.tiers, questionCount, startLevel, reset]);
+  }, [level, config.seconds, config.tiers, questionCount, selectedLanguage, startLevel, reset]);
 
   const isFreePlan = entitlements?.effectivePlan === "free" || !entitlements;
 
@@ -106,12 +107,12 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   }, []);
 
   const handleTryAgain = useCallback(() => {
-    setItems(generateWordChallengeItems(questionCount, config.tiers));
+    setItems(generateWordChallengeItems(questionCount, config.tiers, selectedLanguage));
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
     reset(config.seconds);
-  }, [config.tiers, config.seconds, questionCount, reset]);
+  }, [config.tiers, config.seconds, questionCount, selectedLanguage, reset]);
 
   const progressLabel = t("games.wordChallenge.progress", { current: index + 1, total: questionCount });
 
