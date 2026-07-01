@@ -167,7 +167,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center p-3">
-          <div className="grid aspect-square w-full max-w-2xl grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="grid w-full max-w-2xl grid-cols-4 gap-2">
             {cards.map((card) => (
               <MemoryCard
                 key={card.id}

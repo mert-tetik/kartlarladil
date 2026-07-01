@@ -33,6 +33,8 @@ interface VocabularyCardViewProps {
   onSkip?: () => void;
   showActions?: boolean;
   frontFit?: boolean;
+  frontMinimal?: boolean;
+  onClick?: () => void;
 }
 
 interface CardFaceState {
@@ -63,6 +65,8 @@ export function VocabularyCardView({
   onSkip,
   showActions = true,
   frontFit = false,
+  frontMinimal = false,
+  onClick,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
@@ -94,7 +98,12 @@ export function VocabularyCardView({
   }
 
   function handleCardClick() {
-    if (isControlled || !flippable) {
+    if (isControlled) {
+      onClick?.();
+      return;
+    }
+
+    if (!flippable) {
       return;
     }
 
@@ -160,6 +169,7 @@ export function VocabularyCardView({
           onSkip={onSkip}
           showActions={showActions}
           frontFit={frontFit}
+          frontMinimal={frontMinimal}
         />
         <CardBack card={card} isFaceUp={isFaceUp} backDisplayTier={backDisplayTier} />
       </div>
@@ -180,6 +190,7 @@ function CardFront({
   onSkip,
   showActions = true,
   frontFit = false,
+  frontMinimal = false,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -191,6 +202,7 @@ function CardFront({
   onSkip?: () => void;
   showActions?: boolean;
   frontFit?: boolean;
+  frontMinimal?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -249,10 +261,12 @@ function CardFront({
           style.accent,
         )}
       >
-        <span className="text-sm font-bold sm:text-base">
-          {card.tier} · {getTierLabel(card.tier, locale)}
-        </span>
-        {showActions ? (
+        {!frontMinimal ? (
+          <span className="text-sm font-bold sm:text-base">
+            {card.tier} · {getTierLabel(card.tier, locale)}
+          </span>
+        ) : null}
+        {showActions && !frontMinimal ? (
           <div className="flex items-center gap-1">
             <Button
               type="button"
@@ -313,8 +327,9 @@ function CardFront({
         </p>
         <div
           className={cn(
-            "mt-5 flex items-start justify-center max-sm:mt-1",
-            frontFit ? "min-h-0" : "h-12 max-sm:h-8",
+            "flex items-start justify-center",
+            frontMinimal ? "min-h-0" : "mt-5 max-sm:mt-1",
+            frontFit ? "min-h-0" : frontMinimal ? "min-h-0" : "h-12 max-sm:h-8",
           )}
         >
           <p
@@ -334,17 +349,19 @@ function CardFront({
           style.accent,
         )}
       >
-        <p
-          className={cn(
-            "text-sm font-medium leading-5 max-sm:text-xs",
-            frontFit ? "line-clamp-2" : "truncate",
-          )}
-          title={examplePreview}
-        >
-          {examplePreview}
-        </p>
+        {!frontMinimal ? (
+          <p
+            className={cn(
+              "text-sm font-medium leading-5 max-sm:text-xs",
+              frontFit ? "line-clamp-2" : "truncate",
+            )}
+            title={examplePreview}
+          >
+            {examplePreview}
+          </p>
+        ) : null}
 
-        {inventory ? (
+        {inventory && !frontMinimal ? (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs font-semibold">
               <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
@@ -356,7 +373,7 @@ function CardFront({
           </div>
         ) : null}
 
-        {onAdd || onSkip ? (
+        {!frontMinimal && (onAdd || onSkip) ? (
           <div className="grid grid-cols-2 gap-2 max-sm:gap-1.5">
             <Button
               variant="secondary"
