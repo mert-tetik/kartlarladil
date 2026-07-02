@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -18,26 +17,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const t = useT();
   const { user } = useAuthSession();
   const basePoints = user?.profile.aiPracticePoints ?? 0;
-  const [displayPoints, setDisplayPoints] = useState(basePoints);
-  const [showGain, setShowGain] = useState(false);
-  const animatedRef = useRef(false);
-
-  useEffect(() => {
-    if (!success || animatedRef.current) {
-      setDisplayPoints(basePoints);
-      return;
-    }
-
-    animatedRef.current = true;
-    setDisplayPoints(basePoints);
-    setShowGain(true);
-
-    const timer = window.setTimeout(() => {
-      setDisplayPoints(basePoints + points);
-    }, 400);
-
-    return () => window.clearTimeout(timer);
-  }, [basePoints, points, success]);
+  const totalPoints = success ? basePoints + points : basePoints;
 
   return (
     <div className="animate-screen-pop flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
@@ -45,20 +25,11 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
         <h1 className="text-3xl font-black text-foreground sm:text-4xl">
           {success ? t("games.completed", { level }) : t("games.failed", { level })}
         </h1>
-
-        <div className="relative mt-2 flex flex-col items-center">
-          <span className="text-4xl font-black text-brand">{displayPoints}</span>
-          {showGain && success ? (
-            <span
-              className={cn(
-                "absolute -right-8 -top-2 text-lg font-bold text-emerald-500",
-                displayPoints > basePoints && "animate-points-pop",
-              )}
-            >
-              +{points}
-            </span>
-          ) : null}
-        </div>
+        {success ? (
+          <p className="text-lg font-semibold text-foreground-secondary">
+            {t("games.pointsEarned", { points: totalPoints })}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">
