@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { Star } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
-import { useAuthSession } from "@/features/auth/auth-client";
-import { useT } from "@/i18n/locale-provider";
+import { useProgressStats } from "@/features/progress/progress-client";
+import { useLocale } from "@/i18n/locale-provider";
+import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 
 interface GameResultScreenProps {
@@ -14,22 +17,52 @@ interface GameResultScreenProps {
 }
 
 export function GameResultScreen({ level, success, points = 0, onPrimary }: GameResultScreenProps) {
-  const t = useT();
-  const { user } = useAuthSession();
-  const basePoints = user?.profile.aiPracticePoints ?? 0;
-  const totalPoints = success ? basePoints + points : basePoints;
+  const { locale, t } = useLocale();
+  const { stats, refreshStats } = useProgressStats();
+  const basePoints = stats.totalPoints - points;
+  const gainedPoints = points;
+  const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
+
+  useEffect(() => {
+    if (!success || gainedPoints <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setBonusPhase("dropping");
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [success, gainedPoints]);
+
+  const handleBonusAnimationEnd = useCallback(() => {
+    setBonusPhase("bobble");
+    void refreshStats();
+  }, [refreshStats]);
 
   return (
     <div className="animate-screen-pop flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+      <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+        <Star className="size-5 fill-current" aria-hidden="true" />
+        <span
+          className={cn(
+            "text-lg font-bold",
+            bonusPhase === "bobble" && "animate-score-bobble",
+          )}
+        >
+          {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
+        </span>
+        {bonusPhase === "dropping" ? (
+          <span
+            className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full text-2xl font-extrabold text-amber-400 animate-celebration-points-drop"
+            onAnimationEnd={handleBonusAnimationEnd}
+          >
+            +{gainedPoints}
+          </span>
+        ) : null}
+      </div>
+
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-3xl font-black text-foreground sm:text-4xl">
           {success ? t("games.completed", { level }) : t("games.failed", { level })}
         </h1>
-        {success ? (
-          <p className="text-lg font-semibold text-foreground-secondary">
-            {t("games.pointsEarned", { points: totalPoints })}
-          </p>
-        ) : null}
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">

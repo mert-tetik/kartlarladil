@@ -23,7 +23,7 @@ export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps)
       <FormMessage state={state} />
       <Button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 border border-border bg-background-card text-foreground-secondary hover:bg-background hover:text-foreground"
+        className="flex w-full items-center justify-center gap-2 bg-foreground text-background hover:opacity-90"
         disabled={isPending}
       >
         <GoogleLogo />
