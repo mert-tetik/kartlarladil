@@ -10,11 +10,8 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
+import { Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InlineLanguagePicker } from "@/components/inline-language-picker";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
@@ -466,11 +463,10 @@ export function AiPracticeChatPanel({
   }
 
   return (
-    <section className="relative mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+    <section className="relative mx-auto flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:max-w-full max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader
         character={character}
         characterName={characterName}
-        language={language}
         tier={tier}
       />
       <MessageList
@@ -517,41 +513,25 @@ export function AiPracticeChatPanel({
 function ChatHeader({
   character,
   characterName,
-  language,
   tier,
 }: {
   character: AiPracticeCharacter;
   characterName: string;
-  language: LanguageCode;
   tier: Tier;
 }) {
-  const t = useT();
-  const router = useRouter();
-
   return (
-    <header className="relative flex shrink-0 items-center gap-3 border-b border-border p-3 pr-14 sm:p-4 sm:pr-16">
+    <header className="relative flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
       <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
         <Image src={character.imageSrc} alt={characterName} fill sizes="48px" className="object-cover" priority />
       </div>
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{characterName}</h1>
         <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-foreground-muted">
-          <InlineLanguagePicker
-            value={language}
-            onChange={(code) => router.push(`/ai-practice/${code}/${character.id}?tier=${tier}`)}
-          />
           <span className="shrink-0 rounded bg-background-muted px-1.5 py-0.5 text-xs font-semibold text-foreground-secondary">
             {tier}
           </span>
         </p>
       </div>
-      <Link
-        href={`/ai-practice/${language}`}
-        aria-label={t("aiPractice.chat.characters")}
-        className="absolute right-2 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-      </Link>
     </header>
   );
 }
@@ -771,7 +751,7 @@ function ChatComposer({
       className="border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl max-lg:max-w-full">
         <div
           className={cn(
             "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Crown, Leaf, Mountain, Sprout, TreePine } from "lucide-react";
-import { TIERS } from "@/data/tiers";
+import { Crown, Leaf, Mountain, Sprout, TreePine } from "lucide-react";
+import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { LanguageCode, Tier } from "@/types/domain";
@@ -21,42 +21,32 @@ export function AiPracticeTierSelection({ language }: { language: LanguageCode }
 
   return (
     <div className="relative w-full">
-      <Link
-        href="/ai-practice"
-        aria-label={t("common.back")}
-        className="absolute right-0 top-0 inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-card text-foreground transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-      >
-        <ArrowLeft className="size-5" aria-hidden="true" />
-      </Link>
-
-      <div className="flex flex-col items-center justify-center gap-6 pt-14">
+      <div className="flex flex-col items-center justify-center gap-6 pt-6">
         <h1 className="text-center font-display text-3xl font-semibold text-foreground">
           {t("page.aiPractice.tierSelectionTitle")}
         </h1>
 
         <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {TIERS.map((tier) => {
-          const Icon = TIER_ICONS[tier];
+          {TIERS.map((tier) => {
+            const Icon = TIER_ICONS[tier];
+            const tierAccent = TIER_STYLES[tier].accent;
 
-          return (
-            <Link
-              key={tier}
-              href={`/ai-practice/${language}/character?tier=${tier}`}
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-background-card p-4 transition-colors hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-            >
-              <Icon
-                className="size-7 text-foreground-secondary transition-colors group-hover:text-foreground"
-                aria-hidden="true"
-              />
-              <span className="text-center text-sm font-semibold text-foreground">{tier}</span>
-              <span className="text-center text-xs font-semibold text-foreground-muted">
-                {getTierLabel(tier, locale)}
-              </span>
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={tier}
+                href={`/ai-practice/${language}/character?tier=${tier}`}
+                className={`group flex flex-col items-center justify-center gap-2 rounded-lg p-4 text-white shadow-sm transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${tierAccent}`}
+              >
+                <Icon className="size-7 text-white" aria-hidden="true" />
+                <span className="text-center text-sm font-semibold text-white">{tier}</span>
+                <span className="text-center text-xs font-semibold text-white/90">
+                  {getTierLabel(tier, locale)}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

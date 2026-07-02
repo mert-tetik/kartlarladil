@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/page-header";
+import { redirect } from "next/navigation";
 import { requireAuthUser } from "@/features/auth/auth-session";
-import { AiPracticeLanguageSelection } from "@/features/ai-practice/components/ai-practice-language-selection";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -19,24 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AiPracticePage() {
-  await requireAuthUser("/ai-practice");
+  const user = await requireAuthUser("/ai-practice");
+  const preferredLanguage = user.profile.preferredLanguageCode ?? "en";
 
-  const locale = await getServerLocale();
-  const t = createTranslator(locale);
-
-  return (
-    <section className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-8rem)] max-w-7xl flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="w-full max-w-3xl">
-        <PageHeader
-          title={t("page.aiPractice.title")}
-          description={t("page.aiPractice.chooseLanguagePrompt")}
-          centered
-          descriptionClassName="text-sm sm:text-base"
-        />
-        <div className="mt-8">
-          <AiPracticeLanguageSelection locale={locale} />
-        </div>
-      </div>
-    </section>
-  );
+  redirect(`/ai-practice/${preferredLanguage}/character`);
 }

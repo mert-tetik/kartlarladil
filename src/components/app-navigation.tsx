@@ -70,7 +70,22 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       pathname === "/games" ||
       pathname.startsWith("/games/"));
 
-  const mobileBackHref = pathname === "/games" ? "/" : pathname.startsWith("/games/") ? "/games" : "/";
+  const mobileBackHref = (() => {
+    if (pathname === "/games") return "/";
+    if (pathname.startsWith("/games/")) return "/games";
+
+    if (pathname.startsWith("/ai-practice/")) {
+      const segments = pathname.split("/").filter(Boolean);
+      if (segments.length >= 3) {
+        return `/ai-practice/${segments[1]}`;
+      }
+      if (segments.length === 2) {
+        return `/ai-practice/${segments[1]}/character`;
+      }
+    }
+
+    return "/";
+  })();
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {

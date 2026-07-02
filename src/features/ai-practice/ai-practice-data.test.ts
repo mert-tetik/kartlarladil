@@ -58,7 +58,7 @@ describe("AI practice characters", () => {
 
     expect(instructions).toContain("Use target-language Gen Z slang");
     expect(instructions).toContain("do not make spelling or grammar mistakes");
-    expect(instructions).toContain("Do not end messages with sentence-final punctuation");
+    expect(instructions).toContain("Use sentence-final punctuation correctly when the sentence needs it");
   });
 
   it("does not include complete-sentence coaching in character styles", () => {
