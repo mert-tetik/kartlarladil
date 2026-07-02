@@ -291,11 +291,11 @@ export function MobileLandingDashboard() {
       {/* Rank */}
       <div className="relative -mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
-          className="absolute inset-0 bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
+          className="absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-black to-black/50 dark:from-white dark:to-white/50"
+          className="absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"
         />
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
