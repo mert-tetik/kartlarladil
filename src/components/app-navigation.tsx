@@ -47,9 +47,9 @@ const navItems: readonly NavItem[] = [
 ];
 
 const mobileNavItems: readonly NavItem[] = [
-  { href: "/", labelKey: "nav.home", icon: Home },
   { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2 },
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
+  { href: "/", labelKey: "nav.home", icon: Home },
   { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
   { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
 ];
@@ -77,6 +77,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     if (pathname.startsWith("/ai-practice/")) {
       const segments = pathname.split("/").filter(Boolean);
       if (segments.length >= 3) {
+        if (segments[2] === "character") {
+          return "/ai-practice";
+        }
         return `/ai-practice/${segments[1]}`;
       }
       if (segments.length === 2) {
@@ -185,13 +188,30 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         <nav
           aria-label={t("nav.mobileMenu")}
           data-mobile-main-nav
-          className="mobile-main-nav-bar border-t border-border bg-background-card"
+          className="mobile-main-nav-bar border-t border-border bg-background-card dark:bg-black"
         >
-          <div className="grid h-full grid-cols-5">
+          <div className="grid h-full grid-cols-5 items-center">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
+              const isHome = item.href === "/";
+
+              if (isHome) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    prefetch={shouldPrefetch ? true : undefined}
+                    aria-current={active ? "page" : undefined}
+                    className="flex h-full items-center justify-center"
+                  >
+                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-brand text-background shadow-md transition-transform hover:scale-105 active:scale-95">
+                      <Icon className="size-5" strokeWidth={2.5} aria-hidden="true" />
+                    </span>
+                  </Link>
+                );
+              }
 
               return (
                 <Link
@@ -200,13 +220,10 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   prefetch={shouldPrefetch ? true : undefined}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
-                    active && "bg-background-muted text-brand hover:text-brand",
+                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:text-foreground",
+                    active && "text-brand",
                   )}
                 >
-                  {active ? (
-                    <span className="absolute inset-x-3 top-0 h-0.5 bg-brand" aria-hidden="true" />
-                  ) : null}
                   <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
                   <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
                 </Link>
