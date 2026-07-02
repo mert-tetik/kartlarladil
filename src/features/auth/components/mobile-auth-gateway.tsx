@@ -55,11 +55,13 @@ export function MobileAuthGateway() {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
-  if (!isMobileViewport || !needsAuth || isPublicMobilePath) {
+  const isTestMode = isMobileTestMode();
+
+  if ((!isMobileViewport && !isTestMode) || !needsAuth || isPublicMobilePath) {
     return null;
   }
 
-  const isInstalled = isInstalledApp() && !isMobileTestMode();
+  const isInstalled = isInstalledApp() && !isTestMode;
 
   function handleContinueOnWeb() {
     saveWebChoice();
@@ -72,7 +74,7 @@ export function MobileAuthGateway() {
         data-mobile-auth-gateway
         className={cn(
           "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-          "max-lg:flex lg:hidden",
+          !isTestMode && "max-lg:flex lg:hidden",
         )}
       >
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
@@ -86,7 +88,7 @@ export function MobileAuthGateway() {
         data-mobile-auth-gateway
         className={cn(
           "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-          "max-lg:flex lg:hidden",
+          !isTestMode && "max-lg:flex lg:hidden",
         )}
       >
         <MobileOnboardingForm />
@@ -99,7 +101,7 @@ export function MobileAuthGateway() {
       data-mobile-auth-gateway
       className={cn(
         "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-        "max-lg:flex lg:hidden",
+        !isTestMode && "max-lg:flex lg:hidden",
       )}
     >
       <MobileAuthScreen />
