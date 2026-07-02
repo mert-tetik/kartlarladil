@@ -6,7 +6,7 @@ import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-cho
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
 import { useAuthSession } from "@/features/auth/auth-client";
-import { initTwaModeStore, isInstalledApp } from "@/features/install-app/twa-mode";
+import { initTwaModeStore, isInstalledApp, isMobileTestMode } from "@/features/install-app/twa-mode";
 import { cn } from "@/lib/utils";
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
@@ -59,7 +59,7 @@ export function MobileAuthGateway() {
     return null;
   }
 
-  const isInstalled = isInstalledApp();
+  const isInstalled = isInstalledApp() && !isMobileTestMode();
 
   function handleContinueOnWeb() {
     saveWebChoice();

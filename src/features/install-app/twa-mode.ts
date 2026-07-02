@@ -116,6 +116,20 @@ export function setTwaMode(value: boolean): void {
   window.sessionStorage.setItem(TWA_MODE_KEY, String(value));
 }
 
+const MOBILE_TEST_PARAM = "mobile-test";
+
+/**
+ * Returns true when the `?mobile-test` URL parameter is present.
+ * This forces the mobile auth/app-choice screens to appear even when the
+ * page is not running inside an installed app surface, so the mobile login
+ * and "continue with web / download app" flows can be tested.
+ */
+export function isMobileTestMode(): boolean {
+  if (!isBrowser()) return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.has(MOBILE_TEST_PARAM);
+}
+
 /**
  * Returns true if the page is running as a standalone PWA (installed from
  * browser). This is separate from the TWA/APK detection.
