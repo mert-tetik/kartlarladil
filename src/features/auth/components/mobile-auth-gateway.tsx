@@ -13,7 +13,7 @@ function OnboardingBackground() {
   return (
     <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
       <div
-        className="absolute inset-0 bg-[url('/onboarding-bg.jpg')] bg-[length:100%_100%] bg-center bg-no-repeat"
+        className="absolute inset-0 bg-[url('/onboarding-bg.jpg')] bg-cover bg-bottom bg-no-repeat"
         aria-hidden="true"
       />
       <div
