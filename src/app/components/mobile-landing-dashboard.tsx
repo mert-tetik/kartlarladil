@@ -127,16 +127,25 @@ export function MobileLandingDashboard() {
   useEffect(() => {
     const menu = searchParams.get("menu");
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
+    let timeoutId: number | undefined;
 
     if (requestedLanguage) {
       allowRequestedLanguageRef.current = true;
       window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, requestedLanguage);
-      setSelectedLanguage(requestedLanguage);
+      timeoutId = window.setTimeout(() => {
+        setSelectedLanguage(requestedLanguage);
+      }, 0);
     }
 
     if (menu === "active" || menu === "learned") {
       router.replace(pathname, { scroll: false });
     }
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, [searchParams, pathname, router]);
 
   const languageStats = useMemo(
@@ -280,7 +289,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] px-4 pt-2 pb-1 text-white">
+      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] dark:bg-[#090909] px-4 pt-2 pb-1 text-white">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>

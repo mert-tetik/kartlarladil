@@ -188,7 +188,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         <nav
           aria-label={t("nav.mobileMenu")}
           data-mobile-main-nav
-          className="mobile-main-nav-bar border-t border-border bg-background-card dark:bg-black"
+          className="mobile-main-nav-bar bg-background-card dark:bg-[#090909]"
         >
           <div className="grid h-full grid-cols-5 items-center">
             {mobileNavItems.map((item) => {
@@ -206,7 +206,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                     aria-current={active ? "page" : undefined}
                     className="flex h-full items-center justify-center"
                   >
-                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-brand text-background shadow-md transition-transform hover:scale-105 active:scale-95">
+                    <span className="relative -top-4 inline-flex size-14 items-center justify-center rounded-full bg-brand text-background shadow-lg transition-transform hover:scale-105 active:scale-95">
                       <Icon className="size-5" strokeWidth={2.5} aria-hidden="true" />
                     </span>
                   </Link>
