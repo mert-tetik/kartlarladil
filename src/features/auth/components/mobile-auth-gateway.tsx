@@ -56,8 +56,9 @@ export function MobileAuthGateway() {
   );
 
   const isTestMode = isMobileTestMode();
+  const showGateway = isTestMode || (isMobileViewport && needsAuth);
 
-  if ((!isMobileViewport && !isTestMode) || !needsAuth || isPublicMobilePath) {
+  if (!showGateway || isPublicMobilePath) {
     return null;
   }
 
