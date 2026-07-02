@@ -52,7 +52,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
     <div
       key={`${card.id}-${isOpen ? "open" : "closed"}`}
       className={cn(
-        "fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 transition-opacity duration-300 max-lg:flex lg:hidden",
+        "fixed inset-0 z-[60] flex items-start justify-center bg-black/60 px-4 pt-10 pb-4 transition-opacity duration-300 max-lg:flex lg:hidden",
         isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!isOpen}
@@ -104,7 +104,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
             flippable={false}
             showActions={false}
             frontFit
-            className="h-auto w-full max-w-[260px]"
+            className="h-auto w-full max-w-[260px] max-sm:min-h-[340px]"
           />
         </div>
       </div>

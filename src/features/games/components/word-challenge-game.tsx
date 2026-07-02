@@ -5,6 +5,7 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useT } from "@/i18n/locale-provider";
+import { TIER_STYLES } from "@/data/tiers";
 import { cn } from "@/lib/utils";
 import { buildLevelConfig, getHighestTierForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
 import { generateWordChallengeItems } from "../game-cards";
@@ -148,6 +149,14 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
                   "flex w-full max-w-sm flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm",
                 )}
               >
+                <span
+                  className={cn(
+                    "rounded-lg px-3 py-1 text-4xl font-black text-white shadow-sm",
+                    TIER_STYLES[currentItem.card.tier].accent,
+                  )}
+                >
+                  {currentItem.card.tier}
+                </span>
                 <span className="text-sm font-semibold uppercase tracking-wider text-foreground-muted">
                   {t("games.wordChallenge.question")}
                 </span>

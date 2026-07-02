@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { ArrowRight, LayoutGrid, RotateCcw, Star } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useLocale } from "@/i18n/locale-provider";
@@ -71,16 +71,22 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
           onClick={onPrimary}
           className={cn(
             buttonClassName("primary", "lg", "w-full"),
+            "inline-flex items-center justify-center gap-2",
             success ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-red-500 text-white hover:bg-red-600",
           )}
         >
+          {success ? <ArrowRight className="size-4" aria-hidden="true" /> : <RotateCcw className="size-4" aria-hidden="true" />}
           {success ? t("games.nextLevel") : t("games.tryAgain")}
         </button>
 
         <Link
           href="/games"
-          className={cn(buttonClassName("primary", "lg", "w-full"), "bg-brand text-brand-foreground hover:bg-brand-hover")}
+          className={cn(
+            buttonClassName("primary", "lg", "w-full"),
+            "inline-flex items-center justify-center gap-2 bg-brand text-brand-foreground hover:bg-brand-hover",
+          )}
         >
+          <LayoutGrid className="size-4" aria-hidden="true" />
           {t("games.menu")}
         </Link>
       </div>

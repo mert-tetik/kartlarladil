@@ -561,7 +561,7 @@ function ChatMessage({
           <div
             className={cn(
               "rounded-lg px-4 py-3 text-sm leading-6",
-              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground",
+              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground whitespace-pre-wrap",
             )}
           >
             {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}

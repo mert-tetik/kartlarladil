@@ -28,7 +28,7 @@ export function AiPracticeCharacterSelection({
   }
 
   return (
-    <div className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0">
+    <div className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:h-auto max-sm:overflow-visible max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0">
       <div className="mb-4">
         <InlineLanguagePicker value={selectedLanguage} onChange={handleLanguageChange} />
       </div>
