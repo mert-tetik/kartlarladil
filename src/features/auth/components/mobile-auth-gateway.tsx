@@ -9,6 +9,21 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { initTwaModeStore, isInstalledApp, isMobileTestMode } from "@/features/install-app/twa-mode";
 import { cn } from "@/lib/utils";
 
+function OnboardingBackground() {
+  return (
+    <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
+      <div
+        className="absolute inset-0 bg-[url('/onboarding-bg.jpg')] bg-[length:100%_100%] bg-center bg-no-repeat"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-background to-transparent"
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const MOBILE_BREAKPOINT = 1024;
 
@@ -78,6 +93,7 @@ export function MobileAuthGateway() {
           !isTestMode && "max-lg:flex lg:hidden",
         )}
       >
+        <OnboardingBackground />
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </div>
     );
@@ -92,6 +108,7 @@ export function MobileAuthGateway() {
           !isTestMode && "max-lg:flex lg:hidden",
         )}
       >
+        <OnboardingBackground />
         <MobileOnboardingForm />
       </div>
     );
@@ -105,6 +122,7 @@ export function MobileAuthGateway() {
         !isTestMode && "max-lg:flex lg:hidden",
       )}
     >
+      <OnboardingBackground />
       <MobileAuthScreen />
     </div>
   );
