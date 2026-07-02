@@ -61,10 +61,7 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
   const initialOpeningLine = getRandomOpeningLine(character, rawLanguage);
 
   return (
-    <section
-      className="mx-auto h-full max-w-7xl px-4 py-0 max-lg:px-0 sm:px-6 lg:px-8"
-      data-ai-practice-chat-page
-    >
+    <section className="h-full w-full px-0 py-0" data-ai-practice-chat-page>
       <AiPracticeChatPanel
         character={character}
         initialOpeningLine={initialOpeningLine}

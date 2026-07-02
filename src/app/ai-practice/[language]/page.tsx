@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 
 type AiPracticeTierPageProps = {
   params: Promise<{ language: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: AiPracticeTierPageProps): Promise<Metadata> {
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: AiPracticeTierPageProps): Pro
   });
 }
 
-export default async function AiPracticeTierPage({ params }: AiPracticeTierPageProps) {
+export default async function AiPracticeTierPage({ params, searchParams }: AiPracticeTierPageProps) {
   const { language: rawLanguage } = await params;
 
   if (!isLanguageCode(rawLanguage)) {
@@ -36,9 +37,16 @@ export default async function AiPracticeTierPage({ params }: AiPracticeTierPageP
 
   await requireAuthUser(`/ai-practice/${rawLanguage}`);
 
+  const { character: rawCharacterId } = await searchParams;
+  const characterId = typeof rawCharacterId === "string" ? rawCharacterId : null;
+
+  if (!characterId) {
+    redirect(`/ai-practice/${rawLanguage}/character`);
+  }
+
   return (
     <section className="animate-screen-pop mx-auto flex min-h-full w-full max-w-7xl flex-col items-center justify-center px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
-      <AiPracticeTierSelection language={rawLanguage} />
+      <AiPracticeTierSelection language={rawLanguage} characterId={characterId} />
     </section>
   );
 }

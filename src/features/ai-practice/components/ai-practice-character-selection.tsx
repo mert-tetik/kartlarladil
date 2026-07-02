@@ -40,7 +40,7 @@ export function AiPracticeCharacterSelection({
           return (
             <Link
               key={character.id}
-              href={`/ai-practice/${selectedLanguage}/${character.id}?tier=${tier}`}
+              href={`/ai-practice/${selectedLanguage}?character=${character.id}`}
               className="group overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
               <div className="relative aspect-square overflow-hidden bg-background-muted">
