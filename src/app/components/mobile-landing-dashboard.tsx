@@ -289,8 +289,16 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="-mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none bg-[#121212] dark:bg-[#090909] px-4 pt-2 pb-1 text-white">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+      <div className="relative -mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+        <div
+          className="absolute inset-0 bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-black to-black/50 dark:from-white dark:to-white/50"
+          aria-hidden="true"
+        />
+        <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
         <button
@@ -299,7 +307,7 @@ export function MobileLandingDashboard() {
             vibrate("tap");
             setRankInfoOpen(true);
           }}
-          className="flex min-h-0 w-full flex-1 items-center justify-center self-stretch"
+          className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center self-stretch"
           aria-label={getRankLabel(stats.rank, locale)}
           data-rank-icon-button
         >
@@ -311,10 +319,10 @@ export function MobileLandingDashboard() {
             draggable={false}
           />
         </button>
-        <h1 className="text-center text-lg font-extrabold text-brand">
+        <h1 className="relative z-10 text-center text-lg font-extrabold text-brand">
           {getRankLabel(stats.rank, locale)}
         </h1>
-        <p className="text-[10px] font-semibold text-white/80">
+        <p className="relative z-10 text-[10px] font-semibold text-white/80">
           {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
         </p>
       </div>

@@ -424,7 +424,7 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="relative mx-auto flex h-full max-h-full min-h-0 max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+    <section className="relative mx-auto flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:max-w-full max-lg:rounded-none max-lg:border-x-0">
       <ChatHeader language={language} />
       <MessageList
         refObject={listRef}
@@ -675,7 +675,7 @@ function ChatComposer({
       className="border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl max-lg:max-w-full">
         <div
           className={cn(
             "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
