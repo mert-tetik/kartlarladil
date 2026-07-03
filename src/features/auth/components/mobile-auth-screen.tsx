@@ -28,7 +28,7 @@ export function MobileAuthScreen() {
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center text-center">
+    <div className="flex w-full max-w-sm flex-col items-center pb-10 text-center">
       <h1 className="font-display text-3xl font-semibold text-orange-500">
         {t("auth.mobile.welcomeTitle")}
       </h1>
