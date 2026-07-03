@@ -27,6 +27,7 @@ interface PointerPosition {
 
 export function TutorialPointer() {
   const pathname = usePathname();
+  const active = useTutorialStore((state) => state.active);
   const completed = useTutorialStore((state) => state.completed);
   const step = useTutorialStore((state) => state.step);
   const testMode = useTutorialStore((state) => state.testMode);
@@ -55,7 +56,11 @@ export function TutorialPointer() {
     const currentState = useTutorialStore.getState();
     const currentPathname = window.location.pathname;
 
-    if (!mobile || (!currentState.testMode && currentState.completed) || isSuppressedPath(currentPathname)) {
+    if (
+      !mobile ||
+      (!currentState.testMode && (!currentState.active || currentState.completed)) ||
+      isSuppressedPath(currentPathname)
+    ) {
       setPosition(null);
       return;
     }
@@ -147,7 +152,11 @@ export function TutorialPointer() {
   useEffect(() => {
     function handleClick(event: PointerEvent) {
       const currentState = useTutorialStore.getState();
-      if (window.innerWidth > MOBILE_BREAKPOINT || (!currentState.testMode && currentState.completed) || isSuppressedPath(window.location.pathname)) {
+      if (
+        window.innerWidth > MOBILE_BREAKPOINT ||
+        (!currentState.testMode && (!currentState.active || currentState.completed)) ||
+        isSuppressedPath(window.location.pathname)
+      ) {
         return;
       }
 
@@ -175,7 +184,7 @@ export function TutorialPointer() {
     return () => window.removeEventListener("pointerdown", handleClick, true);
   }, [advance]);
 
-  if ((!testMode && completed) || !isMobile || isSuppressedPath(pathname)) {
+  if ((!testMode && (!active || completed)) || !isMobile || isSuppressedPath(pathname)) {
     return null;
   }
 

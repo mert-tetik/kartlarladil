@@ -93,7 +93,7 @@ function createVisibleCookieNotice() {
 
 describe("TutorialPointer", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, step: 0, testMode: false });
     document.body.innerHTML = "";
     window.history.pushState({}, "", "/");
     setSearchParams("");
@@ -138,6 +138,18 @@ describe("TutorialPointer", () => {
 
   it("does not render on desktop", async () => {
     setDesktopViewport();
+    createTarget();
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not render when the tutorial is inactive", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ active: false });
     createTarget();
 
     render(<TutorialPointer />);

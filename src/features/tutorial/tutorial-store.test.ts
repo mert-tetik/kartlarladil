@@ -2,12 +2,13 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 describe("useTutorialStore", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({ active: false, completed: false, step: 0, testMode: false });
   });
 
-  it("starts at step 0 and not completed", () => {
+  it("starts inactive at step 0 and not completed", () => {
     const state = useTutorialStore.getState();
 
+    expect(state.active).toBe(false);
     expect(state.step).toBe(0);
     expect(state.completed).toBe(false);
     expect(state.testMode).toBe(false);
@@ -35,15 +36,30 @@ describe("useTutorialStore", () => {
   });
 
   it("resets to the initial state", () => {
-    const { advance, reset } = useTutorialStore.getState();
+    const { activate, advance, reset } = useTutorialStore.getState();
 
+    activate();
     advance();
     advance();
     reset();
 
+    expect(useTutorialStore.getState().active).toBe(false);
     expect(useTutorialStore.getState().step).toBe(0);
     expect(useTutorialStore.getState().completed).toBe(false);
     expect(useTutorialStore.getState().testMode).toBe(false);
+  });
+
+  it("deactivates after the final tutorial step", () => {
+    const { activate, advance } = useTutorialStore.getState();
+
+    activate();
+
+    for (let i = 0; i < 7; i += 1) {
+      advance();
+    }
+
+    expect(useTutorialStore.getState().completed).toBe(true);
+    expect(useTutorialStore.getState().active).toBe(false);
   });
 
   it("can enable and disable test mode", () => {

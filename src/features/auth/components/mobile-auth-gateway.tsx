@@ -82,6 +82,8 @@ function saveWebChoice() {
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
+  const activateTutorial = useTutorialStore((state) => state.activate);
+  const deactivateTutorial = useTutorialStore((state) => state.deactivate);
   const resetTutorial = useTutorialStore((state) => state.reset);
   const router = useRouter();
   const pathname = usePathname();
@@ -103,6 +105,7 @@ export function MobileAuthGateway() {
     }
 
     function handleLogoutAuthRequested() {
+      deactivateTutorial();
       setHasChosenWeb(true);
       setOfferActive(false);
       setOfferTriggered(false);
@@ -149,8 +152,9 @@ export function MobileAuthGateway() {
     if (!shouldResetTutorial) return;
 
     resetTutorial();
+    activateTutorial();
     window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
-  }, [mounted, user, hasCompletedOnboarding, resetTutorial]);
+  }, [mounted, user, hasCompletedOnboarding, activateTutorial, resetTutorial]);
 
   useEffect(() => {
     if (isOfferEligible) {
@@ -163,11 +167,12 @@ export function MobileAuthGateway() {
       setOfferActive(false);
     }
     if (!user) {
+      deactivateTutorial();
       setOnboardingCompletedInSession(false);
       setOfferTriggered(false);
       setOfferSeen(false);
     }
-  }, [user, offerSeen, isAlreadySubscribed]);
+  }, [user, offerSeen, isAlreadySubscribed, deactivateTutorial]);
 
   const shouldShowOffer = isOfferEligible || offerActive;
 
