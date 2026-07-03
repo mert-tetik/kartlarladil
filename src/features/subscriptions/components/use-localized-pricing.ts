@@ -106,7 +106,7 @@ export function formatLocalizedPrice(
   if (price) {
     return {
       primary: formatCurrency(price.amount, price.currencyCode, locale),
-      original: `≈ $${usdAmount}`,
+      original: `USD $${usdAmount}`,
     };
   }
 

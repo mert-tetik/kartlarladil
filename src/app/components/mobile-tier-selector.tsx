@@ -50,7 +50,7 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
     <div
       data-mobile-tier-selector
       className={cn(
-        "fixed inset-0 z-50 flex flex-col bg-background transition-opacity duration-300 lg:hidden",
+        "fixed inset-x-0 top-[var(--app-header-height)] bottom-[var(--mobile-nav-bar-height)] z-50 flex flex-col bg-background transition-opacity duration-300 lg:hidden",
         isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!isOpen}
@@ -64,7 +64,7 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
         </h2>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-4 p-6">
+      <div className="flex flex-1 flex-col justify-center gap-4 overflow-y-auto p-6">
         {TIERS.map((tier) => {
           const style = TIER_STYLES[tier];
 
@@ -87,6 +87,6 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
     </div>
   );
 
-  if (!mounted || typeof document === "undefined") return null;
+  if (!mounted || typeof document === "undefined" || !isOpen) return null;
   return createPortal(content, document.body);
 }

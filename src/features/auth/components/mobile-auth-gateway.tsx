@@ -1,12 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
+import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile-subscription-offer-screen";
 import { useAuthSession } from "@/features/auth/auth-client";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { initTwaModeStore, isInstalledApp, isMobileTestMode } from "@/features/install-app/twa-mode";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +53,7 @@ function GatewayShell({
 }
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
+const SUBSCRIPTION_OFFER_KEY = "foxiesdeck:mobile-subscription-offer-seen";
 const MOBILE_BREAKPOINT = 1024;
 
 const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen"];
@@ -70,12 +73,25 @@ function saveWebChoice() {
   window.sessionStorage.setItem(WEB_CHOICE_KEY, "true");
 }
 
+function readOfferSeen(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(SUBSCRIPTION_OFFER_KEY) === "true";
+}
+
+function saveOfferSeen() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(SUBSCRIPTION_OFFER_KEY, "true");
+}
+
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
+  const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
+  const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
+  const [offerSeen, setOfferSeen] = useState(readOfferSeen);
 
   useEffect(() => {
     setMounted(true);
@@ -89,17 +105,21 @@ export function MobileAuthGateway() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const needsAuth = useMemo(() => {
-    if (!user) return true;
-    return !user.profile.onboardingCompleted;
-  }, [user]);
+  const needsOnboarding = user && !user.profile.onboardingCompleted;
+  const isAlreadySubscribed =
+    !isEntitlementsLoading && entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
+  const isOfferEligible =
+    user && user.profile.onboardingCompleted && !offerSeen && !isAlreadySubscribed;
+  const needsAuth = !user;
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
   const isTestMode = isMobileTestMode();
-  const showGateway = isTestMode || (isMobileViewport && needsAuth);
+  const showGateway =
+    isTestMode ||
+    (isMobileViewport && (needsAuth || needsOnboarding || isOfferEligible));
 
   if (!mounted || !showGateway || isPublicMobilePath) {
     return null;
@@ -112,18 +132,36 @@ export function MobileAuthGateway() {
     setHasChosenWeb(true);
   }
 
-  if (!isInstalled && !hasChosenWeb) {
+  function handleOnboardingComplete() {
+    setShowSubscriptionOffer(true);
+  }
+
+  function handleContinueFree() {
+    saveOfferSeen();
+    setOfferSeen(true);
+    setShowSubscriptionOffer(false);
+  }
+
+  if (showSubscriptionOffer || isOfferEligible) {
     return (
       <GatewayShell isTestMode={isTestMode}>
-        <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
+        <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
       </GatewayShell>
     );
   }
 
-  if (user && !user.profile.onboardingCompleted) {
+  if (needsOnboarding) {
     return (
       <GatewayShell isTestMode={isTestMode}>
-        <MobileOnboardingForm />
+        <MobileOnboardingForm onComplete={handleOnboardingComplete} />
+      </GatewayShell>
+    );
+  }
+
+  if (!isInstalled && !hasChosenWeb) {
+    return (
+      <GatewayShell isTestMode={isTestMode}>
+        <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </GatewayShell>
     );
   }

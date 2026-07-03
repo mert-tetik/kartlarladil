@@ -17,7 +17,7 @@ export function MobileAuthScreen() {
 
   if (mode === "email") {
     return (
-      <div className="flex w-full max-w-sm flex-col">
+      <div className="animate-screen-pop flex w-full max-w-sm flex-col">
         <MobileEmailAuthForm
           authType={authType}
           onToggleAuthType={() => setAuthType((current) => (current === "login" ? "register" : "login"))}
@@ -28,7 +28,7 @@ export function MobileAuthScreen() {
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center pb-10 text-center">
+    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center pb-10 text-center">
       <h1 className="font-display text-3xl font-semibold text-orange-500">
         {t("auth.mobile.welcomeTitle")}
       </h1>

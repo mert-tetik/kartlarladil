@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { completeOnboardingAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
@@ -9,14 +9,20 @@ import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { useT } from "@/i18n/locale-provider";
 
-export function MobileOnboardingForm() {
+export function MobileOnboardingForm({ onComplete }: { onComplete?: () => void }) {
   const t = useT();
   const detectedLocale = useDetectedLocale();
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
 
+  useEffect(() => {
+    if (state.status === "success" && onComplete) {
+      onComplete();
+    }
+  }, [state, onComplete]);
+
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col">
-      <input type="hidden" name="next" value="/" />
+    <form action={formAction} className="animate-screen-pop flex w-full max-w-sm flex-col">
+      <input type="hidden" name="skipRedirect" value="on" />
 
       <h2 className="text-center font-display text-2xl font-semibold text-foreground">
         {t("auth.onboarding.title")}

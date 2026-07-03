@@ -84,3 +84,12 @@ When a `clientAppUnavailable` error is returned by Google Play Billing inside th
 - The site must be served over HTTPS.
 - `assetlinks.json` must be accessible without redirects and with `Content-Type: application/json`.
 - Keep the Bubblewrap signing keystore safe; losing it prevents future updates on Google Play.
+
+## Google Play Data Safety
+
+The TWA must declare account creation and account deletion in Play Console. FoxiesDeck already implements both:
+
+- Account creation: `/register`, `/login`, `/register/preferences`.
+- Account deletion: `/account/settings` with `DeleteAccountForm`.
+
+See `docs/GOOGLE_PLAY_DATA_SAFETY.md` for the full checklist and recommended data-type declarations.

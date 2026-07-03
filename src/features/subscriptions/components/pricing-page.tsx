@@ -42,7 +42,7 @@ interface PricingPageProps {
   currencyCode: string | null;
 }
 
-interface PricingPlan {
+export interface PricingPlan {
   plan: SubscriptionPlan;
   monthlyPrice: number | null;
   yearlyPrice: number | null;
@@ -50,17 +50,34 @@ interface PricingPlan {
   mascot?: string;
 }
 
-const PLANS: PricingPlan[] = [
+const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
+  basic: "order-1 md:order-none",
+  free: "order-2 md:order-none",
+  pro: "order-3 md:order-none",
+};
+
+export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
   { plan: "basic", monthlyPrice: 3, yearlyPrice: 30, mascot: "/mascots/mascot15.png" },
   { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.png" },
 ];
 
-const TWA_PLANS: PricingPlan[] = [
+export const TWA_PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
   { plan: "basic", monthlyPrice: 2, yearlyPrice: 20, mascot: "/mascots/mascot15.png" },
   { plan: "pro", monthlyPrice: 6, yearlyPrice: 60, popular: true, mascot: "/mascots/mascot16.png" },
 ];
+
+export function getReferenceUsdPrice(
+  plan: SubscriptionPlan,
+  cycle: BillingCycle,
+  isTwa: boolean,
+): number | null {
+  const sourcePlans = isTwa ? TWA_PLANS : PLANS;
+  const sourcePlan = sourcePlans.find((item) => item.plan === plan);
+  if (!sourcePlan) return null;
+  return cycle === "yearly" ? sourcePlan.yearlyPrice : sourcePlan.monthlyPrice;
+}
 
 export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const t = useT();
@@ -73,11 +90,29 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const plans = isTwa ? TWA_PLANS : PLANS;
 
   return (
-    <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <div
+      data-pricing-page
+      className="animate-screen-pop relative isolate mx-auto max-w-6xl overflow-hidden px-4 pb-10 pt-12 sm:px-6 lg:px-8"
+    >
+      <div
+        data-pricing-hero
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[17rem] overflow-hidden sm:h-[20rem]"
+        aria-hidden="true"
+      >
+        <Image
+          src="/pricing-top-hero.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-top"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+      </div>
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
       </Suspense>
-      <div className="text-center">
+      <div className="relative z-10 text-center">
         <h1 className="font-display text-4xl font-semibold text-foreground md:text-5xl">
           {t("pricing.title")}
         </h1>
@@ -91,11 +126,11 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         ) : null}
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="relative z-10 mt-8 flex justify-center">
         <BillingCycleToggle cycle={cycle} onChange={setCycle} />
       </div>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-3">
+      <div className="relative z-10 mt-8 grid gap-6 md:grid-cols-3">
         {plans.map((item) => (
           <PricingCard
             key={item.plan}
@@ -113,12 +148,15 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
             googlePlayPricing={googlePlayPricing}
             uiLocale={locale}
             isTwa={isTwa}
+            containerClassName={MOBILE_PLAN_ORDER_CLASSNAME[item.plan]}
           />
         ))}
       </div>
 
-      <PaymentProviderNotes />
-      <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-foreground-muted lg:hidden">
+      <div className="relative z-10">
+        <PaymentProviderNotes />
+      </div>
+      <p className="relative z-10 mx-auto mt-6 max-w-2xl text-center text-sm text-foreground-muted lg:hidden">
         {t("pricing.contactEmail")}
       </p>
     </div>
@@ -181,6 +219,7 @@ function PricingCard({
   googlePlayPricing,
   uiLocale,
   isTwa,
+  containerClassName,
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
@@ -191,6 +230,7 @@ function PricingCard({
   googlePlayPricing: GooglePlayPricingStatus;
   uiLocale: string;
   isTwa: boolean;
+  containerClassName?: string;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
@@ -200,6 +240,7 @@ function PricingCard({
     plan !== "free" ? getGooglePlayPricingDetails(googlePlayPricing, plan, "yearly") : null;
   const fallbackPrice = cycle === "yearly" ? yearlyPrice : monthlyPrice;
   const fallbackYearlyPrice = yearlyPrice;
+  const referenceUsdPrice = getReferenceUsdPrice(plan, cycle, isTwa);
   const localized = getLocalizedPrice(localizedPricing, plan, cycle);
   const localizedYearly = getLocalizedPrice(localizedPricing, plan, "yearly");
 
@@ -237,23 +278,25 @@ function PricingCard({
   const priceDisplay = useMemo(() => {
     if (fallbackPrice === null) return { primary: t("pricing.priceFree"), original: "" };
 
+    const original = referenceUsdPrice !== null ? `USD $${referenceUsdPrice}` : "";
+
     if (googlePlayDetails) {
       const amount = Number.parseFloat(googlePlayDetails.price.value);
       return {
         primary: formatCurrency(amount, googlePlayDetails.price.currency, uiLocale),
-        original: `≈ $${fallbackPrice}`,
+        original,
       };
     }
 
     if (localized) {
       return {
         primary: formatCurrency(localized.amount, localized.currencyCode, uiLocale),
-        original: `≈ $${fallbackPrice}`,
+        original,
       };
     }
 
     return { primary: `$${fallbackPrice}`, original: "" };
-  }, [fallbackPrice, googlePlayDetails, localized, uiLocale, t]);
+  }, [fallbackPrice, googlePlayDetails, localized, referenceUsdPrice, uiLocale, t]);
 
   const monthlyEquivalentDisplay = useMemo(() => {
     if (cycle !== "yearly" || plan === "free" || fallbackYearlyPrice == null) return null;
@@ -278,8 +321,10 @@ function PricingCard({
 
   return (
     <div
+      data-pricing-card={plan}
       className={cn(
         "relative flex flex-col rounded-xl border border-border bg-background-card p-6 text-foreground",
+        containerClassName,
       )}
     >
       {popular ? (

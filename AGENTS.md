@@ -334,6 +334,9 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 - Checkout action: `src/features/subscriptions/subscription-actions.ts`.
 - Haklar ve limit kontrolü: `src/features/subscriptions/subscription-service.ts`.
 - Aktif aboneliğin sağlayıcısı (`lemon_squeezy`/`google_play`) ile mevcut ortam uyuşmuyorsa (örn. TWA içindeyken Lemon Squeezy aboneliği veya web'deyken Google Play aboneliği), satın alma/yönetim butonları kilitlenir ve kullanıcı diğer platforma yönlendirilir.
+- Web fiyatları (USD): Basic $3/ay veya $30/yıl, Pro $9/ay veya $90/yıl (`PLANS` in `src/features/subscriptions/components/pricing-page.tsx`).
+- TWA fiyatları (USD): Basic $2/ay veya $20/yıl, Pro $6/ay veya $60/yıl (`TWA_PLANS` in the same file). `useLocalizedPricing` converts these to the user's local currency when Google Play SKU details are not yet available.
+- TWA fiyatlarının Play Console'daki Google Play SKU fiyatlarıyla aynı olması gerekir; bu kod değişikliği yalnızca görünen fiyatları ve USD referans metnini günceller.
 
 ## Temalar
 
@@ -392,3 +395,4 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 - `docs/LEXICON_SOURCES.md` — MUSE kaynağı, katalog üretim kuralları, kalite notları.
 - `docs/AI_PRACTICE.md` — AI Practice akışı, OpenAI Responses API kullanımı, prompt kuralları.
 - `docs/LOCALIZATION_REPORT.md` — UI sözlük kapsamı, yasal çeviriler, AI practice localization durumu.
+- `docs/GOOGLE_PLAY_DATA_SAFETY.md` — Play Console Data Safety formu için hesap oluşturma/silme ve veri türü açıklamaları.

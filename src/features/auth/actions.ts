@@ -406,6 +406,7 @@ export async function completeOnboardingAction(
     preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
     next: getFormString(formData, "next"),
+    skipRedirect: getFormString(formData, "skipRedirect"),
   });
 
   if (!parsed.success) {
@@ -451,6 +452,14 @@ export async function completeOnboardingAction(
   }
 
   revalidatePath("/", "layout");
+
+  if (parsed.data.skipRedirect) {
+    return {
+      status: "success",
+      message: "",
+    };
+  }
+
   redirect(nextPath);
 }
 

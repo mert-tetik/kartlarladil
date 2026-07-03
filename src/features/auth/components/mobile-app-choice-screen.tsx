@@ -34,7 +34,7 @@ export function MobileAppChoiceScreen({ onContinueOnWeb }: MobileAppChoiceScreen
   const isAndroid = isAndroidMobileDevice();
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center text-center">
+    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
       <div className="flex items-center gap-3">
         <Logo size={48} priority />
         <span className="font-display text-3xl font-semibold text-foreground">{APP_NAME}</span>

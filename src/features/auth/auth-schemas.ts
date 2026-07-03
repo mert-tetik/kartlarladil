@@ -39,6 +39,10 @@ export const onboardingSchema = z
     preferredUiLocale: localeCodeSchema.optional(),
     preferredTier: preferredTierSchema,
     next: nextPathSchema,
+    skipRedirect: z
+      .union([z.literal("on"), z.literal("")])
+      .optional()
+      .transform((value) => value === "on"),
   })
   .refine((data) => data.preferredLanguageCode !== data.preferredUiLocale, {
     message: "auth.validation.languageSameAsLocale",
