@@ -12,6 +12,7 @@ import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gatewa
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
+import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
@@ -41,6 +42,7 @@ export async function AppShell({
               <PushNotificationsProvider>
                 <div className="flex min-h-screen flex-col bg-background text-foreground">
                   <AppNavigation user={authUser} />
+                  <RankUpTestOverlay />
                   <MobileAuthGateway />
                   <RouteAwareShell>{children}</RouteAwareShell>
                   <SiteFooter className="max-lg:hidden" />

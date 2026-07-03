@@ -20,17 +20,25 @@ export function RankProgressPopover({
   userId,
   hideTrigger = false,
   navbar = false,
+  forceRankUpRank,
 }: {
   stats: ProgressStats;
   userId?: string;
   hideTrigger?: boolean;
   navbar?: boolean;
+  forceRankUpRank?: RankDefinition;
 }) {
   const [open, setOpen] = useState(false);
+  const [forcedRankUpOpen, setForcedRankUpOpen] = useState(Boolean(forceRankUpRank));
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
+  const visibleRankUp = forceRankUpRank ? (forcedRankUpOpen ? forceRankUpRank : null) : rankUpRank;
   const { locale } = useLocale();
   const t = useT();
+
+  useEffect(() => {
+    setForcedRankUpOpen(Boolean(forceRankUpRank));
+  }, [forceRankUpRank]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -54,14 +62,14 @@ export function RankProgressPopover({
   }, []);
 
   useEffect(() => {
-    if (open || rankUpRank) {
+    if (open || visibleRankUp) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [open, rankUpRank]);
+  }, [open, visibleRankUp]);
 
   return (
     <div ref={rootRef} className="relative block">
@@ -98,11 +106,11 @@ export function RankProgressPopover({
         </button>
       )}
 
-      {rankUpRank ? (
+      {visibleRankUp ? (
         <RankUpMenu
-          rank={rankUpRank}
+          rank={visibleRankUp}
           points={displayStats.totalPoints}
-          onClose={dismissRankUp}
+          onClose={forceRankUpRank ? () => setForcedRankUpOpen(false) : dismissRankUp}
         />
       ) : open ? (
         <RankLadderDialog stats={stats} onClose={() => setOpen(false)} />
@@ -328,7 +336,7 @@ function RankUpMenu({
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className="rank-up-menu fixed inset-0 z-50 flex bg-black/72"
+      className="rank-up-menu fixed inset-0 z-50 flex bg-background"
     >
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
         <Image
@@ -340,10 +348,10 @@ function RankUpMenu({
           className="object-cover object-center"
         />
         <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(15,23,42,0.16)_0%,rgba(15,23,42,0.38)_42%,rgba(15,23,42,0.72)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(15,23,42,0.08)_0%,rgba(15,23,42,0.22)_38%,rgba(15,23,42,0.54)_100%)]"
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background-card via-background-card/72 to-transparent" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/92 via-48% to-transparent" aria-hidden="true" />
       </div>
 
       <div
@@ -354,7 +362,7 @@ function RankUpMenu({
           }
         }}
       >
-        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background-card/96 lg:px-6 lg:pb-6 lg:pt-6">
+        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
           <button
             type="button"
             aria-label={t("rank.closeUp")}
@@ -365,7 +373,7 @@ function RankUpMenu({
           </button>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <RankIcon icon={rank.icon} className={cn("size-40 sm:size-44 lg:size-36", getRankIconTone(rank.icon))} />
+            <RankIcon icon={rank.icon} className={cn("size-36 sm:size-40 lg:size-32", getRankIconTone(rank.icon))} sizes="192px" />
 
             <p className="mt-8 text-4xl font-bold text-brand sm:text-5xl">{t("rank.up")}</p>
             <p className="mt-4 text-3xl font-bold text-foreground sm:text-4xl">{getRankLabel(rank, locale)}</p>

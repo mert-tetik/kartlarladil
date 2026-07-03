@@ -134,6 +134,7 @@ export function MobileAuthGateway() {
   const isAlreadySubscribed =
     !isEntitlementsLoading && entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
   const isOfferTriggered = searchParams.get("showOffer") === "1" || offerTriggered;
+  const isRankUpTestMode = searchParams.get("rank-up-test") === "1" || searchParams.get("rank-up-test") === "true";
   const isOfferEligible = Boolean(
     user &&
     hasCompletedOnboarding &&
@@ -185,7 +186,7 @@ export function MobileAuthGateway() {
     isTestMode ||
     (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
 
-  if (!mounted || !showGateway || isPublicMobilePath) {
+  if (!mounted || !showGateway || isPublicMobilePath || isRankUpTestMode) {
     return null;
   }
 

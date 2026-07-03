@@ -2,18 +2,22 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { RankIconId } from "@/types/domain";
 
-export const RANK_ICON_ASSETS: Record<RankIconId, string> = {
-  trophy: "/ranks/rank1.png",
-  medal: "/ranks/rank2.png",
-  book: "/ranks/rank3.png",
-  compass: "/ranks/rank4.png",
-  graduation: "/ranks/rank5.png",
-  star: "/ranks/rank6.png",
-  languages: "/ranks/rank7.png",
-  gem: "/ranks/rank8.png",
-  crown: "/ranks/rank9.png",
-  flame: "/ranks/rank10.png",
+const RANK_ICON_SPECS: Record<RankIconId, { src: string; width: number; height: number }> = {
+  trophy: { src: "/ranks/rank1.png", width: 343, height: 381 },
+  medal: { src: "/ranks/rank2.png", width: 512, height: 512 },
+  book: { src: "/ranks/rank3.png", width: 512, height: 512 },
+  compass: { src: "/ranks/rank4.png", width: 512, height: 512 },
+  graduation: { src: "/ranks/rank5.png", width: 1254, height: 1254 },
+  star: { src: "/ranks/rank6.png", width: 1254, height: 1254 },
+  languages: { src: "/ranks/rank7.png", width: 1254, height: 1254 },
+  gem: { src: "/ranks/rank8.png", width: 1254, height: 1254 },
+  crown: { src: "/ranks/rank9.png", width: 1254, height: 1254 },
+  flame: { src: "/ranks/rank10.png", width: 1254, height: 1254 },
 };
+
+export const RANK_ICON_ASSETS: Record<RankIconId, string> = Object.fromEntries(
+  Object.entries(RANK_ICON_SPECS).map(([key, value]) => [key, value.src]),
+) as Record<RankIconId, string>;
 
 export function RankIcon({
   icon,
@@ -24,13 +28,16 @@ export function RankIcon({
   className?: string;
   sizes?: string;
 }) {
+  const spec = RANK_ICON_SPECS[icon];
+
   return (
     <Image
-      src={RANK_ICON_ASSETS[icon]}
+      src={spec.src}
       alt=""
-      width={512}
-      height={512}
+      width={spec.width}
+      height={spec.height}
       sizes={sizes}
+      unoptimized
       className={cn("shrink-0 object-contain", className)}
       aria-hidden="true"
       draggable={false}
