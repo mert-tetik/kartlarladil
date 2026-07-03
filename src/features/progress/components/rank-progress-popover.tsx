@@ -103,10 +103,6 @@ export function RankProgressPopover({
           rank={rankUpRank}
           points={displayStats.totalPoints}
           onClose={dismissRankUp}
-          onViewRanks={() => {
-            dismissRankUp();
-            setOpen(true);
-          }}
         />
       ) : open ? (
         <RankLadderDialog stats={stats} onClose={() => setOpen(false)} />
@@ -320,12 +316,10 @@ function RankUpMenu({
   rank,
   points,
   onClose,
-  onViewRanks,
 }: {
   rank: RankDefinition;
   points: number;
   onClose: () => void;
-  onViewRanks: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -334,17 +328,33 @@ function RankUpMenu({
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className="rank-up-menu fixed inset-0 z-50 flex bg-black/70"
+      className="rank-up-menu fixed inset-0 z-50 flex bg-black/72"
     >
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
+        <Image
+          src="/rank-up-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(15,23,42,0.16)_0%,rgba(15,23,42,0.38)_42%,rgba(15,23,42,0.72)_100%)]"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background-card via-background-card/72 to-transparent" aria-hidden="true" />
+      </div>
+
       <div
-        className="flex min-h-full w-full items-stretch justify-center lg:items-start lg:justify-end lg:p-4"
+        className="relative z-10 flex min-h-full w-full items-stretch justify-center lg:items-start lg:justify-end lg:p-4"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
             onClose();
           }
         }}
       >
-        <div className="relative flex h-full w-full flex-col bg-background-card px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,360px)] lg:rounded-lg lg:border lg:border-amber-200 lg:px-5 lg:pb-5 lg:pt-5">
+        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background-card/96 lg:px-6 lg:pb-6 lg:pt-6">
           <button
             type="button"
             aria-label={t("rank.closeUp")}
@@ -355,15 +365,13 @@ function RankUpMenu({
           </button>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div className="flex size-24 items-center justify-center rounded-full border border-amber-200 bg-amber-50 lg:size-20">
-              <RankIcon icon={rank.icon} className={cn("size-12 lg:size-10", getRankIconTone(rank.icon))} />
-            </div>
+            <RankIcon icon={rank.icon} className={cn("size-40 sm:size-44 lg:size-36", getRankIconTone(rank.icon))} />
 
-            <p className="mt-8 text-sm font-semibold text-foreground-muted">{t("rank.up")}</p>
-            <p className="mt-3 text-3xl font-bold text-foreground lg:text-2xl">{getRankLabel(rank, locale)}</p>
-            <p className="mt-2 text-base font-semibold text-foreground-secondary">{t("rank.current")}</p>
+            <p className="mt-8 text-4xl font-bold text-brand sm:text-5xl">{t("rank.up")}</p>
+            <p className="mt-4 text-3xl font-bold text-foreground sm:text-4xl">{getRankLabel(rank, locale)}</p>
+            <p className="mt-3 text-base font-semibold text-foreground-secondary">{t("rank.current")}</p>
 
-            <div className="mt-8 w-full max-w-sm rounded-lg border border-border bg-background-muted/60 px-4 py-4">
+            <div className="mt-8 w-full max-w-sm rounded-lg border border-border/80 bg-background-card/78 px-4 py-4 backdrop-blur-sm">
               <p className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</p>
               <p className="mt-2 text-2xl font-bold text-brand">{formatPoints(locale, points)}</p>
             </div>
@@ -372,10 +380,10 @@ function RankUpMenu({
           <div className="w-full shrink-0 lg:mt-6">
             <button
               type="button"
-              onClick={onViewRanks}
-              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-background-inverse px-4 text-sm font-semibold text-foreground-inverse transition-colors hover:bg-background-inverse"
+              onClick={onClose}
+              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-hover"
             >
-              {t("rank.viewRanks")}
+              {t("auth.onboarding.continue")}
             </button>
           </div>
         </div>

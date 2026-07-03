@@ -107,9 +107,11 @@ describe("RankProgressPopover", () => {
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
     expect(within(rankUpDialog).getByText("200 puan")).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: /Rankleri/ }));
+    expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toBeVisible();
 
-    expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Devam" }));
+
+    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
   });
 
   it("opens the rank-up overlay in test mode from the URL param", () => {
@@ -120,7 +122,7 @@ describe("RankProgressPopover", () => {
     const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
     expect(rankUpDialog).toBeVisible();
 
-    const fullScreenSurface = rankUpDialog.firstElementChild?.firstElementChild;
+    const fullScreenSurface = rankUpDialog.querySelector(".relative.z-10 > div");
     expect(fullScreenSurface).toHaveClass("h-full");
     expect(fullScreenSurface).toHaveClass("w-full");
   });
