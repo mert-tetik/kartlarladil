@@ -39,7 +39,7 @@ export function MobileAuthScreen() {
 
       <div className="mt-10 flex w-full flex-col gap-3">
         <GoogleSignInButton
-          nextPath="/card-draw?showOffer=1"
+          nextPath="/?showOffer=1"
           label={t("auth.google.signIn")}
         />
 

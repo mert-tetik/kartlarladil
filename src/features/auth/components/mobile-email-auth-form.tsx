@@ -26,7 +26,7 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
 
   return (
     <form action={formAction} className="flex w-full flex-col">
-      <input type="hidden" name="next" value="/card-draw?showOffer=1" />
+      <input type="hidden" name="next" value="/?showOffer=1" />
 
       <button
         type="button"

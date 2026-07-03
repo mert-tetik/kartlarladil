@@ -16,6 +16,9 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useVibration } from "@/lib/vibration";
 
+const MOBILE_LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
+const MOBILE_LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
+
 export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
@@ -168,7 +171,8 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
               role="menuitem"
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  window.sessionStorage.setItem("foxiesdeck:mobile-logout-auth", "1");
+                  window.sessionStorage.setItem(MOBILE_LOGOUT_AUTH_KEY, "1");
+                  window.dispatchEvent(new Event(MOBILE_LOGOUT_AUTH_EVENT));
                 }
               }}
               className="mt-1 flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-left font-semibold text-foreground-inverse transition-colors hover:bg-red-700 focus-visible:outline-none"

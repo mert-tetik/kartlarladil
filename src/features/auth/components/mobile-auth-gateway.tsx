@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
@@ -54,6 +54,7 @@ function GatewayShell({
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
+const LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const SUBSCRIPTION_OFFER_KEY = "foxiesdeck:mobile-subscription-offer-seen";
 const MOBILE_BREAKPOINT = 1024;
 
@@ -90,6 +91,7 @@ function saveOfferSeen() {
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
@@ -108,13 +110,24 @@ export function MobileAuthGateway() {
       setIsMobileViewport(getIsMobileViewport);
     }
 
+    function handleLogoutAuthRequested() {
+      setHasChosenWeb(true);
+      setOfferActive(false);
+      setOfferTriggered(false);
+      setOnboardingCompletedInSession(false);
+    }
+
     window.addEventListener("resize", handleResize);
+    window.addEventListener(LOGOUT_AUTH_EVENT, handleLogoutAuthRequested);
 
     if (window.sessionStorage.getItem(LOGOUT_AUTH_KEY) === "1") {
       window.sessionStorage.removeItem(LOGOUT_AUTH_KEY);
     }
 
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener(LOGOUT_AUTH_EVENT, handleLogoutAuthRequested);
+    };
   }, []);
 
   const hasCompletedOnboarding = Boolean(
@@ -183,6 +196,7 @@ export function MobileAuthGateway() {
     setOfferSeen(true);
     setOfferActive(false);
     setOfferTriggered(false);
+    router.replace("/");
   }
 
   if (shouldShowOffer) {
