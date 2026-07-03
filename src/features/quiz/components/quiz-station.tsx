@@ -1591,7 +1591,7 @@ function TrueFalseQuestion({
             className="text-center text-2xl font-semibold leading-snug text-foreground sm:text-3xl lg:text-4xl"
             data-quiz-true-false-meaning
           >
-            {question.proposedMeaning}
+            {`${item.card.term} = ${question.proposedMeaning}`}
           </p>
         </div>
       </div>

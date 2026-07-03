@@ -27,6 +27,7 @@ interface MobileLanguageBottomSheetProps {
   onSelectAll?: () => void;
   allLabel?: string;
   showBackdrop?: boolean;
+  sheetClassName?: string;
 }
 
 export function MobileLanguageBottomSheet({
@@ -40,6 +41,7 @@ export function MobileLanguageBottomSheet({
   onSelectAll,
   allLabel,
   showBackdrop = true,
+  sheetClassName,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -51,6 +53,13 @@ export function MobileLanguageBottomSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const visualDragY = isOpen ? Math.max(0, dragY) : 0;
+
+  useEffect(() => {
+    if (isOpen) return;
+    setDragY(0);
+    setIsDragging(false);
+    startYRef.current = null;
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -128,8 +137,10 @@ export function MobileLanguageBottomSheet({
         }}
         className={cn(
           "relative flex max-h-[85dvh] flex-col rounded-t-2xl bg-background-card shadow-2xl",
+          sheetClassName,
           isDragging ? "cursor-grabbing" : "",
         )}
+        data-mobile-language-sheet
       >
         <div
           onPointerDown={handlePointerDown}
@@ -212,6 +223,6 @@ export function MobileLanguageBottomSheet({
     </div>
   );
 
-  if (!mounted || typeof document === "undefined") return null;
+  if (!mounted || typeof document === "undefined" || !isOpen) return null;
   return createPortal(content, document.body);
 }

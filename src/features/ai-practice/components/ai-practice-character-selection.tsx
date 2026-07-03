@@ -39,11 +39,12 @@ export function AiPracticeCharacterSelection({
 
   return (
     <div
-      className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:-mx-4 max-sm:flex-1 max-sm:min-h-0 max-sm:w-[calc(100%+2rem)] max-sm:overscroll-contain max-sm:touch-pan-y max-sm:rounded-none max-sm:border-x-0"
+      className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:h-[480px] max-lg:flex-1 max-lg:min-h-0 max-lg:h-full max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0"
       data-ai-practice-character-container
     >
       <div className="mb-4">
         <button
+          data-ai-practice-language-button
           type="button"
           onClick={() => {
             vibrate("tap");
@@ -70,7 +71,8 @@ export function AiPracticeCharacterSelection({
           setSelectedLanguage(code);
           handleLanguageChange(code);
         }}
-        showBackdrop={false}
+        showBackdrop
+        sheetClassName="max-h-[50dvh]"
       />
 
       <div

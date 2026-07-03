@@ -160,9 +160,9 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
                 <span className="text-sm font-semibold uppercase tracking-wider text-foreground-muted">
                   {t("games.wordChallenge.question")}
                 </span>
-                <h2 className="text-3xl font-black text-foreground">{currentItem.card.term}</h2>
-                <div className="h-px w-16 bg-border" />
-                <p className="text-lg text-foreground-secondary">{currentItem.proposedMeaning}</p>
+                <p className="text-center text-2xl font-semibold leading-snug text-foreground sm:text-3xl">
+                  {`${currentItem.card.term} = ${currentItem.proposedMeaning}`}
+                </p>
               </div>
 
               <div className="grid w-full max-w-sm grid-cols-2 gap-3">
