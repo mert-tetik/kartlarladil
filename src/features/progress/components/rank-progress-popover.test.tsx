@@ -19,6 +19,10 @@ vi.mock("@/lib/sound-effects", () => ({
 }));
 
 describe("RankProgressPopover", () => {
+  beforeEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
@@ -106,6 +110,19 @@ describe("RankProgressPopover", () => {
     fireEvent.click(screen.getByRole("button", { name: /Rankleri/ }));
 
     expect(screen.getByRole("dialog", { name: "Rank ilerlemesi" })).toBeVisible();
+  });
+
+  it("opens the rank-up overlay in test mode from the URL param", () => {
+    window.history.replaceState({}, "", "/?rank-up-test=1");
+
+    renderRank(<RankProgressPopover stats={makeStats(0)} />);
+
+    const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
+    expect(rankUpDialog).toBeVisible();
+
+    const fullScreenSurface = rankUpDialog.firstElementChild?.firstElementChild;
+    expect(fullScreenSurface).toHaveClass("h-full");
+    expect(fullScreenSurface).toHaveClass("w-full");
   });
 });
 

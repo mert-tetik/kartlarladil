@@ -13,6 +13,7 @@ import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
+const RANK_UP_TEST_PARAM = "rank-up-test";
 
 export function RankProgressPopover({
   stats,
@@ -53,14 +54,14 @@ export function RankProgressPopover({
   }, []);
 
   useEffect(() => {
-    if (open) {
+    if (open || rankUpRank) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [open]);
+  }, [open, rankUpRank]);
 
   return (
     <div ref={rootRef} className="relative block">
@@ -240,6 +241,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   const [rankUpRank, setRankUpRank] = useState<RankDefinition | null>(null);
   const displayStatsRef = useRef(stats);
   const hasInitializedRank = useRef(false);
+  const forceRankUpTestMode = useRankUpTestMode();
 
   // On first meaningful render, ensure the current rank is considered acknowledged
   // so a refresh does not replay an old rank-up celebration.
@@ -252,6 +254,14 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
       writeLastAcknowledgedRank(userId, stats.rank.id);
     }
   }, [stats.rank.id, userId]);
+
+  useEffect(() => {
+    if (!forceRankUpTestMode) {
+      return;
+    }
+
+    setRankUpRank(stats.rank);
+  }, [forceRankUpTestMode, stats.rank]);
 
   useEffect(() => {
     const previousStats = displayStatsRef.current;
@@ -320,48 +330,75 @@ function RankUpMenu({
   const { locale } = useLocale();
   const t = useT();
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className="rank-up-menu absolute right-0 top-11 z-50 max-lg:fixed max-lg:inset-0 max-lg:flex max-lg:h-screen max-lg:w-auto max-lg:items-center max-lg:justify-center max-lg:bg-black/60 max-lg:p-4"
+      className="rank-up-menu fixed inset-0 z-50 flex bg-black/70"
     >
-      <div className="relative w-[min(92vw,340px)] rounded-lg border border-amber-200 bg-background-card p-4 text-sm shadow-sm">
-        <button
-          type="button"
-          aria-label={t("rank.closeUp")}
-          onClick={onClose}
-          className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground"
-        >
-          <X className="size-4" aria-hidden="true" />
-        </button>
+      <div
+        className="flex min-h-full w-full items-stretch justify-center lg:items-start lg:justify-end lg:p-4"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <div className="relative flex h-full w-full flex-col bg-background-card px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,360px)] lg:rounded-lg lg:border lg:border-amber-200 lg:px-5 lg:pb-5 lg:pt-5">
+          <button
+            type="button"
+            aria-label={t("rank.closeUp")}
+            onClick={onClose}
+            className="absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground lg:top-4"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
 
-        <div className="flex items-start gap-3 pr-8">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50">
-            <RankIcon icon={rank.icon} className={cn("size-6", getRankIconTone(rank.icon))} />
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <div className="flex size-24 items-center justify-center rounded-full border border-amber-200 bg-amber-50 lg:size-20">
+              <RankIcon icon={rank.icon} className={cn("size-12 lg:size-10", getRankIconTone(rank.icon))} />
+            </div>
+
+            <p className="mt-8 text-sm font-semibold text-foreground-muted">{t("rank.up")}</p>
+            <p className="mt-3 text-3xl font-bold text-foreground lg:text-2xl">{getRankLabel(rank, locale)}</p>
+            <p className="mt-2 text-base font-semibold text-foreground-secondary">{t("rank.current")}</p>
+
+            <div className="mt-8 w-full max-w-sm rounded-lg border border-border bg-background-muted/60 px-4 py-4">
+              <p className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</p>
+              <p className="mt-2 text-2xl font-bold text-brand">{formatPoints(locale, points)}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-foreground">{t("rank.up")}</p>
-            <p className="mt-1 text-xs font-semibold text-foreground-muted">{t("rank.current")}</p>
-            <p className="mt-2 text-lg font-semibold text-foreground">{getRankLabel(rank, locale)}</p>
+
+          <div className="w-full shrink-0 lg:mt-6">
+            <button
+              type="button"
+              onClick={onViewRanks}
+              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-background-inverse px-4 text-sm font-semibold text-foreground-inverse transition-colors hover:bg-background-inverse"
+            >
+              {t("rank.viewRanks")}
+            </button>
           </div>
         </div>
-
-        <div className="mt-4 flex items-center justify-between gap-3 px-3 py-2">
-          <span className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</span>
-          <span className="text-xs font-bold text-brand">{formatPoints(locale, points)}</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={onViewRanks}
-          className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-background-inverse px-3 text-sm font-semibold text-foreground-inverse transition-colors hover:bg-background-inverse"
-        >
-          {t("rank.viewRanks")}
-        </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
+}
+
+function useRankUpTestMode() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get(RANK_UP_TEST_PARAM);
+    setEnabled(value === "1" || value === "true");
+  }, []);
+
+  return enabled;
 }
 
 function RankStepDesktop({

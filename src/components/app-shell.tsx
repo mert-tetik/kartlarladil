@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -37,13 +38,15 @@ export async function AppShell({
         <SubscriptionProvider>
           <ProgressStatsProvider>
             <ThemeProvider initialTheme={authUser?.profile.theme}>
-              <div className="flex min-h-screen flex-col bg-background text-foreground">
-                <AppNavigation user={authUser} />
-                <MobileAuthGateway />
-                <RouteAwareShell>{children}</RouteAwareShell>
-                <SiteFooter className="max-lg:hidden" />
-                <CookieNotice />
-              </div>
+              <PushNotificationsProvider>
+                <div className="flex min-h-screen flex-col bg-background text-foreground">
+                  <AppNavigation user={authUser} />
+                  <MobileAuthGateway />
+                  <RouteAwareShell>{children}</RouteAwareShell>
+                  <SiteFooter className="max-lg:hidden" />
+                  <CookieNotice />
+                </div>
+              </PushNotificationsProvider>
             </ThemeProvider>
           </ProgressStatsProvider>
         </SubscriptionProvider>

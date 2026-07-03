@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier } from "@/types/domain";
@@ -43,7 +44,7 @@ interface InventoryState {
   clearLocalInventory: () => void;
   loadCloudInventory: () => Promise<void>;
   migrateLocalInventoryToCloud: () => Promise<void>;
-  addCard: (cardId: string) => Promise<void>;
+  addCard: (cardId: string) => Promise<{ ok: boolean; firstCardAdded: boolean }>;
   removeCard: (cardId: string) => Promise<void>;
   hasCard: (cardId: string) => boolean;
   recordAnswer: (input: {
@@ -150,13 +151,15 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async addCard(cardId) {
+        const previousCount = get().cards.length;
+
         if (get().cloudEnabled) {
           set({ cloudLoading: true, cloudError: "" });
           const result = await addCloudInventoryCardAction(cardId);
 
           if (result.status === "error" || !result.data) {
             set({ cloudLoading: false, cloudError: result.message });
-            return;
+            return { ok: false, firstCardAdded: false };
           }
 
           set({
@@ -166,18 +169,30 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
+          const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
+
           if (result.data.cards.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
           }
-          return;
+          if (firstCardAdded) {
+            dispatchFirstCardAddedEvent();
+          }
+
+          return { ok: true, firstCardAdded };
         }
 
         const nextCards = addCardToInventory(get().cards, cardId);
         set({ cards: nextCards });
+        const firstCardAdded = previousCount === 0 && nextCards.length > 0;
 
         if (nextCards.length > 0) {
           sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
         }
+        if (firstCardAdded) {
+          dispatchFirstCardAddedEvent();
+        }
+
+        return { ok: true, firstCardAdded };
       },
 
       async removeCard(cardId) {
@@ -338,4 +353,12 @@ function getCloudActionErrorMessage(result: { message?: string; errorCode?: stri
   }
 
   return result.errorCode?.trim() || "unknown";
+}
+
+function dispatchFirstCardAddedEvent() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(FIRST_CARD_ADDED_EVENT));
 }

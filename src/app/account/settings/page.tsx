@@ -5,6 +5,7 @@ import { buttonClassName } from "@/components/ui/button";
 import { AccountSettingsForm } from "@/features/auth/components/account-settings-form";
 import { DeleteAccountForm } from "@/features/auth/components/delete-account-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { NotificationSettingsCard } from "@/features/push/components/notification-settings-card";
 import { SubscriptionSettings } from "@/features/subscriptions/components/subscription-settings";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -45,6 +46,7 @@ export default async function AccountSettingsPage() {
 
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
+        <NotificationSettingsCard />
         <SubscriptionSettings plan={entitlements.effectivePlan} provider={entitlements.provider} />
         {entitlements.provider !== "google_play" ? (
           <div className="rounded-lg border border-border bg-background-card p-6">
