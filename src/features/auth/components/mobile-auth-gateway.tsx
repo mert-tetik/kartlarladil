@@ -53,6 +53,7 @@ function GatewayShell({
 }
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
+const LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const SUBSCRIPTION_OFFER_KEY = "foxiesdeck:mobile-subscription-offer-seen";
 const MOBILE_BREAKPOINT = 1024;
 
@@ -65,7 +66,10 @@ function getIsMobileViewport() {
 
 function readWebChoice(): boolean {
   if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(WEB_CHOICE_KEY) === "true";
+  return (
+    window.sessionStorage.getItem(WEB_CHOICE_KEY) === "true" ||
+    window.sessionStorage.getItem(LOGOUT_AUTH_KEY) === "1"
+  );
 }
 
 function saveWebChoice() {
@@ -91,8 +95,10 @@ export function MobileAuthGateway() {
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
+  const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(readOfferSeen);
+  const [offerActive, setOfferActive] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -103,20 +109,48 @@ export function MobileAuthGateway() {
     }
 
     window.addEventListener("resize", handleResize);
+
+    if (window.sessionStorage.getItem(LOGOUT_AUTH_KEY) === "1") {
+      window.sessionStorage.removeItem(LOGOUT_AUTH_KEY);
+    }
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const needsOnboarding = user && !user.profile.onboardingCompleted;
+  const hasCompletedOnboarding = Boolean(
+    user?.profile.onboardingCompleted || onboardingCompletedInSession,
+  );
+  const needsOnboarding = Boolean(user && !hasCompletedOnboarding);
   const isAlreadySubscribed =
     !isEntitlementsLoading && entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
   const isOfferTriggered = searchParams.get("showOffer") === "1" || offerTriggered;
-  const isOfferEligible =
+  const isOfferEligible = Boolean(
     user &&
-    user.profile.onboardingCompleted &&
+    hasCompletedOnboarding &&
     !offerSeen &&
+    !isEntitlementsLoading &&
     isOfferTriggered &&
-    !isAlreadySubscribed;
+    !isAlreadySubscribed,
+  );
   const needsAuth = !user;
+
+  useEffect(() => {
+    if (isOfferEligible) {
+      setOfferActive(true);
+    }
+  }, [isOfferEligible]);
+
+  useEffect(() => {
+    if (!user || offerSeen || isAlreadySubscribed) {
+      setOfferActive(false);
+    }
+    if (!user) {
+      setOnboardingCompletedInSession(false);
+      setOfferTriggered(false);
+    }
+  }, [user, offerSeen, isAlreadySubscribed]);
+
+  const shouldShowOffer = isOfferEligible || offerActive;
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -125,7 +159,7 @@ export function MobileAuthGateway() {
   const isTestMode = isMobileTestMode();
   const showGateway =
     isTestMode ||
-    (isMobileViewport && (needsAuth || needsOnboarding || isOfferEligible));
+    (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
 
   if (!mounted || !showGateway || isPublicMobilePath) {
     return null;
@@ -139,16 +173,19 @@ export function MobileAuthGateway() {
   }
 
   function handleOnboardingComplete() {
+    setOnboardingCompletedInSession(true);
     setOfferTriggered(true);
+    setOfferActive(true);
   }
 
   function handleContinueFree() {
     saveOfferSeen();
     setOfferSeen(true);
+    setOfferActive(false);
     setOfferTriggered(false);
   }
 
-  if (isOfferEligible) {
+  if (shouldShowOffer) {
     return (
       <GatewayShell isTestMode={isTestMode}>
         <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />

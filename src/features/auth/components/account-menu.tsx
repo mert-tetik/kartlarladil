@@ -166,6 +166,11 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
             <button
               type="submit"
               role="menuitem"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.sessionStorage.setItem("foxiesdeck:mobile-logout-auth", "1");
+                }
+              }}
               className="mt-1 flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-left font-semibold text-foreground-inverse transition-colors hover:bg-red-700 focus-visible:outline-none"
             >
               <LogOut className="size-4" aria-hidden="true" />
