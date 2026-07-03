@@ -10,6 +10,7 @@ import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { initTwaModeStore, isInstalledApp, isMobileTestMode } from "@/features/install-app/twa-mode";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
 
 function OnboardingBackground() {
@@ -55,7 +56,7 @@ function GatewayShell({
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
-const SUBSCRIPTION_OFFER_KEY = "foxiesdeck:mobile-subscription-offer-seen";
+const TUTORIAL_LOGIN_RESET_KEY = "foxiesdeck:tutorial-login-reset-user";
 const MOBILE_BREAKPOINT = 1024;
 
 const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen"];
@@ -78,19 +79,10 @@ function saveWebChoice() {
   window.sessionStorage.setItem(WEB_CHOICE_KEY, "true");
 }
 
-function readOfferSeen(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(SUBSCRIPTION_OFFER_KEY) === "true";
-}
-
-function saveOfferSeen() {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(SUBSCRIPTION_OFFER_KEY, "true");
-}
-
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
+  const resetTutorial = useTutorialStore((state) => state.reset);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -99,7 +91,7 @@ export function MobileAuthGateway() {
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
   const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
   const [offerTriggered, setOfferTriggered] = useState(false);
-  const [offerSeen, setOfferSeen] = useState(readOfferSeen);
+  const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
 
   useEffect(() => {
@@ -114,7 +106,9 @@ export function MobileAuthGateway() {
       setHasChosenWeb(true);
       setOfferActive(false);
       setOfferTriggered(false);
+      setOfferSeen(false);
       setOnboardingCompletedInSession(false);
+      window.sessionStorage.removeItem(TUTORIAL_LOGIN_RESET_KEY);
     }
 
     window.addEventListener("resize", handleResize);
@@ -148,6 +142,16 @@ export function MobileAuthGateway() {
   const needsAuth = !user;
 
   useEffect(() => {
+    if (!mounted || !user || !hasCompletedOnboarding) return;
+
+    const resetUserId = window.sessionStorage.getItem(TUTORIAL_LOGIN_RESET_KEY);
+    if (resetUserId === user.id) return;
+
+    resetTutorial();
+    window.sessionStorage.setItem(TUTORIAL_LOGIN_RESET_KEY, user.id);
+  }, [mounted, user, hasCompletedOnboarding, resetTutorial]);
+
+  useEffect(() => {
     if (isOfferEligible) {
       setOfferActive(true);
     }
@@ -160,6 +164,10 @@ export function MobileAuthGateway() {
     if (!user) {
       setOnboardingCompletedInSession(false);
       setOfferTriggered(false);
+      setOfferSeen(false);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(TUTORIAL_LOGIN_RESET_KEY);
+      }
     }
   }, [user, offerSeen, isAlreadySubscribed]);
 
@@ -192,7 +200,6 @@ export function MobileAuthGateway() {
   }
 
   function handleContinueFree() {
-    saveOfferSeen();
     setOfferSeen(true);
     setOfferActive(false);
     setOfferTriggered(false);
