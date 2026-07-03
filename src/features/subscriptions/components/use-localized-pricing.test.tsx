@@ -35,6 +35,25 @@ describe("useLocalizedPricing", () => {
     });
   });
 
+  it("uses TWA price table when isTwa is true", async () => {
+    vi.mocked(fetchExchangeRate).mockResolvedValue(46.48);
+
+    const { result } = renderHook(() => useLocalizedPricing("TRY", true));
+
+    await waitFor(() => {
+      expect(result.current.kind).toBe("ready");
+    });
+
+    expect(result.current).toMatchObject({
+      kind: "ready",
+      currencyCode: "TRY",
+      prices: {
+        "basic:monthly": { amount: 93, currencyCode: "TRY" },
+        "pro:monthly": { amount: 279, currencyCode: "TRY" },
+      },
+    });
+  });
+
   it("falls back to the browser locale when the server header is absent", async () => {
     vi.mocked(fetchExchangeRate).mockResolvedValue(46.48);
     vi.stubGlobal("navigator", { language: "tr-TR" });

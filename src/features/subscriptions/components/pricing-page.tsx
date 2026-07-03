@@ -56,14 +56,21 @@ const PLANS: PricingPlan[] = [
   { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.png" },
 ];
 
+const TWA_PLANS: PricingPlan[] = [
+  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
+  { plan: "basic", monthlyPrice: 2, yearlyPrice: 20, mascot: "/mascots/mascot15.png" },
+  { plan: "pro", monthlyPrice: 6, yearlyPrice: 60, popular: true, mascot: "/mascots/mascot16.png" },
+];
+
 export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const t = useT();
   const { locale } = useLocale();
   const { entitlements } = useSubscription();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const localizedPricing = useLocalizedPricing(currencyCode);
-  const googlePlayPricing = useGooglePlayPricing();
   const isTwa = useTwaMode();
+  const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
+  const googlePlayPricing = useGooglePlayPricing();
+  const plans = isTwa ? TWA_PLANS : PLANS;
 
   return (
     <div className="animate-screen-pop mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -89,7 +96,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-3">
-        {PLANS.map((item) => (
+        {plans.map((item) => (
           <PricingCard
             key={item.plan}
             plan={item.plan}

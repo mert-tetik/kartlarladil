@@ -5,14 +5,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, MessageCircle } from "lucide-react";
-import { InlineLanguagePicker } from "@/components/inline-language-picker";
+import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
+import { LanguageFlag } from "@/components/language-flag";
+import { LANGUAGES } from "@/data/languages";
 import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { vibrate } from "@/lib/vibration";
 
 import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
 
 export function AiPracticeCharacterSelection({
   language,
-  locale,
+  locale: serverLocale,
   tier,
 }: {
   language: LanguageCode;
@@ -20,7 +25,12 @@ export function AiPracticeCharacterSelection({
   tier: Tier;
 }) {
   const router = useRouter();
+  const { locale: clientLocale } = useLocale();
+  const t = useT();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(language);
+  const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const locale = clientLocale ?? serverLocale;
+  const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);
@@ -30,8 +40,35 @@ export function AiPracticeCharacterSelection({
   return (
     <div className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:h-auto max-sm:overflow-visible max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0">
       <div className="mb-4">
-        <InlineLanguagePicker value={selectedLanguage} onChange={handleLanguageChange} />
+        <button
+          type="button"
+          onClick={() => {
+            vibrate("tap");
+            setLanguageSheetOpen(true);
+          }}
+          className="flex w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 py-1.5 text-left transition-colors hover:bg-background-muted"
+        >
+          <span className="flex items-center gap-3">
+            <LanguageFlag code={selectedLanguage} className="h-6 w-9" />
+            <span className="text-base font-semibold text-foreground">
+              {getLanguageDisplayName(selectedLanguage, locale)}
+            </span>
+          </span>
+          <span className="text-xs font-semibold text-foreground-muted">{t("home.mobile.cardLanguage")}</span>
+        </button>
       </div>
+
+      <MobileLanguageBottomSheet
+        isOpen={languageSheetOpen}
+        onClose={() => setLanguageSheetOpen(false)}
+        options={languageOptions}
+        selectedLanguage={selectedLanguage}
+        onSelect={(code) => {
+          setSelectedLanguage(code);
+          handleLanguageChange(code);
+        }}
+        showBackdrop={false}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
         {getAiPracticeCharacters().map((character) => {

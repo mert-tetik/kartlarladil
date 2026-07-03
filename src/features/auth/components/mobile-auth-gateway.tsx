@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
@@ -20,6 +21,31 @@ function OnboardingBackground() {
         className="absolute inset-0 bg-gradient-to-t from-background to-transparent"
         aria-hidden="true"
       />
+    </div>
+  );
+}
+
+function GatewayShell({
+  children,
+  isTestMode,
+}: {
+  children: ReactNode;
+  isTestMode: boolean;
+}) {
+  return (
+    <div
+      data-mobile-auth-gateway
+      className={cn(
+        "fixed inset-0 z-[100] isolate overflow-hidden bg-background",
+        !isTestMode && "max-lg:block lg:hidden",
+      )}
+    >
+      <OnboardingBackground />
+      <div className="relative z-10 flex min-h-full w-full items-center justify-center px-6 py-8">
+        <div className="flex w-full justify-center">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -86,44 +112,23 @@ export function MobileAuthGateway() {
 
   if (!isInstalled && !hasChosenWeb) {
     return (
-      <div
-        data-mobile-auth-gateway
-        className={cn(
-          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-          !isTestMode && "max-lg:flex lg:hidden",
-        )}
-      >
-        <OnboardingBackground />
+      <GatewayShell isTestMode={isTestMode}>
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
-      </div>
+      </GatewayShell>
     );
   }
 
   if (user && !user.profile.onboardingCompleted) {
     return (
-      <div
-        data-mobile-auth-gateway
-        className={cn(
-          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-          !isTestMode && "max-lg:flex lg:hidden",
-        )}
-      >
-        <OnboardingBackground />
+      <GatewayShell isTestMode={isTestMode}>
         <MobileOnboardingForm />
-      </div>
+      </GatewayShell>
     );
   }
 
   return (
-    <div
-      data-mobile-auth-gateway
-      className={cn(
-        "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6",
-        !isTestMode && "max-lg:flex lg:hidden",
-      )}
-    >
-      <OnboardingBackground />
+    <GatewayShell isTestMode={isTestMode}>
       <MobileAuthScreen />
-    </div>
+    </GatewayShell>
   );
 }

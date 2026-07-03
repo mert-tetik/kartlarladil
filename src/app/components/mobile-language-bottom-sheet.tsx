@@ -26,6 +26,7 @@ interface MobileLanguageBottomSheetProps {
   isAllSelected?: boolean;
   onSelectAll?: () => void;
   allLabel?: string;
+  showBackdrop?: boolean;
 }
 
 export function MobileLanguageBottomSheet({
@@ -38,6 +39,7 @@ export function MobileLanguageBottomSheet({
   isAllSelected = false,
   onSelectAll,
   allLabel,
+  showBackdrop = true,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -114,7 +116,7 @@ export function MobileLanguageBottomSheet({
       aria-modal={isOpen}
     >
       <div
-        className="absolute inset-0 bg-black/50"
+        className={cn("absolute inset-0", showBackdrop ? "bg-black/50" : "bg-transparent")}
         onClick={onClose}
         aria-hidden="true"
       />

@@ -25,8 +25,23 @@ export type LocalizedPricingStatus =
   | { kind: "ready"; currencyCode: string; prices: Partial<Record<`${SubscriptionPlan}:${BillingCycle}`, LocalizedPrice>> }
   | { kind: "unavailable" };
 
+const WEB_PLAN_CYCLES = [
+  { plan: "basic" as const, cycle: "monthly" as const, usd: 3 },
+  { plan: "basic" as const, cycle: "yearly" as const, usd: 30 },
+  { plan: "pro" as const, cycle: "monthly" as const, usd: 9 },
+  { plan: "pro" as const, cycle: "yearly" as const, usd: 90 },
+];
+
+const TWA_PLAN_CYCLES = [
+  { plan: "basic" as const, cycle: "monthly" as const, usd: 2 },
+  { plan: "basic" as const, cycle: "yearly" as const, usd: 20 },
+  { plan: "pro" as const, cycle: "monthly" as const, usd: 6 },
+  { plan: "pro" as const, cycle: "yearly" as const, usd: 60 },
+];
+
 export function useLocalizedPricing(
   serverCurrencyCode: string | null,
+  isTwa = false,
 ): LocalizedPricingStatus {
   const [status, setStatus] = useState<LocalizedPricingStatus>({ kind: "loading" });
 
@@ -44,12 +59,7 @@ export function useLocalizedPricing(
         return;
       }
 
-      const planCycles: Array<{ plan: SubscriptionPlan; cycle: BillingCycle; usd: number }> = [
-        { plan: "basic", cycle: "monthly", usd: 3 },
-        { plan: "basic", cycle: "yearly", usd: 30 },
-        { plan: "pro", cycle: "monthly", usd: 9 },
-        { plan: "pro", cycle: "yearly", usd: 90 },
-      ];
+      const planCycles = isTwa ? TWA_PLAN_CYCLES : WEB_PLAN_CYCLES;
 
       const prices: Partial<Record<`${SubscriptionPlan}:${BillingCycle}`, LocalizedPrice>> = {};
       const rate = await fetchExchangeRate("USD", currencyCode);
@@ -74,7 +84,7 @@ export function useLocalizedPricing(
     return () => {
       cancelled = true;
     };
-  }, [serverCurrencyCode]);
+  }, [serverCurrencyCode, isTwa]);
 
   return status;
 }
