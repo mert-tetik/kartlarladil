@@ -41,7 +41,7 @@ function GatewayShell({
       )}
     >
       <OnboardingBackground />
-      <div className="relative z-10 flex min-h-full w-full items-center justify-center px-6 py-8">
+      <div className="relative z-10 flex min-h-full w-full items-end justify-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8">
         <div className="flex w-full justify-center">
           {children}
         </div>
