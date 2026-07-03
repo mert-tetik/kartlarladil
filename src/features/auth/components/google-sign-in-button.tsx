@@ -13,12 +13,22 @@ interface GoogleSignInButtonProps {
   label: string;
 }
 
+const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
+
 export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps) {
   const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
 
   return (
-    <form action={formAction} className="w-full">
+    <form
+      action={formAction}
+      className="w-full"
+      onSubmit={() => {
+        if (typeof window !== "undefined" && window.innerWidth < 1024 && nextPath === "/?showOffer=1") {
+          window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
+        }
+      }}
+    >
       <input type="hidden" name="next" value={nextPath} />
       <FormMessage state={state} />
       <Button

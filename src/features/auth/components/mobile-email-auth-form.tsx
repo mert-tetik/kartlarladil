@@ -16,6 +16,8 @@ interface MobileEmailAuthFormProps {
   onBack: () => void;
 }
 
+const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
+
 export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: MobileEmailAuthFormProps) {
   const t = useT();
   const isRegister = authType === "register";
@@ -25,7 +27,15 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
   );
 
   return (
-    <form action={formAction} className="flex w-full flex-col">
+    <form
+      action={formAction}
+      className="flex w-full flex-col"
+      onSubmit={() => {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
+        }
+      }}
+    >
       <input type="hidden" name="next" value="/?showOffer=1" />
 
       <button

@@ -56,7 +56,7 @@ function GatewayShell({
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
-const TUTORIAL_LOGIN_RESET_KEY = "foxiesdeck:tutorial-login-reset-user";
+const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 const MOBILE_BREAKPOINT = 1024;
 
 const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen"];
@@ -108,7 +108,7 @@ export function MobileAuthGateway() {
       setOfferTriggered(false);
       setOfferSeen(false);
       setOnboardingCompletedInSession(false);
-      window.sessionStorage.removeItem(TUTORIAL_LOGIN_RESET_KEY);
+      window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
     }
 
     window.addEventListener("resize", handleResize);
@@ -144,11 +144,12 @@ export function MobileAuthGateway() {
   useEffect(() => {
     if (!mounted || !user || !hasCompletedOnboarding) return;
 
-    const resetUserId = window.sessionStorage.getItem(TUTORIAL_LOGIN_RESET_KEY);
-    if (resetUserId === user.id) return;
+    const shouldResetTutorial =
+      window.sessionStorage.getItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY) === "1";
+    if (!shouldResetTutorial) return;
 
     resetTutorial();
-    window.sessionStorage.setItem(TUTORIAL_LOGIN_RESET_KEY, user.id);
+    window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
   }, [mounted, user, hasCompletedOnboarding, resetTutorial]);
 
   useEffect(() => {
@@ -165,9 +166,6 @@ export function MobileAuthGateway() {
       setOnboardingCompletedInSession(false);
       setOfferTriggered(false);
       setOfferSeen(false);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem(TUTORIAL_LOGIN_RESET_KEY);
-      }
     }
   }, [user, offerSeen, isAlreadySubscribed]);
 
