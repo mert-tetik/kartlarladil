@@ -386,6 +386,7 @@ const dictionary = {
   "pricing.ctaCurrent": "当前计划",
   "pricing.ctaFree": "开始使用",
   "pricing.ctaUpgrade": "升级",
+  "pricing.ctaSkip": "跳过",
   "pricing.ctaManage": "管理订阅",
   "pricing.ctaCurrentAndManage": "当前计划（管理订阅）",
   "pricing.description": "移除卡片限制并获得更多AI Practice消息。",

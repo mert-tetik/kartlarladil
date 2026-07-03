@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
@@ -75,22 +75,23 @@ function saveWebChoice() {
 
 function readOfferSeen(): boolean {
   if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(SUBSCRIPTION_OFFER_KEY) === "true";
+  return window.localStorage.getItem(SUBSCRIPTION_OFFER_KEY) === "true";
 }
 
 function saveOfferSeen() {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(SUBSCRIPTION_OFFER_KEY, "true");
+  window.localStorage.setItem(SUBSCRIPTION_OFFER_KEY, "true");
 }
 
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
-  const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
+  const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(readOfferSeen);
 
   useEffect(() => {
@@ -108,8 +109,13 @@ export function MobileAuthGateway() {
   const needsOnboarding = user && !user.profile.onboardingCompleted;
   const isAlreadySubscribed =
     !isEntitlementsLoading && entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
+  const isOfferTriggered = searchParams.get("showOffer") === "1" || offerTriggered;
   const isOfferEligible =
-    user && user.profile.onboardingCompleted && !offerSeen && !isAlreadySubscribed;
+    user &&
+    user.profile.onboardingCompleted &&
+    !offerSeen &&
+    isOfferTriggered &&
+    !isAlreadySubscribed;
   const needsAuth = !user;
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
@@ -133,16 +139,16 @@ export function MobileAuthGateway() {
   }
 
   function handleOnboardingComplete() {
-    setShowSubscriptionOffer(true);
+    setOfferTriggered(true);
   }
 
   function handleContinueFree() {
     saveOfferSeen();
     setOfferSeen(true);
-    setShowSubscriptionOffer(false);
+    setOfferTriggered(false);
   }
 
-  if (showSubscriptionOffer || isOfferEligible) {
+  if (isOfferEligible) {
     return (
       <GatewayShell isTestMode={isTestMode}>
         <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />

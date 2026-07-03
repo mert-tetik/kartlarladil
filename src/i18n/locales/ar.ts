@@ -386,6 +386,7 @@ const dictionary = {
   "pricing.ctaCurrent": "الخطة الحالية",
   "pricing.ctaFree": "ابدأ الآن",
   "pricing.ctaUpgrade": "ترقية",
+  "pricing.ctaSkip": "تخطي",
   "pricing.ctaManage": "إدارة الاشتراك",
   "pricing.ctaCurrentAndManage": "الخطة الحالية (إدارة الاشتراك)",
   "pricing.description": "قم بإزالة حدود البطاقات واحصل على المزيد من رسائل AI Practice.",

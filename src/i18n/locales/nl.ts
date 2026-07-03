@@ -386,6 +386,7 @@ const dictionary = {
   "pricing.ctaCurrent": "Huidig plan",
   "pricing.ctaFree": "Begin nu",
   "pricing.ctaUpgrade": "Upgrade",
+  "pricing.ctaSkip": "Overslaan",
   "pricing.ctaManage": "Abonnement beheren",
   "pricing.ctaCurrentAndManage": "Huidig plan (Abonnement beheren)",
   "pricing.description": "Verwijder kaartlimieten en krijg meer AI Practice-berichten.",

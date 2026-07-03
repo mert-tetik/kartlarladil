@@ -386,6 +386,7 @@ const dictionary = {
   "pricing.ctaCurrent": "Mevcut plan",
   "pricing.ctaFree": "Başla",
   "pricing.ctaUpgrade": "Upgrade",
+  "pricing.ctaSkip": "Geç",
   "pricing.ctaManage": "Aboneliği yönet",
   "pricing.ctaCurrentAndManage": "Mevcut Plan (Aboneliği Yönet)",
   "pricing.description": "Kart limitlerini kaldır ve AI Practice'te daha fazla mesaj hakkı kazan.",

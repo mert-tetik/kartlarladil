@@ -113,7 +113,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         <CheckoutSuccessPoller />
       </Suspense>
       <div className="relative z-10 text-center">
-        <h1 className="font-display text-4xl font-semibold text-foreground md:text-5xl">
+        <h1 className="font-display text-4xl font-semibold text-brand md:text-5xl">
           {t("pricing.title")}
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">

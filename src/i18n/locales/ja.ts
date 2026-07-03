@@ -386,6 +386,7 @@ const dictionary = {
   "pricing.ctaCurrent": "現在のプラン",
   "pricing.ctaFree": "始める",
   "pricing.ctaUpgrade": "アップグレード",
+  "pricing.ctaSkip": "スキップ",
   "pricing.ctaManage": "サブスクリプションを管理",
   "pricing.ctaCurrentAndManage": "現在のプラン（サブスクリプションを管理）",
   "pricing.description": "カードの制限を解除し、より多くのAI Practiceメッセージを取得します。",

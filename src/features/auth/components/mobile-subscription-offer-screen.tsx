@@ -278,7 +278,7 @@ export function MobileSubscriptionOfferScreen({
             "mt-3 h-12 w-full text-base font-semibold text-foreground-muted hover:text-foreground",
           )}
         >
-          {t("pricing.ctaFree")}
+          {t("pricing.ctaSkip")}
         </button>
       </div>
     </div>
