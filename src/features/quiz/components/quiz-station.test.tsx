@@ -13,9 +13,17 @@ import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode } from "@/types/domain";
 
+const mathRandomSpy = vi.spyOn(Math, "random");
+
 beforeEach(() => {
   window.localStorage.clear();
   document.cookie = `${LOCALE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  mathRandomSpy.mockReset();
+  mathRandomSpy.mockReturnValue(0.75);
+});
+
+afterAll(() => {
+  mathRandomSpy.mockRestore();
 });
 
 vi.mock("next/navigation", () => ({
@@ -36,6 +44,10 @@ vi.mock("@/features/inventory/cloud-actions", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("canvas-confetti", () => ({
+  default: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@/features/progress/progress-client", () => ({
@@ -337,6 +349,58 @@ describe("QuizStation sound feedback", () => {
     expect(cardSlot).toHaveClass("order-2");
     expect(question).toHaveClass("order-3");
     expect(card).toHaveClass("w-[min(285px,calc((100vw-3rem)/2))]");
+  });
+
+  it("shows a centered true-false question above the card for zero-progress cards", async () => {
+    mathRandomSpy
+      .mockReset()
+      .mockReturnValueOnce(0.25)
+      .mockReturnValueOnce(0.75)
+      .mockReturnValue(0.75);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="true-false"]')).toBeInTheDocument();
+    });
+
+    const layout = document.querySelector('[data-quiz-mobile-layout="true-false"]');
+    const prompt = layout?.querySelector("[data-quiz-mobile-prompt]");
+    const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
+    const question = layout?.querySelector("[data-quiz-mobile-question]");
+    const questionContent = layout?.querySelector('[data-quiz-question-content="true-false"]');
+
+    expect(prompt).toHaveClass("order-1");
+    expect(cardSlot).toHaveClass("order-2");
+    expect(question).toHaveClass("order-3");
+    expect(questionContent).toHaveClass("items-center", "text-center");
+    expect(layout?.querySelector("[data-quiz-mobile-card]")).toBeInTheDocument();
+    expect(layout?.querySelector("[data-quiz-true-false-meaning]")).toBeInTheDocument();
+  });
+
+  it("shows the actual meaning in feedback when a true-false answer is wrong", async () => {
+    mathRandomSpy
+      .mockReset()
+      .mockReturnValueOnce(0.25)
+      .mockReturnValueOnce(0.1)
+      .mockReturnValueOnce(0)
+      .mockReturnValue(0.75);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="true-false"]')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Doğru|Correct/i }));
+
+    await waitFor(() => {
+      expect(
+        document.querySelector("[data-quiz-mobile-feedback]"),
+      ).toHaveTextContent(`Doğru cevap: ${correctAnswer}`);
+    });
   });
 
   it("reserves the next-card slot before a choice answer is shown", async () => {

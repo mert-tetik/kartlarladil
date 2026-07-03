@@ -38,7 +38,10 @@ export function AiPracticeCharacterSelection({
   }
 
   return (
-    <div className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:h-auto max-sm:overflow-visible max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0">
+    <div
+      className="h-[480px] w-full overflow-y-auto rounded-lg border border-border bg-background p-3 max-sm:-mx-4 max-sm:flex-1 max-sm:min-h-0 max-sm:w-[calc(100%+2rem)] max-sm:overscroll-contain max-sm:touch-pan-y max-sm:rounded-none max-sm:border-x-0"
+      data-ai-practice-character-container
+    >
       <div className="mb-4">
         <button
           type="button"
@@ -70,7 +73,10 @@ export function AiPracticeCharacterSelection({
         showBackdrop={false}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+      <div
+        className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5"
+        data-ai-practice-character-list
+      >
         {getAiPracticeCharacters().map((character) => {
           const characterName = getCharacterName(character, selectedLanguage);
 

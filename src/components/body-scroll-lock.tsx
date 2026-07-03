@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const ALWAYS_LOCKED_PATHS = [
-  "/ai-practice",
   "/ask",
 ];
 
@@ -23,8 +22,19 @@ function pathMatches(path: string, prefixes: string[]): boolean {
   );
 }
 
+function isAiPracticeChatPath(path: string): boolean {
+  const segments = path.split("/").filter(Boolean);
+
+  return (
+    segments[0] === "ai-practice" &&
+    segments.length === 3 &&
+    segments[2] !== "character"
+  );
+}
+
 export function shouldLockBodyScroll(path: string, mobileViewport: boolean): boolean {
   return (
+    isAiPracticeChatPath(path) ||
     pathMatches(path, ALWAYS_LOCKED_PATHS) ||
     (mobileViewport && pathMatches(path, MOBILE_ONLY_LOCKED_PATHS))
   );

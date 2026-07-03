@@ -73,10 +73,12 @@ function saveWebChoice() {
 export function MobileAuthGateway() {
   const { user } = useAuthSession();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
 
   useEffect(() => {
+    setMounted(true);
     initTwaModeStore();
 
     function handleResize() {
@@ -99,7 +101,7 @@ export function MobileAuthGateway() {
   const isTestMode = isMobileTestMode();
   const showGateway = isTestMode || (isMobileViewport && needsAuth);
 
-  if (!showGateway || isPublicMobilePath) {
+  if (!mounted || !showGateway || isPublicMobilePath) {
     return null;
   }
 

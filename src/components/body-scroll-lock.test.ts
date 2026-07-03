@@ -14,12 +14,15 @@ describe("shouldLockBodyScroll", () => {
     expect(shouldLockBodyScroll("/my-cards/details", true)).toBe(true);
   });
 
-  it("locks learn only on mobile and keeps ai-practice/ask locked", () => {
+  it("locks learn only on mobile and only locks ai-practice chat routes", () => {
     expect(shouldLockBodyScroll("/learn", false)).toBe(false);
     expect(shouldLockBodyScroll("/learn", true)).toBe(true);
     expect(shouldLockBodyScroll("/card-draw", false)).toBe(false);
     expect(shouldLockBodyScroll("/card-draw", true)).toBe(true);
-    expect(shouldLockBodyScroll("/ai-practice", false)).toBe(true);
+    expect(shouldLockBodyScroll("/ai-practice", false)).toBe(false);
+    expect(shouldLockBodyScroll("/ai-practice/en", false)).toBe(false);
+    expect(shouldLockBodyScroll("/ai-practice/en/character", false)).toBe(false);
+    expect(shouldLockBodyScroll("/ai-practice/en/fox", false)).toBe(true);
     expect(shouldLockBodyScroll("/ask/en", false)).toBe(true);
   });
 

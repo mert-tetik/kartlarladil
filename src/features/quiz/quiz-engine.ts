@@ -8,8 +8,11 @@ import type {
   PracticeMode,
   QuizQuestion,
   Tier,
+  TrueFalseQuizQuestion,
   VocabularyCard,
 } from "@/types/domain";
+
+export const TRUE_FALSE_FIRST_LEARN_PROBABILITY = 0.5;
 
 export function getTierRequirement(tier: Tier) {
   return TIER_REQUIREMENTS[tier];
@@ -82,6 +85,50 @@ export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard
     options,
     correctAnswer,
   };
+}
+
+export function buildTrueFalseQuizQuestion(
+  card: VocabularyCard,
+  allCards: VocabularyCard[],
+  locale: LocaleCode = "tr",
+): TrueFalseQuizQuestion {
+  const actualMeaning = getPrimaryCardTranslation(card, locale);
+  const localeCompatibleCards = allCards.filter(
+    (candidate) => candidate.id !== card.id && getStudyLocale(candidate.language, locale) === locale,
+  );
+  const sameLanguageDecoys = allCards
+    .filter(
+      (candidate) =>
+        candidate.id !== card.id &&
+        candidate.language === card.language &&
+        getStudyLocale(candidate.language, locale) === locale,
+    )
+    .map((candidate) => getPrimaryCardTranslation(candidate, locale));
+  const fallbackDecoys = localeCompatibleCards.map((candidate) => getPrimaryCardTranslation(candidate, locale));
+  const uniqueDecoys = Array.from(
+    new Set([...sameLanguageDecoys, ...fallbackDecoys].filter((answer) => answer !== actualMeaning)),
+  );
+
+  const isTrue = uniqueDecoys.length === 0 || Math.random() >= 0.5;
+  const proposedMeaning = isTrue
+    ? actualMeaning
+    : uniqueDecoys[Math.floor(Math.random() * uniqueDecoys.length)] ?? actualMeaning;
+
+  return {
+    card,
+    proposedMeaning,
+    actualMeaning,
+    isTrue,
+    correctAnswer: isTrue ? "true" : "false",
+  };
+}
+
+export function shouldUseTrueFalseQuestion(inventoryCard: InventoryCard, mode: PracticeMode) {
+  return (
+    mode === "active" &&
+    inventoryCard.correctCount === 0 &&
+    Math.random() < TRUE_FALSE_FIRST_LEARN_PROBABILITY
+  );
 }
 
 export function isAnswerSimilarEnough(input: string, correctAnswer: string, threshold = 0.75) {

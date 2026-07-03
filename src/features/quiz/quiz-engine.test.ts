@@ -6,9 +6,11 @@ import {
   addCardToInventory,
   applyAnswerProgress,
   buildQuizQuestion,
+  buildTrueFalseQuizQuestion,
   createInventoryCard,
   getTierRequirement,
   isAnswerSimilarEnough,
+  shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import type { InventoryCard } from "@/types/domain";
 
@@ -112,6 +114,54 @@ describe("quiz engine", () => {
 
       expect(eligibleAnswers.has(option)).toBe(true);
     }
+  });
+
+  it("builds a true-false question with the actual meaning attached", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.language === "en" && item.translationMeaningsByLocale.tr.length > 0);
+    expect(card).toBeDefined();
+
+    const randomSpy = vi.spyOn(Math, "random");
+    randomSpy.mockReturnValue(0.75);
+
+    const question = buildTrueFalseQuizQuestion(card!, VOCABULARY_CARDS, "tr");
+
+    expect(question.actualMeaning).toBe(getPrimaryCardTranslation(card!, "tr"));
+    expect(question.proposedMeaning).toBe(question.actualMeaning);
+    expect(question.isTrue).toBe(true);
+    expect(question.correctAnswer).toBe("true");
+
+    randomSpy.mockRestore();
+  });
+
+  it("can build a false true-false question with a decoy meaning", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.language === "en" && item.translationMeaningsByLocale.tr.length > 0);
+    expect(card).toBeDefined();
+
+    const randomSpy = vi.spyOn(Math, "random");
+    randomSpy.mockReturnValueOnce(0.1).mockReturnValueOnce(0);
+
+    const question = buildTrueFalseQuizQuestion(card!, VOCABULARY_CARDS, "tr");
+
+    expect(question.isTrue).toBe(false);
+    expect(question.correctAnswer).toBe("false");
+    expect(question.proposedMeaning).not.toBe(question.actualMeaning);
+
+    randomSpy.mockRestore();
+  });
+
+  it("uses the true-false question type only for zero-progress active cards and only below the 50% cutoff", () => {
+    const activeCard = createInventoryCard(VOCABULARY_CARDS[0].id);
+    const randomSpy = vi.spyOn(Math, "random");
+
+    randomSpy.mockReturnValue(0.49);
+    expect(shouldUseTrueFalseQuestion(activeCard, "active")).toBe(true);
+
+    randomSpy.mockReturnValue(0.5);
+    expect(shouldUseTrueFalseQuestion(activeCard, "active")).toBe(false);
+    expect(shouldUseTrueFalseQuestion({ ...activeCard, correctCount: 1 }, "active")).toBe(false);
+    expect(shouldUseTrueFalseQuestion(activeCard, "learned")).toBe(false);
+
+    randomSpy.mockRestore();
   });
 
   describe("isAnswerSimilarEnough", () => {

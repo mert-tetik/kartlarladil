@@ -37,8 +37,10 @@ import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   buildQuizQuestion,
+  buildTrueFalseQuizQuestion,
   getTierRequirement,
   isAnswerSimilarEnough,
+  shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
@@ -87,6 +89,7 @@ import type {
   LimitErrorCode,
   PracticeMode,
   QuizQuestion,
+  TrueFalseQuizQuestion,
   VocabularyCard,
 } from "@/types/domain";
 
@@ -125,13 +128,28 @@ const CHOICE_OPTION_COLORS = [
 
 const QUIZ_COUNT_MIN = 10;
 
-interface QuizItem {
+interface BaseQuizItem {
   card: VocabularyCard;
   inventoryCard: InventoryCard;
-  questionType: "choice" | "text";
-  question: QuizQuestion | { correctAnswer: string };
   willLearn: boolean;
 }
+
+interface ChoiceQuizItem extends BaseQuizItem {
+  questionType: "choice";
+  question: QuizQuestion;
+}
+
+interface TextQuizItem extends BaseQuizItem {
+  questionType: "text";
+  question: { correctAnswer: string };
+}
+
+interface TrueFalseQuizItem extends BaseQuizItem {
+  questionType: "true-false";
+  question: TrueFalseQuizQuestion;
+}
+
+type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem;
 
 interface QuizResult {
   correct: VocabularyCard[];
@@ -359,6 +377,7 @@ export function QuizStation({
       const items: QuizItem[] = shuffled.map((card) => {
         const inventoryCard = cards.find((item) => item.cardId === card.id)!;
         const requirement = getTierRequirement(card.tier);
+        const answerLocale = getStudyLocale(card.language, locale);
         const willLearn =
           inventoryCard.status !== "learned" &&
           inventoryCard.correctCount + 1 >= requirement;
@@ -373,6 +392,20 @@ export function QuizStation({
           };
         }
 
+        if (shouldUseTrueFalseQuestion(inventoryCard, mode)) {
+          return {
+            card,
+            inventoryCard,
+            questionType: "true-false",
+            question: buildTrueFalseQuizQuestion(
+              card,
+              VOCABULARY_CARDS,
+              answerLocale,
+            ),
+            willLearn: false,
+          };
+        }
+
         return {
           card,
           inventoryCard,
@@ -380,7 +413,7 @@ export function QuizStation({
           question: buildQuizQuestion(
             card,
             VOCABULARY_CARDS,
-            getStudyLocale(card.language, locale),
+            answerLocale,
           ),
           willLearn: false,
         };
@@ -536,7 +569,7 @@ export function QuizStation({
     const item = deck[currentIndex];
     if (item.questionType !== "text") return;
 
-    const question = item.question as { correctAnswer: string };
+    const question = item.question;
     const isDirectlyCorrect = isAnswerSimilarEnough(rawAnswer, question.correctAnswer);
 
     if (isDirectlyCorrect) {
@@ -580,10 +613,7 @@ export function QuizStation({
     if (showingAnswer) return;
 
     const item = deck[currentIndex];
-    const correctAnswer =
-      item.questionType === "choice"
-        ? (item.question as QuizQuestion).correctAnswer
-        : (item.question as { correctAnswer: string }).correctAnswer;
+    const correctAnswer = item.question.correctAnswer;
 
     if (item.willLearn && isCorrect) {
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
@@ -871,6 +901,8 @@ export function QuizStation({
   }
 
   const isSplash = phase === "quiz-start";
+  const isCardFirstQuestion =
+    item.questionType === "choice" || item.questionType === "true-false";
 
   return (
     <>
@@ -901,19 +933,21 @@ export function QuizStation({
           className="flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0"
           data-quiz-mobile-layout={item.questionType}
         >
-          {item.questionType === "choice" ? (
+          {isCardFirstQuestion ? (
             <p
               className="order-1 mt-6 text-center text-sm font-semibold text-foreground-muted lg:hidden"
               data-quiz-mobile-prompt
             >
-              {t("quiz.recallPrompt")}
+              {item.questionType === "true-false"
+                ? t("games.wordChallenge.title")
+                : t("quiz.recallPrompt")}
             </p>
           ) : null}
 
           <div
             className={cn(
               "flex w-full max-w-md flex-col justify-center gap-3 max-lg:pb-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
-              item.questionType === "choice" ? "order-3" : "order-1",
+              isCardFirstQuestion ? "order-3" : "order-1",
             )}
             data-quiz-mobile-question
           >
@@ -922,6 +956,16 @@ export function QuizStation({
             <div className="flex flex-1 flex-col justify-center">
               {item.questionType === "choice" ? (
                 <ChoiceQuestion
+                  key={currentIndex}
+                  item={item}
+                  showingAnswer={showingAnswer}
+                  promptClassName="max-lg:hidden"
+                  onAnswer={handleAnswer}
+                  onNext={handleNext}
+                  showNextButton={!pendingStreak}
+                />
+              ) : item.questionType === "true-false" ? (
+                <TrueFalseQuestion
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
@@ -974,17 +1018,19 @@ export function QuizStation({
         </div>
       </div>
 
-      <MobileQuizFeedback
-        isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
-        isCorrect={lastAnswerCorrect ?? false}
-        correctAnswer={
-          item.questionType === "text"
-            ? (item.question as { correctAnswer: string }).correctAnswer
-            : undefined
-        }
-        onNext={handleNext}
-        showNextButton={!pendingStreak}
-      />
+        <MobileQuizFeedback
+          isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
+          isCorrect={lastAnswerCorrect ?? false}
+          correctAnswer={
+            item.questionType === "text"
+              ? item.question.correctAnswer
+              : item.questionType === "true-false"
+                ? item.question.actualMeaning
+                : undefined
+          }
+          onNext={handleNext}
+          showNextButton={!pendingStreak}
+        />
 
       <CardDetailsDialog
         card={item.card}
@@ -1275,6 +1321,8 @@ function QuizProgressHeader({
         <Badge className={cn("border-transparent", style.text)}>
           {item.questionType === "text"
             ? t("quiz.learningQuizBadge")
+            : item.questionType === "true-false"
+              ? t("games.wordChallenge.title")
             : mode === "learned"
               ? t("quiz.reviewBadge")
               : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
@@ -1396,7 +1444,7 @@ function ChoiceQuestion({
   onNext,
   showNextButton = true,
 }: {
-  item: QuizItem;
+  item: ChoiceQuizItem;
   showingAnswer: boolean;
   showPrompt?: boolean;
   promptClassName?: string;
@@ -1405,7 +1453,7 @@ function ChoiceQuestion({
   showNextButton?: boolean;
 }) {
   const t = useT();
-  const question = item.question as QuizQuestion;
+  const question = item.question;
 
   return (
     <div
@@ -1484,6 +1532,135 @@ function ChoiceQuestion({
   );
 }
 
+function TrueFalseQuestion({
+  item,
+  showingAnswer,
+  showPrompt = true,
+  promptClassName,
+  onAnswer,
+  onNext,
+  showNextButton = true,
+}: {
+  item: TrueFalseQuizItem;
+  showingAnswer: boolean;
+  showPrompt?: boolean;
+  promptClassName?: string;
+  onAnswer: (answer: string, isCorrect: boolean) => void;
+  onNext: () => void;
+  showNextButton?: boolean;
+}) {
+  const t = useT();
+  const question = item.question;
+  const options = [
+    {
+      value: "true" as const,
+      label: t("games.wordChallenge.correct"),
+      isCorrect: question.correctAnswer === "true",
+      baseClassName: "bg-blue-500 hover:bg-blue-600 focus-visible:ring-blue-500",
+    },
+    {
+      value: "false" as const,
+      label: t("games.wordChallenge.wrong"),
+      isCorrect: question.correctAnswer === "false",
+      baseClassName: "bg-red-500 hover:bg-red-600 focus-visible:ring-red-500",
+    },
+  ];
+
+  return (
+    <div
+      className="animate-screen-pop flex w-full flex-col items-center gap-3 rounded-lg border border-transparent bg-transparent p-0 text-center lg:gap-4 lg:p-8"
+      data-quiz-question-content="true-false"
+    >
+      {showPrompt ? (
+        <p
+          className={cn(
+            "text-center text-sm font-semibold text-foreground-muted",
+            promptClassName,
+          )}
+        >
+          {t("games.wordChallenge.title")}
+        </p>
+      ) : null}
+
+      <div className="flex w-full max-w-md flex-col items-center gap-3">
+        <p className="text-sm font-semibold text-foreground-muted">
+          {t("games.wordChallenge.question")}
+        </p>
+        <div className="flex w-full items-center justify-center rounded-lg border border-border bg-background-card px-4 py-5 sm:px-5 sm:py-6">
+          <p
+            className="text-center text-2xl font-semibold leading-snug text-foreground sm:text-3xl lg:text-4xl"
+            data-quiz-true-false-meaning
+          >
+            {question.proposedMeaning}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid w-full grid-cols-2 gap-2 sm:gap-3">
+        {options.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            data-quiz-true-false-option={option.value}
+            onClick={() => onAnswer(option.value, option.isCorrect)}
+            disabled={showingAnswer}
+            className={cn(
+              "min-h-[4.5rem] rounded-md px-3 py-2 text-base font-semibold text-white sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
+              option.baseClassName,
+              showingAnswer &&
+                option.isCorrect &&
+                "bg-emerald-500 text-white hover:bg-emerald-500 focus-visible:ring-emerald-500",
+              showingAnswer &&
+                !option.isCorrect &&
+                "bg-background-inverse text-foreground-inverse hover:bg-background-inverse focus-visible:ring-foreground",
+            )}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="mt-1 flex min-h-10 w-full items-start justify-center sm:mt-2" data-quiz-next-slot>
+        {showingAnswer ? (
+          <div className="hidden w-full space-y-3 lg:block lg:mt-2">
+            <div className="flex items-center justify-center gap-3">
+              {question.correctAnswer === "true" ? (
+                <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+              ) : (
+                <XCircle className="size-5 text-rose-600" aria-hidden="true" />
+              )}
+              <p className="font-semibold text-foreground">
+                {t("quiz.correctAnswerWithValue", {
+                  answer: question.actualMeaning,
+                })}
+              </p>
+            </div>
+            <Button
+              className={cn(
+                "w-full bg-brand hover:bg-brand-hover",
+                !showNextButton && "invisible pointer-events-none",
+              )}
+              data-quiz-next-button
+              onClick={onNext}
+              disabled={!showNextButton}
+            >
+              {t("quiz.nextCard")}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            className="invisible hidden w-full pointer-events-none bg-brand hover:bg-brand-hover lg:block"
+            data-quiz-next-button
+            disabled
+          >
+            {t("quiz.nextCard")}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TextQuestion({
   item,
   textAnswer,
@@ -1509,7 +1686,7 @@ function TextQuestion({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const question = item.question as { correctAnswer: string };
+  const question = item.question;
   const isMobileViewport = useSyncExternalStore(
     (callback) => {
       window.addEventListener("resize", callback);

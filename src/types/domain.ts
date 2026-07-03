@@ -104,6 +104,14 @@ export interface QuizQuestion {
   correctAnswer: string;
 }
 
+export interface TrueFalseQuizQuestion {
+  card: VocabularyCard;
+  proposedMeaning: string;
+  actualMeaning: string;
+  isTrue: boolean;
+  correctAnswer: "true" | "false";
+}
+
 export type TierPoints = Record<Tier, number>;
 
 export type RankIconId =
