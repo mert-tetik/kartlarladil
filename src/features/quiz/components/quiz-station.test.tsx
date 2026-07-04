@@ -42,6 +42,11 @@ vi.mock("@/features/inventory/cloud-actions", () => ({
   resetCloudInventoryAction: vi.fn(),
 }));
 
+vi.mock("@/features/quiz/actions", () => ({
+  awardChestPoints: vi.fn(async () => ({ success: true, points: 20 })),
+  awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
+}));
+
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
 }));
@@ -79,9 +84,10 @@ const testUser: AuthShellUser = {
     preferredLanguageCode: "en",
     preferredUiLocale: "tr",
     preferredTier: "A1",
-  onboardingCompleted: true,
+    onboardingCompleted: true,
     aiPracticePoints: 0,
     chestPoints: 0,
+    streakPoints: 0,
   },
 };
 
@@ -186,6 +192,25 @@ describe("ResultView star rating", () => {
     renderResultView(0, 5);
     expect(document.querySelector('[data-quiz-star-rating-value="1"]')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(1);
+  });
+
+  it("shows the streak reward summary under the total points badge", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
+          selectedCount={10}
+          chestOpened={false}
+          streakRewardStreak={10}
+          streakRewardPoints={40}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("10x streak! +40 points")).toBeInTheDocument();
   });
 });
 

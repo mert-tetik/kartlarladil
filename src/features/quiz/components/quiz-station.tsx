@@ -52,6 +52,7 @@ import { PostPracticeTutorial } from "@/features/tutorial/components/post-practi
 import { useProgressStats } from "@/features/progress/progress-client";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
+import { awardQuizStreakPoints } from "@/features/quiz/actions";
 import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
@@ -67,6 +68,7 @@ import {
   getChestRewardPoints,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
+import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
 import { Badge } from "@/components/ui/badge";
@@ -324,8 +326,11 @@ export function QuizStation({
   const [showSplash, setShowSplash] = useState(false);
   const [activePostPracticeTutorial, setActivePostPracticeTutorial] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
+  const awardedStreakSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -350,7 +355,7 @@ export function QuizStation({
     if (phase === "result" && showPostPracticeTutorial && isMobileViewport) {
       const timer = window.setTimeout(() => {
         setActivePostPracticeTutorial(true);
-      }, 1000);
+      }, 1700);
       return () => window.clearTimeout(timer);
     }
     return undefined;
@@ -455,6 +460,9 @@ export function QuizStation({
       setChestOpened(false);
       setAwardedChestTier(null);
       setStreak(0);
+      setMaxStreak(0);
+      setQuizSessionId(createQuizSessionId());
+      awardedStreakSessionRef.current = null;
       setPhase("quiz-start");
     },
     [cards, mode, locale],
@@ -696,6 +704,7 @@ export function QuizStation({
 
         const nextStreak = isCorrect ? streak + 1 : 0;
         setStreak(nextStreak);
+        setMaxStreak((current) => Math.max(current, nextStreak));
         if (nextStreak > 0 && nextStreak % 5 === 0) {
           setPendingStreak(true);
           streakTimeoutRef.current = window.setTimeout(() => {
@@ -779,6 +788,40 @@ export function QuizStation({
       await refreshStats();
     }
   }
+
+  useEffect(() => {
+    if (phase !== "result" || !user || !quizSessionId) {
+      return;
+    }
+
+    if (awardedStreakSessionRef.current === quizSessionId) {
+      return;
+    }
+
+    awardedStreakSessionRef.current = quizSessionId;
+
+    const rewardableStreak = getRewardableQuizStreak(maxStreak);
+    const streakPoints = getQuizStreakRewardPoints(maxStreak);
+
+    if (rewardableStreak <= 0 || streakPoints <= 0) {
+      return;
+    }
+
+    updateProfileField({
+      streakPoints: (user.profile.streakPoints ?? 0) + streakPoints,
+    });
+
+    void (async () => {
+      const result = await awardQuizStreakPoints(quizSessionId, maxStreak);
+
+      if (result.success) {
+        await refreshStats();
+        return;
+      }
+
+      await refreshStats();
+    })();
+  }, [maxStreak, phase, quizSessionId, refreshStats, updateProfileField, user]);
 
   if (!hydrated) {
     return (
@@ -866,6 +909,8 @@ export function QuizStation({
             results={results}
             selectedCount={selectedCount}
             chestOpened={chestOpened}
+            streakRewardStreak={getRewardableQuizStreak(maxStreak)}
+            streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
             locked={activePostPracticeTutorial && isMobileViewport}
             onRestart={handleRestart}
             onExit={handleExit}
@@ -2093,6 +2138,8 @@ export function ResultView({
   results,
   selectedCount,
   chestOpened,
+  streakRewardStreak = 0,
+  streakRewardPoints = 0,
   locked,
   onRestart,
   onExit,
@@ -2101,13 +2148,15 @@ export function ResultView({
   results: QuizResult;
   selectedCount: number | null;
   chestOpened: boolean;
+  streakRewardStreak?: number;
+  streakRewardPoints?: number;
   locked?: boolean;
   onRestart: () => void;
   onExit: () => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const { stats, refreshStats } = useProgressStats();
+  const { stats } = useProgressStats();
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
@@ -2143,7 +2192,6 @@ export function ResultView({
     hasTriggeredResult.current = true;
 
     sendTwaAnalyticsEvent("fd_quiz_completed");
-    void refreshStats();
     playSoundEffect("quiz-complete");
     vibrate("result");
 
@@ -2160,7 +2208,7 @@ export function ResultView({
         });
       }, 350);
     }
-  }, [performance.level, refreshStats]);
+  }, [performance.level]);
 
   const menuConfig = {
     correct: { title: t("quiz.resultCorrect"), cards: results.correct },
@@ -2229,6 +2277,14 @@ export function ResultView({
               {formatPoints(locale, stats.totalPoints)}
             </span>
           </div>
+          {streakRewardStreak > 0 && streakRewardPoints > 0 ? (
+            <p className="mt-2 text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              {t("quiz.streakRewardSummary", {
+                streak: streakRewardStreak,
+                points: streakRewardPoints,
+              })}
+            </p>
+          ) : null}
         </div>
 
         <p
@@ -2333,6 +2389,18 @@ function ResultCard({
       </p>
     </button>
   );
+}
+
+function createQuizSessionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
 }
 
 export function getQuizPerformanceSummary(

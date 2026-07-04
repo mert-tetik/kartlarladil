@@ -16,6 +16,7 @@ export interface AuthProfile {
   onboardingCompleted: boolean;
   aiPracticePoints: number;
   chestPoints: number;
+  streakPoints?: number;
   pushMarketingEnabled?: boolean;
   theme?: string | null;
 }

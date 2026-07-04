@@ -34,6 +34,7 @@ export function TutorialPointer() {
   const advance = useTutorialStore((state) => state.advance);
   const reset = useTutorialStore((state) => state.reset);
   const enableTestMode = useTutorialStore((state) => state.enableTestMode);
+  const setShowPostPracticeTutorial = useTutorialStore((state) => state.setShowPostPracticeTutorial);
   const [position, setPosition] = useState<PointerPosition | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -102,6 +103,14 @@ export function TutorialPointer() {
     const frameId = requestAnimationFrame(updatePosition);
     return () => cancelAnimationFrame(frameId);
   }, [completed, pathname, step, updatePosition]);
+
+  useEffect(() => {
+    if (!position) {
+      return;
+    }
+
+    setShowPostPracticeTutorial(true);
+  }, [position, setShowPostPracticeTutorial]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

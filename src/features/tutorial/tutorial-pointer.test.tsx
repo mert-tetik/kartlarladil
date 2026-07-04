@@ -93,7 +93,13 @@ function createVisibleCookieNotice() {
 
 describe("TutorialPointer", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ active: true, completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({
+      active: true,
+      completed: false,
+      step: 0,
+      testMode: false,
+      showPostPracticeTutorial: false,
+    });
     document.body.innerHTML = "";
     window.history.pushState({}, "", "/");
     setSearchParams("");
@@ -115,6 +121,7 @@ describe("TutorialPointer", () => {
       expect(pointer.style.left).toBe("118px"); // 100 + 80/2 - hotspot x
       expect(pointer.style.top).toBe("204px"); // 200 + 40/2 - hotspot y
     });
+    expect(useTutorialStore.getState().showPostPracticeTutorial).toBe(true);
   });
 
   it("keeps the pointer inside the viewport for top-edge targets", async () => {

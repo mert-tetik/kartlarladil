@@ -28,7 +28,7 @@ export const useTutorialStore = create<TutorialState>()(
       completed: false,
       step: 0,
       testMode: false,
-      showPostPracticeTutorial: true,
+      showPostPracticeTutorial: false,
       advance: () => {
         set((state) => {
           const nextStep = state.step + 1;

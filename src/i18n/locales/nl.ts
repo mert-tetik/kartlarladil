@@ -518,6 +518,7 @@ const dictionary = {
   "quiz.seeCorrectCards": "Bekijk juiste kaarten",
   "quiz.seeIncorrectCards": "Bekijk foute kaarten",
   "quiz.seeLearnedCards": "Bekijk geleerde kaarten",
+  "quiz.streakRewardSummary": "{streak}x streak! +{points} points",
   "quiz.reviewBadge": "Beoordelen",
   "quiz.selectedLanguage": "Geselecteerde taal: {language}",
   "quiz.selectedLanguageEmpty": "Kies eerst een taal",

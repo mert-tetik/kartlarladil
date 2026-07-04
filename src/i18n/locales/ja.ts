@@ -518,6 +518,7 @@ const dictionary = {
   "quiz.seeCorrectCards": "æ­£è§£ã‚«ãƒ¼ãƒ‰ã‚’è¦‹ã‚‹",
   "quiz.seeIncorrectCards": "ä¸æ­£è§£ã‚«ãƒ¼ãƒ‰ã‚’è¦‹ã‚‹",
   "quiz.seeLearnedCards": "è¦šãˆãŸã‚«ãƒ¼ãƒ‰ã‚’è¦‹ã‚‹",
+  "quiz.streakRewardSummary": "{streak}x streak! +{points} points",
   "quiz.reviewBadge": "ãƒ¬ãƒ“ãƒ¥ãƒ¼",
   "quiz.selectedLanguage": "é¸æŠã—ãŸè¨€èª: {language}",
   "quiz.selectedLanguageEmpty": "ã¾ãšè¨€èªã‚’é¸æŠã—ã¦ãã ã•ã„",

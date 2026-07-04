@@ -2,7 +2,13 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 describe("useTutorialStore", () => {
   beforeEach(() => {
-    useTutorialStore.setState({ active: false, completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({
+      active: false,
+      completed: false,
+      step: 0,
+      testMode: false,
+      showPostPracticeTutorial: false,
+    });
   });
 
   it("starts inactive at step 0 and not completed", () => {
@@ -12,6 +18,7 @@ describe("useTutorialStore", () => {
     expect(state.step).toBe(0);
     expect(state.completed).toBe(false);
     expect(state.testMode).toBe(false);
+    expect(state.showPostPracticeTutorial).toBe(false);
   });
 
   it("advances through steps", () => {
@@ -70,5 +77,15 @@ describe("useTutorialStore", () => {
 
     disableTestMode();
     expect(useTutorialStore.getState().testMode).toBe(false);
+  });
+
+  it("can arm and clear the post-practice tutorial gate", () => {
+    const { setShowPostPracticeTutorial } = useTutorialStore.getState();
+
+    setShowPostPracticeTutorial(true);
+    expect(useTutorialStore.getState().showPostPracticeTutorial).toBe(true);
+
+    setShowPostPracticeTutorial(false);
+    expect(useTutorialStore.getState().showPostPracticeTutorial).toBe(false);
   });
 });

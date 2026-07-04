@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
+import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
@@ -18,6 +19,14 @@ const VALID_TIERS = new Set<ChestTier>([
 export interface AwardChestResult {
   success: boolean;
   points?: number;
+  error?: string;
+}
+
+export interface AwardQuizStreakResult {
+  success: boolean;
+  awarded?: boolean;
+  points?: number;
+  streak?: number;
   error?: string;
 }
 
@@ -63,4 +72,44 @@ export async function awardChestPoints(tier: ChestTier): Promise<AwardChestResul
   revalidatePath("/profile");
 
   return { success: true, points };
+}
+
+export async function awardQuizStreakPoints(sessionId: string, rawStreak: number): Promise<AwardQuizStreakResult> {
+  const streak = getRewardableQuizStreak(rawStreak);
+  const points = getQuizStreakRewardPoints(rawStreak);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return { success: false, error: "invalid_session" };
+  }
+
+  if (streak <= 0 || points <= 0) {
+    return { success: false, error: "invalid_points" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const { data, error } = await supabase.rpc("award_quiz_streak_points", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_streak: streak,
+    p_points: points,
+  });
+
+  if (error) {
+    return { success: false, error: "database_error" };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/profile");
+
+  return { success: true, awarded: Boolean(data), points, streak };
 }
