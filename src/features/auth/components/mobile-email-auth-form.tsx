@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, LockKeyhole } from "lucide-react";
 import { loginAction, registerAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
@@ -9,6 +9,7 @@ import { PasswordInput } from "@/features/auth/components/password-input";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
+import { cn } from "@/lib/utils";
 
 interface MobileEmailAuthFormProps {
   authType: "login" | "register";
@@ -21,15 +22,44 @@ const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-
 export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: MobileEmailAuthFormProps) {
   const t = useT();
   const isRegister = authType === "register";
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const [registerFormReady, setRegisterFormReady] = useState(false);
   const [state, formAction] = useActionState(
     isRegister ? registerAction : loginAction,
     AUTH_ACTION_IDLE_STATE,
   );
+  const registerSubmitLocked = isRegister && !registerFormReady;
+
+  const updateRegisterFormReady = useCallback(() => {
+    if (!isRegister) {
+      setRegisterFormReady(true);
+      return;
+    }
+
+    const form = formRef.current;
+    if (!form) {
+      setRegisterFormReady(false);
+      return;
+    }
+
+    const formData = new FormData(form);
+    const password = formData.get("password");
+    const passwordReady = typeof password === "string" && password.length >= 6;
+
+    setRegisterFormReady(form.checkValidity() && passwordReady);
+  }, [isRegister]);
+
+  useEffect(() => {
+    updateRegisterFormReady();
+  }, [updateRegisterFormReady]);
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       className="flex w-full flex-col"
+      onInput={updateRegisterFormReady}
+      onChange={updateRegisterFormReady}
       onSubmit={() => {
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
@@ -61,6 +91,7 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
               className={inputClassName}
               name="displayName"
               type="text"
+              maxLength={80}
               autoComplete="name"
             />
             <FieldError message={state.fieldErrors?.displayName?.[0]} />
@@ -84,6 +115,7 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
           <PasswordInput
             name="password"
             autoComplete={isRegister ? "new-password" : "current-password"}
+            minLength={isRegister ? 6 : undefined}
             required
           />
           <FieldError message={state.fieldErrors?.password?.[0]} />
@@ -116,9 +148,15 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
         ) : null}
 
         <SubmitButton
-          className="mt-2 h-14 w-full text-base font-bold"
+          disabled={registerSubmitLocked}
+          className={cn(
+            "mt-2 h-14 w-full text-base font-bold",
+            registerSubmitLocked &&
+              "border border-border bg-background-muted text-foreground-muted shadow-none",
+          )}
           pendingLabel={isRegister ? t("auth.register.pending") : t("auth.login.pending")}
         >
+          {registerSubmitLocked ? <LockKeyhole className="size-4" aria-hidden="true" /> : null}
           {isRegister ? t("auth.register.title") : t("auth.login.title")}
         </SubmitButton>
       </div>
