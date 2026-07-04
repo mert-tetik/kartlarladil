@@ -14,6 +14,7 @@ export function PreferenceFields({
   defaultUiLocale = "en",
   defaultTier = "A1",
   hideTier = false,
+  swapOnConflict = false,
   languageError,
   uiLocaleError,
   tierError,
@@ -22,6 +23,7 @@ export function PreferenceFields({
   defaultUiLocale?: LocaleCode | null;
   defaultTier?: PreferredTier | null;
   hideTier?: boolean;
+  swapOnConflict?: boolean;
   languageError?: string;
   uiLocaleError?: string;
   tierError?: string;
@@ -48,7 +50,7 @@ export function PreferenceFields({
   }, [defaultUiLocale]);
 
   function handleUiLocaleChange(code: LocaleCode) {
-    if (code === selectedLanguage) {
+    if (swapOnConflict && code === selectedLanguage) {
       setSelectedLanguage(selectedUiLocale);
     }
     setSelectedUiLocale(code);
@@ -56,9 +58,10 @@ export function PreferenceFields({
   }
 
   function handleLanguageChange(code: LanguageCode) {
-    if (code === selectedUiLocale) {
-      setSelectedUiLocale(selectedLanguage);
-      setLocale(selectedLanguage);
+    if (swapOnConflict && code === selectedUiLocale) {
+      const newUiLocale = selectedLanguage;
+      setSelectedUiLocale(newUiLocale);
+      setLocale(newUiLocale);
     }
     setSelectedLanguage(code);
   }

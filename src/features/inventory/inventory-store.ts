@@ -30,6 +30,12 @@ interface RecordAnswerResult {
   inventoryCard: InventoryCard;
 }
 
+interface AddCardResult {
+  ok: boolean;
+  firstCardAdded: boolean;
+  limitReached?: boolean;
+}
+
 interface InventoryState {
   cards: InventoryCard[];
   attempts: PracticeAttempt[];
@@ -38,13 +44,16 @@ interface InventoryState {
   cloudEnabled: boolean;
   cloudLoading: boolean;
   cloudError: string;
+  activeCardLimit: number | null;
+  pendingCardIds: Set<string>;
   setHydrated: (hydrated: boolean) => void;
   setCloudEnabled: (enabled: boolean) => void;
   setOwnerUserId: (userId: string | null) => void;
+  setActiveCardLimit: (limit: number | null) => void;
   clearLocalInventory: () => void;
   loadCloudInventory: () => Promise<void>;
   migrateLocalInventoryToCloud: () => Promise<void>;
-  addCard: (cardId: string) => Promise<{ ok: boolean; firstCardAdded: boolean }>;
+  addCard: (cardId: string) => Promise<AddCardResult>;
   removeCard: (cardId: string) => Promise<void>;
   hasCard: (cardId: string) => boolean;
   recordAnswer: (input: {
@@ -73,6 +82,8 @@ export const useInventoryStore = create<InventoryState>()(
       cloudEnabled: false,
       cloudLoading: false,
       cloudError: "",
+      activeCardLimit: null,
+      pendingCardIds: new Set(),
 
       setHydrated(hydrated) {
         set({ hydrated });
@@ -86,8 +97,12 @@ export const useInventoryStore = create<InventoryState>()(
         set({ ownerUserId: userId });
       },
 
+      setActiveCardLimit(limit) {
+        set({ activeCardLimit: limit });
+      },
+
       clearLocalInventory() {
-        set({ cards: [], attempts: [], ownerUserId: null });
+        set({ cards: [], attempts: [], ownerUserId: null, pendingCardIds: new Set() });
       },
 
       async loadCloudInventory() {
@@ -154,20 +169,44 @@ export const useInventoryStore = create<InventoryState>()(
         const previousCount = get().cards.length;
 
         if (get().cloudEnabled) {
+          const { activeCardLimit } = get();
+          const activeCount = get().cards.filter((card) => card.status === "active").length;
+
+          if (activeCardLimit !== null && activeCount >= activeCardLimit) {
+            return { ok: false, firstCardAdded: false, limitReached: true };
+          }
+
+          const optimisticCards = addCardToInventory(get().cards, cardId);
+          set({ cards: optimisticCards });
+          addPendingCardId(set, cardId);
+
           set({ cloudLoading: true, cloudError: "" });
           const result = await addCloudInventoryCardAction(cardId);
+          removePendingCardId(set, cardId);
 
           if (result.status === "error" || !result.data) {
-            set({ cloudLoading: false, cloudError: result.message });
+            if (get().cards.some((card) => card.cardId === cardId)) {
+              set({
+                cards: get().cards.filter((card) => card.cardId !== cardId),
+                cloudLoading: false,
+                cloudError: result.message,
+              });
+            } else {
+              set({ cloudLoading: false, cloudError: result.message });
+            }
             return { ok: false, firstCardAdded: false };
           }
 
-          set({
-            cards: result.data.cards,
-            attempts: result.data.attempts,
-            cloudLoading: false,
-            cloudError: "",
-          });
+          if (get().cards.some((card) => card.cardId === cardId)) {
+            set({
+              cards: result.data.cards,
+              attempts: result.data.attempts,
+              cloudLoading: false,
+              cloudError: "",
+            });
+          } else {
+            set({ cloudLoading: false, cloudError: "" });
+          }
 
           const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
 
@@ -198,10 +237,25 @@ export const useInventoryStore = create<InventoryState>()(
       async removeCard(cardId) {
         if (get().cloudEnabled) {
           set({ cloudLoading: true, cloudError: "" });
+          addPendingCardId(set, cardId);
+
+          const previousCards = get().cards;
+          const previousAttempts = get().attempts;
+          set({
+            cards: previousCards.filter((card) => card.cardId !== cardId),
+            attempts: previousAttempts.filter((attempt) => attempt.cardId !== cardId),
+          });
+
           const result = await removeCloudInventoryCardAction(cardId);
+          removePendingCardId(set, cardId);
 
           if (result.status === "error" || !result.data) {
-            set({ cloudLoading: false, cloudError: result.message });
+            set({
+              cards: previousCards,
+              attempts: previousAttempts,
+              cloudLoading: false,
+              cloudError: result.message,
+            });
             return;
           }
 
@@ -225,12 +279,42 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async recordAnswer(input) {
+        const vocabularyCard = localCardRepository.findById(input.cardId);
+        const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
+
         if (get().cloudEnabled) {
-          set({ cloudLoading: true, cloudError: "" });
+          const previousCards = get().cards;
+          const previousAttempts = get().attempts;
+
+          let optimisticCards = previousCards;
+          let optimisticAttempts = previousAttempts;
+
+          if (vocabularyCard && ownedCard && input.mode !== "learned") {
+            const updatedCard = applyAnswerProgress(ownedCard, vocabularyCard, input.isCorrect);
+            optimisticCards = previousCards.map((card) =>
+              card.cardId === input.cardId ? updatedCard : card,
+            );
+          }
+
+          const optimisticAttempt = createPracticeAttempt(input);
+          optimisticAttempts = [optimisticAttempt, ...previousAttempts].slice(0, 100);
+
+          set({
+            cards: optimisticCards,
+            attempts: optimisticAttempts,
+            cloudLoading: true,
+            cloudError: "",
+          });
+
           const result = await recordCloudPracticeAttemptAction(input);
 
           if (result.status === "error" || !result.data) {
-            set({ cloudLoading: false, cloudError: result.message });
+            set({
+              cards: previousCards,
+              attempts: previousAttempts,
+              cloudLoading: false,
+              cloudError: result.message,
+            });
             return undefined;
           }
 
@@ -251,9 +335,6 @@ export const useInventoryStore = create<InventoryState>()(
 
           return inventoryCard && attempt ? { inventoryCard, attempt } : undefined;
         }
-
-        const vocabularyCard = localCardRepository.findById(input.cardId);
-        const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
 
         if (!vocabularyCard || !ownedCard) {
           return undefined;
@@ -344,6 +425,21 @@ export const useInventoryStore = create<InventoryState>()(
     },
   ),
 );
+
+function addPendingCardId(set: (fn: (state: InventoryState) => InventoryState) => void, cardId: string) {
+  set((state) => ({
+    ...state,
+    pendingCardIds: new Set(state.pendingCardIds).add(cardId),
+  }));
+}
+
+function removePendingCardId(set: (fn: (state: InventoryState) => InventoryState) => void, cardId: string) {
+  set((state) => {
+    const next = new Set(state.pendingCardIds);
+    next.delete(cardId);
+    return { ...state, pendingCardIds: next };
+  });
+}
 
 function getCloudActionErrorMessage(result: { message?: string; errorCode?: string }) {
   const message = result.message?.trim();

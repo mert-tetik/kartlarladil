@@ -45,8 +45,10 @@ import {
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { PostPracticeTutorial } from "@/features/tutorial/components/post-practice-tutorial";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
@@ -62,6 +64,7 @@ import {
   QUIZ_COUNT_OPTIONS,
   getChestPreviewPairForCount,
   getChestLabelKey,
+  getChestRewardPoints,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
 import { EmptyState } from "@/components/empty-state";
@@ -283,20 +286,13 @@ export function QuizStation({
   const t = useT();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
+  const { user, updateProfileField } = useAuthSession();
   const { stats, refreshStats } = useProgressStats();
   const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
-
-  useEffect(() => {
-    onPhaseChange?.(phase);
-  }, [phase, onPhaseChange]);
-
-  useEffect(() => {
-    if (phase === "quiz-start") {
-      setShowSplash(true);
-    }
-  }, [phase]);
+  const showPostPracticeTutorial = useTutorialStore((state) => state.showPostPracticeTutorial);
+  const setShowPostPracticeTutorial = useTutorialStore((state) => state.setShowPostPracticeTutorial);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
@@ -327,8 +323,39 @@ export function QuizStation({
   const [streak, setStreak] = useState(0);
   const [pendingStreak, setPendingStreak] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [activePostPracticeTutorial, setActivePostPracticeTutorial] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncViewport = () => setIsMobileViewport(window.innerWidth <= 1023);
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
+  useEffect(() => {
+    if (phase === "quiz-start") {
+      setShowSplash(true);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === "result" && showPostPracticeTutorial && isMobileViewport) {
+      const timer = window.setTimeout(() => {
+        setActivePostPracticeTutorial(true);
+      }, 1000);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [phase, showPostPracticeTutorial, isMobileViewport]);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
   const { canUse: canUseAiValidation, consume: consumeAiValidation } =
@@ -726,6 +753,11 @@ export function QuizStation({
     router.push("/");
   }
 
+  function handleCompletePostPracticeTutorial() {
+    setActivePostPracticeTutorial(false);
+    setShowPostPracticeTutorial(false);
+  }
+
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
     if (chestOpened) {
       setPhase("result");
@@ -734,6 +766,13 @@ export function QuizStation({
 
     setChestOpened(true);
     setPhase("result");
+
+    const chestPoints = getChestRewardPoints(tier);
+    if (user && chestPoints > 0) {
+      updateProfileField({
+        chestPoints: (user.profile.chestPoints ?? 0) + chestPoints,
+      });
+    }
 
     const result = await awardChestPoints(tier);
 
@@ -820,7 +859,7 @@ export function QuizStation({
       <QuizViewportOverlay
         learnPagePhase="result"
         overlay="result"
-        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:p-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
       >
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultView
@@ -828,9 +867,13 @@ export function QuizStation({
             results={results}
             selectedCount={selectedCount}
             chestOpened={chestOpened}
+            locked={activePostPracticeTutorial && isMobileViewport}
             onRestart={handleRestart}
             onExit={handleExit}
           />
+          {activePostPracticeTutorial && isMobileViewport ? (
+            <PostPracticeTutorial onComplete={handleCompletePostPracticeTutorial} />
+          ) : null}
         </div>
       </QuizViewportOverlay>
     );
@@ -2051,6 +2094,7 @@ export function ResultView({
   results,
   selectedCount,
   chestOpened,
+  locked,
   onRestart,
   onExit,
 }: {
@@ -2058,6 +2102,7 @@ export function ResultView({
   results: QuizResult;
   selectedCount: number | null;
   chestOpened: boolean;
+  locked?: boolean;
   onRestart: () => void;
   onExit: () => void;
 }) {
@@ -2154,12 +2199,12 @@ export function ResultView({
   return (
     <div
       data-quiz-result-view
-      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-start overflow-hidden p-4 pt-6 sm:p-6 sm:pt-8 max-lg:p-0 max-lg:pt-4"
+      className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4 sm:p-6 max-lg:p-0"
     >
       <div
         data-quiz-result-panel
         data-testid="quiz-result-panel"
-        className="animate-screen-pop -mt-16 flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-4 text-center shadow-sm sm:p-6 max-lg:max-w-none max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-5"
+        className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-4 text-center shadow-sm sm:p-6 max-lg:max-w-none max-lg:-translate-y-4 max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-5"
       >
         <div className="flex flex-col items-center gap-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
@@ -2208,7 +2253,7 @@ export function ResultView({
               label={card.label}
               count={card.count}
               tone={card.tone}
-              disabled={card.count === 0}
+              disabled={locked || card.count === 0}
               onClick={() => setOpenMenu(card.key)}
             />
           ))}
@@ -2216,14 +2261,16 @@ export function ResultView({
 
         <div className="mt-5 grid w-full grid-cols-2 gap-3">
           <Button
-            className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500"
+            disabled={locked}
+            className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
             onClick={onRestart}
           >
             <RotateCcw className="size-5" aria-hidden="true" />
             {t("quiz.restart")}
           </Button>
           <Button
-            className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500"
+            disabled={locked}
+            className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500 disabled:pointer-events-none disabled:opacity-50"
             onClick={onExit}
           >
             <X className="size-5" aria-hidden="true" />

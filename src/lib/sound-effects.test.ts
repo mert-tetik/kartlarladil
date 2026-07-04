@@ -12,6 +12,9 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "chest-tap",
   "chest-open",
   "streak-fire",
+  "clock-tick-low",
+  "clock-tick-high",
+  "level-fail",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {

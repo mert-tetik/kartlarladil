@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   EMPTY_PROGRESS_STATS,
@@ -69,11 +70,14 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const clearLocalInventory = useInventoryStore((state) => state.clearLocalInventory);
   const loadCloudInventory = useInventoryStore((state) => state.loadCloudInventory);
   const migrateLocalInventoryToCloud = useInventoryStore((state) => state.migrateLocalInventoryToCloud);
+  const setActiveCardLimit = useInventoryStore((state) => state.setActiveCardLimit);
+  const { entitlements } = useSubscription();
   const migrationStartedRef = useRef(false);
   const [cachedStats, setCachedStats] = useState<ProgressStats | null>(readCachedProgressStats);
 
   useEffect(() => {
     setCloudEnabled(Boolean(user));
+    setActiveCardLimit(entitlements?.limits.activeCards ?? null);
 
     if (!user) {
       migrationStartedRef.current = false;
@@ -82,7 +86,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
         clearLocalInventory();
       }
     }
-  }, [setCloudEnabled, user, ownerUserId, clearLocalInventory]);
+  }, [setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
 
   useEffect(() => {
     if (!user || !hydrated || migrationStartedRef.current) {

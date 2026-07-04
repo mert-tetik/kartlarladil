@@ -29,7 +29,7 @@ describe("PreferenceFields", () => {
   });
 
   it("swaps practice language when it would match the new site language", () => {
-    renderPreferenceFields({ defaultLanguage: "en", defaultUiLocale: "tr" });
+    renderPreferenceFields({ defaultLanguage: "en", defaultUiLocale: "tr", swapOnConflict: true });
 
     expect(getHiddenInput("preferredLanguageCode")).toHaveValue("en");
     expect(getHiddenInput("preferredUiLocale")).toHaveValue("tr");
@@ -43,7 +43,7 @@ describe("PreferenceFields", () => {
   });
 
   it("swaps site language when it would match the new practice language", () => {
-    renderPreferenceFields({ defaultLanguage: "en", defaultUiLocale: "tr" });
+    renderPreferenceFields({ defaultLanguage: "en", defaultUiLocale: "tr", swapOnConflict: true });
 
     // Change practice language to Turkish (same as site language).
     fireEvent.click(getPickerButton("preferredLanguageCode"));

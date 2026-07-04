@@ -32,7 +32,7 @@ interface MemoryGameBoardProps {
 
 export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const t = useT();
-  const { user, refreshProfile } = useAuthSession();
+  const { user, refreshProfile, updateProfileField } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
@@ -87,11 +87,14 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
       completeLevel("memory", level);
       addLocalPoints("memory", points);
       if (user) {
+        updateProfileField({
+          aiPracticePoints: (user.profile.aiPracticePoints ?? 0) + points,
+        });
         void addGamePointsAction(points).then(() => refreshProfile());
       }
       setPhase("completed");
     }
-  }, [matchedCount, pairCount, phase, sounds, completeLevel, addLocalPoints, level, user, refreshProfile]);
+  }, [matchedCount, pairCount, phase, sounds, completeLevel, addLocalPoints, level, user, refreshProfile, updateProfileField]);
 
   const isFreePlan = entitlements?.effectivePlan === "free" || !entitlements;
 

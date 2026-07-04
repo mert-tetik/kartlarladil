@@ -538,9 +538,14 @@ function TierDetailMenu({
   const { locale } = useLocale();
   const t = useT();
   const removeCard = useInventoryStore((state) => state.removeCard);
+  const pendingCardIds = useInventoryStore((state) => state.pendingCardIds);
   const [displayCard, setDisplayCard] = useState<VocabularyCard | null>(null);
 
   function handleDeleteCard(cardId: string) {
+    if (pendingCardIds.has(cardId)) {
+      return;
+    }
+
     if (typeof window !== "undefined" && !window.confirm(t("inventory.deleteConfirm"))) {
       return;
     }
@@ -672,6 +677,7 @@ function TierDetailMenu({
                 {status === "active" && (
                   <button
                     type="button"
+                    disabled={pendingCardIds.has(card.id)}
                     onClick={(event) => {
                       event.stopPropagation();
                       handleDeleteCard(card.id);
@@ -679,7 +685,7 @@ function TierDetailMenu({
                     onKeyDown={(event) => event.stopPropagation()}
                     aria-label={`${card.term} ${t("common.delete")}`}
                     title={t("inventory.deleteConfirm")}
-                    className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                   </button>

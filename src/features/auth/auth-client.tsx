@@ -5,13 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { normalizePreferredTier } from "@/features/auth/preferred-tier";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
-import type { AuthShellUser } from "@/features/auth/auth-types";
+import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 interface AuthSessionContextValue {
   user: AuthShellUser | null;
   refreshProfile: () => Promise<void>;
+  updateProfileField: (updates: Partial<AuthProfile>) => void;
 }
 
 interface RequireAuthActionOptions {
@@ -131,12 +132,26 @@ export function AuthSessionProvider({
     );
   }, [client, user]);
 
+  const updateProfileField = useCallback((updates: Partial<AuthProfile>) => {
+    setUser((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        profile: { ...current.profile, ...updates },
+      };
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
       refreshProfile,
+      updateProfileField,
     }),
-    [user, refreshProfile],
+    [user, refreshProfile, updateProfileField],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

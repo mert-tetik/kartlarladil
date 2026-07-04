@@ -38,6 +38,7 @@ export function MobileOnboardingForm({ onComplete }: { onComplete?: () => void }
           hideTier
           defaultLanguage={detectedLocale === "en" ? "tr" : "en"}
           defaultUiLocale={detectedLocale}
+          swapOnConflict
           languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
           uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
         />

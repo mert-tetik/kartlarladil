@@ -8,6 +8,7 @@ interface TutorialState {
   completed: boolean;
   step: number;
   testMode: boolean;
+  showPostPracticeTutorial: boolean;
   advance: () => void;
   complete: () => void;
   reset: () => void;
@@ -15,6 +16,7 @@ interface TutorialState {
   deactivate: () => void;
   enableTestMode: () => void;
   disableTestMode: () => void;
+  setShowPostPracticeTutorial: (value: boolean) => void;
 }
 
 const TOTAL_STEPS = 7;
@@ -26,6 +28,7 @@ export const useTutorialStore = create<TutorialState>()(
       completed: false,
       step: 0,
       testMode: false,
+      showPostPracticeTutorial: true,
       advance: () => {
         set((state) => {
           const nextStep = state.step + 1;
@@ -42,6 +45,7 @@ export const useTutorialStore = create<TutorialState>()(
       deactivate: () => set({ active: false }),
       enableTestMode: () => set({ testMode: true }),
       disableTestMode: () => set({ testMode: false }),
+      setShowPostPracticeTutorial: (value) => set({ showPostPracticeTutorial: value }),
     }),
     {
       name: "foxiesdeck:tutorial",
@@ -49,6 +53,7 @@ export const useTutorialStore = create<TutorialState>()(
         completed: state.completed,
         step: state.step,
         testMode: state.testMode,
+        showPostPracticeTutorial: state.showPostPracticeTutorial,
       }),
       onRehydrateStorage: () => (state) => {
         if (typeof window === "undefined") return;

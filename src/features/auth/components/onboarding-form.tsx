@@ -24,6 +24,7 @@ export function OnboardingForm({ nextPath }: { nextPath: string }) {
         defaultLanguage={defaultLanguage}
         defaultUiLocale={detectedLocale}
         defaultTier="all"
+        swapOnConflict
         languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
         uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
         tierError={state.fieldErrors?.preferredTier?.[0]}

@@ -28,7 +28,7 @@ interface WordChallengeGameProps {
 
 export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const t = useT();
-  const { user, refreshProfile } = useAuthSession();
+  const { user, refreshProfile, updateProfileField } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
@@ -89,6 +89,9 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
           completeLevel("wordChallenge", level);
           addLocalPoints("wordChallenge", points);
           if (user) {
+            updateProfileField({
+              aiPracticePoints: (user.profile.aiPracticePoints ?? 0) + points,
+            });
             void addGamePointsAction(points).then(() => refreshProfile());
           }
           setPhase("completed");
