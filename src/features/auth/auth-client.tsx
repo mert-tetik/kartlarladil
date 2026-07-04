@@ -50,6 +50,7 @@ function normalizeClientProfile(row: {
   chest_points: number | null;
   streak_points: number | null;
   push_marketing_enabled: boolean | null;
+  leaderboard_visible: boolean | null;
 }): AuthShellUser["profile"] {
   const preferredLanguageCode = row.preferred_language_code;
   const preferredUiLocale = row.preferred_ui_locale;
@@ -71,6 +72,7 @@ function normalizeClientProfile(row: {
     chestPoints: row.chest_points ?? 0,
     streakPoints: row.streak_points ?? 0,
     pushMarketingEnabled: row.push_marketing_enabled ?? false,
+    leaderboardVisible: row.leaderboard_visible ?? false,
   };
 }
 
@@ -117,7 +119,7 @@ export function AuthSessionProvider({
 
     const { data, error } = await client
       .from("user_profiles")
-      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, push_marketing_enabled")
+      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, push_marketing_enabled, leaderboard_visible")
       .eq("user_id", session.user.id)
       .maybeSingle();
 

@@ -64,6 +64,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const showMobileBackButton =
     isMobileViewport &&
     (pathname === "/card-draw" ||
+      pathname === "/leaderboard" ||
       pathname === "/learn" ||
       pathname.startsWith("/ai-practice/") ||
       pathname === "/create-card" ||
@@ -73,6 +74,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const mobileBackHref = (() => {
     if (pathname === "/games") return "/";
     if (pathname.startsWith("/games/")) return "/games";
+    if (pathname === "/leaderboard") return "/";
 
     if (pathname.startsWith("/ai-practice/")) {
       const segments = pathname.split("/").filter(Boolean);

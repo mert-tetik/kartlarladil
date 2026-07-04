@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, Plus, RotateCcw, Trash2, Trophy, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -276,6 +276,20 @@ export function MobileLandingDashboard() {
   return (
     <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
       {/* Info icon */}
+      <button
+        type="button"
+        onClick={() => {
+          vibrate("tap");
+          requireAuthAction(() => {
+            router.push("/leaderboard");
+          }, { nextPath: "/leaderboard" });
+        }}
+        className="absolute left-2 top-2 z-10 inline-flex size-7 items-center justify-center text-white transition-colors hover:text-white/80"
+        aria-label={t("leaderboard.open")}
+      >
+        <Trophy className="size-5" aria-hidden="true" />
+      </button>
+
       <button
         type="button"
         onClick={() => {

@@ -49,11 +49,13 @@ import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-clien
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { PostPracticeTutorial } from "@/features/tutorial/components/post-practice-tutorial";
+import { POST_PRACTICE_TUTORIAL_COMPLETED_EVENT } from "@/features/push/push-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { awardQuizStreakPoints } from "@/features/quiz/actions";
 import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
+import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
@@ -78,6 +80,7 @@ import { Progress } from "@/components/ui/progress";
 
 import {
   formatCards,
+  formatNumber,
   formatPoints,
   getLanguageDisplayName,
   getRankLabel,
@@ -764,6 +767,12 @@ export function QuizStation({
   function handleCompletePostPracticeTutorial() {
     setActivePostPracticeTutorial(false);
     setShowPostPracticeTutorial(false);
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT));
+      });
+    }
   }
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
@@ -2157,6 +2166,8 @@ export function ResultView({
   const t = useT();
   const { locale } = useLocale();
   const { stats } = useProgressStats();
+  const router = useRouter();
+  const { data: leaderboardData } = useLeaderboardData();
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
@@ -2186,6 +2197,11 @@ export function ResultView({
     if (accuracy >= 40) return 2;
     return 1;
   }, [performance.accuracy]);
+  const leaderboardStanding = leaderboardData
+    ? t("leaderboard.yourStanding", {
+        position: formatNumber(locale, leaderboardData.viewer.position),
+      })
+    : t("leaderboard.positionLoading");
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -2254,9 +2270,13 @@ export function ResultView({
         className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-4 text-center shadow-sm sm:p-6 max-lg:max-w-none max-lg:-translate-y-4 max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-5"
       >
         <div className="flex flex-col items-center gap-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground-muted sm:text-xs">
-            {t("home.mobile.rankLabel")}
-          </span>
+          <button
+            type="button"
+            onClick={() => router.push("/leaderboard")}
+            className="text-sm font-semibold text-brand sm:text-base"
+          >
+            {leaderboardStanding}
+          </button>
           <div className="relative flex h-44 w-full items-center justify-center sm:h-56">
             <RankIcon
               icon={stats.rank.icon}

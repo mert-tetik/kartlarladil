@@ -59,6 +59,25 @@ vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({ refreshStats: vi.fn(), stats: EMPTY_PROGRESS_STATS }),
 }));
 
+vi.mock("@/features/leaderboard/use-leaderboard", () => ({
+  useLeaderboardData: () => ({
+    data: {
+      viewer: {
+        userId: "user-1",
+        position: 1,
+        displayName: "Test User",
+        totalPoints: 0,
+        leaderboardVisible: true,
+      },
+      entries: [],
+      canViewLeaderboard: true,
+    },
+    loading: false,
+    error: "",
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock("@/features/quiz/components/quiz-start-splash", () => ({
   QuizStartSplash: ({ onComplete }: { onComplete: () => void }) => {
     useEffect(() => {

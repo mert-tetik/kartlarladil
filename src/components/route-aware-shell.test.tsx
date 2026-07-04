@@ -19,6 +19,12 @@ describe("RouteAwareShell", () => {
     expect(document.getElementById("main-content")).toHaveAttribute("data-mobile-hide-bottom-nav", "true");
   });
 
+  it("hides the mobile bottom nav on the leaderboard route", () => {
+    renderWithPath("/leaderboard");
+
+    expect(document.getElementById("main-content")).toHaveAttribute("data-mobile-hide-bottom-nav", "true");
+  });
+
   it("keeps the bottom nav padding on regular routes", () => {
     renderWithPath("/card-draw");
 

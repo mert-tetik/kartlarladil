@@ -4,10 +4,20 @@ import { loadEnvFromDotLocal } from "./env-helper";
 
 loadEnvFromDotLocal();
 
+const TEST_RUN_ID = Date.now().toString(36);
+
 const TEST_USER = {
-  email: "visual-test@foxiesdeck.local",
+  email: `visual-test-${TEST_RUN_ID}@foxiesdeck.local`,
   password: "VisualTest123!",
 };
+
+const LEADERBOARD_USERS = [
+  { email: `leaderboard-1-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Atlas", points: 900 },
+  { email: `leaderboard-2-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Bora", points: 720 },
+  { email: `leaderboard-3-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Cem", points: 610 },
+  { email: `leaderboard-4-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Dora", points: 470 },
+  { email: `leaderboard-5-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Ekin", points: 320 },
+] as const;
 
 const LEARNED_CARD_SOURCE_KEYS = [
   "en:A1:word:about:adverb",
@@ -75,6 +85,10 @@ async function ensureVisualTestUser() {
       preferred_ui_locale: "en",
       preferred_tier: "A1",
       onboarding_completed: true,
+      ai_practice_points: 250,
+      chest_points: 0,
+      streak_points: 0,
+      leaderboard_visible: true,
       updated_at: now,
     },
     { onConflict: "user_id" },
@@ -100,6 +114,61 @@ async function ensureVisualTestUser() {
 
   if (cardsError) {
     throw cardsError;
+  }
+}
+
+async function ensureLeaderboardUsers() {
+  const { data: existing, error } = await supabase.auth.admin.listUsers();
+
+  if (error) {
+    throw error;
+  }
+
+  for (const item of LEADERBOARD_USERS) {
+    let user = existing.users.find((candidate) => candidate.email === item.email);
+
+    if (!user) {
+      const { data: created, error: createError } = await supabase.auth.admin.createUser({
+        email: item.email,
+        password: TEST_USER.password,
+        email_confirm: true,
+      });
+
+      if (createError) {
+        throw createError;
+      }
+
+      user = created.user;
+    }
+
+    if (!user) {
+      throw new Error(`Failed to provision ${item.email}`);
+    }
+
+    const now = new Date().toISOString();
+    const { error: profileError } = await supabase.from("user_profiles").upsert(
+      {
+        user_id: user.id,
+        display_name: item.displayName,
+        preferred_language_code: "en",
+        preferred_ui_locale: "en",
+        preferred_tier: "A1",
+        onboarding_completed: true,
+        ai_practice_points: item.points,
+        chest_points: 0,
+        streak_points: 0,
+        leaderboard_visible: true,
+        updated_at: now,
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    await supabase.from("user_cards").delete().eq("user_id", user.id);
+    await supabase.from("practice_attempts").delete().eq("user_id", user.id);
   }
 }
 
@@ -130,6 +199,7 @@ async function loginOnMobile(page: import("@playwright/test").Page) {
 
 test.beforeEach(async ({ page }) => {
   await ensureVisualTestUser();
+  await ensureLeaderboardUsers();
   await loginOnMobile(page);
 });
 
@@ -191,6 +261,58 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
 
   await page.screenshot({
     path: ".tmp/visual-tests/learn-result-mobile.png",
+    fullPage: false,
+  });
+});
+
+test("leaderboard page stays fixed and scrolls to the current user on mobile", async ({ page }) => {
+  await page.goto("/leaderboard", {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+
+  const list = page.locator("[data-leaderboard-list]");
+  await expect(list).toHaveAttribute("data-state", "loaded", { timeout: 30_000 });
+
+  const viewerRow = page.locator('[data-leaderboard-entry="viewer"]');
+  await expect(viewerRow).toBeVisible({ timeout: 30_000 });
+
+  const layout = await page.evaluate(() => {
+    const pageRoot = document.querySelector("[data-leaderboard-page]") as HTMLElement | null;
+    const listBox = document.querySelector("[data-leaderboard-list]") as HTMLElement | null;
+    const viewer = document.querySelector('[data-leaderboard-entry="viewer"]') as HTMLElement | null;
+
+    if (!pageRoot || !listBox || !viewer) {
+      return null;
+    }
+
+    const pageRect = pageRoot.getBoundingClientRect();
+    const listRect = listBox.getBoundingClientRect();
+    const viewerRect = viewer.getBoundingClientRect();
+
+    return {
+      viewportHeight: window.innerHeight,
+      pageTop: pageRect.top,
+      pageBottom: pageRect.bottom,
+      listTop: listRect.top,
+      listBottom: listRect.bottom,
+      viewerTop: viewerRect.top,
+      viewerBottom: viewerRect.bottom,
+      listScrollTop: listBox.scrollTop,
+      bodyScrollHeight: document.body.scrollHeight,
+    };
+  });
+
+  expect(layout).not.toBeNull();
+  expect(layout!.pageTop).toBeGreaterThanOrEqual(0);
+  expect(layout!.pageBottom).toBeLessThanOrEqual(layout!.viewportHeight);
+  expect(layout!.viewerTop).toBeGreaterThanOrEqual(layout!.listTop);
+  expect(layout!.viewerBottom).toBeLessThanOrEqual(layout!.listBottom);
+  expect(layout!.listScrollTop).toBeGreaterThan(0);
+  expect(layout!.bodyScrollHeight).toBeLessThanOrEqual(layout!.viewportHeight + 24);
+
+  await page.screenshot({
+    path: ".tmp/visual-tests/leaderboard-mobile.png",
     fullPage: false,
   });
 });

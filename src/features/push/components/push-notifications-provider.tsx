@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import {
-  FIRST_CARD_ADDED_EVENT,
+  POST_PRACTICE_TUTORIAL_COMPLETED_EVENT,
   PUSH_ACTIVITY_DEBOUNCE_MS,
   clearPushPromptDismissed,
   ensureBrowserPushSubscription,
@@ -216,7 +216,7 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
       return;
     }
 
-    function handleFirstCardAdded() {
+    function handlePushPromptRequested() {
       const dismissedUntil = readPushPromptDismissedUntil();
       const currentPermission = getCurrentPushPermission();
 
@@ -234,10 +234,10 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
       setPromptOpen(true);
     }
 
-    window.addEventListener(FIRST_CARD_ADDED_EVENT, handleFirstCardAdded);
+    window.addEventListener(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT, handlePushPromptRequested);
 
     return () => {
-      window.removeEventListener(FIRST_CARD_ADDED_EVENT, handleFirstCardAdded);
+      window.removeEventListener(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT, handlePushPromptRequested);
     };
   }, [busy, enabled, isTwa, supported, user]);
 
