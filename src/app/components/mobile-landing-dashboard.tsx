@@ -16,7 +16,11 @@ import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-she
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
-import { LANDING_CARD_LANGUAGE_KEY } from "@/app/components/landing-card-language";
+import {
+  readLandingCardLanguage,
+  subscribeLandingCardLanguage,
+  writeLandingCardLanguage,
+} from "@/app/components/landing-card-language";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
@@ -59,11 +63,9 @@ export function MobileLandingDashboard() {
       return requestedLanguage;
     }
 
-    if (typeof window !== "undefined") {
-      const stored = window.localStorage.getItem(LANDING_CARD_LANGUAGE_KEY);
-      if (stored && LANGUAGES.some((item) => item.code === stored)) {
-        return stored as LanguageCode;
-      }
+    const stored = readLandingCardLanguage();
+    if (stored) {
+      return stored;
     }
 
     const preferred = user?.profile.preferredLanguageCode;
@@ -99,6 +101,19 @@ export function MobileLandingDashboard() {
   }, [router]);
 
   useEffect(() => {
+    return subscribeLandingCardLanguage(() => {
+      const stored = readLandingCardLanguage();
+
+      if (!stored) {
+        return;
+      }
+
+      allowRequestedLanguageRef.current = false;
+      setSelectedLanguage(stored);
+    });
+  }, []);
+
+  useEffect(() => {
     if (allowRequestedLanguageRef.current) {
       return;
     }
@@ -117,7 +132,7 @@ export function MobileLandingDashboard() {
       return;
     }
 
-    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, nextLanguage);
+    writeLandingCardLanguage(nextLanguage, { notify: false });
     const timeoutId = window.setTimeout(() => {
       setSelectedLanguage(nextLanguage);
     }, 0);
@@ -132,7 +147,7 @@ export function MobileLandingDashboard() {
 
     if (requestedLanguage) {
       allowRequestedLanguageRef.current = true;
-      window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, requestedLanguage);
+      writeLandingCardLanguage(requestedLanguage, { notify: false });
       timeoutId = window.setTimeout(() => {
         setSelectedLanguage(requestedLanguage);
       }, 0);
@@ -265,7 +280,7 @@ export function MobileLandingDashboard() {
     const resolved = resolveMobileLandingLanguage(language, locale, detectedLocale);
     const nextCardLanguage = resolved.cardLanguage;
 
-    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, nextCardLanguage);
+    writeLandingCardLanguage(nextCardLanguage, { notify: false });
 
     if (resolved.siteLocale !== locale) {
       setLocale(resolved.siteLocale);

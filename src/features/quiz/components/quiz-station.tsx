@@ -2022,7 +2022,7 @@ export function MobileQuizFeedback({
   );
 }
 
-function CelebrationView({
+export function CelebrationView({
   card,
   basePoints,
   onContinue,
@@ -2038,7 +2038,15 @@ function CelebrationView({
   const [viewStage, setViewStage] = useState<"card" | "points">("card");
   const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
   const hasTriggered = useRef(false);
+  const onContinueRef = useRef(onContinue);
+  const closeTimerRef = useRef<number | null>(null);
+  const dropTimerRef = useRef<number | null>(null);
+  const bonusCompletedRef = useRef(false);
   const gainedPoints = getPointsForTier(card.tier);
+
+  useEffect(() => {
+    onContinueRef.current = onContinue;
+  }, [onContinue]);
 
   useEffect(() => {
     if (hasTriggered.current) return;
@@ -2059,8 +2067,18 @@ function CelebrationView({
   }, []);
 
   const handleBonusAnimationEnd = useCallback(() => {
+    if (bonusCompletedRef.current) {
+      return;
+    }
+
+    bonusCompletedRef.current = true;
     setBonusPhase("bobble");
     void refreshStats();
+
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      onContinueRef.current();
+    }, 360);
   }, [refreshStats]);
 
   useEffect(() => {
@@ -2068,20 +2086,25 @@ function CelebrationView({
       return;
     }
 
+    bonusCompletedRef.current = false;
     setBonusPhase("idle");
 
-    const dropTimer = window.setTimeout(() => {
+    dropTimerRef.current = window.setTimeout(() => {
+      dropTimerRef.current = null;
       setBonusPhase("dropping");
-    }, 240);
-    const closeTimer = window.setTimeout(() => {
-      onContinue();
-    }, 1500);
+    }, 560);
 
     return () => {
-      window.clearTimeout(dropTimer);
-      window.clearTimeout(closeTimer);
+      if (dropTimerRef.current !== null) {
+        window.clearTimeout(dropTimerRef.current);
+        dropTimerRef.current = null;
+      }
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
     };
-  }, [onContinue, viewStage]);
+  }, [viewStage]);
 
   return (
     <div
@@ -2097,7 +2120,10 @@ function CelebrationView({
             : "top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.18]",
         )}
       >
-        <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+        <div
+          className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
+          data-quiz-celebration-score
+        >
           <Star className="size-5 fill-current" aria-hidden="true" />
           <span
             className={cn(
@@ -2110,6 +2136,7 @@ function CelebrationView({
           {viewStage === "points" && bonusPhase === "dropping" ? (
             <span
               className="absolute bottom-full left-1/2 mb-2 text-2xl font-bold text-amber-400 animate-celebration-points-fall"
+              data-quiz-celebration-points-gain
               onAnimationEnd={handleBonusAnimationEnd}
             >
               +{gainedPoints}
