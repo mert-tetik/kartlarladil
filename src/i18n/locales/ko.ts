@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "리더보드 열기",
   "leaderboard.yourStanding": "{position}위입니다!",
   "leaderboard.positionLoading": "순위를 불러오는 중...",
+  "leaderboard.scope": "전 세계 기준",
   "leaderboard.lockedTitle": "리더보드가 꺼져 있습니다",
   "leaderboard.lockedDescription": "참여하고 보려면 리더보드 표시 권한을 주세요.",
   "leaderboard.allow": "허용",

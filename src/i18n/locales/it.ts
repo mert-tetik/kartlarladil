@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "Apri classifica",
   "leaderboard.yourStanding": "Sei al posto {position}!",
   "leaderboard.positionLoading": "Caricamento della tua posizione...",
+  "leaderboard.scope": "Nel mondo",
   "leaderboard.lockedTitle": "La classifica è disattivata",
   "leaderboard.lockedDescription": "Dai il permesso per partecipare e vedere la classifica.",
   "leaderboard.allow": "Consenti",

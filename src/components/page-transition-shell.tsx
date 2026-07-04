@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function PageTransitionShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isFullScreenRoute =
+    pathname === "/learn" ||
+    pathname === "/learned" ||
+    pathname === "/leaderboard" ||
+    pathname.startsWith("/games/");
   const [navigationPending, setNavigationPending] = useState(false);
   const pendingTimerRef = useRef<number | null>(null);
   const previousPathnameRef = useRef(pathname);
@@ -76,7 +82,13 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         aria-hidden="true"
         className={navigationPending ? "route-progress-indicator is-active" : "route-progress-indicator"}
       />
-      <main key={pathname} className="page-transition-shell pb-24 lg:pb-0">
+      <main
+        key={pathname}
+        className={cn(
+          "page-transition-shell lg:pb-0",
+          !isFullScreenRoute && "pb-24",
+        )}
+      >
         {children}
       </main>
     </>

@@ -2273,9 +2273,20 @@ export function ResultView({
           <button
             type="button"
             onClick={() => router.push("/leaderboard")}
-            className="text-sm font-semibold text-brand sm:text-base"
+            className="flex flex-col items-center gap-1 text-brand"
           >
-            {leaderboardStanding}
+            <span
+              data-leaderboard-standing
+              className="text-[2.25rem] font-bold leading-none sm:text-4xl"
+            >
+              {leaderboardStanding}
+            </span>
+            <span
+              data-leaderboard-scope
+              className="text-xs font-medium text-foreground-secondary sm:text-sm"
+            >
+              {t("leaderboard.scope")}
+            </span>
           </button>
           <div className="relative flex h-44 w-full items-center justify-center sm:h-56">
             <RankIcon

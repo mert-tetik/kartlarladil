@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "Открыть таблицу лидеров",
   "leaderboard.yourStanding": "Ты на {position}-м месте!",
   "leaderboard.positionLoading": "Загружаем твоё место...",
+  "leaderboard.scope": "По всему миру",
   "leaderboard.lockedTitle": "Таблица лидеров отключена",
   "leaderboard.lockedDescription": "Дай разрешение, чтобы присоединиться и видеть таблицу лидеров.",
   "leaderboard.allow": "Разрешить",

@@ -682,6 +682,7 @@ const dictionary = {
   "leaderboard.open": "Open leaderboard",
   "leaderboard.yourStanding": "You're #{position}!",
   "leaderboard.positionLoading": "Loading your place...",
+  "leaderboard.scope": "Worldwide",
   "leaderboard.lockedTitle": "Leaderboard is off",
   "leaderboard.lockedDescription": "Give permission to join and view the leaderboard.",
   "leaderboard.allow": "Allow",

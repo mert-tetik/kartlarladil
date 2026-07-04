@@ -21,7 +21,10 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
       className={cn(
         "flex-1 outline-none",
         !isAccountPage && !isFullScreenStudy && "max-lg:pb-[var(--mobile-nav-bar-height)]",
-        (pathname === "/games" || pathname.startsWith("/games/")) && "h-[calc(100dvh-var(--app-header-height))] overflow-hidden",
+        (pathname === "/games" ||
+          pathname.startsWith("/games/") ||
+          pathname === "/leaderboard") &&
+          "h-[calc(100dvh-var(--app-header-height))] overflow-hidden",
       )}
       tabIndex={-1}
     >

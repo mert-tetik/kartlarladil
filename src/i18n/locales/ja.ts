@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "ランキングを開く",
   "leaderboard.yourStanding": "あなたは{position}位です！",
   "leaderboard.positionLoading": "順位を読み込み中...",
+  "leaderboard.scope": "世界全体で",
   "leaderboard.lockedTitle": "ランキングはオフです",
   "leaderboard.lockedDescription": "参加して表示するにはランキングへの許可をしてください。",
   "leaderboard.allow": "許可する",

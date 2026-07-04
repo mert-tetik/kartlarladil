@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "Bestenliste öffnen",
   "leaderboard.yourStanding": "Du bist auf Platz {position}!",
   "leaderboard.positionLoading": "Dein Platz wird geladen...",
+  "leaderboard.scope": "Weltweit",
   "leaderboard.lockedTitle": "Bestenliste ist aus",
   "leaderboard.lockedDescription": "Gib die Erlaubnis, um der Bestenliste beizutreten und sie zu sehen.",
   "leaderboard.allow": "Erlauben",

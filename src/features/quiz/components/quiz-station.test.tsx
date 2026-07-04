@@ -64,7 +64,7 @@ vi.mock("@/features/leaderboard/use-leaderboard", () => ({
     data: {
       viewer: {
         userId: "user-1",
-        position: 1,
+        position: 20,
         displayName: "Test User",
         totalPoints: 0,
         leaderboardVisible: true,
@@ -230,6 +230,24 @@ describe("ResultView star rating", () => {
     );
 
     expect(screen.getByText("10x streak! +40 points")).toBeInTheDocument();
+  });
+
+  it("shows the leaderboard standing and worldwide label in the result header", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
+          selectedCount={10}
+          chestOpened={false}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("20. siradasin!")).toBeInTheDocument();
+    expect(screen.getByText("Dunya uzerinde")).toBeInTheDocument();
   });
 });
 

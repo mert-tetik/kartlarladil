@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "Otwórz ranking",
   "leaderboard.yourStanding": "Jesteś na miejscu {position}!",
   "leaderboard.positionLoading": "Trwa ładowanie twojego miejsca...",
+  "leaderboard.scope": "Na świecie",
   "leaderboard.lockedTitle": "Ranking jest wyłączony",
   "leaderboard.lockedDescription": "Wyraź zgodę, aby dołączyć i zobaczyć ranking.",
   "leaderboard.allow": "Zezwól",

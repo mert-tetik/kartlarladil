@@ -11,14 +11,6 @@ const TEST_USER = {
   password: "VisualTest123!",
 };
 
-const LEADERBOARD_USERS = [
-  { email: `leaderboard-1-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Atlas", points: 900 },
-  { email: `leaderboard-2-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Bora", points: 720 },
-  { email: `leaderboard-3-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Cem", points: 610 },
-  { email: `leaderboard-4-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Dora", points: 470 },
-  { email: `leaderboard-5-${TEST_RUN_ID}@foxiesdeck.local`, displayName: "Ekin", points: 320 },
-] as const;
-
 const LEARNED_CARD_SOURCE_KEYS = [
   "en:A1:word:about:adverb",
   "en:A1:word:above:adverb",
@@ -88,7 +80,6 @@ async function ensureVisualTestUser() {
       ai_practice_points: 250,
       chest_points: 0,
       streak_points: 0,
-      leaderboard_visible: true,
       updated_at: now,
     },
     { onConflict: "user_id" },
@@ -114,61 +105,6 @@ async function ensureVisualTestUser() {
 
   if (cardsError) {
     throw cardsError;
-  }
-}
-
-async function ensureLeaderboardUsers() {
-  const { data: existing, error } = await supabase.auth.admin.listUsers();
-
-  if (error) {
-    throw error;
-  }
-
-  for (const item of LEADERBOARD_USERS) {
-    let user = existing.users.find((candidate) => candidate.email === item.email);
-
-    if (!user) {
-      const { data: created, error: createError } = await supabase.auth.admin.createUser({
-        email: item.email,
-        password: TEST_USER.password,
-        email_confirm: true,
-      });
-
-      if (createError) {
-        throw createError;
-      }
-
-      user = created.user;
-    }
-
-    if (!user) {
-      throw new Error(`Failed to provision ${item.email}`);
-    }
-
-    const now = new Date().toISOString();
-    const { error: profileError } = await supabase.from("user_profiles").upsert(
-      {
-        user_id: user.id,
-        display_name: item.displayName,
-        preferred_language_code: "en",
-        preferred_ui_locale: "en",
-        preferred_tier: "A1",
-        onboarding_completed: true,
-        ai_practice_points: item.points,
-        chest_points: 0,
-        streak_points: 0,
-        leaderboard_visible: true,
-        updated_at: now,
-      },
-      { onConflict: "user_id" },
-    );
-
-    if (profileError) {
-      throw profileError;
-    }
-
-    await supabase.from("user_cards").delete().eq("user_id", user.id);
-    await supabase.from("practice_attempts").delete().eq("user_id", user.id);
   }
 }
 
@@ -199,7 +135,35 @@ async function loginOnMobile(page: import("@playwright/test").Page) {
 
 test.beforeEach(async ({ page }) => {
   await ensureVisualTestUser();
-  await ensureLeaderboardUsers();
+  await page.route("**/api/leaderboard", async (route) => {
+    const entries = Array.from({ length: 25 }, (_, index) => {
+      const position = index + 1;
+      return {
+        userId: position === 20 ? "viewer-user" : `user-${position}`,
+        position,
+        displayName: position === 20 ? "Visual Test" : `Player ${position}`,
+        totalPoints: 2000 - position * 40,
+        rankIcon: position <= 2 ? "medal" : position <= 8 ? "book" : "trophy",
+        isViewer: position === 20,
+      };
+    });
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        viewer: {
+          userId: "viewer-user",
+          position: 20,
+          displayName: "Visual Test",
+          totalPoints: 350,
+          leaderboardVisible: true,
+        },
+        entries,
+        canViewLeaderboard: true,
+      }),
+    });
+  });
   await loginOnMobile(page);
 });
 
@@ -227,6 +191,8 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
 
   const resultPanel = page.locator("[data-quiz-result-panel]");
   await expect(resultPanel).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("[data-leaderboard-standing]")).toHaveText("You're #20!", { timeout: 30_000 });
+  await expect(page.locator("[data-leaderboard-scope]")).toHaveText("Worldwide");
 
   const layout = await page.evaluate(() => {
     const overlay = document.querySelector("[data-quiz-overlay='result']") as HTMLElement | null;
@@ -241,6 +207,9 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
     const panelRect = panel.getBoundingClientRect();
     const headerRect = header.getBoundingClientRect();
 
+    const standing = document.querySelector("[data-leaderboard-standing]") as HTMLElement | null;
+    const scope = document.querySelector("[data-leaderboard-scope]") as HTMLElement | null;
+
     return {
       overlayTop: overlayRect.top,
       overlayBottom: overlayRect.bottom,
@@ -250,6 +219,8 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
       panelBottom: panelRect.bottom,
       headerBottom: headerRect.bottom,
       viewportHeight: window.innerHeight,
+      standingFontSize: standing ? Number.parseFloat(window.getComputedStyle(standing).fontSize) : 0,
+      scopeFontSize: scope ? Number.parseFloat(window.getComputedStyle(scope).fontSize) : 0,
     };
   });
 
@@ -258,6 +229,8 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
   expect(layout!.panelTop).toBeGreaterThanOrEqual(layout!.headerBottom);
   expect(layout!.panelBottom).toBeLessThanOrEqual(layout!.viewportHeight);
   expect(Math.abs(layout!.overlayCenterY - layout!.panelCenterY)).toBeLessThanOrEqual(28);
+  expect(layout!.standingFontSize).toBeGreaterThanOrEqual(30);
+  expect(layout!.scopeFontSize).toBeLessThan(layout!.standingFontSize);
 
   await page.screenshot({
     path: ".tmp/visual-tests/learn-result-mobile.png",
@@ -273,6 +246,8 @@ test("leaderboard page stays fixed and scrolls to the current user on mobile", a
 
   const list = page.locator("[data-leaderboard-list]");
   await expect(list).toHaveAttribute("data-state", "loaded", { timeout: 30_000 });
+  await expect(page.locator("[data-leaderboard-standing]")).toHaveText("You're #20!", { timeout: 30_000 });
+  await expect(page.locator("[data-leaderboard-scope]")).toHaveText("Worldwide");
 
   const viewerRow = page.locator('[data-leaderboard-entry="viewer"]');
   await expect(viewerRow).toBeVisible({ timeout: 30_000 });
@@ -290,6 +265,9 @@ test("leaderboard page stays fixed and scrolls to the current user on mobile", a
     const listRect = listBox.getBoundingClientRect();
     const viewerRect = viewer.getBoundingClientRect();
 
+    const standing = document.querySelector("[data-leaderboard-standing]") as HTMLElement | null;
+    const scope = document.querySelector("[data-leaderboard-scope]") as HTMLElement | null;
+
     return {
       viewportHeight: window.innerHeight,
       pageTop: pageRect.top,
@@ -300,6 +278,8 @@ test("leaderboard page stays fixed and scrolls to the current user on mobile", a
       viewerBottom: viewerRect.bottom,
       listScrollTop: listBox.scrollTop,
       bodyScrollHeight: document.body.scrollHeight,
+      standingFontSize: standing ? Number.parseFloat(window.getComputedStyle(standing).fontSize) : 0,
+      scopeFontSize: scope ? Number.parseFloat(window.getComputedStyle(scope).fontSize) : 0,
     };
   });
 
@@ -310,6 +290,8 @@ test("leaderboard page stays fixed and scrolls to the current user on mobile", a
   expect(layout!.viewerBottom).toBeLessThanOrEqual(layout!.listBottom);
   expect(layout!.listScrollTop).toBeGreaterThan(0);
   expect(layout!.bodyScrollHeight).toBeLessThanOrEqual(layout!.viewportHeight + 24);
+  expect(layout!.standingFontSize).toBeGreaterThanOrEqual(34);
+  expect(layout!.scopeFontSize).toBeLessThan(layout!.standingFontSize);
 
   await page.screenshot({
     path: ".tmp/visual-tests/leaderboard-mobile.png",

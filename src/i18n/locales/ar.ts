@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "افتح لوحة الصدارة",
   "leaderboard.yourStanding": "أنت في المركز {position}!",
   "leaderboard.positionLoading": "جار تحميل ترتيبك...",
+  "leaderboard.scope": "على مستوى العالم",
   "leaderboard.lockedTitle": "لوحة الصدارة غير مفعلة",
   "leaderboard.lockedDescription": "امنح الإذن للانضمام إلى لوحة الصدارة ورؤيتها.",
   "leaderboard.allow": "اسمح",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
@@ -66,22 +67,33 @@ export function LeaderboardPageClient() {
     <>
       <section
         data-leaderboard-page
-        className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden px-4 py-6 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:px-3"
+        className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:px-3 max-lg:py-3"
       >
-        <div className="flex w-full max-w-xl flex-col items-center justify-center gap-4 text-center">
+        <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center">
           <div className="space-y-2">
             <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">
               {t("leaderboard.title")}
             </h1>
-            <p className="text-lg font-semibold text-brand">
-              {standingText}
-            </p>
+            <div className="space-y-1">
+              <p
+                data-leaderboard-standing
+                className="text-[2.25rem] font-bold leading-none text-brand sm:text-4xl"
+              >
+                {standingText}
+              </p>
+              <p
+                data-leaderboard-scope
+                className="text-xs font-medium text-foreground-secondary sm:text-sm"
+              >
+                {t("leaderboard.scope")}
+              </p>
+            </div>
           </div>
 
-          <div className="w-full overflow-hidden rounded-xl border border-border bg-background-card shadow-sm">
+          <div className="flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2 text-foreground">
-                <Trophy className="size-4 text-brand" aria-hidden="true" />
+                <LeaderboardIcon className="size-4 text-brand" />
                 <span className="text-sm font-semibold">{t("leaderboard.title")}</span>
               </div>
               {data?.canViewLeaderboard ? (
@@ -94,7 +106,7 @@ export function LeaderboardPageClient() {
             <div
               data-leaderboard-list
               data-state={loading ? "loading" : "loaded"}
-              className="h-[52dvh] min-h-[320px] overflow-y-auto px-3 py-3 sm:h-[56dvh]"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3"
             >
               {loading ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground-secondary">

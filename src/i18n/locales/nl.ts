@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "Ranglijst openen",
   "leaderboard.yourStanding": "Je staat op plek {position}!",
   "leaderboard.positionLoading": "Je plek wordt geladen...",
+  "leaderboard.scope": "Wereldwijd",
   "leaderboard.lockedTitle": "Ranglijst staat uit",
   "leaderboard.lockedDescription": "Geef toestemming om mee te doen en de ranglijst te bekijken.",
   "leaderboard.allow": "Toestaan",

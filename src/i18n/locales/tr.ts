@@ -682,6 +682,7 @@ const dictionary = {
   "leaderboard.open": "Leaderboard'u ac",
   "leaderboard.yourStanding": "{position}. siradasin!",
   "leaderboard.positionLoading": "Siran yukleniyor...",
+  "leaderboard.scope": "Dunya uzerinde",
   "leaderboard.lockedTitle": "Leaderboard acik degil",
   "leaderboard.lockedDescription": "Katilmak ve gorebilmek icin leaderboard izni ver.",
   "leaderboard.allow": "Izin ver",

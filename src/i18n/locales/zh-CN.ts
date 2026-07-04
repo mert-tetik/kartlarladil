@@ -683,6 +683,7 @@ const dictionary = {
   "leaderboard.open": "打开排行榜",
   "leaderboard.yourStanding": "你现在是第 {position} 名！",
   "leaderboard.positionLoading": "正在加载你的排名...",
+  "leaderboard.scope": "全球范围内",
   "leaderboard.lockedTitle": "排行榜未开启",
   "leaderboard.lockedDescription": "请先授权，才能加入并查看排行榜。",
   "leaderboard.allow": "允许",

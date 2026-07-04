@@ -31,8 +31,7 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
   const admin = createSupabaseAdminClient();
   const { data: profiles, error: profileError } = await admin
     .from("user_profiles")
-    .select("user_id, display_name, ai_practice_points, chest_points, streak_points, leaderboard_visible")
-    .or(`leaderboard_visible.eq.true,user_id.eq.${viewerUserId}`);
+    .select("*");
 
   if (profileError || !profiles?.length) {
     return createEmptyLeaderboardPayload(viewerUserId);
@@ -101,7 +100,6 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
 
   const entries: LeaderboardEntry[] = viewer.leaderboardVisible
     ? scoredProfiles
-        .filter((profile) => profile.leaderboardVisible)
         .map((profile, index) => ({
           userId: profile.userId,
           position: index + 1,
@@ -109,7 +107,10 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
           totalPoints: profile.totalPoints,
           rankIcon: getRankForPoints(profile.totalPoints).icon,
           isViewer: profile.userId === viewerUserId,
+          leaderboardVisible: profile.leaderboardVisible,
         }))
+        .filter((profile) => profile.leaderboardVisible)
+        .map(({ leaderboardVisible: _leaderboardVisible, ...profile }) => profile)
     : [];
 
   return {
