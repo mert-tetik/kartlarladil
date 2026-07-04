@@ -20,6 +20,7 @@ describe("aiValidateTextAnswer", () => {
     const result = await aiValidateTextAnswer({
       userAnswer: "hot",
       correctAnswers: ["warm"],
+      sourceAnswers: ["ılık"],
       targetLanguage: "en",
       sourceLanguage: "tr",
       promptContext: "warm -> ılık",
@@ -42,6 +43,7 @@ describe("aiValidateTextAnswer", () => {
     const result = await aiValidateTextAnswer({
       userAnswer: "cold",
       correctAnswers: ["warm"],
+      sourceAnswers: ["ılık"],
       targetLanguage: "en",
       sourceLanguage: "tr",
       promptContext: "warm -> ılık",
@@ -59,6 +61,7 @@ describe("aiValidateTextAnswer", () => {
     const result = await aiValidateTextAnswer({
       userAnswer: "hot",
       correctAnswers: ["warm"],
+      sourceAnswers: ["ılık"],
       targetLanguage: "en",
       sourceLanguage: "tr",
       promptContext: "warm -> ılık",
@@ -81,6 +84,7 @@ describe("aiValidateTextAnswer", () => {
     const result = await aiValidateTextAnswer({
       userAnswer: "hot",
       correctAnswers: ["warm"],
+      sourceAnswers: ["ılık"],
       targetLanguage: "en",
       sourceLanguage: "tr",
       promptContext: "warm -> ılık",

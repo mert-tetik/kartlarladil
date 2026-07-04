@@ -64,6 +64,8 @@ describe("ChestOpeningView", () => {
       vi.advanceTimersByTime(900);
     });
 
+    expect(screen.getByTestId("chest-tap-hint")).toBeInTheDocument();
+
     const rewardPoints = document.querySelector<HTMLElement>("[data-chest-reward-points]")!;
     const totalPoints = document.querySelector<HTMLElement>("[data-chest-total-points]")!;
 
@@ -119,6 +121,7 @@ describe("ChestOpeningView", () => {
 
     expect(totalPoints).toHaveTextContent("120");
     expect(document.querySelector("[data-chest-flying-reward-points]")).not.toBeInTheDocument();
+    expect(screen.getByTestId("chest-tap-hint")).toHaveTextContent(/tap the chest/i);
 
     act(() => {
       vi.advanceTimersByTime(999);

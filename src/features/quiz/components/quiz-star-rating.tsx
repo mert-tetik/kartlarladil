@@ -11,18 +11,18 @@ interface QuizStarRatingProps {
 }
 
 const ARC_OFFSETS = [
-  "translate-y-3",
-  "-translate-y-1",
-  "-translate-y-4",
-  "-translate-y-1",
-  "translate-y-3",
+  "translate-y-4",
+  "translate-y-1",
+  "-translate-y-5",
+  "translate-y-1",
+  "translate-y-4",
 ] as const;
 
 const STAR_SIZES = [
   "size-7 sm:size-9",
-  "size-8 sm:size-10",
-  "size-9 sm:size-11",
-  "size-8 sm:size-10",
+  "size-[2.45rem] sm:size-[2.9rem]",
+  "size-[3rem] sm:size-[3.45rem]",
+  "size-[2.45rem] sm:size-[2.9rem]",
   "size-7 sm:size-9",
 ] as const;
 
@@ -51,7 +51,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
   return (
     <div
       className={cn(
-        "relative flex h-12 items-end justify-center gap-4 overflow-visible sm:h-14 sm:gap-5",
+        "relative flex h-14 items-end justify-center gap-5 overflow-visible sm:h-16 sm:gap-6",
         className,
       )}
       role="img"
@@ -78,6 +78,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
                   animationDelay: `${PANEL_REVEAL_DELAY_MS + index * STAGGER_MS}ms`,
                 }}
                 data-quiz-star="filled"
+                data-quiz-star-index={index}
               />
             </div>
           );
@@ -94,6 +95,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
                 "transition-none",
               )}
               data-quiz-star="empty"
+              data-quiz-star-index={index}
             />
           </div>
         );

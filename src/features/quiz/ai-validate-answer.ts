@@ -7,6 +7,7 @@ const CLIENT_TIMEOUT_MS = 5_500;
 export interface AiValidateTextAnswerOptions {
   userAnswer: string;
   correctAnswers: string[];
+  sourceAnswers: string[];
   targetLanguage: LanguageCode;
   sourceLanguage: LanguageCode;
   promptContext: string;
@@ -18,6 +19,7 @@ export async function aiValidateTextAnswer(
   const body: AiValidateAnswerRequest = {
     userAnswer: options.userAnswer.trim(),
     correctAnswers: options.correctAnswers.map((answer) => answer.trim()),
+    sourceAnswers: options.sourceAnswers.map((answer) => answer.trim()),
     targetLanguage: options.targetLanguage,
     sourceLanguage: options.sourceLanguage,
     promptContext: options.promptContext.trim(),

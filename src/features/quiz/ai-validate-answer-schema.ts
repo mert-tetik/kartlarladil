@@ -6,6 +6,7 @@ const languageCodeSchema = z.enum(LANGUAGE_CODES);
 export const aiValidateAnswerRequestSchema = z.object({
   userAnswer: z.string().trim().min(1).max(200),
   correctAnswers: z.array(z.string().trim().min(1).max(200)).min(1).max(10),
+  sourceAnswers: z.array(z.string().trim().min(1).max(200)).min(1).max(10),
   targetLanguage: languageCodeSchema,
   sourceLanguage: languageCodeSchema,
   promptContext: z.string().trim().min(1).max(1_000),

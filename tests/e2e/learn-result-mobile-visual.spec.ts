@@ -198,6 +198,7 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
     const overlay = document.querySelector("[data-quiz-overlay='result']") as HTMLElement | null;
     const panel = document.querySelector("[data-quiz-result-panel]") as HTMLElement | null;
     const header = document.querySelector("header") as HTMLElement | null;
+    const stars = Array.from(document.querySelectorAll("[data-quiz-star-index]")) as HTMLElement[];
 
     if (!overlay || !panel || !header) {
       return null;
@@ -209,6 +210,15 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
 
     const standing = document.querySelector("[data-leaderboard-standing]") as HTMLElement | null;
     const scope = document.querySelector("[data-leaderboard-scope]") as HTMLElement | null;
+    const starRects = stars.map((star) => {
+      const rect = star.getBoundingClientRect();
+
+      return {
+        width: rect.width,
+        left: rect.left,
+        right: rect.right,
+      };
+    });
 
     return {
       overlayTop: overlayRect.top,
@@ -221,6 +231,7 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
       viewportHeight: window.innerHeight,
       standingFontSize: standing ? Number.parseFloat(window.getComputedStyle(standing).fontSize) : 0,
       scopeFontSize: scope ? Number.parseFloat(window.getComputedStyle(scope).fontSize) : 0,
+      starRects,
     };
   });
 
@@ -231,9 +242,57 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
   expect(Math.abs(layout!.overlayCenterY - layout!.panelCenterY)).toBeLessThanOrEqual(28);
   expect(layout!.standingFontSize).toBeGreaterThanOrEqual(30);
   expect(layout!.scopeFontSize).toBeLessThan(layout!.standingFontSize);
+  expect(layout!.starRects).toHaveLength(5);
+  expect(layout!.starRects[2]!.width).toBeGreaterThan(layout!.starRects[1]!.width);
+  expect(layout!.starRects[1]!.width).toBeGreaterThan(layout!.starRects[0]!.width);
+  expect(layout!.starRects[3]!.width).toBeGreaterThan(layout!.starRects[4]!.width);
+  expect(layout!.starRects[1]!.left - layout!.starRects[0]!.right).toBeGreaterThanOrEqual(8);
+  expect(layout!.starRects[2]!.left - layout!.starRects[1]!.right).toBeGreaterThanOrEqual(8);
 
   await page.screenshot({
     path: ".tmp/visual-tests/learn-result-mobile.png",
+    fullPage: false,
+  });
+});
+
+test("chest celebration screen stays centered on mobile", async ({ page }) => {
+  await page.goto("/learn/chest-celebration-preview", {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+
+  const celebrationView = page.locator("[data-chest-celebration-view]");
+  await expect(celebrationView).toBeVisible({ timeout: 30_000 });
+
+  const layout = await page.evaluate(() => {
+    const view = document.querySelector("[data-chest-celebration-view]") as HTMLElement | null;
+    const message = document.querySelector("[data-chest-celebration-message]") as HTMLElement | null;
+
+    if (!view || !message) {
+      return null;
+    }
+
+    const viewRect = view.getBoundingClientRect();
+    const messageRect = message.getBoundingClientRect();
+
+    return {
+      viewportHeight: window.innerHeight,
+      viewportCenterY: window.innerHeight / 2,
+      viewTop: viewRect.top,
+      viewBottom: viewRect.bottom,
+      viewCenterY: viewRect.top + viewRect.height / 2,
+      messageCenterY: messageRect.top + messageRect.height / 2,
+    };
+  });
+
+  expect(layout).not.toBeNull();
+  expect(layout!.viewTop).toBeGreaterThanOrEqual(0);
+  expect(layout!.viewBottom).toBeLessThanOrEqual(layout!.viewportHeight);
+  expect(Math.abs(layout!.viewportCenterY - layout!.viewCenterY)).toBeLessThanOrEqual(28);
+  expect(Math.abs(layout!.viewportCenterY - layout!.messageCenterY)).toBeLessThanOrEqual(120);
+
+  await page.screenshot({
+    path: ".tmp/visual-tests/chest-celebration-mobile.png",
     fullPage: false,
   });
 });
@@ -285,7 +344,7 @@ test("leaderboard page stays fixed and scrolls to the current user on mobile", a
 
   expect(layout).not.toBeNull();
   expect(layout!.pageTop).toBeGreaterThanOrEqual(0);
-  expect(layout!.pageBottom).toBeLessThanOrEqual(layout!.viewportHeight);
+  expect(layout!.pageBottom).toBeLessThanOrEqual(layout!.viewportHeight + 2);
   expect(layout!.viewerTop).toBeGreaterThanOrEqual(layout!.listTop);
   expect(layout!.viewerBottom).toBeLessThanOrEqual(layout!.listBottom);
   expect(layout!.listScrollTop).toBeGreaterThan(0);

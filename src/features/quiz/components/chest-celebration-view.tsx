@@ -49,12 +49,12 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
 
   return (
     <div
-      className="animate-screen-pop flex w-full flex-1 items-center justify-center p-4"
+      className="animate-screen-pop flex h-full w-full flex-1 items-center justify-center p-4"
       data-chest-celebration-view
     >
       <div
         className={cn(
-          "flex flex-col items-center justify-center text-center transition-all duration-300",
+          "flex max-w-[18rem] flex-col items-center justify-center text-center transition-all duration-300 sm:max-w-sm",
           visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
         )}
       >

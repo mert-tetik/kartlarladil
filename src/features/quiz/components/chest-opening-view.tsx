@@ -385,11 +385,13 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
           ))}
         </div>
 
-        {phase === "appearing" || phase === "idle" || phase === "shake" || phase === "opening" ? (
-          <p className="mt-4 text-sm font-semibold text-foreground-secondary sm:mt-6">
-            {t("chest.tapToOpen")}
-          </p>
-        ) : null}
+        <p
+          data-chest-tap-hint
+          data-testid="chest-tap-hint"
+          className="mt-4 text-sm font-semibold text-foreground-secondary sm:mt-6"
+        >
+          {t("chest.tapToOpen")}
+        </p>
 
       </div>
       {pointsPhase === "flying" && flyStyle

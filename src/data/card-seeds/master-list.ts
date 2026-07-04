@@ -1972,7 +1972,7 @@ export const masterCardEntries = [
   ["president","A2","word","noun","/ˈprezɪdənt/","başkan","president","Präsident","президент","président","presidente","presidente","presidente","president","prezydent","رئيس","大統領","대통령","总统"],
   ["press","B1","word","noun","/pres/","basın","press","Presse","пресса","presse","prensa","stampa","imprensa","pers","prasa","صحافة","プレス","언론","新闻"],
   ["pressure","B1","word","noun","/ˈpreʃər/","basınç","pressure","Druck","давление","pression","presión","pressione","pressão","druk","ciśnienie","ضغط","圧力","압력","压力"],
-  ["pretend","B1","word","verb","/prɪˈtend/","pretend","pretend","vorgeben","притворяться","prétendre","fingir","fingere","fingir","doen alsof","udawać","تظاهر","ふりをする","가장하다","假装"],
+  ["pretend","B1","word","verb","/prɪˈtend/","davranmak","pretend","vorgeben","притворяться","prétendre","fingir","fingere","fingir","doen alsof","udawać","تظاهر","ふりをする","가장하다","假装"],
   ["pretty","A1","word","adjective","/ˈprɪti/","güzel","pretty","ziemlich","довольно","joli","bonita","carina","bonito","mooi","ładny","جميل","可愛い","예쁜","漂亮"],
   ["prevent","A2","word","verb","/prɪˈvent/","önlemek","prevent","verhindern","предотвратить","prévenir","prevenir","prevenire","prevenir","voorkomen","zapobiegać","منع","防ぐ","예방하다","防止"],
   ["previous","B1","word","adjective","/ˈpriːviəs/","önceki","previous","früher","предыдущий","précédent","anterior","precedente","anterior","vorig","poprzedni","سابق","以前の","이전의","以前的"],

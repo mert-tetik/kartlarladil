@@ -883,11 +883,11 @@ body:has([data-ask-page]) footer {
 @keyframes celebration-points-drop {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, -140%, 0);
+    transform: translate3d(-50%, 140%, 0);
   }
   70% {
     opacity: 1;
-    transform: translate3d(-50%, 10%, 0);
+    transform: translate3d(-50%, -12%, 0);
   }
   100% {
     opacity: 1;

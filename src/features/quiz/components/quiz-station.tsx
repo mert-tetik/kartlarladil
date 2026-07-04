@@ -30,6 +30,7 @@ import { CardDetailsDialog } from "@/features/cards/components/card-details-dial
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
   getCardTranslation,
+  getCardTranslationMeanings,
   getStudyLocale,
 } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
@@ -633,6 +634,7 @@ export function QuizStation({
       const result = await aiValidateTextAnswer({
         userAnswer: rawAnswer,
         correctAnswers: [question.correctAnswer],
+        sourceAnswers: getCardTranslationMeanings(item.card, locale),
         targetLanguage: item.card.language,
         sourceLanguage: locale,
         promptContext,
@@ -943,9 +945,14 @@ export function QuizStation({
 
   if (phase === "chest-celebration") {
     return (
-      <ChestCelebrationView
-        onComplete={() => setPhase("chest")}
-      />
+      <QuizViewportOverlay
+        overlay="chest"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
+      >
+        <ChestCelebrationView
+          onComplete={() => setPhase("chest")}
+        />
+      </QuizViewportOverlay>
     );
   }
 
@@ -2066,7 +2073,7 @@ function CelebrationView({
           </span>
           {bonusPhase === "dropping" ? (
             <span
-              className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full text-2xl font-extrabold text-amber-400 animate-celebration-points-drop"
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full text-2xl font-bold text-amber-400 animate-celebration-points-drop"
               onAnimationEnd={handleBonusAnimationEnd}
             >
               +{gainedPoints}
@@ -2227,9 +2234,9 @@ export function ResultView({
   }, [performance.level]);
 
   const menuConfig = {
-    correct: { title: t("quiz.resultCorrect"), cards: results.correct },
-    incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect },
-    learned: { title: t("quiz.resultLearned"), cards: results.learned },
+    correct: { title: t("quiz.resultCorrect"), cards: results.correct, tone: "emerald" as const },
+    incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect, tone: "rose" as const },
+    learned: { title: t("quiz.resultLearned"), cards: results.learned, tone: "amber" as const },
   } as const;
   const resultCards = [
     {
@@ -2267,9 +2274,9 @@ export function ResultView({
       <div
         data-quiz-result-panel
         data-testid="quiz-result-panel"
-        className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card p-4 text-center shadow-sm sm:p-6 max-lg:max-w-none max-lg:-translate-y-4 max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:p-5"
+        className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card px-4 py-4 text-center shadow-sm sm:px-6 sm:py-6 max-lg:max-w-none max-lg:translate-y-2 max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:px-5 max-lg:py-4"
       >
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-2.5 max-lg:gap-2">
           <button
             type="button"
             onClick={() => router.push("/leaderboard")}
@@ -2277,7 +2284,7 @@ export function ResultView({
           >
             <span
               data-leaderboard-standing
-              className="text-[2.25rem] font-bold leading-none sm:text-4xl"
+              className="text-[2.6rem] font-bold leading-none sm:text-5xl"
             >
               {leaderboardStanding}
             </span>
@@ -2288,7 +2295,7 @@ export function ResultView({
               {t("leaderboard.scope")}
             </span>
           </button>
-          <div className="relative flex h-44 w-full items-center justify-center sm:h-56">
+          <div className="relative flex h-36 w-full items-center justify-center sm:h-52">
             <RankIcon
               icon={stats.rank.icon}
               className="size-24 animate-trophy-intro-grow sm:size-32"
@@ -2298,10 +2305,10 @@ export function ResultView({
           <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             {getRankLabel(stats.rank, locale)}
           </h2>
-          <QuizStarRating rating={starRating} className="mt-1" />
+          <QuizStarRating rating={starRating} className="mt-0.5" />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3">
           <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
             <Star className="size-5 fill-current" aria-hidden="true" />
             <span className="text-lg font-bold">
@@ -2319,7 +2326,7 @@ export function ResultView({
         </div>
 
         <p
-          className="mt-3 text-lg font-bold leading-tight text-brand sm:text-xl"
+          className="mt-2.5 text-lg font-bold leading-tight text-brand sm:text-xl"
           data-result-message-level={performance.level}
         >
           {t(messageKey)}
@@ -2327,7 +2334,7 @@ export function ResultView({
 
         <div
           className={cn(
-            "mt-5 grid w-full gap-2 sm:gap-3",
+            "mt-4 grid w-full gap-2 sm:mt-5 sm:gap-3",
             resultCards.length === 3 ? "grid-cols-3" : "grid-cols-2",
           )}
         >
@@ -2345,7 +2352,7 @@ export function ResultView({
           ))}
         </div>
 
-        <div className="mt-5 grid w-full grid-cols-2 gap-3">
+        <div className="mt-4 grid w-full grid-cols-2 gap-3 sm:mt-5">
           <Button
             disabled={locked}
             className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
@@ -2369,6 +2376,7 @@ export function ResultView({
         <ResultMenu
           title={menuConfig[openMenu].title}
           cards={menuConfig[openMenu].cards}
+          tone={menuConfig[openMenu].tone}
           onClose={() => setOpenMenu(null)}
         />
       ) : null}
@@ -2501,13 +2509,21 @@ export function getQuizPerformanceSummary(
 function ResultMenu({
   title,
   cards,
+  tone,
   onClose,
 }: {
   title: string;
   cards: VocabularyCard[];
+  tone: "emerald" | "rose" | "amber";
   onClose: () => void;
 }) {
   const t = useT();
+  const toneClassName = {
+    emerald: "bg-emerald-500",
+    rose: "bg-rose-500",
+    amber: "bg-amber-500",
+  } as const;
+
   return createPortal(
     <div
       className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
@@ -2519,6 +2535,7 @@ function ResultMenu({
         data-result-menu-panel
         onClick={(event) => event.stopPropagation()}
       >
+        <div className={cn("h-2 w-full shrink-0", toneClassName[tone])} data-result-menu-accent />
         <div
           className="pointer-events-none absolute inset-x-0 top-1/2 -z-10 h-3 -translate-y-1/2 bg-black dark:bg-white"
           aria-hidden="true"

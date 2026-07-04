@@ -10,6 +10,16 @@ export const dynamic = "force-dynamic";
 const REQUEST_TIMEOUT_MS = 5_000;
 const MAX_OUTPUT_TOKENS = 128;
 
+function normalizeValidationText(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{Letter}\p{Number}\s]/gu, "")
+    .replace(/\s+/g, " ");
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -25,11 +35,17 @@ export async function POST(request: Request) {
     return Response.json({ accepted: false }, { status: 400 });
   }
 
-  const { userAnswer, correctAnswers, targetLanguage, sourceLanguage, promptContext } =
+  const { userAnswer, correctAnswers, sourceAnswers, targetLanguage, sourceLanguage, promptContext } =
     parsed.data;
 
   const targetLanguageName = getLanguageDisplayName(targetLanguage, "en");
   const sourceLanguageName = getLanguageDisplayName(sourceLanguage, "en");
+  const normalizedUserAnswer = normalizeValidationText(userAnswer);
+  const normalizedSourceAnswers = new Set(sourceAnswers.map(normalizeValidationText));
+
+  if (normalizedSourceAnswers.has(normalizedUserAnswer)) {
+    return Response.json({ accepted: false });
+  }
 
   const systemContent = [
     "You are a helpful language tutor validating a vocabulary quiz answer.",
@@ -42,6 +58,9 @@ export async function POST(request: Request) {
     "- A close synonym or semantic equivalent that preserves the core meaning in this context (e.g., warm -> hot, big -> huge).",
     "",
     "Reject the answer if it is:",
+    `- Written in ${sourceLanguageName} instead of ${targetLanguageName}.`,
+    "- A translation, paraphrase, or explanation in the source/UI language.",
+    "- A mixed-language answer that includes source-language wording.",
     "- An antonym or opposite meaning (e.g., warm -> cold).",
     "- A related but different word that changes the core meaning (e.g., run -> walk).",
     "- Unrelated or clearly wrong.",
@@ -64,6 +83,7 @@ export async function POST(request: Request) {
 
   const userContent = [
     `Correct answers: ${correctAnswers.join(", ")}`,
+    `Source-language answers to reject: ${sourceAnswers.join(", ")}`,
     `Target language: ${targetLanguageName}`,
     `UI language: ${sourceLanguageName}`,
     `Context: ${promptContext}`,

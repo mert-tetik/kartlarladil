@@ -39,6 +39,7 @@ describe("POST /api/quiz/validate-answer", () => {
       makeRequest({
         userAnswer: "apple",
         correctAnswers: ["apple"],
+        sourceAnswers: ["elma"],
         targetLanguage: "en",
         sourceLanguage: "tr",
         promptContext: "elma",
@@ -59,6 +60,7 @@ describe("POST /api/quiz/validate-answer", () => {
       makeRequest({
         userAnswer: "banana",
         correctAnswers: ["apple"],
+        sourceAnswers: ["elma"],
         targetLanguage: "en",
         sourceLanguage: "tr",
         promptContext: "elma",
@@ -77,6 +79,7 @@ describe("POST /api/quiz/validate-answer", () => {
       makeRequest({
         userAnswer: "apple",
         correctAnswers: ["apple"],
+        sourceAnswers: ["elma"],
         targetLanguage: "en",
         sourceLanguage: "tr",
         promptContext: "elma",
@@ -103,6 +106,7 @@ describe("POST /api/quiz/validate-answer", () => {
       makeRequest({
         userAnswer: "apple",
         correctAnswers: ["apple"],
+        sourceAnswers: ["elma"],
         targetLanguage: "en",
         sourceLanguage: "tr",
         promptContext: "elma",
@@ -123,6 +127,7 @@ describe("POST /api/quiz/validate-answer", () => {
       makeRequest({
         userAnswer: "find",
         correctAnswers: ["found"],
+        sourceAnswers: ["bulmak"],
         targetLanguage: "en",
         sourceLanguage: "tr",
         promptContext: "bulmak",
@@ -138,5 +143,23 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(systemMessage).toContain("find -> found");
     expect(systemMessage).toContain("found -> find");
     expect(systemMessage).toContain("ran -> run");
+  });
+
+  it("rejects a source-language answer before calling the model", async () => {
+    const response = await POST(
+      makeRequest({
+        userAnswer: "cumartesi",
+        correctAnswers: ["Saturday"],
+        sourceAnswers: ["Cumartesi"],
+        targetLanguage: "en",
+        sourceLanguage: "tr",
+        promptContext: "cumartesi",
+      }),
+    );
+
+    const payload = (await response.json()) as { accepted: boolean };
+    expect(response.status).toBe(200);
+    expect(payload.accepted).toBe(false);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });
