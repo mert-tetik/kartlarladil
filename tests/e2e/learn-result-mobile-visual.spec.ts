@@ -193,20 +193,25 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
   await expect(resultPanel).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-leaderboard-standing]")).toHaveText("You're #20!", { timeout: 30_000 });
   await expect(page.locator("[data-leaderboard-scope]")).toHaveText("Worldwide");
+  await page.waitForTimeout(1200);
 
   const layout = await page.evaluate(() => {
     const overlay = document.querySelector("[data-quiz-overlay='result']") as HTMLElement | null;
     const panel = document.querySelector("[data-quiz-result-panel]") as HTMLElement | null;
     const header = document.querySelector("header") as HTMLElement | null;
+    const rankLabel = document.querySelector("[data-quiz-result-panel] h2") as HTMLElement | null;
+    const lowerSection = document.querySelector("[data-result-lower-section]") as HTMLElement | null;
     const stars = Array.from(document.querySelectorAll("[data-quiz-star-index]")) as HTMLElement[];
 
-    if (!overlay || !panel || !header) {
+    if (!overlay || !panel || !header || !rankLabel || !lowerSection) {
       return null;
     }
 
     const overlayRect = overlay.getBoundingClientRect();
     const panelRect = panel.getBoundingClientRect();
     const headerRect = header.getBoundingClientRect();
+    const rankLabelRect = rankLabel.getBoundingClientRect();
+    const lowerSectionRect = lowerSection.getBoundingClientRect();
 
     const standing = document.querySelector("[data-leaderboard-standing]") as HTMLElement | null;
     const scope = document.querySelector("[data-leaderboard-scope]") as HTMLElement | null;
@@ -228,6 +233,8 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
       panelTop: panelRect.top,
       panelBottom: panelRect.bottom,
       headerBottom: headerRect.bottom,
+      rankLabelBottom: rankLabelRect.bottom,
+      lowerSectionTop: lowerSectionRect.top,
       viewportHeight: window.innerHeight,
       standingFontSize: standing ? Number.parseFloat(window.getComputedStyle(standing).fontSize) : 0,
       scopeFontSize: scope ? Number.parseFloat(window.getComputedStyle(scope).fontSize) : 0,
@@ -242,6 +249,7 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
   expect(Math.abs(layout!.overlayCenterY - layout!.panelCenterY)).toBeLessThanOrEqual(28);
   expect(layout!.standingFontSize).toBeGreaterThanOrEqual(30);
   expect(layout!.scopeFontSize).toBeLessThan(layout!.standingFontSize);
+  expect(layout!.lowerSectionTop - layout!.rankLabelBottom).toBeGreaterThanOrEqual(8);
   expect(layout!.starRects).toHaveLength(5);
   expect(layout!.starRects[2]!.width).toBeGreaterThan(layout!.starRects[1]!.width);
   expect(layout!.starRects[1]!.width).toBeGreaterThan(layout!.starRects[0]!.width);

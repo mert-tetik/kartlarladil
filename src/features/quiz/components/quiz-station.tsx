@@ -9,7 +9,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -334,6 +334,7 @@ export function QuizStation({
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
+  const deferredRecordTimeoutRef = useRef<number | null>(null);
   const awardedStreakSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -564,6 +565,9 @@ export function QuizStation({
       if (streakTimeoutRef.current !== null) {
         window.clearTimeout(streakTimeoutRef.current);
       }
+      if (deferredRecordTimeoutRef.current !== null) {
+        window.clearTimeout(deferredRecordTimeoutRef.current);
+      }
     },
     [],
   );
@@ -682,6 +686,13 @@ export function QuizStation({
     requireAuthAction(
       () => {
         const willLearn = item.willLearn && isCorrect;
+        const nextStreak = isCorrect ? streak + 1 : 0;
+
+        flushSync(() => {
+          setShowingAnswer(true);
+          setTextResult(isCorrect ? "correct" : "incorrect");
+          setLastAnswerCorrect(isCorrect);
+        });
 
         playSoundEffect(isCorrect ? "correct" : "incorrect");
         vibrate(isCorrect ? "correct" : "incorrect");
@@ -703,11 +714,6 @@ export function QuizStation({
           setCelebrationBasePoints(stats.totalPoints);
         }
 
-        setShowingAnswer(true);
-        setTextResult(isCorrect ? "correct" : "incorrect");
-        setLastAnswerCorrect(isCorrect);
-
-        const nextStreak = isCorrect ? streak + 1 : 0;
         setStreak(nextStreak);
         setMaxStreak((current) => Math.max(current, nextStreak));
         if (nextStreak > 0 && nextStreak % 5 === 0) {
@@ -716,16 +722,22 @@ export function QuizStation({
             setPhase("streak-celebration");
             setPendingStreak(false);
             streakTimeoutRef.current = null;
-          }, 1000);
+          }, 850);
         }
 
-        void recordAnswer({
-          cardId: item.card.id,
-          selectedAnswer: answer,
-          correctAnswer,
-          isCorrect,
-          mode,
-        });
+        if (deferredRecordTimeoutRef.current !== null) {
+          window.clearTimeout(deferredRecordTimeoutRef.current);
+        }
+        deferredRecordTimeoutRef.current = window.setTimeout(() => {
+          void recordAnswer({
+            cardId: item.card.id,
+            selectedAnswer: answer,
+            correctAnswer,
+            isCorrect,
+            mode,
+          });
+          deferredRecordTimeoutRef.current = null;
+        }, 0);
       },
       {
         nextPath: `/learn?mode=${mode}`,
@@ -2073,7 +2085,7 @@ function CelebrationView({
           </span>
           {bonusPhase === "dropping" ? (
             <span
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full text-2xl font-bold text-amber-400 animate-celebration-points-drop"
+              className="absolute bottom-0 left-1/2 text-2xl font-bold text-amber-400 animate-celebration-points-drop"
               onAnimationEnd={handleBonusAnimationEnd}
             >
               +{gainedPoints}
@@ -2305,70 +2317,76 @@ export function ResultView({
           <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             {getRankLabel(stats.rank, locale)}
           </h2>
-          <QuizStarRating rating={starRating} className="mt-0.5" />
         </div>
-
-        <div className="mt-3">
-          <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
-            <Star className="size-5 fill-current" aria-hidden="true" />
-            <span className="text-lg font-bold">
-              {formatPoints(locale, stats.totalPoints)}
-            </span>
-          </div>
-          {streakRewardStreak > 0 && streakRewardPoints > 0 ? (
-            <p className="mt-2 text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-              {t("quiz.streakRewardSummary", {
-                streak: streakRewardStreak,
-                points: streakRewardPoints,
-              })}
-            </p>
-          ) : null}
-        </div>
-
-        <p
-          className="mt-2.5 text-lg font-bold leading-tight text-brand sm:text-xl"
-          data-result-message-level={performance.level}
-        >
-          {t(messageKey)}
-        </p>
 
         <div
-          className={cn(
-            "mt-4 grid w-full gap-2 sm:mt-5 sm:gap-3",
-            resultCards.length === 3 ? "grid-cols-3" : "grid-cols-2",
-          )}
+          className="flex w-full translate-y-2 flex-col items-center"
+          data-result-lower-section
         >
-          {resultCards.map((card) => (
-            <ResultCard
-              key={card.key}
-              resultKey={card.key}
-              icon={card.icon}
-              label={card.label}
-              count={card.count}
-              tone={card.tone}
-              disabled={locked || card.count === 0}
-              onClick={() => setOpenMenu(card.key)}
-            />
-          ))}
-        </div>
+          <QuizStarRating rating={starRating} className="mt-0.5" />
 
-        <div className="mt-4 grid w-full grid-cols-2 gap-3 sm:mt-5">
-          <Button
-            disabled={locked}
-            className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
-            onClick={onRestart}
+          <div className="mt-3">
+            <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+              <Star className="size-5 fill-current" aria-hidden="true" />
+              <span className="text-lg font-bold">
+                {formatPoints(locale, stats.totalPoints)}
+              </span>
+            </div>
+            {streakRewardStreak > 0 && streakRewardPoints > 0 ? (
+              <p className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-sm font-semibold text-transparent">
+                {t("quiz.streakRewardSummary", {
+                  streak: streakRewardStreak,
+                  points: streakRewardPoints,
+                })}
+              </p>
+            ) : null}
+          </div>
+
+          <p
+            className="mt-2.5 text-lg font-bold leading-tight text-brand sm:text-xl"
+            data-result-message-level={performance.level}
           >
-            <RotateCcw className="size-5" aria-hidden="true" />
-            {t("quiz.restart")}
-          </Button>
-          <Button
-            disabled={locked}
-            className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500 disabled:pointer-events-none disabled:opacity-50"
-            onClick={onExit}
+            {t(messageKey)}
+          </p>
+
+          <div
+            className={cn(
+              "mt-4 grid w-full gap-2 sm:mt-5 sm:gap-3",
+              resultCards.length === 3 ? "grid-cols-3" : "grid-cols-2",
+            )}
           >
-            <X className="size-5" aria-hidden="true" />
-            {t("quiz.exit")}
-          </Button>
+            {resultCards.map((card) => (
+              <ResultCard
+                key={card.key}
+                resultKey={card.key}
+                icon={card.icon}
+                label={card.label}
+                count={card.count}
+                tone={card.tone}
+                disabled={locked || card.count === 0}
+                onClick={() => setOpenMenu(card.key)}
+              />
+            ))}
+          </div>
+
+          <div className="mt-4 grid w-full grid-cols-2 gap-3 sm:mt-5">
+            <Button
+              disabled={locked}
+              className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
+              onClick={onRestart}
+            >
+              <RotateCcw className="size-5" aria-hidden="true" />
+              {t("quiz.restart")}
+            </Button>
+            <Button
+              disabled={locked}
+              className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500 disabled:pointer-events-none disabled:opacity-50"
+              onClick={onExit}
+            >
+              <X className="size-5" aria-hidden="true" />
+              {t("quiz.exit")}
+            </Button>
+          </div>
         </div>
       </div>
 
