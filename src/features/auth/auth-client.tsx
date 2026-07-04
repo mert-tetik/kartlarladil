@@ -13,6 +13,7 @@ interface AuthSessionContextValue {
   user: AuthShellUser | null;
   refreshProfile: () => Promise<void>;
   updateProfileField: (updates: Partial<AuthProfile>) => void;
+  clearUser: () => void;
 }
 
 interface RequireAuthActionOptions {
@@ -145,13 +146,18 @@ export function AuthSessionProvider({
     });
   }, []);
 
+  const clearUser = useCallback(() => {
+    setUser(null);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
       refreshProfile,
       updateProfileField,
+      clearUser,
     }),
-    [user, refreshProfile, updateProfileField],
+    [user, refreshProfile, updateProfileField, clearUser],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

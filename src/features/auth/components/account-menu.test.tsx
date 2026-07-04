@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { AuthSessionProvider } from "@/features/auth/auth-client";
+import type { AuthShellUser } from "@/features/auth/auth-types";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { LocaleProvider } from "@/i18n/locale-provider";
-import type { AuthShellUser } from "@/features/auth/auth-types";
 
 vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({
@@ -64,7 +65,7 @@ const testUser: AuthShellUser = {
     preferredLanguageCode: "en",
     preferredUiLocale: "tr",
     preferredTier: "A1",
-  onboardingCompleted: true,
+    onboardingCompleted: true,
     aiPracticePoints: 0,
     chestPoints: 0,
     theme: "default",
@@ -72,25 +73,20 @@ const testUser: AuthShellUser = {
 };
 
 describe("AccountMenu", () => {
-  it("keeps the logout form mounted when logout is clicked", async () => {
+  it("requests mobile auth immediately when logout is clicked", async () => {
     const user = userEvent.setup();
 
     render(
-      <LocaleProvider initialLocale="tr">
-        <AccountMenu user={testUser} />
-      </LocaleProvider>,
+      <AuthSessionProvider user={testUser}>
+        <LocaleProvider initialLocale="tr">
+          <AccountMenu user={testUser} />
+        </LocaleProvider>
+      </AuthSessionProvider>,
     );
 
     await user.click(screen.getByRole("button", { name: /hesap menüsü/i }));
+    await user.click(screen.getByRole("menuitem", { name: /çıkış yap/i }));
 
-    const logoutButton = screen.getByRole("menuitem", { name: /çıkış yap/i });
-    const logoutForm = logoutButton.closest("form");
-
-    expect(logoutForm).not.toBeNull();
-
-    await user.click(logoutButton);
-
-    expect(screen.getByRole("menuitem", { name: /çıkış yap/i })).toBeInTheDocument();
-    expect(logoutForm).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("foxiesdeck:mobile-logout-auth")).toBe("1");
   });
 });

@@ -208,7 +208,6 @@ const QUIZ_RESULT_MESSAGE_KEYS: Record<
     "quiz.resultMessageHigh2",
     "quiz.resultMessageHigh3",
     "quiz.resultMessageHigh4",
-    "quiz.resultMessageHigh5",
     "quiz.resultMessageHigh6",
     "quiz.resultMessageHigh7",
     "quiz.resultMessageHigh8",

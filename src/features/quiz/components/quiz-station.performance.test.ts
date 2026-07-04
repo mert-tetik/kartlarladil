@@ -17,6 +17,13 @@ function buildResults(correctCount: number, incorrectCount: number, learnedCount
 }
 
 describe("getQuizPerformanceSummary", () => {
+  it("excludes rank-up messaging from the high-score result pool", () => {
+    const summary = getQuizPerformanceSummary("active", buildResults(9, 1, 3), 10, false);
+
+    expect(summary.level).toBe("high");
+    expect(summary.messageKeys).not.toContain("quiz.resultMessageHigh5");
+  });
+
   it("unlocks the chest for high accuracy without double-counting learned cards", () => {
     const summary = getQuizPerformanceSummary("active", buildResults(8, 2, 3), 10, false);
 
