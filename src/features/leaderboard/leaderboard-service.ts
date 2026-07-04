@@ -103,14 +103,12 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
         .map((profile, index) => ({
           userId: profile.userId,
           position: index + 1,
-          displayName: profile.displayName ?? "",
+          displayName: profile.leaderboardVisible ? (profile.displayName ?? "") : "",
           totalPoints: profile.totalPoints,
           rankIcon: getRankForPoints(profile.totalPoints).icon,
           isViewer: profile.userId === viewerUserId,
-          leaderboardVisible: profile.leaderboardVisible,
         }))
-        .filter((profile) => profile.leaderboardVisible)
-        .map(({ leaderboardVisible: _leaderboardVisible, ...profile }) => profile)
+        
     : [];
 
   return {
