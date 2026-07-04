@@ -1614,14 +1614,14 @@ function ChoiceQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               className={cn(
-                "flex min-h-[4.5rem] items-center justify-center rounded-md px-3 py-2 text-center text-base font-semibold text-white transition-colors hover:brightness-110 disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
+                "flex min-h-[4.5rem] items-center justify-center rounded-md px-3 py-2 text-center text-base font-semibold text-white transition-[background-color,color,filter] duration-300 ease-out hover:brightness-110 disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
                 optionColor,
                 showingAnswer &&
                   isCorrectOption &&
                   "bg-emerald-500 text-white hover:brightness-100",
                 showingAnswer &&
                   !isCorrectOption &&
-                  "bg-background-inverse text-foreground-inverse hover:brightness-100",
+                  "bg-background-inverse text-foreground-inverse-secondary hover:brightness-100",
               )}
             >
               {option}
@@ -2035,6 +2035,7 @@ function CelebrationView({
   const { locale } = useLocale();
   const { stats, refreshStats } = useProgressStats();
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
+  const [viewStage, setViewStage] = useState<"card" | "points">("card");
   const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
   const hasTriggered = useRef(false);
   const gainedPoints = getPointsForTier(card.tier);
@@ -2055,11 +2056,6 @@ function CelebrationView({
       colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
       disableForReducedMotion: true,
     });
-
-    const timer = window.setTimeout(() => {
-      setBonusPhase("dropping");
-    }, 350);
-    return () => window.clearTimeout(timer);
   }, []);
 
   const handleBonusAnimationEnd = useCallback(() => {
@@ -2067,12 +2063,40 @@ function CelebrationView({
     void refreshStats();
   }, [refreshStats]);
 
+  useEffect(() => {
+    if (viewStage !== "points") {
+      return;
+    }
+
+    setBonusPhase("idle");
+
+    const dropTimer = window.setTimeout(() => {
+      setBonusPhase("dropping");
+    }, 240);
+    const closeTimer = window.setTimeout(() => {
+      onContinue();
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(dropTimer);
+      window.clearTimeout(closeTimer);
+    };
+  }, [onContinue, viewStage]);
+
   return (
     <div
       className="animate-screen-pop relative mx-auto flex h-full w-full max-w-md items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0"
       data-quiz-celebration
+      data-quiz-celebration-stage={viewStage}
     >
-      <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2">
+      <div
+        className={cn(
+          "absolute left-1/2 z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          viewStage === "card"
+            ? "top-4 -translate-x-1/2"
+            : "top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.18]",
+        )}
+      >
         <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
           <Star className="size-5 fill-current" aria-hidden="true" />
           <span
@@ -2083,9 +2107,9 @@ function CelebrationView({
           >
             {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
           </span>
-          {bonusPhase === "dropping" ? (
+          {viewStage === "points" && bonusPhase === "dropping" ? (
             <span
-              className="absolute bottom-0 left-1/2 text-2xl font-bold text-amber-400 animate-celebration-points-drop"
+              className="absolute bottom-full left-1/2 mb-2 text-2xl font-bold text-amber-400 animate-celebration-points-fall"
               onAnimationEnd={handleBonusAnimationEnd}
             >
               +{gainedPoints}
@@ -2095,7 +2119,12 @@ function CelebrationView({
       </div>
 
       <div
-        className="flex w-full max-w-sm flex-col items-center justify-center"
+        className={cn(
+          "flex w-full max-w-sm flex-col items-center justify-center transition-all duration-300",
+          viewStage === "card"
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0",
+        )}
         data-quiz-celebration-content
       >
         <h2 className="text-2xl font-semibold text-foreground">
@@ -2116,7 +2145,7 @@ function CelebrationView({
           />
         </div>
 
-        <Button className="mt-5 w-full" onClick={onContinue}>
+        <Button className="mt-5 w-full" onClick={() => setViewStage("points")}>
           {t("quiz.continue")}
         </Button>
       </div>

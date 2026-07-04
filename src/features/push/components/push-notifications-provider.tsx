@@ -352,18 +352,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <Button
                 type="button"
-                variant="secondary"
-                size="md"
-                disabled={busy}
-                onClick={() => {
-                  markPushPromptDismissed();
-                  setPromptOpen(false);
-                }}
-              >
-                {t("push.prompt.dismiss")}
-              </Button>
-              <Button
-                type="button"
                 size="md"
                 disabled={busy}
                 onClick={() => {
@@ -375,6 +363,18 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
                 }}
               >
                 {busy ? t("common.loading") : t("push.prompt.enable")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                disabled={busy}
+                onClick={() => {
+                  markPushPromptDismissed();
+                  setPromptOpen(false);
+                }}
+              >
+                {t("push.prompt.dismiss")}
               </Button>
             </div>
           </div>
