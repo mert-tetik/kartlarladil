@@ -871,7 +871,10 @@ export function QuizStation({
     );
   }
 
-  if (languageStats.length === 0) {
+  if (
+    languageStats.length === 0 &&
+    (phase === "language" || phase === "count")
+  ) {
     return (
       <EmptyState
         title={t(

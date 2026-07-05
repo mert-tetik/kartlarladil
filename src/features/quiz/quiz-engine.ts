@@ -48,7 +48,7 @@ export function applyAnswerProgress(
     ? inventoryCard.correctCount + 1
     : Math.max(0, inventoryCard.correctCount - 1);
   const learned =
-    forceLearned || nextCorrectCount >= getTierRequirement(vocabularyCard.tier);
+    (forceLearned && isCorrect) || nextCorrectCount >= getTierRequirement(vocabularyCard.tier);
 
   return {
     ...inventoryCard,

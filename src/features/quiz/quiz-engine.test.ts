@@ -76,6 +76,24 @@ describe("quiz engine", () => {
     expect(forced.learnedAt).toBe("2026-01-01T00:00:00.000Z");
   });
 
+  it("does not mark a forced card learned when the answer is incorrect", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.tier === "A1");
+    expect(card).toBeDefined();
+
+    const state = createInventoryCard(card!.id);
+    const forcedWrong = applyAnswerProgress(
+      state,
+      card!,
+      false,
+      "2026-01-01T00:00:00.000Z",
+      true,
+    );
+
+    expect(forcedWrong.correctCount).toBe(0);
+    expect(forcedWrong.status).toBe("active");
+    expect(forcedWrong.learnedAt).toBeUndefined();
+  });
+
   it("does not add the same card twice", () => {
     const card = VOCABULARY_CARDS[0];
     const first = addCardToInventory([], card.id);
