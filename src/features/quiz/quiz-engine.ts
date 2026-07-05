@@ -40,13 +40,15 @@ export function applyAnswerProgress(
   vocabularyCard: VocabularyCard,
   isCorrect: boolean,
   now = new Date().toISOString(),
+  forceLearned = false,
 ): InventoryCard {
   // The product rule is intentionally strict: users cannot mark cards learned manually.
   // Only repeated correct quiz answers can move a card into learned status.
   const nextCorrectCount = isCorrect
     ? inventoryCard.correctCount + 1
     : Math.max(0, inventoryCard.correctCount - 1);
-  const learned = nextCorrectCount >= getTierRequirement(vocabularyCard.tier);
+  const learned =
+    forceLearned || nextCorrectCount >= getTierRequirement(vocabularyCard.tier);
 
   return {
     ...inventoryCard,

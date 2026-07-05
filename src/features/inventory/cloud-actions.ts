@@ -138,6 +138,7 @@ export async function recordCloudPracticeAttemptAction(input: {
   correctAnswer: string;
   isCorrect: boolean;
   mode: PracticeMode;
+  forceLearned?: boolean;
 }): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
@@ -145,7 +146,9 @@ export async function recordCloudPracticeAttemptAction(input: {
     const t = await getCloudActionText();
     const currentCard = await readUserCard(supabase, user, localCard.sourceKey);
     const nextCard =
-      input.mode === "learned" ? currentCard : applyAnswerProgress(currentCard, localCard, input.isCorrect);
+      input.mode === "learned"
+        ? currentCard
+        : applyAnswerProgress(currentCard, localCard, input.isCorrect, undefined, input.forceLearned);
 
     const entitlements = await getUserEntitlements(user.id);
 

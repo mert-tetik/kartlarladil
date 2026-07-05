@@ -58,6 +58,24 @@ describe("quiz engine", () => {
     expect(secondWrong.status).toBe("active");
   });
 
+  it("can mark a card as learned in a single correct answer when forced", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.tier === "A1");
+    expect(card).toBeDefined();
+
+    const state = createInventoryCard(card!.id);
+    const forced = applyAnswerProgress(
+      state,
+      card!,
+      true,
+      "2026-01-01T00:00:00.000Z",
+      true,
+    );
+
+    expect(forced.correctCount).toBe(1);
+    expect(forced.status).toBe("learned");
+    expect(forced.learnedAt).toBe("2026-01-01T00:00:00.000Z");
+  });
+
   it("does not add the same card twice", () => {
     const card = VOCABULARY_CARDS[0];
     const first = addCardToInventory([], card.id);

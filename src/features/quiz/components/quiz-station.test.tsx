@@ -121,6 +121,21 @@ const inventoryCard: InventoryCard = {
   addedAt: "2026-06-09T00:00:00.000Z",
 };
 
+const learnedCardCandidate = VOCABULARY_CARDS.find(
+  (card) => card.language === "en" && card.tier === "A1" && card.id !== testCard.id,
+);
+if (!learnedCardCandidate) {
+  throw new Error("No learned card candidate found for quiz tests");
+}
+
+const learnedInventoryCard: InventoryCard = {
+  cardId: learnedCardCandidate.id,
+  status: "learned",
+  correctCount: 4,
+  addedAt: "2026-06-09T00:00:00.000Z",
+  learnedAt: "2026-06-09T01:00:00.000Z",
+};
+
 describe("MobileQuizFeedback", () => {
   it("keeps the previous content while closing so the next card does not flash the old color", () => {
     const onNext = vi.fn();
@@ -270,12 +285,15 @@ describe("QuizStation streak celebration", () => {
     ).slice(0, 6);
 
     useInventoryStore.setState({
-      cards: englishCards.map((card) => ({
-        cardId: card.id,
-        status: "active",
-        correctCount: 0,
-        addedAt: "2026-06-09T00:00:00.000Z",
-      })),
+      cards: [
+        ...englishCards.map((card) => ({
+          cardId: card.id,
+          status: "active" as const,
+          correctCount: 0,
+          addedAt: "2026-06-09T00:00:00.000Z",
+        })),
+        learnedInventoryCard,
+      ],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -319,12 +337,15 @@ describe("QuizStation streak celebration", () => {
     ).slice(0, 6);
 
     useInventoryStore.setState({
-      cards: englishCards.map((card) => ({
-        cardId: card.id,
-        status: "active",
-        correctCount: 0,
-        addedAt: "2026-06-09T00:00:00.000Z",
-      })),
+      cards: [
+        ...englishCards.map((card) => ({
+          cardId: card.id,
+          status: "active" as const,
+          correctCount: 0,
+          addedAt: "2026-06-09T00:00:00.000Z",
+        })),
+        learnedInventoryCard,
+      ],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -365,7 +386,7 @@ describe("QuizStation streak celebration", () => {
 describe("QuizStation sound feedback", () => {
   beforeEach(() => {
     useInventoryStore.setState({
-      cards: [inventoryCard],
+      cards: [inventoryCard, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -487,7 +508,7 @@ describe("QuizStation sound feedback", () => {
 
   it("places the text-answer question above the card on mobile", async () => {
     useInventoryStore.setState({
-      cards: [{ ...inventoryCard, correctCount: 3 }],
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -515,7 +536,7 @@ describe("QuizStation sound feedback", () => {
       value: 390,
     });
     useInventoryStore.setState({
-      cards: [{ ...inventoryCard, correctCount: 3 }],
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -616,7 +637,7 @@ describe("QuizStation sound feedback", () => {
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
 
     useInventoryStore.setState({
-      cards: [{ ...inventoryCard, correctCount: 3 }],
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -645,7 +666,7 @@ describe("QuizStation sound feedback", () => {
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
 
     useInventoryStore.setState({
-      cards: [{ ...inventoryCard, correctCount: 3 }],
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
@@ -673,19 +694,19 @@ describe("QuizStation sound feedback", () => {
     );
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
 
-    window.localStorage.setItem(
-      "foxiesdeck:ai-quiz-validation:daily",
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), count: 15 }),
-    );
-
     useInventoryStore.setState({
-      cards: [{ ...inventoryCard, correctCount: 3 }],
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
       attempts: [],
       hydrated: true,
       cloudEnabled: false,
       cloudLoading: false,
       cloudError: "",
     });
+
+    window.localStorage.setItem(
+      "foxiesdeck:ai-quiz-validation:daily",
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), count: 15 }),
+    );
 
     renderQuizStation("tr");
     fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));

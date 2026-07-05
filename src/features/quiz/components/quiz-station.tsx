@@ -141,6 +141,7 @@ interface BaseQuizItem {
   card: VocabularyCard;
   inventoryCard: InventoryCard;
   willLearn: boolean;
+  forceLearned?: boolean;
 }
 
 interface ChoiceQuizItem extends BaseQuizItem {
@@ -408,11 +409,26 @@ export function QuizStation({
       }).map((item) => item.card);
       const limited = count ? source.slice(0, count) : source;
       const shuffled = shuffle(limited);
+      const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
 
-      const items: QuizItem[] = shuffled.map((card) => {
+      const items: QuizItem[] = shuffled.map((card, index) => {
         const inventoryCard = cards.find((item) => item.cardId === card.id)!;
         const requirement = getTierRequirement(card.tier);
         const answerLocale = getStudyLocale(card.language, locale);
+
+        // First impression: when the user has no learned cards yet, the very first quiz card
+        // is answered as a normal multiple-choice question and becomes learned immediately on success.
+        if (mode === "active" && hasNoLearnedCards && index === 0) {
+          return {
+            card,
+            inventoryCard,
+            questionType: "choice",
+            question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
+            willLearn: true,
+            forceLearned: true,
+          };
+        }
+
         const willLearn =
           inventoryCard.status !== "learned" &&
           inventoryCard.correctCount + 1 >= requirement;
@@ -481,7 +497,6 @@ export function QuizStation({
     }).length;
     if (count < QUIZ_COUNT_MIN) {
       // Auto-start the quiz when not enough cards are available for a count selection.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       buildDeck(selectedLanguage, null);
     }
   }, [phase, selectedLanguage, cards, mode, buildDeck]);
@@ -734,6 +749,7 @@ export function QuizStation({
             correctAnswer,
             isCorrect,
             mode,
+            forceLearned: item.forceLearned,
           });
           deferredRecordTimeoutRef.current = null;
         }, 0);
@@ -1968,7 +1984,6 @@ export function MobileQuizFeedback({
 
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSnapshot({ isCorrect, correctAnswer: correctAnswer ?? "" });
     }
   }, [isOpen, isCorrect, correctAnswer]);
