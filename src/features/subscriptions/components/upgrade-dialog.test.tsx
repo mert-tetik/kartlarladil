@@ -4,12 +4,32 @@ import { vi } from "vitest";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
-vi.mock("next/link", () => ({
-  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
+const mockPush = vi.fn();
+const mockRequireAuthAction = vi.fn((action: () => void) => action());
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+    push: mockPush,
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useParams: () => ({}),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@/features/auth/auth-client", () => ({
+  AuthSessionProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAuthSession: () => ({
+    user: null,
+    refreshProfile: vi.fn(),
+    updateProfileField: vi.fn(),
+    clearUser: vi.fn(),
+    requireAuthAction: mockRequireAuthAction,
+  }),
+  useRequireAuthAction: () => mockRequireAuthAction,
 }));
 
 function renderDialog(props: { open: boolean; errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"] }) {
@@ -41,7 +61,17 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
-    expect(screen.getByRole("link", { name: /Kartları öğren/i })).toHaveAttribute("href", "/learn");
+    expect(screen.getByRole("button", { name: /Kartları öğren/i })).toBeInTheDocument();
+  });
+
+  it("navigates to the learn page when the learn cards button is clicked", async () => {
+    const user = userEvent.setup();
+    renderDialog({ open: true, errorCode: "free_active_card_limit" });
+
+    await user.click(screen.getByRole("button", { name: /Kartları öğren/i }));
+
+    expect(mockRequireAuthAction).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/learn?mode=active");
   });
 
   it("shows the learned card limit message", () => {

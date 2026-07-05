@@ -1180,6 +1180,7 @@ export function QuizStation({
             setLimitError(null);
           }
         }}
+        selectedLanguage={selectedLanguage ?? undefined}
       />
     </>
   );

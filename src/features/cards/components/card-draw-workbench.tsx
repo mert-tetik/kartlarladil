@@ -763,6 +763,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
                 setLimitError(null);
               }
             }}
+            selectedLanguage={preferences.language === "all" ? undefined : preferences.language}
           />
         </div>
       </div>

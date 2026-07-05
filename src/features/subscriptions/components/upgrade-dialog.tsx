@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useT } from "@/i18n/locale-provider";
-import type { LimitErrorCode } from "@/types/domain";
+import { vibrate } from "@/lib/vibration";
+import type { LanguageCode, LimitErrorCode } from "@/types/domain";
 
 export type UpgradeDialogErrorCode =
   | LimitErrorCode
@@ -18,10 +21,13 @@ interface UpgradeDialogProps {
   open: boolean;
   errorCode: UpgradeDialogErrorCode | null;
   onOpenChange: (open: boolean) => void;
+  selectedLanguage?: LanguageCode;
 }
 
-export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogProps) {
+export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage }: UpgradeDialogProps) {
   const t = useT();
+  const router = useRouter();
+  const requireAuthAction = useRequireAuthAction();
 
   if (!open || !errorCode) {
     return null;
@@ -55,33 +61,40 @@ export function UpgradeDialog({ open, errorCode, onOpenChange }: UpgradeDialogPr
         </h2>
         <p className="mt-2 text-sm leading-6 text-foreground-secondary">{content.description}</p>
 
-        {errorCode === "free_active_card_limit" ? (
-          <Link
-            href="/learn"
-            className={buttonClassName("primary", "md", "mt-4 w-full")}
-            onClick={() => onOpenChange(false)}
-          >
-            {t("limit.activeCardLimitLearnButton")}
-          </Link>
-        ) : null}
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {t("common.maybeLater")}
-          </Button>
+        <div className="mt-6 flex flex-col gap-3">
           {showsUpgradeCta ? (
             <Link
               href="/pricing"
               className={buttonClassName(
                 "primary",
                 "md",
-                "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
+                "w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
               )}
               onClick={() => onOpenChange(false)}
             >
               {t("limit.upgradeButtonFirstMonthFree")}
             </Link>
           ) : null}
+          {errorCode === "free_active_card_limit" ? (
+            <Button
+              className="w-full"
+              onClick={() => {
+                vibrate("tap");
+                onOpenChange(false);
+                const nextPath = selectedLanguage
+                  ? `/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`
+                  : "/learn?mode=active";
+                requireAuthAction(() => {
+                  router.push(nextPath);
+                }, { nextPath });
+              }}
+            >
+              {t("limit.activeCardLimitLearnButton")}
+            </Button>
+          ) : null}
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            {t("common.maybeLater")}
+          </Button>
         </div>
       </div>
     </div>
