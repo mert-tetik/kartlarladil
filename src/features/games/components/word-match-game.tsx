@@ -316,7 +316,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
             <div
               ref={boardRef}
-              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2"
+              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-3"
             >
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.termColumn")}
@@ -335,7 +335,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-3">
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.meaningColumn")}
               </h3>
@@ -381,7 +381,7 @@ const MatchButton = ({ item, onClick, ref }: MatchButtonProps & { ref?: React.Re
       disabled={item.matched}
       onClick={onClick}
       className={cn(
-        "relative z-20 w-full rounded-lg px-3 py-2 text-center text-sm font-semibold text-white transition-all active:scale-95",
+        "relative z-20 w-full rounded-lg px-3 py-3 text-center text-sm font-semibold text-white transition-all active:scale-95 max-sm:mx-auto max-sm:max-w-[90%]",
         "disabled:cursor-default disabled:opacity-40",
         tierStyle.accent,
         item.selected && "scale-[1.02] shadow-lg ring-2 ring-white/80 ring-offset-2 ring-offset-background",
