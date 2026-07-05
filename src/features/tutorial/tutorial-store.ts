@@ -58,7 +58,6 @@ export const useTutorialStore = create<TutorialState>()(
         step: state.step,
         testMode: state.testMode,
         showPostPracticeTutorial: state.showPostPracticeTutorial,
-        showGamesPointer: state.showGamesPointer,
       }),
       onRehydrateStorage: () => (state) => {
         if (typeof window === "undefined") return;

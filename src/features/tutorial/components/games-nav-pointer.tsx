@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 const MOBILE_BREAKPOINT = 1023;
@@ -17,10 +18,17 @@ interface PointerPosition {
 }
 
 export function GamesNavPointer() {
+  const pathname = usePathname();
   const showGamesPointer = useTutorialStore((state) => state.showGamesPointer);
   const setShowGamesPointer = useTutorialStore((state) => state.setShowGamesPointer);
   const [isMobile, setIsMobile] = useState(false);
   const [position, setPosition] = useState<PointerPosition | null>(null);
+
+  useEffect(() => {
+    if (!showGamesPointer) return;
+    setShowGamesPointer(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, setShowGamesPointer]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -110,7 +118,7 @@ export function GamesNavPointer() {
     return () => window.removeEventListener("pointerdown", handlePointerDown, true);
   }, [showGamesPointer, setShowGamesPointer]);
 
-  if (!showGamesPointer || !isMobile || !position) {
+  if (pathname !== "/learn" || !showGamesPointer || !isMobile || !position) {
     return null;
   }
 

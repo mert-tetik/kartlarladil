@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
+import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
+import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
+import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
@@ -18,7 +21,7 @@ import { getHighestTierForLevel } from "../game-levels";
 interface GameEntry {
   name: GameName;
   href: string;
-  iconSrc: string;
+  icon: StaticImageData;
   titleKey:
     | "games.memory.title"
     | "games.wordChallenge.title"
@@ -34,7 +37,7 @@ const GAMES: GameEntry[] = [
   {
     name: "memory",
     href: "/games/memory",
-    iconSrc: "/download/hafiza_oyunu.png",
+    icon: hafizaIcon,
     titleKey: "games.memory.title",
     descriptionKey: "games.memory.description",
     variant: "red",
@@ -42,7 +45,7 @@ const GAMES: GameEntry[] = [
   {
     name: "wordChallenge",
     href: "/games/word-challenge",
-    iconSrc: "/download/kelime_meydan_okumasi.png",
+    icon: wordChallengeIcon,
     titleKey: "games.wordChallenge.title",
     descriptionKey: "games.wordChallenge.description",
     variant: "green",
@@ -50,7 +53,7 @@ const GAMES: GameEntry[] = [
   {
     name: "wordMatch",
     href: "/games/word-match",
-    iconSrc: "/download/kelime_eslestirme.png",
+    icon: wordMatchIcon,
     titleKey: "games.wordMatch.title",
     descriptionKey: "games.wordMatch.description",
     variant: "lightBlue",
@@ -115,7 +118,7 @@ export function GamesList() {
               >
                 <div className="flex items-center gap-3">
                   <Image
-                    src={game.iconSrc}
+                    src={game.icon}
                     alt={t(game.titleKey)}
                     width={40}
                     height={40}
