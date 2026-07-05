@@ -386,15 +386,24 @@ function CardFront({
         )}
       >
         {!frontMinimal ? (
-          <p
+          <div
             className={cn(
-              "text-sm font-medium leading-5 max-sm:text-xs",
-              frontFit ? "line-clamp-2" : "truncate",
+              "flex w-full items-center justify-center text-center",
+              frontFit ? "min-h-10" : "min-h-5 max-sm:min-h-[18px]",
             )}
-            title={examplePreview}
+            data-card-example-row
           >
-            {examplePreview}
-          </p>
+            <p
+              className={cn(
+                "w-full text-sm font-medium max-sm:text-xs",
+                frontFit ? "line-clamp-2 leading-5" : "truncate leading-none max-sm:leading-none",
+              )}
+              title={examplePreview}
+              data-card-example-preview
+            >
+              {examplePreview}
+            </p>
+          </div>
         ) : null}
 
         {inventory && !frontMinimal ? (
