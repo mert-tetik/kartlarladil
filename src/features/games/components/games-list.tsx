@@ -104,7 +104,7 @@ export function GamesList() {
                 key={game.name}
                 href={game.href}
                 className={cn(
-                  "flex w-full flex-col items-center justify-center gap-3 rounded-2xl p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:flex-1",
+                  "flex w-full flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-[1.3/1] sm:flex-1",
                   game.variant === "red"
                     ? "bg-red-500 text-white hover:bg-red-600"
                     : game.variant === "green"

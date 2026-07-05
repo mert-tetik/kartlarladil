@@ -316,12 +316,12 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
             <div
               ref={boardRef}
-              className="flex flex-1 flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-background-card p-3"
+              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2"
             >
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.termColumn")}
               </h3>
-              <div className="flex flex-1 flex-col justify-center gap-3">
+              <div className="flex flex-1 flex-col justify-center gap-2">
                 {termItems.map((item) => (
                   <MatchButton
                     key={item.id}
@@ -335,11 +335,11 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-background-card p-3">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2">
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.meaningColumn")}
               </h3>
-              <div className="flex flex-1 flex-col justify-center gap-3">
+              <div className="flex flex-1 flex-col justify-center gap-2">
                 {meaningItems.map((item) => (
                   <MatchButton
                     key={item.id}
@@ -381,16 +381,10 @@ const MatchButton = ({ item, onClick, ref }: MatchButtonProps & { ref?: React.Re
       disabled={item.matched}
       onClick={onClick}
       className={cn(
-        "relative z-20 w-full rounded-xl border-2 px-4 py-3 text-center text-base font-bold transition-all active:scale-95 sm:text-lg",
+        "relative z-20 w-full rounded-lg px-3 py-2 text-center text-sm font-semibold text-white transition-all active:scale-95",
         "disabled:cursor-default disabled:opacity-40",
-        tierStyle.border,
-        tierStyle.surface,
-        tierStyle.text,
-        item.selected &&
-          cn(
-            "scale-[1.02] shadow-lg ring-2 ring-offset-2 ring-offset-background",
-            getTierRingClass(item.card.tier),
-          ),
+        tierStyle.accent,
+        item.selected && "scale-[1.02] shadow-lg ring-2 ring-white/80 ring-offset-2 ring-offset-background",
         item.shake && "animate-word-match-shake",
       )}
     >
@@ -418,13 +412,3 @@ function getTierStrokeClass(tier: import("@/types/domain").Tier): string {
   return map[tier];
 }
 
-function getTierRingClass(tier: import("@/types/domain").Tier): string {
-  const map: Record<import("@/types/domain").Tier, string> = {
-    A1: "ring-emerald-500 dark:ring-emerald-400",
-    A2: "ring-sky-500 dark:ring-sky-400",
-    B1: "ring-violet-500 dark:ring-violet-400",
-    B2: "ring-amber-500 dark:ring-amber-400",
-    C1: "ring-rose-500 dark:ring-rose-400",
-  };
-  return map[tier];
-}
