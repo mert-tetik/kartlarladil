@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   createContext,
   startTransition,

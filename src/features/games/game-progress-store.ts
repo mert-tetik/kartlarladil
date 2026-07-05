@@ -33,6 +33,7 @@ export const useGameProgressStore = create<GameProgressState>()(
       progress: {
         memory: defaultProgress(),
         wordChallenge: defaultProgress(),
+        wordMatch: defaultProgress(),
       },
       selectedLanguage: "all",
       getProgress(game) {

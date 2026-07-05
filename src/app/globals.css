@@ -1129,3 +1129,31 @@ body:has([data-games-active]) {
   overscroll-behavior-y: none;
   touch-action: none;
 }
+
+/* Word match incorrect match shake */
+@keyframes word-match-shake {
+  0%, 100% {
+    background-color: transparent;
+    transform: translateX(0);
+  }
+  20% {
+    background-color: rgb(244 63 94 / 0.35);
+    transform: translateX(-4px);
+  }
+  40% {
+    background-color: rgb(244 63 94 / 0.55);
+    transform: translateX(4px);
+  }
+  60% {
+    background-color: rgb(244 63 94 / 0.35);
+    transform: translateX(-4px);
+  }
+  80% {
+    background-color: rgb(244 63 94 / 0.55);
+    transform: translateX(4px);
+  }
+}
+
+.animate-word-match-shake {
+  animation: word-match-shake 0.6s ease-in-out;
+}

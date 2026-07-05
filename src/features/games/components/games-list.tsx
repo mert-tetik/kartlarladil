@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Brain, Shuffle } from "lucide-react";
+import { Brain, Link2, Shuffle } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
@@ -19,9 +19,15 @@ interface GameEntry {
   name: GameName;
   href: string;
   icon: typeof Brain;
-  titleKey: "games.memory.title" | "games.wordChallenge.title";
-  descriptionKey: "games.memory.description" | "games.wordChallenge.description";
-  variant: "red" | "blue";
+  titleKey:
+    | "games.memory.title"
+    | "games.wordChallenge.title"
+    | "games.wordMatch.title";
+  descriptionKey:
+    | "games.memory.description"
+    | "games.wordChallenge.description"
+    | "games.wordMatch.description";
+  variant: "red" | "blue" | "green" | "lightBlue";
 }
 
 const GAMES: GameEntry[] = [
@@ -39,7 +45,15 @@ const GAMES: GameEntry[] = [
     icon: Brain,
     titleKey: "games.wordChallenge.title",
     descriptionKey: "games.wordChallenge.description",
-    variant: "blue",
+    variant: "green",
+  },
+  {
+    name: "wordMatch",
+    href: "/games/word-match",
+    icon: Link2,
+    titleKey: "games.wordMatch.title",
+    descriptionKey: "games.wordMatch.description",
+    variant: "lightBlue",
   },
 ];
 
@@ -93,7 +107,11 @@ export function GamesList() {
                   "flex w-full flex-col items-center justify-center gap-3 rounded-2xl p-8 text-center shadow-sm transition-transform hover:scale-[1.02] active:scale-95 sm:aspect-square sm:flex-1",
                   game.variant === "red"
                     ? "bg-red-500 text-white hover:bg-red-600"
-                    : "bg-blue-500 text-white hover:bg-blue-600",
+                    : game.variant === "green"
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                      : game.variant === "lightBlue"
+                        ? "bg-sky-400 text-white hover:bg-sky-500"
+                        : "bg-blue-500 text-white hover:bg-blue-600",
                 )}
               >
                 <Icon className="size-10" aria-hidden="true" />

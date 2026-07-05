@@ -7,10 +7,7 @@ import {
 } from "@/features/ai-practice/ai-practice-openai";
 import { aiPracticeTranslateRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import {
-  assertCanUseAi,
-  recordAiUsageEvent,
-} from "@/features/subscriptions/ai-usage-service";
+import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
@@ -39,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertCanUseAi(user.id, entitlements.effectivePlan);
+  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "translate");
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });
@@ -75,7 +72,7 @@ export async function POST(request: Request) {
       return Response.json({ errorCode: "empty_response" }, { status: 502 });
     }
 
-    await recordAiUsageEvent(user.id, entitlements.effectivePlan, "translate");
+    // Usage was already atomically reserved before calling OpenAI.
 
     return Response.json(
       { translation, targetLocale },

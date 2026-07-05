@@ -1,11 +1,13 @@
 import { vi } from "vitest";
 import {
+  assertAndRecordAiUsage,
   assertCanUseAi,
   recordAiUsageEvent,
 } from "@/features/subscriptions/ai-usage-service";
 
 const mockCount = vi.fn();
 const mockInsert = vi.fn(() => Promise.resolve({ error: null }));
+const mockRpc = vi.fn(() => Promise.resolve({ data: "ok", error: null }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(() =>
@@ -18,6 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({
         })),
         insert: mockInsert,
       })),
+      rpc: mockRpc,
     }),
   ),
 }));
@@ -26,6 +29,7 @@ describe("assertCanUseAi", () => {
   beforeEach(() => {
     mockCount.mockReset();
     mockInsert.mockClear();
+    mockRpc.mockClear();
   });
 
   it("allows usage when counts are below the free limits", async () => {
@@ -74,6 +78,10 @@ describe("assertCanUseAi", () => {
 });
 
 describe("recordAiUsageEvent", () => {
+  beforeEach(() => {
+    mockRpc.mockClear();
+  });
+
   it("inserts an event with the user, plan and event type", async () => {
     await recordAiUsageEvent("user-1", "free", "chat");
 
@@ -92,5 +100,48 @@ describe("recordAiUsageEvent", () => {
       event_type: "ask",
       plan: "basic",
     });
+  });
+});
+
+describe("assertAndRecordAiUsage", () => {
+  beforeEach(() => {
+    mockRpc.mockReset();
+  });
+
+  it("returns null and records usage when within limits", async () => {
+    mockRpc.mockResolvedValue({ data: "ok", error: null });
+
+    const result = await assertAndRecordAiUsage("user-1", "free", "chat");
+
+    expect(result).toBeNull();
+    expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
+      p_user_id: "user-1",
+      p_event_type: "chat",
+      p_plan: "free",
+      p_daily_limit: 10,
+      p_monthly_limit: 200,
+    });
+  });
+
+  it("returns ai_daily_limit when the atomic RPC reports daily limit", async () => {
+    mockRpc.mockResolvedValue({ data: "daily_limit", error: null });
+
+    const result = await assertAndRecordAiUsage("user-1", "free", "chat");
+
+    expect(result).toBe("ai_daily_limit");
+  });
+
+  it("returns ai_monthly_limit when the atomic RPC reports monthly limit", async () => {
+    mockRpc.mockResolvedValue({ data: "monthly_limit", error: null });
+
+    const result = await assertAndRecordAiUsage("user-1", "free", "chat");
+
+    expect(result).toBe("ai_monthly_limit");
+  });
+
+  it("throws when the RPC call fails", async () => {
+    mockRpc.mockResolvedValue({ data: null, error: new Error("db error") });
+
+    await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow("db error");
   });
 });

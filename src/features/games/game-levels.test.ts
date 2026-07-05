@@ -8,6 +8,7 @@ import {
   getMemoryRevealDurationMs,
   getPointsForLevel,
   getWordChallengeQuestionCountForLevel,
+  getWordMatchPairCountForLevel,
   isGameLevelLocked,
 } from "./game-levels";
 
@@ -38,8 +39,8 @@ describe("getPointsForLevel", () => {
 
   it("applies a level multiplier beyond the free limit", () => {
     expect(getPointsForLevel(11)).toBe(20);
-    expect(getPointsForLevel(21)).toBe(44);
-    expect(getPointsForLevel(51)).toBe(140);
+    expect(getPointsForLevel(21)).toBe(40);
+    expect(getPointsForLevel(51)).toBe(130);
   });
 });
 
@@ -86,6 +87,27 @@ describe("getLevelTimeLimit", () => {
     expect(getLevelTimeLimit(11, "wordChallenge")).toBe(30);
     expect(getLevelTimeLimit(31, "wordChallenge")).toBe(50);
   });
+
+  it("gives a fixed 30 seconds for word match", () => {
+    expect(getLevelTimeLimit(1, "wordMatch")).toBe(30);
+    expect(getLevelTimeLimit(15, "wordMatch")).toBe(30);
+    expect(getLevelTimeLimit(50, "wordMatch")).toBe(30);
+  });
+});
+
+describe("getWordMatchPairCountForLevel", () => {
+  it("increases pair count at the requested level thresholds up to 8", () => {
+    expect(getWordMatchPairCountForLevel(1)).toBe(4);
+    expect(getWordMatchPairCountForLevel(5)).toBe(4);
+    expect(getWordMatchPairCountForLevel(6)).toBe(5);
+    expect(getWordMatchPairCountForLevel(12)).toBe(5);
+    expect(getWordMatchPairCountForLevel(13)).toBe(6);
+    expect(getWordMatchPairCountForLevel(20)).toBe(6);
+    expect(getWordMatchPairCountForLevel(21)).toBe(7);
+    expect(getWordMatchPairCountForLevel(30)).toBe(7);
+    expect(getWordMatchPairCountForLevel(31)).toBe(8);
+    expect(getWordMatchPairCountForLevel(50)).toBe(8);
+  });
 });
 
 describe("buildLevelConfig", () => {
@@ -94,6 +116,12 @@ describe("buildLevelConfig", () => {
     expect(config.level).toBe(5);
     expect(config.tiers).toEqual(["A1"]);
     expect(config.seconds).toBeGreaterThan(0);
+  });
+
+  it("uses 30 seconds and pair count for word match", () => {
+    const config = buildLevelConfig(25, "wordMatch");
+    expect(config.cardCount).toBe(7);
+    expect(config.seconds).toBe(30);
   });
 });
 

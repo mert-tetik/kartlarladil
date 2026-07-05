@@ -67,10 +67,21 @@ export function getWordChallengeQuestionCountForLevel(level: number): number {
   return 25;
 }
 
+export function getWordMatchPairCountForLevel(level: number): number {
+  if (level <= 5) return 4;
+  if (level <= 12) return 5;
+  if (level <= 20) return 6;
+  if (level <= 30) return 7;
+  return 8;
+}
+
 export function getLevelTimeLimit(level: number, game: GameName): number {
   if (game === "memory") {
     const cardCount = getMemoryCardCountForLevel(level);
     return cardCount * 3;
+  }
+  if (game === "wordMatch") {
+    return 30;
   }
   return getWordChallengeQuestionCountForLevel(level) * 2;
 }
@@ -80,8 +91,11 @@ export function buildLevelConfig(
   game: GameName,
   language: LanguageCode | "all" = "all",
 ): GameLevelConfig {
-  const cardCount =
-    game === "memory" ? getMemoryCardCountForLevel(level) : getWordChallengeQuestionCountForLevel(level);
+  const cardCount = (() => {
+    if (game === "memory") return getMemoryCardCountForLevel(level);
+    if (game === "wordMatch") return getWordMatchPairCountForLevel(level);
+    return getWordChallengeQuestionCountForLevel(level);
+  })();
 
   return {
     level,
@@ -92,7 +106,7 @@ export function buildLevelConfig(
   };
 }
 
-export const FREE_GAME_LEVEL_LIMIT = 10;
+export const FREE_GAME_LEVEL_LIMIT = 20;
 
 export function isGameLevelLocked(level: number): boolean {
   return level > FREE_GAME_LEVEL_LIMIT;

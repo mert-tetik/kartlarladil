@@ -714,6 +714,11 @@ const dictionary = {
   "games.wordChallenge.correct": "Doğru",
   "games.wordChallenge.wrong": "Yanlış",
   "games.wordChallenge.progress": "{current}/{total}",
+  "games.wordMatch.title": "Kelime Eşleştirme",
+  "games.wordMatch.description": "Kelimeleri doğru anlamlarıyla eşleştir.",
+  "games.wordMatch.progress": "{matched}/{total}",
+  "games.wordMatch.termColumn": "Kelimeler",
+  "games.wordMatch.meaningColumn": "Anlamlar",
 } as const;
 
 export default dictionary;

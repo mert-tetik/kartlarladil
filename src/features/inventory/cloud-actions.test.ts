@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LOCALE_CODES } from "@/data/languages";

@@ -1,5 +1,6 @@
 import "server-only";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

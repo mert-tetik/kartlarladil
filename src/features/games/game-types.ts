@@ -1,6 +1,6 @@
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
-export type GameName = "memory" | "wordChallenge";
+export type GameName = "memory" | "wordChallenge" | "wordMatch";
 
 export interface GameProgress {
   currentLevel: number;
@@ -30,6 +30,15 @@ export interface WordChallengeItem {
   card: VocabularyCard;
   proposedMeaning: string;
   isTrue: boolean;
+}
+
+export interface WordMatchItem {
+  id: string;
+  card: VocabularyCard;
+  side: "term" | "meaning";
+  matched: boolean;
+  selected: boolean;
+  shake: boolean;
 }
 
 export type GamePhase = "start" | "playing" | "completed" | "failed";

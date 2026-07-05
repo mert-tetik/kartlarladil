@@ -8,10 +8,7 @@ import {
 import { askChatRequestSchema } from "@/features/ask/ask-schema";
 import { buildAskInput, buildAskInstructions } from "@/features/ask/ask-prompts";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import {
-  assertCanUseAi,
-  recordAiUsageEvent,
-} from "@/features/subscriptions/ai-usage-service";
+import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 
 export const runtime = "nodejs";
@@ -39,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertCanUseAi(user.id, entitlements.effectivePlan);
+  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "ask");
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });
@@ -108,9 +105,7 @@ export async function POST(request: Request) {
         } catch (error) {
           controller.error(error);
         } finally {
-          await recordAiUsageEvent(user.id, entitlements.effectivePlan, "ask").catch(() => {
-            // Ignore usage recording failures so the user still receives the response.
-          });
+          // Usage was already atomically reserved before streaming started.
         }
       },
     }),

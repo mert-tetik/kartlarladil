@@ -1,6 +1,6 @@
 import { localCardRepository } from "@/features/cards/card-repository";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
-import type { MemoryCardItem, WordChallengeItem } from "./game-types";
+import type { MemoryCardItem, WordChallengeItem, WordMatchItem } from "./game-types";
 
 function shuffle<T>(items: T[]): T[] {
   const copy = items.slice();
@@ -88,4 +88,36 @@ export function generateWordChallengeItems(
     const decoy = decoys.length > 0 ? decoys[Math.floor(Math.random() * decoys.length)] : card;
     return { card, proposedMeaning: decoy.translation, isTrue: false };
   });
+}
+
+export function generateWordMatchItems(
+  pairCount: number,
+  tiers: Tier[],
+  language: LanguageCode | "all",
+): WordMatchItem[] {
+  const uniqueCards = getRandomCards(tiers, language, pairCount);
+
+  const items: WordMatchItem[] = [];
+  uniqueCards.forEach((card) => {
+    items.push(
+      {
+        id: `${card.sourceKey}-term`,
+        card,
+        side: "term",
+        matched: false,
+        selected: false,
+        shake: false,
+      },
+      {
+        id: `${card.sourceKey}-meaning`,
+        card,
+        side: "meaning",
+        matched: false,
+        selected: false,
+        shake: false,
+      },
+    );
+  });
+
+  return shuffle(items);
 }

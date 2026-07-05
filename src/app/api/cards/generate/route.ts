@@ -7,10 +7,7 @@ import {
 import { createCardRequestSchema, generatedCardSchema } from "@/features/cards/create-card-schema";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import {
-  assertCanUseAi,
-  recordAiUsageEvent,
-} from "@/features/subscriptions/ai-usage-service";
+import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 
 export const runtime = "nodejs";
@@ -38,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertCanUseAi(user.id, entitlements.effectivePlan);
+  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "create_card");
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });
@@ -84,9 +81,7 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 502 });
   }
 
-  await recordAiUsageEvent(user.id, entitlements.effectivePlan, "create_card").catch(() => {
-    // Ignore usage recording failures so the user still receives the response.
-  });
+  // Usage was already atomically reserved before calling OpenAI.
 
   return Response.json(generated.data, {
     headers: { "Cache-Control": "no-store" },

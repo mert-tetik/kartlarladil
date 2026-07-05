@@ -715,6 +715,11 @@ const dictionary = {
   "games.wordChallenge.correct": "Richtig",
   "games.wordChallenge.wrong": "Falsch",
   "games.wordChallenge.progress": "{current}/{total}",
+  "games.wordMatch.title": "Word Match",
+  "games.wordMatch.description": "Match words with their correct meanings.",
+  "games.wordMatch.progress": "{matched}/{total}",
+  "games.wordMatch.termColumn": "Words",
+  "games.wordMatch.meaningColumn": "Meanings",
 } as const;
 
 export default dictionary;

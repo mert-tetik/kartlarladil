@@ -30,17 +30,59 @@ export async function recordAiUsageEvent(
   plan: SubscriptionPlan,
   eventType: AiUsageEventType,
 ): Promise<void> {
+  const limits = PLAN_LIMITS[plan];
   const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase.from("ai_usage_events").insert({
-    user_id: userId,
-    event_type: eventType,
-    plan,
+  const { data, error } = await supabase.rpc("record_ai_usage_if_within_limit", {
+    p_user_id: userId,
+    p_event_type: eventType,
+    p_plan: plan,
+    p_daily_limit: limits.aiDailyMessages,
+    p_monthly_limit: limits.aiMonthlyMessages,
   });
 
   if (error) {
     throw error;
   }
+
+  if (data === "daily_limit") {
+    throw new Error("AI daily limit exceeded");
+  }
+
+  if (data === "monthly_limit") {
+    throw new Error("AI monthly limit exceeded");
+  }
+}
+
+export async function assertAndRecordAiUsage(
+  userId: string,
+  plan: SubscriptionPlan,
+  eventType: AiUsageEventType,
+): Promise<LimitErrorCode | null> {
+  const limits = PLAN_LIMITS[plan];
+  const supabase = await createSupabaseServerClient();
+
+  const { data: result, error } = await supabase.rpc("record_ai_usage_if_within_limit", {
+    p_user_id: userId,
+    p_event_type: eventType,
+    p_plan: plan,
+    p_daily_limit: limits.aiDailyMessages,
+    p_monthly_limit: limits.aiMonthlyMessages,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (result === "daily_limit") {
+    return "ai_daily_limit";
+  }
+
+  if (result === "monthly_limit") {
+    return "ai_monthly_limit";
+  }
+
+  return null;
 }
 
 async function countAiUsage(

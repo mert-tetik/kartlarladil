@@ -1,5 +1,6 @@
 ﻿"use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
 import {
   useCallback,
   useEffect,
@@ -55,7 +56,6 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { awardQuizStreakPoints } from "@/features/quiz/actions";
-import { useAiQuizValidationLimit } from "@/features/quiz/use-ai-quiz-validation-limit";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
@@ -298,6 +298,7 @@ export function QuizStation({
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
   const showPostPracticeTutorial = useTutorialStore((state) => state.showPostPracticeTutorial);
   const setShowPostPracticeTutorial = useTutorialStore((state) => state.setShowPostPracticeTutorial);
+  const setShowGamesPointer = useTutorialStore((state) => state.setShowGamesPointer);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
@@ -367,8 +368,6 @@ export function QuizStation({
   }, [phase, showPostPracticeTutorial, isMobileViewport]);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
-  const { canUse: canUseAiValidation, consume: consumeAiValidation } =
-    useAiQuizValidationLimit(effectivePlan);
 
   const languageStats = useMemo(
     () =>
@@ -619,13 +618,7 @@ export function QuizStation({
       return;
     }
 
-    if (!canUseAiValidation()) {
-      handleAnswer(rawAnswer, false);
-      return;
-    }
-
     setIsAiValidating(true);
-    consumeAiValidation();
 
     const promptContext = [
       getCardTranslation(item.card, locale),
@@ -643,6 +636,12 @@ export function QuizStation({
         sourceLanguage: locale,
         promptContext,
       });
+
+      if (result.errorCode) {
+        setLimitError(result.errorCode);
+        setIsAiValidating(false);
+        return;
+      }
 
       handleAnswer(rawAnswer, result.accepted);
     } catch {
@@ -781,6 +780,7 @@ export function QuizStation({
   function handleCompletePostPracticeTutorial() {
     setActivePostPracticeTutorial(false);
     setShowPostPracticeTutorial(false);
+    setShowGamesPointer(true);
 
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {

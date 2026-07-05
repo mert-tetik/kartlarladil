@@ -15,7 +15,7 @@ export interface AiValidateTextAnswerOptions {
 
 export async function aiValidateTextAnswer(
   options: AiValidateTextAnswerOptions,
-): Promise<{ accepted: boolean }> {
+): Promise<{ accepted: boolean; errorCode?: "ai_daily_limit" | "ai_monthly_limit" }> {
   const body: AiValidateAnswerRequest = {
     userAnswer: options.userAnswer.trim(),
     correctAnswers: options.correctAnswers.map((answer) => answer.trim()),
@@ -36,8 +36,16 @@ export async function aiValidateTextAnswer(
       signal: controller.signal,
     });
 
+    if (response.status === 429) {
+      const data = (await response.json().catch(() => ({ errorCode: "ai_daily_limit" }))) as AiValidateAnswerResponse;
+      return {
+        accepted: false,
+        errorCode: data.errorCode === "ai_monthly_limit" ? "ai_monthly_limit" : "ai_daily_limit",
+      };
+    }
+
     const data = (await response.json().catch(() => ({ accepted: false }))) as AiValidateAnswerResponse;
-    return { accepted: data.accepted === true };
+    return { accepted: data.accepted === true, errorCode: data.errorCode };
   } catch {
     return { accepted: false };
   } finally {

@@ -1,7 +1,10 @@
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 import { AI_PRACTICE_DEFAULT_MODEL } from "@/features/ai-practice/ai-practice-openai";
 import { aiValidateAnswerRequestSchema } from "@/features/quiz/ai-validate-answer-schema";
 import { parseAiValidationResponse } from "@/features/quiz/ai-validate-answer-parser";
+import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { getLanguageDisplayName } from "@/i18n/labels";
 
 export const runtime = "nodejs";
@@ -21,10 +24,23 @@ function normalizeValidationText(value: string) {
 }
 
 export async function POST(request: Request) {
+  const user = await getCurrentAuthUser();
+
+  if (!user) {
+    return Response.json({ errorCode: "auth_required" }, { status: 401 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return Response.json({ accepted: false }, { status: 503 });
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "quiz_validate");
+
+  if (aiLimitError) {
+    return Response.json({ errorCode: aiLimitError }, { status: 429 });
   }
 
   const parsed = aiValidateAnswerRequestSchema.safeParse(
@@ -90,7 +106,10 @@ export async function POST(request: Request) {
     `User answer: ${userAnswer}`,
   ].join("\n");
 
-  const openai = new OpenAI({ apiKey });
+  const openai = new OpenAI({
+    apiKey,
+    dangerouslyAllowBrowser: process.env.NODE_ENV === "test",
+  });
   const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
 
   const controller = new AbortController();

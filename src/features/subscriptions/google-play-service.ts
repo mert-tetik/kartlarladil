@@ -1,5 +1,6 @@
 "use server";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { google } from "googleapis";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { SubscriptionPlan, SubscriptionProvider, SubscriptionStatus } from "@/types/domain";

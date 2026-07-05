@@ -275,6 +275,8 @@ export async function migrateLocalInventoryToCloudAction(
 ): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
+    const t = await getCloudActionText();
+    const entitlements = await getUserEntitlements(user.id);
     const sourceKeys = [...new Set(localCards.map((card) => card.cardId))];
 
     if (sourceKeys.length === 0) {
@@ -287,6 +289,44 @@ export async function migrateLocalInventoryToCloudAction(
 
     for (const sourceKey of sourceKeys) {
       await resolveLocalCard(supabase, sourceKey);
+    }
+
+    if (entitlements.effectivePlan === "free") {
+      const { data: existingRows, error: existingError } = await supabase
+        .from("user_cards")
+        .select("card_source_key, status")
+        .eq("user_id", user.id)
+        .in("card_source_key", sourceKeys);
+
+      if (existingError) {
+        throw existingError;
+      }
+
+      const existingMap = new Map((existingRows ?? []).map((row) => [row.card_source_key, row.status]));
+      const currentActive = [...existingMap.values()].filter((s) => s === "active").length;
+      const currentLearned = [...existingMap.values()].filter((s) => s === "learned").length;
+
+      const newActive = localCards.filter((c) => c.status === "active" && !existingMap.has(c.cardId)).length;
+      const newLearned = localCards.filter((c) => c.status === "learned" && !existingMap.has(c.cardId)).length;
+
+      const activeLimit = entitlements.limits.activeCards;
+      const learnedLimit = entitlements.limits.learnedCards;
+
+      if (activeLimit !== null && currentActive + newActive > activeLimit) {
+        return {
+          status: "error",
+          message: t("limit.activeCardLimitDescription"),
+          errorCode: "free_active_card_limit",
+        };
+      }
+
+      if (learnedLimit !== null && currentLearned + newLearned > learnedLimit) {
+        return {
+          status: "error",
+          message: t("limit.learnedCardLimitDescription"),
+          errorCode: "free_learned_card_limit",
+        };
+      }
     }
 
     const rows = localCards.map((card) => {
@@ -360,6 +400,22 @@ export async function createCustomCardAction(input: {
 }): Promise<CloudActionResult<CustomCardCreationPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
+    const t = await getCloudActionText();
+    const entitlements = await getUserEntitlements(user.id);
+
+    if (entitlements.effectivePlan === "free") {
+      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
+      const limitError = checkLimit(activeCount, entitlements.limits.activeCards, "free_active_card_limit");
+
+      if (limitError) {
+        return {
+          status: "error",
+          message: t("limit.activeCardLimitDescription"),
+          errorCode: limitError,
+        };
+      }
+    }
+
     const sourceKey = buildCustomCardSourceKey(user.id);
     const now = new Date().toISOString();
     const dbCustomCard: DbCustomCard = {

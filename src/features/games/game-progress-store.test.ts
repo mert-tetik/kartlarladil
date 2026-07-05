@@ -5,6 +5,7 @@ describe("useGameProgressStore", () => {
   it("starts with level 1 and zero points", () => {
     const state = useGameProgressStore.getState();
     expect(state.getProgress("memory")).toEqual({ currentLevel: 1, bestLevel: 0, totalPoints: 0 });
+    expect(state.getProgress("wordMatch")).toEqual({ currentLevel: 1, bestLevel: 0, totalPoints: 0 });
   });
 
   it("unlocks the next level and awards points on completion", () => {

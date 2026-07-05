@@ -14,6 +14,7 @@ export const aiValidateAnswerRequestSchema = z.object({
 
 export const aiValidateAnswerResponseSchema = z.object({
   accepted: z.boolean(),
+  errorCode: z.enum(["ai_daily_limit", "ai_monthly_limit"]).optional(),
 });
 
 export type AiValidateAnswerRequest = z.infer<typeof aiValidateAnswerRequestSchema>;

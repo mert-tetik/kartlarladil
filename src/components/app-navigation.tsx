@@ -221,6 +221,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   href={item.href}
                   prefetch={shouldPrefetch ? true : undefined}
                   aria-current={active ? "page" : undefined}
+                  data-games-nav-target={item.href === "/games" ? "" : undefined}
                   className={cn(
                     "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:text-foreground",
                     active && "text-brand",
