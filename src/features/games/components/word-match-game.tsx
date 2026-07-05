@@ -295,7 +295,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
         <div className="flex flex-1 flex-col overflow-hidden p-4">
           <div
             ref={boardWrapperRef}
-            className="relative flex flex-1 flex-col gap-4 sm:flex-row"
+            className="relative flex flex-1 flex-row gap-4"
           >
             <svg
               className="pointer-events-none absolute inset-0 z-10 h-full w-full"

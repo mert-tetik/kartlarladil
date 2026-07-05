@@ -114,11 +114,11 @@ export function GamesList() {
                         : "bg-blue-500 text-white hover:bg-blue-600",
                 )}
               >
-                <Icon className="size-10" aria-hidden="true" />
-                <div>
+                <div className="flex items-center gap-3">
+                  <Icon className="size-10" aria-hidden="true" />
                   <h2 className="text-xl font-bold">{t(game.titleKey)}</h2>
-                  <p className="mt-1 text-sm text-white/90">{t(game.descriptionKey)}</p>
                 </div>
+                <p className="text-sm text-white/90">{t(game.descriptionKey)}</p>
                 <div className="mt-2 text-sm font-semibold text-white/80">
                   {t("games.level", { level: progress.currentLevel })} · {tier}
                 </div>
