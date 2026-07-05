@@ -77,10 +77,22 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
     setPhase("failed");
   }, []);
 
+  const handleTick = useCallback(
+    (remainingSeconds: number) => {
+      if (remainingSeconds <= 3 && remainingSeconds > 0) {
+        sounds.tickHigh();
+      } else if (remainingSeconds <= 10 && remainingSeconds > 0) {
+        sounds.tickLow();
+      }
+    },
+    [sounds],
+  );
+
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
+    onTick: handleTick,
   });
 
   useEffect(() => {
@@ -316,7 +328,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
             <div
               ref={boardRef}
-              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-3"
+              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4"
             >
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.termColumn")}
@@ -335,7 +347,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-3">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4">
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.meaningColumn")}
               </h3>
@@ -381,7 +393,7 @@ const MatchButton = ({ item, onClick, ref }: MatchButtonProps & { ref?: React.Re
       disabled={item.matched}
       onClick={onClick}
       className={cn(
-        "relative z-20 w-full rounded-lg px-3 py-3 text-center text-sm font-semibold text-white transition-all active:scale-95 max-sm:mx-auto max-sm:max-w-[90%]",
+        "relative z-20 w-full rounded-lg px-3 py-4 text-center text-sm font-semibold text-white transition-all active:scale-95 max-sm:mx-auto max-sm:max-w-[90%]",
         "disabled:cursor-default disabled:opacity-40",
         tierStyle.accent,
         item.selected && "scale-[1.02] shadow-lg ring-2 ring-white/80 ring-offset-2 ring-offset-background",

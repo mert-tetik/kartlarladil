@@ -22,7 +22,7 @@ export function getHighestTierForLevel(level: number): Tier {
 export function getCardTiersForLevel(level: number): Tier[] {
   const highest = getHighestTierForLevel(level);
   const index = TIER_ORDER.indexOf(highest);
-  return TIER_ORDER.slice(0, index + 1);
+  return TIER_ORDER.slice(Math.max(0, index - 1), index + 1);
 }
 
 export function getPointsForLevel(level: number): number {

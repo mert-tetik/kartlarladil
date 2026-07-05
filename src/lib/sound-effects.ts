@@ -180,9 +180,9 @@ const SCALE = {
 
 function correct(context: AudioContext, now: number) {
   // Bright, satisfying major-third chime.
-  playTone(context, { frequency: SCALE.C5, startTime: now, duration: 0.14, gain: 0.07 });
-  playTone(context, { frequency: SCALE.E5, startTime: now + 0.04, duration: 0.2, gain: 0.06 });
-  playTone(context, { frequency: SCALE.G5, startTime: now + 0.08, duration: 0.24, gain: 0.04 });
+  playTone(context, { frequency: SCALE.C5, startTime: now, duration: 0.14, gain: 0.12 });
+  playTone(context, { frequency: SCALE.E5, startTime: now + 0.04, duration: 0.2, gain: 0.1 });
+  playTone(context, { frequency: SCALE.G5, startTime: now + 0.08, duration: 0.24, gain: 0.08 });
 }
 
 function incorrect(context: AudioContext, now: number) {

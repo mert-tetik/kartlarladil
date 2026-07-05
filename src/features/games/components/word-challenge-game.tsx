@@ -52,10 +52,22 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
     setPhase("failed");
   }, []);
 
+  const handleTick = useCallback(
+    (remainingSeconds: number) => {
+      if (remainingSeconds <= 3 && remainingSeconds > 0) {
+        sounds.tickHigh();
+      } else if (remainingSeconds <= 10 && remainingSeconds > 0) {
+        sounds.tickLow();
+      }
+    },
+    [sounds],
+  );
+
   const { remaining, reset } = useGameTimer({
     seconds: config.seconds,
     running: phase === "playing",
     onExpired: handleTimeExpired,
+    onTick: handleTick,
   });
 
   useEffect(() => {

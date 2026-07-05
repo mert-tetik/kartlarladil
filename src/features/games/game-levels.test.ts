@@ -23,11 +23,12 @@ describe("getHighestTierForLevel", () => {
 });
 
 describe("getCardTiersForLevel", () => {
-  it("includes the highest tier and every tier below it", () => {
+  it("includes the highest tier and one tier below it", () => {
     expect(getCardTiersForLevel(1)).toEqual(["A1"]);
     expect(getCardTiersForLevel(11)).toEqual(["A1", "A2"]);
-    expect(getCardTiersForLevel(21)).toEqual(["A1", "A2", "B1"]);
-    expect(getCardTiersForLevel(41)).toEqual(["A1", "A2", "B1", "B2", "C1"]);
+    expect(getCardTiersForLevel(21)).toEqual(["A2", "B1"]);
+    expect(getCardTiersForLevel(31)).toEqual(["B1", "B2"]);
+    expect(getCardTiersForLevel(41)).toEqual(["B2", "C1"]);
   });
 });
 
