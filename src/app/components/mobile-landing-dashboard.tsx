@@ -378,7 +378,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Draw cards + Create card buttons */}
-      <div className="grid shrink-0 grid-cols-[1fr_auto] gap-2">
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
         <Button
           size="lg"
           onClick={handleDrawCards}
@@ -392,15 +392,20 @@ export function MobileLandingDashboard() {
           size="lg"
           onClick={handleCreateCard}
           data-create-card-action
-          className="h-14 shrink-0 gap-2 border-0 bg-red-600 px-4 text-base font-bold text-white hover:bg-red-700 focus-visible:outline-red-600"
+          className="h-14 w-full gap-2 border-0 bg-red-600 px-4 text-base font-bold text-white hover:bg-red-700 focus-visible:outline-red-600"
         >
-          <Plus className="size-5" aria-hidden="true" />
-          <span className="hidden sm:inline">{t("cards.createCard")}</span>
+          <Plus className="size-5 shrink-0" aria-hidden="true" />
+          {t("cards.createCard")}
         </Button>
       </div>
 
       {/* Active / Learned row */}
-      <div className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
+      <div className="relative grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="whitespace-pre-line text-center text-[10px] font-extrabold uppercase tracking-widest text-white drop-shadow-md leading-none">
+            {t("home.mobile.myCards")}
+          </span>
+        </div>
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
