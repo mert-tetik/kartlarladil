@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import {
-  POST_PRACTICE_TUTORIAL_COMPLETED_EVENT,
+  POST_PRACTICE_NOTIFICATION_PROMPT_EVENT,
   PUSH_ACTIVITY_DEBOUNCE_MS,
   clearPushPromptDismissed,
   ensureBrowserPushSubscription,
@@ -234,10 +234,10 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
       setPromptOpen(true);
     }
 
-    window.addEventListener(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT, handlePushPromptRequested);
+    window.addEventListener(POST_PRACTICE_NOTIFICATION_PROMPT_EVENT, handlePushPromptRequested);
 
     return () => {
-      window.removeEventListener(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT, handlePushPromptRequested);
+      window.removeEventListener(POST_PRACTICE_NOTIFICATION_PROMPT_EVENT, handlePushPromptRequested);
     };
   }, [busy, enabled, isTwa, supported, user]);
 

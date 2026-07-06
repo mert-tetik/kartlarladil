@@ -4,6 +4,7 @@ import { PUSH_APP_SURFACE, type PushPermissionState, type WebPushSubscriptionJso
 
 export const FIRST_CARD_ADDED_EVENT = "foxiesdeck:first-card-added";
 export const POST_PRACTICE_TUTORIAL_COMPLETED_EVENT = "foxiesdeck:post-practice-tutorial-completed";
+export const POST_PRACTICE_NOTIFICATION_PROMPT_EVENT = "foxiesdeck:post-practice-notification-prompt";
 export const PUSH_PROMPT_DISMISSED_UNTIL_KEY = "foxiesdeck:push:prompt-dismissed-until";
 export const PUSH_ACTIVITY_PING_PREFIX = "foxiesdeck:push:last-activity-ping";
 export const PUSH_ACTIVITY_DEBOUNCE_MS = 15 * 60 * 1000;

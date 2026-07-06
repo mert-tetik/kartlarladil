@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
+import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
@@ -44,6 +45,7 @@ export async function AppShell({
                   <AppNavigation user={authUser} />
                   <RankUpTestOverlay />
                   <MobileAuthGateway />
+                  <PostPracticeLeaderboardConsentGate />
                   <RouteAwareShell>{children}</RouteAwareShell>
                   <SiteFooter className="max-lg:hidden" />
                   <CookieNotice />
