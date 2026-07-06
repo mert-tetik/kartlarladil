@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
 const CREATE_CARD_FRAME_CLASS_NAME =
-  "relative flex h-full w-full items-center justify-center overflow-hidden px-4 py-4 sm:px-6 sm:py-6";
+  "relative flex h-screen w-full items-start justify-center overflow-hidden px-4 py-4 sm:px-6 sm:py-6";
 
 export default function CreateCardPage() {
   const { user } = useAuthSession();
@@ -125,7 +125,7 @@ export default function CreateCardPage() {
 
   return (
     <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
-      <section className="relative flex h-full w-full flex-col items-center overflow-hidden">
+      <section className="relative flex h-screen w-full flex-col items-center overflow-hidden">
         <div
           data-create-card-form
           className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-8 text-left sm:gap-10"
@@ -147,6 +147,7 @@ export default function CreateCardPage() {
               type="text"
               value={term}
               onChange={(event) => setTerm(event.target.value)}
+              onFocus={() => window.scrollTo(0, 0)}
               placeholder={t("createCard.termPlaceholder")}
               maxLength={120}
               className="h-12 w-full rounded-md border border-border bg-background px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-brand"
@@ -177,7 +178,7 @@ export default function CreateCardPage() {
             alt=""
             className="absolute inset-x-0 bottom-0 h-full w-full object-cover object-bottom"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-transparent" />
         </div>
       </section>
 
