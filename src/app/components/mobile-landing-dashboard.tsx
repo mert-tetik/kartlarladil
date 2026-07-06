@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, RotateCcw, Trash2, Wand2, X } from "lucide-react";
+import { GraduationCap, Info, Library, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -394,7 +394,7 @@ export function MobileLandingDashboard() {
           data-create-card-action
           className="h-14 w-full gap-2 border-0 bg-red-500 px-4 text-base font-bold text-white hover:bg-red-600 focus-visible:outline-red-500"
         >
-          <Wand2 className="size-5 shrink-0" aria-hidden="true" />
+          <Library className="size-5 shrink-0" aria-hidden="true" />
           {t("cards.createCard")}
         </Button>
       </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Loader2, Wand2 } from "lucide-react";
+import { ChevronLeft, Library, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
@@ -125,16 +125,17 @@ export default function CreateCardPage() {
 
   return (
     <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
-      <section className="flex h-full w-full items-center justify-center">
-        <div data-create-card-form className="flex w-full max-w-md flex-col items-center justify-center gap-8 text-center sm:gap-10">
-          <div className="flex flex-col items-center gap-5">
-            <div className="flex size-20 items-center justify-center rounded-2xl bg-brand/10 text-brand sm:size-24">
-              <Wand2 className="size-10 sm:size-12" />
-            </div>
-            <div className="space-y-4">
+      <section className="relative flex h-full w-full flex-col items-center overflow-hidden">
+        <div
+          data-create-card-form
+          className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-8 text-left sm:gap-10"
+        >
+          <div className="flex w-full flex-col gap-5">
+            <div className="flex w-full items-center justify-between gap-3">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
-              <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
+              <Library className="size-8 shrink-0 text-brand sm:size-10" aria-hidden="true" />
             </div>
+            <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
           </div>
 
           <div className="w-full space-y-3 text-left">
@@ -164,9 +165,19 @@ export default function CreateCardPage() {
             disabled={loading || !term.trim()}
             className="h-12 w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
           >
-            {loading ? <Loader2 className="size-5 animate-spin" /> : <Wand2 className="size-5" />}
+            {loading ? <Loader2 className="size-5 animate-spin" /> : <Library className="size-5" />}
             {loading ? t("createCard.generating") : t("createCard.generate")}
           </Button>
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[50vh]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/create-card-illustration.png"
+            alt=""
+            className="absolute inset-x-0 bottom-0 h-full w-full object-contain object-bottom"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
         </div>
       </section>
 
