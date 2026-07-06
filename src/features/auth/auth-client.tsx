@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { normalizePreferredTier } from "@/features/auth/preferred-tier";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { setTwaAnalyticsUserId } from "@/lib/twa-analytics";
 import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
@@ -85,6 +86,10 @@ export function AuthSessionProvider({
 }) {
   const [user, setUser] = useState(initialUser);
   const client = useMemo(() => (hasSupabaseBrowserConfig() ? createSupabaseBrowserClient() : null), []);
+
+  useEffect(() => {
+    setTwaAnalyticsUserId(user?.id ?? null);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!client) {

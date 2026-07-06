@@ -7,6 +7,7 @@ import { MobileViewportController } from "@/components/mobile-viewport-controlle
 import { RouteAwareShell } from "@/components/route-aware-shell";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TwaAnalyticsProvider } from "@/components/twa-analytics-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
@@ -37,23 +38,25 @@ export async function AppShell({
       <MobileViewportController />
       <GlobalTapVibration />
       <AuthSessionProvider user={authUser}>
-        <SubscriptionProvider>
-          <ProgressStatsProvider>
-            <ThemeProvider initialTheme={authUser?.profile.theme}>
-              <PushNotificationsProvider>
-                <div className="flex min-h-screen flex-col bg-background text-foreground">
-                  <AppNavigation user={authUser} />
-                  <RankUpTestOverlay />
-                  <MobileAuthGateway />
-                  <PostPracticeLeaderboardConsentGate />
-                  <RouteAwareShell>{children}</RouteAwareShell>
-                  <SiteFooter className="max-lg:hidden" />
-                  <CookieNotice />
-                </div>
-              </PushNotificationsProvider>
-            </ThemeProvider>
-          </ProgressStatsProvider>
-        </SubscriptionProvider>
+        <TwaAnalyticsProvider>
+          <SubscriptionProvider>
+            <ProgressStatsProvider>
+              <ThemeProvider initialTheme={authUser?.profile.theme}>
+                <PushNotificationsProvider>
+                  <div className="flex min-h-screen flex-col bg-background text-foreground">
+                    <AppNavigation user={authUser} />
+                    <RankUpTestOverlay />
+                    <MobileAuthGateway />
+                    <PostPracticeLeaderboardConsentGate />
+                    <RouteAwareShell>{children}</RouteAwareShell>
+                    <SiteFooter className="max-lg:hidden" />
+                    <CookieNotice />
+                  </div>
+                </PushNotificationsProvider>
+              </ThemeProvider>
+            </ProgressStatsProvider>
+          </SubscriptionProvider>
+        </TwaAnalyticsProvider>
       </AuthSessionProvider>
     </LocaleProvider>
   );

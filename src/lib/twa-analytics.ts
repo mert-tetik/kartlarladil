@@ -55,32 +55,12 @@ export interface TwaAnalyticsOptions {
   params?: Record<string, string | number | boolean>;
 }
 
-export function sendTwaAnalyticsEvent(
-  eventName: string,
-  options: TwaAnalyticsOptions = {},
-): void {
-  if (!isTwaMode()) {
-    return;
-  }
-
-  if (options.once && getSentSet().has(eventName)) {
+function navigateTwaUrl(url: string): void {
+  if (typeof window === "undefined") {
     return;
   }
 
   try {
-    const searchParams = new URLSearchParams();
-    searchParams.set("type", eventName);
-
-    if (options.params) {
-      for (const [key, value] of Object.entries(options.params)) {
-        if (value !== undefined && value !== null) {
-          searchParams.set(key, String(value));
-        }
-      }
-    }
-
-    const url = `foxiesdeck://event?${searchParams.toString()}`;
-
     // Try a hidden iframe first so the TWA web page does not navigate away.
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
@@ -114,11 +94,51 @@ export function sendTwaAnalyticsEvent(
       window.clearTimeout(fallbackTimer);
       iframe.remove();
     };
-
-    if (options.once) {
-      markSent(eventName);
-    }
   } catch {
     // ignore
   }
+}
+
+export function sendTwaAnalyticsEvent(
+  eventName: string,
+  options: TwaAnalyticsOptions = {},
+): void {
+  if (!isTwaMode()) {
+    return;
+  }
+
+  if (options.once && getSentSet().has(eventName)) {
+    return;
+  }
+
+  const searchParams = new URLSearchParams();
+  searchParams.set("type", eventName);
+
+  if (options.params) {
+    for (const [key, value] of Object.entries(options.params)) {
+      if (value !== undefined && value !== null) {
+        searchParams.set(key, String(value));
+      }
+    }
+  }
+
+  navigateTwaUrl(`foxiesdeck://event?${searchParams.toString()}`);
+
+  if (options.once) {
+    markSent(eventName);
+  }
+}
+
+export function setTwaAnalyticsUserId(userId: string | null): void {
+  if (!isTwaMode()) {
+    return;
+  }
+
+  const searchParams = new URLSearchParams();
+  searchParams.set("type", "set_user_id");
+  if (userId) {
+    searchParams.set("user_id", userId);
+  }
+
+  navigateTwaUrl(`foxiesdeck://event?${searchParams.toString()}`);
 }
