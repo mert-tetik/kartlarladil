@@ -175,9 +175,9 @@ export default function CreateCardPage() {
           <img
             src="/create-card-illustration.png"
             alt=""
-            className="absolute inset-x-0 bottom-0 h-full w-full object-contain object-bottom"
+            className="absolute inset-x-0 bottom-0 h-full w-full object-cover object-bottom"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-transparent" />
         </div>
       </section>
 
