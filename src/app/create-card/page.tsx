@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Library, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generateCardRequest } from "@/features/cards/create-card-client";
+import { localCardRepository } from "@/features/cards/card-repository";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { TranslationKey } from "@/i18n/types";
+import type { VocabularyCard } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
@@ -24,9 +26,12 @@ export default function CreateCardPage() {
   const t = useT();
   const { locale } = useLocale();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
+  const addCard = useInventoryStore((state) => state.addCard);
+  const cards = useInventoryStore((state) => state.cards);
 
   const [term, setTerm] = useState("");
-  const [generated, setGenerated] = useState<GeneratedCardResponse | null>(null);
+  const [foundCard, setFoundCard] = useState<VocabularyCard | null>(null);
+  const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -42,21 +47,28 @@ export default function CreateCardPage() {
     setClientReady(true);
   }, []);
 
-  const previewCard = useMemo(() => {
-    if (!generated) return null;
-    return buildPreviewVocabularyCard(generated);
-  }, [generated]);
+  const isAlreadyInDeck = cards.some((card) => card.cardId === foundCard?.sourceKey);
 
   async function handleGenerate() {
-    if (!term.trim()) return;
+    const trimmedTerm = term.trim();
+    if (!trimmedTerm) return;
 
     setLoading(true);
     setErrorCode(null);
-    setGenerated(null);
+    setFoundCard(null);
+    setAiResponse(null);
 
     try {
-      const result = await generateCardRequest({ locale, term: term.trim() });
-      setGenerated(result);
+      const catalogMatches = localCardRepository.list({ query: trimmedTerm });
+
+      if (catalogMatches.length > 0) {
+        setFoundCard(catalogMatches[0]);
+        return;
+      }
+
+      const result = await generateCardRequest({ locale, term: trimmedTerm });
+      setAiResponse(result);
+      setFoundCard(buildPreviewVocabularyCard(result));
     } catch (error) {
       setErrorCode(getThrownErrorMessage(error));
     } finally {
@@ -65,32 +77,40 @@ export default function CreateCardPage() {
   }
 
   async function handleAdd() {
-    if (!generated) return;
+    if (!foundCard) return;
 
     setAdding(true);
     setErrorCode(null);
 
     try {
-      await withTimeout(
-        createCustomCard({
-          language: generated.language,
-          tier: generated.tier,
-          termKind: generated.termKind,
-          draft: {
-            term: generated.term,
-            partOfSpeech: generated.partOfSpeech,
-            pronunciation: generated.pronunciation,
-            translations: generated.translations,
-            example: generated.example,
-            exampleTranslation: generated.exampleTranslation,
-            grammar: generated.grammar,
-            termKind: generated.termKind,
-          },
-        }),
-        ADD_TO_DECK_TIMEOUT_MS,
-      );
+      if (aiResponse) {
+        await withTimeout(
+          createCustomCard({
+            language: aiResponse.language,
+            tier: aiResponse.tier,
+            termKind: aiResponse.termKind,
+            draft: {
+              term: aiResponse.term,
+              partOfSpeech: aiResponse.partOfSpeech,
+              pronunciation: aiResponse.pronunciation,
+              translations: aiResponse.translations,
+              example: aiResponse.example,
+              exampleTranslation: aiResponse.exampleTranslation,
+              grammar: aiResponse.grammar,
+              termKind: aiResponse.termKind,
+            },
+          }),
+          ADD_TO_DECK_TIMEOUT_MS,
+        );
+      } else {
+        const result = await withTimeout(addCard(foundCard.sourceKey), ADD_TO_DECK_TIMEOUT_MS);
 
-      router.push(`/?menu=active&language=${encodeURIComponent(generated.language)}`);
+        if (!result.ok) {
+          throw new Error(result.limitReached ? "free_active_card_limit" : "unknown");
+        }
+      }
+
+      router.push(`/?menu=active&language=${encodeURIComponent(foundCard.language)}`);
     } catch (error) {
       setErrorCode(getThrownErrorMessage(error));
     } finally {
@@ -99,7 +119,8 @@ export default function CreateCardPage() {
   }
 
   function handleBack() {
-    setGenerated(null);
+    setFoundCard(null);
+    setAiResponse(null);
     setErrorCode(null);
   }
 
@@ -171,7 +192,7 @@ export default function CreateCardPage() {
           </Button>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-10 z-0 h-[50vh]">
+        <div className="pointer-events-none absolute inset-x-0 -mx-4 bottom-10 z-0 h-[50vh] sm:-mx-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/create-card-illustration.png"
@@ -182,7 +203,7 @@ export default function CreateCardPage() {
         </div>
       </section>
 
-      {previewCard && (
+      {foundCard && (
         <div
           data-create-card-overlay
           className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
@@ -203,7 +224,7 @@ export default function CreateCardPage() {
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
                 <div className="w-full max-w-[15rem] sm:max-w-[18rem]">
                   <VocabularyCardView
-                    card={previewCard}
+                    card={foundCard}
                     initialFace="front"
                     flippable
                     showActions={false}
@@ -234,11 +255,11 @@ export default function CreateCardPage() {
               <Button
                 size="sm"
                 onClick={handleAdd}
-                disabled={adding}
+                disabled={adding || isAlreadyInDeck}
                 className="bg-brand text-brand-foreground hover:bg-brand-hover"
               >
                 {adding ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : null}
-                {t("createCard.add")}
+                {isAlreadyInDeck ? t("createCard.alreadyInDeck") : t("createCard.add")}
               </Button>
             </div>
           </div>
