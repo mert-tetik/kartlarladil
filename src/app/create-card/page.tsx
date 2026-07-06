@@ -171,7 +171,7 @@ export default function CreateCardPage() {
           </Button>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[50vh]">
+        <div className="pointer-events-none absolute inset-x-0 bottom-10 z-0 h-[50vh]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/create-card-illustration.png"
