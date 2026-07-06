@@ -639,7 +639,7 @@ const dictionary = {
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 
   "createCard.title": "Create Card",
-  "createCard.description": "Dodaj wÅ‚asne sÅ‚owo do kolekcji jako kartÄ™!",
+  "createCard.description": "Nie trać nowych słów, które znajdujesz! Dodaj słowo do swojej kolekcji kart.",
   "createCard.term": "SÅ‚owo lub wyraÅ¼enie",
   "createCard.termPlaceholder": "Wpisz sÅ‚owo lub wyraÅ¼enie",
   "createCard.generate": "Create Card",

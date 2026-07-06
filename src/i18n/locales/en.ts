@@ -638,7 +638,7 @@ const dictionary = {
   "home.mobile.noLearnedCardsTitle": "No learned cards",
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
   "createCard.title": "Create Card",
-  "createCard.description": "Add a custom word to your collection as a card!",
+  "createCard.description": "Don't lose the new words you find! Add the word to your card collection.",
   "createCard.term": "Word or phrase",
   "createCard.termPlaceholder": "Enter a word or phrase",
   "createCard.generate": "Create Card",

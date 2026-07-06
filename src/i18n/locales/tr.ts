@@ -638,7 +638,7 @@ const dictionary = {
   "home.mobile.noLearnedCardsTitle": "Öğrenilmiş kart yok",
   "home.mobile.noLearnedCardsDescription": "Quizleri tamamlayarak kartları öğrenilenlere taşı.",
   "createCard.title": "Kart Oluştur",
-  "createCard.description": "Koleksiyonuna özel bir kelime kartı olarak ekle!",
+  "createCard.description": "Bulduğunuz yeni kelimeleri kaybetmeyin! Kelimeyi kart koleksiyonunuza ekleyin.",
   "createCard.term": "Kelime veya kelime öbeği",
   "createCard.termPlaceholder": "Bir kelime veya kelime öbeği girin",
   "createCard.generate": "Kart Oluştur",

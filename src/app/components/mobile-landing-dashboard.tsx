@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, RotateCcw, Trash2, Wand2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -378,7 +378,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Draw cards + Create card buttons */}
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-2">
         <Button
           size="lg"
           onClick={handleDrawCards}
@@ -392,9 +392,9 @@ export function MobileLandingDashboard() {
           size="lg"
           onClick={handleCreateCard}
           data-create-card-action
-          className="h-14 w-full gap-2 border-0 bg-red-600 px-4 text-base font-bold text-white hover:bg-red-700 focus-visible:outline-red-600"
+          className="h-14 w-full gap-2 border-0 bg-red-500 px-4 text-base font-bold text-white hover:bg-red-600 focus-visible:outline-red-500"
         >
-          <Plus className="size-5 shrink-0" aria-hidden="true" />
+          <Wand2 className="size-5 shrink-0" aria-hidden="true" />
           {t("cards.createCard")}
         </Button>
       </div>

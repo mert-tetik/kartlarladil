@@ -61,39 +61,10 @@ function navigateTwaUrl(url: string): void {
   }
 
   try {
-    // Try a hidden iframe first so the TWA web page does not navigate away.
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "absolute";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.style.opacity = "0";
-    iframe.style.pointerEvents = "none";
-    iframe.src = url;
-
-    document.body.appendChild(iframe);
-
-    // Fallback to a direct navigation if the iframe approach did not trigger
-    // the intent within a short window (e.g. blocked by Chrome Custom Tab).
-    const fallbackTimer = window.setTimeout(() => {
-      iframe.remove();
-      try {
-        window.location.href = url;
-      } catch {
-        // ignore
-      }
-    }, 300);
-
-    iframe.onload = () => {
-      window.clearTimeout(fallbackTimer);
-      window.setTimeout(() => iframe.remove(), 1000);
-    };
-
-    iframe.onerror = () => {
-      window.clearTimeout(fallbackTimer);
-      iframe.remove();
-    };
+    // Use location.replace so the custom-scheme navigation does not add a
+    // history entry. The Android side intercepts foxiesdeck://event URLs in
+    // EventReceiverActivity and does not leave the TWA web page.
+    window.location.replace(url);
   } catch {
     // ignore
   }

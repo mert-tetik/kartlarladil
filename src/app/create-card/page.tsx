@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
@@ -126,13 +126,18 @@ export default function CreateCardPage() {
   return (
     <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
       <section className="flex h-full w-full items-center justify-center">
-        <div data-create-card-form className="flex w-full max-w-md flex-col items-center justify-center gap-4 text-center sm:gap-5">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
-            <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
+        <div data-create-card-form className="flex w-full max-w-md flex-col items-center justify-center gap-8 text-center sm:gap-10">
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex size-20 items-center justify-center rounded-2xl bg-brand/10 text-brand sm:size-24">
+              <Wand2 className="size-10 sm:size-12" />
+            </div>
+            <div className="space-y-4">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
+              <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
+            </div>
           </div>
 
-          <div className="w-full space-y-2 text-left">
+          <div className="w-full space-y-3 text-left">
             <label htmlFor="term" className="text-sm font-medium">
               {t("createCard.term")}
             </label>
@@ -159,7 +164,7 @@ export default function CreateCardPage() {
             disabled={loading || !term.trim()}
             className="h-12 w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
           >
-            {loading ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
+            {loading ? <Loader2 className="size-5 animate-spin" /> : <Wand2 className="size-5" />}
             {loading ? t("createCard.generating") : t("createCard.generate")}
           </Button>
         </div>

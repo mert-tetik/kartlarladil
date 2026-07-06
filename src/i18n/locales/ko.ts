@@ -639,7 +639,7 @@ const dictionary = {
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 
   "createCard.title": "Create Card",
-  "createCard.description": "ì»¤ìŠ¤í…€ ë‹¨ì–´ë¥¼ ì¹´ë“œë¡œ ì»¬ë ‰ì…˜ì— ì¶”ê°€í•˜ì„¸ìš”!",
+  "createCard.description": "찾은 새로운 단어를 잃지 마세요! 단어를 카드 컬렉션에 추가하세요.",
   "createCard.term": "ë‹¨ì–´ ë˜ëŠ” êµ¬ë¬¸",
   "createCard.termPlaceholder": "ë‹¨ì–´ ë˜ëŠ” êµ¬ë¬¸ì„ ì…ë ¥í•˜ì„¸ìš”",
   "createCard.generate": "Create Card",
