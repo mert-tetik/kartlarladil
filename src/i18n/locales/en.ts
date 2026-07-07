@@ -646,6 +646,8 @@ const dictionary = {
   "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "Already in Deck",
+  "createCard.success.added": "Card added to deck",
+  "createCard.error.addFailed": "An error occurred, please try again",
   "createCard.error.unknown": "Something went wrong while creating your card.",
   "createCard.error.auth_required": "Sign in to create cards.",
   "createCard.error.not_configured": "Card creation is not available right now.",

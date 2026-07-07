@@ -647,6 +647,8 @@ const dictionary = {
   "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "已在牌组中",
+  "createCard.success.added": "卡片已添加到牌组",
+  "createCard.error.addFailed": "发生错误，请重试",
   "createCard.error.unknown": "Something went wrong while creating your card.",
   "createCard.error.auth_required": "Sign in to create cards.",
   "createCard.error.not_configured": "Card creation is not available right now.",

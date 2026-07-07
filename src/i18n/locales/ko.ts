@@ -647,6 +647,8 @@ const dictionary = {
   "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "덱에 이미 있음",
+  "createCard.success.added": "카드가 덱에 추가되었습니다",
+  "createCard.error.addFailed": "오류가 발생했습니다. 다시 시도해 주세요",
   "createCard.error.unknown": "Something went wrong while creating your card.",
   "createCard.error.auth_required": "Sign in to create cards.",
   "createCard.error.not_configured": "Card creation is not available right now.",

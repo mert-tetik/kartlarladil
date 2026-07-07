@@ -36,6 +36,8 @@ export default function CreateCardPage() {
   const [adding, setAdding] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [clientReady, setClientReady] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -46,6 +48,26 @@ export default function CreateCardPage() {
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!toast) {
+      setToastVisible(false);
+      return;
+    }
+
+    const showTimer = window.setTimeout(() => setToastVisible(true), 10);
+    let clearTimer: number | undefined;
+    const hideTimer = window.setTimeout(() => {
+      setToastVisible(false);
+      clearTimer = window.setTimeout(() => setToast(null), 300);
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+      if (clearTimer) window.clearTimeout(clearTimer);
+    };
+  }, [toast]);
 
   const isAlreadyInDeck = cards.some((card) => card.cardId === foundCard?.sourceKey);
 
@@ -115,9 +137,14 @@ export default function CreateCardPage() {
         }
       }
 
-      router.push(`/?menu=active&language=${encodeURIComponent(foundCard.language)}`);
+      setFoundCard(null);
+      setAiResponse(null);
+      setTerm("");
+      setToast({ type: "success", message: t("createCard.success.added") });
     } catch (error) {
-      setErrorCode(getThrownErrorMessage(error));
+      setFoundCard(null);
+      setAiResponse(null);
+      setToast({ type: "error", message: t("createCard.error.addFailed") });
     } finally {
       setAdding(false);
     }
@@ -206,6 +233,18 @@ export default function CreateCardPage() {
           </Button>
         </div>
       </section>
+
+      {toast && (
+        <div
+          className={cn(
+            "fixed top-4 left-1/2 z-[60] -translate-x-1/2 transform rounded-lg px-4 py-2 shadow-lg transition-all duration-300 ease-out",
+            toastVisible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
+            toast.type === "success" ? "bg-emerald-500 text-white" : "bg-red-500 text-white",
+          )}
+        >
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+      )}
 
       {foundCard && (
         <div
