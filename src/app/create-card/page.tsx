@@ -189,16 +189,16 @@ export default function CreateCardPage() {
       </div>
 
       <section className="relative flex h-screen w-full flex-col items-center overflow-hidden">
-        <div className="absolute inset-x-0 top-0 z-50 flex w-screen flex-col items-center justify-center gap-1 bg-red-500 px-4 py-3 shadow-sm">
-          <Library className="size-7 shrink-0 text-white sm:size-8" aria-hidden="true" />
-          <p className="text-center text-xs font-medium text-white sm:text-sm">
+        <div className="fixed inset-x-0 top-0 z-50 flex h-20 w-screen flex-col items-center justify-center gap-1 bg-red-500 px-4 shadow-sm">
+          <Library className="size-8 shrink-0 text-white sm:size-10" aria-hidden="true" />
+          <p className="max-w-md text-center text-xs font-medium text-white sm:text-sm">
             {t("createCard.description")}
           </p>
         </div>
 
         <div
           data-create-card-form
-          className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-28 text-left sm:gap-10 sm:pt-32"
+          className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-32 text-left sm:gap-10 sm:pt-36"
         >
           <div className="w-full space-y-3 text-left">
             <label htmlFor="term" className="text-sm font-medium">
