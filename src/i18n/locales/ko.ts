@@ -643,8 +643,6 @@ const dictionary = {
   "createCard.termPlaceholder": "ë‹¨ì–´ ë˜ëŠ” êµ¬ë¬¸ì„ ì…ë ¥í•˜ì„¸ìš”",
   "createCard.generate": "Create Card",
   "createCard.generating": "Creating card...",
-  "createCard.previewTitle": "Your Card is Ready",
-  "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "덱에 이미 있음",
   "createCard.success.added": "카드가 덱에 추가되었습니다",

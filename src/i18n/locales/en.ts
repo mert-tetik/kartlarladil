@@ -642,8 +642,6 @@ const dictionary = {
   "createCard.termPlaceholder": "Enter a word or phrase",
   "createCard.generate": "Create Card",
   "createCard.generating": "Creating card...",
-  "createCard.previewTitle": "Your Card is Ready",
-  "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "Already in Deck",
   "createCard.success.added": "Card added to deck",

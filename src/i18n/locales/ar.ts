@@ -643,8 +643,6 @@ const dictionary = {
   "createCard.termPlaceholder": "Ø£Ø¯Ø®Ù„ ÙƒÙ„Ù…Ø© Ø£Ùˆ Ø¹Ø¨Ø§Ø±Ø©",
   "createCard.generate": "Create Card",
   "createCard.generating": "Creating card...",
-  "createCard.previewTitle": "Your Card is Ready",
-  "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "بالفعل في المجموعة",
   "createCard.success.added": "تمت إضافة البطاقة إلى المجموعة",

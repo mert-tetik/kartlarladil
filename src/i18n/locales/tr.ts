@@ -642,8 +642,6 @@ const dictionary = {
   "createCard.termPlaceholder": "Bir kelime veya kelime öbeği girin",
   "createCard.generate": "Kart Oluştur",
   "createCard.generating": "Kart oluşturuluyor...",
-  "createCard.previewTitle": "Yeni Kartın Hazır",
-  "createCard.previewDescription": "Beğendiysen destene ekle, beğenmediysen yeniden oluştur.",
   "createCard.add": "Desteye Ekle",
   "createCard.alreadyInDeck": "Destede Mevcut",
   "createCard.success.added": "Kart desteye eklendi",

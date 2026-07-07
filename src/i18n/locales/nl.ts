@@ -643,8 +643,6 @@ const dictionary = {
   "createCard.termPlaceholder": "Voer een woord of zin in",
   "createCard.generate": "Create Card",
   "createCard.generating": "Creating card...",
-  "createCard.previewTitle": "Your Card is Ready",
-  "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "Al in het deck",
   "createCard.success.added": "Kaart toegevoegd aan deck",

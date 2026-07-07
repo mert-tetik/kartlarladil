@@ -643,8 +643,6 @@ const dictionary = {
   "createCard.termPlaceholder": "Wpisz sÅ‚owo lub wyraÅ¼enie",
   "createCard.generate": "Create Card",
   "createCard.generating": "Creating card...",
-  "createCard.previewTitle": "Your Card is Ready",
-  "createCard.previewDescription": "Like it? Add it to your deck. Not quite right? Generate another.",
   "createCard.add": "Add to Deck",
   "createCard.alreadyInDeck": "Już w talii",
   "createCard.success.added": "Karta dodana do talii",

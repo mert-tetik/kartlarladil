@@ -254,16 +254,8 @@ export default function CreateCardPage() {
           <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-hidden">
             <div
               data-create-card-overlay-panel
-              className={cn(
-                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black p-3 shadow-2xl",
-                "sm:p-4",
-              )}
+              className="relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden bg-transparent p-0"
             >
-              <div className="mb-2 shrink-0 text-center">
-                <h2 className="text-sm font-semibold text-white sm:text-base">{t("createCard.previewTitle")}</h2>
-                <p className="text-xs text-white/70">{t("createCard.previewDescription")}</p>
-              </div>
-
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
                 <div className="w-full max-w-[15rem] sm:max-w-[18rem]">
                   <VocabularyCardView
