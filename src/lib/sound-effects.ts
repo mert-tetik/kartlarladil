@@ -11,7 +11,8 @@ export type SoundEffectName =
   | "streak-fire"
   | "clock-tick-low"
   | "clock-tick-high"
-  | "level-fail";
+  | "level-fail"
+  | "card-ready";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -313,6 +314,13 @@ function levelFail(context: AudioContext, now: number) {
   playNoise(context, { startTime: now, duration: 0.35, gain: 0.06, filterFrequency: 220 });
 }
 
+function cardReady(context: AudioContext, now: number) {
+  // Bright chime: "çiling".
+  playTone(context, { frequency: SCALE.C6, startTime: now, duration: 0.14, gain: 0.08 });
+  playTone(context, { frequency: SCALE.E6, startTime: now + 0.04, duration: 0.18, gain: 0.06 });
+  playTone(context, { frequency: SCALE.G6, startTime: now + 0.08, duration: 0.22, gain: 0.045 });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -327,6 +335,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "clock-tick-low": clockTickLow,
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,
+  "card-ready": cardReady,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {

@@ -15,6 +15,7 @@ import type { GeneratedCardResponse } from "@/features/cards/create-card-schema"
 import type { TranslationKey } from "@/i18n/types";
 import type { VocabularyCard } from "@/types/domain";
 import { cn, normalizeSearch } from "@/lib/utils";
+import { playSoundEffect } from "@/lib/sound-effects";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
 const CREATE_CARD_FRAME_CLASS_NAME =
@@ -38,6 +39,7 @@ export default function CreateCardPage() {
   const [clientReady, setClientReady] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -90,12 +92,14 @@ export default function CreateCardPage() {
 
       if (selectedCard) {
         setFoundCard(selectedCard);
+        playSoundEffect("card-ready");
         return;
       }
 
       const result = await generateCardRequest({ locale, term: trimmedTerm });
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
+      playSoundEffect("card-ready");
     } catch (error) {
       setErrorCode(getThrownErrorMessage(error));
     } finally {
@@ -137,23 +141,35 @@ export default function CreateCardPage() {
         }
       }
 
-      setFoundCard(null);
-      setAiResponse(null);
-      setTerm("");
-      setToast({ type: "success", message: t("createCard.success.added") });
+      setIsExiting(true);
+      window.setTimeout(() => {
+        setFoundCard(null);
+        setAiResponse(null);
+        setTerm("");
+        setIsExiting(false);
+        setToast({ type: "success", message: t("createCard.success.added") });
+      }, 300);
     } catch (error) {
-      setFoundCard(null);
-      setAiResponse(null);
-      setToast({ type: "error", message: t("createCard.error.addFailed") });
+      setIsExiting(true);
+      window.setTimeout(() => {
+        setFoundCard(null);
+        setAiResponse(null);
+        setIsExiting(false);
+        setToast({ type: "error", message: t("createCard.error.addFailed") });
+      }, 300);
     } finally {
       setAdding(false);
     }
   }
 
   function handleBack() {
-    setFoundCard(null);
-    setAiResponse(null);
-    setErrorCode(null);
+    setIsExiting(true);
+    window.setTimeout(() => {
+      setFoundCard(null);
+      setAiResponse(null);
+      setErrorCode(null);
+      setIsExiting(false);
+    }, 300);
   }
 
   function getErrorMessage(code: string) {
