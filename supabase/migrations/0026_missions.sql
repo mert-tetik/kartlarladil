@@ -49,19 +49,22 @@ $$;
 -- RLS for user_missions
 alter table public.user_missions enable row level security;
 
-create policy if not exists user_missions_select_own
+drop policy if exists user_missions_select_own on public.user_missions;
+create policy user_missions_select_own
   on public.user_missions
   for select
   to authenticated
   using (auth.uid() = user_id);
 
-create policy if not exists user_missions_insert_own
+drop policy if exists user_missions_insert_own on public.user_missions;
+create policy user_missions_insert_own
   on public.user_missions
   for insert
   to authenticated
   with check (auth.uid() = user_id);
 
-create policy if not exists user_missions_update_own
+drop policy if exists user_missions_update_own on public.user_missions;
+create policy user_missions_update_own
   on public.user_missions
   for update
   to authenticated
@@ -71,13 +74,15 @@ create policy if not exists user_missions_update_own
 -- RLS for mission_rewards (read-only audit for the owner)
 alter table public.mission_rewards enable row level security;
 
-create policy if not exists mission_rewards_select_own
+drop policy if exists mission_rewards_select_own on public.mission_rewards;
+create policy mission_rewards_select_own
   on public.mission_rewards
   for select
   to authenticated
   using (auth.uid() = user_id);
 
-create policy if not exists mission_rewards_insert_own
+drop policy if exists mission_rewards_insert_own on public.mission_rewards;
+create policy mission_rewards_insert_own
   on public.mission_rewards
   for insert
   to authenticated

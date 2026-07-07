@@ -37,6 +37,7 @@ import {
   resolveMobileLandingLanguage,
 } from "@/app/components/mobile-landing-language-guard";
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
+import { MissionsPanel } from "@/features/missions/components/missions-panel";
 
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -96,6 +97,7 @@ export function MobileLandingDashboard() {
     return menu === "active" || menu === "learned" ? menu : "active";
   });
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
+  const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
@@ -314,7 +316,11 @@ export function MobileLandingDashboard() {
         onClick={() => {
           vibrate("tap");
           requireAuthAction(() => {
-            router.push("/missions");
+            if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+              router.push("/missions");
+              return;
+            }
+            setMissionsPanelOpen(true);
           }, { nextPath: "/missions" });
         }}
         className="absolute right-2 top-2 z-10 flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-1.5 text-white shadow-sm backdrop-blur-sm transition-colors hover:bg-white/20"
@@ -550,6 +556,11 @@ export function MobileLandingDashboard() {
           writeLandingCardLanguage(currentLocale, { notify: true });
           setSelectedLanguage(currentLocale);
         }}
+      />
+
+      <MissionsPanel
+        open={missionsPanelOpen}
+        onClose={() => setMissionsPanelOpen(false)}
       />
     </section>
   );

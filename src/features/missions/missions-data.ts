@@ -1,65 +1,74 @@
+import { AI_PRACTICE_CHARACTER_IDS } from "@/features/ai-practice/ai-practice-data";
+import type { GameName } from "@/features/games/game-types";
 import type { MissionDefinition } from "./mission-types";
 
-export const MISSIONS: MissionDefinition[] = [
-  {
-    id: "add_5_cards",
-    index: 0,
-    type: "add_cards",
-    requirement: 5,
-    reward: { kind: "chest", tier: "wood" },
-  },
-  {
-    id: "learn_3_cards",
-    index: 1,
-    type: "learn_cards",
-    requirement: 3,
-    reward: { kind: "points", amount: 50 },
-  },
-  {
-    id: "practice_with_clara",
-    index: 2,
-    type: "ai_practice",
-    requirement: 1,
-    reward: { kind: "points", amount: 75 },
-    characterId: "gentle-companion",
-  },
-  {
-    id: "add_15_cards",
-    index: 3,
-    type: "add_cards",
-    requirement: 15,
-    reward: { kind: "chest", tier: "bronze" },
-  },
-  {
-    id: "reach_memory_level_5",
-    index: 4,
-    type: "game_level",
-    requirement: 5,
-    reward: { kind: "points", amount: 100 },
-    game: "memory",
-  },
-  {
-    id: "learn_10_cards",
-    index: 5,
-    type: "learn_cards",
-    requirement: 10,
-    reward: { kind: "chest", tier: "gold" },
-  },
-  {
-    id: "practice_with_raven",
-    index: 6,
-    type: "ai_practice",
-    requirement: 1,
-    reward: { kind: "points", amount: 150 },
-    characterId: "gothic-calm",
-  },
-  {
-    id: "add_30_cards",
-    index: 7,
-    type: "add_cards",
-    requirement: 30,
-    reward: { kind: "chest", tier: "legendary" },
-  },
-];
+const GAME_NAMES: GameName[] = ["memory", "wordChallenge", "wordMatch"];
+
+const CHEST_REWARD_TIERS = [
+  "wood",
+  "iron",
+  "bronze",
+  "silver",
+  "gold",
+  "diamond",
+  "legendary",
+] as const;
+
+export const MISSIONS: MissionDefinition[] = Array.from({ length: 50 }, (_, index) => {
+  const cycle = index % 4;
+  const tier = Math.floor(index / 4);
+  const basePoints = 50 + tier * 25;
+
+  switch (cycle) {
+    case 0: {
+      const requirement = Math.min(5 + tier * 5, 250);
+      return {
+        id: `add_cards_${index + 1}`,
+        index,
+        type: "add_cards",
+        requirement,
+        reward: {
+          kind: "chest",
+          tier: CHEST_REWARD_TIERS[Math.min(tier, CHEST_REWARD_TIERS.length - 1)],
+        },
+      };
+    }
+    case 1: {
+      const requirement = Math.min(3 + tier * 3, 150);
+      return {
+        id: `learn_cards_${index + 1}`,
+        index,
+        type: "learn_cards",
+        requirement,
+        reward: { kind: "points", amount: basePoints },
+      };
+    }
+    case 2: {
+      const game = GAME_NAMES[tier % GAME_NAMES.length];
+      const requirement = Math.min(3 + (tier % 6) * 2, 25);
+      return {
+        id: `game_level_${game}_${index + 1}`,
+        index,
+        type: "game_level",
+        requirement,
+        game,
+        reward: { kind: "points", amount: basePoints + 25 },
+      };
+    }
+    case 3: {
+      const characterId = AI_PRACTICE_CHARACTER_IDS[tier % AI_PRACTICE_CHARACTER_IDS.length];
+      return {
+        id: `ai_practice_${characterId}_${index + 1}`,
+        index,
+        type: "ai_practice",
+        requirement: 1,
+        characterId,
+        reward: { kind: "points", amount: basePoints + 50 },
+      };
+    }
+    default:
+      throw new Error("Unexpected mission cycle");
+  }
+});
 
 export const MISSIONS_BY_ID = new Map(MISSIONS.map((mission) => [mission.id, mission]));
