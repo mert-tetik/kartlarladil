@@ -731,34 +731,37 @@ function TierDetailMenu({
                     setDisplayCard(card);
                   }}
                   aria-label={card.term}
-                  className={cn(
-                    "relative rounded-xl border border-white/20 p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-                    tierStyle.accent,
-                  )}
+                  className="relative flex flex-col overflow-hidden rounded-xl border border-white/20 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
-                  {status === "active" && (
-                    <button
-                      type="button"
-                      disabled={pendingCardIds.has(card.id)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleDeleteCard(card.id);
-                      }}
-                      onKeyDown={(event) => event.stopPropagation()}
-                      aria-label={`${card.term} ${t("common.delete")}`}
-                      title={t("inventory.deleteConfirm")}
-                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-transparent text-black transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </button>
-                  )}
-                  <p className="pr-6 text-sm font-bold text-black">{card.term}</p>
-                  <p className="mt-1 text-xs text-black/70 line-clamp-2">
-                    {card.translations[locale] || card.translation}
-                  </p>
-                  <span className="mt-2 inline-flex text-[10px] font-bold text-black">
-                    {card.tier}
-                  </span>
+                  <div className="flex items-start justify-between gap-2 bg-white px-3 py-2">
+                    <p className="break-words text-sm font-bold text-black">{card.term}</p>
+                    {status === "active" && (
+                      <button
+                        type="button"
+                        disabled={pendingCardIds.has(card.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteCard(card.id);
+                        }}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        aria-label={`${card.term} ${t("common.delete")}`}
+                        title={t("inventory.deleteConfirm")}
+                        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-transparent text-black transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className={cn("relative flex flex-1 flex-col justify-between px-3 py-2", tierStyle.accent)}>
+                    <div className="absolute inset-0 bg-black/20" />
+                    <p className="relative z-10 text-xs text-white/90 line-clamp-2">
+                      {card.translations[locale] || card.translation}
+                    </p>
+                    <span className="relative z-10 mt-2 inline-flex text-[10px] font-bold text-white">
+                      {card.tier}
+                    </span>
+                  </div>
                 </div>
               );
             })}
