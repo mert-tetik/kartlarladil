@@ -733,7 +733,7 @@ function TierDetailMenu({
                   aria-label={card.term}
                   className="relative flex flex-col overflow-hidden rounded-xl border border-white/20 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
-                  <div className="flex items-start justify-between gap-2 bg-white px-3 py-2">
+                  <div className="flex items-center justify-between gap-2 bg-white px-3 py-1.5">
                     <p className="break-words text-sm font-bold text-black">{card.term}</p>
                     {status === "active" && (
                       <button
