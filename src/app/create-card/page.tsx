@@ -198,9 +198,9 @@ export default function CreateCardPage() {
 
         <div
           data-create-card-form
-          className="relative z-10 flex w-full max-w-md flex-col items-start gap-3 px-4 pt-40 text-left sm:gap-4 sm:pt-44"
+          className="relative z-10 flex w-full max-w-md flex-col items-start gap-2 px-4 pt-36 text-left sm:gap-3 sm:pt-40"
         >
-          <div className="w-full space-y-3 text-left">
+          <div className="w-full space-y-3 text-left mb-4 sm:mb-5">
             <label htmlFor="term" className="text-sm font-medium">
               {t("createCard.term")}
             </label>
