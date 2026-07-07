@@ -93,7 +93,9 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage 
             </Button>
           ) : null}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {t("common.maybeLater")}
+            {errorCode === "language_match_not_allowed"
+              ? t("locale.languageMatchCancel")
+              : t("common.maybeLater")}
           </Button>
         </div>
       </div>
