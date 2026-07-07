@@ -519,6 +519,13 @@ export function MobileLandingDashboard() {
         open={showLanguageMatchDialog}
         errorCode="language_match_not_allowed"
         onOpenChange={(nextOpen) => setShowLanguageMatchDialog(nextOpen)}
+        onSwapLanguages={() => {
+          const currentLocale = locale;
+          const currentCardLanguage = selectedLanguage;
+          setLocale(currentCardLanguage);
+          writeLandingCardLanguage(currentLocale, { notify: true });
+          setSelectedLanguage(currentLocale);
+        }}
       />
     </section>
   );

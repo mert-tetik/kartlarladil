@@ -311,6 +311,7 @@ const dictionary = {
   "locale.change": "Change site language",
   "locale.current": "Current site language",
   "locale.languageMatchDescription": "Because translations are shown during quizzes, the card language and site language must be different. Please choose another language.",
+  "locale.languageMatchSwap": "Swap languages",
   "locale.languageMatchCancel": "Not now",
   "locale.languageMatchTitle": "Card language and site language cannot be the same",
   "locale.lockedOnLearnDescription": "Leave the Learn page before changing the site language.",

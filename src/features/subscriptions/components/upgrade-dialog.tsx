@@ -22,9 +22,10 @@ interface UpgradeDialogProps {
   errorCode: UpgradeDialogErrorCode | null;
   onOpenChange: (open: boolean) => void;
   selectedLanguage?: LanguageCode;
+  onSwapLanguages?: () => void;
 }
 
-export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage }: UpgradeDialogProps) {
+export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage, onSwapLanguages }: UpgradeDialogProps) {
   const t = useT();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
@@ -90,6 +91,18 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage 
               }}
             >
               {t("limit.activeCardLimitLearnButton")}
+            </Button>
+          ) : null}
+          {errorCode === "language_match_not_allowed" && onSwapLanguages ? (
+            <Button
+              className="w-full"
+              onClick={() => {
+                vibrate("tap");
+                onSwapLanguages();
+                onOpenChange(false);
+              }}
+            >
+              {t("locale.languageMatchSwap")}
             </Button>
           ) : null}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

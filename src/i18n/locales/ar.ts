@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØºÙŠÙŠØ± Ù„ØºØ© Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ø£Ø«Ù†Ø§Ø¡ ØµÙØ­Ø© Ø§Ù„ØªØ¹Ù„Ù‘Ù…",
   "locale.languageMatchTitle": "لا يمكن أن يكون لغة البطاقة ولغة الموقع متطابقتين",
   "locale.languageMatchDescription": "نظرًا لعرض الترجمات أثناء الاختبارات، يجب أن تختلف لغة البطاقة ولغة الموقع. يرجى اختيار لغة أخرى.",
+  "locale.languageMatchSwap": "تبديل اللغات",
   "locale.languageMatchCancel": "ليس الآن",
   "metadata.description": "ØªØ·Ø¨ÙŠÙ‚ ØªØ¹Ù„Ù… Ø§Ù„Ù…ÙØ±Ø¯Ø§Øª Ù…ØªØ¹Ø¯Ø¯ Ø§Ù„Ù„ØºØ§Øª Ù…Ø¨Ù†ÙŠ Ø­ÙˆÙ„ Ø¨Ø·Ø§Ù‚Ø§Øª Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„Ø¬Ù…Ø¹.",
   "nav.aiPractice": "ØªØ¯Ø±ÙŠØ¨ AI",

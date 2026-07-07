@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "Die Sprache der Seite kann wÃ¤hrend Lernen nicht geÃ¤ndert werden",
   "locale.languageMatchTitle": "Kartensprache und Sitesprache dürfen nicht identisch sein",
   "locale.languageMatchDescription": "Da während des Quizs Übersetzungen angezeigt werden, müssen Kartensprache und Sitesprache unterschiedlich sein. Bitte wähle eine andere Sprache.",
+  "locale.languageMatchSwap": "Sprachen tauschen",
   "locale.languageMatchCancel": "Nicht jetzt",
   "metadata.description": "Eine mehrsprachige Vokabellern-App, die auf sammelbaren Karten basiert.",
   "nav.aiPractice": "KI-Ãœbung",

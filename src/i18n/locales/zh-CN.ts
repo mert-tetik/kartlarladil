@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "åœ¨å­¦ä¹ é¡µé¢ä¸­ä¸èƒ½æ›´æ”¹ç½‘ç«™è¯­è¨€",
   "locale.languageMatchTitle": "卡片语言和网站语言不能相同",
   "locale.languageMatchDescription": "由于测验期间会显示翻译，卡片语言和网站语言必须不同。请选择另一种语言。",
+  "locale.languageMatchSwap": "交换语言",
   "locale.languageMatchCancel": "暂不",
   "metadata.description": "ä¸€ä¸ªå›´ç»•å¯æ”¶é›†å¡ç‰‡æ„å»ºçš„å¤šè¯­è¨€è¯æ±‡å­¦ä¹ åº”ç”¨ã€‚",
   "nav.aiPractice": "AIç»ƒä¹ ",

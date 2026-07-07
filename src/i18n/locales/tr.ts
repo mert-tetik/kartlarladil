@@ -311,6 +311,7 @@ const dictionary = {
   "locale.change": "Site dilini değiştir",
   "locale.current": "Seçili site dili",
   "locale.languageMatchDescription": "Quiz sırasında çeviriler gösterildiği için kart dili ile site dili farklı olmalıdır. Lütfen başka bir dil seç.",
+  "locale.languageMatchSwap": "Dillerin yerlerini değiştir",
   "locale.languageMatchCancel": "Şimdi değil",
   "locale.languageMatchTitle": "Kart dili ve site dili aynı olamaz",
   "locale.lockedOnLearnDescription": "Site dilini değiştirmek için önce Öğren sayfasından çık.",

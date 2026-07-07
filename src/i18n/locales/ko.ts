@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "í•™ìŠµ í˜ì´ì§€ì—ì„œëŠ” ì‚¬ì´íŠ¸ ì–¸ì–´ë¥¼ ë³€ê²½í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤",
   "locale.languageMatchTitle": "카드 언어와 사이트 언어는 같을 수 없습니다",
   "locale.languageMatchDescription": "퀴즈 중 번역이 표시되므로 카드 언어와 사이트 언어는 달라야 합니다. 다른 언어를 선택해 주세요.",
+  "locale.languageMatchSwap": "언어 바꾸기",
   "locale.languageMatchCancel": "지금은 아니요",
   "metadata.description": "ìˆ˜ì§‘ ê°€ëŠ¥í•œ ì¹´ë“œë¥¼ ì¤‘ì‹¬ìœ¼ë¡œ êµ¬ì¶•ëœ ë‹¤êµ­ì–´ ì–´íœ˜ í•™ìŠµ ì•±.",
   "nav.aiPractice": "AI ì—°ìŠµ",

@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "Non puoi cambiare la lingua del sito durante Impara",
   "locale.languageMatchTitle": "La lingua della carta e la lingua del sito non possono essere uguali",
   "locale.languageMatchDescription": "Poiché durante i quiz vengono mostrate le traduzioni, la lingua della carta e la lingua del sito devono essere diverse. Scegli un'altra lingua.",
+  "locale.languageMatchSwap": "Scambia le lingue",
   "locale.languageMatchCancel": "Non ora",
   "metadata.description": "Un'app di apprendimento del vocabolario multilingue costruita attorno a carte collezionabili.",
   "nav.aiPractice": "Pratica IA",

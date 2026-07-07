@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "å­¦ç¿’ãƒšãƒ¼ã‚¸ã§ã¯ã‚µã‚¤ãƒˆè¨€èªã‚’å¤‰æ›´ã§ãã¾ã›ã‚“",
   "locale.languageMatchTitle": "カードの言語とサイトの言語を同じにすることはできません",
   "locale.languageMatchDescription": "クイズ中に翻訳が表示されるため、カードの言語とサイトの言語は異なる必要があります。別の言語を選択してください。",
+  "locale.languageMatchSwap": "言語を入れ替える",
   "locale.languageMatchCancel": "今はしない",
   "metadata.description": "ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã‚«ãƒ¼ãƒ‰ã‚’ä¸­å¿ƒã«æ§‹ç¯‰ã•ã‚ŒãŸå¤šè¨€èªã®èªå½™å­¦ç¿’ã‚¢ãƒ—ãƒªã€‚",
   "nav.aiPractice": "AIç·´ç¿’",

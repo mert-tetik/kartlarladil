@@ -314,6 +314,7 @@ const dictionary = {
   "locale.lockedOnLearnTitle": "Je kunt de sitetaal niet wijzigen tijdens Leren",
   "locale.languageMatchTitle": "Kaarttaal en sitetaal kunnen niet hetzelfde zijn",
   "locale.languageMatchDescription": "Omdat tijdens de quiz vertalingen worden getoond, moeten kaarttaal en sitetaal verschillend zijn. Kies alstublieft een andere taal.",
+  "locale.languageMatchSwap": "Talen omwisselen",
   "locale.languageMatchCancel": "Niet nu",
   "metadata.description": "Een meertalige vocabulaire leerapp gebouwd rond verzamelbare kaarten.",
   "nav.aiPractice": "AI-oefening",
