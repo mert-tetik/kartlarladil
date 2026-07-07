@@ -40,6 +40,7 @@ export default function CreateCardPage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [overlayVisible, setOverlayVisible] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -70,6 +71,16 @@ export default function CreateCardPage() {
       if (clearTimer) window.clearTimeout(clearTimer);
     };
   }, [toast]);
+
+  useEffect(() => {
+    if (!foundCard) {
+      setOverlayVisible(false);
+      return;
+    }
+
+    const showTimer = window.setTimeout(() => setOverlayVisible(true), 10);
+    return () => window.clearTimeout(showTimer);
+  }, [foundCard]);
 
   const isAlreadyInDeck = cards.some((card) => card.cardId === foundCard?.sourceKey);
 
@@ -207,7 +218,7 @@ export default function CreateCardPage() {
       <section className="relative flex h-screen w-full flex-col items-center overflow-hidden">
         <div className="fixed inset-x-0 top-16 z-40 flex h-32 w-screen flex-col items-center justify-center gap-2 bg-red-500 px-4 shadow-sm">
           <Library className="size-11 shrink-0 text-white sm:size-14" aria-hidden="true" />
-          <p className="max-w-md text-center text-xs font-medium text-white sm:text-sm">
+          <p className="max-w-md text-center text-sm font-medium text-white sm:text-base">
             {t("createCard.description")}
           </p>
         </div>
@@ -265,12 +276,18 @@ export default function CreateCardPage() {
       {foundCard && (
         <div
           data-create-card-overlay
-          className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+          className={cn(
+            "absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm transition-all duration-300 sm:px-6 sm:py-6",
+            isExiting || !overlayVisible ? "opacity-0" : "opacity-100",
+          )}
         >
           <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-hidden">
             <div
               data-create-card-overlay-panel
-              className="relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden bg-transparent p-0"
+              className={cn(
+                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden bg-transparent p-0 transition-all duration-300",
+                isExiting || !overlayVisible ? "scale-95 opacity-0" : "scale-100 opacity-100",
+              )}
             >
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
                 <div className="w-full max-w-[15rem] sm:max-w-[18rem]">
@@ -292,7 +309,12 @@ export default function CreateCardPage() {
               </div>
             )}
 
-            <div className="grid w-full shrink-0 grid-cols-2 gap-3">
+            <div
+              className={cn(
+                "grid w-full shrink-0 grid-cols-2 gap-3 transition-all duration-300",
+                isExiting || !overlayVisible ? "translate-y-4 opacity-0" : "translate-y-0 opacity-100",
+              )}
+            >
               <Button
                 variant="secondary"
                 size="sm"

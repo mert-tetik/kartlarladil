@@ -15,6 +15,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "clock-tick-low",
   "clock-tick-high",
   "level-fail",
+  "card-ready",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {
