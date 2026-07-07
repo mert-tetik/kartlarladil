@@ -162,7 +162,7 @@ export default function CreateCardPage() {
       </div>
 
       <section className="relative flex h-screen w-full flex-col items-center overflow-hidden">
-        <div className="absolute inset-x-0 top-0 z-50 flex flex-col items-center justify-center gap-1 bg-red-500 px-4 py-3 shadow-sm">
+        <div className="absolute inset-x-0 top-0 z-50 flex w-screen flex-col items-center justify-center gap-1 bg-red-500 px-4 py-3 shadow-sm">
           <Library className="size-7 shrink-0 text-white sm:size-8" aria-hidden="true" />
           <p className="text-center text-xs font-medium text-white sm:text-sm">
             {t("createCard.description")}
@@ -185,7 +185,7 @@ export default function CreateCardPage() {
               onFocus={() => window.scrollTo(0, 0)}
               placeholder={t("createCard.termPlaceholder")}
               maxLength={120}
-              className="h-12 w-full rounded-md border border-border bg-background px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="h-12 w-full rounded-md border border-border bg-white px-4 text-base text-black outline-none placeholder:text-gray-500 ring-2 ring-brand"
             />
           </div>
 
