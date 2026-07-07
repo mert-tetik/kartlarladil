@@ -638,7 +638,6 @@ const dictionary = {
   "home.mobile.noLearnedCardsTitle": "No learned cards",
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 
-  "createCard.title": "Create Card",
   "createCard.description": "見つけた新しい単語を失わないでください！単語をカードコレクションに追加してください。",
   "createCard.term": "å˜èªã¾ãŸã¯ãƒ•ãƒ¬ãƒ¼ã‚º",
   "createCard.termPlaceholder": "å˜èªã¾ãŸã¯ãƒ•ãƒ¬ãƒ¼ã‚ºã‚’å…¥åŠ›",

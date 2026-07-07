@@ -638,7 +638,6 @@ const dictionary = {
   "home.mobile.noLearnedCardsTitle": "No learned cards",
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 
-  "createCard.title": "Create Card",
   "createCard.description": "찾은 새로운 단어를 잃지 마세요! 단어를 카드 컬렉션에 추가하세요.",
   "createCard.term": "ë‹¨ì–´ ë˜ëŠ” êµ¬ë¬¸",
   "createCard.termPlaceholder": "ë‹¨ì–´ ë˜ëŠ” êµ¬ë¬¸ì„ ì…ë ¥í•˜ì„¸ìš”",

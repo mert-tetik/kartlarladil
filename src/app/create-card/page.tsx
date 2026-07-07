@@ -14,7 +14,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { TranslationKey } from "@/i18n/types";
 import type { VocabularyCard } from "@/types/domain";
-import { cn } from "@/lib/utils";
+import { cn, normalizeSearch } from "@/lib/utils";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
 const CREATE_CARD_FRAME_CLASS_NAME =
@@ -60,9 +60,14 @@ export default function CreateCardPage() {
 
     try {
       const catalogMatches = localCardRepository.list({ query: trimmedTerm });
+      const normalizedTerm = normalizeSearch(trimmedTerm);
+      const exactTermMatch = catalogMatches.find(
+        (card) => normalizeSearch(card.term) === normalizedTerm,
+      );
+      const selectedCard = exactTermMatch ?? catalogMatches[0];
 
-      if (catalogMatches.length > 0) {
-        setFoundCard(catalogMatches[0]);
+      if (selectedCard) {
+        setFoundCard(selectedCard);
         return;
       }
 
@@ -151,12 +156,11 @@ export default function CreateCardPage() {
           data-create-card-form
           className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-8 text-left sm:gap-10"
         >
-          <div className="flex w-full flex-col gap-5">
-            <div className="flex w-full items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("createCard.title")}</h1>
-              <Library className="size-8 shrink-0 text-brand sm:size-10" aria-hidden="true" />
-            </div>
-            <p className="text-sm text-foreground-muted sm:text-base">{t("createCard.description")}</p>
+          <div className="flex w-full flex-col items-center gap-5">
+            <Library className="size-12 shrink-0 text-brand sm:size-14" aria-hidden="true" />
+            <p className="text-center text-sm text-black dark:text-white sm:text-base">
+              {t("createCard.description")}
+            </p>
           </div>
 
           <div className="w-full space-y-3 text-left">

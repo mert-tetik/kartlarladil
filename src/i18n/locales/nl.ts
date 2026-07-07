@@ -638,7 +638,6 @@ const dictionary = {
   "home.mobile.noLearnedCardsTitle": "No learned cards",
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
 
-  "createCard.title": "Create Card",
   "createCard.description": "Verlies de nieuwe woorden die je vindt niet! Voeg het woord toe aan je kaartenverzameling.",
   "createCard.term": "Woord of zin",
   "createCard.termPlaceholder": "Voer een woord of zin in",

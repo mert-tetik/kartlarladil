@@ -637,7 +637,6 @@ const dictionary = {
   "home.mobile.noActiveCardsDescription": "Draw cards first to add words to your learning deck.",
   "home.mobile.noLearnedCardsTitle": "No learned cards",
   "home.mobile.noLearnedCardsDescription": "Complete quizzes to move cards from learning to learned.",
-  "createCard.title": "Create Card",
   "createCard.description": "Don't lose the new words you find! Add the word to your card collection.",
   "createCard.term": "Word or phrase",
   "createCard.termPlaceholder": "Enter a word or phrase",
