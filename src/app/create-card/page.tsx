@@ -151,18 +151,28 @@ export default function CreateCardPage() {
 
   return (
     <main data-create-card-page data-create-card-ready={clientReady} className={CREATE_CARD_FRAME_CLASS_NAME}>
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-[50vh] w-screen">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/create-card-illustration.png"
+          alt=""
+          className="h-full w-full object-cover object-bottom"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/60 to-transparent" />
+      </div>
+
       <section className="relative flex h-screen w-full flex-col items-center overflow-hidden">
+        <div className="absolute inset-x-0 top-0 z-50 flex flex-col items-center justify-center gap-1 bg-red-500 px-4 py-3 shadow-sm">
+          <Library className="size-7 shrink-0 text-white sm:size-8" aria-hidden="true" />
+          <p className="text-center text-xs font-medium text-white sm:text-sm">
+            {t("createCard.description")}
+          </p>
+        </div>
+
         <div
           data-create-card-form
-          className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-8 text-left sm:gap-10"
+          className="relative z-10 flex w-full max-w-md flex-col items-start gap-8 px-4 pt-28 text-left sm:gap-10 sm:pt-32"
         >
-          <div className="flex w-full flex-col items-center gap-5">
-            <Library className="size-12 shrink-0 text-brand sm:size-14" aria-hidden="true" />
-            <p className="text-center text-sm text-black dark:text-white sm:text-base">
-              {t("createCard.description")}
-            </p>
-          </div>
-
           <div className="w-full space-y-3 text-left">
             <label htmlFor="term" className="text-sm font-medium">
               {t("createCard.term")}
@@ -194,16 +204,6 @@ export default function CreateCardPage() {
             {loading ? <Loader2 className="size-5 animate-spin" /> : <Library className="size-5" />}
             {loading ? t("createCard.generating") : t("createCard.generate")}
           </Button>
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 -mx-4 bottom-10 z-0 h-[50vh] sm:-mx-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/create-card-illustration.png"
-            alt=""
-            className="absolute inset-x-0 bottom-0 h-full w-full object-cover object-bottom"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-transparent" />
         </div>
       </section>
 
