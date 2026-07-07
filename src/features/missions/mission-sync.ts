@@ -7,14 +7,14 @@ import type { MissionProgressSnapshot } from "./mission-types";
 
 export function buildClientMissionSnapshot(): MissionProgressSnapshot {
   const { cards } = useInventoryStore.getState();
-  const { progress } = useGameProgressStore.getState();
+  const { getProgress } = useGameProgressStore.getState();
 
   return {
     totalCards: cards.length,
     learnedCards: cards.filter((card) => card.status === "learned").length,
-    bestMemoryLevel: progress.memory.bestLevel,
-    bestWordChallengeLevel: progress.wordChallenge.bestLevel,
-    bestWordMatchLevel: progress.wordMatch.bestLevel,
+    bestMemoryLevel: getProgress("memory").bestLevel,
+    bestWordChallengeLevel: getProgress("wordChallenge").bestLevel,
+    bestWordMatchLevel: getProgress("wordMatch").bestLevel,
     practicedCharacterIds: new Set(),
   };
 }

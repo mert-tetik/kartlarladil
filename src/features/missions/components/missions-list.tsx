@@ -34,7 +34,7 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
   const { refreshStats } = useProgressStats();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
-  const gameProgress = useGameProgressStore((state) => state.progress);
+  const getGameProgress = useGameProgressStore((state) => state.getProgress);
   const [missions, setMissions] = useState<MissionViewModel[]>(initialMissions);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +52,12 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
     return {
       totalCards,
       learnedCards,
-      bestMemoryLevel: gameProgress.memory.bestLevel,
-      bestWordChallengeLevel: gameProgress.wordChallenge.bestLevel,
-      bestWordMatchLevel: gameProgress.wordMatch.bestLevel,
+      bestMemoryLevel: getGameProgress("memory").bestLevel,
+      bestWordChallengeLevel: getGameProgress("wordChallenge").bestLevel,
+      bestWordMatchLevel: getGameProgress("wordMatch").bestLevel,
       practicedCharacterIds: new Set(),
     };
-  }, [cards, gameProgress]);
+  }, [cards, getGameProgress]);
 
   const loadMissions = useCallback(async () => {
     if (!user) return;

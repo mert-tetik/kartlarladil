@@ -12,19 +12,19 @@ export function useMissionWaitingCount(): number {
   const { user } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
-  const gameProgress = useGameProgressStore((state) => state.progress);
+  const getGameProgress = useGameProgressStore((state) => state.getProgress);
   const [userMissions, setUserMissions] = useState<UserMission[]>([]);
 
   const snapshot = useMemo<MissionProgressSnapshot>(
     () => ({
       totalCards: cards.length,
       learnedCards: cards.filter((item) => item.status === "learned").length,
-      bestMemoryLevel: gameProgress.memory.bestLevel,
-      bestWordChallengeLevel: gameProgress.wordChallenge.bestLevel,
-      bestWordMatchLevel: gameProgress.wordMatch.bestLevel,
+      bestMemoryLevel: getGameProgress("memory").bestLevel,
+      bestWordChallengeLevel: getGameProgress("wordChallenge").bestLevel,
+      bestWordMatchLevel: getGameProgress("wordMatch").bestLevel,
       practicedCharacterIds: new Set(),
     }),
-    [cards, gameProgress],
+    [cards, getGameProgress],
   );
 
   useEffect(() => {

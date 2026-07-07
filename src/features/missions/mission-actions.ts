@@ -155,6 +155,7 @@ export async function listUserMissionsAction(
       missions: buildMissionViewModels(snapshot, userMissions),
     };
   } catch (error) {
+    console.error("listUserMissionsAction failed:", error);
     return {
       status: "error",
       missions: [],
@@ -264,6 +265,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       points: reward.amount,
     };
   } catch (error) {
+    console.error("claimMissionRewardAction failed:", error);
     return {
       status: "error",
       message: error instanceof Error ? error.message : "unknown_error",
@@ -322,6 +324,7 @@ export async function syncMissionProgressAction(
       missions: buildMissionViewModels(snapshot, userMissions),
     };
   } catch (error) {
+    console.error("syncMissionProgressAction failed:", error);
     return {
       status: "error",
       missions: [],
