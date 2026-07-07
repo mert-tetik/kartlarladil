@@ -689,56 +689,57 @@ function TierDetailMenu({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {filteredCards.map(({ card }) => (
-              <div
-                key={card.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  vibrate("tap");
-                  setDisplayCard(card);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") {
-                    return;
-                  }
-                  event.preventDefault();
-                  vibrate("tap");
-                  setDisplayCard(card);
-                }}
-                aria-label={card.term}
-                className="relative rounded-xl border border-border bg-background-card p-3 text-left transition-colors hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-              >
-                {status === "active" && (
-                  <button
-                    type="button"
-                    disabled={pendingCardIds.has(card.id)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDeleteCard(card.id);
-                    }}
-                    onKeyDown={(event) => event.stopPropagation()}
-                    aria-label={`${card.term} ${t("common.delete")}`}
-                    title={t("inventory.deleteConfirm")}
-                    className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-background-muted text-foreground-secondary transition-colors hover:bg-rose-100 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                )}
-                <p className="pr-6 text-sm font-bold text-foreground">{card.term}</p>
-                <p className="mt-1 text-xs text-foreground-secondary line-clamp-2">
-                  {card.translations[locale] || card.translation}
-                </p>
-                <span
+            {filteredCards.map(({ card }) => {
+              const tierStyle = TIER_STYLES[card.tier];
+              return (
+                <div
+                  key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    vibrate("tap");
+                    setDisplayCard(card);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") {
+                      return;
+                    }
+                    event.preventDefault();
+                    vibrate("tap");
+                    setDisplayCard(card);
+                  }}
+                  aria-label={card.term}
                   className={cn(
-                    "mt-2 inline-flex rounded px-2 py-0.5 text-[10px] font-bold text-white",
-                    TIER_STYLES[card.tier].accent,
+                    "relative rounded-xl border border-white/20 p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+                    tierStyle.accent,
                   )}
                 >
-                  {card.tier}
-                </span>
-              </div>
-            ))}
+                  {status === "active" && (
+                    <button
+                      type="button"
+                      disabled={pendingCardIds.has(card.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteCard(card.id);
+                      }}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      aria-label={`${card.term} ${t("common.delete")}`}
+                      title={t("inventory.deleteConfirm")}
+                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </button>
+                  )}
+                  <p className="pr-6 text-sm font-bold text-white">{card.term}</p>
+                  <p className="mt-1 text-xs text-white/80 line-clamp-2">
+                    {card.translations[locale] || card.translation}
+                  </p>
+                  <span className="mt-2 inline-flex text-[10px] font-bold text-white">
+                    {card.tier}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
