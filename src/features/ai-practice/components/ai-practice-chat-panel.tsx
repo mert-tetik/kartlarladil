@@ -20,6 +20,7 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { cn, createId } from "@/lib/utils";
 import type {
   AiPracticeCharacter,
@@ -266,6 +267,7 @@ export function AiPracticeChatPanel({
       updateMessageScore(userMessage.id, points);
       playSoundEffect("points");
       void refreshStats();
+      void syncMissionsFromClientState();
     } catch {
       // Scoring is best-effort; never block the chat flow.
     }

@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import type { GameName, GameProgress, GamesProgress } from "./game-types";
 import type { LanguageCode } from "@/types/domain";
 import { getPointsForLevel } from "./game-levels";
+import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 
 const STORAGE_KEY = "foxiesdeck:games:progress";
 
@@ -65,6 +66,8 @@ export const useGameProgressStore = create<GameProgressState>()(
             },
           };
         });
+
+        void syncMissionsFromClientState();
       },
       addPoints(game, points) {
         set((state) => {

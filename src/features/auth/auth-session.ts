@@ -23,6 +23,7 @@ interface ProfileRow {
   ai_practice_points: number | null;
   chest_points: number | null;
   streak_points: number | null;
+  mission_points: number | null;
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
   theme: string | null;
@@ -48,6 +49,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
     aiPracticePoints: row?.ai_practice_points ?? 0,
     chestPoints: row?.chest_points ?? 0,
     streakPoints: row?.streak_points ?? 0,
+    missionPoints: row?.mission_points ?? 0,
     pushMarketingEnabled: row?.push_marketing_enabled ?? false,
     leaderboardVisible: row?.leaderboard_visible ?? false,
     theme: row?.theme ?? null,
@@ -83,7 +85,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, push_marketing_enabled, leaderboard_visible, theme")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme")
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -152,7 +154,7 @@ export async function ensureUserProfile(
         preferences?.preferredTier ?? (isPreferredTier(metadataTier) ? metadataTier : "A1"),
       onboarding_completed: false,
     })
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, push_marketing_enabled, leaderboard_visible, theme")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme")
     .maybeSingle<ProfileRow>();
 
   if (error) {

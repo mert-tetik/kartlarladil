@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, Library, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, Library, ListChecks, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -36,6 +36,7 @@ import {
   resolveCardLanguageOnSiteLocaleChange,
   resolveMobileLandingLanguage,
 } from "@/app/components/mobile-landing-language-guard";
+import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -55,6 +56,7 @@ export function MobileLandingDashboard() {
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
+  const waitingMissionCount = useMissionWaitingCount();
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -291,7 +293,7 @@ export function MobileLandingDashboard() {
 
   return (
     <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
-      {/* Info icon */}
+      {/* Leaderboard icon */}
       <button
         type="button"
         onClick={() => {
@@ -306,13 +308,35 @@ export function MobileLandingDashboard() {
         <LeaderboardIcon className="size-5" />
       </button>
 
+      {/* Missions box */}
+      <button
+        type="button"
+        onClick={() => {
+          vibrate("tap");
+          requireAuthAction(() => {
+            router.push("/missions");
+          }, { nextPath: "/missions" });
+        }}
+        className="absolute right-2 top-2 z-10 flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-1.5 text-white shadow-sm backdrop-blur-sm transition-colors hover:bg-white/20"
+        aria-label={t("home.mobile.missions")}
+      >
+        <ListChecks className="size-4" aria-hidden="true" />
+        <span className="text-xs font-bold">{t("home.mobile.missions")}</span>
+        {waitingMissionCount > 0 ? (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-xl bg-red-500 px-1.5 text-[10px] font-extrabold text-white animate-mission-badge-pulse">
+            {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
+          </span>
+        ) : null}
+      </button>
+
+      {/* Info icon */}
       <button
         type="button"
         onClick={() => {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
+        className="absolute right-2 top-[3.25rem] z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />

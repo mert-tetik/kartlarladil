@@ -17,6 +17,7 @@ export interface AuthProfile {
   aiPracticePoints: number;
   chestPoints: number;
   streakPoints?: number;
+  missionPoints?: number;
   pushMarketingEnabled?: boolean;
   leaderboardVisible?: boolean;
   theme?: string | null;

@@ -134,10 +134,11 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     const bonusPoints =
       (user?.profile.aiPracticePoints ?? 0) +
       (user?.profile.chestPoints ?? 0) +
-      (user?.profile.streakPoints ?? 0);
+      (user?.profile.streakPoints ?? 0) +
+      (user?.profile.missionPoints ?? 0);
 
     return mergeBonusPoints(baseStats, bonusPoints);
-  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints, user?.profile.streakPoints]);
+  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints, user?.profile.streakPoints, user?.profile.missionPoints]);
 
   const stats = useMemo(() => {
     const isLoading = !hydrated || cloudLoading;

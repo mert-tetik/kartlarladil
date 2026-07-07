@@ -24,6 +24,7 @@ import {
   applyAnswerProgress,
   createPracticeAttempt,
 } from "@/features/quiz/quiz-engine";
+import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 
 interface RecordAnswerResult {
   attempt: PracticeAttempt;
@@ -164,6 +165,8 @@ export const useInventoryStore = create<InventoryState>()(
           cloudLoading: false,
           cloudError: "",
         });
+
+        await syncMissionsFromClientState();
       },
 
       async addCard(cardId) {
@@ -218,6 +221,8 @@ export const useInventoryStore = create<InventoryState>()(
             dispatchFirstCardAddedEvent();
           }
 
+          await syncMissionsFromClientState();
+
           return { ok: true, firstCardAdded };
         }
 
@@ -231,6 +236,8 @@ export const useInventoryStore = create<InventoryState>()(
         if (firstCardAdded) {
           dispatchFirstCardAddedEvent();
         }
+
+        void syncMissionsFromClientState();
 
         return { ok: true, firstCardAdded };
       },
@@ -266,6 +273,7 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: false,
             cloudError: "",
           });
+          await syncMissionsFromClientState();
           return;
         }
 
@@ -273,6 +281,8 @@ export const useInventoryStore = create<InventoryState>()(
           cards: state.cards.filter((card) => card.cardId !== cardId),
           attempts: state.attempts.filter((attempt) => attempt.cardId !== cardId),
         }));
+
+        void syncMissionsFromClientState();
       },
 
       hasCard(cardId) {
@@ -340,6 +350,8 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
+          await syncMissionsFromClientState();
+
           return inventoryCard && attempt ? { inventoryCard, attempt } : undefined;
         }
 
@@ -357,6 +369,8 @@ export const useInventoryStore = create<InventoryState>()(
           cards: state.cards.map((card) => (card.cardId === input.cardId ? updatedCard : card)),
           attempts: [attempt, ...state.attempts].slice(0, 100),
         }));
+
+        void syncMissionsFromClientState();
 
         return {
           attempt,
@@ -382,6 +396,7 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: false,
             cloudError: "",
           });
+          await syncMissionsFromClientState();
           return;
         }
 
@@ -392,6 +407,8 @@ export const useInventoryStore = create<InventoryState>()(
           attempts: [],
           ownerUserId: null,
         });
+
+        void syncMissionsFromClientState();
       },
 
       async createCustomCard(input) {
@@ -416,6 +433,8 @@ export const useInventoryStore = create<InventoryState>()(
           cloudLoading: false,
           cloudError: "",
         });
+
+        await syncMissionsFromClientState();
       },
     }),
     {
@@ -465,3 +484,4 @@ function dispatchFirstCardAddedEvent() {
 
   window.dispatchEvent(new CustomEvent(FIRST_CARD_ADDED_EVENT));
 }
+

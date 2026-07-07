@@ -1157,3 +1157,33 @@ body:has([data-games-active]) {
 .animate-word-match-shake {
   animation: word-match-shake 0.6s ease-in-out;
 }
+
+/* Mission badge pulse */
+@keyframes mission-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgb(239 68 68 / 0);
+  }
+}
+
+.animate-mission-badge-pulse {
+  animation: mission-badge-pulse 1.6s ease-in-out infinite;
+}
+
+/* Mission claim button pulse */
+@keyframes mission-claim-pulse {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-mission-claim-pulse {
+  animation: mission-claim-pulse 1.4s ease-in-out infinite;
+}
