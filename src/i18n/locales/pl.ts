@@ -627,6 +627,8 @@ const dictionary = {
   "home.mobile.infoStep3": "Review learned cards to reinforce.",
   "home.mobile.cardsLabel": "CARDS",
   "home.mobile.searchPlaceholder": "Search word, translation or example",
+  "home.mobile.activeCardsInfo": "Karty {{language}} w trakcie nauki",
+  "home.mobile.learnedCardsInfo": "Nauczone karty {{language}}",
   "home.mobile.allTiers": "All levels",
   "home.mobile.rankInfoTitle": "Rank details",
   "home.mobile.rankInfoProgress": "Progress to next rank",

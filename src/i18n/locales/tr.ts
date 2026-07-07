@@ -627,6 +627,8 @@ const dictionary = {
   "home.mobile.infoStep3": "Öğrenilenleri tekrar et butonuyla pekiştir.",
   "home.mobile.cardsLabel": "KART",
   "home.mobile.searchPlaceholder": "Kelime, çeviri veya örnek cümle ara",
+  "home.mobile.activeCardsInfo": "{{language}} öğreniliyor olan kartlar",
+  "home.mobile.learnedCardsInfo": "{{language}} öğrenilen kartlar",
   "home.mobile.allTiers": "Tüm seviyeler",
   "home.mobile.rankInfoTitle": "Rütbe detayları",
   "home.mobile.rankInfoProgress": "Sonraki rütbeye ilerleme",

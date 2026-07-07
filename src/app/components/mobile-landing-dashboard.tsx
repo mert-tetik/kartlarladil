@@ -512,6 +512,7 @@ export function MobileLandingDashboard() {
         learnedCards={learnedForLanguage}
         status={detailMenuStatus}
         onStatusChange={setDetailMenuStatus}
+        selectedLanguage={selectedLanguage}
       />
 
       <UpgradeDialog
@@ -560,6 +561,7 @@ function TierDetailMenu({
   learnedCards,
   status,
   onStatusChange,
+  selectedLanguage,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -569,6 +571,7 @@ function TierDetailMenu({
   learnedCards: ReturnType<typeof filterInventoryCards>;
   status: "active" | "learned";
   onStatusChange: (status: "active" | "learned") => void;
+  selectedLanguage: LanguageCode;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -680,6 +683,18 @@ function TierDetailMenu({
                 );
               })}
             </div>
+
+            <div
+              className={cn(
+                "px-4 py-2 text-center text-xs font-semibold text-white",
+                status === "active" ? "bg-emerald-500" : "bg-sky-500",
+              )}
+            >
+              {t(
+                status === "active" ? "home.mobile.activeCardsInfo" : "home.mobile.learnedCardsInfo",
+                { language: getLanguageDisplayName(selectedLanguage, locale) },
+              )}
+            </div>
           </div>
 
           <div className="p-4">
@@ -725,16 +740,16 @@ function TierDetailMenu({
                       onKeyDown={(event) => event.stopPropagation()}
                       aria-label={`${card.term} ${t("common.delete")}`}
                       title={t("inventory.deleteConfirm")}
-                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
+                      className="absolute right-1 top-1 inline-flex size-7 items-center justify-center rounded-full bg-transparent text-black transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50"
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                     </button>
                   )}
-                  <p className="pr-6 text-sm font-bold text-white">{card.term}</p>
-                  <p className="mt-1 text-xs text-white/80 line-clamp-2">
+                  <p className="pr-6 text-sm font-bold text-black">{card.term}</p>
+                  <p className="mt-1 text-xs text-black/70 line-clamp-2">
                     {card.translations[locale] || card.translation}
                   </p>
-                  <span className="mt-2 inline-flex text-[10px] font-bold text-white">
+                  <span className="mt-2 inline-flex text-[10px] font-bold text-black">
                     {card.tier}
                   </span>
                 </div>

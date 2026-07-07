@@ -61,7 +61,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
       data-mobile-card-display-sheet
     >
       <div
-        className="relative mt-12 w-full max-w-[260px]"
+        className="relative mt-4 w-full max-w-[260px]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute -top-12 right-0 flex items-center gap-2">
