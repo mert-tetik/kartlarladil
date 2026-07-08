@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useGameProgressStore } from "@/features/games/game-progress-store";
-import { useProgressStats } from "@/features/progress/progress-client";
+
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
@@ -32,8 +32,7 @@ export interface MissionViewModel extends UserMission {
 export function MissionsList() {
   const t = useT();
   const router = useRouter();
-  const { user } = useAuthSession();
-  const { refreshStats } = useProgressStats();
+  const { user, updateProfileField } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
@@ -117,7 +116,12 @@ export function MissionsList() {
 
     void claimMissionRewardAction(missionId).then(async (result) => {
       if (result.status === "success") {
-        await refreshStats();
+        if (result.missionPoints !== undefined && result.chestPoints !== undefined) {
+          updateProfileField({
+            missionPoints: result.missionPoints,
+            chestPoints: result.chestPoints,
+          });
+        }
         await syncMissions();
       } else {
         setError(result.message ?? t("missions.claimError"));

@@ -28,6 +28,8 @@ export interface ClaimMissionResult {
   reward?: MissionReward;
   points?: number;
   chestTier?: ChestTier;
+  missionPoints?: number;
+  chestPoints?: number;
   message?: string;
 }
 
@@ -211,19 +213,23 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
 
     revalidateMissionPaths();
 
-    if (reward.kind === "chest") {
-      return {
-        status: "success",
-        reward,
-        points: getChestRewardPoints(reward.tier),
-        chestTier: reward.tier,
-      };
+    const { data: profile, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("mission_points, chest_points")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      throw profileError;
     }
 
     return {
       status: "success",
       reward,
-      points: reward.amount,
+      points: reward.kind === "chest" ? getChestRewardPoints(reward.tier) : reward.amount,
+      missionPoints: profile?.mission_points ?? 0,
+      chestPoints: profile?.chest_points ?? 0,
+      ...(reward.kind === "chest" ? { chestTier: reward.tier } : {}),
     };
   } catch (error) {
     console.error("claimMissionRewardAction failed:", error);
