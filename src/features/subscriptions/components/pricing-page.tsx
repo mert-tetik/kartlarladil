@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import {
   Check,
   X,
@@ -884,6 +885,7 @@ function MobilePricingView({
   const currentPlan = entitlements?.effectivePlan ?? null;
   const provider = entitlements?.provider ?? "lemon_squeezy";
   const customerPortalUrl = entitlements?.customerPortalUrl ?? null;
+  const stickyPortalTarget = typeof document === "undefined" ? null : document.body;
 
   const handleSelect = (option: MobileOption) => {
     vibrate("tap");
@@ -1005,35 +1007,43 @@ function MobilePricingView({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(var(--mobile-nav-bar-height)+0.75rem)] z-50 px-4 lg:hidden">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur-md">
-          {isCurrentPlan ? (
-            <CurrentPlanButton
-              plan={selectedOption.plan}
-              provider={provider}
-              customerPortalUrl={customerPortalUrl}
-              isTwa={isTwa}
-              className="h-[4.5rem] text-base"
-            />
-          ) : !user ? (
-            <Link
-              href={`/register?next=${encodeURIComponent("/pricing")}`}
-              className={buttonClassName("primary", "lg", "h-[4.5rem] w-full text-base")}
+      {stickyPortalTarget
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed inset-x-0 z-[60] px-4 lg:hidden"
+              style={{ bottom: "calc(var(--mobile-nav-bar-height) + max(env(safe-area-inset-bottom), 0.75rem))" }}
             >
-              {t("pricing.ctaFree")}
-            </Link>
-          ) : (
-            <PurchaseButton
-              plan={selectedOption.plan}
-              cycle={selectedOption.cycle}
-              currentPlan={currentPlan}
-              provider={provider}
-              className="h-[4.5rem] text-base"
-            />
-          )}
-          <ConsentText />
-        </div>
-      </div>
+              <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur-md">
+                {isCurrentPlan ? (
+                  <CurrentPlanButton
+                    plan={selectedOption.plan}
+                    provider={provider}
+                    customerPortalUrl={customerPortalUrl}
+                    isTwa={isTwa}
+                    className="h-[4.5rem] text-base"
+                  />
+                ) : !user ? (
+                  <Link
+                    href={`/register?next=${encodeURIComponent("/pricing")}`}
+                    className={buttonClassName("primary", "lg", "h-[4.5rem] w-full text-base")}
+                  >
+                    {t("pricing.ctaFree")}
+                  </Link>
+                ) : (
+                  <PurchaseButton
+                    plan={selectedOption.plan}
+                    cycle={selectedOption.cycle}
+                    currentPlan={currentPlan}
+                    provider={provider}
+                    className="h-[4.5rem] text-base"
+                  />
+                )}
+                <ConsentText />
+              </div>
+            </div>,
+            stickyPortalTarget,
+          )
+        : null}
     </div>
   );
 }
