@@ -1187,3 +1187,31 @@ body:has([data-games-active]) {
 .animate-mission-claim-pulse {
   animation: mission-claim-pulse 1.4s ease-in-out infinite;
 }
+
+/* Mission reward icon wiggle */
+@keyframes mission-reward-wiggle {
+  0%, 100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+.animate-mission-reward-wiggle {
+  animation: mission-reward-wiggle 0.35s ease-in-out infinite;
+}
+
+/* Mission claim bubble pulse */
+@keyframes mission-claim-bubble-pulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.12);
+  }
+}
+
+.animate-mission-claim-bubble-pulse {
+  animation: mission-claim-bubble-pulse 1.1s ease-in-out infinite;
+}

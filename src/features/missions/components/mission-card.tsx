@@ -1,7 +1,6 @@
 "use client";
 
 import { Gift, Lock, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ interface MissionCardProps {
   characterId?: MissionDefinition["characterId"];
   onClaim: () => void;
   claiming: boolean;
-  disabled?: boolean;
 }
 
 export function MissionCard({
@@ -36,7 +34,6 @@ export function MissionCard({
   characterId,
   onClaim,
   claiming,
-  disabled = false,
 }: MissionCardProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -44,6 +41,7 @@ export function MissionCard({
   const isWaiting = status === "waiting";
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
+  const isClickable = isWaiting && !claiming;
 
   const rewardLabel =
     reward.kind === "chest"
@@ -52,29 +50,68 @@ export function MissionCard({
 
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
 
+  function handleClick() {
+    if (!isClickable) return;
+    vibrate("tap");
+    onClaim();
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleClick();
+    }
+  }
+
   return (
     <div
       data-mission-card={missionId}
       data-mission-status={status}
+      role="button"
+      tabIndex={isClickable ? 0 : -1}
+      aria-label={isWaiting ? t("missions.claim") : description}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "relative flex items-center gap-4 rounded-2xl border border-border bg-background-card p-4 shadow-sm transition-all",
-        isLocked && "opacity-70",
-        isWaiting && "border-emerald-500/40 bg-emerald-500/5",
+        "relative flex items-center gap-4 rounded-2xl border p-4 shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        isLocked && "border-border bg-background-card opacity-70",
+        isWaiting && "border-emerald-500 bg-emerald-500 text-white",
+        isClaimed && "border-emerald-700 bg-emerald-700 text-white",
+        isClickable && "cursor-pointer active:scale-[0.98]",
+        claiming && "cursor-wait opacity-90",
       )}
     >
-      <div
-        className={cn(
-          "relative flex size-14 shrink-0 items-center justify-center rounded-xl border-2 transition-colors",
-          isLocked
-            ? "border-border bg-background-muted text-foreground-muted"
-            : "border-amber-400/40 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md",
+      <div className="relative flex size-14 shrink-0 items-center justify-center">
+        {isWaiting && (
+          <div className="absolute -top-7 left-1/2 z-20 animate-mission-claim-bubble-pulse">
+            <div className="relative inline-flex items-center justify-center rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg">
+              {claiming ? (
+                <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+              ) : (
+                t("missions.claim")
+              )}
+              <span
+                className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 translate-y-1/2 rotate-45 bg-emerald-600"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
         )}
-      >
-        {reward.kind === "chest" ? (
-          <ChestIcon tier={reward.tier} className={cn(isLocked && "opacity-60")} />
-        ) : (
-          <Gift className={cn("size-7", isLocked && "opacity-50")} aria-hidden="true" />
-        )}
+
+        <div
+          className={cn(
+            "transition-transform",
+            isWaiting && !claiming && "animate-mission-reward-wiggle",
+            isLocked && "opacity-50",
+          )}
+        >
+          {reward.kind === "chest" ? (
+            <ChestIcon tier={reward.tier} />
+          ) : (
+            <Gift className="size-10 text-amber-400" aria-hidden="true" />
+          )}
+        </div>
+
         {isLocked ? (
           <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-background-card text-foreground-muted shadow-sm">
             <Lock className="size-3" aria-hidden="true" />
@@ -87,7 +124,7 @@ export function MissionCard({
           <p
             className={cn(
               "truncate text-sm font-bold",
-              isLocked ? "text-foreground-muted" : "text-foreground",
+              isLocked ? "text-foreground-muted" : "text-current",
             )}
           >
             {description}
@@ -95,7 +132,7 @@ export function MissionCard({
           <span
             className={cn(
               "shrink-0 text-xs font-bold",
-              reward.kind === "chest" ? "text-amber-500" : "text-emerald-500",
+              isLocked && (reward.kind === "chest" ? "text-amber-500" : "text-emerald-500"),
             )}
           >
             {rewardLabel}
@@ -103,7 +140,12 @@ export function MissionCard({
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground-secondary">
+          <div
+            className={cn(
+              "flex items-center justify-between text-xs font-semibold",
+              isLocked ? "text-foreground-secondary" : "text-white/90",
+            )}
+          >
             <span>
               {progress}/{requirement}
             </span>
@@ -111,38 +153,14 @@ export function MissionCard({
           </div>
           <Progress
             value={progressPercent}
-            className="h-2"
+            className={cn(
+              "h-2",
+              !isLocked && "[&>div]:bg-white bg-white/30",
+            )}
             aria-label={t("missions.progressLabel", { progress, requirement })}
           />
         </div>
       </div>
-
-      <Button
-        size="sm"
-        disabled={!isWaiting || claiming || disabled}
-        onClick={() => {
-          vibrate("tap");
-          onClaim();
-        }}
-        className={cn(
-          "h-11 w-24 shrink-0 rounded-xl font-bold transition-all",
-          isWaiting
-            ? "animate-mission-claim-pulse bg-emerald-500 text-white hover:bg-emerald-600"
-            : isClaimed
-              ? "bg-emerald-700/30 text-emerald-700 hover:bg-emerald-700/40"
-              : "bg-background-muted text-foreground-muted",
-        )}
-      >
-        {claiming ? (
-          <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-        ) : isWaiting ? (
-          t("missions.claim")
-        ) : isClaimed ? (
-          t("missions.claimed")
-        ) : (
-          t("missions.locked")
-        )}
-      </Button>
     </div>
   );
 }
