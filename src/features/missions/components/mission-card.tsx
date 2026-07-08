@@ -1,7 +1,9 @@
 "use client";
 
 import { Gift, Lock, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
+import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
@@ -36,12 +38,14 @@ export function MissionCard({
   claiming,
 }: MissionCardProps) {
   const t = useT();
+  const router = useRouter();
+  const { user } = useAuthSession();
   const { locale } = useLocale();
   const progressPercent = Math.min(100, Math.round((progress / requirement) * 100));
   const isWaiting = status === "waiting";
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
-  const isClickable = isWaiting && !claiming;
+  const isClickable = (isWaiting && !claiming) || isLocked;
 
   const rewardLabel =
     reward.kind === "chest"
@@ -50,10 +54,40 @@ export function MissionCard({
 
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
 
+  function navigateToMission() {
+    const preferredLanguage = user?.profile.preferredLanguageCode ?? "en";
+
+    switch (type) {
+      case "add_cards":
+        router.push("/card-draw");
+        break;
+      case "learn_cards":
+        router.push(`/learn?mode=active&language=${encodeURIComponent(preferredLanguage)}`);
+        break;
+      case "game_level":
+        router.push("/games");
+        break;
+      case "ai_practice":
+        router.push("/ai-practice");
+        break;
+      default:
+        break;
+    }
+  }
+
   function handleClick() {
-    if (!isClickable) return;
-    vibrate("tap");
-    onClaim();
+    if (claiming) return;
+
+    if (isWaiting) {
+      vibrate("tap");
+      onClaim();
+      return;
+    }
+
+    if (isLocked) {
+      vibrate("tap");
+      navigateToMission();
+    }
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -76,7 +110,7 @@ export function MissionCard({
         "relative flex items-center gap-4 rounded-2xl border p-4 shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
         isLocked && "border-border bg-background-card opacity-70",
         isWaiting && "border-emerald-500 bg-emerald-500 text-white",
-        isClaimed && "border-emerald-700 bg-emerald-700 text-white",
+        isClaimed && "border-emerald-600 bg-emerald-600 text-white",
         isClickable && "cursor-pointer active:scale-[0.98]",
         claiming && "cursor-wait opacity-90",
       )}
