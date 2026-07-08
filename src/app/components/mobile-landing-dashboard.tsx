@@ -361,28 +361,24 @@ export function MobileLandingDashboard() {
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={RANK_ICON_ASSETS[stats.rank.icon]}
-          alt=""
-          role="button"
-          tabIndex={0}
-          aria-label={getRankLabel(stats.rank, locale)}
+        <button
+          type="button"
           onClick={() => {
             vibrate("tap");
             setRankInfoOpen(true);
           }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              vibrate("tap");
-              setRankInfoOpen(true);
-            }
-          }}
-          className="relative z-10 max-h-full w-auto max-w-full cursor-pointer object-contain"
-          draggable={false}
+          className="relative z-10 flex max-h-full w-auto items-center justify-center"
+          aria-label={getRankLabel(stats.rank, locale)}
           data-rank-icon-button
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={RANK_ICON_ASSETS[stats.rank.icon]}
+            alt=""
+            className="max-h-full w-auto max-w-full object-contain"
+            draggable={false}
+          />
+        </button>
         <h1 className="relative z-10 text-center text-lg font-extrabold text-brand">
           {getRankLabel(stats.rank, locale)}
         </h1>
