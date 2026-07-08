@@ -642,6 +642,10 @@ body:has([data-create-card-page]) [data-create-card-page] {
   body:has([data-quiz-count-selection]) .page-transition-shell {
     bottom: 0;
   }
+
+  body:has([data-pricing-page]) .page-transition-shell {
+    padding-bottom: 0;
+  }
 }
 
 /* Hide the site footer on Ask pages */

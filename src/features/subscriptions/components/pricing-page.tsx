@@ -105,7 +105,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   return (
     <div
       data-pricing-page
-      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-10 pt-12 sm:px-6 lg:px-8"
+      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 sm:px-6 lg:px-8 lg:pb-10"
     >
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
@@ -812,7 +812,7 @@ function MobilePricingView({
   const isCurrentPlan = currentPlan === selectedOption.plan;
 
   return (
-    <div className="relative z-10 flex flex-col pb-[calc(var(--mobile-nav-bar-height)+10.25rem)] lg:hidden">
+    <div className="relative z-10 flex flex-col pb-[calc(var(--mobile-nav-bar-height)+7.5rem)] lg:hidden">
       <div className="animate-screen-pop">
         <div className="text-center">
         <h1 className="font-display text-3xl font-semibold text-brand">
