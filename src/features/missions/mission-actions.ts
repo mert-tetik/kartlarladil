@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireAuthUser } from "@/features/auth/auth-session";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
 import { MISSIONS_BY_ID } from "./missions-data";
 import { buildMissionViewModels } from "./mission-progress";
@@ -40,9 +39,17 @@ function revalidateMissionPaths() {
 }
 
 async function getAuthedSupabase() {
-  const user = await requireAuthUser("/missions");
   const supabase = await createSupabaseServerClient();
-  return { user, supabase };
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session?.user?.id || !session.user.email) {
+    return null;
+  }
+
+  return { userId: session.user.id, supabase };
 }
 
 async function fetchClaimedMissionIds(
@@ -88,10 +95,20 @@ export async function listUserMissionsAction(
   clientSnapshot: MissionProgressSnapshot,
 ): Promise<ListMissionsResult> {
   try {
-    const { user, supabase } = await getAuthedSupabase();
+    const authed = await getAuthedSupabase();
+
+    if (!authed) {
+      return {
+        status: "error",
+        missions: [],
+        message: "auth_required",
+      };
+    }
+
+    const { userId, supabase } = authed;
     const [snapshot, claimedIds] = await Promise.all([
-      fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot),
-      fetchClaimedMissionIds(supabase, user.id),
+      fetchCloudMissionSnapshot(supabase, userId, clientSnapshot),
+      fetchClaimedMissionIds(supabase, userId),
     ]);
 
     return {
@@ -110,7 +127,13 @@ export async function listUserMissionsAction(
 
 export async function claimMissionRewardAction(missionId: string): Promise<ClaimMissionResult> {
   try {
-    const { user, supabase } = await getAuthedSupabase();
+    const authed = await getAuthedSupabase();
+
+    if (!authed) {
+      return { status: "error", message: "auth_required" };
+    }
+
+    const { userId, supabase } = authed;
     const mission = MISSIONS_BY_ID.get(missionId);
 
     if (!mission) {
@@ -120,7 +143,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
     const { data: row, error: fetchError } = await supabase
       .from("user_missions")
       .select("status")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("mission_id", missionId)
       .maybeSingle<{ status: string }>();
 
@@ -138,11 +161,11 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
     if (reward.kind === "points") {
       const [{ error: updateError }, { error: rewardError }] = await Promise.all([
         supabase.rpc("increment_mission_points", {
-          p_user_id: user.id,
+          p_user_id: userId,
           p_points: reward.amount,
         }),
         supabase.from("mission_rewards").insert({
-          user_id: user.id,
+          user_id: userId,
           mission_id: missionId,
           reward_type: "points",
           points: reward.amount,
@@ -159,7 +182,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       }
 
       const { error: chestIncError } = await supabase.rpc("increment_chest_points", {
-        p_user_id: user.id,
+        p_user_id: userId,
         p_points: points,
       });
 
@@ -169,7 +192,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       }
 
       const { error: chestRewardError } = await supabase.from("chest_rewards").insert({
-        user_id: user.id,
+        user_id: userId,
         tier: reward.tier,
         points,
       });
@@ -180,7 +203,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       }
 
       const { error: missionRewardError } = await supabase.from("mission_rewards").insert({
-        user_id: user.id,
+        user_id: userId,
         mission_id: missionId,
         reward_type: "chest",
         chest_tier: reward.tier,
@@ -197,7 +220,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       .from("user_missions")
       .upsert(
         {
-          user_id: user.id,
+          user_id: userId,
           mission_id: missionId,
           progress: mission.requirement,
           status: "claimed",
@@ -216,7 +239,7 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
     const { data: profile, error: profileError } = await supabase
       .from("user_profiles")
       .select("mission_points, chest_points")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (profileError) {
@@ -244,10 +267,20 @@ export async function syncMissionProgressAction(
   clientSnapshot: MissionProgressSnapshot,
 ): Promise<ListMissionsResult> {
   try {
-    const { user, supabase } = await getAuthedSupabase();
+    const authed = await getAuthedSupabase();
+
+    if (!authed) {
+      return {
+        status: "error",
+        missions: [],
+        message: "auth_required",
+      };
+    }
+
+    const { userId, supabase } = authed;
     const [snapshot, claimedIds] = await Promise.all([
-      fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot),
-      fetchClaimedMissionIds(supabase, user.id),
+      fetchCloudMissionSnapshot(supabase, userId, clientSnapshot),
+      fetchClaimedMissionIds(supabase, userId),
     ]);
 
     revalidateMissionPaths();

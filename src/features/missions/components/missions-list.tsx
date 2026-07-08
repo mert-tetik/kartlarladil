@@ -75,12 +75,16 @@ export function MissionsList() {
 
     if (result.status === "success") {
       setClaimedIds(result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId));
+    } else if (result.message === "auth_required") {
+      router.replace("/login?next=/missions");
+      setSyncing(false);
+      return;
     } else {
       setError(result.message ?? t("missions.loadError"));
     }
 
     setSyncing(false);
-  }, [snapshot, t, user, setClaimedIds]);
+  }, [router, snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
     if (!user) {
@@ -123,6 +127,10 @@ export function MissionsList() {
           });
         }
         await syncMissions();
+      } else if (result.message === "auth_required") {
+        setRewardMode(null);
+        unmarkClaimed(missionId);
+        router.replace("/login?next=/missions");
       } else {
         setError(result.message ?? t("missions.claimError"));
         unmarkClaimed(missionId);

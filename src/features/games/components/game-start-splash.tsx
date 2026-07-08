@@ -42,7 +42,7 @@ export function GameStartSplash({ onComplete, onExited }: GameStartSplashProps) 
     };
   }, []);
 
-  if (exiting) {
+  if (exiting || typeof document === "undefined") {
     return null;
   }
 
@@ -52,7 +52,7 @@ export function GameStartSplash({ onComplete, onExited }: GameStartSplashProps) 
       data-game-start-splash
       aria-hidden="true"
     >
-      <span className="break-words px-6 text-center text-5xl font-black uppercase tracking-widest text-white sm:text-6xl lg:text-7xl">
+      <span className="break-words px-6 text-center text-5xl font-bold uppercase tracking-wider text-white sm:text-6xl lg:text-7xl">
         {t("games.startSplash")}
       </span>
     </div>,

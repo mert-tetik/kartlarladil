@@ -2,6 +2,8 @@
 -- Some environments had the table created without policies, causing authenticated inserts to fail.
 alter table public.chest_rewards enable row level security;
 
+grant select, insert on public.chest_rewards to authenticated;
+
 drop policy if exists chest_rewards_select_own on public.chest_rewards;
 create policy chest_rewards_select_own
   on public.chest_rewards
