@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, Library, ListChecks, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, Library, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -324,11 +324,11 @@ export function MobileLandingDashboard() {
             setMissionsPanelOpen(true);
           }, { nextPath: "/missions" });
         }}
-        className="absolute right-2 top-2 z-10 flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-1.5 text-white shadow-sm backdrop-blur-sm transition-colors hover:bg-white/20"
+        className="absolute right-2 top-2 z-10 flex min-h-12 items-center gap-2.5 rounded-2xl border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 px-3.5 py-2 text-white shadow-[0_10px_26px_rgba(249,115,22,0.28)] transition-transform active:scale-[0.98]"
         aria-label={t("home.mobile.missions")}
       >
-        <ListChecks className="size-4" aria-hidden="true" />
-        <span className="text-xs font-bold">{t("home.mobile.missions")}</span>
+        <ScoreIcon size={26} className="h-[1.625rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
+        <span className="text-sm font-bold">{t("home.mobile.missions")}</span>
         {waitingMissionCount > 0 ? (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-xl bg-red-500 px-1.5 text-[10px] font-extrabold text-white animate-mission-badge-pulse">
             {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
@@ -343,7 +343,7 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-2 top-[3.25rem] z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
+        className="absolute right-2 top-[4rem] z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
