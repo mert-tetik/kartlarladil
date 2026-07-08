@@ -14,4 +14,4 @@ create policy chest_rewards_insert_own
   on public.chest_rewards
   for insert
   to authenticated
-  with check (auth.uid() = user_id); 
+  with check (auth.uid() = user_id);  
