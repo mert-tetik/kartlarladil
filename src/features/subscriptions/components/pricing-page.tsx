@@ -102,7 +102,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   return (
     <div
       data-pricing-page
-      className="animate-screen-pop relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-10 pt-12 sm:px-6 lg:px-8"
+      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-10 pt-12 sm:px-6 lg:px-8"
     >
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
@@ -119,7 +119,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         />
       </div>
 
-      <div className="hidden lg:block">
+      <div className="hidden animate-screen-pop lg:block">
         <div className="relative z-10 text-center">
           <h1 className="font-display text-4xl font-semibold text-brand md:text-5xl">
             {t("pricing.title")}
@@ -834,12 +834,14 @@ function MobileOptionPrice({
   }
 
   return (
-    <span className="font-display text-lg font-semibold tabular-nums">
-      {primary}
-      <span className="ml-1 text-xs font-normal text-foreground-muted">
-        / {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
+    <div className="absolute right-0 top-1/2 flex -translate-y-1/2 shrink-0 flex-col items-end text-right leading-none">
+      <span className="font-display text-lg font-semibold tabular-nums text-foreground">
+        {primary}
       </span>
-    </span>
+      <span className="mt-1 text-[11px] font-medium text-foreground-muted">
+        {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
+      </span>
+    </div>
   );
 }
 
@@ -891,8 +893,9 @@ function MobilePricingView({
   const isCurrentPlan = currentPlan === selectedOption.plan;
 
   return (
-    <div className="relative z-10 flex flex-col pb-44 lg:hidden">
-      <div className="text-center">
+    <div className="relative z-10 flex flex-col pb-[calc(var(--mobile-nav-bar-height)+10.25rem)] lg:hidden">
+      <div className="animate-screen-pop">
+        <div className="text-center">
         <h1 className="font-display text-3xl font-semibold text-brand">
           {t("pricing.title")}
         </h1>
@@ -904,9 +907,9 @@ function MobilePricingView({
             {t("pricing.firstMonthFreeBanner")}
           </p>
         ) : null}
-      </div>
+        </div>
 
-      <div className="mt-8 space-y-3">
+        <div className="mt-8 space-y-3">
         {MOBILE_OPTIONS.map((option) => {
           const isSelected =
             selectedOption.plan === option.plan && selectedOption.cycle === option.cycle;
@@ -920,7 +923,7 @@ function MobilePricingView({
               type="button"
               onClick={() => handleSelect(option)}
               className={cn(
-                "relative flex h-20 w-full items-center gap-4 rounded-2xl border-2 px-4 transition-all",
+                "relative flex h-20 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all",
                 isSelected
                   ? "border-brand bg-background-card shadow-md"
                   : "border-border bg-background-card/60 hover:border-brand/40"
@@ -941,7 +944,7 @@ function MobilePricingView({
               >
                 {isSelected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
               </div>
-              <div className="flex min-w-0 flex-1 flex-col">
+              <div className="relative flex min-w-0 flex-1 flex-col justify-center pr-22">
                 <span className="truncate text-left font-display text-base font-semibold capitalize">
                   {planLabel} — {cycleLabel}
                 </span>
@@ -994,42 +997,42 @@ function MobilePricingView({
         </ul>
       </div>
 
-      <div className="relative z-10 mt-10">
-        <PaymentProviderNotes />
-        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-foreground-muted">
-          {t("pricing.contactEmail")}
-        </p>
+        <div className="relative z-10 mt-10">
+          <PaymentProviderNotes />
+          <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-foreground-muted">
+            {t("pricing.contactEmail")}
+          </p>
+        </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-20 z-50 px-4 lg:hidden">
-        {isCurrentPlan ? (
-          <CurrentPlanButton
-            plan={selectedOption.plan}
-            provider={provider}
-            customerPortalUrl={customerPortalUrl}
-            isTwa={isTwa}
-            className="h-16"
-          />
-        ) : !user ? (
-          <Link
-            href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName("primary", "lg", "w-full h-16")}
-          >
-            {t("pricing.ctaFree")}
-          </Link>
-        ) : (
-          <PurchaseButton
-            plan={selectedOption.plan}
-            cycle={selectedOption.cycle}
-            currentPlan={currentPlan}
-            provider={provider}
-            className="h-16"
-          />
-        )}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md lg:hidden">
-        <ConsentText />
+      <div className="fixed inset-x-0 bottom-[calc(var(--mobile-nav-bar-height)+0.75rem)] z-50 px-4 lg:hidden">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur-md">
+          {isCurrentPlan ? (
+            <CurrentPlanButton
+              plan={selectedOption.plan}
+              provider={provider}
+              customerPortalUrl={customerPortalUrl}
+              isTwa={isTwa}
+              className="h-[4.5rem] text-base"
+            />
+          ) : !user ? (
+            <Link
+              href={`/register?next=${encodeURIComponent("/pricing")}`}
+              className={buttonClassName("primary", "lg", "h-[4.5rem] w-full text-base")}
+            >
+              {t("pricing.ctaFree")}
+            </Link>
+          ) : (
+            <PurchaseButton
+              plan={selectedOption.plan}
+              cycle={selectedOption.cycle}
+              currentPlan={currentPlan}
+              provider={provider}
+              className="h-[4.5rem] text-base"
+            />
+          )}
+          <ConsentText />
+        </div>
       </div>
     </div>
   );
