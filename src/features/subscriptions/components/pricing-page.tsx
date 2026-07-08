@@ -947,9 +947,11 @@ function MobilePricingView({
                 {isSelected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
               </div>
               <div className="relative flex min-w-0 flex-1 flex-col justify-center pr-22">
-                <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-left text-[10px] font-bold text-transparent">
-                  {t("pricing.firstMonthFree")}
-                </span>
+                {option.cycle === "monthly" ? (
+                  <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-left text-[10px] font-bold text-transparent">
+                    {t("pricing.firstMonthFree")}
+                  </span>
+                ) : null}
                 <span className="mt-0.5 truncate text-left font-display text-base font-semibold capitalize">
                   {planLabel} — {cycleLabel}
                 </span>
@@ -1013,10 +1015,10 @@ function MobilePricingView({
       {stickyPortalTarget
         ? createPortal(
             <div
-              className="pointer-events-none fixed inset-x-0 z-[60] px-4 lg:hidden"
-              style={{ bottom: "calc(var(--mobile-nav-bar-height) + max(env(safe-area-inset-bottom), 0.75rem))" }}
+              className="pointer-events-none fixed inset-x-0 z-[60] lg:hidden"
+              style={{ bottom: "var(--mobile-nav-bar-height)" }}
             >
-              <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur-md">
+              <div className="pointer-events-auto w-full border-t border-border bg-background/95 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md">
                 {isCurrentPlan ? (
                   <CurrentPlanButton
                     plan={selectedOption.plan}
