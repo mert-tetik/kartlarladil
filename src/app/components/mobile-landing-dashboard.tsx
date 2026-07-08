@@ -361,24 +361,18 @@ export function MobileLandingDashboard() {
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <button
-          type="button"
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={RANK_ICON_ASSETS[stats.rank.icon]}
+          alt={getRankLabel(stats.rank, locale)}
           onClick={() => {
             vibrate("tap");
             setRankInfoOpen(true);
           }}
-          className="relative z-10 flex max-h-full w-auto items-center justify-center"
-          aria-label={getRankLabel(stats.rank, locale)}
+          className="relative z-10 max-h-full w-auto max-w-full cursor-pointer object-contain"
+          draggable={false}
           data-rank-icon-button
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={RANK_ICON_ASSETS[stats.rank.icon]}
-            alt=""
-            className="max-h-full w-auto max-w-full object-contain"
-            draggable={false}
-          />
-        </button>
+        />
         <h1 className="relative z-10 text-center text-lg font-extrabold text-brand">
           {getRankLabel(stats.rank, locale)}
         </h1>
