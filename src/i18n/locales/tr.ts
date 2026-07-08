@@ -736,6 +736,7 @@ const dictionary = {
   "missions.rewardClaimed": "Ödül Kazanıldı!",
   "missions.pointsRewardDescription": "Görev puanların hesabına eklendi.",
   "missions.progressLabel": "İlerleme {progress}/{requirement}",
+  "missions.syncing": "Senkronize ediliyor...",
   "missions.reward.chest": "{tier} Sandık",
   "missions.reward.points": "{count} Puan",
   "missions.type.addCards": "{count} kart ekle",

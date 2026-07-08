@@ -84,19 +84,19 @@ export function MissionsList() {
   }, [snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
-    if (!hydrated) return;
-
     if (!user) {
       router.replace("/login?next=/missions");
       return;
     }
+
+    if (!hydrated) return;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void syncMissions();
   }, [hydrated, syncMissions, router, user]);
 
   async function handleClaim(missionId: string) {
-    if (claimingId || syncing) return;
+    if (claimingId) return;
 
     setClaimingId(missionId);
     const result = await claimMissionRewardAction(missionId);
@@ -137,14 +137,6 @@ export function MissionsList() {
     setRewardMode(null);
   }
 
-  if (!hydrated) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-12">
-        <div className="size-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-      </div>
-    );
-  }
-
   if (!user) {
     return null;
   }
@@ -170,8 +162,9 @@ export function MissionsList() {
   return (
     <>
       {syncing && (
-        <div className="flex items-center justify-center py-2">
-          <div className="size-4 animate-spin rounded-full border border-brand border-t-transparent" />
+        <div className="flex items-center justify-center gap-2 py-2 text-xs text-foreground-secondary">
+          <div className="size-3 animate-spin rounded-full border border-brand border-t-transparent" />
+          {t("missions.syncing")}
         </div>
       )}
       <div className={cn("flex flex-col gap-3 pb-8", rewardMode && "pointer-events-none")}>
@@ -188,7 +181,6 @@ export function MissionsList() {
             characterId={mission.definition.characterId}
             onClaim={() => void handleClaim(mission.missionId)}
             claiming={claimingId === mission.missionId}
-            disabled={syncing}
           />
         ))}
       </div>

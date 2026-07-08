@@ -737,6 +737,7 @@ const dictionary = {
   "missions.rewardClaimed": "Reward Claimed!",
   "missions.pointsRewardDescription": "Mission points have been added to your account.",
   "missions.progressLabel": "Progress {progress}/{requirement}",
+  "missions.syncing": "Synchroniseren...",
   "missions.reward.chest": "{tier} Chest",
   "missions.reward.points": "{count} Points",
   "missions.type.addCards": "Add {count} cards",
