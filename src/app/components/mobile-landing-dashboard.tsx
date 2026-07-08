@@ -49,7 +49,7 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
 }
 
 const MOBILE_TOP_ACTION_BUTTON_CLASSNAME =
-  "absolute top-2 z-10 flex h-[2.45rem] w-[9.4rem] items-center gap-2 rounded-2xl px-3.5 py-1 text-white transition-transform active:scale-[0.98]";
+  "absolute top-2 z-10 flex h-[2.45rem] w-[8.8rem] items-center gap-2 rounded-2xl px-3 py-1 text-white transition-transform active:scale-[0.98]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
