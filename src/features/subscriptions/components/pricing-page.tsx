@@ -67,7 +67,7 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_STICKY_CTA_CLASS = "h-[4.25rem] whitespace-nowrap text-sm";
+const PRICING_STICKY_CTA_CLASS = "h-[3.75rem] whitespace-nowrap text-sm";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
