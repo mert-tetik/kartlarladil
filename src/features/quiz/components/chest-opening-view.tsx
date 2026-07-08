@@ -25,7 +25,7 @@ const REWARD_REVEAL_DELAY_MS = 900;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const REWARD_FLIGHT_MS = 1400;
 const AUTO_CLOSE_AFTER_FLIGHT_MS = 1000;
-const DISAPPEAR_MS = 350;
+const DISAPPEAR_MS = 420;
 
 export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
   const t = useT();
@@ -276,7 +276,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     <div
       data-chest-opening-view
       data-chest-opening-layout
-      className="relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
+      className="animate-screen-pop relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
     >
       <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.28),_transparent_42%),radial-gradient(circle_at_bottom,_rgba(245,158,11,0.18),_transparent_38%)]" />
@@ -307,8 +307,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
           <div
             className={cn(
-              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-2xl backdrop-blur-sm transition-all duration-300 sm:px-8 sm:py-10",
-              phase === "disappearing" && "scale-90 opacity-0",
+              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 sm:py-10",
+              phase === "disappearing" && "translate-y-2 scale-[0.94] opacity-0",
             )}
           >
             <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{t("chest.title")}</h2>

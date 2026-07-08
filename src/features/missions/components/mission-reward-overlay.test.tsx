@@ -63,7 +63,7 @@ describe("MissionRewardOverlay", () => {
     fireEvent.click(container.querySelector("[data-chest-opening-view-mock]")!);
 
     act(() => {
-      vi.advanceTimersByTime(300);
+      vi.advanceTimersByTime(600);
     });
 
     expect(onComplete).toHaveBeenCalledTimes(1);

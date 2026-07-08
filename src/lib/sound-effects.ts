@@ -323,10 +323,19 @@ function cardReady(context: AudioContext, now: number) {
 }
 
 function missionClaim(context: AudioContext, now: number) {
-  // Satisfying major chord + bright sparkle.
-  playChord(context, [SCALE.C5, SCALE.E5, SCALE.G5], now, 0.28, 0.08);
-  playTone(context, { frequency: SCALE.C6, startTime: now + 0.06, duration: 0.22, gain: 0.06 });
-  playTone(context, { frequency: SCALE.E6, startTime: now + 0.12, duration: 0.2, gain: 0.045 });
+  // Thick, tactile reward thunk with a short golden tail.
+  playTone(context, {
+    frequency: 170,
+    endFrequency: 108,
+    startTime: now,
+    duration: 0.16,
+    gain: 0.14,
+    type: "triangle",
+  });
+  playNoise(context, { startTime: now, duration: 0.05, gain: 0.035, filterFrequency: 720 });
+  playTone(context, { frequency: SCALE.C4, startTime: now + 0.02, duration: 0.2, gain: 0.08, type: "sine" });
+  playTone(context, { frequency: SCALE.G4, startTime: now + 0.05, duration: 0.18, gain: 0.05, type: "triangle" });
+  playTone(context, { frequency: SCALE.C5, startTime: now + 0.1, duration: 0.18, gain: 0.028, type: "triangle" });
 }
 
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
