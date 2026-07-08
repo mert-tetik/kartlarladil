@@ -1,4 +1,4 @@
-
+﻿
 const dictionary = {
   "account.subscription.cancel": "Aboneliği iptal et",
   "account.subscription.cancelDescription": "Aboneliğini istediğin zaman iptal edebilirsin. Ödenen dönem sonuna kadar erişimin devam eder.",
@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "Upgrade",
   "pricing.ctaSkip": "Geç",
   "pricing.ctaManage": "Aboneliği yönet",
+  "pricing.ctaSubscribe": "Abone Ol",
   "pricing.ctaCurrentAndManage": "Mevcut Plan (Aboneliği Yönet)",
   "pricing.description": "Kart limitlerini kaldır ve AI Practice'te daha fazla mesaj hakkı kazan.",
   "pricing.featureAiDaily": "Günlük {count} AI mesaj",

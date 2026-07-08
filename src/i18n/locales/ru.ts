@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "ĞĞ±Ğ½Ğ¾Ğ²Ğ¸Ñ‚ÑŒ",
   "pricing.ctaSkip": "ĞŸÑ€Ğ¾Ğ¿ÑƒÑÑ‚Ğ¸Ñ‚ÑŒ",
   "pricing.ctaManage": "Ğ£Ğ¿Ñ€Ğ°Ğ²Ğ»ĞµĞ½Ğ¸Ğµ Ğ¿Ğ¾Ğ´Ğ¿Ğ¸ÑĞºĞ¾Ğ¹",
+  "pricing.ctaSubscribe": "Подписаться",
   "pricing.ctaCurrentAndManage": "Ğ¢ĞµĞºÑƒÑ‰Ğ¸Ğ¹ Ğ¿Ğ»Ğ°Ğ½ (Ğ£Ğ¿Ñ€Ğ°Ğ²Ğ»ĞµĞ½Ğ¸Ğµ Ğ¿Ğ¾Ğ´Ğ¿Ğ¸ÑĞºĞ¾Ğ¹)",
   "pricing.description": "Ğ£Ğ±ĞµÑ€Ğ¸Ñ‚Ğµ Ğ¾Ğ³Ñ€Ğ°Ğ½Ğ¸Ñ‡ĞµĞ½Ğ¸Ñ Ğ½Ğ° ĞºĞ°Ñ€Ñ‚Ğ¾Ñ‡ĞºĞ¸ Ğ¸ Ğ¿Ğ¾Ğ»ÑƒÑ‡Ğ¸Ñ‚Ğµ Ğ±Ğ¾Ğ»ÑŒÑˆĞµ ÑĞ¾Ğ¾Ğ±Ñ‰ĞµĞ½Ğ¸Ğ¹ AI Practice.",
   "pricing.featureAiDaily": "{count} ÑĞ¾Ğ¾Ğ±Ñ‰ĞµĞ½Ğ¸Ğ¹ AI Ğ² Ğ´ĞµĞ½ÑŒ",

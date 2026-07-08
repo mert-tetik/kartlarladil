@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "Upgrade",
   "pricing.ctaSkip": "Ãœberspringen",
   "pricing.ctaManage": "Abonnement verwalten",
+  "pricing.ctaSubscribe": "Abonnieren",
   "pricing.ctaCurrentAndManage": "Aktueller Plan (Abonnement verwalten)",
   "pricing.description": "Entferne Kartenlimits und erhalte mehr AI Practice-Nachrichten.",
   "pricing.featureAiDaily": "{count} AI-Nachrichten pro Tag",

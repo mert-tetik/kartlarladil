@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "ì—…ê·¸ë ˆì´ë“œ",
   "pricing.ctaSkip": "ê±´ë„ˆë›°ê¸°",
   "pricing.ctaManage": "êµ¬ë… ê´€ë¦¬",
+  "pricing.ctaSubscribe": "구독하기",
   "pricing.ctaCurrentAndManage": "í˜„ì¬ ìš”ê¸ˆì œ (êµ¬ë… ê´€ë¦¬)",
   "pricing.description": "ì¹´ë“œ í•œë„ë¥¼ ì œê±°í•˜ê³  ë” ë§ì€ AI Practice ë©”ì‹œì§€ë¥¼ ë°›ìœ¼ì„¸ìš”.",
   "pricing.featureAiDaily": "{count} AI ë©”ì‹œì§€ ë§¤ì¼",

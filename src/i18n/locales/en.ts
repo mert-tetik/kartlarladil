@@ -1,4 +1,4 @@
-
+﻿
 const dictionary = {
   "account.subscription.cancel": "Cancel subscription",
   "account.subscription.cancelDescription": "You can cancel anytime. Access continues until the end of the paid period.",
@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "Upgrade",
   "pricing.ctaSkip": "Skip",
   "pricing.ctaManage": "Manage subscription",
+  "pricing.ctaSubscribe": "Subscribe",
   "pricing.ctaCurrentAndManage": "Current Plan (Manage Subscription)",
   "pricing.description": "Remove card limits and get more AI Practice messages.",
   "pricing.featureAiDaily": "{count} AI messages per day",

@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "å‡çº§",
   "pricing.ctaSkip": "è·³è¿‡",
   "pricing.ctaManage": "ç®¡ç†è®¢é˜…",
+  "pricing.ctaSubscribe": "立即订阅",
   "pricing.ctaCurrentAndManage": "å½“å‰è®¡åˆ’ï¼ˆç®¡ç†è®¢é˜…ï¼‰",
   "pricing.description": "ç§»é™¤å¡ç‰‡é™åˆ¶å¹¶è·å¾—æ›´å¤šAI Practiceæ¶ˆæ¯ã€‚",
   "pricing.featureAiDaily": "{count} æ¡AIæ¶ˆæ¯æ¯å¤©",

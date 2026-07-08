@@ -18,7 +18,6 @@ import {
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
   createCheckoutAction,
-  createCustomerPortalAction,
 } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
@@ -66,6 +65,9 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
   free: "order-2 md:order-none",
   pro: "order-3 md:order-none",
 };
+
+const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
+const PRICING_STICKY_CTA_CLASS = "h-[4.25rem] whitespace-nowrap text-sm";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
@@ -151,7 +153,6 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               cycle={cycle}
               currentPlan={entitlements?.effectivePlan ?? null}
               provider={entitlements?.provider ?? "lemon_squeezy"}
-              customerPortalUrl={entitlements?.customerPortalUrl ?? null}
               user={user}
               localizedPricing={localizedPricing}
               googlePlayPricing={googlePlayPricing}
@@ -223,7 +224,6 @@ function PricingCard({
   cycle,
   currentPlan,
   provider,
-  customerPortalUrl,
   user,
   localizedPricing,
   googlePlayPricing,
@@ -234,7 +234,6 @@ function PricingCard({
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   provider: SubscriptionProvider;
-  customerPortalUrl: string | null;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
@@ -394,26 +393,27 @@ function PricingCard({
 
       <div className="mt-8">
         {isCurrent ? (
-          <CurrentPlanButton
-            plan={plan}
-            provider={provider}
-            customerPortalUrl={customerPortalUrl}
-            isTwa={isTwa}
-          />
+          <CurrentPlanButton className={PRICING_CARD_CTA_CLASS} />
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName("primary", "md", "w-full")}
+            className={buttonClassName("primary", "md", cn("w-full", PRICING_CARD_CTA_CLASS))}
           >
-            {t("pricing.ctaFree")}
+            {plan === "free" ? t("pricing.ctaFree") : t("pricing.ctaSubscribe")}
           </Link>
         ) : plan === "free" ? (
-          <Button variant="secondary" className="w-full" disabled>
+          <Button variant="secondary" className={cn("w-full", PRICING_CARD_CTA_CLASS)} disabled>
             {t("pricing.ctaCurrent")}
           </Button>
         ) : (
           <>
-            <PurchaseButton plan={plan} cycle={cycle} currentPlan={currentPlan} provider={provider} />
+            <PurchaseButton
+              plan={plan}
+              cycle={cycle}
+              currentPlan={currentPlan}
+              provider={provider}
+              className={PRICING_CARD_CTA_CLASS}
+            />
             <ConsentText />
           </>
         )}
@@ -489,13 +489,13 @@ function CheckoutButton({
         type="submit"
         variant="primary"
         className={cn(
-          "w-full border-0",
+          "h-12 w-full border-0 whitespace-nowrap text-sm",
           (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
           className,
         )}
         disabled={pending}
       >
-        {pending ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaUpgrade")}
+        {pending ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaSubscribe")}
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>
@@ -547,13 +547,12 @@ function GooglePlayCheckoutButton({
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
   const isCurrentPlan = currentPlan === plan;
-  const isUpgradeToPro = currentPlan === "basic" && plan === "pro";
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const handleClick = async () => {
     setPurchaseError(null);
 
-    if (isPaidUser && !isUpgradeToPro) {
+    if (isPaidUser) {
       window.open(
         GOOGLE_PLAY_SUBSCRIPTIONS_URL,
         "_blank",
@@ -580,11 +579,9 @@ function GooglePlayCheckoutButton({
     ? t("common.loading")
     : isCurrentPlan
       ? t("pricing.ctaCurrent")
-      : isUpgradeToPro
-        ? t("pricing.ctaUpgrade")
-        : isPaidUser
-          ? t("pricing.ctaManage")
-          : t("pricing.ctaUpgrade");
+      : isPaidUser
+        ? t("pricing.ctaManage")
+        : t("pricing.ctaSubscribe");
 
   return (
     <div className="w-full space-y-2">
@@ -592,7 +589,7 @@ function GooglePlayCheckoutButton({
         type="button"
         variant="primary"
         className={cn(
-          "w-full border-0",
+          "h-12 w-full border-0 whitespace-nowrap text-sm",
           (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
           className,
         )}
@@ -613,92 +610,13 @@ function GooglePlayCheckoutButton({
   );
 }
 
-function CurrentPlanButton({
-  plan,
-  provider,
-  customerPortalUrl,
-  isTwa,
-  className,
-}: {
-  plan: SubscriptionPlan;
-  provider: SubscriptionProvider;
-  customerPortalUrl: string | null;
-  isTwa: boolean;
-  className?: string;
-}) {
+function CurrentPlanButton({ className }: { className?: string }) {
   const t = useT();
-
-  if (plan === "free") {
-    return (
-      <Button variant="secondary" className={cn("w-full", className)} disabled>
-        {t("pricing.ctaCurrent")}
-      </Button>
-    );
-  }
-
-  const isMismatch =
-    (isTwa && provider === "lemon_squeezy") || (!isTwa && provider === "google_play");
-
-  if (isMismatch) {
-    return <SubscriptionMismatchNotice provider={provider} context="pricing" />;
-  }
-
-  if (isTwa && provider === "google_play") {
-    return (
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full"
-        onClick={() =>
-          window.open(GOOGLE_PLAY_SUBSCRIPTIONS_URL, "_blank", "noopener,noreferrer")
-        }
-      >
-        {t("pricing.ctaCurrentAndManage")}
-      </Button>
-    );
-  }
-
-  return <CustomerPortalButton customerPortalUrl={customerPortalUrl} className={className} />;
-}
-
-function CustomerPortalButton({ customerPortalUrl, className }: { customerPortalUrl: string | null; className?: string }) {
-  const t = useT();
-  const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
-    status: "idle" as const,
-    message: "",
-  });
-
-  useEffect(() => {
-    if (state.status === "success" && state.customerPortalUrl) {
-      const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
-      if (!portalWindow) {
-        window.location.assign(state.customerPortalUrl);
-      }
-    }
-  }, [state]);
-
-  if (customerPortalUrl) {
-    return (
-      <Button
-        type="button"
-        variant="secondary"
-        className={cn("w-full", className)}
-        onClick={() => window.open(customerPortalUrl, "_blank", "noopener,noreferrer")}
-      >
-        {t("pricing.ctaCurrentAndManage")}
-      </Button>
-    );
-  }
 
   return (
-    <form action={formAction} className="w-full">
-      <Button type="submit" variant="secondary" className={cn("w-full", className)} disabled={pending}>
-        {pending ? t("common.loading") : t("pricing.ctaCurrentAndManage")}
-      </Button>
-      {state.status === "error" ? (
-        <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p>
-      ) : null}
-    </form>
+    <Button variant="secondary" className={cn("w-full whitespace-nowrap", className)} disabled>
+      {t("pricing.ctaCurrent")}
+    </Button>
   );
 }
 
@@ -884,7 +802,6 @@ function MobilePricingView({
   const [selectedOption, setSelectedOption] = useState<MobileOption>(MOBILE_OPTIONS[0]);
   const currentPlan = entitlements?.effectivePlan ?? null;
   const provider = entitlements?.provider ?? "lemon_squeezy";
-  const customerPortalUrl = entitlements?.customerPortalUrl ?? null;
   const stickyPortalTarget = typeof document === "undefined" ? null : document.body;
 
   const handleSelect = (option: MobileOption) => {
@@ -1020,19 +937,13 @@ function MobilePricingView({
             >
               <div className="pointer-events-auto w-full border-t border-border bg-background/95 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md">
                 {isCurrentPlan ? (
-                  <CurrentPlanButton
-                    plan={selectedOption.plan}
-                    provider={provider}
-                    customerPortalUrl={customerPortalUrl}
-                    isTwa={isTwa}
-                    className="h-[4.5rem] text-base"
-                  />
+                  <CurrentPlanButton className={PRICING_STICKY_CTA_CLASS} />
                 ) : !user ? (
                   <Link
                     href={`/register?next=${encodeURIComponent("/pricing")}`}
-                    className={buttonClassName("primary", "lg", "h-[4.5rem] w-full text-base")}
+                    className={buttonClassName("primary", "lg", cn("w-full", PRICING_STICKY_CTA_CLASS))}
                   >
-                    {t("pricing.ctaFree")}
+                    {t("pricing.ctaSubscribe")}
                   </Link>
                 ) : (
                   <PurchaseButton
@@ -1040,7 +951,7 @@ function MobilePricingView({
                     cycle={selectedOption.cycle}
                     currentPlan={currentPlan}
                     provider={provider}
-                    className="h-[4.5rem] text-base"
+                    className={PRICING_STICKY_CTA_CLASS}
                   />
                 )}
                 <ConsentText />

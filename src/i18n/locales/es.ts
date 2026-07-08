@@ -390,6 +390,7 @@ const dictionary = {
   "pricing.ctaUpgrade": "Actualizar",
   "pricing.ctaSkip": "Saltar",
   "pricing.ctaManage": "Gestionar suscripciÃ³n",
+  "pricing.ctaSubscribe": "Suscribirse",
   "pricing.ctaCurrentAndManage": "Plan actual (Gestionar suscripciÃ³n)",
   "pricing.description": "Elimina los lÃ­mites de tarjetas y obtÃ©n mÃ¡s mensajes de AI Practice.",
   "pricing.featureAiDaily": "{count} mensajes de AI por dÃ­a",
