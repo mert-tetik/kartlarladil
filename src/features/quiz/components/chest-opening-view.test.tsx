@@ -58,6 +58,9 @@ describe("ChestOpeningView", () => {
       vi.advanceTimersByTime(500);
     });
 
+    expect(document.querySelector("[data-chest-opening-layout]")).toHaveClass("min-h-full");
+    expect(document.querySelector("[data-chest-total-points-shell]")).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: /tap the chest/i }));
 
     act(() => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import { Star } from "lucide-react";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -23,32 +22,39 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
   const { stats } = useProgressStats();
   const [activeMode, setActiveMode] = useState(mode);
   const [exiting, setExiting] = useState(false);
+  const exitTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (mode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveMode(mode);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExiting(false);
       return;
     }
 
-    if (!activeMode) return;
+    setActiveMode(null);
+    setExiting(false);
+  }, [mode]);
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExiting(true);
-    const timer = window.setTimeout(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveMode(null);
-      onComplete();
-    }, EXIT_DURATION_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [mode, activeMode, onComplete]);
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleChildComplete = useCallback(() => {
+    if (exitTimerRef.current !== null) {
+      window.clearTimeout(exitTimerRef.current);
+    }
+
     setExiting(true);
-  }, []);
+    exitTimerRef.current = window.setTimeout(() => {
+      setActiveMode(null);
+      setExiting(false);
+      onComplete();
+    }, EXIT_DURATION_MS);
+  }, [onComplete]);
 
   if (!activeMode) {
     return null;
@@ -56,15 +62,24 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
 
   return (
     <div
+      data-mission-reward-overlay
+      data-state={exiting ? "closing" : "open"}
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300",
+        "fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-md transition-opacity duration-300",
         exiting ? "opacity-0" : "opacity-100",
       )}
     >
       <div
+        className="pointer-events-none absolute inset-0 opacity-80"
+        aria-hidden="true"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.14),_transparent_34%)]" />
+      </div>
+
+      <div
         className={cn(
-          "transition-all duration-300",
-          exiting ? "scale-95 opacity-0" : "scale-100 opacity-100",
+          "relative flex h-full w-full items-center justify-center transition-all duration-300",
+          exiting ? "scale-[0.98] opacity-0" : "scale-100 opacity-100",
         )}
       >
         {activeMode.kind === "chest" ? (
@@ -135,35 +150,64 @@ function MissionPointsCelebration({
   }
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-md flex-col items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0">
-      <h2 className="text-2xl font-semibold text-foreground">{t("missions.rewardClaimed")}</h2>
-      <p className="mt-1 text-sm text-foreground-secondary">{t("missions.pointsRewardDescription")}</p>
-
-      <div className="relative mt-8 flex items-center justify-center">
-        <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-white shadow-lg">
-          <Star className="size-6 fill-current" aria-hidden="true" />
-          <span
-            className={cn(
-              "text-2xl font-bold",
-              bonusPhase === "bobble" && "animate-score-bobble",
-            )}
+    <div
+      data-mission-points-celebration
+      className="relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
+    >
+      <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
+        <div className="flex justify-center pt-1 sm:pt-2">
+          <div
+            data-mission-total-points-shell
+            className="rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg sm:px-5"
           >
-            {formatPoints(locale, displayPoints)}
-          </span>
-          {bonusPhase === "dropping" ? (
-            <span
-              className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 text-3xl font-bold text-amber-400 animate-celebration-points-fall"
-              onAnimationEnd={handleAnimationEnd}
-            >
-              +{amount}
-            </span>
-          ) : null}
+            <div className="relative flex items-center gap-2">
+              <Star className="size-5 fill-current" aria-hidden="true" />
+              <span
+                data-mission-total-points
+                className={cn(
+                  "text-lg font-bold sm:text-xl",
+                  bonusPhase === "bobble" && "animate-score-bobble",
+                )}
+              >
+                {formatPoints(locale, displayPoints)}
+              </span>
+              {bonusPhase === "dropping" ? (
+                <span
+                  className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-3xl font-bold text-amber-400 animate-celebration-points-fall"
+                  onAnimationEnd={handleAnimationEnd}
+                >
+                  +{amount}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
+          <div className="w-full max-w-xl rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-10 shadow-2xl backdrop-blur-sm sm:px-8 sm:py-12">
+            <div className="mx-auto flex max-w-md flex-col items-center">
+              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-500">
+                <Star className="size-8 fill-current" aria-hidden="true" />
+              </div>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                {t("missions.rewardClaimed")}
+              </h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-foreground-secondary sm:text-base">
+                {t("missions.pointsRewardDescription")}
+              </p>
+              {bonusPhase === "bobble" ? (
+                <p className="mt-6 text-xl font-bold text-emerald-500">
+                  +{amount} {t("common.points")}
+                </p>
+              ) : (
+                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.16em] text-foreground-muted">
+                  {t("missions.reward.points", { count: amount })}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      {bonusPhase === "bobble" ? (
-        <p className="mt-6 text-lg font-bold text-emerald-500">+{amount} {t("common.points")}</p>
-      ) : null}
     </div>
   );
 }

@@ -53,6 +53,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const pointsSoundTimeoutRef = useRef<number | null>(null);
   const flyTimeoutRef = useRef<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
+  const completeTimeoutRef = useRef<number | null>(null);
 
   const ui = CHEST_TIER_UI_CLASSES[tier.tier];
 
@@ -60,7 +61,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     if (hasAwarded.current) return;
     hasAwarded.current = true;
     setPhase("disappearing");
-    window.setTimeout(() => onComplete(), DISAPPEAR_MS);
+    completeTimeoutRef.current = window.setTimeout(() => onComplete(), DISAPPEAR_MS);
   }, [onComplete]);
 
   useEffect(() => {
@@ -87,6 +88,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       }
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
+      }
+      if (completeTimeoutRef.current !== null) {
+        window.clearTimeout(completeTimeoutRef.current);
       }
     };
   }, []);
@@ -129,7 +133,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
 
     return () => {
       window.cancelAnimationFrame(raf);
-      if (flyTimeoutRef.current !== null) window.clearTimeout(flyTimeoutRef.current);
+      if (flyTimeoutRef.current !== null) {
+        window.clearTimeout(flyTimeoutRef.current);
+      }
     };
   }, [pointsPhase, tier.points, totalPoints]);
 
@@ -269,131 +275,148 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   return (
     <div
       data-chest-opening-view
-      className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center px-4 py-2 text-center sm:py-4"
+      data-chest-opening-layout
+      className="relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
     >
-      <div
-        className="fixed left-1/2 top-[calc(var(--app-header-height)+0.5rem)] z-40 -translate-x-1/2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
-      >
-        <div className="flex items-center gap-2">
-          <Star className="size-5 fill-current" aria-hidden="true" />
-          <span
-            ref={totalPointsRef}
-            data-chest-total-points
-            className={cn(
-              "text-lg font-bold",
-              pointsPhase === "added" && "animate-score-bobble",
-            )}
-          >
-            {formatPoints(locale, displayPoints)}
-          </span>
-        </div>
+      <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.28),_transparent_42%),radial-gradient(circle_at_bottom,_rgba(245,158,11,0.18),_transparent_38%)]" />
       </div>
 
-      <div
-        className={cn(
-          "relative flex flex-col items-center transition-all duration-300",
-          phase === "disappearing" && "scale-75 opacity-0",
-        )}
-      >
-        <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{t("chest.title")}</h2>
-        <p className={cn("mt-1 text-base font-semibold sm:text-lg", CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"))}>
-          {t(tier.labelKey)}
-        </p>
-
-        <div className="relative mt-4 sm:mt-6">
-          <button
-            type="button"
-            onClick={handleTap}
-            disabled={phase === "revealed" || phase === "disappearing"}
-            className={cn(
-              "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[244px] md:size-[272px]",
-              phase === "idle" && "animate-chest-float",
-              phase === "shake" && "animate-chest-shake",
-              phase === "revealed" && "scale-[1.03]",
-            )}
-            style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
-            aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
+      <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
+        <div className="flex justify-center pt-1 sm:pt-2">
+          <div
+            data-chest-total-points-shell
+            className="rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg sm:px-5"
           >
-            {phase === "revealed" ? (
-              <div
-                data-chest-reward-stack
+            <div className="flex items-center gap-2">
+              <Star className="size-5 fill-current" aria-hidden="true" />
+              <span
+                ref={totalPointsRef}
+                data-chest-total-points
                 className={cn(
-                  "pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 flex-col items-center text-center sm:top-[16px] md:top-[20px]",
-                  pointsPhase === "shown" && "animate-points-pop",
+                  "text-lg font-bold sm:text-xl",
+                  pointsPhase === "added" && "animate-score-bobble",
                 )}
               >
-                <div className="flex items-center gap-2 text-amber-400">
-                  <Gift className="size-5 sm:size-6" aria-hidden="true" />
-                  <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
-                </div>
-                <p
-                  ref={rewardPointsRef}
-                  data-chest-reward-points
-                  className={cn(
-                    "mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
-                    (pointsPhase === "flying" || pointsPhase === "added") && "opacity-0",
-                  )}
-                >
-                  +{tier.points}
-                </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-400 sm:text-sm">
-                  {t("chest.pointsLabel")}
-                </p>
-              </div>
-            ) : null}
-
-            <div className="relative h-[160px] w-[160px] sm:h-[194px] sm:w-[194px] md:h-[220px] md:w-[220px]">
-              <div className={cn("absolute bottom-0 left-[6px] right-[6px] h-[98px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[120px] md:left-[10px] md:right-[10px] md:h-[136px]", ui.base)}>
-                <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
-                <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
-                <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-              </div>
-
-              <div
-                ref={lidRef}
-                data-chest-lid
-                className={cn(
-                  "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[64px] md:left-[10px] md:right-[10px] md:h-[72px]",
-                  ui.lid,
-                )}
-                style={{
-                  transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
-                  transformOrigin: "50% 70%",
-                  willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
-                }}
-              >
-                <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
-                <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
-                <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                <div className={cn("absolute left-1/2 bottom-0 z-20 h-10 w-10 -translate-x-1/2 translate-y-1/3 rounded-full border-[3px] border-black/15 shadow-sm sm:h-12 sm:w-12", ui.lock)}>
-                  <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30 sm:h-3.5 sm:w-3.5" />
-                </div>
-              </div>
+                {formatPoints(locale, displayPoints)}
+              </span>
             </div>
-          </button>
-
-          {sparkles.map((sparkle) => (
-            <span
-              key={sparkle.id}
-              className="pointer-events-none absolute bottom-0 animate-sparkle-rise text-amber-400"
-              style={{ left: `${sparkle.left}%`, animationDelay: `${sparkle.delay}ms` }}
-            >
-              <Sparkles className="size-4" aria-hidden="true" />
-            </span>
-          ))}
+          </div>
         </div>
 
-        <p
-          data-chest-tap-hint
-          data-testid="chest-tap-hint"
-          className="mt-4 text-sm font-semibold text-foreground-secondary sm:mt-6"
-        >
-          {t("chest.tapToOpen")}
-        </p>
+        <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
+          <div
+            className={cn(
+              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-2xl backdrop-blur-sm transition-all duration-300 sm:px-8 sm:py-10",
+              phase === "disappearing" && "scale-90 opacity-0",
+            )}
+          >
+            <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{t("chest.title")}</h2>
+            <p
+              className={cn(
+                "mt-1 text-base font-semibold sm:text-lg",
+                CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"),
+              )}
+            >
+              {t(tier.labelKey)}
+            </p>
 
+            <div className="relative mt-6 sm:mt-8">
+              <button
+                type="button"
+                onClick={handleTap}
+                disabled={phase === "revealed" || phase === "disappearing"}
+                className={cn(
+                  "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[244px] md:size-[272px]",
+                  phase === "idle" && "animate-chest-float",
+                  phase === "shake" && "animate-chest-shake",
+                  phase === "revealed" && "scale-[1.03]",
+                )}
+                style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
+                aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
+              >
+                {phase === "revealed" ? (
+                  <div
+                    data-chest-reward-stack
+                    className={cn(
+                      "pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 flex-col items-center text-center sm:top-[16px] md:top-[20px]",
+                      pointsPhase === "shown" && "animate-points-pop",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 text-amber-400">
+                      <Gift className="size-5 sm:size-6" aria-hidden="true" />
+                      <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
+                    </div>
+                    <p
+                      ref={rewardPointsRef}
+                      data-chest-reward-points
+                      className={cn(
+                        "mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
+                        (pointsPhase === "flying" || pointsPhase === "added") && "opacity-0",
+                      )}
+                    >
+                      +{tier.points}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-400 sm:text-sm">
+                      {t("chest.pointsLabel")}
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="relative h-[160px] w-[160px] sm:h-[194px] sm:w-[194px] md:h-[220px] md:w-[220px]">
+                  <div className={cn("absolute bottom-0 left-[6px] right-[6px] h-[98px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[120px] md:left-[10px] md:right-[10px] md:h-[136px]", ui.base)}>
+                    <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
+                    <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
+                    <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                    <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                  </div>
+
+                  <div
+                    ref={lidRef}
+                    data-chest-lid
+                    className={cn(
+                      "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[64px] md:left-[10px] md:right-[10px] md:h-[72px]",
+                      ui.lid,
+                    )}
+                    style={{
+                      transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
+                      transformOrigin: "50% 70%",
+                      willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
+                    }}
+                  >
+                    <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
+                    <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
+                    <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                    <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
+                    <div className={cn("absolute left-1/2 bottom-0 z-20 h-10 w-10 -translate-x-1/2 translate-y-1/3 rounded-full border-[3px] border-black/15 shadow-sm sm:h-12 sm:w-12", ui.lock)}>
+                      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30 sm:h-3.5 sm:w-3.5" />
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {sparkles.map((sparkle) => (
+                <span
+                  key={sparkle.id}
+                  className="pointer-events-none absolute bottom-0 animate-sparkle-rise text-amber-400"
+                  style={{ left: `${sparkle.left}%`, animationDelay: `${sparkle.delay}ms` }}
+                >
+                  <Sparkles className="size-4" aria-hidden="true" />
+                </span>
+              ))}
+            </div>
+
+            <p
+              data-chest-tap-hint
+              data-testid="chest-tap-hint"
+              className="mt-5 text-sm font-semibold text-foreground-secondary sm:mt-6"
+            >
+              {t("chest.tapToOpen")}
+            </p>
+          </div>
+        </div>
       </div>
+
       {pointsPhase === "flying" && flyStyle
         ? createPortal(
             <p

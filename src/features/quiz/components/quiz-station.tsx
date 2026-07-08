@@ -978,7 +978,7 @@ export function QuizStation({
     return (
       <QuizViewportOverlay
         overlay="chest"
-        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 sm:p-6"
       >
         <ChestCelebrationView
           onComplete={() => setPhase("chest")}
@@ -994,7 +994,7 @@ export function QuizStation({
       return (
         <QuizViewportOverlay
           overlay="chest"
-          className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 lg:inset-x-0 lg:bottom-0 lg:top-16"
+          className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 sm:p-6"
         >
           <ChestOpeningView
             tier={tier}
@@ -2127,73 +2127,81 @@ export function CelebrationView({
 
   return (
     <div
-      className="animate-screen-pop relative mx-auto flex h-full w-full max-w-md items-center justify-center rounded-lg border border-border bg-background-card p-4 text-center sm:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-0"
+      className="animate-screen-pop fixed inset-0 z-40 overflow-hidden bg-background px-4 py-6 text-center sm:px-6 sm:py-8"
       data-quiz-celebration
       data-quiz-celebration-stage={viewStage}
     >
-      <div
-        className={cn(
-          "absolute left-1/2 z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          viewStage === "card"
-            ? "top-4 -translate-x-1/2"
-            : "top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.18]",
-        )}
-      >
-        <div
-          className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
-          data-quiz-celebration-score
-        >
-          <Star className="size-5 fill-current" aria-hidden="true" />
-          <span
-            className={cn(
-              "text-lg font-bold",
-              bonusPhase === "bobble" && "animate-score-bobble",
-            )}
-          >
-            {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
-          </span>
-          {viewStage === "points" && bonusPhase === "dropping" ? (
-            <span
-              className="absolute bottom-full left-1/2 mb-2 text-2xl font-bold text-amber-400 animate-celebration-points-fall"
-              data-quiz-celebration-points-gain
-              onAnimationEnd={handleBonusAnimationEnd}
-            >
-              +{gainedPoints}
-            </span>
-          ) : null}
-        </div>
+      <div className="pointer-events-none absolute inset-0 opacity-80" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.14),_transparent_34%)]" />
       </div>
 
-      <div
-        className={cn(
-          "flex w-full max-w-sm flex-col items-center justify-center transition-all duration-300",
-          viewStage === "card"
-            ? "translate-y-0 opacity-100"
-            : "pointer-events-none translate-y-4 opacity-0",
-        )}
-        data-quiz-celebration-content
-      >
-        <h2 className="text-2xl font-semibold text-foreground">
-          {t("quiz.learnedTitle")}
-        </h2>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
+          <div
+            className={cn(
+              "flex justify-center pt-1 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:pt-2",
+              viewStage === "points" && "scale-[1.08]",
+            )}
+          >
+            <div
+              className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
+              data-quiz-celebration-score
+            >
+              <Star className="size-5 fill-current" aria-hidden="true" />
+              <span
+                className={cn(
+                  "text-lg font-bold",
+                  bonusPhase === "bobble" && "animate-score-bobble",
+                )}
+              >
+                {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
+              </span>
+              {viewStage === "points" && bonusPhase === "dropping" ? (
+                <span
+                  className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-2xl font-bold text-amber-400 animate-celebration-points-fall"
+                  data-quiz-celebration-points-gain
+                  onAnimationEnd={handleBonusAnimationEnd}
+                >
+                  +{gainedPoints}
+                </span>
+              ) : null}
+            </div>
+          </div>
 
-        <div
-          className="mt-5 w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]"
-          data-quiz-celebration-card
-        >
-          <VocabularyCardView
-            card={card}
-            owned
-            initialFace="back"
-            face={cardFace}
-            flippable={false}
-            className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
-          />
+          <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
+            <div
+              className={cn(
+                "flex w-full max-w-2xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-2xl backdrop-blur-sm transition-all duration-300 sm:px-8 sm:py-10",
+                viewStage === "card"
+                  ? "translate-y-0 opacity-100"
+                  : "pointer-events-none translate-y-4 opacity-0",
+              )}
+              data-quiz-celebration-content
+            >
+              <h2 className="text-2xl font-semibold text-foreground">
+                {t("quiz.learnedTitle")}
+              </h2>
+
+              <div
+                className="mt-5 w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]"
+                data-quiz-celebration-card
+              >
+                <VocabularyCardView
+                  card={card}
+                  owned
+                  initialFace="back"
+                  face={cardFace}
+                  flippable={false}
+                  className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
+                />
+              </div>
+
+              <Button className="mt-5 w-full" onClick={() => setViewStage("points")}>
+                {t("quiz.continue")}
+              </Button>
+            </div>
+          </div>
         </div>
-
-        <Button className="mt-5 w-full" onClick={() => setViewStage("points")}>
-          {t("quiz.continue")}
-        </Button>
       </div>
     </div>
   );

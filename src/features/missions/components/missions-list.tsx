@@ -167,7 +167,7 @@ export function MissionsList() {
           {t("missions.syncing")}
         </div>
       )}
-      <div className={cn("flex flex-col gap-3 pb-8", rewardMode && "pointer-events-none")}>
+      <div className={cn("flex flex-col gap-3 pb-8")}>
         {missions.map((mission) => (
           <MissionCard
             key={mission.missionId}
