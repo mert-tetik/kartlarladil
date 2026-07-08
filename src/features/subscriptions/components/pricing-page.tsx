@@ -932,7 +932,7 @@ function MobilePricingView({
       {stickyPortalTarget
         ? createPortal(
             <div
-              className="pointer-events-none fixed inset-x-0 z-[60] lg:hidden"
+              className="pointer-events-none fixed inset-x-0 z-30 lg:hidden"
               style={{ bottom: "var(--mobile-nav-bar-height)" }}
             >
               <div className="pointer-events-auto w-full border-t border-border bg-background/95 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md">

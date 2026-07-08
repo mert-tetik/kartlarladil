@@ -16,7 +16,7 @@ export function LeaderboardPageClient() {
   const { locale } = useLocale();
   const t = useT();
   const { updateProfileField } = useAuthSession();
-  const { data, loading, error, refresh } = useLeaderboardData();
+  const { data, loading, error, refresh } = useLeaderboardData({ refreshOnMount: true });
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentBusy, setConsentBusy] = useState(false);
   const [consentError, setConsentError] = useState("");

@@ -200,6 +200,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
               const isHome = item.href === "/";
+              const isPremium = item.href === "/pricing";
 
               if (isHome) {
                 return (
@@ -229,7 +230,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                     active && "text-brand",
                   )}
                 >
-                  <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
+                  <span className="relative inline-flex">
+                    <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
+                    {isPremium ? (
+                      <span className="pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent">
+                        FREE
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="max-w-full truncate px-0.5">{item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey)}</span>
                 </Link>
               );
