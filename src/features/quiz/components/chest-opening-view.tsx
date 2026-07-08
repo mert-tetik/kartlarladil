@@ -303,7 +303,29 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
           transition: flyStyle.transition,
         }
       : undefined;
+  const shouldRenderRewardStack = phase === "revealed" || pointsPhase !== "hidden";
   const shouldHideRewardSource = pointsPhase === "added" || (pointsPhase === "flying" && flyStyle !== null);
+
+  useEffect(() => {
+    if (pointsPhase !== "flying" || flyStyle !== null) {
+      return;
+    }
+
+    if (!rewardPointsRef.current || !totalPointsRef.current) {
+      flyTimeoutRef.current = window.setTimeout(() => {
+        setDisplayPoints(stableTotalPoints + tier.points);
+        setPointsPhase("added");
+      }, REWARD_FLIGHT_MS);
+
+      return () => {
+        if (flyTimeoutRef.current !== null) {
+          window.clearTimeout(flyTimeoutRef.current);
+        }
+      };
+    }
+
+    return undefined;
+  }, [flyStyle, pointsPhase, stableTotalPoints, tier.points]);
 
   return (
     <div
@@ -367,7 +389,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                 )}
                 style={{ perspective: "800px" }}
               >
-                {phase === "revealed" ? (
+                {shouldRenderRewardStack ? (
                   <div
                     data-chest-reward-stack
                     className={cn(
