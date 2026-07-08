@@ -8,6 +8,7 @@ import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
 import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
+import { MissionIcon } from "@/components/mission-icon";
 import { ScoreIcon } from "@/components/score-icon";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
@@ -324,13 +325,13 @@ export function MobileLandingDashboard() {
             setMissionsPanelOpen(true);
           }, { nextPath: "/missions" });
         }}
-        className="absolute right-2 top-2 z-10 flex min-h-12 items-center gap-2.5 rounded-2xl border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 px-3.5 py-2 text-white shadow-[0_10px_26px_rgba(249,115,22,0.28)] transition-transform active:scale-[0.98]"
+        className="absolute right-2 top-2 z-10 flex min-h-[2.65rem] items-center gap-2 rounded-2xl border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 px-3.5 py-1.5 text-white shadow-[0_10px_26px_rgba(249,115,22,0.28)] transition-transform active:scale-[0.98]"
         aria-label={t("home.mobile.missions")}
       >
-        <ScoreIcon size={26} className="h-[1.625rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
+        <MissionIcon size={30} className="h-[1.85rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
         <span className="text-sm font-bold">{t("home.mobile.missions")}</span>
         {waitingMissionCount > 0 ? (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-xl bg-red-500 px-1.5 text-[10px] font-extrabold text-white animate-mission-badge-pulse">
+          <span className="absolute -left-2 -top-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse">
             {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
           </span>
         ) : null}
