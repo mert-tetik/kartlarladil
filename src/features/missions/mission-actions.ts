@@ -152,28 +152,43 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
     } else {
       const points = getChestRewardPoints(reward.tier);
 
-      const [{ error: chestError }, { error: rewardError }, { error: missionError }] = await Promise.all([
-        supabase.rpc("increment_chest_points", {
-          p_user_id: user.id,
-          p_points: points,
-        }),
-        supabase.from("chest_rewards").insert({
-          user_id: user.id,
-          tier: reward.tier,
-          points,
-        }),
-        supabase.from("mission_rewards").insert({
-          user_id: user.id,
-          mission_id: missionId,
-          reward_type: "chest",
-          chest_tier: reward.tier,
-          points,
-        }),
-      ]);
+      if (points <= 0) {
+        return { status: "error", message: "invalid_chest_reward" };
+      }
 
-      if (chestError) throw chestError;
-      if (rewardError) throw rewardError;
-      if (missionError) throw missionError;
+      const { error: chestIncError } = await supabase.rpc("increment_chest_points", {
+        p_user_id: user.id,
+        p_points: points,
+      });
+
+      if (chestIncError) {
+        console.error("increment_chest_points failed:", chestIncError);
+        throw chestIncError;
+      }
+
+      const { error: chestRewardError } = await supabase.from("chest_rewards").insert({
+        user_id: user.id,
+        tier: reward.tier,
+        points,
+      });
+
+      if (chestRewardError) {
+        console.error("chest_rewards insert failed:", chestRewardError);
+        throw chestRewardError;
+      }
+
+      const { error: missionRewardError } = await supabase.from("mission_rewards").insert({
+        user_id: user.id,
+        mission_id: missionId,
+        reward_type: "chest",
+        chest_tier: reward.tier,
+        points,
+      });
+
+      if (missionRewardError) {
+        console.error("mission_rewards insert failed:", missionRewardError);
+        throw missionRewardError;
+      }
     }
 
     const { error: upsertError } = await supabase
