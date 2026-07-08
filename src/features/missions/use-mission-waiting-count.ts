@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useGameProgressStore } from "@/features/games/game-progress-store";
 import { listUserMissionsAction } from "@/features/missions/mission-actions";
 import { countWaitingMissions } from "@/features/missions/mission-progress";
-import type { MissionProgressSnapshot, UserMission } from "@/features/missions/mission-types";
+import { useMissionClaimStore } from "@/features/missions/mission-claim-store";
+import type { MissionProgressSnapshot } from "@/features/missions/mission-types";
 
 export function useMissionWaitingCount(): number {
   const { user } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
-  const [userMissions, setUserMissions] = useState<UserMission[]>([]);
+  const { claimedIds, setClaimedIds } = useMissionClaimStore();
 
   const snapshot = useMemo<MissionProgressSnapshot>(
     () => ({
@@ -37,21 +38,16 @@ export function useMissionWaitingCount(): number {
     void (async () => {
       const result = await listUserMissionsAction(snapshot);
       if (!cancelled && result.status === "success") {
-        setUserMissions(
-          result.missions.map((item) => ({
-            missionId: item.missionId,
-            progress: item.progress,
-            status: item.status,
-            claimedAt: item.claimedAt,
-          })),
-        );
+        setClaimedIds(result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId));
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [snapshot, user, hydrated]);
+    // Snapshot changes are computed client-side; sync with Supabase only on mount/auth changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, hydrated, setClaimedIds]);
 
-  return useMemo(() => countWaitingMissions(snapshot, userMissions), [snapshot, userMissions]);
+  return useMemo(() => countWaitingMissions(snapshot, claimedIds), [snapshot, claimedIds]);
 }

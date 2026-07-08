@@ -68,7 +68,7 @@ export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
-          <MissionsList initialMissions={[]} />
+          <MissionsList />
         </div>
       </div>
     </div>

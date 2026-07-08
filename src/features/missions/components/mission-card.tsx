@@ -21,6 +21,7 @@ interface MissionCardProps {
   characterId?: MissionDefinition["characterId"];
   onClaim: () => void;
   claiming: boolean;
+  disabled?: boolean;
 }
 
 export function MissionCard({
@@ -34,6 +35,7 @@ export function MissionCard({
   characterId,
   onClaim,
   claiming,
+  disabled = false,
 }: MissionCardProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -112,7 +114,7 @@ export function MissionCard({
 
       <Button
         size="sm"
-        disabled={!isWaiting || claiming}
+        disabled={!isWaiting || claiming || disabled}
         onClick={() => {
           vibrate("tap");
           onClaim();

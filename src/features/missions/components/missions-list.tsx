@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { listUserMissionsAction, claimMissionRewardAction } from "@/features/missions/mission-actions";
+import { buildMissionViewModels } from "@/features/missions/mission-progress";
+import { useMissionClaimStore } from "@/features/missions/mission-claim-store";
 import { MISSIONS } from "@/features/missions/missions-data";
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import type {
@@ -27,7 +29,7 @@ export interface MissionViewModel extends UserMission {
   requirement: number;
 }
 
-export function MissionsList({ initialMissions }: { initialMissions: MissionViewModel[] }) {
+export function MissionsList() {
   const t = useT();
   const router = useRouter();
   const { user } = useAuthSession();
@@ -35,8 +37,8 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
-  const [missions, setMissions] = useState<MissionViewModel[]>(initialMissions);
-  const [loading, setLoading] = useState(false);
+  const { claimedIds, setClaimedIds, markClaimed } = useMissionClaimStore();
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [rewardMode, setRewardMode] = useState<
@@ -59,22 +61,27 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
     };
   }, [cards, getGameProgress]);
 
-  const loadMissions = useCallback(async () => {
+  const missions = useMemo<MissionViewModel[]>(
+    () => buildMissionViewModels(snapshot, claimedIds),
+    [snapshot, claimedIds],
+  );
+
+  const syncMissions = useCallback(async () => {
     if (!user) return;
 
-    setLoading(true);
+    setSyncing(true);
     setError(null);
 
     const result = await listUserMissionsAction(snapshot);
 
     if (result.status === "success") {
-      setMissions(result.missions);
+      setClaimedIds(result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId));
     } else {
       setError(result.message ?? t("missions.loadError"));
     }
 
-    setLoading(false);
-  }, [snapshot, t, user]);
+    setSyncing(false);
+  }, [snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -84,24 +91,25 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
       return;
     }
 
-    // Initial prop uses server-side snapshot (game progress unknown).
-    // Refresh from the client once inventory and game progress are hydrated.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadMissions();
-  }, [hydrated, loadMissions, router, user]);
+    void syncMissions();
+  }, [hydrated, syncMissions, router, user]);
 
   async function handleClaim(missionId: string) {
-    if (claimingId) return;
+    if (claimingId || syncing) return;
 
     setClaimingId(missionId);
     const result = await claimMissionRewardAction(missionId);
 
     if (result.status === "success") {
+      markClaimed(missionId);
+
       const mission = MISSIONS.find((item) => item.id === missionId);
 
       if (!mission) {
         await refreshStats();
-        await loadMissions();
+        await syncMissions();
+        setClaimingId(null);
         return;
       }
 
@@ -117,7 +125,7 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
       }
 
       await refreshStats();
-      await loadMissions();
+      await syncMissions();
     } else {
       setError(result.message ?? t("missions.claimError"));
     }
@@ -129,7 +137,7 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
     setRewardMode(null);
   }
 
-  if (!hydrated || loading) {
+  if (!hydrated) {
     return (
       <div className="flex flex-1 items-center justify-center py-12">
         <div className="size-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
@@ -137,11 +145,15 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-12 text-center">
         <p className="text-sm text-foreground-secondary">{error}</p>
-        <Button onClick={() => void loadMissions()}>{t("common.retry")}</Button>
+        <Button onClick={() => void syncMissions()}>{t("common.retry")}</Button>
       </div>
     );
   }
@@ -157,6 +169,11 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
 
   return (
     <>
+      {syncing && (
+        <div className="flex items-center justify-center py-2">
+          <div className="size-4 animate-spin rounded-full border border-brand border-t-transparent" />
+        </div>
+      )}
       <div className={cn("flex flex-col gap-3 pb-8", rewardMode && "pointer-events-none")}>
         {missions.map((mission) => (
           <MissionCard
@@ -171,6 +188,7 @@ export function MissionsList({ initialMissions }: { initialMissions: MissionView
             characterId={mission.definition.characterId}
             onClaim={() => void handleClaim(mission.missionId)}
             claiming={claimingId === mission.missionId}
+            disabled={syncing}
           />
         ))}
       </div>

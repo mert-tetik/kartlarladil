@@ -40,12 +40,7 @@ export function computeMissionProgress(
 export function deriveMissionStatus(
   mission: MissionDefinition,
   progress: number,
-  previousMissionClaimed: boolean,
 ): MissionStatus {
-  if (!previousMissionClaimed) {
-    return "locked";
-  }
-
   if (progress >= mission.requirement) {
     return "waiting";
   }
@@ -55,36 +50,26 @@ export function deriveMissionStatus(
 
 export function buildMissionViewModels(
   snapshot: MissionProgressSnapshot,
-  userMissions: UserMission[],
+  claimedMissionIds: Set<string>,
 ): Array<UserMission & { definition: MissionDefinition; requirement: number }> {
-  const userMissionById = new Map(userMissions.map((item) => [item.missionId, item]));
-
-  return MISSIONS.map((definition, index) => {
-    const previousMission = MISSIONS[index - 1];
-    const previousMissionClaimed = previousMission
-      ? (userMissionById.get(previousMission.id)?.status === "claimed")
-      : true;
-
-    const stored = userMissionById.get(definition.id);
+  return MISSIONS.map((definition) => {
     const computedProgress = computeMissionProgress(definition, snapshot);
 
-    if (stored?.status === "claimed") {
+    if (claimedMissionIds.has(definition.id)) {
       return {
         missionId: definition.id,
-        progress: Math.max(computedProgress, stored.progress),
-        status: "claimed",
-        claimedAt: stored.claimedAt,
+        progress: Math.max(computedProgress, definition.requirement),
+        status: "claimed" as const,
+        claimedAt: null,
         definition,
         requirement: definition.requirement,
       };
     }
 
-    const status = deriveMissionStatus(definition, computedProgress, previousMissionClaimed);
-
     return {
       missionId: definition.id,
       progress: computedProgress,
-      status,
+      status: deriveMissionStatus(definition, computedProgress),
       claimedAt: null,
       definition,
       requirement: definition.requirement,
@@ -94,8 +79,8 @@ export function buildMissionViewModels(
 
 export function countWaitingMissions(
   snapshot: MissionProgressSnapshot,
-  userMissions: UserMission[],
+  claimedMissionIds: Set<string>,
 ): number {
-  return buildMissionViewModels(snapshot, userMissions).filter((item) => item.status === "waiting")
+  return buildMissionViewModels(snapshot, claimedMissionIds).filter((item) => item.status === "waiting")
     .length;
 }

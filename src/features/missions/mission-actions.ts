@@ -4,23 +4,16 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
-import { MISSIONS, MISSIONS_BY_ID } from "./missions-data";
-import {
-  buildMissionViewModels,
-  computeMissionProgress,
-  deriveMissionStatus,
-} from "./mission-progress";
+import { MISSIONS_BY_ID } from "./missions-data";
+import { buildMissionViewModels } from "./mission-progress";
 import type {
   MissionProgressSnapshot,
   MissionReward,
-  MissionStatus,
   UserMission,
 } from "./mission-types";
 
 interface DbUserMission {
   mission_id: string;
-  progress: number;
-  status: MissionStatus;
   claimed_at: string | null;
 }
 
@@ -50,21 +43,22 @@ async function getAuthedSupabase() {
   return { user, supabase };
 }
 
-async function fetchUserMissionRows(
+async function fetchClaimedMissionIds(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
-): Promise<DbUserMission[]> {
+): Promise<Set<string>> {
   const { data, error } = await supabase
     .from("user_missions")
-    .select("mission_id, progress, status, claimed_at")
+    .select("mission_id")
     .eq("user_id", userId)
-    .returns<DbUserMission[]>();
+    .eq("status", "claimed")
+    .returns<Pick<DbUserMission, "mission_id">[]>();
 
   if (error) {
     throw error;
   }
 
-  return data ?? [];
+  return new Set((data ?? []).map((row) => row.mission_id));
 }
 
 async function fetchCloudMissionSnapshot(
@@ -88,71 +82,19 @@ async function fetchCloudMissionSnapshot(
   };
 }
 
-async function ensureAllMissionRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-  snapshot: MissionProgressSnapshot,
-): Promise<DbUserMission[]> {
-  const existingRows = await fetchUserMissionRows(supabase, userId);
-  const existingById = new Map(existingRows.map((row) => [row.mission_id, row]));
-  const missingMissionIds: string[] = [];
-
-  for (const mission of MISSIONS) {
-    if (!existingById.has(mission.id)) {
-      missingMissionIds.push(mission.id);
-    }
-  }
-
-  if (missingMissionIds.length > 0) {
-    const userMissionById = new Map(existingRows.map((row) => [row.mission_id, row]));
-    const rows = missingMissionIds.map((missionId) => {
-      const mission = MISSIONS_BY_ID.get(missionId)!;
-      const index = mission.index;
-      const previousMission = MISSIONS[index - 1];
-      const previousClaimed = previousMission
-        ? userMissionById.get(previousMission.id)?.status === "claimed"
-        : true;
-      const progress = computeMissionProgress(mission, snapshot);
-      const status = deriveMissionStatus(mission, progress, previousClaimed);
-
-      return {
-        user_id: userId,
-        mission_id: missionId,
-        progress,
-        status,
-      };
-    });
-
-    const { error } = await supabase.from("user_missions").insert(rows);
-
-    if (error) {
-      throw error;
-    }
-
-    return fetchUserMissionRows(supabase, userId);
-  }
-
-  return existingRows;
-}
-
 export async function listUserMissionsAction(
   clientSnapshot: MissionProgressSnapshot,
 ): Promise<ListMissionsResult> {
   try {
     const { user, supabase } = await getAuthedSupabase();
-    const snapshot = await fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot);
-    const rows = await ensureAllMissionRows(supabase, user.id, snapshot);
-
-    const userMissions: UserMission[] = rows.map((row) => ({
-      missionId: row.mission_id,
-      progress: row.progress,
-      status: row.status,
-      claimedAt: row.claimed_at,
-    }));
+    const [snapshot, claimedIds] = await Promise.all([
+      fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot),
+      fetchClaimedMissionIds(supabase, user.id),
+    ]);
 
     return {
       status: "success",
-      missions: buildMissionViewModels(snapshot, userMissions),
+      missions: buildMissionViewModels(snapshot, claimedIds),
     };
   } catch (error) {
     console.error("listUserMissionsAction failed:", error);
@@ -175,17 +117,17 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
 
     const { data: row, error: fetchError } = await supabase
       .from("user_missions")
-      .select("status, progress")
+      .select("status")
       .eq("user_id", user.id)
       .eq("mission_id", missionId)
-      .maybeSingle<Pick<DbUserMission, "status" | "progress">>();
+      .maybeSingle<{ status: string }>();
 
     if (fetchError) {
       throw fetchError;
     }
 
-    if (!row || row.status !== "waiting") {
-      return { status: "error", message: "mission_not_claimable" };
+    if (row?.status === "claimed") {
+      return { status: "error", message: "mission_already_claimed" };
     }
 
     const reward = mission.reward;
@@ -234,18 +176,22 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
       if (missionError) throw missionError;
     }
 
-    const { error: statusError } = await supabase
+    const { error: upsertError } = await supabase
       .from("user_missions")
-      .update({
-        status: "claimed",
-        claimed_at: now,
-        updated_at: now,
-      })
-      .eq("user_id", user.id)
-      .eq("mission_id", missionId);
+      .upsert(
+        {
+          user_id: user.id,
+          mission_id: missionId,
+          progress: mission.requirement,
+          status: "claimed",
+          claimed_at: now,
+          updated_at: now,
+        },
+        { onConflict: "user_id,mission_id" },
+      );
 
-    if (statusError) {
-      throw statusError;
+    if (upsertError) {
+      throw upsertError;
     }
 
     revalidateMissionPaths();
@@ -278,50 +224,16 @@ export async function syncMissionProgressAction(
 ): Promise<ListMissionsResult> {
   try {
     const { user, supabase } = await getAuthedSupabase();
-    const snapshot = await fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot);
-    const rows = await ensureAllMissionRows(supabase, user.id, snapshot);
-    const userMissionById = new Map(rows.map((row) => [row.mission_id, row]));
-
-    for (const mission of MISSIONS) {
-      const row = userMissionById.get(mission.id);
-
-      if (!row || row.status === "claimed") {
-        continue;
-      }
-
-      const previousMission = MISSIONS[mission.index - 1];
-      const previousClaimed = previousMission
-        ? userMissionById.get(previousMission.id)?.status === "claimed"
-        : true;
-      const progress = computeMissionProgress(mission, snapshot);
-      const status = deriveMissionStatus(mission, progress, previousClaimed);
-
-      if (row.progress !== progress || row.status !== status) {
-        const { error } = await supabase
-          .from("user_missions")
-          .update({ progress, status, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id)
-          .eq("mission_id", mission.id);
-
-        if (error) {
-          throw error;
-        }
-      }
-    }
+    const [snapshot, claimedIds] = await Promise.all([
+      fetchCloudMissionSnapshot(supabase, user.id, clientSnapshot),
+      fetchClaimedMissionIds(supabase, user.id),
+    ]);
 
     revalidateMissionPaths();
 
-    const updatedRows = await fetchUserMissionRows(supabase, user.id);
-    const userMissions: UserMission[] = updatedRows.map((row) => ({
-      missionId: row.mission_id,
-      progress: row.progress,
-      status: row.status,
-      claimedAt: row.claimed_at,
-    }));
-
     return {
       status: "success",
-      missions: buildMissionViewModels(snapshot, userMissions),
+      missions: buildMissionViewModels(snapshot, claimedIds),
     };
   } catch (error) {
     console.error("syncMissionProgressAction failed:", error);
