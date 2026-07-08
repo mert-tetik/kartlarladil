@@ -27,6 +27,7 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
@@ -60,6 +61,7 @@ export function MobileLandingDashboard() {
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
   const waitingMissionCount = useMissionWaitingCount();
+  const { data: leaderboardData } = useLeaderboardData();
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -205,6 +207,9 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
+  const leaderboardStanding = t("leaderboard.yourStanding", {
+    position: formatNumber(locale, leaderboardData?.viewer.position ?? 13),
+  });
 
   const tierCounts = useMemo(() => {
     const counts: Record<Tier, { active: number; learned: number }> = {
@@ -297,7 +302,7 @@ export function MobileLandingDashboard() {
 
   return (
     <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
-      {/* Leaderboard icon */}
+      {/* Leaderboard box */}
       <button
         type="button"
         onClick={() => {
@@ -306,10 +311,18 @@ export function MobileLandingDashboard() {
             router.push("/leaderboard");
           }, { nextPath: "/leaderboard" });
         }}
-        className="absolute left-2 top-2 z-10 inline-flex size-7 items-center justify-center text-white transition-colors hover:text-white/80"
+        className="absolute left-2 top-2 z-10 flex min-h-[2.45rem] items-center gap-2 rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 px-3.5 py-1 text-white shadow-[0_10px_26px_rgba(219,39,119,0.3)] transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
       >
-        <LeaderboardIcon className="size-5" />
+        <span className="flex flex-col items-start leading-none">
+          <span className="max-w-[7.4rem] truncate text-left text-sm font-bold">
+            {leaderboardStanding}
+          </span>
+          <span className="mt-0.5 text-[10px] font-semibold text-white/85">
+            {t("leaderboard.scope")}
+          </span>
+        </span>
+        <LeaderboardIcon className="h-[1.72rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
       </button>
 
       {/* Missions box */}
