@@ -925,7 +925,7 @@ function MobilePricingView({
               type="button"
               onClick={() => handleSelect(option)}
               className={cn(
-                "relative flex h-20 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all",
+                "relative flex h-24 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all",
                 isSelected
                   ? "border-brand bg-background-card shadow-md"
                   : "border-border bg-background-card/60 hover:border-brand/40"
@@ -947,7 +947,10 @@ function MobilePricingView({
                 {isSelected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
               </div>
               <div className="relative flex min-w-0 flex-1 flex-col justify-center pr-22">
-                <span className="truncate text-left font-display text-base font-semibold capitalize">
+                <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-left text-[10px] font-bold text-transparent">
+                  {t("pricing.firstMonthFree")}
+                </span>
+                <span className="mt-0.5 truncate text-left font-display text-base font-semibold capitalize">
                   {planLabel} — {cycleLabel}
                 </span>
                 <MobileOptionPrice
