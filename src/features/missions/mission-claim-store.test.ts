@@ -24,6 +24,13 @@ describe("useMissionClaimStore", () => {
     expect(useMissionClaimStore.getState().claimedIds.has("b")).toBe(true);
   });
 
+  it("unmarks a claimed mission", () => {
+    useMissionClaimStore.getState().setClaimedIds(["a", "b"]);
+    useMissionClaimStore.getState().unmarkClaimed("a");
+    expect(useMissionClaimStore.getState().claimedIds.has("a")).toBe(false);
+    expect(useMissionClaimStore.getState().claimedIds.has("b")).toBe(true);
+  });
+
   it("clears the claimed id set", () => {
     useMissionClaimStore.getState().setClaimedIds(["a", "b"]);
     useMissionClaimStore.getState().clearClaimed();

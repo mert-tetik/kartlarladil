@@ -7,6 +7,7 @@ interface MissionClaimState {
   claimedIds: Set<string>;
   setClaimedIds: (ids: Iterable<string>) => void;
   markClaimed: (id: string) => void;
+  unmarkClaimed: (id: string) => void;
   clearClaimed: () => void;
 }
 
@@ -25,6 +26,14 @@ export const useMissionClaimStore = create<MissionClaimState>()(
         set((state) => {
           const next = new Set(state.claimedIds);
           next.add(id);
+          return { claimedIds: next };
+        });
+      },
+
+      unmarkClaimed(id) {
+        set((state) => {
+          const next = new Set(state.claimedIds);
+          next.delete(id);
           return { claimedIds: next };
         });
       },

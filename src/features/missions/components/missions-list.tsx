@@ -37,7 +37,7 @@ export function MissionsList() {
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
-  const { claimedIds, setClaimedIds, markClaimed } = useMissionClaimStore();
+  const { claimedIds, setClaimedIds, markClaimed, unmarkClaimed } = useMissionClaimStore();
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -95,42 +95,38 @@ export function MissionsList() {
     void syncMissions();
   }, [hydrated, syncMissions, router, user]);
 
-  async function handleClaim(missionId: string) {
+  function handleClaim(missionId: string) {
     if (claimingId) return;
 
+    const mission = MISSIONS.find((item) => item.id === missionId);
+    if (!mission) return;
+
     setClaimingId(missionId);
-    const result = await claimMissionRewardAction(missionId);
+    markClaimed(missionId);
 
-    if (result.status === "success") {
-      markClaimed(missionId);
+    const { reward } = mission;
 
-      const mission = MISSIONS.find((item) => item.id === missionId);
-
-      if (!mission) {
-        await refreshStats();
-        await syncMissions();
-        setClaimingId(null);
-        return;
+    if (reward.kind === "chest") {
+      const tier = CHEST_TIERS.find((item) => item.tier === reward.tier);
+      if (tier) {
+        setRewardMode({ kind: "chest", tier });
       }
-
-      const { reward } = mission;
-
-      if (reward.kind === "chest") {
-        const tier = CHEST_TIERS.find((item) => item.tier === reward.tier);
-        if (tier) {
-          setRewardMode({ kind: "chest", tier });
-        }
-      } else if (reward.kind === "points") {
-        setRewardMode({ kind: "points", amount: reward.amount });
-      }
-
-      await refreshStats();
-      await syncMissions();
     } else {
-      setError(result.message ?? t("missions.claimError"));
+      setRewardMode({ kind: "points", amount: reward.amount });
     }
 
-    setClaimingId(null);
+    void claimMissionRewardAction(missionId).then(async (result) => {
+      if (result.status === "success") {
+        await refreshStats();
+        await syncMissions();
+      } else {
+        setError(result.message ?? t("missions.claimError"));
+        unmarkClaimed(missionId);
+        setRewardMode(null);
+      }
+
+      setClaimingId(null);
+    });
   }
 
   function handleRewardComplete() {
