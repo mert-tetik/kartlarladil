@@ -26,6 +26,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   incorrect: "/sounds/false.mp3",
   "chest-open": "/sounds/chest.mp3",
   "streak-fire": "/sounds/streak.mp3",
+  "mission-claim": "/sounds/stream.mp3",
 };
 
 let audioContext: AudioContext | null = null;

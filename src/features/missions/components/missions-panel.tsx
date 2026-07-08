@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { MissionIcon } from "@/components/mission-icon";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,10 @@ export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
         )}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-lg font-bold text-foreground">{t("missions.title")}</h2>
+          <div className="flex items-center gap-2.5">
+            <MissionIcon size={24} className="h-6 w-auto" />
+            <h2 className="text-lg font-bold text-foreground">{t("missions.title")}</h2>
+          </div>
           <Button
             variant="ghost"
             size="icon"
