@@ -321,7 +321,7 @@ export function MobileLandingDashboard() {
         className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 text-white transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
       >
-        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center">
+        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
           <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
         </span>
         <span
