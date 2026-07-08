@@ -67,5 +67,12 @@ describe("ChestOpeningView", () => {
 
     expect(document.querySelector("[data-chest-reward-points]")).toBeInTheDocument();
     expect(onComplete).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+
+    expect(document.querySelector("[data-chest-reward-points]")).toBeInTheDocument();
+    expect(onComplete).not.toHaveBeenCalled();
   });
 });

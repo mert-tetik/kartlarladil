@@ -33,6 +33,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const { locale } = useLocale();
   const stableTotalPointsRef = useRef(totalPoints);
   const stableTotalPoints = stableTotalPointsRef.current;
+  const phaseRef = useRef<ChestPhase>("appearing");
   const [phase, setPhase] = useState<ChestPhase>("appearing");
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
@@ -78,8 +79,19 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     completeTimeoutRef.current = window.setTimeout(() => onComplete(), DISAPPEAR_MS);
   }, [onComplete]);
 
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
   const startOpening = useCallback(() => {
-    if (hasStartedOpeningRef.current || phase === "opening" || phase === "revealed" || phase === "disappearing") {
+    const currentPhase = phaseRef.current;
+
+    if (
+      hasStartedOpeningRef.current ||
+      currentPhase === "opening" ||
+      currentPhase === "revealed" ||
+      currentPhase === "disappearing"
+    ) {
       return;
     }
 
@@ -178,7 +190,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         // Ignore effect failures; the reward flow should keep running.
       }
     }, REWARD_REVEAL_DELAY_MS);
-  }, [phase, spawnSparkles]);
+  }, [spawnSparkles]);
 
   useEffect(() => {
     autoOpenTimeoutRef.current = window.setTimeout(() => {
