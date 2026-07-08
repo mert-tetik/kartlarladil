@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { getChestLabelKey } from "@/features/quiz/chest-rewards";
+import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
 
 interface MissionCardProps {
@@ -69,7 +70,11 @@ export function MissionCard({
             : "border-amber-400/40 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md",
         )}
       >
-        <Gift className={cn("size-7", isLocked && "opacity-50")} aria-hidden="true" />
+        {reward.kind === "chest" ? (
+          <ChestIcon tier={reward.tier} className={cn(isLocked && "opacity-60")} />
+        ) : (
+          <Gift className={cn("size-7", isLocked && "opacity-50")} aria-hidden="true" />
+        )}
         {isLocked ? (
           <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-background-card text-foreground-muted shadow-sm">
             <Lock className="size-3" aria-hidden="true" />
