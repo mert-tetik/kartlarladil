@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   CircleHelp,
   CreditCard,
+  Flame,
   Gamepad2,
   Home,
   MessageCircle,
@@ -33,6 +34,7 @@ type NavItem = {
   href: string;
   labelKey: TranslationKey;
   mobileLabelKey?: TranslationKey;
+  mobileLabel?: string;
   icon: LucideIcon | ComponentType<SVGProps<SVGSVGElement>>;
 };
 
@@ -51,7 +53,7 @@ const mobileNavItems: readonly NavItem[] = [
   { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
   { href: "/", labelKey: "nav.home", icon: Home },
   { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
-  { href: "/pricing", labelKey: "nav.pricing", icon: CreditCard },
+  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame },
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
@@ -228,7 +230,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   )}
                 >
                   <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
-                  <span className="max-w-full truncate px-0.5">{t(item.mobileLabelKey ?? item.labelKey)}</span>
+                  <span className="max-w-full truncate px-0.5">{item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey)}</span>
                 </Link>
               );
             })}

@@ -4,7 +4,15 @@ import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, X } from "lucide-react";
+import {
+  Check,
+  X,
+  Layers,
+  BookOpen,
+  Palette,
+  MessageCircle,
+  MessagesSquare,
+} from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
   createCheckoutAction,
@@ -26,6 +34,7 @@ import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import {
   formatCurrency,
   getLocalizedPrice,
@@ -92,73 +101,72 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   return (
     <div
       data-pricing-page
-      className="animate-screen-pop relative isolate mx-auto max-w-6xl overflow-hidden px-4 pb-10 pt-12 sm:px-6 lg:px-8"
+      className="animate-screen-pop relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-10 pt-12 sm:px-6 lg:px-8"
     >
-      <div
-        data-pricing-hero
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[17rem] overflow-hidden sm:h-[20rem]"
-        aria-hidden="true"
-      >
-        <Image
-          src="/pricing-top-hero.png"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-top"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-      </div>
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
       </Suspense>
-      <div className="relative z-10 text-center">
-        <h1 className="font-display text-4xl font-semibold text-brand md:text-5xl">
-          {t("pricing.title")}
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">
-          {t("pricing.description")}
-        </p>
-        {isTwa ? (
-          <p className="mt-3 text-sm font-bold uppercase text-brand">
-            {t("pricing.firstMonthFreeBanner")}
+
+      <div className="lg:hidden">
+        <MobilePricingView
+          user={user}
+          isTwa={isTwa}
+          localizedPricing={localizedPricing}
+          googlePlayPricing={googlePlayPricing}
+          entitlements={entitlements}
+          locale={locale}
+        />
+      </div>
+
+      <div className="hidden lg:block">
+        <div className="relative z-10 text-center">
+          <h1 className="font-display text-4xl font-semibold text-brand md:text-5xl">
+            {t("pricing.title")}
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">
+            {t("pricing.description")}
           </p>
-        ) : null}
-      </div>
+          {isTwa ? (
+            <p className="mt-3 text-sm font-bold uppercase text-brand">
+              {t("pricing.firstMonthFreeBanner")}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="relative z-10 mt-8 flex justify-center">
-        <BillingCycleToggle cycle={cycle} onChange={setCycle} />
-      </div>
+        <div className="relative z-10 mt-8 flex justify-center">
+          <BillingCycleToggle cycle={cycle} onChange={setCycle} />
+        </div>
 
-      <div className="relative z-10 mt-8 grid gap-6 md:grid-cols-3">
-        {plans.map((item) => (
-          <PricingCard
-            key={item.plan}
-            plan={item.plan}
-            monthlyPrice={item.monthlyPrice}
-            yearlyPrice={item.yearlyPrice}
-            popular={item.popular}
-            mascot={item.mascot}
-            cycle={cycle}
-            currentPlan={entitlements?.effectivePlan ?? null}
-            provider={entitlements?.provider ?? "lemon_squeezy"}
-            customerPortalUrl={entitlements?.customerPortalUrl ?? null}
-            user={user}
-            localizedPricing={localizedPricing}
-            googlePlayPricing={googlePlayPricing}
-            uiLocale={locale}
-            isTwa={isTwa}
-            containerClassName={MOBILE_PLAN_ORDER_CLASSNAME[item.plan]}
-          />
-        ))}
-      </div>
+        <div className="relative z-10 mt-8 grid gap-6 md:grid-cols-3">
+          {plans.map((item) => (
+            <PricingCard
+              key={item.plan}
+              plan={item.plan}
+              monthlyPrice={item.monthlyPrice}
+              yearlyPrice={item.yearlyPrice}
+              popular={item.popular}
+              mascot={item.mascot}
+              cycle={cycle}
+              currentPlan={entitlements?.effectivePlan ?? null}
+              provider={entitlements?.provider ?? "lemon_squeezy"}
+              customerPortalUrl={entitlements?.customerPortalUrl ?? null}
+              user={user}
+              localizedPricing={localizedPricing}
+              googlePlayPricing={googlePlayPricing}
+              uiLocale={locale}
+              isTwa={isTwa}
+              containerClassName={MOBILE_PLAN_ORDER_CLASSNAME[item.plan]}
+            />
+          ))}
+        </div>
 
-      <div className="relative z-10">
-        <PaymentProviderNotes />
+        <div className="relative z-10">
+          <PaymentProviderNotes />
+        </div>
+        <p className="relative z-10 mx-auto mt-6 max-w-2xl text-center text-sm text-foreground-muted">
+          {t("pricing.contactEmail")}
+        </p>
       </div>
-      <p className="relative z-10 mx-auto mt-6 max-w-2xl text-center text-sm text-foreground-muted lg:hidden">
-        {t("pricing.contactEmail")}
-      </p>
     </div>
   );
 }
@@ -758,5 +766,253 @@ function ConsentText() {
       </Link>
       {t("pricing.consentSuffix")}
     </p>
+  );
+}
+
+type MobileOption = {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  popular?: boolean;
+};
+
+const MOBILE_OPTIONS: MobileOption[] = [
+  { plan: "basic", cycle: "monthly", popular: true },
+  { plan: "basic", cycle: "yearly" },
+  { plan: "pro", cycle: "monthly" },
+  { plan: "pro", cycle: "yearly" },
+];
+
+const MASCOT_BY_PLAN: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "/mascots/mascot15.png",
+  pro: "/mascots/mascot16.png",
+};
+
+function MobileOptionPrice({
+  plan,
+  cycle,
+  localizedPricing,
+  googlePlayPricing,
+  uiLocale,
+  isTwa,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  localizedPricing: LocalizedPricingStatus;
+  googlePlayPricing: GooglePlayPricingStatus;
+  uiLocale: string;
+  isTwa: boolean;
+}) {
+  const t = useT();
+  const plans = isTwa ? TWA_PLANS : PLANS;
+  const planItem = plans.find((item) => item.plan === plan);
+  const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, plan, cycle);
+  const fallbackPrice = cycle === "yearly" ? planItem?.yearlyPrice : planItem?.monthlyPrice;
+  const localized = getLocalizedPrice(localizedPricing, plan, cycle);
+
+  let primary: string;
+  if (googlePlayDetails) {
+    const amount = Number.parseFloat(googlePlayDetails.price.value);
+    primary = formatCurrency(amount, googlePlayDetails.price.currency, uiLocale);
+  } else if (localized) {
+    primary = formatCurrency(localized.amount, localized.currencyCode, uiLocale);
+  } else if (fallbackPrice != null) {
+    primary = `$${fallbackPrice}`;
+  } else {
+    primary = t("pricing.priceFree");
+  }
+
+  return (
+    <span className="font-display text-lg font-semibold tabular-nums">
+      {primary}
+      <span className="ml-1 text-xs font-normal text-foreground-muted">
+        / {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
+      </span>
+    </span>
+  );
+}
+
+function MobilePerkItem({
+  icon: Icon,
+  colorClass,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  colorClass: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-3 py-1.5 text-sm text-foreground">
+      <Icon className={cn("h-4 w-4 shrink-0", colorClass)} />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+interface MobilePricingViewProps {
+  user: AuthShellUser | null;
+  isTwa: boolean;
+  localizedPricing: LocalizedPricingStatus;
+  googlePlayPricing: GooglePlayPricingStatus;
+  entitlements: ReturnType<typeof useSubscription>["entitlements"];
+  locale: string;
+}
+
+function MobilePricingView({
+  user,
+  isTwa,
+  localizedPricing,
+  googlePlayPricing,
+  entitlements,
+  locale,
+}: MobilePricingViewProps) {
+  const t = useT();
+  const [selectedOption, setSelectedOption] = useState<MobileOption>(MOBILE_OPTIONS[0]);
+  const currentPlan = entitlements?.effectivePlan ?? null;
+  const provider = entitlements?.provider ?? "lemon_squeezy";
+  const customerPortalUrl = entitlements?.customerPortalUrl ?? null;
+
+  const handleSelect = (option: MobileOption) => {
+    vibrate("tap");
+    setSelectedOption(option);
+  };
+
+  const isCurrentPlan = currentPlan === selectedOption.plan;
+
+  return (
+    <div className="relative z-10 flex flex-col pb-32 lg:hidden">
+      <div className="text-center">
+        <h1 className="font-display text-3xl font-semibold text-brand">
+          {t("pricing.title")}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary">
+          {t("pricing.description")}
+        </p>
+        {isTwa ? (
+          <p className="mt-2 text-xs font-bold uppercase text-brand">
+            {t("pricing.firstMonthFreeBanner")}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-8 space-y-3">
+        {MOBILE_OPTIONS.map((option) => {
+          const isSelected =
+            selectedOption.plan === option.plan && selectedOption.cycle === option.cycle;
+          const planLabel = t(`pricing.${option.plan}`);
+          const cycleLabel =
+            option.cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly");
+
+          return (
+            <button
+              key={`${option.plan}-${option.cycle}`}
+              type="button"
+              onClick={() => handleSelect(option)}
+              className={cn(
+                "relative flex h-20 w-full items-center gap-4 rounded-2xl border-2 px-4 transition-all",
+                isSelected
+                  ? "border-brand bg-background-card shadow-md"
+                  : "border-border bg-background-card/60 hover:border-brand/40"
+              )}
+            >
+              {option.popular ? (
+                <span className="absolute -top-2.5 left-4 rounded-full bg-brand px-2.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                  {t("pricing.mostPopular")}
+                </span>
+              ) : null}
+              <div
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  isSelected
+                    ? "border-brand bg-brand text-white"
+                    : "border-foreground-muted bg-transparent"
+                )}
+              >
+                {isSelected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-left font-display text-base font-semibold capitalize">
+                  {planLabel} — {cycleLabel}
+                </span>
+                <MobileOptionPrice
+                  plan={option.plan}
+                  cycle={option.cycle}
+                  localizedPricing={localizedPricing}
+                  googlePlayPricing={googlePlayPricing}
+                  uiLocale={locale}
+                  isTwa={isTwa}
+                />
+              </div>
+              <div className="relative h-12 w-12 shrink-0">
+                <Image
+                  src={MASCOT_BY_PLAN[option.plan]}
+                  alt=""
+                  fill
+                  sizes="48px"
+                  className="object-contain"
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-border bg-background-card p-5">
+        <h2 className="font-display text-lg font-semibold text-foreground">
+          {t(`pricing.${selectedOption.plan}`)}
+        </h2>
+        <ul className="mt-3 space-y-1">
+          <MobilePerkItem icon={Layers} colorClass="text-blue-500">
+            {t("pricing.featureCards")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={BookOpen} colorClass="text-emerald-500">
+            {t("pricing.featureLearned")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={Palette} colorClass="text-violet-500">
+            {t("pricing.featureThemes")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
+            {t("pricing.featureAiDaily", { count: PLAN_LIMITS[selectedOption.plan].aiDailyMessages })}
+          </MobilePerkItem>
+          <MobilePerkItem icon={MessagesSquare} colorClass="text-rose-500">
+            {t("pricing.featureAiMonthly", { count: PLAN_LIMITS[selectedOption.plan].aiMonthlyMessages })}
+          </MobilePerkItem>
+        </ul>
+      </div>
+
+      <div className="relative z-10 mt-10">
+        <PaymentProviderNotes />
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-foreground-muted">
+          {t("pricing.contactEmail")}
+        </p>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md lg:hidden">
+        {isCurrentPlan ? (
+          <CurrentPlanButton
+            plan={selectedOption.plan}
+            provider={provider}
+            customerPortalUrl={customerPortalUrl}
+            isTwa={isTwa}
+          />
+        ) : !user ? (
+          <Link
+            href={`/register?next=${encodeURIComponent("/pricing")}`}
+            className={buttonClassName("primary", "md", "w-full")}
+          >
+            {t("pricing.ctaFree")}
+          </Link>
+        ) : (
+          <>
+            <PurchaseButton
+              plan={selectedOption.plan}
+              cycle={selectedOption.cycle}
+              currentPlan={currentPlan}
+              provider={provider}
+            />
+            <ConsentText />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
