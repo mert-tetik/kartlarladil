@@ -7,11 +7,11 @@ create policy chest_rewards_select_own
   on public.chest_rewards
   for select
   to authenticated
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id); 
 
 drop policy if exists chest_rewards_insert_own on public.chest_rewards;
 create policy chest_rewards_insert_own
   on public.chest_rewards
   for insert
   to authenticated
-  with check (auth.uid() = user_id);
+  with check (auth.uid() = user_id); 
