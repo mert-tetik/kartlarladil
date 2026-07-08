@@ -25,6 +25,7 @@ const REWARD_REVEAL_DELAY_MS = 900;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const REWARD_FLIGHT_MS = 1400;
 const AUTO_CLOSE_AFTER_FLIGHT_MS = 1000;
+const AUTO_OPEN_DELAY_MS = 500;
 const DISAPPEAR_MS = 420;
 
 export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
@@ -54,8 +55,19 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const flyTimeoutRef = useRef<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
+  const autoOpenTimeoutRef = useRef<number | null>(null);
+  const hasStartedOpeningRef = useRef(false);
 
   const ui = CHEST_TIER_UI_CLASSES[tier.tier];
+
+  const spawnSparkles = useCallback(() => {
+    const next = Array.from({ length: 18 }, (_, index) => ({
+      id: Date.now() + index,
+      left: 10 + Math.random() * 80,
+      delay: Math.random() * 250,
+    }));
+    setSparkles(next);
+  }, []);
 
   const handleCollect = useCallback(() => {
     if (hasAwarded.current) return;
@@ -64,106 +76,12 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     completeTimeoutRef.current = window.setTimeout(() => onComplete(), DISAPPEAR_MS);
   }, [onComplete]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setPhase("idle"), 500);
-    return () => window.clearTimeout(timer);
-  }, []);
+  const startOpening = useCallback(() => {
+    if (hasStartedOpeningRef.current || phase === "opening" || phase === "revealed" || phase === "disappearing") {
+      return;
+    }
 
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (revealTimeoutRef.current !== null) {
-        window.clearTimeout(revealTimeoutRef.current);
-      }
-      if (pointsTimeoutRef.current !== null) {
-        window.clearTimeout(pointsTimeoutRef.current);
-      }
-      if (pointsSoundTimeoutRef.current !== null) {
-        window.clearTimeout(pointsSoundTimeoutRef.current);
-      }
-      if (flyTimeoutRef.current !== null) {
-        window.clearTimeout(flyTimeoutRef.current);
-      }
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-      if (completeTimeoutRef.current !== null) {
-        window.clearTimeout(completeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (pointsPhase !== "flying" || !rewardPointsRef.current || !totalPointsRef.current) return;
-
-    const start = rewardPointsRef.current.getBoundingClientRect();
-    const end = totalPointsRef.current.getBoundingClientRect();
-
-    const startX = start.left + start.width / 2;
-    const startY = start.top;
-    const endX = end.left + end.width / 2;
-    const endY = end.top + end.height / 2;
-
-    setFlyStyle({
-      left: startX,
-      top: startY,
-      width: start.width,
-      opacity: 1,
-      transform: "translate3d(-50%, 0, 0) scale(1)",
-      transition: "none",
-    });
-
-    const raf = window.requestAnimationFrame(() => {
-      setFlyStyle({
-        left: startX,
-        top: startY,
-        width: start.width,
-        opacity: 0,
-        transform: `translate3d(calc(-50% + ${endX - startX}px), ${endY - startY}px, 0) scale(0.32)`,
-        transition: `transform ${REWARD_FLIGHT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${REWARD_FLIGHT_MS}ms ease`,
-      });
-    });
-
-    flyTimeoutRef.current = window.setTimeout(() => {
-      setDisplayPoints(totalPoints + tier.points);
-      setPointsPhase("added");
-    }, REWARD_FLIGHT_MS);
-
-    return () => {
-      window.cancelAnimationFrame(raf);
-      if (flyTimeoutRef.current !== null) {
-        window.clearTimeout(flyTimeoutRef.current);
-      }
-    };
-  }, [pointsPhase, tier.points, totalPoints]);
-
-  useEffect(() => {
-    if (pointsPhase !== "added") return;
-
-    closeTimeoutRef.current = window.setTimeout(() => {
-      handleCollect();
-    }, Math.max(0, AUTO_CLOSE_AFTER_FLIGHT_MS - DISAPPEAR_MS));
-
-    return () => {
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-    };
-  }, [handleCollect, pointsPhase]);
-
-  function spawnSparkles() {
-    const next = Array.from({ length: 18 }, (_, index) => ({
-      id: Date.now() + index,
-      left: 10 + Math.random() * 80,
-      delay: Math.random() * 250,
-    }));
-    setSparkles(next);
-  }
-
-  function handleTap() {
-    if (phase === "appearing" || phase === "opening" || phase === "revealed" || phase === "disappearing") return;
+    hasStartedOpeningRef.current = true;
 
     const direction = Math.random() < 0.5 ? -1 : 1;
     const launchVelocityX = direction * (340 + Math.random() * 120);
@@ -258,7 +176,107 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         // Ignore effect failures; the reward flow should keep running.
       }
     }, REWARD_REVEAL_DELAY_MS);
-  }
+  }, [phase, spawnSparkles]);
+
+  useEffect(() => {
+    autoOpenTimeoutRef.current = window.setTimeout(() => {
+      setPhase("idle");
+      startOpening();
+    }, AUTO_OPEN_DELAY_MS);
+
+    return () => {
+      if (autoOpenTimeoutRef.current !== null) {
+        window.clearTimeout(autoOpenTimeoutRef.current);
+      }
+    };
+  }, [startOpening]);
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current);
+      }
+      if (pointsTimeoutRef.current !== null) {
+        window.clearTimeout(pointsTimeoutRef.current);
+      }
+      if (pointsSoundTimeoutRef.current !== null) {
+        window.clearTimeout(pointsSoundTimeoutRef.current);
+      }
+      if (flyTimeoutRef.current !== null) {
+        window.clearTimeout(flyTimeoutRef.current);
+      }
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+      if (completeTimeoutRef.current !== null) {
+        window.clearTimeout(completeTimeoutRef.current);
+      }
+      if (autoOpenTimeoutRef.current !== null) {
+        window.clearTimeout(autoOpenTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (pointsPhase !== "flying" || !rewardPointsRef.current || !totalPointsRef.current) return;
+
+    const start = rewardPointsRef.current.getBoundingClientRect();
+    const end = totalPointsRef.current.getBoundingClientRect();
+
+    const startX = start.left + start.width / 2;
+    const startY = start.top;
+    const endX = end.left + end.width / 2;
+    const endY = end.top + end.height / 2;
+
+    setFlyStyle({
+      left: startX,
+      top: startY,
+      width: start.width,
+      opacity: 1,
+      transform: "translate3d(-50%, 0, 0) scale(1)",
+      transition: "none",
+    });
+
+    const raf = window.requestAnimationFrame(() => {
+      setFlyStyle({
+        left: startX,
+        top: startY,
+        width: start.width,
+        opacity: 0,
+        transform: `translate3d(calc(-50% + ${endX - startX}px), ${endY - startY}px, 0) scale(0.32)`,
+        transition: `transform ${REWARD_FLIGHT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${REWARD_FLIGHT_MS}ms ease`,
+      });
+    });
+
+    flyTimeoutRef.current = window.setTimeout(() => {
+      setDisplayPoints(totalPoints + tier.points);
+      setPointsPhase("added");
+    }, REWARD_FLIGHT_MS);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (flyTimeoutRef.current !== null) {
+        window.clearTimeout(flyTimeoutRef.current);
+      }
+    };
+  }, [pointsPhase, tier.points, totalPoints]);
+
+  useEffect(() => {
+    if (pointsPhase !== "added") return;
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      handleCollect();
+    }, Math.max(0, AUTO_CLOSE_AFTER_FLIGHT_MS - DISAPPEAR_MS));
+
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, [handleCollect, pointsPhase]);
 
   const rewardPointsStyle: CSSProperties | undefined =
     pointsPhase === "flying" && flyStyle
@@ -307,7 +325,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
           <div
             className={cn(
-              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 sm:py-10",
+              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-transparent bg-transparent px-6 py-8 shadow-none transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 sm:py-10",
               phase === "disappearing" && "translate-y-2 scale-[0.94] opacity-0",
             )}
           >
@@ -322,18 +340,17 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
             </p>
 
             <div className="relative mt-6 sm:mt-8">
-              <button
-                type="button"
-                onClick={handleTap}
-                disabled={phase === "revealed" || phase === "disappearing"}
+              <div
+                data-chest-auto-open
+                role="img"
+                aria-label={phase === "revealed" ? t("chest.opened") : t("chest.title")}
                 className={cn(
-                  "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform focus:outline-none sm:size-[244px] md:size-[272px]",
+                  "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform sm:size-[244px] md:size-[272px]",
                   phase === "idle" && "animate-chest-float",
                   phase === "shake" && "animate-chest-shake",
                   phase === "revealed" && "scale-[1.03]",
                 )}
-                style={{ cursor: phase === "revealed" ? "default" : "pointer", perspective: "800px" }}
-                aria-label={phase === "revealed" ? t("chest.opened") : t("chest.tapToOpen")}
+                style={{ perspective: "800px" }}
               >
                 {phase === "revealed" ? (
                   <div
@@ -393,7 +410,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                     </div>
                   </div>
                 </div>
-              </button>
+              </div>
 
               {sparkles.map((sparkle) => (
                 <span
@@ -405,14 +422,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                 </span>
               ))}
             </div>
-
-            <p
-              data-chest-tap-hint
-              data-testid="chest-tap-hint"
-              className="mt-5 text-sm font-semibold text-foreground-secondary sm:mt-6"
-            >
-              {t("chest.tapToOpen")}
-            </p>
           </div>
         </div>
       </div>

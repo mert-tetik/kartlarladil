@@ -6,9 +6,10 @@ import { CHEST_TIER_UI_CLASSES, type ChestTier } from "@/features/quiz/chest-rew
 interface ChestIconProps {
   tier: ChestTier;
   className?: string;
+  hideLid?: boolean;
 }
 
-export function ChestIcon({ tier, className }: ChestIconProps) {
+export function ChestIcon({ tier, className, hideLid = false }: ChestIconProps) {
   const ui = CHEST_TIER_UI_CLASSES[tier];
 
   return (
@@ -33,25 +34,28 @@ export function ChestIcon({ tier, className }: ChestIconProps) {
             <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65", ui.band)} />
           </div>
 
-          <div
-            className={cn(
-              "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-b-[8px] rounded-t-[16px] border-[3px] border-black/15 shadow-sm",
-              ui.lid,
-            )}
-          >
-            <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
-            <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80", ui.band)} />
-            <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65", ui.band)} />
-            <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65", ui.band)} />
+          {!hideLid ? (
             <div
+              data-chest-icon-lid
               className={cn(
-                "absolute left-1/2 bottom-0 z-20 h-10 w-10 -translate-x-1/2 translate-y-1/3 rounded-full border-[3px] border-black/15 shadow-sm",
-                ui.lock,
+                "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-b-[8px] rounded-t-[16px] border-[3px] border-black/15 shadow-sm",
+                ui.lid,
               )}
             >
-              <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30" />
+              <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
+              <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80", ui.band)} />
+              <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65", ui.band)} />
+              <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65", ui.band)} />
+              <div
+                className={cn(
+                  "absolute left-1/2 bottom-0 z-20 h-10 w-10 -translate-x-1/2 translate-y-1/3 rounded-full border-[3px] border-black/15 shadow-sm",
+                  ui.lock,
+                )}
+              >
+                <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30" />
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

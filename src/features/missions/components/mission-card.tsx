@@ -142,7 +142,7 @@ export function MissionCard({
           )}
         >
           {reward.kind === "chest" ? (
-            <ChestIcon tier={reward.tier} />
+            <ChestIcon tier={reward.tier} hideLid={isClaimed} />
           ) : (
             <Gift className="size-10 text-amber-400" aria-hidden="true" />
           )}

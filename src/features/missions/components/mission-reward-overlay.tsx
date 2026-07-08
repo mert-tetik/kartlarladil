@@ -18,7 +18,7 @@ interface MissionRewardOverlayProps {
 
 const EXIT_DURATION_MS = 500;
 const POINT_DROP_DELAY_MS = 220;
-const POINT_CLOSE_DELAY_MS = 90;
+const POINT_CLOSE_DELAY_MS = 500;
 
 export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayProps) {
   const { stats } = useProgressStats();
@@ -162,13 +162,13 @@ function MissionPointsCelebration({
       <div className="relative flex items-center justify-center">
         <div
           data-mission-total-points-shell
-          className="relative flex min-w-[min(84vw,20rem)] items-center justify-center gap-3 rounded-full border border-amber-300/30 bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-5 text-white shadow-[0_18px_48px_rgba(245,158,11,0.24)] sm:min-w-[22rem] sm:px-10 sm:py-6"
+          className="relative flex min-w-[min(76vw,17rem)] items-center justify-center gap-2.5 rounded-full border border-amber-300/30 bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white shadow-[0_16px_40px_rgba(245,158,11,0.22)] sm:min-w-[19rem] sm:px-8 sm:py-5"
         >
-          <Star className="size-7 fill-current sm:size-8" aria-hidden="true" />
+          <Star className="size-6 fill-current sm:size-7" aria-hidden="true" />
           <span
             data-mission-total-points
             className={cn(
-              "text-4xl font-bold tracking-tight sm:text-5xl",
+              "text-3xl font-bold tracking-tight sm:text-4xl",
               bonusPhase === "bobble" && "animate-score-bobble",
             )}
           >
@@ -176,7 +176,7 @@ function MissionPointsCelebration({
           </span>
           {bonusPhase === "dropping" ? (
             <span
-              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] animate-celebration-points-fall sm:text-5xl"
+              className="animate-mission-points-fall-far pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] sm:text-5xl"
               onAnimationEnd={handleAnimationEnd}
             >
               +{amount}
