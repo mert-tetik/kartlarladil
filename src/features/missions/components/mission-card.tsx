@@ -1,7 +1,8 @@
 "use client";
 
-import { Gift, Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ScoreIcon } from "@/components/score-icon";
 import { Progress } from "@/components/ui/progress";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -144,7 +145,7 @@ export function MissionCard({
           {reward.kind === "chest" ? (
             <ChestIcon tier={reward.tier} hideLid={isClaimed} />
           ) : (
-            <Gift className="size-10 text-amber-400" aria-hidden="true" />
+            <ScoreIcon size={40} className="h-10 w-auto" />
           )}
         </div>
 

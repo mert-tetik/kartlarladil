@@ -31,9 +31,11 @@ const DISAPPEAR_MS = 420;
 export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
+  const stableTotalPointsRef = useRef(totalPoints);
+  const stableTotalPoints = stableTotalPointsRef.current;
   const [phase, setPhase] = useState<ChestPhase>("appearing");
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
-  const [displayPoints, setDisplayPoints] = useState(totalPoints);
+  const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
   const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
   const [flyStyle, setFlyStyle] = useState<{
@@ -252,7 +254,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     });
 
     flyTimeoutRef.current = window.setTimeout(() => {
-      setDisplayPoints(totalPoints + tier.points);
+      setDisplayPoints(stableTotalPoints + tier.points);
       setPointsPhase("added");
     }, REWARD_FLIGHT_MS);
 
@@ -262,7 +264,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         window.clearTimeout(flyTimeoutRef.current);
       }
     };
-  }, [pointsPhase, tier.points, totalPoints]);
+  }, [pointsPhase, stableTotalPoints, tier.points]);
 
   useEffect(() => {
     if (pointsPhase !== "added") return;
@@ -289,6 +291,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
           transition: flyStyle.transition,
         }
       : undefined;
+  const shouldHideRewardSource = pointsPhase === "added" || (pointsPhase === "flying" && flyStyle !== null);
 
   return (
     <div
@@ -369,7 +372,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                       data-chest-reward-points
                       className={cn(
                         "mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
-                        (pointsPhase === "flying" || pointsPhase === "added") && "opacity-0",
+                        shouldHideRewardSource && "opacity-0",
                       )}
                     >
                       +{tier.points}

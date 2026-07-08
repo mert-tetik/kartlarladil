@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
+import { ScoreIcon } from "@/components/score-icon";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
@@ -170,9 +171,10 @@ export function LeaderboardPageClient() {
                       <span className="truncate text-sm font-semibold text-foreground">
                         {entry.displayName || t("leaderboard.anonymous")}
                       </span>
-                      <span className="text-sm font-bold text-foreground">
-                        {formatNumber(locale, entry.totalPoints)}
-                      </span>
+                      <div className="flex items-center gap-1.5 justify-self-end text-sm font-bold text-foreground">
+                        <span>{formatNumber(locale, entry.totalPoints)}</span>
+                        <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
+                      </div>
                     </div>
                   ))}
                 </div>

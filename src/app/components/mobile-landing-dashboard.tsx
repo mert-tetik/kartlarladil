@@ -8,6 +8,7 @@ import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { CardsIcon } from "@/components/icons/cards-icon";
 import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
+import { ScoreIcon } from "@/components/score-icon";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
@@ -379,12 +380,16 @@ export function MobileLandingDashboard() {
             draggable={false}
           />
         </button>
-        <h1 className="relative z-10 text-center text-lg font-extrabold text-brand">
+        <h1 className="relative z-10 text-center text-lg font-bold text-brand">
           {getRankLabel(stats.rank, locale)}
         </h1>
-        <p className="relative z-10 text-[10px] font-semibold text-white/80">
-          {formatNumber(locale, stats.totalPoints)} {t("home.mobile.pointsLabel")}
-        </p>
+        <div
+          className="relative z-10 mt-0.5 flex items-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
+          aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
+        >
+          <span>{formatNumber(locale, stats.totalPoints)}</span>
+          <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
+        </div>
       </div>
 
       {/* Language selector */}
