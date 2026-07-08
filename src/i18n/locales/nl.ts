@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "Onbeperkte nieuwe kaarten",
   "pricing.featureLearned": "Onbeperkte geleerde kaarten",
   "pricing.featureThemes": "Aangepaste thema's",
+  "pricing.featureGames": "Onbeperkte spellen",
   "pricing.firstMonthFree": "EERSTE MAAND GRATIS",
   "pricing.firstMonthFreeBanner": "EERSTE MAAND GRATIS BIJ ALLE ABONNEMENTEN",
   "pricing.free": "Gratis",

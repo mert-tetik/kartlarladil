@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "Sınırsız yeni kart ekleme",
   "pricing.featureLearned": "Sınırsız kart öğrenme",
   "pricing.featureThemes": "Özel temalar",
+  "pricing.featureGames": "Sınırsız oyun",
   "pricing.firstMonthFree": "İLK AY ÜCRETSİZ",
   "pricing.firstMonthFreeBanner": "TÜM ABONELİKLERDE İLK AY ÜCRETSİZ",
   "pricing.free": "Free",

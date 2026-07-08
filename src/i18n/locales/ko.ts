@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "ë¬´ì œí•œ ì‹ ê·œ ì¹´ë“œ",
   "pricing.featureLearned": "ë¬´ì œí•œ í•™ìŠµëœ ì¹´ë“œ",
   "pricing.featureThemes": "ì‚¬ìš©ì ì •ì˜ í…Œë§ˆ",
+  "pricing.featureGames": "무제한 게임",
   "pricing.firstMonthFree": "ì²« ë‹¬ ë¬´ë£Œ",
   "pricing.firstMonthFreeBanner": "ëª¨ë“  êµ¬ë… ì²« ë‹¬ ë¬´ë£Œ",
   "pricing.free": "ë¬´ë£Œ",

@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "Cartes nouvelles illimitÃ©es",
   "pricing.featureLearned": "Cartes apprises illimitÃ©es",
   "pricing.featureThemes": "ThÃ¨mes personnalisÃ©s",
+  "pricing.featureGames": "Jeux illimités",
   "pricing.firstMonthFree": "PREMIER MOIS GRATUIT",
   "pricing.firstMonthFreeBanner": "PREMIER MOIS GRATUIT POUR TOUS LES ABONNEMENTS",
   "pricing.free": "Gratuit",

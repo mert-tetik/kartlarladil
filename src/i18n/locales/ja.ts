@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "ç„¡åˆ¶é™ã®æ–°ã—ã„ã‚«ãƒ¼ãƒ‰",
   "pricing.featureLearned": "ç„¡åˆ¶é™ã®å­¦ç¿’æ¸ˆã¿ã‚«ãƒ¼ãƒ‰",
   "pricing.featureThemes": "ã‚«ã‚¹ã‚¿ãƒ ãƒ†ãƒ¼ãƒ",
+  "pricing.featureGames": "無制限のゲーム",
   "pricing.firstMonthFree": "åˆæœˆç„¡æ–™",
   "pricing.firstMonthFreeBanner": "ã™ã¹ã¦ã®ã‚µãƒ–ã‚¹ã‚¯ãƒªãƒ—ã‚·ãƒ§ãƒ³ã§åˆæœˆç„¡æ–™",
   "pricing.free": "ç„¡æ–™",

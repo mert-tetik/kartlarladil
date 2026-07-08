@@ -397,6 +397,7 @@ const dictionary = {
   "pricing.featureCards": "æ— é™æ–°å¡ç‰‡",
   "pricing.featureLearned": "æ— é™å·²å­¦ä¹ å¡ç‰‡",
   "pricing.featureThemes": "è‡ªå®šä¹‰ä¸»é¢˜",
+  "pricing.featureGames": "无限游戏",
   "pricing.firstMonthFree": "é¦–æœˆå…è´¹",
   "pricing.firstMonthFreeBanner": "æ‰€æœ‰è®¢é˜…é¦–æœˆå…è´¹",
   "pricing.free": "å…è´¹",

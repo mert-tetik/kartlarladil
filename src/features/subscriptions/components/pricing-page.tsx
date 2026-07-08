@@ -12,6 +12,7 @@ import {
   Palette,
   MessageCircle,
   MessagesSquare,
+  Gamepad2,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -385,6 +386,7 @@ function PricingCard({
         <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureThemes")}</Feature>
+        <Feature included={plan !== "free"}>{t("pricing.featureGames")}</Feature>
         <Feature included>{t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })}</Feature>
         <Feature included>{t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })}</Feature>
       </ul>
@@ -969,6 +971,9 @@ function MobilePricingView({
           </MobilePerkItem>
           <MobilePerkItem icon={Palette} colorClass="text-violet-500">
             {t("pricing.featureThemes")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={Gamepad2} colorClass="text-cyan-500">
+            {t("pricing.featureGames")}
           </MobilePerkItem>
           <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
             {t("pricing.featureAiDaily", { count: PLAN_LIMITS[selectedOption.plan].aiDailyMessages })}
