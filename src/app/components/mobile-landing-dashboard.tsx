@@ -209,14 +209,14 @@ export function MobileLandingDashboard() {
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
   const leaderboardButtonLabel = t("home.mobile.leaderboardBadge", {
-    position: formatNumber(locale, 6),
+    position: formatNumber(locale, 1),
   });
   const leaderboardButtonLabelClassName =
     leaderboardButtonLabel.length > 14
-      ? "text-[0.67rem]"
+      ? "text-[0.58rem]"
       : leaderboardButtonLabel.length > 11
-        ? "text-[0.74rem]"
-        : "text-sm";
+        ? "text-[0.66rem]"
+        : "text-[0.72rem]";
 
   const tierCounts = useMemo(() => {
     const counts: Record<Tier, { active: number; learned: number }> = {
@@ -309,7 +309,7 @@ export function MobileLandingDashboard() {
 
   return (
     <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
-      {/* Leaderboard box */}
+      {/* Leaderboard badge */}
       <button
         type="button"
         onClick={() => {
@@ -318,16 +318,20 @@ export function MobileLandingDashboard() {
             router.push("/leaderboard");
           }, { nextPath: "/leaderboard" });
         }}
-        className={cn(
-          MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
-          "left-2 border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]",
-        )}
+        className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 text-white transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
       >
-        <span className={cn("flex-1 truncate text-left font-bold leading-none", leaderboardButtonLabelClassName)}>
+        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
+          <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
+        </span>
+        <span
+          className={cn(
+            "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]",
+            leaderboardButtonLabelClassName,
+          )}
+        >
           {leaderboardButtonLabel}
         </span>
-        <LeaderboardIcon className="h-[1.72rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
       </button>
 
       {/* Missions box */}
