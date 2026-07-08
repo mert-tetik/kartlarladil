@@ -444,10 +444,12 @@ function CheckoutButton({
   plan,
   cycle,
   currentPlan,
+  className,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
+  className?: string;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCheckoutAction, {
@@ -488,6 +490,7 @@ function CheckoutButton({
         className={cn(
           "w-full border-0",
           (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
+          className,
         )}
         disabled={pending}
       >
@@ -503,11 +506,13 @@ function PurchaseButton({
   cycle,
   currentPlan,
   provider,
+  className,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   provider: SubscriptionProvider;
+  className?: string;
 }) {
   const isTwa = useTwaMode();
   const isPaid = currentPlan != null && currentPlan !== "free";
@@ -520,20 +525,22 @@ function PurchaseButton({
   }
 
   if (isTwa) {
-    return <GooglePlayCheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />;
+    return <GooglePlayCheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} className={className} />;
   }
 
-  return <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} />;
+  return <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} className={className} />;
 }
 
 function GooglePlayCheckoutButton({
   plan,
   cycle,
   currentPlan,
+  className,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
+  className?: string;
 }) {
   const t = useT();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
@@ -586,6 +593,7 @@ function GooglePlayCheckoutButton({
         className={cn(
           "w-full border-0",
           (plan === "basic" || plan === "pro") && "bg-brand text-foreground hover:bg-brand-hover",
+          className,
         )}
         disabled={isLoading || !isSupported}
         onClick={handleClick}
@@ -609,17 +617,19 @@ function CurrentPlanButton({
   provider,
   customerPortalUrl,
   isTwa,
+  className,
 }: {
   plan: SubscriptionPlan;
   provider: SubscriptionProvider;
   customerPortalUrl: string | null;
   isTwa: boolean;
+  className?: string;
 }) {
   const t = useT();
 
   if (plan === "free") {
     return (
-      <Button variant="secondary" className="w-full" disabled>
+      <Button variant="secondary" className={cn("w-full", className)} disabled>
         {t("pricing.ctaCurrent")}
       </Button>
     );
@@ -647,10 +657,10 @@ function CurrentPlanButton({
     );
   }
 
-  return <CustomerPortalButton customerPortalUrl={customerPortalUrl} />;
+  return <CustomerPortalButton customerPortalUrl={customerPortalUrl} className={className} />;
 }
 
-function CustomerPortalButton({ customerPortalUrl }: { customerPortalUrl: string | null }) {
+function CustomerPortalButton({ customerPortalUrl, className }: { customerPortalUrl: string | null; className?: string }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
     status: "idle" as const,
@@ -671,7 +681,7 @@ function CustomerPortalButton({ customerPortalUrl }: { customerPortalUrl: string
       <Button
         type="button"
         variant="secondary"
-        className="w-full"
+        className={cn("w-full", className)}
         onClick={() => window.open(customerPortalUrl, "_blank", "noopener,noreferrer")}
       >
         {t("pricing.ctaCurrentAndManage")}
@@ -681,7 +691,7 @@ function CustomerPortalButton({ customerPortalUrl }: { customerPortalUrl: string
 
   return (
     <form action={formAction} className="w-full">
-      <Button type="submit" variant="secondary" className="w-full" disabled={pending}>
+      <Button type="submit" variant="secondary" className={cn("w-full", className)} disabled={pending}>
         {pending ? t("common.loading") : t("pricing.ctaCurrentAndManage")}
       </Button>
       {state.status === "error" ? (
@@ -881,7 +891,7 @@ function MobilePricingView({
   const isCurrentPlan = currentPlan === selectedOption.plan;
 
   return (
-    <div className="relative z-10 flex flex-col pb-32 lg:hidden">
+    <div className="relative z-10 flex flex-col pb-44 lg:hidden">
       <div className="text-center">
         <h1 className="font-display text-3xl font-semibold text-brand">
           {t("pricing.title")}
@@ -991,32 +1001,35 @@ function MobilePricingView({
         </p>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md lg:hidden">
+      <div className="fixed inset-x-0 bottom-20 z-50 px-4 lg:hidden">
         {isCurrentPlan ? (
           <CurrentPlanButton
             plan={selectedOption.plan}
             provider={provider}
             customerPortalUrl={customerPortalUrl}
             isTwa={isTwa}
+            className="h-16"
           />
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName("primary", "md", "w-full")}
+            className={buttonClassName("primary", "lg", "w-full h-16")}
           >
             {t("pricing.ctaFree")}
           </Link>
         ) : (
-          <>
-            <PurchaseButton
-              plan={selectedOption.plan}
-              cycle={selectedOption.cycle}
-              currentPlan={currentPlan}
-              provider={provider}
-            />
-            <ConsentText />
-          </>
+          <PurchaseButton
+            plan={selectedOption.plan}
+            cycle={selectedOption.cycle}
+            currentPlan={currentPlan}
+            provider={provider}
+            className="h-16"
+          />
         )}
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-md lg:hidden">
+        <ConsentText />
       </div>
     </div>
   );
