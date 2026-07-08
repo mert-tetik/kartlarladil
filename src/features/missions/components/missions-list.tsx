@@ -133,9 +133,9 @@ export function MissionsList() {
     });
   }
 
-  function handleRewardComplete() {
+  const handleRewardComplete = useCallback(() => {
     setRewardMode(null);
-  }
+  }, []);
 
   if (!user) {
     return null;

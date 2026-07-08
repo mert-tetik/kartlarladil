@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { getChestLabelKey } from "@/features/quiz/chest-rewards";
@@ -79,6 +80,7 @@ export function MissionCard({
     if (claiming) return;
 
     if (isWaiting) {
+      playSoundEffect("mission-claim");
       vibrate("tap");
       onClaim();
       return;
@@ -110,7 +112,7 @@ export function MissionCard({
         "relative flex items-center gap-4 rounded-2xl border p-4 shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
         isLocked && "border-border bg-background-card opacity-70",
         isWaiting && "border-emerald-500 bg-emerald-500 text-white",
-        isClaimed && "border-emerald-600 bg-emerald-600 text-white",
+        isClaimed && "border-emerald-800/80 bg-emerald-800/80 text-white",
         isClickable && "cursor-pointer active:scale-[0.98]",
         claiming && "cursor-wait opacity-90",
       )}

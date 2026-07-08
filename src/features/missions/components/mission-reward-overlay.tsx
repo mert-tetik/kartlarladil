@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Star } from "lucide-react";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
@@ -17,20 +17,70 @@ interface MissionRewardOverlayProps {
   onComplete: () => void;
 }
 
+const EXIT_DURATION_MS = 300;
+
 export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayProps) {
   const { stats } = useProgressStats();
+  const [activeMode, setActiveMode] = useState(mode);
+  const [exiting, setExiting] = useState(false);
 
-  if (!mode) {
+  useEffect(() => {
+    if (mode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveMode(mode);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExiting(false);
+      return;
+    }
+
+    if (!activeMode) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExiting(true);
+    const timer = window.setTimeout(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveMode(null);
+      onComplete();
+    }, EXIT_DURATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [mode, activeMode, onComplete]);
+
+  const handleChildComplete = useCallback(() => {
+    setExiting(true);
+  }, []);
+
+  if (!activeMode) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      {mode.kind === "chest" ? (
-        <ChestOpeningView tier={mode.tier} totalPoints={stats.totalPoints} onComplete={onComplete} />
-      ) : (
-        <MissionPointsCelebration amount={mode.amount} totalPoints={stats.totalPoints} onComplete={onComplete} />
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300",
+        exiting ? "opacity-0" : "opacity-100",
       )}
+    >
+      <div
+        className={cn(
+          "transition-all duration-300",
+          exiting ? "scale-95 opacity-0" : "scale-100 opacity-100",
+        )}
+      >
+        {activeMode.kind === "chest" ? (
+          <ChestOpeningView
+            tier={activeMode.tier}
+            totalPoints={stats.totalPoints}
+            onComplete={handleChildComplete}
+          />
+        ) : (
+          <MissionPointsCelebration
+            amount={activeMode.amount}
+            totalPoints={stats.totalPoints}
+            onComplete={handleChildComplete}
+          />
+        )}
+      </div>
     </div>
   );
 }

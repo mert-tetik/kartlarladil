@@ -12,7 +12,8 @@ export type SoundEffectName =
   | "clock-tick-low"
   | "clock-tick-high"
   | "level-fail"
-  | "card-ready";
+  | "card-ready"
+  | "mission-claim";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -321,6 +322,13 @@ function cardReady(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.G6, startTime: now + 0.08, duration: 0.22, gain: 0.045 });
 }
 
+function missionClaim(context: AudioContext, now: number) {
+  // Satisfying major chord + bright sparkle.
+  playChord(context, [SCALE.C5, SCALE.E5, SCALE.G5], now, 0.28, 0.08);
+  playTone(context, { frequency: SCALE.C6, startTime: now + 0.06, duration: 0.22, gain: 0.06 });
+  playTone(context, { frequency: SCALE.E6, startTime: now + 0.12, duration: 0.2, gain: 0.045 });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -336,6 +344,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,
   "card-ready": cardReady,
+  "mission-claim": missionClaim,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {
