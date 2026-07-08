@@ -747,6 +747,7 @@ const dictionary = {
   "missions.type.aiPractice": "{character} ile pratik yap",
   "missions.unknownCharacter": "Karakter",
   "home.mobile.missions": "Görevler",
+  "home.mobile.leaderboardBadge": "Dünyada {position}.",
   "common.retry": "Tekrar dene",
 } as const;
 

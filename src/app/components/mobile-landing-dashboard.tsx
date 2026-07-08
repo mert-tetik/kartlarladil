@@ -27,7 +27,6 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
@@ -49,6 +48,9 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
 }
 
+const MOBILE_TOP_ACTION_BUTTON_CLASSNAME =
+  "absolute top-2 z-10 flex h-[2.45rem] w-[9.4rem] items-center gap-2 rounded-2xl px-3.5 py-1 text-white transition-transform active:scale-[0.98]";
+
 export function MobileLandingDashboard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -61,7 +63,6 @@ export function MobileLandingDashboard() {
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
   const waitingMissionCount = useMissionWaitingCount();
-  const { data: leaderboardData } = useLeaderboardData();
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -207,9 +208,15 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
-  const leaderboardStanding = t("leaderboard.yourStanding", {
-    position: formatNumber(locale, leaderboardData?.viewer.position ?? 13),
+  const leaderboardButtonLabel = t("home.mobile.leaderboardBadge", {
+    position: formatNumber(locale, 6),
   });
+  const leaderboardButtonLabelClassName =
+    leaderboardButtonLabel.length > 14
+      ? "text-[0.67rem]"
+      : leaderboardButtonLabel.length > 11
+        ? "text-[0.74rem]"
+        : "text-sm";
 
   const tierCounts = useMemo(() => {
     const counts: Record<Tier, { active: number; learned: number }> = {
@@ -311,16 +318,14 @@ export function MobileLandingDashboard() {
             router.push("/leaderboard");
           }, { nextPath: "/leaderboard" });
         }}
-        className="absolute left-2 top-2 z-10 flex min-h-[2.45rem] items-center gap-2 rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 px-3.5 py-1 text-white shadow-[0_10px_26px_rgba(219,39,119,0.3)] transition-transform active:scale-[0.98]"
+        className={cn(
+          MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
+          "left-2 border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]",
+        )}
         aria-label={t("leaderboard.open")}
       >
-        <span className="flex flex-col items-start leading-none">
-          <span className="max-w-[7.4rem] truncate text-left text-sm font-bold">
-            {leaderboardStanding}
-          </span>
-          <span className="mt-0.5 text-[10px] font-semibold text-white/85">
-            {t("leaderboard.scope")}
-          </span>
+        <span className={cn("flex-1 truncate text-left font-bold leading-none", leaderboardButtonLabelClassName)}>
+          {leaderboardButtonLabel}
         </span>
         <LeaderboardIcon className="h-[1.72rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
       </button>
@@ -338,11 +343,14 @@ export function MobileLandingDashboard() {
             setMissionsPanelOpen(true);
           }, { nextPath: "/missions" });
         }}
-        className="absolute right-2 top-2 z-10 flex min-h-[2.45rem] items-center gap-2 rounded-2xl border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 px-3.5 py-1 text-white shadow-[0_10px_26px_rgba(249,115,22,0.28)] transition-transform active:scale-[0.98]"
+        className={cn(
+          MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
+          "right-2 border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
+        )}
         aria-label={t("home.mobile.missions")}
       >
         <MissionIcon size={28} className="mt-0.5 h-[1.72rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
-        <span className="text-sm font-bold">{t("home.mobile.missions")}</span>
+        <span className="flex-1 truncate text-left text-sm font-bold">{t("home.mobile.missions")}</span>
         {waitingMissionCount > 0 ? (
           <span className="absolute -left-2 -top-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse">
             {waitingMissionCount > 9 ? "9+" : waitingMissionCount}

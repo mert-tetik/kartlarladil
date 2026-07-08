@@ -748,8 +748,8 @@ const dictionary = {
   "missions.type.aiPractice": "Practice with {character}",
   "missions.unknownCharacter": "Character",
   "home.mobile.missions": "Missions",
+  "home.mobile.leaderboardBadge": "No mundo {position}.",
   "common.retry": "Retry",
 } as const;
 
 export default dictionary;
-
