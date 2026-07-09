@@ -995,7 +995,7 @@ export function QuizStation({
       return (
         <QuizViewportOverlay
           overlay="chest"
-          className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 sm:p-6"
+          className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-0 sm:p-6"
         >
           <ChestOpeningView
             tier={tier}
@@ -1637,6 +1637,7 @@ function ChoiceQuestion({
               interactive={!showingAnswer}
               baseClassName={optionColor}
               feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
+              incorrectOverlayClassName="bg-red-950"
               className={cn(
                 "min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
               )}
@@ -1668,6 +1669,7 @@ function QuizAnswerButton({
   baseClassName,
   feedbackState = "idle",
   interactive = true,
+  incorrectOverlayClassName = "bg-background-inverse",
   className,
   children,
   ...props
@@ -1675,6 +1677,7 @@ function QuizAnswerButton({
   baseClassName: string;
   feedbackState?: QuizAnswerFeedbackState;
   interactive?: boolean;
+  incorrectOverlayClassName?: string;
 }) {
   return (
     <button
@@ -1685,7 +1688,7 @@ function QuizAnswerButton({
           "hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(15,23,42,0.7)] active:translate-y-0 active:scale-[0.99]",
         feedbackState === "correct" && "shadow-[0_16px_34px_-22px_rgba(16,185,129,0.7)]",
         feedbackState === "incorrect" &&
-          "text-foreground-inverse-secondary shadow-[0_12px_26px_-22px_rgba(15,23,42,0.8)]",
+          "shadow-[0_12px_26px_-22px_rgba(69,10,10,0.78)]",
         className,
       )}
       {...props}
@@ -1702,7 +1705,8 @@ function QuizAnswerButton({
         className={cn(
           "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
           feedbackState === "correct" && "bg-emerald-500 opacity-100",
-          feedbackState === "incorrect" && "bg-background-inverse opacity-100",
+          feedbackState === "incorrect" && incorrectOverlayClassName,
+          feedbackState === "incorrect" && "opacity-100",
         )}
       />
       <span className="relative z-10 w-full">{children}</span>

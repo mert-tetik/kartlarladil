@@ -361,7 +361,7 @@ export function MobileLandingDashboard() {
         }}
         className={cn(
           MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
-          "right-2 border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
+          "right-2 w-[7.65rem] border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
         )}
         aria-label={t("home.mobile.missions")}
       >
