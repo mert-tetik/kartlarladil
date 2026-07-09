@@ -1,7 +1,8 @@
 "use client";
 
+import { getTwaMode } from "@/features/install-app/twa-mode";
+
 const TWA_ANALYTICS_SENT_KEY = "foxiesdeck:twa-analytics-sent";
-const TWA_REFERRER = "android-app://com.LigidTools.Glidecore";
 
 function getSentSet(): Set<string> {
   if (typeof window === "undefined") {
@@ -30,24 +31,7 @@ function markSent(eventName: string) {
 }
 
 export function isTwaMode(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const referrer = document.referrer ?? "";
-
-  // The most reliable TWA signal is the android-app referrer sent by Chrome
-  // when launching a Trusted Web Activity.
-  if (referrer.includes(TWA_REFERRER)) {
-    return true;
-  }
-
-  // Fallback: standalone display mode can indicate a PWA/TWA install.
-  if ((window.navigator as Navigator & { standalone?: boolean }).standalone === true) {
-    return true;
-  }
-
-  return false;
+  return getTwaMode();
 }
 
 export interface TwaAnalyticsOptions {
