@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { isTwaMode, sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 
@@ -8,6 +8,7 @@ const ENGAGEMENT_PULSE_INTERVAL_MS = 30000;
 
 export function TwaAnalyticsProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const hasLoggedInitialScreenRef = useRef(false);
 
   useEffect(() => {
     if (!isTwaMode()) {
@@ -27,6 +28,11 @@ export function TwaAnalyticsProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!isTwaMode()) {
+      return;
+    }
+
+    if (!hasLoggedInitialScreenRef.current) {
+      hasLoggedInitialScreenRef.current = true;
       return;
     }
 

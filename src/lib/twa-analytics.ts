@@ -40,15 +40,22 @@ export interface TwaAnalyticsOptions {
 }
 
 function navigateTwaUrl(url: string): void {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || typeof document === "undefined") {
     return;
   }
 
   try {
-    // Use location.replace so the custom-scheme navigation does not add a
-    // history entry. The Android side intercepts foxiesdeck://event URLs in
-    // EventReceiverActivity and does not leave the TWA web page.
-    window.location.replace(url);
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.tabIndex = -1;
+    iframe.style.display = "none";
+    iframe.src = url;
+
+    document.body.appendChild(iframe);
+
+    window.setTimeout(() => {
+      iframe.remove();
+    }, 1000);
   } catch {
     // ignore
   }

@@ -7,20 +7,11 @@ vi.mock("@/features/install-app/twa-mode", () => ({
 }));
 
 describe("twa analytics bridge", () => {
-  const originalLocation = window.location;
-  let replaceMock: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
-    replaceMock = vi.fn();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        ...originalLocation,
-        replace: replaceMock,
-      },
-    });
+    document.body.innerHTML = "";
+    vi.useRealTimers();
   });
 
   it("reads TWA mode from the shared detector", () => {
@@ -38,7 +29,8 @@ describe("twa analytics bridge", () => {
       params: { screen_name: "/learn" },
     });
 
-    expect(replaceMock).toHaveBeenCalledWith("foxiesdeck://event?type=fd_screen_view&screen_name=%2Flearn");
+    const iframe = document.body.querySelector("iframe");
+    expect(iframe?.getAttribute("src")).toBe("foxiesdeck://event?type=fd_screen_view&screen_name=%2Flearn");
   });
 
   it("does not send analytics events outside TWA mode", () => {
@@ -46,7 +38,7 @@ describe("twa analytics bridge", () => {
 
     sendTwaAnalyticsEvent("fd_screen_view");
 
-    expect(replaceMock).not.toHaveBeenCalled();
+    expect(document.body.querySelector("iframe")).toBeNull();
   });
 
   it("deduplicates one-time events", () => {
@@ -55,7 +47,7 @@ describe("twa analytics bridge", () => {
     sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
     sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
 
-    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(document.body.querySelectorAll("iframe")).toHaveLength(1);
   });
 
   it("sends the TWA user id through the bridge", () => {
@@ -63,6 +55,19 @@ describe("twa analytics bridge", () => {
 
     setTwaAnalyticsUserId("user-123");
 
-    expect(replaceMock).toHaveBeenCalledWith("foxiesdeck://event?type=set_user_id&user_id=user-123");
+    const iframe = document.body.querySelector("iframe");
+    expect(iframe?.getAttribute("src")).toBe("foxiesdeck://event?type=set_user_id&user_id=user-123");
+  });
+
+  it("removes the bridge iframe after dispatching", () => {
+    vi.useFakeTimers();
+    vi.mocked(getTwaMode).mockReturnValue(true);
+
+    sendTwaAnalyticsEvent("fd_screen_view");
+    expect(document.body.querySelector("iframe")).not.toBeNull();
+
+    vi.advanceTimersByTime(1000);
+
+    expect(document.body.querySelector("iframe")).toBeNull();
   });
 });
