@@ -160,6 +160,7 @@ interface TrueFalseQuizItem extends BaseQuizItem {
 }
 
 type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem;
+type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 
 interface QuizResult {
   correct: VocabularyCard[];
@@ -1627,25 +1628,21 @@ function ChoiceQuestion({
             CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
-            <button
+            <QuizAnswerButton
               key={option}
               type="button"
               data-quiz-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
+              interactive={!showingAnswer}
+              baseClassName={optionColor}
+              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
               className={cn(
-                "flex min-h-[4.5rem] items-center justify-center rounded-md px-3 py-2 text-center text-base font-semibold text-white transition-[background-color,color,filter] duration-300 ease-out hover:brightness-110 disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
-                optionColor,
-                showingAnswer &&
-                  isCorrectOption &&
-                  "bg-emerald-500 text-white hover:brightness-100",
-                showingAnswer &&
-                  !isCorrectOption &&
-                  "bg-background-inverse text-foreground-inverse-secondary hover:brightness-100",
+                "min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
               )}
             >
               {option}
-            </button>
+            </QuizAnswerButton>
           );
         })}
       </div>
@@ -1664,6 +1661,52 @@ function ChoiceQuestion({
         </Button>
       </div>
     </div>
+  );
+}
+
+function QuizAnswerButton({
+  baseClassName,
+  feedbackState = "idle",
+  interactive = true,
+  className,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  baseClassName: string;
+  feedbackState?: QuizAnswerFeedbackState;
+  interactive?: boolean;
+}) {
+  return (
+    <button
+      className={cn(
+        "group relative flex overflow-hidden rounded-md text-white transition-[color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none",
+        baseClassName,
+        interactive &&
+          "hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(15,23,42,0.7)] active:translate-y-0 active:scale-[0.99]",
+        feedbackState === "correct" && "shadow-[0_16px_34px_-22px_rgba(16,185,129,0.7)]",
+        feedbackState === "incorrect" &&
+          "text-foreground-inverse-secondary shadow-[0_12px_26px_-22px_rgba(15,23,42,0.8)]",
+        className,
+      )}
+      {...props}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 ease-out",
+          interactive && "group-hover:opacity-100",
+        )}
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          feedbackState === "correct" && "bg-emerald-500 opacity-100",
+          feedbackState === "incorrect" && "bg-background-inverse opacity-100",
+        )}
+      />
+      <span className="relative z-10 w-full">{children}</span>
+    </button>
   );
 }
 
@@ -1691,13 +1734,13 @@ function TrueFalseQuestion({
       value: "true" as const,
       label: t("games.wordChallenge.correct"),
       isCorrect: question.correctAnswer === "true",
-      baseClassName: "bg-blue-500 hover:bg-blue-600 focus-visible:ring-blue-500",
+      baseClassName: "bg-blue-500",
     },
     {
       value: "false" as const,
       label: t("games.wordChallenge.wrong"),
       isCorrect: question.correctAnswer === "false",
-      baseClassName: "bg-red-500 hover:bg-red-600 focus-visible:ring-red-500",
+      baseClassName: "bg-red-500",
     },
   ];
 
@@ -1733,25 +1776,21 @@ function TrueFalseQuestion({
 
       <div className="grid w-full grid-cols-2 gap-2 sm:gap-3">
         {options.map((option) => (
-          <Button
+          <QuizAnswerButton
             key={option.value}
             type="button"
             data-quiz-true-false-option={option.value}
             onClick={() => onAnswer(option.value, option.isCorrect)}
             disabled={showingAnswer}
+            interactive={!showingAnswer}
+            baseClassName={option.baseClassName}
+            feedbackState={showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : "idle"}
             className={cn(
-              "min-h-[4.5rem] rounded-md px-3 py-2 text-base font-semibold text-white sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
-              option.baseClassName,
-              showingAnswer &&
-                option.isCorrect &&
-                "bg-emerald-500 text-white hover:bg-emerald-500 focus-visible:ring-emerald-500",
-              showingAnswer &&
-                !option.isCorrect &&
-                "bg-background-inverse text-foreground-inverse hover:bg-background-inverse focus-visible:ring-foreground",
+              "min-h-[4.5rem] items-center justify-center px-3 py-2 text-base font-semibold sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
             )}
           >
             {option.label}
-          </Button>
+          </QuizAnswerButton>
         ))}
       </div>
 
