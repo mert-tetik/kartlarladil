@@ -9,6 +9,7 @@ import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
 import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode } from "@/types/domain";
@@ -49,6 +50,10 @@ vi.mock("@/features/quiz/actions", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: vi.fn(),
 }));
 
 vi.mock("canvas-confetti", () => ({
@@ -263,6 +268,38 @@ describe("ResultView star rating", () => {
 
     expect(screen.getByText("20. siradasin!")).toBeInTheDocument();
     expect(screen.getByText("Dunya uzerinde")).toBeInTheDocument();
+  });
+
+  it("sends the quiz completed analytics event with summary params", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: VOCABULARY_CARDS.slice(10, 12) }}
+          selectedCount={10}
+          chestOpened={true}
+          streakRewardStreak={10}
+          streakRewardPoints={40}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_quiz_completed", {
+      params: {
+        quiz_mode: "active",
+        selected_count: 10,
+        correct_count: 8,
+        incorrect_count: 2,
+        learned_count: 2,
+        accuracy: 80,
+        chest_opened: true,
+        performance_level: "mediumHigh",
+        streak_reward_streak: 10,
+        streak_reward_points: 40,
+      },
+    });
   });
 });
 

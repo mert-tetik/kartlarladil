@@ -2348,7 +2348,20 @@ export function ResultView({
     if (hasTriggeredResult.current) return;
     hasTriggeredResult.current = true;
 
-    sendTwaAnalyticsEvent("fd_quiz_completed");
+    sendTwaAnalyticsEvent("fd_quiz_completed", {
+      params: {
+        quiz_mode: mode,
+        selected_count: selectedCount ?? 0,
+        correct_count: results.correct.length,
+        incorrect_count: results.incorrect.length,
+        learned_count: results.learned.length,
+        accuracy: performance.accuracy,
+        chest_opened: chestOpened,
+        performance_level: performance.level,
+        streak_reward_streak: streakRewardStreak,
+        streak_reward_points: streakRewardPoints,
+      },
+    });
     playSoundEffect("quiz-complete");
     vibrate("result");
 

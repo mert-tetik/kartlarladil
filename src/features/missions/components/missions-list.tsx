@@ -10,6 +10,7 @@ import { useGameProgressStore } from "@/features/games/game-progress-store";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
 import { listUserMissionsAction, claimMissionRewardAction } from "@/features/missions/mission-actions";
 import { buildMissionViewModels } from "@/features/missions/mission-progress";
@@ -120,6 +121,18 @@ export function MissionsList() {
 
     void claimMissionRewardAction(missionId).then(async (result) => {
       if (result.status === "success") {
+        if (result.reward && typeof result.points === "number") {
+          sendTwaAnalyticsEvent("fd_mission_reward_claimed", {
+            params: {
+              mission_id: missionId,
+              mission_type: mission.type,
+              reward_kind: result.reward.kind,
+              points: result.points,
+              chest_tier: result.chestTier ?? "",
+            },
+          });
+        }
+
         if (result.missionPoints !== undefined && result.chestPoints !== undefined) {
           updateProfileField({
             missionPoints: result.missionPoints,

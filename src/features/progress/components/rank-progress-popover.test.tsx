@@ -6,6 +6,7 @@ import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/pro
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import type { ProgressStats } from "@/types/domain";
 
 vi.mock("next/navigation", () => ({
@@ -16,6 +17,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: vi.fn(),
 }));
 
 describe("RankProgressPopover", () => {
@@ -103,6 +108,14 @@ describe("RankProgressPopover", () => {
     const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
     expect(rankUpDialog).toBeVisible();
     expect(playSoundEffect).toHaveBeenCalledWith("rank-up");
+    expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_rank_up", {
+      params: {
+        rank_id: nextStats.rank.id,
+        rank_icon: nextStats.rank.icon,
+        total_points: nextStats.totalPoints,
+        rank_min_points: nextStats.rank.minPoints,
+      },
+    });
     expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
     expect(within(rankUpDialog).getByText("200 puan")).toBeVisible();

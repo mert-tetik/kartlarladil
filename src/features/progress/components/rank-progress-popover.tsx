@@ -8,6 +8,7 @@ import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
@@ -300,6 +301,14 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
         const lastAcknowledged = readLastAcknowledgedRank(userId);
         if (lastAcknowledged !== stats.rank.id) {
           playSoundEffect("rank-up");
+          sendTwaAnalyticsEvent("fd_rank_up", {
+            params: {
+              rank_id: stats.rank.id,
+              rank_icon: stats.rank.icon,
+              total_points: stats.totalPoints,
+              rank_min_points: stats.rank.minPoints,
+            },
+          });
           setRankUpRank(stats.rank);
           writeLastAcknowledgedRank(userId, stats.rank.id);
         }

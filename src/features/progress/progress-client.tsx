@@ -19,6 +19,7 @@ import {
   calculateProgressStats,
   mergeBonusPoints,
 } from "@/features/progress/progress-stats";
+import { trackPointMilestones } from "@/lib/twa-analytics-events";
 import type { ProgressStats } from "@/types/domain";
 
 const CLOUD_MIGRATION_KEY = "foxiesdeck:cloud-migrated:v1";
@@ -73,6 +74,8 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const setActiveCardLimit = useInventoryStore((state) => state.setActiveCardLimit);
   const { entitlements } = useSubscription();
   const migrationStartedRef = useRef(false);
+  const trackedPointsRef = useRef<number | null>(null);
+  const trackedPointsOwnerRef = useRef<string>("guest");
   const [cachedStats, setCachedStats] = useState<ProgressStats | null>(readCachedProgressStats);
 
   useEffect(() => {
@@ -153,6 +156,33 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     writeCachedProgressStats(computedStats);
     setCachedStats(computedStats);
   }, [computedStats, hydrated]);
+
+  useEffect(() => {
+    const ownerKey = user?.id ?? "guest";
+    if (trackedPointsOwnerRef.current === ownerKey) {
+      return;
+    }
+
+    trackedPointsOwnerRef.current = ownerKey;
+    trackedPointsRef.current = null;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!hydrated || cloudLoading) {
+      return;
+    }
+
+    const previousPoints = trackedPointsRef.current;
+    const nextPoints = computedStats.totalPoints;
+
+    if (previousPoints === null) {
+      trackedPointsRef.current = nextPoints;
+      return;
+    }
+
+    trackPointMilestones(previousPoints, nextPoints);
+    trackedPointsRef.current = nextPoints;
+  }, [cloudLoading, computedStats.totalPoints, hydrated]);
 
   const refreshStats = useCallback(async () => {
     if (user) {

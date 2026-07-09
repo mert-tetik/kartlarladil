@@ -7,6 +7,7 @@ import { localCardRepository } from "@/features/cards/card-repository";
 import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
 import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
@@ -213,7 +214,18 @@ export const useInventoryStore = create<InventoryState>()(
           }
 
           const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
+          const addedCard = localCardRepository.findById(cardId);
 
+          if (addedCard) {
+            sendTwaAnalyticsEvent("fd_card_added", {
+              params: {
+                card_id: addedCard.id,
+                card_language: addedCard.language,
+                card_tier: addedCard.tier,
+                term_kind: addedCard.termKind,
+              },
+            });
+          }
           if (result.data.cards.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
           }
@@ -229,7 +241,18 @@ export const useInventoryStore = create<InventoryState>()(
         const nextCards = addCardToInventory(get().cards, cardId);
         set({ cards: nextCards });
         const firstCardAdded = previousCount === 0 && nextCards.length > 0;
+        const addedCard = localCardRepository.findById(cardId);
 
+        if (addedCard) {
+          sendTwaAnalyticsEvent("fd_card_added", {
+            params: {
+              card_id: addedCard.id,
+              card_language: addedCard.language,
+              card_tier: addedCard.tier,
+              term_kind: addedCard.termKind,
+            },
+          });
+        }
         if (nextCards.length > 0) {
           sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
         }
@@ -350,6 +373,18 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
+          if (inventoryCard && isFirstLearnedTransition(ownedCard?.status ?? "active", inventoryCard.status)) {
+            sendTwaAnalyticsEvent("fd_card_learned", {
+              params: {
+                card_id: inventoryCard.cardId,
+                card_language: vocabularyCard?.language ?? "",
+                card_tier: vocabularyCard?.tier ?? "",
+                term_kind: vocabularyCard?.termKind ?? "",
+                correct_count: inventoryCard.correctCount,
+              },
+            });
+          }
+
           await syncMissionsFromClientState();
 
           return inventoryCard && attempt ? { inventoryCard, attempt } : undefined;
@@ -369,6 +404,18 @@ export const useInventoryStore = create<InventoryState>()(
           cards: state.cards.map((card) => (card.cardId === input.cardId ? updatedCard : card)),
           attempts: [attempt, ...state.attempts].slice(0, 100),
         }));
+
+        if (isFirstLearnedTransition(ownedCard.status, updatedCard.status)) {
+          sendTwaAnalyticsEvent("fd_card_learned", {
+            params: {
+              card_id: updatedCard.cardId,
+              card_language: vocabularyCard.language,
+              card_tier: vocabularyCard.tier,
+              term_kind: vocabularyCard.termKind,
+              correct_count: updatedCard.correctCount,
+            },
+          });
+        }
 
         void syncMissionsFromClientState();
 
@@ -434,6 +481,15 @@ export const useInventoryStore = create<InventoryState>()(
           cloudError: "",
         });
 
+        sendTwaAnalyticsEvent("fd_custom_card_added", {
+          params: {
+            card_id: created.card.cardId,
+            card_language: created.vocabularyCard.language,
+            card_tier: created.vocabularyCard.tier,
+            term_kind: created.vocabularyCard.termKind,
+          },
+        });
+
         await syncMissionsFromClientState();
       },
     }),
@@ -484,4 +540,3 @@ function dispatchFirstCardAddedEvent() {
 
   window.dispatchEvent(new CustomEvent(FIRST_CARD_ADDED_EVENT));
 }
-

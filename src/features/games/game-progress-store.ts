@@ -6,6 +6,7 @@ import type { GameName, GameProgress, GamesProgress } from "./game-types";
 import type { LanguageCode } from "@/types/domain";
 import { getPointsForLevel } from "./game-levels";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 
 const STORAGE_KEY = "foxiesdeck:games:progress";
 
@@ -52,20 +53,40 @@ export const useGameProgressStore = create<GameProgressState>()(
         }));
       },
       completeLevel(game, level) {
+        let didAdvance = false;
+        let nextLevel = level + 1;
+        let nextBestLevel = level;
+        let nextTotalPoints = 0;
+
         set((state) => {
           const current = state.progress[game] ?? defaultProgress();
-          const nextLevel = Math.max(current.currentLevel, level + 1);
+          nextLevel = Math.max(current.currentLevel, level + 1);
+          nextBestLevel = Math.max(current.bestLevel, level);
+          nextTotalPoints = current.totalPoints + getPointsForLevel(level);
+          didAdvance = level > current.bestLevel;
           return {
             progress: {
               ...state.progress,
               [game]: {
                 currentLevel: nextLevel,
-                bestLevel: Math.max(current.bestLevel, level),
-                totalPoints: current.totalPoints + getPointsForLevel(level),
+                bestLevel: nextBestLevel,
+                totalPoints: nextTotalPoints,
               },
             },
           };
         });
+
+        if (didAdvance) {
+          sendTwaAnalyticsEvent("fd_game_level_up", {
+            params: {
+              game_name: game,
+              level,
+              next_level: nextLevel,
+              best_level: nextBestLevel,
+              game_points: nextTotalPoints,
+            },
+          });
+        }
 
         void syncMissionsFromClientState();
       },
