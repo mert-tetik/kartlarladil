@@ -9,6 +9,10 @@ import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const { useLeaderboardDataMock } = vi.hoisted(() => ({
+  useLeaderboardDataMock: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     prefetch: vi.fn(),
@@ -44,6 +48,10 @@ vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({ stats: EMPTY_PROGRESS_STATS }),
 }));
 
+vi.mock("@/features/leaderboard/use-leaderboard", () => ({
+  useLeaderboardData: useLeaderboardDataMock,
+}));
+
 vi.mock("@/features/inventory/inventory-store", () => ({
   useInventoryStore: (selector: (state: {
     cards: [];
@@ -60,6 +68,29 @@ vi.mock("@/features/inventory/inventory-store", () => ({
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    useLeaderboardDataMock.mockReturnValue({
+      data: {
+        viewer: {
+          userId: "test-user",
+          position: 17,
+          displayName: "Test User",
+          totalPoints: 420,
+          leaderboardVisible: true,
+        },
+        entries: [],
+        canViewLeaderboard: true,
+      },
+    });
+  });
+
+  it("shows the current user's leaderboard position", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
   });
 
   it("updates the visible card language when onboarding writes a new landing language", async () => {

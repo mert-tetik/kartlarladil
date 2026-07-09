@@ -40,6 +40,7 @@ import {
 } from "@/app/components/mobile-landing-language-guard";
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
+import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -63,6 +64,10 @@ export function MobileLandingDashboard() {
   const requireAuthAction = useRequireAuthAction();
   const cards = useInventoryStore((state) => state.cards);
   const waitingMissionCount = useMissionWaitingCount();
+  const { data: leaderboardData } = useLeaderboardData({
+    enabled: Boolean(user),
+    refreshOnMount: true,
+  });
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -208,9 +213,14 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
-  const leaderboardButtonLabel = t("home.mobile.leaderboardBadge", {
-    position: formatNumber(locale, 1),
-  });
+  const leaderboardViewer = leaderboardData?.viewer;
+  const leaderboardPosition =
+    leaderboardViewer && leaderboardViewer.userId === user?.id ? leaderboardViewer.position : null;
+  const leaderboardButtonLabel = leaderboardPosition
+    ? t("home.mobile.leaderboardBadge", {
+        position: formatNumber(locale, leaderboardPosition),
+      })
+    : "";
   const leaderboardButtonLabelClassName =
     leaderboardButtonLabel.length > 14
       ? "text-[0.58rem]"
@@ -324,14 +334,16 @@ export function MobileLandingDashboard() {
         <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
           <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
         </span>
-        <span
-          className={cn(
-            "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]",
-            leaderboardButtonLabelClassName,
-          )}
-        >
-          {leaderboardButtonLabel}
-        </span>
+        {leaderboardButtonLabel ? (
+          <span
+            className={cn(
+              "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]",
+              leaderboardButtonLabelClassName,
+            )}
+          >
+            {leaderboardButtonLabel}
+          </span>
+        ) : null}
       </button>
 
       {/* Missions box */}

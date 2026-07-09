@@ -5,9 +5,15 @@ import type { LeaderboardPayload } from "@/features/leaderboard/leaderboard-type
 
 let leaderboardCache: LeaderboardPayload | null = null;
 
-export function useLeaderboardData({ refreshOnMount = false }: { refreshOnMount?: boolean } = {}) {
+export function useLeaderboardData({
+  enabled = true,
+  refreshOnMount = false,
+}: {
+  enabled?: boolean;
+  refreshOnMount?: boolean;
+} = {}) {
   const [data, setData] = useState<LeaderboardPayload | null>(leaderboardCache);
-  const [loading, setLoading] = useState(!leaderboardCache);
+  const [loading, setLoading] = useState(enabled && !leaderboardCache);
   const [error, setError] = useState("");
 
   const fetchLeaderboard = useCallback(async ({ showLoading }: { showLoading: boolean }) => {
@@ -41,6 +47,12 @@ export function useLeaderboardData({ refreshOnMount = false }: { refreshOnMount?
   }, [fetchLeaderboard]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setError("");
+      return;
+    }
+
     if (!refreshOnMount && leaderboardCache) {
       return;
     }
@@ -50,7 +62,7 @@ export function useLeaderboardData({ refreshOnMount = false }: { refreshOnMount?
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [fetchLeaderboard, refreshOnMount]);
+  }, [enabled, fetchLeaderboard, refreshOnMount]);
 
   return {
     data,

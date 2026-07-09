@@ -11,6 +11,7 @@ interface LeaderboardProfileRow {
   ai_practice_points: number | null;
   chest_points: number | null;
   streak_points: number | null;
+  mission_points: number | null;
   leaderboard_visible: boolean | null;
 }
 
@@ -74,7 +75,8 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
         (learnedPointsByUser.get(profile.user_id) ?? 0) +
         (profile.ai_practice_points ?? 0) +
         (profile.chest_points ?? 0) +
-        (profile.streak_points ?? 0);
+        (profile.streak_points ?? 0) +
+        (profile.mission_points ?? 0);
 
       return {
         userId: profile.user_id,
@@ -136,7 +138,8 @@ function createEmptyLeaderboardPayload(
       totalPoints:
         (viewerProfile?.ai_practice_points ?? 0) +
         (viewerProfile?.chest_points ?? 0) +
-        (viewerProfile?.streak_points ?? 0),
+        (viewerProfile?.streak_points ?? 0) +
+        (viewerProfile?.mission_points ?? 0),
       leaderboardVisible: viewerProfile?.leaderboard_visible ?? false,
     },
     entries: [],
