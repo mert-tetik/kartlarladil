@@ -400,24 +400,26 @@ export function MobileLandingDashboard() {
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            vibrate("tap");
-            setRankInfoOpen(true);
-          }}
-          className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center self-stretch"
-          aria-label={getRankLabel(stats.rank, locale)}
-          data-rank-icon-button
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={RANK_ICON_ASSETS[stats.rank.icon]}
-            alt=""
-            className="max-h-full w-auto max-w-full object-contain"
-            draggable={false}
-          />
-        </button>
+        <div className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center self-stretch">
+          <button
+            type="button"
+            onClick={() => {
+              vibrate("tap");
+              setRankInfoOpen(true);
+            }}
+            className="inline-flex h-full min-h-0 max-w-full items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            aria-label={getRankLabel(stats.rank, locale)}
+            data-rank-icon-button
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={RANK_ICON_ASSETS[stats.rank.icon]}
+              alt=""
+              className="h-full max-h-full w-auto max-w-full object-contain"
+              draggable={false}
+            />
+          </button>
+        </div>
         <h1 className="relative z-10 text-center text-lg font-bold text-brand">
           {getRankLabel(stats.rank, locale)}
         </h1>
