@@ -8,9 +8,13 @@ import { createPortal } from "react-dom";
 import {
   Check,
   X,
+  Layers,
+  BookOpen,
   Headset,
   Palette,
-  Sparkles,
+  MessageCircle,
+  MessagesSquare,
+  Gamepad2,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -922,15 +926,30 @@ function MobilePricingView({
         <h2 className="bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400 bg-clip-text text-center font-display text-[1.65rem] font-bold leading-tight text-transparent">
           {t("pricing.mobileFeaturesTitle", { plan: selectedPlanLabel })}
         </h2>
+        <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-6 text-foreground-muted">
+          {t("pricing.mobileFeatureUnlimitedAccess")}
+        </p>
         <ul className="mt-4 divide-y divide-border/45">
-          <MobilePerkItem icon={Sparkles} colorClass="text-amber-400">
-            {t("pricing.mobileFeatureUnlimitedAccess")}
+          <MobilePerkItem icon={Layers} colorClass="text-blue-500">
+            {t("pricing.featureCards")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={BookOpen} colorClass="text-emerald-500">
+            {t("pricing.featureLearned")}
           </MobilePerkItem>
           <MobilePerkItem icon={Palette} colorClass="text-violet-500">
             {t("pricing.featureThemes")}
           </MobilePerkItem>
+          <MobilePerkItem icon={Gamepad2} colorClass="text-cyan-500">
+            {t("pricing.featureGames")}
+          </MobilePerkItem>
           <MobilePerkItem icon={Headset} colorClass="text-fuchsia-500">
             {t("pricing.featurePrioritySupport")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
+            {t("pricing.featureAiDaily", { count: PLAN_LIMITS[selectedOption.plan].aiDailyMessages })}
+          </MobilePerkItem>
+          <MobilePerkItem icon={MessagesSquare} colorClass="text-rose-500">
+            {t("pricing.featureAiMonthly", { count: PLAN_LIMITS[selectedOption.plan].aiMonthlyMessages })}
           </MobilePerkItem>
         </ul>
       </div>
