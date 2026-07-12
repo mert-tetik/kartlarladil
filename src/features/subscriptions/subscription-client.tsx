@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   createContext,
   startTransition,
@@ -21,7 +20,7 @@ interface SubscriptionContextValue {
   entitlements: UserEntitlements | null;
   isLoading: boolean;
   error: string | null;
-  refreshEntitlements: () => Promise<void>;
+  refreshEntitlements: () => Promise<UserEntitlements | null>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
@@ -70,13 +69,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (result.status === "success" && result.data) {
       setEntitlements(result.data);
       writeCachedEntitlements(result.data);
+      setIsLoading(false);
+      return result.data;
     } else {
       setEntitlements(null);
       writeCachedEntitlements(null);
       setError(result.message);
+      setIsLoading(false);
+      return null;
     }
-
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -102,7 +103,6 @@ function GooglePlayBillingSync() {
   useEffect(() => {
     if (isTwa && isSupported) {
       void restorePurchases().catch((error: unknown) => {
-        // eslint-disable-next-line no-console
         console.error("Google Play purchase restoration failed on mount:", error);
       });
     }

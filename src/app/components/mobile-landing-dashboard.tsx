@@ -63,7 +63,7 @@ export function MobileLandingDashboard() {
   const detectedLocale = useDetectedLocale();
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
-  const { entitlements } = useSubscription();
+  const { refreshEntitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
   const waitingMissionCount = useMissionWaitingCount();
   const { data: leaderboardData } = useLeaderboardData({
@@ -288,12 +288,19 @@ export function MobileLandingDashboard() {
     }
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
     requireAuthAction(() => {
-      if ((entitlements?.effectivePlan ?? "free") === "free") {
-        setShowLearnedReviewUpgrade(true);
-        return;
-      }
-      router.push(nextPath);
+      void verifyLearnedReviewAccess(nextPath);
     }, { nextPath });
+  }
+
+  async function verifyLearnedReviewAccess(nextPath: string) {
+    const verifiedEntitlements = await refreshEntitlements();
+
+    if ((verifiedEntitlements?.effectivePlan ?? "free") === "free") {
+      setShowLearnedReviewUpgrade(true);
+      return;
+    }
+
+    router.push(nextPath);
   }
 
   function openDetailMenu(status: "active" | "learned") {

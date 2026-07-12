@@ -12,8 +12,9 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { InventoryCard, SubscriptionPlan } from "@/types/domain";
 
-const { inventoryCardsMock, routerPushMock, subscriptionPlanMock, useLeaderboardDataMock } = vi.hoisted(() => ({
+const { inventoryCardsMock, refreshEntitlementsMock, routerPushMock, subscriptionPlanMock, useLeaderboardDataMock } = vi.hoisted(() => ({
   inventoryCardsMock: { value: [] as InventoryCard[] },
+  refreshEntitlementsMock: vi.fn(),
   routerPushMock: vi.fn(),
   subscriptionPlanMock: { value: "free" as SubscriptionPlan },
   useLeaderboardDataMock: vi.fn(),
@@ -58,6 +59,7 @@ vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
     entitlements: { effectivePlan: subscriptionPlanMock.value },
     isLoading: false,
+    refreshEntitlements: refreshEntitlementsMock,
   }),
 }));
 
@@ -83,6 +85,10 @@ describe("MobileLandingDashboard language sync", () => {
     window.localStorage.clear();
     inventoryCardsMock.value = [];
     subscriptionPlanMock.value = "free";
+    refreshEntitlementsMock.mockReset();
+    refreshEntitlementsMock.mockImplementation(async () => ({
+      effectivePlan: subscriptionPlanMock.value,
+    }));
     routerPushMock.mockReset();
     useLeaderboardDataMock.mockReturnValue({
       data: {
@@ -162,7 +168,8 @@ describe("MobileLandingDashboard language sync", () => {
 
     await user.click(screen.getByRole("button", { name: "Öğrenilenleri Tekrar Et" }));
 
-    expect(screen.getByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
+    expect(refreshEntitlementsMock).toHaveBeenCalledOnce();
     expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
   });
 
@@ -186,6 +193,33 @@ describe("MobileLandingDashboard language sync", () => {
 
     await user.click(screen.getByRole("button", { name: "Öğrenilenleri Tekrar Et" }));
 
-    expect(routerPushMock).toHaveBeenCalledWith("/learn?mode=learned&language=en");
+    await waitFor(() => {
+      expect(routerPushMock).toHaveBeenCalledWith("/learn?mode=learned&language=en");
+    });
+  });
+
+  it("blocks review when a stale paid cache is rejected by the server", async () => {
+    const user = userEvent.setup();
+    const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
+    subscriptionPlanMock.value = "basic";
+    refreshEntitlementsMock.mockResolvedValue({ effectivePlan: "free" });
+    inventoryCardsMock.value = [{
+      cardId: englishCard.id,
+      status: "learned",
+      correctCount: 4,
+      addedAt: "2026-07-12T00:00:00.000Z",
+      learnedAt: "2026-07-12T01:00:00.000Z",
+    }];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Öğrenilenleri Tekrar Et" }));
+
+    expect(await screen.findByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
+    expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
   });
 });

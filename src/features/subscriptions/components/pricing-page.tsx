@@ -771,7 +771,7 @@ function MobileOptionPrice({
       <span className="font-display text-lg font-semibold tabular-nums text-foreground">
         {primary}
       </span>
-      <span className="mt-1 text-[11px] font-medium text-foreground-muted">
+      <span className="mt-1 text-[11px] font-medium text-foreground-muted dark:text-foreground-secondary">
         {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
       </span>
     </div>
@@ -893,7 +893,7 @@ function MobilePricingView({
                 <span className="mt-0.5 truncate text-left font-display text-base font-semibold">
                   {planLabel}
                 </span>
-                <span className="mt-1 text-left text-[11px] font-medium text-foreground-muted">
+                <span className="mt-1 text-left text-[11px] font-medium text-foreground-muted dark:text-foreground-secondary">
                   {cycleLabel}
                 </span>
                 {yearlySavingsLabel ? (
