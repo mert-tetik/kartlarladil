@@ -2,7 +2,6 @@
 
 import { GraduationCap, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -35,6 +34,7 @@ export function LearnQuizShell({
   const hydrated = useInventoryStore((state) => state.hydrated);
   const t = useT();
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
+  const canRenderPersistedPool = cards.length > 0;
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -45,14 +45,14 @@ export function LearnQuizShell({
     return () => window.cancelAnimationFrame(frameId);
   }, [initialMode]);
 
-  if (!hydrated) {
+  if (!hydrated && !canRenderPersistedPool) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-        <EmptyState
-          title={t("quiz.loadingTitle")}
-          description={t("quiz.loadingDescription")}
-        />
-      </div>
+      <LearnQuizShellLoading
+        title={title}
+        showHeader={showHeader}
+        loadingTitle={t("quiz.loadingTitle")}
+        loadingDescription={t("quiz.loadingDescription")}
+      />
     );
   }
 
@@ -104,6 +104,79 @@ export function LearnQuizShell({
             }}
           />
         )}
+      </div>
+    </>
+  );
+}
+
+function LearnQuizShellLoading({
+  title,
+  showHeader,
+  loadingTitle,
+  loadingDescription,
+}: {
+  title: string;
+  showHeader: boolean;
+  loadingTitle: string;
+  loadingDescription: string;
+}) {
+  return (
+    <>
+      <div
+        data-learn-page-header
+        className={cn(
+          "max-lg:hidden",
+          !showHeader && "lg:hidden",
+        )}
+      >
+        <div className="relative left-1/2 w-screen -translate-x-1/2 bg-black px-4 py-4 text-white sm:px-6 lg:px-8">
+          <PageHeader
+            title={title}
+            description=" "
+            mascot="/mascots/mascot5.png"
+            mascotSize="lg"
+            centered
+            titleClassName="text-white text-5xl md:text-6xl lg:text-7xl"
+            descriptionClassName="invisible"
+          />
+        </div>
+      </div>
+
+      <div className="mt-8 flex min-h-0 flex-1 flex-col items-stretch max-lg:mt-0 max-lg:w-full">
+        <div
+          role="status"
+          aria-label={loadingTitle}
+          className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background-card p-5 sm:p-8 lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
+        >
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{loadingTitle}</h2>
+            <p className="mt-3 text-sm leading-6 text-foreground-secondary sm:text-base">{loadingDescription}</p>
+          </div>
+
+          <div className="mt-8 grid w-full gap-3 sm:gap-4 lg:grid-cols-2">
+            {Array.from({ length: 2 }, (_, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "min-h-[136px] animate-pulse rounded-2xl border p-5 sm:min-h-[148px] sm:p-6",
+                  index === 0 ? "border-emerald-500/30 bg-emerald-500/15" : "border-sky-500/30 bg-sky-500/15",
+                )}
+              />
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="aspect-[4/3] animate-pulse rounded-2xl border border-border bg-background" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div
+                  key={index}
+                  className="h-14 animate-pulse rounded-xl border border-border bg-background"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

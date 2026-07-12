@@ -87,11 +87,18 @@ export function InventoryDashboard({
     return counts;
   }, [activeCards, learnedCards]);
 
-  if (!hydrated) {
+  const canRenderPersistedInventory = hasAnyCards && languageStats.length > 0;
+
+  if (!hydrated && !canRenderPersistedInventory) {
     return (
-      <EmptyState
+      <InventoryDashboardLoading
+        showHeader={showHeader}
+        learnedOnly={learnedOnly}
+        pageTitle={t("page.inventory.title")}
         title={t("inventory.loadingTitle")}
         description={t("inventory.loadingDescription")}
+        activeTitle={t("inventory.status.active")}
+        learnedTitle={t("inventory.status.learned")}
       />
     );
   }
@@ -252,6 +259,80 @@ export function InventoryDashboard({
         />
       </div>
     </div>
+  );
+}
+
+function InventoryDashboardLoading({
+  showHeader,
+  learnedOnly,
+  pageTitle,
+  title,
+  description,
+  activeTitle,
+  learnedTitle,
+}: {
+  showHeader: boolean;
+  learnedOnly: boolean;
+  pageTitle: string;
+  title: string;
+  description: string;
+  activeTitle: string;
+  learnedTitle: string;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label={title}
+      className="max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-4 max-lg:overflow-hidden lg:space-y-6"
+    >
+      {showHeader ? (
+        <PageHeader
+          title={pageTitle}
+          mascot="/mascots/mascot10.png"
+          mascotSize="lg"
+          titleClassName="text-3xl md:text-4xl"
+        />
+      ) : null}
+
+      <div className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground-secondary">{description}</p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="rounded-md border border-border bg-background p-4">
+              <div className="h-5 w-28 animate-pulse rounded bg-background-muted" />
+              <div className="mt-3 h-8 w-12 animate-pulse rounded bg-background-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {!learnedOnly ? <InventorySectionSkeleton title={activeTitle} /> : null}
+        <InventorySectionSkeleton title={learnedTitle} />
+      </div>
+    </div>
+  );
+}
+
+function InventorySectionSkeleton({ title }: { title: string }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex w-full items-center justify-between bg-black px-4 py-3 text-white">
+        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <div className="h-9 w-28 animate-pulse rounded-md bg-white/20" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div
+            key={index}
+            className="aspect-[0.72] animate-pulse rounded-2xl border border-border bg-background-card"
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 

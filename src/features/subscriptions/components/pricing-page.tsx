@@ -10,6 +10,7 @@ import {
   X,
   Layers,
   BookOpen,
+  Headset,
   Palette,
   MessageCircle,
   MessagesSquare,
@@ -67,7 +68,7 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_STICKY_CTA_CLASS = "h-[3.75rem] whitespace-nowrap text-sm";
+const PRICING_STICKY_CTA_CLASS = "h-14 whitespace-nowrap text-sm";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
@@ -810,9 +811,10 @@ function MobilePricingView({
   };
 
   const isCurrentPlan = currentPlan === selectedOption.plan;
+  const selectedPlanLabel = t(`pricing.${selectedOption.plan}`);
 
   return (
-    <div className="relative z-10 flex flex-col pb-[calc(var(--mobile-nav-bar-height)+7.5rem)] lg:hidden">
+    <div className="relative z-10 flex flex-col pb-[7.5rem] lg:hidden">
       <div className="animate-screen-pop">
         <div className="text-center">
         <h1 className="font-display text-3xl font-semibold text-brand">
@@ -869,8 +871,11 @@ function MobilePricingView({
                     {t("pricing.firstMonthFree")}
                   </span>
                 ) : null}
-                <span className="mt-0.5 truncate text-left font-display text-base font-semibold capitalize">
-                  {planLabel} — {cycleLabel}
+                <span className="mt-0.5 truncate text-left font-display text-base font-semibold">
+                  {planLabel}
+                </span>
+                <span className="mt-1 text-left text-[11px] font-medium text-foreground-muted">
+                  {cycleLabel}
                 </span>
                 <MobileOptionPrice
                   plan={option.plan}
@@ -895,9 +900,9 @@ function MobilePricingView({
         })}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-background-card p-5">
-        <h2 className="font-display text-lg font-semibold text-foreground">
-          {t(`pricing.${selectedOption.plan}`)}
+      <div className="mt-6 rounded-2xl border border-transparent bg-transparent p-5">
+        <h2 className="text-center font-display text-lg font-semibold text-foreground">
+          {t("pricing.mobileFeaturesTitle", { plan: selectedPlanLabel })}
         </h2>
         <ul className="mt-3 space-y-1">
           <MobilePerkItem icon={Layers} colorClass="text-blue-500">
@@ -911,6 +916,9 @@ function MobilePricingView({
           </MobilePerkItem>
           <MobilePerkItem icon={Gamepad2} colorClass="text-cyan-500">
             {t("pricing.featureGames")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={Headset} colorClass="text-fuchsia-500">
+            {t("pricing.featurePrioritySupport")}
           </MobilePerkItem>
           <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
             {t("pricing.featureAiDaily", { count: PLAN_LIMITS[selectedOption.plan].aiDailyMessages })}
@@ -933,7 +941,7 @@ function MobilePricingView({
         ? createPortal(
             <div
               className="pointer-events-none fixed inset-x-0 z-30 lg:hidden"
-              style={{ bottom: "var(--mobile-nav-bar-height)" }}
+              style={{ bottom: 0 }}
             >
               <div className="pointer-events-auto w-full border-t border-border bg-background/95 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md">
                 {isCurrentPlan ? (

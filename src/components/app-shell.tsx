@@ -11,7 +11,6 @@ import { TwaAnalyticsProvider } from "@/components/twa-analytics-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
-import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
@@ -21,30 +20,28 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
 
-export async function AppShell({
+export function AppShell({
   children,
   locale,
   user,
 }: {
   children: ReactNode;
   locale: LocaleCode;
-  user?: AuthShellUser | null;
+  user: AuthShellUser | null;
 }) {
-  const authUser = user ?? (await getCurrentAuthUser());
-
   return (
     <LocaleProvider initialLocale={locale}>
       <BodyScrollLock />
       <MobileViewportController />
       <GlobalTapVibration />
-      <AuthSessionProvider user={authUser}>
+      <AuthSessionProvider user={user}>
         <TwaAnalyticsProvider>
           <SubscriptionProvider>
             <ProgressStatsProvider>
-              <ThemeProvider initialTheme={authUser?.profile.theme}>
+              <ThemeProvider initialTheme={user?.profile.theme}>
                 <PushNotificationsProvider>
                   <div className="flex min-h-screen flex-col bg-background text-foreground">
-                    <AppNavigation user={authUser} />
+                    <AppNavigation user={user} />
                     <RankUpTestOverlay />
                     <MobileAuthGateway />
                     <PostPracticeLeaderboardConsentGate />

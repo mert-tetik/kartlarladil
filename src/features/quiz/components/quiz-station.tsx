@@ -400,6 +400,8 @@ export function QuizStation({
       status: mode,
     }).map((item) => item.card);
   }, [cards, mode, selectedLanguage]);
+  const canRenderPersistedQuizSetup = cards.length > 0;
+  const interactionLocked = !hydrated;
 
   const buildDeck = useCallback(
     (language: LanguageCode, count: number | null) => {
@@ -863,7 +865,7 @@ export function QuizStation({
     })();
   }, [maxStreak, phase, quizSessionId, refreshStats, updateProfileField, user]);
 
-  if (!hydrated) {
+  if (!hydrated && !canRenderPersistedQuizSetup) {
     return (
       <EmptyState
         title={t("quiz.loadingTitle")}
@@ -905,6 +907,7 @@ export function QuizStation({
           languageStats={practiceLanguageStats}
           hiddenLanguageCode={hiddenLocalePracticeLanguage?.code ?? null}
           selectedLanguage={selectedLanguage}
+          locked={interactionLocked}
           onSelect={handleSelectLanguage}
           onBack={onBackToMode}
         />
@@ -920,12 +923,22 @@ export function QuizStation({
           language={selectedLanguage}
           availableCount={availableCards.length}
           selectedCount={selectedCount}
+          locked={interactionLocked}
           onSelect={(count) => {
             setSelectedCount(count);
             handleStartCount(count);
           }}
         />
       </div>
+    );
+  }
+
+  if (!hydrated) {
+    return (
+      <EmptyState
+        title={t("quiz.loadingTitle")}
+        description={t("quiz.loadingDescription")}
+      />
     );
   }
 
@@ -1225,6 +1238,7 @@ export function LanguageSelection({
   languageStats,
   hiddenLanguageCode,
   selectedLanguage,
+  locked = false,
   onSelect,
   onBack,
 }: {
@@ -1236,6 +1250,7 @@ export function LanguageSelection({
   }>;
   hiddenLanguageCode: LanguageCode | null;
   selectedLanguage: LanguageCode | null;
+  locked?: boolean;
   onSelect: (language: LanguageCode) => void;
   onBack?: () => void;
 }) {
@@ -1266,6 +1281,11 @@ export function LanguageSelection({
               })}
             </p>
           ) : null}
+          {locked ? (
+            <p className="mt-2 text-center text-xs leading-5 text-foreground/65 max-lg:text-white/80 lg:text-sm">
+              {t("quiz.loadingDescription")}
+            </p>
+          ) : null}
 
           <div className="mt-6 flex min-h-0 flex-col items-center">
             <div className="w-full min-h-0 overflow-y-auto rounded-md border border-white/10 bg-black p-2 lg:h-[420px]">
@@ -1275,10 +1295,11 @@ export function LanguageSelection({
                     <button
                       key={language.code}
                       type="button"
+                      disabled={locked}
                       aria-pressed={selectedLanguage === language.code}
                       onClick={() => onSelect(language.code)}
                       className={cn(
-                        "flex cursor-pointer items-center justify-between rounded-md border border-black/10 bg-white p-3 text-left text-sm font-semibold text-black transition-colors hover:bg-neutral-100 lg:p-4 lg:text-base",
+                        "flex cursor-pointer items-center justify-between rounded-md border border-black/10 bg-white p-3 text-left text-sm font-semibold text-black transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 lg:p-4 lg:text-base",
                         selectedLanguage === language.code &&
                           "border-black/40 bg-neutral-100",
                       )}
@@ -1314,6 +1335,7 @@ export function LanguageSelection({
             <div className="mt-5 flex justify-center">
               <Button
                 variant="ghost"
+                disabled={locked}
                 className="text-foreground hover:bg-background-muted hover:text-foreground max-lg:text-white max-lg:hover:bg-white/10 max-lg:hover:text-white"
                 onClick={onBack}
               >
@@ -1356,12 +1378,14 @@ export function CountSelection({
   language,
   availableCount,
   selectedCount,
+  locked = false,
   onSelect,
 }: {
   mode: PracticeMode;
   language: LanguageCode;
   availableCount: number;
   selectedCount: number | null;
+  locked?: boolean;
   onSelect: (count: number) => void;
   onBack?: () => void;
 }) {
@@ -1392,11 +1416,16 @@ export function CountSelection({
             count: availableCount,
           })}
         </p>
+        {locked ? (
+          <p className="mt-2 text-xs font-medium opacity-90 sm:text-sm">
+            {t("quiz.loadingDescription")}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid flex-1 grid-cols-2">
         {QUIZ_COUNT_OPTIONS.map((count, index) => {
-          const disabled = count > availableCount;
+          const disabled = locked || count > availableCount;
           const previewPair = showChestTiers
             ? getChestPreviewPairForCount(count)
             : undefined;
@@ -1789,6 +1818,7 @@ function TrueFalseQuestion({
             interactive={!showingAnswer}
             baseClassName={option.baseClassName}
             feedbackState={showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : "idle"}
+            incorrectOverlayClassName="bg-red-950"
             className={cn(
               "min-h-[4.5rem] items-center justify-center px-3 py-2 text-base font-semibold sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
             )}

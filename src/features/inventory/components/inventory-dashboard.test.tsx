@@ -40,6 +40,44 @@ describe("InventoryDashboard", () => {
     });
   });
 
+  it("shows a loading skeleton while the inventory store rehydrates", () => {
+    useInventoryStore.setState({
+      cards: [],
+      attempts: [],
+      hydrated: false,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <InventoryDashboard />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("status", { name: "Envanter hazırlanıyor" })).toBeVisible();
+    expect(screen.getByText("Kartların tarayıcı belleğinden okunuyor.")).toBeVisible();
+  });
+
+  it("renders persisted inventory cards even before hydration completes", () => {
+    useInventoryStore.setState({
+      cards: [createInventoryCard(englishCard.id)],
+      attempts: [],
+      hydrated: false,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <InventoryDashboard />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.queryByRole("status", { name: "Envanter hazırlanıyor" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: LANGUAGE_BY_CODE.en.nativeName }).length).toBeGreaterThan(0);
+  });
+
   it("shows only languages that have cards", () => {
     useInventoryStore.setState({
       cards: [

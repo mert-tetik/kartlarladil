@@ -54,6 +54,7 @@ vi.mock("@/lib/sound-effects", () => ({
 
 vi.mock("@/lib/twa-analytics", () => ({
   sendTwaAnalyticsEvent: vi.fn(),
+  setTwaAnalyticsUserId: vi.fn(),
 }));
 
 vi.mock("canvas-confetti", () => ({
@@ -420,6 +421,25 @@ describe("QuizStation streak celebration", () => {
     });
   });
 });
+
+describe("QuizStation hydration fallback", () => {
+  it("renders the language picker from persisted cards before hydration finishes", () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard],
+      attempts: [],
+      hydrated: false,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+
+    expect(screen.queryByRole("heading", { name: /Preparing practice|Alıştırma hazırlanıyor/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /English|İngilizce/i })).toBeVisible();
+  });
+});
+
 describe("QuizStation sound feedback", () => {
   beforeEach(() => {
     useInventoryStore.setState({

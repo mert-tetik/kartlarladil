@@ -39,13 +39,23 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
     .sort((a, b) => (b.inventory.learnedAt ?? "").localeCompare(a.inventory.learnedAt ?? ""))
     .slice(0, 8);
   const cardById = new Map(joinedCards.map((item) => [item.card.id, item.card]));
+  const canRenderCachedProgress =
+    stats.totalPoints > 0 ||
+    stats.totalCards > 0 ||
+    stats.learnedCards > 0 ||
+    attempts.length > 0;
 
-  if (loading) {
+  if (loading && !canRenderCachedProgress) {
     return <EmptyState title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
   }
 
   return (
     <div className="space-y-6">
+      {loading ? (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-900">
+          {t("profile.loadingDescription")}
+        </div>
+      ) : null}
       {error ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
           {error}

@@ -38,6 +38,16 @@ type NavItem = {
   icon: LucideIcon | ComponentType<SVGProps<SVGSVGElement>>;
 };
 
+const PREFETCHED_NAV_PATHS = new Set([
+  "/",
+  "/card-draw",
+  "/my-cards",
+  "/learn",
+  "/games",
+  "/ai-practice",
+  "/ask",
+]);
+
 const navItems: readonly NavItem[] = [
   { href: "/card-draw", labelKey: "nav.cardDraw", icon: CardsIcon },
   { href: "/my-cards", labelKey: "nav.inventory", icon: CardDecksIcon },
@@ -68,6 +78,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     (pathname === "/card-draw" ||
       pathname === "/leaderboard" ||
       pathname === "/learn" ||
+      pathname === "/pricing" ||
       pathname.startsWith("/ai-practice/") ||
       pathname === "/create-card" ||
       pathname === "/games" ||
@@ -142,7 +153,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
+              const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
               return (
                 <DesktopNavLink key={item.href} href={item.href} active={active} prefetch={shouldPrefetch ? true : undefined}>
                   {t(item.labelKey)}
@@ -198,7 +209,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const shouldPrefetch = item.href === "/" || item.href === "/card-draw" || item.href === "/learn";
+              const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
               const isHome = item.href === "/";
               const isPremium = item.href === "/pricing";
 

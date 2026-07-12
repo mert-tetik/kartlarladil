@@ -18,7 +18,7 @@ export function MobileBackButton() {
   function handleBack() {
     vibrate("tap");
 
-    if (pathname === "/card-draw" || pathname === "/learn" || pathname === "/learned") {
+    if (pathname === "/card-draw" || pathname === "/learn" || pathname === "/learned" || pathname === "/pricing") {
       router.push("/");
       return;
     }
@@ -56,7 +56,6 @@ export function MobileBackButton() {
 export function shouldShowMobileBackButton(pathname: string): boolean {
   if (pathname === "/") return false;
   if (pathname === "/ask" || pathname.startsWith("/ask/")) return false;
-  if (pathname === "/pricing") return false;
   if (pathname === "/profile") return false;
   if (pathname.startsWith("/account/")) return false;
   if (pathname.startsWith("/terms") || pathname.startsWith("/privacy") || pathname.startsWith("/refund") || pathname.startsWith("/cookies") || pathname.startsWith("/subscriptions")) return false;
