@@ -208,7 +208,7 @@ export default function CreateCardPage() {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-[50vh] w-screen">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/create-card-illustration.png"
+          src="/custom-card-page-bg.png"
           alt=""
           className="h-full w-full object-cover object-bottom"
         />
@@ -320,7 +320,7 @@ export default function CreateCardPage() {
                 size="sm"
                 onClick={handleBack}
                 disabled={adding}
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                className="border-white bg-white text-black hover:bg-white/90 hover:text-black focus-visible:outline-white"
               >
                 <ChevronLeft className="mr-1.5 size-3.5" />
                 {t("common.back")}

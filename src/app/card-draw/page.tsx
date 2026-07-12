@@ -5,7 +5,8 @@ import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
-import type { LanguageCode, Tier } from "@/types/domain";
+import type { CardDrawTierFilter } from "@/features/cards/card-draw-preferences";
+import type { LanguageCode } from "@/types/domain";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -45,7 +46,8 @@ function asLanguageCode(value: string | undefined): LanguageCode | undefined {
   return LANGUAGES.find((language) => language.code === value)?.code;
 }
 
-function asTier(value: string | undefined): Tier | undefined {
+function asTier(value: string | undefined): CardDrawTierFilter | undefined {
   if (!value) return undefined;
+  if (value === "all") return "all";
   return TIERS.find((tier) => tier === value);
 }

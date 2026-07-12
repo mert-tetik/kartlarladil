@@ -20,6 +20,10 @@ import { CardDecksIcon } from "@/components/icons/card-decks-icon";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
+import {
+  requestMobileNavbarBack,
+  subscribeMobileNavbarBackOverride,
+} from "@/components/mobile-navbar-back";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
@@ -73,9 +77,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const { stats } = useProgressStats();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [mobileBackOverride, setMobileBackOverride] = useState(false);
   const showMobileBackButton =
     isMobileViewport &&
-    (pathname === "/card-draw" ||
+    (mobileBackOverride ||
+      pathname === "/card-draw" ||
       pathname === "/leaderboard" ||
       pathname === "/learn" ||
       pathname === "/pricing" ||
@@ -85,6 +91,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       pathname.startsWith("/games/"));
 
   const mobileBackHref = (() => {
+    if (mobileBackOverride) return "/";
     if (pathname === "/games") return "/";
     if (pathname.startsWith("/games/")) return "/games";
     if (pathname === "/leaderboard") return "/";
@@ -120,6 +127,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
     };
   }, []);
 
+  useEffect(() => subscribeMobileNavbarBackOverride(setMobileBackOverride), []);
+
   return (
     <>
       <a
@@ -136,7 +145,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <Link
               href={mobileBackHref}
               prefetch
-              onClick={() => vibrate("tap")}
+              onClick={() => {
+                vibrate("tap");
+                if (mobileBackOverride) {
+                  requestMobileNavbarBack();
+                }
+              }}
               data-tutorial-target="navbar-back"
               className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
             >

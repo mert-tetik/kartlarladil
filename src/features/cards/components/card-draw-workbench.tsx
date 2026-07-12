@@ -37,7 +37,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
-import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";  
 
@@ -58,7 +58,7 @@ const CARD_DRAW_LAYOUT_ANIMATION_MS = 360;
 
 interface CardDrawWorkbenchProps {
   initialLanguage?: LanguageCode;
-  initialTier?: Tier;
+  initialTier?: CardDrawTierFilter;
 }
 
 export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWorkbenchProps) {
