@@ -129,8 +129,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           <h1 className="font-display text-4xl font-semibold text-brand md:text-5xl">
             {t("pricing.title")}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary">
-            {t("pricing.description")}
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary dark:text-white">
+            {t("pricing.mobileFeatureUnlimitedAccess")}
           </p>
           {isTwa ? (
             <p className="mt-3 text-sm font-bold uppercase text-brand">
@@ -833,8 +833,8 @@ function MobilePricingView({
         <h1 className="font-display text-3xl font-semibold text-brand">
           {t("pricing.title")}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary">
-          {t("pricing.description")}
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary dark:text-white">
+          {t("pricing.mobileFeatureUnlimitedAccess")}
         </p>
         {isTwa ? (
           <p className="mt-2 text-xs font-bold uppercase text-brand">
@@ -928,9 +928,6 @@ function MobilePricingView({
         <h2 className="bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400 bg-clip-text text-center font-display text-[1.65rem] font-bold leading-tight text-transparent">
           {t("pricing.mobileFeaturesTitle", { plan: selectedPlanLabel })}
         </h2>
-        <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-6 text-foreground-muted">
-          {t("pricing.mobileFeatureUnlimitedAccess")}
-        </p>
         <ul className="mt-4 divide-y divide-border/45">
           <MobilePerkItem icon={Layers} colorClass="text-blue-500">
             {t("pricing.featureCards")}
