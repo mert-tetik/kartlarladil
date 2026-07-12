@@ -91,6 +91,14 @@ export function sendTwaAnalyticsEvent(
   }
 }
 
+export function requestGooglePlayReview(): void {
+  if (!isTwaMode()) {
+    return;
+  }
+
+  navigateTwaUrl("foxiesdeck://event?type=request_play_review");
+}
+
 export function setTwaAnalyticsUserId(userId: string | null): void {
   if (!isTwaMode()) {
     return;

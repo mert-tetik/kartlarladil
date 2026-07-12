@@ -6,6 +6,7 @@ import type { GameName, GameProgress, GamesProgress } from "./game-types";
 import type { LanguageCode } from "@/types/domain";
 import { getPointsForLevel } from "./game-levels";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
+import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 
 const STORAGE_KEY = "foxiesdeck:games:progress";
@@ -75,6 +76,8 @@ export const useGameProgressStore = create<GameProgressState>()(
             },
           };
         });
+
+        markPlayReviewEligible("game");
 
         if (didAdvance) {
           sendTwaAnalyticsEvent("fd_game_level_up", {

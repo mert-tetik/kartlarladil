@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTwaMode } from "@/features/install-app/twa-mode";
-import { isTwaMode, sendTwaAnalyticsEvent, setTwaAnalyticsUserId } from "@/lib/twa-analytics";
+import {
+  isTwaMode,
+  requestGooglePlayReview,
+  sendTwaAnalyticsEvent,
+  setTwaAnalyticsUserId,
+} from "@/lib/twa-analytics";
 
 vi.mock("@/features/install-app/twa-mode", () => ({
   getTwaMode: vi.fn(),
@@ -37,6 +42,21 @@ describe("twa analytics bridge", () => {
     vi.mocked(getTwaMode).mockReturnValue(false);
 
     sendTwaAnalyticsEvent("fd_screen_view");
+
+    expect(document.body.querySelector("iframe")).toBeNull();
+  });
+
+  it("requests the native Google Play review flow only in TWA mode", () => {
+    vi.mocked(getTwaMode).mockReturnValue(true);
+
+    requestGooglePlayReview();
+
+    const iframe = document.body.querySelector("iframe");
+    expect(iframe?.getAttribute("src")).toBe("foxiesdeck://event?type=request_play_review");
+
+    document.body.innerHTML = "";
+    vi.mocked(getTwaMode).mockReturnValue(false);
+    requestGooglePlayReview();
 
     expect(document.body.querySelector("iframe")).toBeNull();
   });

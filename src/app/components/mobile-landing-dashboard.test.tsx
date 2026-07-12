@@ -12,9 +12,23 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { InventoryCard, SubscriptionPlan } from "@/types/domain";
 
-const { inventoryCardsMock, refreshEntitlementsMock, routerPushMock, subscriptionPlanMock, useLeaderboardDataMock } = vi.hoisted(() => ({
+const {
+  consumePlayReviewEligibilityMock,
+  hasPlayReviewEligibilityMock,
+  inventoryCardsMock,
+  isTwaModeMock,
+  refreshEntitlementsMock,
+  requestGooglePlayReviewMock,
+  routerPushMock,
+  subscriptionPlanMock,
+  useLeaderboardDataMock,
+} = vi.hoisted(() => ({
+  consumePlayReviewEligibilityMock: vi.fn(),
+  hasPlayReviewEligibilityMock: vi.fn(),
   inventoryCardsMock: { value: [] as InventoryCard[] },
+  isTwaModeMock: { value: false },
   refreshEntitlementsMock: vi.fn(),
+  requestGooglePlayReviewMock: vi.fn(),
   routerPushMock: vi.fn(),
   subscriptionPlanMock: { value: "free" as SubscriptionPlan },
   useLeaderboardDataMock: vi.fn(),
@@ -67,14 +81,29 @@ vi.mock("@/features/leaderboard/use-leaderboard", () => ({
   useLeaderboardData: useLeaderboardDataMock,
 }));
 
+vi.mock("@/features/install-app/use-twa-mode", () => ({
+  useTwaMode: () => isTwaModeMock.value,
+}));
+
+vi.mock("@/features/reviews/play-review-eligibility", () => ({
+  consumePlayReviewEligibility: consumePlayReviewEligibilityMock,
+  hasPlayReviewEligibility: hasPlayReviewEligibilityMock,
+}));
+
+vi.mock("@/lib/twa-analytics", () => ({
+  requestGooglePlayReview: requestGooglePlayReviewMock,
+}));
+
 vi.mock("@/features/inventory/inventory-store", () => ({
   useInventoryStore: (selector: (state: {
     cards: InventoryCard[];
+    hydrated: boolean;
     pendingCardIds: Set<string>;
     removeCard: () => Promise<void>;
   }) => unknown) =>
     selector({
       cards: inventoryCardsMock.value,
+      hydrated: true,
       pendingCardIds: new Set<string>(),
       removeCard: vi.fn(async () => {}),
     }),
@@ -84,6 +113,12 @@ describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
     window.localStorage.clear();
     inventoryCardsMock.value = [];
+    isTwaModeMock.value = false;
+    hasPlayReviewEligibilityMock.mockReset();
+    hasPlayReviewEligibilityMock.mockReturnValue(false);
+    consumePlayReviewEligibilityMock.mockReset();
+    consumePlayReviewEligibilityMock.mockReturnValue(null);
+    requestGooglePlayReviewMock.mockReset();
     subscriptionPlanMock.value = "free";
     refreshEntitlementsMock.mockReset();
     refreshEntitlementsMock.mockImplementation(async () => ({
@@ -113,6 +148,49 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
+  });
+
+  it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {
+    isTwaModeMock.value = true;
+    hasPlayReviewEligibilityMock.mockReturnValue(true);
+    consumePlayReviewEligibilityMock.mockReturnValue("quiz");
+    inventoryCardsMock.value = VOCABULARY_CARDS.slice(0, 10).map((card) => ({
+      cardId: card.id,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-07-12T00:00:00.000Z",
+    }));
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(consumePlayReviewEligibilityMock).toHaveBeenCalledOnce();
+      expect(requestGooglePlayReviewMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("does not request a review before the deck reaches 10 cards", () => {
+    isTwaModeMock.value = true;
+    hasPlayReviewEligibilityMock.mockReturnValue(true);
+    inventoryCardsMock.value = VOCABULARY_CARDS.slice(0, 9).map((card) => ({
+      cardId: card.id,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-07-12T00:00:00.000Z",
+    }));
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    expect(consumePlayReviewEligibilityMock).not.toHaveBeenCalled();
+    expect(requestGooglePlayReviewMock).not.toHaveBeenCalled();
   });
 
   it("keeps the how-to button above the rank layer with a full touch target", () => {

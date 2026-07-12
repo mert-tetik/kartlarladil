@@ -131,6 +131,16 @@ export function isMobileTestMode(): boolean {
 }
 
 /**
+ * Returns true when `?mobile-test=ios` is present. This forces the iPhone
+ * app-choice screen so it can be reviewed from any device or desktop browser.
+ */
+export function isIosMobileTestMode(): boolean {
+  if (!isBrowser()) return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(MOBILE_TEST_PARAM) === "ios";
+}
+
+/**
  * Returns true if the page is running as a standalone PWA (installed from
  * browser). This is separate from the TWA/APK detection.
  */

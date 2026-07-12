@@ -57,6 +57,7 @@ import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { awardQuizStreakPoints } from "@/features/quiz/actions";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
@@ -2396,6 +2397,7 @@ export function ResultView({
         streak_reward_points: streakRewardPoints,
       },
     });
+    markPlayReviewEligible("quiz");
     playSoundEffect("quiz-complete");
     vibrate("result");
 
@@ -2412,7 +2414,18 @@ export function ResultView({
         });
       }, 350);
     }
-  }, [performance.level]);
+  }, [
+    chestOpened,
+    mode,
+    performance.accuracy,
+    performance.level,
+    results.correct.length,
+    results.incorrect.length,
+    results.learned.length,
+    selectedCount,
+    streakRewardPoints,
+    streakRewardStreak,
+  ]);
 
   const menuConfig = {
     correct: { title: t("quiz.resultCorrect"), cards: results.correct, tone: "emerald" as const },

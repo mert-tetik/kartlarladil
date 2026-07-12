@@ -9,7 +9,12 @@ import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboardi
 import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile-subscription-offer-screen";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { initTwaModeStore, isInstalledApp, isMobileTestMode } from "@/features/install-app/twa-mode";
+import {
+  initTwaModeStore,
+  isInstalledApp,
+  isIosMobileTestMode,
+  isMobileTestMode,
+} from "@/features/install-app/twa-mode";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +95,9 @@ export function MobileAuthGateway() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
-  const [hasChosenWeb, setHasChosenWeb] = useState(readWebChoice);
+  const [hasChosenWeb, setHasChosenWeb] = useState(() =>
+    isIosMobileTestMode() ? false : readWebChoice(),
+  );
   const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
@@ -182,6 +189,7 @@ export function MobileAuthGateway() {
   );
 
   const isTestMode = isMobileTestMode();
+  const isIosTestMode = isIosMobileTestMode();
   const showGateway =
     isTestMode ||
     (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
@@ -208,6 +216,17 @@ export function MobileAuthGateway() {
     setOfferActive(false);
     setOfferTriggered(false);
     router.replace("/");
+  }
+
+  if (isIosTestMode && !hasChosenWeb) {
+    return (
+      <GatewayShell isTestMode={isTestMode}>
+        <MobileAppChoiceScreen
+          forceApple
+          onContinueOnWeb={handleContinueOnWeb}
+        />
+      </GatewayShell>
+    );
   }
 
   if (shouldShowOffer) {

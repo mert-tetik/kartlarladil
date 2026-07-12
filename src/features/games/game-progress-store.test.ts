@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGameProgressStore } from "./game-progress-store";
 import { getPointsForLevel } from "./game-levels";
+import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 
 vi.mock("@/lib/twa-analytics", () => ({
   sendTwaAnalyticsEvent: vi.fn(),
+}));
+
+vi.mock("@/features/reviews/play-review-eligibility", () => ({
+  markPlayReviewEligible: vi.fn(),
 }));
 
 vi.mock("@/features/missions/mission-sync", () => ({
@@ -47,6 +52,7 @@ describe("useGameProgressStore", () => {
         game_points: getPointsForLevel(1),
       },
     });
+    expect(markPlayReviewEligible).toHaveBeenCalledWith("game");
   });
 
   it("tracks best level independently of current level", () => {
@@ -76,5 +82,6 @@ describe("useGameProgressStore", () => {
     completeLevel("memory", 1);
 
     expect(sendTwaAnalyticsEvent).not.toHaveBeenCalled();
+    expect(markPlayReviewEligible).toHaveBeenCalledWith("game");
   });
 });

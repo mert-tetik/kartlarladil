@@ -9,6 +9,7 @@ import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
 import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -55,6 +56,10 @@ vi.mock("@/lib/sound-effects", () => ({
 vi.mock("@/lib/twa-analytics", () => ({
   sendTwaAnalyticsEvent: vi.fn(),
   setTwaAnalyticsUserId: vi.fn(),
+}));
+
+vi.mock("@/features/reviews/play-review-eligibility", () => ({
+  markPlayReviewEligible: vi.fn(),
 }));
 
 vi.mock("canvas-confetti", () => ({
@@ -301,6 +306,7 @@ describe("ResultView star rating", () => {
         streak_reward_points: 40,
       },
     });
+    expect(markPlayReviewEligible).toHaveBeenCalledWith("quiz");
   });
 });
 

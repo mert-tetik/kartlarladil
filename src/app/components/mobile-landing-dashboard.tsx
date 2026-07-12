@@ -26,8 +26,13 @@ import {
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
+import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import {
+  consumePlayReviewEligibility,
+  hasPlayReviewEligibility,
+} from "@/features/reviews/play-review-eligibility";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
@@ -44,6 +49,7 @@ import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 
 import { vibrate } from "@/lib/vibration";
+import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
@@ -65,6 +71,8 @@ export function MobileLandingDashboard() {
   const requireAuthAction = useRequireAuthAction();
   const { refreshEntitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
+  const hydrated = useInventoryStore((state) => state.hydrated);
+  const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
   const { data: leaderboardData } = useLeaderboardData({
     enabled: Boolean(user),
@@ -116,6 +124,18 @@ export function MobileLandingDashboard() {
   useEffect(() => {
     router.prefetch("/create-card");
   }, [router]);
+
+  useEffect(() => {
+    if (!isTwa || !hydrated || cards.length < 10 || !hasPlayReviewEligibility()) {
+      return;
+    }
+
+    if (!consumePlayReviewEligibility()) {
+      return;
+    }
+
+    requestGooglePlayReview();
+  }, [cards.length, hydrated, isTwa]);
 
   useEffect(() => {
     return subscribeLandingCardLanguage(() => {

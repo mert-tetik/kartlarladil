@@ -13,6 +13,7 @@ import { buttonClassName } from "@/components/ui/button";
 
 interface MobileAppChoiceScreenProps {
   onContinueOnWeb: () => void;
+  forceApple?: boolean;
 }
 
 function AppleLogo({ className }: { className?: string }) {
@@ -27,11 +28,14 @@ function AppleLogo({ className }: { className?: string }) {
   );
 }
 
-export function MobileAppChoiceScreen({ onContinueOnWeb }: MobileAppChoiceScreenProps) {
+export function MobileAppChoiceScreen({
+  onContinueOnWeb,
+  forceApple = false,
+}: MobileAppChoiceScreenProps) {
   const t = useT();
   const playStoreUrl = `https://play.google.com/store/apps/details?id=${encodeURIComponent(TWA_PACKAGE_NAME)}`;
-  const isApple = isAppleMobileDevice();
-  const isAndroid = isAndroidMobileDevice();
+  const isApple = forceApple || isAppleMobileDevice();
+  const isAndroid = !forceApple && isAndroidMobileDevice();
 
   return (
     <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
