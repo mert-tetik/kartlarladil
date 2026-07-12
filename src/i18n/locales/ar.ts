@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "Ø³Ù…Ø§Øª Ù…Ø®ØµØµØ©",
   "pricing.featureGames": "ألعاب غير محدودة",
   "pricing.featurePrioritySupport": "دعم ذو أولوية",
+  "pricing.mobileFeatureUnlimitedAccess": "أزل حدود البطاقات، واحصل على وصول غير محدود إلى الألعاب، واحصل على المزيد من الرسائل عند التحدث مع الشخصيات.",
   "pricing.firstMonthFree": "Ø§Ù„Ø´Ù‡Ø± Ø§Ù„Ø£ÙˆÙ„ Ù…Ø¬Ø§Ù†ÙŠ",
   "pricing.firstMonthFreeBanner": "Ø§Ù„Ø´Ù‡Ø± Ø§Ù„Ø£ÙˆÙ„ Ù…Ø¬Ø§Ù†ÙŠ Ø¹Ù„Ù‰ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø§Ø´ØªØ±Ø§ÙƒØ§Øª",
   "pricing.free": "Ù…Ø¬Ø§Ù†ÙŠ",

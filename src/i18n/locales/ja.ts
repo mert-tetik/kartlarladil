@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "ã‚«ã‚¹ã‚¿ãƒ ãƒ†ãƒ¼ãƒ",
   "pricing.featureGames": "無制限のゲーム",
   "pricing.featurePrioritySupport": "優先サポート",
+  "pricing.mobileFeatureUnlimitedAccess": "カードの制限をなくし、ゲームに無制限でアクセスし、キャラクターとの会話でより多くのメッセージを利用できます。",
   "pricing.firstMonthFree": "åˆæœˆç„¡æ–™",
   "pricing.firstMonthFreeBanner": "ã™ã¹ã¦ã®ã‚µãƒ–ã‚¹ã‚¯ãƒªãƒ—ã‚·ãƒ§ãƒ³ã§åˆæœˆç„¡æ–™",
   "pricing.free": "ç„¡æ–™",

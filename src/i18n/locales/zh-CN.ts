@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "è‡ªå®šä¹‰ä¸»é¢˜",
   "pricing.featureGames": "无限游戏",
   "pricing.featurePrioritySupport": "优先支持",
+  "pricing.mobileFeatureUnlimitedAccess": "移除卡片限制，无限畅玩游戏，并在与角色聊天时获得更多消息额度。",
   "pricing.firstMonthFree": "é¦–æœˆå…è´¹",
   "pricing.firstMonthFreeBanner": "æ‰€æœ‰è®¢é˜…é¦–æœˆå…è´¹",
   "pricing.free": "å…è´¹",

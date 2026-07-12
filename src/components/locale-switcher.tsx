@@ -58,7 +58,8 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
           onClick={() => setOpen((current) => !current)}
           className={cn(
             "h-9 gap-1.5 px-2",
-            navbar && "border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white",
+            navbar &&
+              "bg-white/5 text-white hover:bg-white/10 hover:text-white max-lg:border-transparent lg:border-white/15",
           )}
         >
           <LanguageFlag code={locale} className="h-4 w-6" />

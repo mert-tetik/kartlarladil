@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "ì‚¬ìš©ì ì •ì˜ í…Œë§ˆ",
   "pricing.featureGames": "무제한 게임",
   "pricing.featurePrioritySupport": "우선 지원",
+  "pricing.mobileFeatureUnlimitedAccess": "카드 제한을 없애고, 게임을 무제한으로 이용하고, 캐릭터와 대화할 때 더 많은 메시지 혜택을 받으세요.",
   "pricing.firstMonthFree": "ì²« ë‹¬ ë¬´ë£Œ",
   "pricing.firstMonthFreeBanner": "ëª¨ë“  êµ¬ë… ì²« ë‹¬ ë¬´ë£Œ",
   "pricing.free": "ë¬´ë£Œ",

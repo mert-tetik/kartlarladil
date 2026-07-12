@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "Пользовательские темы",
   "pricing.featureGames": "Безлимитные игры",
   "pricing.featurePrioritySupport": "Приоритетная поддержка",
+  "pricing.mobileFeatureUnlimitedAccess": "Уберите лимиты на карточки, получите безлимитный доступ к играм и больше сообщений при общении с персонажами.",
   "pricing.firstMonthFree": "ПЕРВЫЙ МЕСЯЦ БЕСПЛАТНО",
   "pricing.firstMonthFreeBanner": "ПЕРВЫЙ МЕСЯЦ БЕСПЛАТНО ДЛЯ ВСЕХ ПОДПИСОК",
   "pricing.free": "Бесплатно",

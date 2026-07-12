@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "Aangepaste thema's",
   "pricing.featureGames": "Onbeperkte spellen",
   "pricing.featurePrioritySupport": "Prioritaire ondersteuning",
+  "pricing.mobileFeatureUnlimitedAccess": "Verwijder kaartlimieten, krijg onbeperkte toegang tot games en ontvang meer berichten wanneer je met personages praat.",
   "pricing.firstMonthFree": "EERSTE MAAND GRATIS",
   "pricing.firstMonthFreeBanner": "EERSTE MAAND GRATIS BIJ ALLE ABONNEMENTEN",
   "pricing.free": "Gratis",

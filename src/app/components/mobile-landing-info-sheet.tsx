@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Sparkles, BookOpen, RotateCcw, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
@@ -65,15 +65,15 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
 
         <div className="flex-1 space-y-4 overflow-y-auto">
           <InfoRow
-            icon={Sparkles}
+            step={1}
             text={t("home.mobile.infoStep1")}
           />
           <InfoRow
-            icon={BookOpen}
+            step={2}
             text={t("home.mobile.infoStep2")}
           />
           <InfoRow
-            icon={RotateCcw}
+            step={3}
             text={t("home.mobile.infoStep3")}
           />
         </div>
@@ -85,12 +85,10 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
   return createPortal(content, document.body);
 }
 
-function InfoRow({ icon: Icon, text }: { icon: typeof Sparkles; text: string }) {
+function InfoRow({ step, text }: { step: 1 | 2 | 3; text: string }) {
   return (
     <div className="flex items-start gap-4 rounded-xl border border-border bg-background p-4">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
-        <Icon className="size-5" aria-hidden="true" />
-      </div>
+      <span className="shrink-0 font-display text-3xl font-black leading-none text-brand">{step}</span>
       <p className="text-sm leading-6 text-foreground-secondary">{text}</p>
     </div>
   );

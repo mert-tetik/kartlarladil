@@ -8,13 +8,9 @@ import { createPortal } from "react-dom";
 import {
   Check,
   X,
-  Layers,
-  BookOpen,
   Headset,
   Palette,
-  MessageCircle,
-  MessagesSquare,
-  Gamepad2,
+  Sparkles,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -68,7 +64,7 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_STICKY_CTA_CLASS = "h-14 whitespace-nowrap text-sm";
+const PRICING_STICKY_CTA_CLASS = "h-[3.25rem] whitespace-nowrap text-sm";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
@@ -719,6 +715,17 @@ const MASCOT_BY_PLAN: Record<Exclude<SubscriptionPlan, "free">, string> = {
   pro: "/mascots/mascot16.png",
 };
 
+function getPlanDiscountRate(plan: Exclude<SubscriptionPlan, "free">, isTwa: boolean): number | null {
+  const plans = isTwa ? TWA_PLANS : PLANS;
+  const planItem = plans.find((item) => item.plan === plan);
+
+  if (!planItem?.monthlyPrice || !planItem.yearlyPrice) {
+    return null;
+  }
+
+  return Math.round((1 - planItem.yearlyPrice / (planItem.monthlyPrice * 12)) * 100);
+}
+
 function MobileOptionPrice({
   plan,
   cycle,
@@ -775,8 +782,8 @@ function MobilePerkItem({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex items-center gap-3 py-1.5 text-sm text-foreground">
-      <Icon className={cn("h-4 w-4 shrink-0", colorClass)} />
+    <li className="flex items-start gap-4 py-3.5 text-[0.95rem] leading-6 text-foreground">
+      <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", colorClass)} />
       <span>{children}</span>
     </li>
   );
@@ -837,6 +844,12 @@ function MobilePricingView({
           const planLabel = t(`pricing.${option.plan}`);
           const cycleLabel =
             option.cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly");
+          const yearlyDiscountRate =
+            option.cycle === "yearly" ? getPlanDiscountRate(option.plan, isTwa) : null;
+          const yearlySavingsLabel =
+            yearlyDiscountRate && yearlyDiscountRate > 0
+              ? t("pricing.yearlyDiscount", { rate: yearlyDiscountRate })
+              : null;
 
           return (
             <button
@@ -877,6 +890,11 @@ function MobilePricingView({
                 <span className="mt-1 text-left text-[11px] font-medium text-foreground-muted">
                   {cycleLabel}
                 </span>
+                {yearlySavingsLabel ? (
+                  <span className="mt-1 bg-gradient-to-r from-emerald-400 via-lime-300 to-emerald-200 bg-clip-text text-left text-[10px] font-bold text-transparent">
+                    {yearlySavingsLabel}
+                  </span>
+                ) : null}
                 <MobileOptionPrice
                   plan={option.plan}
                   cycle={option.cycle}
@@ -901,30 +919,18 @@ function MobilePricingView({
       </div>
 
       <div className="mt-6 rounded-2xl border border-transparent bg-transparent p-5">
-        <h2 className="text-center font-display text-lg font-semibold text-foreground">
+        <h2 className="bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400 bg-clip-text text-center font-display text-[1.65rem] font-bold leading-tight text-transparent">
           {t("pricing.mobileFeaturesTitle", { plan: selectedPlanLabel })}
         </h2>
-        <ul className="mt-3 space-y-1">
-          <MobilePerkItem icon={Layers} colorClass="text-blue-500">
-            {t("pricing.featureCards")}
-          </MobilePerkItem>
-          <MobilePerkItem icon={BookOpen} colorClass="text-emerald-500">
-            {t("pricing.featureLearned")}
+        <ul className="mt-4 divide-y divide-border/45">
+          <MobilePerkItem icon={Sparkles} colorClass="text-amber-400">
+            {t("pricing.mobileFeatureUnlimitedAccess")}
           </MobilePerkItem>
           <MobilePerkItem icon={Palette} colorClass="text-violet-500">
             {t("pricing.featureThemes")}
           </MobilePerkItem>
-          <MobilePerkItem icon={Gamepad2} colorClass="text-cyan-500">
-            {t("pricing.featureGames")}
-          </MobilePerkItem>
           <MobilePerkItem icon={Headset} colorClass="text-fuchsia-500">
             {t("pricing.featurePrioritySupport")}
-          </MobilePerkItem>
-          <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
-            {t("pricing.featureAiDaily", { count: PLAN_LIMITS[selectedOption.plan].aiDailyMessages })}
-          </MobilePerkItem>
-          <MobilePerkItem icon={MessagesSquare} colorClass="text-rose-500">
-            {t("pricing.featureAiMonthly", { count: PLAN_LIMITS[selectedOption.plan].aiMonthlyMessages })}
           </MobilePerkItem>
         </ul>
       </div>

@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "Özel temalar",
   "pricing.featureGames": "Sınırsız oyun",
   "pricing.featurePrioritySupport": "Öncelikli destek",
+  "pricing.mobileFeatureUnlimitedAccess": "Kart limitlerini kaldır, oyunlara sınırsızca eriş ve karakterlerle konuşmada daha fazla mesaj hakkı kazan.",
   "pricing.firstMonthFree": "İLK AY ÜCRETSİZ",
   "pricing.firstMonthFreeBanner": "TÜM ABONELİKLERDE İLK AY ÜCRETSİZ",
   "pricing.free": "Free",

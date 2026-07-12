@@ -400,6 +400,7 @@ const dictionary = {
   "pricing.featureThemes": "Temas personalizados",
   "pricing.featureGames": "Juegos ilimitados",
   "pricing.featurePrioritySupport": "Soporte prioritario",
+  "pricing.mobileFeatureUnlimitedAccess": "Elimina los límites de tarjetas, accede sin límites a los juegos y consigue más mensajes al hablar con los personajes.",
   "pricing.firstMonthFree": "PRIMER MES GRATIS",
   "pricing.firstMonthFreeBanner": "PRIMER MES GRATIS EN TODAS LAS SUSCRIPCIONES",
   "pricing.free": "Gratis",
