@@ -87,9 +87,9 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
 
 function InfoRow({ step, text }: { step: 1 | 2 | 3; text: string }) {
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-border bg-background p-4">
-      <span className="shrink-0 font-display text-3xl font-black leading-none text-brand">{step}</span>
-      <p className="text-sm leading-6 text-foreground-secondary">{text}</p>
+    <div className="flex items-start gap-4 rounded-xl border border-transparent bg-transparent p-4">
+      <span className="shrink-0 font-display text-3xl font-bold leading-none text-brand">{step}</span>
+      <p className="text-sm leading-6 text-foreground">{text}</p>
     </div>
   );
 }

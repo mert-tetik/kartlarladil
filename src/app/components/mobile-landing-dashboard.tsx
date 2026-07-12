@@ -24,6 +24,7 @@ import {
   writeLandingCardLanguage,
 } from "@/app/components/landing-card-language";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -62,6 +63,7 @@ export function MobileLandingDashboard() {
   const detectedLocale = useDetectedLocale();
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
+  const { entitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
   const waitingMissionCount = useMissionWaitingCount();
   const { data: leaderboardData } = useLeaderboardData({
@@ -107,6 +109,7 @@ export function MobileLandingDashboard() {
     return menu === "active" || menu === "learned" ? menu : "active";
   });
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
+  const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
@@ -285,6 +288,10 @@ export function MobileLandingDashboard() {
     }
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
     requireAuthAction(() => {
+      if ((entitlements?.effectivePlan ?? "free") === "free") {
+        setShowLearnedReviewUpgrade(true);
+        return;
+      }
       router.push(nextPath);
     }, { nextPath });
   }
@@ -381,7 +388,7 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-2 top-[4rem] z-10 inline-flex size-7 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
+        className="absolute right-0 top-14 z-30 inline-flex size-11 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
@@ -601,6 +608,12 @@ export function MobileLandingDashboard() {
           writeLandingCardLanguage(currentLocale, { notify: true });
           setSelectedLanguage(currentLocale);
         }}
+      />
+
+      <UpgradeDialog
+        open={showLearnedReviewUpgrade}
+        errorCode="learned_review_subscription_required"
+        onOpenChange={setShowLearnedReviewUpgrade}
       />
 
       <MissionsPanel

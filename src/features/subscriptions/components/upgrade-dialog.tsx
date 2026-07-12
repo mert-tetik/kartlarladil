@@ -15,6 +15,7 @@ export type UpgradeDialogErrorCode =
   | "inventory_card_already_active"
   | "inventory_card_already_learned"
   | "language_match_not_allowed"
+  | "learned_review_subscription_required"
   | "game_level_locked";
 
 interface UpgradeDialogProps {
@@ -173,6 +174,12 @@ function getLimitContent(
       return {
         title: t("games.levelLockedTitle"),
         description: t("games.levelLockedDescription"),
+        variant: "upgrade",
+      };
+    case "learned_review_subscription_required":
+      return {
+        title: t("limit.learnedReviewSubscriptionTitle"),
+        description: t("limit.learnedReviewSubscriptionDescription"),
         variant: "upgrade",
       };
     default:

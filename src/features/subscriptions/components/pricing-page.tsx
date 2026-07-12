@@ -15,6 +15,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Gamepad2,
+  RotateCcw,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -386,6 +387,7 @@ function PricingCard({
       <ul className="mt-6 flex flex-1 flex-col gap-3">
         <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
+        <Feature included={plan !== "free"}>{t("pricing.featureLearnedReview")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureThemes")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureGames")}</Feature>
         <Feature included>{t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })}</Feature>
@@ -935,6 +937,9 @@ function MobilePricingView({
           </MobilePerkItem>
           <MobilePerkItem icon={BookOpen} colorClass="text-emerald-500">
             {t("pricing.featureLearned")}
+          </MobilePerkItem>
+          <MobilePerkItem icon={RotateCcw} colorClass="text-sky-500">
+            {t("pricing.featureLearnedReview")}
           </MobilePerkItem>
           <MobilePerkItem icon={Palette} colorClass="text-violet-500">
             {t("pricing.featureThemes")}

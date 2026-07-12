@@ -80,6 +80,14 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("heading")).toHaveTextContent(/Öğrenilen kart kotan doldu/i);
   });
 
+  it("shows the learned review subscription message", () => {
+    renderDialog({ open: true, errorCode: "learned_review_subscription_required" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent(/abonelik gerekli/i);
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("button", { name: /Belki sonra/i })).toBeInTheDocument();
+  });
+
   it("shows the ai daily limit message", () => {
     renderDialog({ open: true, errorCode: "ai_daily_limit" });
 

@@ -4,7 +4,10 @@ import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LANGUAGES } from "@/data/languages";
-import { readLandingCardLanguage } from "@/app/components/landing-card-language";
+import {
+  readLandingCardLanguage,
+  writeLandingCardLanguage,
+} from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
@@ -141,6 +144,16 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
           if (!nextOpen) {
             setDialogError(null);
           }
+        }}
+        onSwapLanguages={() => {
+          const cardLanguage = readLandingCardLanguage();
+          if (!cardLanguage) {
+            return;
+          }
+
+          const previousLocale = locale;
+          setLocale(cardLanguage);
+          writeLandingCardLanguage(previousLocale);
         }}
       />
     </>
