@@ -29,7 +29,6 @@ type FlightIcon = {
 };
 
 const BREAK_DELAY_MS = 1000;
-const FLIGHT_DURATION_MS = 700;
 const LAST_START_MS = 780;
 
 export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }: QuizStreakRewardViewProps) {
@@ -37,6 +36,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<number[]>([]);
+  const arrivedIconIdsRef = useRef(new Set<number>());
   const [breaking, setBreaking] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
@@ -44,6 +44,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
 
   useEffect(() => {
+    const timers = timersRef.current;
     const breakTimer = window.setTimeout(() => {
       if (!rewardRef.current || !scoreRef.current) return;
       setBreaking(true);
@@ -66,23 +67,29 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
         };
       });
       setFlightIcons(icons);
-      timersRef.current = icons.map((icon, index) => window.setTimeout(() => {
-        setDisplayPoints(totalPoints + Math.min(points, (index + 1) * 2));
-        setScorePulse(index + 1);
-        playSoundEffect("points");
-        vibrate("tap");
-        if (index === icons.length - 1) {
-          timersRef.current.push(window.setTimeout(() => setExiting(true), 420));
-          timersRef.current.push(window.setTimeout(onComplete, 780));
-        }
-      }, icon.delay + FLIGHT_DURATION_MS));
     }, BREAK_DELAY_MS);
 
     return () => {
       window.clearTimeout(breakTimer);
-      timersRef.current.forEach((timer) => window.clearTimeout(timer));
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [onComplete, points, totalPoints]);
+
+  function handleFlightEnd(icon: FlightIcon) {
+    if (arrivedIconIdsRef.current.has(icon.id)) return;
+    arrivedIconIdsRef.current.add(icon.id);
+
+    const arrivalIndex = arrivedIconIdsRef.current.size;
+    setDisplayPoints(totalPoints + Math.min(points, arrivalIndex * 2));
+    setScorePulse(arrivalIndex);
+    playSoundEffect("points");
+    vibrate("tap");
+
+    if (arrivalIndex === flightIcons.length) {
+      timersRef.current.push(window.setTimeout(() => setExiting(true), 420));
+      timersRef.current.push(window.setTimeout(onComplete, 780));
+    }
+  }
 
   return createPortal(
     <div className={`fixed inset-0 z-[70] overflow-hidden bg-emerald-500 ${exiting ? "animate-streak-reward-exit" : "animate-streak-reward-enter"}`} data-streak-reward-view aria-hidden="true">
@@ -104,7 +111,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
           "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
           "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`,
           animationDelay: `${icon.delay}ms`,
-        } as CSSProperties}><ScoreIcon size={32} /></span>
+        } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon)}><ScoreIcon size={32} /></span>
       ))}
     </div>,
     document.body,
