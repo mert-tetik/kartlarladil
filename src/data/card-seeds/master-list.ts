@@ -1408,7 +1408,7 @@ export const masterCardEntries = [
   ["joy","B2","word","noun","/dʒɔɪ/","sevinç","joy","Freude","радость","joie","alegría","gioia","alegria","vreugde","radość","فرح","喜び","기쁨","快乐"],
   ["judge","B1","word","noun","/dʒʌdʒ/","yargıç","judge","Richter","судья","juge","juez","giudice","juiz","rechter","sędzia","قاضي","裁判官","판사","法官"],
   ["judgement","B2","word","noun","/ˈdʒʌdʒmənt/","yargı","judgement","Urteil","суждение","jugement","juicio","giudizio","julgamento","oordeel","orzeczenie","حكم","判断","판단","判断"],
-  ["juice","A1","word","noun","/dʒuːs/","sucuk","juice","Saft","сок","jus","jugo","succo","suco","sap","sok","عصير","ジュース","주스","汁"],
+  ["juice","A1","word","noun","/dʒuːs/","meyve suyu","juice","Saft","сок","jus","jugo","succo","suco","sap","sok","عصير","ジュース","주스","汁"],
   ["July","A1","word","noun","/dʒuˈlaɪ/","temmuz","July","Juli","июль","juillet","julio","luglio","julho","juli","lipiec","يوليو","7月","7월","七月"],
   ["jump","A2","word","noun","/dʒʌmp/","atlama","jump","Sprung","прыжок","saut","salto","salto","salto","sprongetje","skok","قفزة","ジャンプ","점프","跳跃"],
   ["June","A1","word","noun","/dʒuːn/","haziran","June","Juni","июнь","juin","junio","giugno","junho","juni","czerwiec","يونيو","6月","6월","六月"],

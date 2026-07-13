@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -49,28 +48,21 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
 
   return (
     <div
-      className="animate-screen-pop flex h-full w-full flex-1 items-center justify-center p-4"
+      className={cn(
+        "flex h-full w-full flex-1 items-center justify-center bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 p-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        visible ? "scale-100 opacity-100" : "scale-[1.025] opacity-0",
+      )}
       data-chest-celebration-view
     >
       <div
         className={cn(
-          "flex max-w-[18rem] flex-col items-center justify-center text-center transition-all duration-300 sm:max-w-sm",
-          visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+          "flex max-w-[22rem] items-center justify-center text-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-xl",
+          visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-95 opacity-0",
         )}
       >
-        <div className="relative mb-5 size-28 sm:size-32">
-          <Image
-            src="/mascots/mascot9.png"
-            alt=""
-            fill
-            className="object-contain"
-            sizes="(max-width: 640px) 112px, 128px"
-            priority
-          />
-        </div>
         <p
           className={cn(
-            "text-balance text-2xl font-bold text-foreground transition-all duration-500 sm:text-3xl",
+            "text-balance text-4xl font-black leading-tight text-white [filter:grayscale(1)_brightness(0)_invert(1)] sm:text-6xl",
             visible && "animate-pulse",
           )}
           data-chest-celebration-message

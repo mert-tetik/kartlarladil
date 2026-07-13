@@ -2728,7 +2728,7 @@ export function ResultView({
             <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
               <RankIcon
                 icon={stats.rank.icon}
-                className="absolute left-1/2 top-1/2 size-56 max-w-none -translate-x-1/2 -translate-y-1/2 scale-[2.25] blur-3xl saturate-150 sm:size-80"
+                className="absolute left-1/2 top-1/2 h-auto w-[115%] max-w-none -translate-x-1/2 -translate-y-1/2 blur-xl saturate-150"
                 sizes="(max-width: 640px) 420px, 600px"
               />
               <div className="absolute inset-0 bg-black/45" />
