@@ -21,10 +21,10 @@ interface ChestOpeningViewProps {
 type ChestPhase = "appearing" | "idle" | "shake" | "opening" | "revealed" | "disappearing";
 type PointsPhase = "hidden" | "shown" | "flying" | "added";
 type LidMotion = { x: number; y: number; rotation: number };
+type FlightIcon = { id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number };
 
 const REWARD_REVEAL_DELAY_MS = 900;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
-const REWARD_FLIGHT_MS = 1400;
 const AUTO_CLOSE_AFTER_FLIGHT_MS = 1000;
 const AUTO_OPEN_DELAY_MS = 500;
 const DISAPPEAR_MS = 420;
@@ -40,14 +40,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
   const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
-  const [flyStyle, setFlyStyle] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    opacity: number;
-    transform: string;
-    transition: string;
-  } | null>(null);
+  const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const hasAwarded = useRef(false);
   const lidRef = useRef<HTMLDivElement | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
@@ -57,6 +50,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const pointsTimeoutRef = useRef<number | null>(null);
   const pointsSoundTimeoutRef = useRef<number | null>(null);
   const flyTimeoutRef = useRef<number | null>(null);
+  const arrivalTimersRef = useRef<number[]>([]);
   const closeTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
   const autoOpenTimeoutRef = useRef<number | null>(null);
@@ -242,40 +236,29 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     const end = totalPointsRef.current.getBoundingClientRect();
 
     const startX = start.left + start.width / 2;
-    const startY = start.top;
+    const startY = start.top + start.height / 2;
     const endX = end.left + end.width / 2;
     const endY = end.top + end.height / 2;
 
-    setFlyStyle({
-      left: startX,
-      top: startY,
-      width: start.width,
-      opacity: 1,
-      transform: "translate3d(-50%, 0, 0) scale(1)",
-      transition: "none",
+    const iconCount = Math.min(Math.ceil(tier.points / 2), 25);
+    const latestStart = 780;
+    const icons = Array.from({ length: iconCount }, (_, index) => {
+      const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
+      return { id: index, startX: startX + (Math.random() - 0.5) * start.width * 0.55, startY: startY + (Math.random() - 0.5) * start.height * 0.35, scatterX: (Math.random() - 0.5) * 150, scatterY: -35 - Math.random() * 100, targetX: endX, targetY: endY, delay: Math.round(ratio * latestStart) };
     });
-
-    const raf = window.requestAnimationFrame(() => {
-      setFlyStyle({
-        left: startX,
-        top: startY,
-        width: start.width,
-        opacity: 0,
-        transform: `translate3d(calc(-50% + ${endX - startX}px), ${endY - startY}px, 0) scale(0.32)`,
-        transition: `transform ${REWARD_FLIGHT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${REWARD_FLIGHT_MS}ms ease`,
-      });
-    });
-
-    flyTimeoutRef.current = window.setTimeout(() => {
-      setDisplayPoints(stableTotalPoints + tier.points);
-      setPointsPhase("added");
-    }, REWARD_FLIGHT_MS);
+    setFlightIcons(icons);
+    arrivalTimersRef.current = icons.map((icon, index) => window.setTimeout(() => {
+      setDisplayPoints(stableTotalPoints + Math.min(tier.points, (index + 1) * 2));
+      playSoundEffect("points");
+      vibrate("tap");
+      if (index === icons.length - 1) setPointsPhase("added");
+    }, icon.delay + 700));
 
     return () => {
-      window.cancelAnimationFrame(raf);
       if (flyTimeoutRef.current !== null) {
         window.clearTimeout(flyTimeoutRef.current);
       }
+      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     };
   }, [pointsPhase, stableTotalPoints, tier.points]);
 
@@ -293,40 +276,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     };
   }, [handleCollect, pointsPhase]);
 
-  const rewardPointsStyle: CSSProperties | undefined =
-    pointsPhase === "flying" && flyStyle
-      ? {
-          left: flyStyle.left,
-          top: flyStyle.top,
-          width: flyStyle.width,
-          opacity: flyStyle.opacity,
-          transform: flyStyle.transform,
-          transition: flyStyle.transition,
-        }
-      : undefined;
   const shouldRenderRewardStack = phase === "revealed" || pointsPhase !== "hidden";
-  const shouldHideRewardSource = pointsPhase === "added" || (pointsPhase === "flying" && flyStyle !== null);
-
-  useEffect(() => {
-    if (pointsPhase !== "flying" || flyStyle !== null) {
-      return;
-    }
-
-    if (!rewardPointsRef.current || !totalPointsRef.current) {
-      flyTimeoutRef.current = window.setTimeout(() => {
-        setDisplayPoints(stableTotalPoints + tier.points);
-        setPointsPhase("added");
-      }, REWARD_FLIGHT_MS);
-
-      return () => {
-        if (flyTimeoutRef.current !== null) {
-          window.clearTimeout(flyTimeoutRef.current);
-        }
-      };
-    }
-
-    return undefined;
-  }, [flyStyle, pointsPhase, stableTotalPoints, tier.points]);
+  const shouldHideRewardSource = pointsPhase === "added" || pointsPhase === "flying";
 
   return (
     <div
@@ -465,20 +416,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         </div>
       </div>
 
-      {pointsPhase === "flying" && flyStyle
-        ? createPortal(
-            <p
-              data-chest-flying-reward-points
-              className="pointer-events-none fixed z-[60] mt-0 flex items-center justify-center gap-2 text-center text-4xl font-bold leading-none text-amber-400 will-change-transform sm:text-5xl"
-              style={rewardPointsStyle}
-              aria-hidden="true"
-            >
-              <span>{tier.points}</span>
-              <ScoreIcon size={34} className="size-8 sm:size-10" />
-            </p>,
-            document.body,
-          )
-        : null}
+      {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
+        <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" aria-hidden="true" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties}><ScoreIcon size={32} /></span>
+      )), document.body) : null}
     </div>
   );
 }

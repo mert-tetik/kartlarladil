@@ -2724,10 +2724,19 @@ export function ResultView({
               {t("leaderboard.scope")}
             </span>
           </button>
-          <div className="relative flex h-36 w-full items-center justify-center sm:h-52">
+          <div className="relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl bg-black sm:h-52">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+              <RankIcon
+                icon={stats.rank.icon}
+                className="absolute left-1/2 top-1/2 size-56 max-w-none -translate-x-1/2 -translate-y-1/2 scale-[2.25] blur-3xl saturate-150 sm:size-80"
+                sizes="(max-width: 640px) 420px, 600px"
+              />
+              <div className="absolute inset-0 bg-black/45" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/65" />
+            </div>
             <RankIcon
               icon={stats.rank.icon}
-              className="size-24 animate-trophy-intro-grow sm:size-32"
+              className="relative z-10 size-24 animate-trophy-intro-grow drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)] sm:size-32"
               sizes="(max-width: 640px) 160px, 220px"
             />
           </div>
