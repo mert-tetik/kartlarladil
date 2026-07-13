@@ -1397,7 +1397,9 @@ export function CountSelection({
   const showChestTiers = mode === "active";
   const languageName = getLanguageDisplayName(language, locale);
   const [launch, setLaunch] = useState<CountLaunch | null>(null);
+  const [scatterMotion, setScatterMotion] = useState<Record<number, CountScatterMotion>>({});
   const launchTimerRef = useRef<number | null>(null);
+  const scatterFrameRef = useRef<number | null>(null);
 
   const countButtonColors = [
     "bg-red-500",
@@ -1411,9 +1413,72 @@ export function CountSelection({
       if (launchTimerRef.current !== null) {
         window.clearTimeout(launchTimerRef.current);
       }
+      if (scatterFrameRef.current !== null) {
+        window.cancelAnimationFrame(scatterFrameRef.current);
+      }
     },
     [],
   );
+
+  useEffect(() => {
+    if (!launch) {
+      setScatterMotion({});
+      return;
+    }
+
+    const bodies = launch.scatter.map((item) => ({
+      ...item,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      velocityX: item.velocityX,
+      velocityY: item.velocityY,
+      rotationVelocity: item.rotationVelocity,
+    }));
+    let lastTimestamp: number | null = null;
+
+    const tick = (timestamp: number) => {
+      if (lastTimestamp === null) {
+        lastTimestamp = timestamp;
+      }
+
+      const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.032);
+      lastTimestamp = timestamp;
+
+      const nextMotion: Record<number, CountScatterMotion> = {};
+      for (const body of bodies) {
+        body.velocityY += 1850 * delta;
+        body.velocityX *= 0.998;
+        body.rotationVelocity *= 0.995;
+        body.x += body.velocityX * delta;
+        body.y += body.velocityY * delta;
+        body.rotation += body.rotationVelocity * delta;
+
+        if (body.y >= body.floorY) {
+          body.y = body.floorY;
+          body.velocityY *= -0.18;
+          body.velocityX *= 0.86;
+          body.rotationVelocity *= 0.82;
+        }
+
+        nextMotion[body.count] = {
+          x: body.x,
+          y: body.y,
+          rotation: body.rotation,
+        };
+      }
+
+      setScatterMotion(nextMotion);
+      scatterFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    scatterFrameRef.current = window.requestAnimationFrame(tick);
+    return () => {
+      if (scatterFrameRef.current !== null) {
+        window.cancelAnimationFrame(scatterFrameRef.current);
+      }
+    };
+  }, [launch]);
 
   function handleSelect(count: number, colorClass: string, button: HTMLButtonElement) {
     if (launch) return;
@@ -1437,20 +1502,10 @@ export function CountSelection({
       targetY,
       scatter: QUIZ_COUNT_OPTIONS.map((option) => ({
         count: option,
-        x: (Math.random() - 0.5) * window.innerWidth * 1.6,
-        y: 180 + Math.random() * window.innerHeight * 1.15,
-        rotation: (Math.random() - 0.5) * 540,
-        launchX: (Math.random() - 0.5) * 70,
-        launchY: -(80 + Math.random() * 140),
-        launchRotation: (Math.random() - 0.5) * 95,
-        landingY: 0,
-        bounceY: 0,
-        bounceRotation: 0,
-      })).map((item) => ({
-        ...item,
-        landingY: item.y * 1.04,
-        bounceY: item.y * 0.9,
-        bounceRotation: item.rotation * 0.92,
+        velocityX: (Math.random() < 0.5 ? -1 : 1) * (340 + Math.random() * 120),
+        velocityY: -(620 + Math.random() * 120),
+        rotationVelocity: (Math.random() < 0.5 ? -1 : 1) * (220 + Math.random() * 110),
+        floorY: 180 + Math.random() * 85,
       })),
     });
     playSoundEffect("quiz-select");
@@ -1459,7 +1514,7 @@ export function CountSelection({
       playSoundEffect("card-ready");
       onSelect(count);
       launchTimerRef.current = null;
-    }, 820);
+    }, 1180);
   }
 
   return (
@@ -1508,21 +1563,15 @@ export function CountSelection({
                 colorClass,
                 selectedCount === count &&
                   "ring-inset ring-2 ring-white/30 brightness-110",
-                launch && launch.count !== count && "animate-quiz-count-scatter pointer-events-none disabled:opacity-100",
+                launch && launch.count !== count && "relative z-[80] pointer-events-none disabled:opacity-100",
                 launch && launch.count === count && "opacity-0",
               )}
               style={
                 launch && launch.count !== count
                   ? ({
-                      "--quiz-count-scatter-x": `${launch.scatter.find((item) => item.count === count)?.x ?? 0}px`,
-                      "--quiz-count-scatter-y": `${launch.scatter.find((item) => item.count === count)?.y ?? 0}px`,
-                      "--quiz-count-scatter-rotation": `${launch.scatter.find((item) => item.count === count)?.rotation ?? 0}deg`,
-                      "--quiz-count-scatter-launch-x": `${launch.scatter.find((item) => item.count === count)?.launchX ?? 0}px`,
-                      "--quiz-count-scatter-launch-y": `${launch.scatter.find((item) => item.count === count)?.launchY ?? 0}px`,
-                      "--quiz-count-scatter-launch-rotation": `${launch.scatter.find((item) => item.count === count)?.launchRotation ?? 0}deg`,
-                      "--quiz-count-scatter-landing-y": `${launch.scatter.find((item) => item.count === count)?.landingY ?? 0}px`,
-                      "--quiz-count-scatter-bounce-y": `${launch.scatter.find((item) => item.count === count)?.bounceY ?? 0}px`,
-                      "--quiz-count-scatter-bounce-rotation": `${launch.scatter.find((item) => item.count === count)?.bounceRotation ?? 0}deg`,
+                      transform: `translate3d(${scatterMotion[count]?.x ?? 0}px, ${scatterMotion[count]?.y ?? 0}px, 0) rotate(${scatterMotion[count]?.rotation ?? 0}deg)`,
+                      transformOrigin: "50% 70%",
+                      willChange: "transform",
                     } as CSSProperties)
                   : undefined
               }
@@ -1587,16 +1636,17 @@ type CountLaunch = {
   targetY: number;
   scatter: Array<{
     count: number;
-    x: number;
-    y: number;
-    rotation: number;
-    launchX: number;
-    launchY: number;
-    launchRotation: number;
-    landingY: number;
-    bounceY: number;
-    bounceRotation: number;
+    velocityX: number;
+    velocityY: number;
+    rotationVelocity: number;
+    floorY: number;
   }>;
+};
+
+type CountScatterMotion = {
+  x: number;
+  y: number;
+  rotation: number;
 };
 
 function QuizProgressHeader({
@@ -2303,8 +2353,8 @@ export function CelebrationView({
       const targetX = scoreBounds.left + scoreBounds.width / 2;
       const targetY = scoreBounds.top + scoreBounds.height / 2;
       const iconCount = Math.min(Math.ceil(gainedPoints / 2), 25);
-      const flightDuration = 420;
-      const latestStart = 540;
+      const flightDuration = 700;
+      const latestStart = 780;
       const nextIcons = Array.from({ length: iconCount }, (_, index) => {
         const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
         const startX = cardBounds.left + cardBounds.width * (0.22 + Math.random() * 0.56);
@@ -2421,7 +2471,7 @@ export function CelebrationView({
                   animationDelay: `${icon.delay}ms`,
                 } as CSSProperties}
               >
-                <ScoreIcon size={18} />
+                <ScoreIcon size={32} />
               </span>
             )),
             document.body,
