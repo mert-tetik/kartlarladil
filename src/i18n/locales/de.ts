@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "Weltweit {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Füge FoxiesDeck wie eine App zu deinem Home-Bildschirm hinzu.",
+  "install.addToHomeScreen.guideIntro": "Für einen schnellen Zugriff kannst du ein Website-Symbol zu deinem iPhone-Startbildschirm hinzufügen.",
+  "install.addToHomeScreen.guideStep1": "Öffne die Safari-App auf deinem iPhone.",
+  "install.addToHomeScreen.guideStep2": "Rufe die Website auf, die du deinem Startbildschirm hinzufügen möchtest.",
+  "install.addToHomeScreen.guideStep3": "Symbol und tippe dann auf „Teilen“.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Wenn dein Tab-Layout unten oder oben ist, tippe auf das",
+  "install.addToHomeScreen.guideTabsLayoutAfter": "Symbol.",
+  "install.addToHomeScreen.guideStep4": "Scrolle in der Optionenliste nach unten und tippe auf „Zum Home-Bildschirm“.",
+  "install.addToHomeScreen.guideFallbackBefore": "Wenn „Zum Home-Bildschirm“ nicht angezeigt wird, kannst du es hinzufügen. Scrolle ans Ende der Liste, tippe auf „Aktionen bearbeiten“ und dann auf",
+  "install.addToHomeScreen.guideFallbackAfter": "„Zum Home-Bildschirm“.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Um die Website wie eine App zu verwenden, kannst du „Als Web-App öffnen“ wählen.",
+  "install.addToHomeScreen.guideWebAppLink": "Eine Website in eine App verwandeln",
+  "install.addToHomeScreen.guideWebAppSuffix": "erfährst du mehr.",
+  "install.addToHomeScreen.guideStep5": "Tippe auf „Hinzufügen“.",
+  "install.addToHomeScreen.guideFooter": "Das Symbol wird nur auf dem Gerät angezeigt, auf dem du es hinzugefügt hast.",
+  "install.addToHomeScreen.guideImageAlt": "Beispiel mit der Option „Zum Home-Bildschirm“ auf einem iPhone.",
 } as const;
 
 export default dictionary;

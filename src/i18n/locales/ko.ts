@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "세계 {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "FoxiesDeck를 앱처럼 홈 화면에 추가하세요.",
+  "install.addToHomeScreen.guideIntro": "빠르게 접근할 수 있도록 iPhone 홈 화면에 웹 사이트 아이콘을 추가할 수 있습니다.",
+  "install.addToHomeScreen.guideStep1": "iPhone에서 Safari 앱을 엽니다.",
+  "install.addToHomeScreen.guideStep2": "홈 화면에 추가할 웹 사이트로 이동합니다.",
+  "install.addToHomeScreen.guideStep3": "아이콘을 탭한 다음 공유를 탭합니다.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "탭 레이아웃이 하단 또는 상단인 경우",
+  "install.addToHomeScreen.guideTabsLayoutAfter": "아이콘을 탭합니다.",
+  "install.addToHomeScreen.guideStep4": "옵션 목록을 아래로 스크롤한 다음 홈 화면에 추가를 탭합니다.",
+  "install.addToHomeScreen.guideFallbackBefore": "홈 화면에 추가가 보이지 않으면 추가할 수 있습니다. 목록 맨 아래로 스크롤하고 동작 편집을 탭한 다음",
+  "install.addToHomeScreen.guideFallbackAfter": "홈 화면에 추가를 탭합니다.",
+  "install.addToHomeScreen.guideWebAppPrefix": "웹 사이트를 앱처럼 사용하려면 웹 앱으로 열기를 선택할 수 있습니다.",
+  "install.addToHomeScreen.guideWebAppLink": "웹 사이트를 앱으로 전환하기",
+  "install.addToHomeScreen.guideWebAppSuffix": "에서 자세히 알아보세요.",
+  "install.addToHomeScreen.guideStep5": "추가를 탭합니다.",
+  "install.addToHomeScreen.guideFooter": "아이콘은 추가한 기기에서만 표시됩니다.",
+  "install.addToHomeScreen.guideImageAlt": "iPhone의 홈 화면에 추가 옵션을 보여 주는 예시입니다.",
 } as const;
 
 export default dictionary;

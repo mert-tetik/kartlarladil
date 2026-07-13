@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Задания",
   "home.mobile.leaderboardBadge": "Место в мире: {position}.",
   "common.retry": "Повторить",
+  "install.addToHomeScreen.guideTitle": "Добавьте FoxiesDeck на экран «Домой» как приложение.",
+  "install.addToHomeScreen.guideIntro": "Для быстрого доступа можно добавить значок сайта на экран «Домой» iPhone.",
+  "install.addToHomeScreen.guideStep1": "Откройте приложение Safari на iPhone.",
+  "install.addToHomeScreen.guideStep2": "Перейдите на сайт, который хотите добавить на экран «Домой».",
+  "install.addToHomeScreen.guideStep3": "значок, затем нажмите «Поделиться».",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Если вкладки расположены снизу или сверху, нажмите значок",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "Прокрутите список параметров вниз, затем нажмите «Добавить на экран «Домой»».",
+  "install.addToHomeScreen.guideFallbackBefore": "Если пункта «Добавить на экран «Домой»» нет, его можно добавить. Прокрутите список до конца, нажмите «Изменить действия», затем",
+  "install.addToHomeScreen.guideFallbackAfter": "«Добавить на экран «Домой»».",
+  "install.addToHomeScreen.guideWebAppPrefix": "Чтобы использовать сайт как приложение, можно выбрать «Открыть как веб-приложение».",
+  "install.addToHomeScreen.guideWebAppLink": "Как превратить сайт в приложение",
+  "install.addToHomeScreen.guideWebAppSuffix": "для подробностей.",
+  "install.addToHomeScreen.guideStep5": "Нажмите «Добавить».",
+  "install.addToHomeScreen.guideFooter": "Значок появится только на устройстве, на котором вы его добавили.",
+  "install.addToHomeScreen.guideImageAlt": "Пример с пунктом «На экран Домой» на iPhone.",
 } as const;
 
 export default dictionary;

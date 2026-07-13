@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "世界で{position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "FoxiesDeckをアプリのようにホーム画面に追加しましょう。",
+  "install.addToHomeScreen.guideIntro": "すばやくアクセスできるように、iPhoneのホーム画面にWebサイトのアイコンを追加できます。",
+  "install.addToHomeScreen.guideStep1": "iPhoneでSafariアプリを開きます。",
+  "install.addToHomeScreen.guideStep2": "ホーム画面に追加したいWebサイトに移動します。",
+  "install.addToHomeScreen.guideStep3": "アイコンをタップしてから、「共有」をタップします。",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "タブの配置が下部または上部の場合は、",
+  "install.addToHomeScreen.guideTabsLayoutAfter": "アイコンをタップします。",
+  "install.addToHomeScreen.guideStep4": "オプションの一覧を下にスクロールし、「ホーム画面に追加」をタップします。",
+  "install.addToHomeScreen.guideFallbackBefore": "「ホーム画面に追加」が表示されない場合は、追加できます。リストの一番下までスクロールし、「アクションを編集」をタップしてから、",
+  "install.addToHomeScreen.guideFallbackAfter": "「ホーム画面に追加」をタップします。",
+  "install.addToHomeScreen.guideWebAppPrefix": "Webサイトをアプリのように使うには、「Webアプリとして開く」を選択できます。",
+  "install.addToHomeScreen.guideWebAppLink": "Webサイトをアプリに変換する",
+  "install.addToHomeScreen.guideWebAppSuffix": "をご覧ください。",
+  "install.addToHomeScreen.guideStep5": "「追加」をタップします。",
+  "install.addToHomeScreen.guideFooter": "アイコンは追加したデバイスにのみ表示されます。",
+  "install.addToHomeScreen.guideImageAlt": "iPhoneの「ホーム画面に追加」オプションの例。",
 } as const;
 
 export default dictionary;

@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "Monde {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Ajoutez FoxiesDeck à votre écran d’accueil comme une app.",
+  "install.addToHomeScreen.guideIntro": "Pour un accès rapide, vous pouvez ajouter une icône de site web à l’écran d’accueil de votre iPhone.",
+  "install.addToHomeScreen.guideStep1": "Ouvrez l’app Safari sur votre iPhone.",
+  "install.addToHomeScreen.guideStep2": "Accédez au site web que vous souhaitez ajouter à votre écran d’accueil.",
+  "install.addToHomeScreen.guideStep3": "icône, puis touchez Partager.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Si la disposition de vos onglets est En bas ou En haut, touchez l’icône",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "Faites défiler la liste des options vers le bas, puis touchez Ajouter à l’écran d’accueil.",
+  "install.addToHomeScreen.guideFallbackBefore": "Si Ajouter à l’écran d’accueil n’apparaît pas, vous pouvez l’ajouter. Faites défiler la liste jusqu’en bas, touchez Modifier les actions, puis",
+  "install.addToHomeScreen.guideFallbackAfter": "Ajouter à l’écran d’accueil.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Pour utiliser le site web comme une app, vous pouvez choisir Ouvrir comme app web.",
+  "install.addToHomeScreen.guideWebAppLink": "Transformer un site web en app",
+  "install.addToHomeScreen.guideWebAppSuffix": "pour en savoir plus.",
+  "install.addToHomeScreen.guideStep5": "Touchez Ajouter.",
+  "install.addToHomeScreen.guideFooter": "L’icône apparaît uniquement sur l’appareil où vous l’avez ajoutée.",
+  "install.addToHomeScreen.guideImageAlt": "Exemple montrant l’option « Ajouter à l’écran d’accueil » sur un iPhone.",
 } as const;
 
 export default dictionary;

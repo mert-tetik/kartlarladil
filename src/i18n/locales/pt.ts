@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "No mundo {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Adicione o FoxiesDeck à sua tela inicial como um app.",
+  "install.addToHomeScreen.guideIntro": "Para acesso rápido, você pode adicionar um ícone de site à tela inicial do iPhone.",
+  "install.addToHomeScreen.guideStep1": "Abra o app Safari no iPhone.",
+  "install.addToHomeScreen.guideStep2": "Acesse o site que você deseja adicionar à tela inicial.",
+  "install.addToHomeScreen.guideStep3": "ícone e, em seguida, toque em Compartilhar.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Se o layout das abas estiver na parte inferior ou superior, toque no ícone",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "Role a lista de opções para baixo e toque em Adicionar à Tela de Início.",
+  "install.addToHomeScreen.guideFallbackBefore": "Se não encontrar Adicionar à Tela de Início, você pode adicioná-lo. Role até o fim da lista, toque em Editar Ações e depois em",
+  "install.addToHomeScreen.guideFallbackAfter": "Adicionar à Tela de Início.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Para usar o site como um app, você pode escolher Abrir como App da Web.",
+  "install.addToHomeScreen.guideWebAppLink": "Transformar um site em um app",
+  "install.addToHomeScreen.guideWebAppSuffix": "para saber mais.",
+  "install.addToHomeScreen.guideStep5": "Toque em Adicionar.",
+  "install.addToHomeScreen.guideFooter": "O ícone aparece apenas no dispositivo em que você o adicionou.",
+  "install.addToHomeScreen.guideImageAlt": "Exemplo mostrando a opção Adicionar à Tela de Início em um iPhone.",
 } as const;
 
 export default dictionary;

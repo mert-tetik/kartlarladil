@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Logo } from "@/components/logo";
 import { APP_NAME } from "@/lib/constants";
 import { useT } from "@/i18n/locale-provider";
 import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
@@ -38,14 +38,20 @@ export function MobileAppChoiceScreen({
   const isAndroid = !forceApple && isAndroidMobileDevice();
 
   return (
-    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
-      <div className="flex items-center gap-3">
-        <Logo size={48} priority />
-        <span className="font-display text-3xl font-semibold text-foreground">{APP_NAME}</span>
+    <div className="animate-screen-pop mb-[clamp(3rem,9vh,5.5rem)] flex w-full max-w-sm flex-col items-center text-center">
+      <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
+        <Image
+          src="/splash.png"
+          alt={APP_NAME}
+          width={1024}
+          height={1024}
+          priority
+          className="h-auto w-full -translate-y-[40%]"
+        />
       </div>
 
       <p className="mt-6 text-base leading-relaxed text-foreground-secondary">
-        {t("metadata.description")}
+        {t("home.mobile.appChoiceDescription")}
       </p>
 
       <div className="mt-10 flex w-full flex-col gap-3">

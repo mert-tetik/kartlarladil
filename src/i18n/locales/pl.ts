@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "Na świecie {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Dodaj FoxiesDeck do ekranu głównego jak aplikację.",
+  "install.addToHomeScreen.guideIntro": "Aby uzyskać szybki dostęp, możesz dodać ikonę witryny do ekranu głównego iPhone’a.",
+  "install.addToHomeScreen.guideStep1": "Otwórz aplikację Safari na iPhonie.",
+  "install.addToHomeScreen.guideStep2": "Przejdź do witryny, którą chcesz dodać do ekranu głównego.",
+  "install.addToHomeScreen.guideStep3": "ikonę, a następnie stuknij Udostępnij.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Jeśli układ kart jest na dole lub u góry, stuknij ikonę",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "Przewiń listę opcji w dół, a następnie stuknij Dodaj do ekranu głównego.",
+  "install.addToHomeScreen.guideFallbackBefore": "Jeśli nie widzisz opcji Dodaj do ekranu głównego, możesz ją dodać. Przewiń listę na sam dół, stuknij Edytuj czynności, a następnie",
+  "install.addToHomeScreen.guideFallbackAfter": "Dodaj do ekranu głównego.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Aby korzystać z witryny jak z aplikacji, możesz wybrać Otwórz jako aplikację internetową.",
+  "install.addToHomeScreen.guideWebAppLink": "Zamienianie witryny w aplikację",
+  "install.addToHomeScreen.guideWebAppSuffix": "aby dowiedzieć się więcej.",
+  "install.addToHomeScreen.guideStep5": "Stuknij Dodaj.",
+  "install.addToHomeScreen.guideFooter": "Ikona pojawi się tylko na urządzeniu, na którym ją dodano.",
+  "install.addToHomeScreen.guideImageAlt": "Przykład opcji „Dodaj do ekranu głównego” na iPhonie.",
 } as const;
 
 export default dictionary;

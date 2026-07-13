@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "عالميًا {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "أضف FoxiesDeck إلى شاشتك الرئيسية كتطبيق.",
+  "install.addToHomeScreen.guideIntro": "للوصول السريع، يمكنك إضافة أيقونة موقع ويب إلى الشاشة الرئيسية في iPhone.",
+  "install.addToHomeScreen.guideStep1": "انتقل إلى تطبيق Safari على iPhone.",
+  "install.addToHomeScreen.guideStep2": "انتقل إلى موقع الويب الذي تريد إضافته إلى شاشتك الرئيسية.",
+  "install.addToHomeScreen.guideStep3": "الأيقونة، ثم اضغط على مشاركة.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "إذا كان تخطيط علامات التبويب في الأسفل أو الأعلى، فاضغط على أيقونة",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "مرّر لأسفل قائمة الخيارات، ثم اضغط على «إضافة إلى الشاشة الرئيسية».",
+  "install.addToHomeScreen.guideFallbackBefore": "إذا لم تجد «إضافة إلى الشاشة الرئيسية»، فيمكنك إضافتها. مرّر إلى أسفل القائمة، واضغط على «تحرير الإجراءات»، ثم",
+  "install.addToHomeScreen.guideFallbackAfter": "«إضافة إلى الشاشة الرئيسية».",
+  "install.addToHomeScreen.guideWebAppPrefix": "لاستخدام موقع الويب كتطبيق، يمكنك اختيار «فتح كتطبيق ويب».",
+  "install.addToHomeScreen.guideWebAppLink": "تحويل موقع ويب إلى تطبيق",
+  "install.addToHomeScreen.guideWebAppSuffix": "لمعرفة المزيد.",
+  "install.addToHomeScreen.guideStep5": "اضغط على «إضافة».",
+  "install.addToHomeScreen.guideFooter": "تظهر الأيقونة فقط على الجهاز الذي أضفتها عليه.",
+  "install.addToHomeScreen.guideImageAlt": "مثال يوضح خيار «إضافة إلى الشاشة الرئيسية» على iPhone.",
 } as const;
 
 export default dictionary;

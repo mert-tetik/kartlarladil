@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "Mondo {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Aggiungi FoxiesDeck alla schermata Home come un'app.",
+  "install.addToHomeScreen.guideIntro": "Per un accesso rapido, puoi aggiungere un’icona del sito web alla schermata Home del tuo iPhone.",
+  "install.addToHomeScreen.guideStep1": "Apri l’app Safari sul tuo iPhone.",
+  "install.addToHomeScreen.guideStep2": "Vai al sito web che desideri aggiungere alla schermata Home.",
+  "install.addToHomeScreen.guideStep3": "icona, quindi tocca Condividi.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Se il layout delle schede è In basso o In alto, tocca l’icona",
+  "install.addToHomeScreen.guideTabsLayoutAfter": ".",
+  "install.addToHomeScreen.guideStep4": "Scorri l’elenco delle opzioni verso il basso, quindi tocca Aggiungi a Home.",
+  "install.addToHomeScreen.guideFallbackBefore": "Se non vedi Aggiungi a Home, puoi aggiungerlo. Scorri fino in fondo all’elenco, tocca Modifica azioni, quindi",
+  "install.addToHomeScreen.guideFallbackAfter": "Aggiungi a Home.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Per usare il sito web come un’app, puoi scegliere Apri come app web.",
+  "install.addToHomeScreen.guideWebAppLink": "Trasformare un sito web in un’app",
+  "install.addToHomeScreen.guideWebAppSuffix": "per saperne di più.",
+  "install.addToHomeScreen.guideStep5": "Tocca Aggiungi.",
+  "install.addToHomeScreen.guideFooter": "L’icona viene visualizzata solo sul dispositivo su cui l’hai aggiunta.",
+  "install.addToHomeScreen.guideImageAlt": "Esempio dell’opzione “Aggiungi a Home” su un iPhone.",
 } as const;
 
 export default dictionary;

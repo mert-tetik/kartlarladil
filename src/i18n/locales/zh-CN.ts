@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "全球 {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "将 FoxiesDeck 像 App 一样添加到主屏幕。",
+  "install.addToHomeScreen.guideIntro": "为了快速访问，您可以将网站图标添加到 iPhone 主屏幕。",
+  "install.addToHomeScreen.guideStep1": "在 iPhone 上打开 Safari 浏览器。",
+  "install.addToHomeScreen.guideStep2": "前往您想添加到主屏幕的网站。",
+  "install.addToHomeScreen.guideStep3": "图标，然后轻点“共享”。",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "如果标签页布局位于底部或顶部，请轻点",
+  "install.addToHomeScreen.guideTabsLayoutAfter": "图标。",
+  "install.addToHomeScreen.guideStep4": "向下滚动选项列表，然后轻点“添加到主屏幕”。",
+  "install.addToHomeScreen.guideFallbackBefore": "如果没有看到“添加到主屏幕”，您可以添加它。滚动到列表底部，轻点“编辑操作”，然后轻点",
+  "install.addToHomeScreen.guideFallbackAfter": "“添加到主屏幕”。",
+  "install.addToHomeScreen.guideWebAppPrefix": "若要像使用 App 一样使用网站，您可以选择“作为 Web App 打开”。",
+  "install.addToHomeScreen.guideWebAppLink": "将网站转换为 App",
+  "install.addToHomeScreen.guideWebAppSuffix": "以了解更多信息。",
+  "install.addToHomeScreen.guideStep5": "轻点“添加”。",
+  "install.addToHomeScreen.guideFooter": "该图标仅显示在您添加它的设备上。",
+  "install.addToHomeScreen.guideImageAlt": "展示 iPhone“添加到主屏幕”选项的示例。",
 } as const;
 
 export default dictionary;

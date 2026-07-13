@@ -756,6 +756,22 @@ const dictionary = {
   "home.mobile.missions": "Missions",
   "home.mobile.leaderboardBadge": "Wereldwijd {position}.",
   "common.retry": "Retry",
+  "install.addToHomeScreen.guideTitle": "Voeg FoxiesDeck als app toe aan je beginscherm.",
+  "install.addToHomeScreen.guideIntro": "Voor snelle toegang kun je een websitepictogram aan het beginscherm van je iPhone toevoegen.",
+  "install.addToHomeScreen.guideStep1": "Open de Safari-app op je iPhone.",
+  "install.addToHomeScreen.guideStep2": "Ga naar de website die je aan je beginscherm wilt toevoegen.",
+  "install.addToHomeScreen.guideStep3": "pictogram en tik daarna op Deel.",
+  "install.addToHomeScreen.guideTabsLayoutBefore": "Als je tabbladindeling onderaan of bovenaan staat, tik je op het",
+  "install.addToHomeScreen.guideTabsLayoutAfter": "pictogram.",
+  "install.addToHomeScreen.guideStep4": "Scrol omlaag in de lijst met opties en tik op Zet op beginscherm.",
+  "install.addToHomeScreen.guideFallbackBefore": "Zie je Zet op beginscherm niet, dan kun je het toevoegen. Scrol naar het einde van de lijst, tik op Wijzig taken en daarna op",
+  "install.addToHomeScreen.guideFallbackAfter": "Zet op beginscherm.",
+  "install.addToHomeScreen.guideWebAppPrefix": "Om de website als app te gebruiken, kun je Kies openen als webapp selecteren.",
+  "install.addToHomeScreen.guideWebAppLink": "Een website omzetten in een app",
+  "install.addToHomeScreen.guideWebAppSuffix": "voor meer informatie.",
+  "install.addToHomeScreen.guideStep5": "Tik op Voeg toe.",
+  "install.addToHomeScreen.guideFooter": "Het pictogram verschijnt alleen op het apparaat waarop je het hebt toegevoegd.",
+  "install.addToHomeScreen.guideImageAlt": "Voorbeeld van de optie 'Zet op beginscherm' op een iPhone.",
 } as const;
 
 export default dictionary;
