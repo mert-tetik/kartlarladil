@@ -2700,10 +2700,18 @@ export function ResultView({
       data-quiz-result-view
       className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4 sm:p-6 max-lg:p-0"
     >
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-black" aria-hidden="true">
+        <RankIcon
+          icon={stats.rank.icon}
+          className="absolute left-1/2 top-1/2 h-auto w-[115vw] max-w-none -translate-x-1/2 -translate-y-1/2 blur-md saturate-125 opacity-25"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
       <div
         data-quiz-result-panel
         data-testid="quiz-result-panel"
-        className="animate-screen-pop flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card px-4 py-4 text-center shadow-sm sm:px-6 sm:py-6 max-lg:max-w-none max-lg:translate-y-2 max-lg:rounded-none max-lg:border-0 max-lg:bg-background max-lg:px-5 max-lg:py-4"
+        className="animate-screen-pop relative z-10 flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card px-4 py-4 text-center shadow-sm sm:px-6 sm:py-6 max-lg:max-w-none max-lg:translate-y-2 max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent max-lg:px-5 max-lg:py-4"
       >
         <div className="flex flex-col items-center gap-2.5 max-lg:gap-2">
           <button
@@ -2724,16 +2732,7 @@ export function ResultView({
               {t("leaderboard.scope")}
             </span>
           </button>
-          <div className="relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl bg-black sm:h-52">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-              <RankIcon
-                icon={stats.rank.icon}
-                className="absolute left-1/2 top-1/2 h-auto w-[115%] max-w-none -translate-x-1/2 -translate-y-1/2 blur-xl saturate-150"
-                sizes="(max-width: 640px) 420px, 600px"
-              />
-              <div className="absolute inset-0 bg-black/45" />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/65" />
-            </div>
+          <div className="relative flex h-36 w-full items-center justify-center sm:h-52">
             <RankIcon
               icon={stats.rank.icon}
               className="relative z-10 size-24 animate-trophy-intro-grow drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)] sm:size-32"
