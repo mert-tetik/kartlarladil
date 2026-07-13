@@ -5,12 +5,14 @@ export function EmptyState({
   mascot,
   title,
   description,
+  descriptionClassName,
   action,
   className,
 }: {
   mascot?: string;
   title: string;
   description: string;
+  descriptionClassName?: string;
   action?: React.ReactNode;
   className?: string;
 }) {
@@ -26,7 +28,9 @@ export function EmptyState({
         />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-foreground">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-foreground-secondary">{description}</p>
+      <p className={cn("mx-auto mt-2 max-w-md text-sm leading-6 text-foreground-secondary", descriptionClassName)}>
+        {description}
+      </p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );

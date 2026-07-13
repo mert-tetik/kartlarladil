@@ -2,7 +2,8 @@
 
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Coins, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
+import { Check, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
+import { ScoreIcon } from "@/components/score-icon";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -321,7 +322,7 @@ function CardFront({
                 className={cn("inline-flex items-center gap-1", style.text)}
                 title={`${tierPoints} ${t("common.points")}`}
               >
-                <Coins className="size-3.5" aria-hidden="true" />
+                <ScoreIcon size={14} className="size-3.5" />
                 <span>{tierPoints}</span>
               </span>
             </div>
