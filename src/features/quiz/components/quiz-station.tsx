@@ -63,6 +63,7 @@ import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view"
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
+import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
 import { QuizStarRating } from "@/features/quiz/components/quiz-star-rating";
 import {
   getChestTierByCount,
@@ -111,6 +112,7 @@ type QuizPhase =
   | "quiz-start"
   | "quiz"
   | "streak-celebration"
+  | "streak-reward"
   | "celebration"
   | "result"
   | "chest-celebration"
@@ -309,6 +311,10 @@ export function QuizStation({
     initialLanguage ?? null,
   );
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
+  const [startSplashSelection, setStartSplashSelection] = useState<{
+    count: number;
+    colorClass: string;
+  } | null>(null);
   const [awardedChestTier, setAwardedChestTier] = useState<ChestTierDefinition | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -539,7 +545,7 @@ export function QuizStation({
           setPhase("chest-celebration");
           return;
         }
-        setPhase("result");
+        setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
         return;
       }
 
@@ -555,6 +561,7 @@ export function QuizStation({
       currentIndex,
       deck.length,
       lastLearned,
+      maxStreak,
       mode,
       phase,
       resetQuestionUi,
@@ -813,12 +820,12 @@ export function QuizStation({
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
     if (chestOpened) {
-      setPhase("result");
+      setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
       return;
     }
 
     setChestOpened(true);
-    setPhase("result");
+    setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
 
     const chestPoints = getChestRewardPoints(tier);
     if (user && chestPoints > 0) {
@@ -927,7 +934,8 @@ export function QuizStation({
           availableCount={availableCards.length}
           selectedCount={selectedCount}
           locked={interactionLocked}
-          onSelect={(count) => {
+          onSelect={(count, selection) => {
+            setStartSplashSelection(selection);
             setSelectedCount(count);
             handleStartCount(count);
           }}
@@ -987,6 +995,17 @@ export function QuizStation({
       <QuizStreakCelebrationView
         streak={streak}
         onComplete={() => advanceQuizRef.current()}
+      />
+    );
+  }
+
+  if (phase === "streak-reward") {
+    return (
+      <QuizStreakRewardView
+        streak={getRewardableQuizStreak(maxStreak)}
+        points={getQuizStreakRewardPoints(maxStreak)}
+        totalPoints={stats.totalPoints}
+        onComplete={() => setPhase("result")}
       />
     );
   }
@@ -1060,7 +1079,12 @@ export function QuizStation({
       {isSplash || showSplash ? (
         <QuizStartSplash
           onComplete={() => setPhase("quiz")}
-          onExited={() => setShowSplash(false)}
+          onExited={() => {
+            setShowSplash(false);
+            setStartSplashSelection(null);
+          }}
+          selectedCount={startSplashSelection?.count}
+          selectedColorClass={startSplashSelection?.colorClass}
         />
       ) : null}
       {!isSplash ? (
@@ -1389,7 +1413,7 @@ export function CountSelection({
   availableCount: number;
   selectedCount: number | null;
   locked?: boolean;
-  onSelect: (count: number) => void;
+  onSelect: (count: number, selection: { count: number; colorClass: string }) => void;
   onBack?: () => void;
 }) {
   const { locale } = useLocale();
@@ -1512,7 +1536,7 @@ export function CountSelection({
 
     launchTimerRef.current = window.setTimeout(() => {
       playSoundEffect("card-ready");
-      onSelect(count);
+      onSelect(count, { count, colorClass });
       launchTimerRef.current = null;
     }, 1180);
   }

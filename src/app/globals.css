@@ -1070,6 +1070,16 @@ body:has([data-ask-page]) footer {
   animation: quiz-start-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes quiz-start-selection-underlay {
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-quiz-start-selection-underlay {
+  animation: quiz-start-selection-underlay 1ms linear 480ms forwards;
+}
+
 @keyframes streak-fire {
   0%, 100% {
     transform: scale(1) rotate(-4deg);
@@ -1115,6 +1125,16 @@ body:has([data-ask-page]) footer {
 
 .animate-streak-celebration-exit {
   animation: streak-celebration-exit 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes streak-reward-break {
+  0% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg); }
+  45% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1.16) rotate(-4deg); }
+  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.45) rotate(12deg); }
+}
+
+.animate-streak-reward-break {
+  animation: streak-reward-break 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes star-drop {
