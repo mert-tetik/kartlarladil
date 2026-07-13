@@ -6,6 +6,8 @@ export type SoundEffectName =
   | "learned"
   | "confetti"
   | "quiz-complete"
+  | "quiz-start"
+  | "quiz-select"
   | "chest-tap"
   | "chest-open"
   | "streak-fire"
@@ -241,6 +243,32 @@ function quizComplete(context: AudioContext, now: number) {
   });
 }
 
+function quizStart(context: AudioContext, now: number) {
+  // Short ascending cue that leads into the first question.
+  [SCALE.C5, SCALE.E5, SCALE.G5].forEach((frequency, index) => {
+    playTone(context, {
+      frequency,
+      startTime: now + index * 0.09,
+      duration: 0.16,
+      gain: 0.055,
+      type: "triangle",
+    });
+  });
+}
+
+function quizSelect(context: AudioContext, now: number) {
+  // Tactile selection pop followed by a quick upward launch sweep.
+  playTone(context, { frequency: 180, startTime: now, duration: 0.1, gain: 0.1, type: "triangle" });
+  playTone(context, {
+    frequency: SCALE.C4,
+    endFrequency: SCALE.G5,
+    startTime: now + 0.04,
+    duration: 0.34,
+    gain: 0.05,
+    type: "sine",
+  });
+}
+
 function confetti(context: AudioContext, now: number) {
   // Rapid cluster of random pentatonic sparkles.
   const notes = [SCALE.C5, SCALE.D5, SCALE.E5, SCALE.G5, SCALE.A5, SCALE.C6];
@@ -347,6 +375,8 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   learned,
   confetti,
   "quiz-complete": quizComplete,
+  "quiz-start": quizStart,
+  "quiz-select": quizSelect,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
   "streak-fire": streakFire,

@@ -10,13 +10,13 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
-import { getCardTranslation } from "@/features/cards/card-localization";
+import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import type { InventoryCard, Tier, VocabularyCard } from "@/types/domain";
+import type { InventoryCard, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
 
@@ -36,6 +36,7 @@ interface VocabularyCardViewProps {
   frontFit?: boolean;
   frontMinimal?: boolean;
   compact?: boolean;
+  translationLocale?: LocaleCode;
   onClick?: () => void;
 }
 
@@ -69,6 +70,7 @@ export function VocabularyCardView({
   frontFit = false,
   frontMinimal = false,
   compact = false,
+  translationLocale,
   onClick,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -176,6 +178,7 @@ export function VocabularyCardView({
           frontMinimal={frontMinimal}
           isControlled={isControlled}
           compact={compact}
+          translationLocale={translationLocale}
         />
         <CardBack
           card={card}
@@ -204,6 +207,7 @@ function CardFront({
   frontFit = false,
   frontMinimal = false,
   compact = false,
+  translationLocale,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -218,6 +222,7 @@ function CardFront({
   frontMinimal?: boolean;
   isControlled?: boolean;
   compact?: boolean;
+  translationLocale?: LocaleCode;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -230,7 +235,9 @@ function CardFront({
   const learned = inventory?.status === "learned";
   const showOwnedState = owned && !allowOwnedAdd;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
-  const cardTranslation = getCardTranslation(card, locale);
+  const cardTranslation = translationLocale
+    ? getCardTranslationMeanings(card, translationLocale).slice(0, 3).join(", ")
+    : getCardTranslation(card, locale);
 
   function handleDetailsClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();

@@ -975,7 +975,7 @@ export const masterCardEntries = [
   ["fairly","B1","word","adverb","/ˈferli/","oldukça","fairly","ziemlich","довольно","assez","bastante","abbastanza","bastante","tamelijk","dość","إلى حد ما","かなり","상당히","相当"],
   ["faith","B2","word","noun","/feɪθ/","inanç","faith","Glaube","вера","foi","fe","fede","fé","geloof","wiara","إيمان","信仰","믿음","信仰"],
   ["fall","A2","word","noun","/fɔːl/","düşmek","fall","fallen","падать","tomber","caer","cadere","cair","vallen","upaść","سقوط","落ちる","떨어지다","跌倒"],
-  ["false","A1","word","adjective","/fɔːls/","sahte","false","falsch","ложный","faux","falso","falso","falso","vals","fałszywy","زائف","偽の","거짓","错误"],
+  ["false","A1","word","adjective","/fɔːls/","yanlış","false","falsch","ложный","faux","falso","falso","falso","vals","fałszywy","زائف","偽の","거짓","错误"],
   ["familiar","B1","word","adjective","/fəˈmɪliər/","tanıdık","familiar","vertraut","знакомый","familier","familiar","familiare","familiar","vertrouwd","znajomy","مألوف","馴染みのある","익숙한","熟悉的"],
   ["family","A1","word","adjective","/ˈfæməli/","aile","family","Familie","семья","famille","familia","famiglia","família","familie","rodzina","عائلة","家族","가족","家庭"],
   ["famous","A1","word","adjective","/ˈfeɪməs/","ünlü","famous","berühmt","известный","célèbre","famoso","famoso","famoso","beroemd","sławny","مشهور","有名な","유명한","著名"],

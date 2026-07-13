@@ -4,11 +4,12 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
-  type ReactNode,
+  type CSSProperties, type ReactNode,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import Link from "next/link";
@@ -75,6 +76,7 @@ import {
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 import { EmptyState } from "@/components/empty-state";
 import { LanguageFlag } from "@/components/language-flag";
+import { ScoreIcon } from "@/components/score-icon";
 import { Badge } from "@/components/ui/badge";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -1394,6 +1396,8 @@ export function CountSelection({
   const t = useT();
   const showChestTiers = mode === "active";
   const languageName = getLanguageDisplayName(language, locale);
+  const [launch, setLaunch] = useState<CountLaunch | null>(null);
+  const launchTimerRef = useRef<number | null>(null);
 
   const countButtonColors = [
     "bg-red-500",
@@ -1402,10 +1406,59 @@ export function CountSelection({
     "bg-emerald-500",
   ];
 
+  useEffect(
+    () => () => {
+      if (launchTimerRef.current !== null) {
+        window.clearTimeout(launchTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  function handleSelect(count: number, colorClass: string, button: HTMLButtonElement) {
+    if (launch) return;
+
+    const bounds = button.getBoundingClientRect();
+    const scaleX = window.innerWidth / bounds.width;
+    const scaleY = window.innerHeight / bounds.height;
+    const targetX = window.innerWidth / 2 - (bounds.left + bounds.width / 2);
+    const targetY = window.innerHeight / 2 - (bounds.top + bounds.height / 2);
+
+    setLaunch({
+      count,
+      colorClass,
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      scaleX,
+      scaleY,
+      targetX,
+      targetY,
+      scatter: QUIZ_COUNT_OPTIONS.map((option) => ({
+        count: option,
+        x: (Math.random() - 0.5) * window.innerWidth * 1.6,
+        y: 180 + Math.random() * window.innerHeight * 1.15,
+        rotation: (Math.random() - 0.5) * 540,
+      })),
+    });
+    playSoundEffect("quiz-select");
+
+    launchTimerRef.current = window.setTimeout(() => {
+      playSoundEffect("card-ready");
+      onSelect(count);
+      launchTimerRef.current = null;
+    }, 820);
+  }
+
   return (
     <div
       data-quiz-count-selection
-      className="animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0"
+      data-quiz-count-launching={launch ? "true" : undefined}
+      className={cn(
+        "animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0",
+        launch && "overflow-visible",
+      )}
     >
       <div className="flex flex-col items-center justify-center bg-black px-5 py-4 text-center text-white max-lg:px-4 max-lg:py-3">
         <h2 className="text-base font-semibold sm:text-lg">
@@ -1426,7 +1479,7 @@ export function CountSelection({
 
       <div className="grid flex-1 grid-cols-2">
         {QUIZ_COUNT_OPTIONS.map((count, index) => {
-          const disabled = locked || count > availableCount;
+          const disabled = locked || Boolean(launch) || count > availableCount;
           const previewPair = showChestTiers
             ? getChestPreviewPairForCount(count)
             : undefined;
@@ -1438,13 +1491,24 @@ export function CountSelection({
               key={count}
               type="button"
               disabled={disabled}
-              onClick={() => onSelect(count)}
+              onClick={(event) => handleSelect(count, colorClass, event.currentTarget)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 border border-white/10 p-4 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
                 colorClass,
                 selectedCount === count &&
                   "ring-inset ring-2 ring-white/30 brightness-110",
+                launch && launch.count !== count && "animate-quiz-count-scatter pointer-events-none",
+                launch && launch.count === count && "opacity-0",
               )}
+              style={
+                launch && launch.count !== count
+                  ? ({
+                      "--quiz-count-scatter-x": `${launch.scatter.find((item) => item.count === count)?.x ?? 0}px`,
+                      "--quiz-count-scatter-y": `${launch.scatter.find((item) => item.count === count)?.y ?? 0}px`,
+                      "--quiz-count-scatter-rotation": `${launch.scatter.find((item) => item.count === count)?.rotation ?? 0}deg`,
+                    } as CSSProperties)
+                  : undefined
+              }
             >
               <span className="text-xs font-medium uppercase tracking-wide opacity-80">
                 {t("quiz.countLabel")}
@@ -1467,9 +1531,45 @@ export function CountSelection({
           );
         })}
       </div>
+      {launch
+        ? createPortal(
+            <div
+              aria-hidden="true"
+              className={cn("pointer-events-none fixed z-[70] flex flex-col items-center justify-center gap-1 border border-white/10 text-center text-white animate-quiz-count-cover", launch.colorClass)}
+              style={{
+                left: launch.left,
+                top: launch.top,
+                width: launch.width,
+                height: launch.height,
+                "--quiz-count-cover-x": `${launch.targetX}px`,
+                "--quiz-count-cover-y": `${launch.targetY}px`,
+                "--quiz-count-cover-scale-x": launch.scaleX,
+                "--quiz-count-cover-scale-y": launch.scaleY,
+              } as CSSProperties}
+            >
+              <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
+              <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
+
+type CountLaunch = {
+  count: number;
+  colorClass: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  scaleX: number;
+  scaleY: number;
+  targetX: number;
+  targetY: number;
+  scatter: Array<{ count: number; x: number; y: number; rotation: number }>;
+};
 
 function QuizProgressHeader({
   mode,
@@ -2126,15 +2226,19 @@ export function CelebrationView({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const { stats, refreshStats } = useProgressStats();
+  const { refreshStats } = useProgressStats();
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
-  const [viewStage, setViewStage] = useState<"card" | "points">("card");
-  const [bonusPhase, setBonusPhase] = useState<"idle" | "dropping" | "bobble">("idle");
+  const [displayPoints, setDisplayPoints] = useState(basePoints);
+  const [scorePulse, setScorePulse] = useState(0);
+  const [flightIcons, setFlightIcons] = useState<ScoreFlightIcon[]>([]);
   const hasTriggered = useRef(false);
+  const hasStartedPointFlight = useRef(false);
   const onContinueRef = useRef(onContinue);
   const closeTimerRef = useRef<number | null>(null);
-  const dropTimerRef = useRef<number | null>(null);
-  const bonusCompletedRef = useRef(false);
+  const startTimerRef = useRef<number | null>(null);
+  const arrivalTimersRef = useRef<number[]>([]);
+  const scoreRef = useRef<HTMLSpanElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
 
   useEffect(() => {
@@ -2159,51 +2263,61 @@ export function CelebrationView({
     });
   }, []);
 
-  const handleBonusAnimationEnd = useCallback(() => {
-    if (bonusCompletedRef.current) {
-      return;
-    }
+  useLayoutEffect(() => {
+    if (hasStartedPointFlight.current) return;
+    hasStartedPointFlight.current = true;
 
-    bonusCompletedRef.current = true;
-    setBonusPhase("bobble");
-    void refreshStats();
+    startTimerRef.current = window.setTimeout(() => {
+      if (!cardRef.current || !scoreRef.current) return;
 
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null;
-      onContinueRef.current();
-    }, 360);
-  }, [refreshStats]);
+      const cardBounds = cardRef.current.getBoundingClientRect();
+      const scoreBounds = scoreRef.current.getBoundingClientRect();
+      const targetX = scoreBounds.left + scoreBounds.width / 2;
+      const targetY = scoreBounds.top + scoreBounds.height / 2;
+      const iconCount = Math.min(Math.ceil(gainedPoints / 2), 25);
+      const flightDuration = 420;
+      const latestStart = 540;
+      const nextIcons = Array.from({ length: iconCount }, (_, index) => {
+        const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
+        const startX = cardBounds.left + cardBounds.width * (0.22 + Math.random() * 0.56);
+        const startY = cardBounds.top + cardBounds.height * (0.24 + Math.random() * 0.52);
 
-  useEffect(() => {
-    if (viewStage !== "points") {
-      return;
-    }
+        return {
+          id: index,
+          startX,
+          startY,
+          scatterX: (Math.random() - 0.5) * 150,
+          scatterY: -35 - Math.random() * 100,
+          targetX,
+          targetY,
+          delay: Math.round(ratio * latestStart),
+        };
+      });
 
-    bonusCompletedRef.current = false;
-    setBonusPhase("idle");
+      setFlightIcons(nextIcons);
+      arrivalTimersRef.current = nextIcons.map((icon, index) => window.setTimeout(() => {
+        setDisplayPoints(basePoints + Math.min(gainedPoints, (index + 1) * 2));
+        setScorePulse(index + 1);
 
-    dropTimerRef.current = window.setTimeout(() => {
-      dropTimerRef.current = null;
-      setBonusPhase("dropping");
-    }, 560);
+        if (index === nextIcons.length - 1) {
+          void refreshStats();
+          closeTimerRef.current = window.setTimeout(() => onContinueRef.current(), 420);
+        }
+      }, icon.delay + flightDuration));
+    }, 1000);
 
     return () => {
-      if (dropTimerRef.current !== null) {
-        window.clearTimeout(dropTimerRef.current);
-        dropTimerRef.current = null;
-      }
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
+      if (startTimerRef.current !== null) window.clearTimeout(startTimerRef.current);
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [viewStage]);
+  }, [basePoints, gainedPoints, refreshStats]);
 
   return (
     <div
       className="animate-screen-pop fixed inset-0 z-40 overflow-hidden bg-background px-4 py-6 text-center sm:px-6 sm:py-8"
       data-quiz-celebration
-      data-quiz-celebration-stage={viewStage}
+      data-quiz-celebration-stage="score-flight"
     >
       <div className="pointer-events-none absolute inset-0 opacity-80" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.14),_transparent_34%)]" />
@@ -2212,10 +2326,7 @@ export function CelebrationView({
       <div className="relative flex h-full w-full items-center justify-center">
         <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
           <div
-            className={cn(
-              "flex justify-center pt-1 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:pt-2",
-              viewStage === "points" && "scale-[1.08]",
-            )}
+            className="flex justify-center pt-1 sm:pt-2"
           >
             <div
               className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
@@ -2225,38 +2336,27 @@ export function CelebrationView({
               <span
                 className={cn(
                   "text-lg font-bold",
-                  bonusPhase === "bobble" && "animate-score-bobble",
+                  scorePulse > 0 && "animate-score-bobble",
                 )}
+                key={scorePulse}
+                ref={scoreRef}
               >
-                {formatPoints(locale, bonusPhase === "bobble" ? stats.totalPoints : basePoints)}
+                {formatPoints(locale, displayPoints)}
               </span>
-              {viewStage === "points" && bonusPhase === "dropping" ? (
-                <span
-                  className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-2xl font-bold text-amber-400 animate-celebration-points-fall"
-                  data-quiz-celebration-points-gain
-                  onAnimationEnd={handleBonusAnimationEnd}
-                >
-                  +{gainedPoints}
-                </span>
-              ) : null}
             </div>
           </div>
 
           <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
             <div
-              className={cn(
-                "flex w-full max-w-2xl flex-col items-center rounded-[2rem] border border-border/70 bg-background-card/95 px-6 py-8 shadow-2xl backdrop-blur-sm transition-all duration-300 sm:px-8 sm:py-10",
-                viewStage === "card"
-                  ? "translate-y-0 opacity-100"
-                  : "pointer-events-none translate-y-4 opacity-0",
-              )}
+                className="flex w-full max-w-2xl flex-col items-center bg-transparent px-6 py-8 sm:px-8 sm:py-10"
               data-quiz-celebration-content
             >
               <h2 className="text-2xl font-semibold text-foreground">
                 {t("quiz.learnedTitle")}
               </h2>
 
-              <div
+                <div
+                  ref={cardRef}
                 className="mt-5 w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]"
                 data-quiz-celebration-card
               >
@@ -2270,16 +2370,47 @@ export function CelebrationView({
                 />
               </div>
 
-              <Button className="mt-5 w-full" onClick={() => setViewStage("points")}>
-                {t("quiz.continue")}
-              </Button>
             </div>
           </div>
         </div>
       </div>
+      {flightIcons.length > 0
+        ? createPortal(
+            flightIcons.map((icon) => (
+              <span
+                key={icon.id}
+                aria-hidden="true"
+                className="pointer-events-none fixed left-0 top-0 z-50 animate-quiz-score-icon-flight"
+                style={{
+                  "--score-flight-start-x": `${icon.startX}px`,
+                  "--score-flight-start-y": `${icon.startY}px`,
+                  "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
+                  "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
+                  "--score-flight-target-x": `${icon.targetX}px`,
+                  "--score-flight-target-y": `${icon.targetY}px`,
+                  animationDelay: `${icon.delay}ms`,
+                } as CSSProperties}
+              >
+                <ScoreIcon size={18} />
+              </span>
+            )),
+            document.body,
+          )
+        : null}
     </div>
   );
 }
+
+type ScoreFlightIcon = {
+  id: number;
+  startX: number;
+  startY: number;
+  scatterX: number;
+  scatterY: number;
+  targetX: number;
+  targetY: number;
+  delay: number;
+};
 
 function useIsMounted() {
   return useSyncExternalStore(

@@ -9,6 +9,8 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "learned",
   "confetti",
   "quiz-complete",
+  "quiz-start",
+  "quiz-select",
   "chest-tap",
   "chest-open",
   "streak-fire",
@@ -16,6 +18,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "clock-tick-high",
   "level-fail",
   "card-ready",
+  "mission-claim",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {
