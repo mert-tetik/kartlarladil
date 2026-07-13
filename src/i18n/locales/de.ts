@@ -615,6 +615,7 @@ const dictionary = {
   "home.mobile.rankLabel": "Rank",
   "home.mobile.pointsLabel": "Points",
   "home.mobile.selectLanguage": "Select language",
+  "home.mobile.appChoiceDescription": "Verlieren Sie die Wörter, die Sie in einer Fremdsprache lernen, nicht. Fügen Sie sie Ihrem FoxiesDeck hinzu, erweitern Sie Ihre Sammlung und wiederholen Sie sie jederzeit.",
   "home.mobile.cardLanguage": "Kartensprache",
   "home.mobile.getFromPlayStore": "Get from Play Store",
   "home.mobile.continueOnWeb": "Continue on web",

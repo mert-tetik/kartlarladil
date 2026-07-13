@@ -615,6 +615,7 @@ const dictionary = {
   "home.mobile.rankLabel": "Rank",
   "home.mobile.pointsLabel": "Points",
   "home.mobile.selectLanguage": "Select language",
+  "home.mobile.appChoiceDescription": "外国語で覚えた単語を失わないでください。FoxiesDeckに追加してコレクションを増やし、好きなときに復習しましょう。",
   "home.mobile.cardLanguage": "ã‚«ãƒ¼ãƒ‰ã®è¨€èª",
   "home.mobile.getFromPlayStore": "Get from Play Store",
   "home.mobile.continueOnWeb": "Continue on web",
