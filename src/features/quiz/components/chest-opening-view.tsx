@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Gift, Sparkles, Star } from "lucide-react";
+import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
@@ -405,11 +406,12 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                       ref={rewardPointsRef}
                       data-chest-reward-points
                       className={cn(
-                        "mt-1 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
+                        "mt-1 flex items-center justify-center gap-2 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
                         shouldHideRewardSource && "opacity-0",
                       )}
                     >
-                      +{tier.points}
+                      <span>{tier.points}</span>
+                      <ScoreIcon size={34} className="size-8 sm:size-10" />
                     </p>
                     <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-400 sm:text-sm">
                       {t("chest.pointsLabel")}
@@ -467,11 +469,12 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         ? createPortal(
             <p
               data-chest-flying-reward-points
-              className="pointer-events-none fixed z-[60] mt-0 text-center text-4xl font-bold leading-none text-amber-400 will-change-transform sm:text-5xl"
+              className="pointer-events-none fixed z-[60] mt-0 flex items-center justify-center gap-2 text-center text-4xl font-bold leading-none text-amber-400 will-change-transform sm:text-5xl"
               style={rewardPointsStyle}
               aria-hidden="true"
             >
-              +{tier.points}
+              <span>{tier.points}</span>
+              <ScoreIcon size={34} className="size-8 sm:size-10" />
             </p>,
             document.body,
           )

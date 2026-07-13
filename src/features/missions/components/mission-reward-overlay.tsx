@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Star } from "lucide-react";
+import { ScoreIcon } from "@/components/score-icon";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useLocale } from "@/i18n/locale-provider";
@@ -176,10 +177,11 @@ function MissionPointsCelebration({
           </span>
           {bonusPhase === "dropping" ? (
             <span
-              className="animate-mission-points-fall-far pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] sm:text-5xl"
+              className="animate-mission-points-fall-far pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] sm:text-5xl"
               onAnimationEnd={handleAnimationEnd}
             >
-              +{amount}
+              <span>{amount}</span>
+              <ScoreIcon size={32} className="size-8 sm:size-10" />
             </span>
           ) : null}
         </div>

@@ -1508,7 +1508,7 @@ export function CountSelection({
                 colorClass,
                 selectedCount === count &&
                   "ring-inset ring-2 ring-white/30 brightness-110",
-                launch && launch.count !== count && "animate-quiz-count-scatter pointer-events-none",
+                launch && launch.count !== count && "animate-quiz-count-scatter pointer-events-none disabled:opacity-100",
                 launch && launch.count === count && "opacity-0",
               )}
               style={
@@ -2326,6 +2326,8 @@ export function CelebrationView({
       arrivalTimersRef.current = nextIcons.map((icon, index) => window.setTimeout(() => {
         setDisplayPoints(basePoints + Math.min(gainedPoints, (index + 1) * 2));
         setScorePulse(index + 1);
+        playSoundEffect("points");
+        vibrate("tap");
 
         if (index === nextIcons.length - 1) {
           void refreshStats();
