@@ -1440,6 +1440,17 @@ export function CountSelection({
         x: (Math.random() - 0.5) * window.innerWidth * 1.6,
         y: 180 + Math.random() * window.innerHeight * 1.15,
         rotation: (Math.random() - 0.5) * 540,
+        launchX: (Math.random() - 0.5) * 70,
+        launchY: -(80 + Math.random() * 140),
+        launchRotation: (Math.random() - 0.5) * 95,
+        landingY: 0,
+        bounceY: 0,
+        bounceRotation: 0,
+      })).map((item) => ({
+        ...item,
+        landingY: item.y * 1.04,
+        bounceY: item.y * 0.9,
+        bounceRotation: item.rotation * 0.92,
       })),
     });
     playSoundEffect("quiz-select");
@@ -1506,6 +1517,12 @@ export function CountSelection({
                       "--quiz-count-scatter-x": `${launch.scatter.find((item) => item.count === count)?.x ?? 0}px`,
                       "--quiz-count-scatter-y": `${launch.scatter.find((item) => item.count === count)?.y ?? 0}px`,
                       "--quiz-count-scatter-rotation": `${launch.scatter.find((item) => item.count === count)?.rotation ?? 0}deg`,
+                      "--quiz-count-scatter-launch-x": `${launch.scatter.find((item) => item.count === count)?.launchX ?? 0}px`,
+                      "--quiz-count-scatter-launch-y": `${launch.scatter.find((item) => item.count === count)?.launchY ?? 0}px`,
+                      "--quiz-count-scatter-launch-rotation": `${launch.scatter.find((item) => item.count === count)?.launchRotation ?? 0}deg`,
+                      "--quiz-count-scatter-landing-y": `${launch.scatter.find((item) => item.count === count)?.landingY ?? 0}px`,
+                      "--quiz-count-scatter-bounce-y": `${launch.scatter.find((item) => item.count === count)?.bounceY ?? 0}px`,
+                      "--quiz-count-scatter-bounce-rotation": `${launch.scatter.find((item) => item.count === count)?.bounceRotation ?? 0}deg`,
                     } as CSSProperties)
                   : undefined
               }
@@ -1568,7 +1585,18 @@ type CountLaunch = {
   scaleY: number;
   targetX: number;
   targetY: number;
-  scatter: Array<{ count: number; x: number; y: number; rotation: number }>;
+  scatter: Array<{
+    count: number;
+    x: number;
+    y: number;
+    rotation: number;
+    launchX: number;
+    launchY: number;
+    launchRotation: number;
+    landingY: number;
+    bounceY: number;
+    bounceRotation: number;
+  }>;
 };
 
 function QuizProgressHeader({

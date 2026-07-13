@@ -982,6 +982,12 @@ body:has([data-ask-page]) footer {
   0% {
     transform: translate3d(0, 0, 0) scale(1, 1);
   }
+  18% {
+    transform: translate3d(0, 8px, 0) scale(0.84, 0.84);
+  }
+  34% {
+    transform: translate3d(0, 2px, 0) scale(0.92, 0.92);
+  }
   100% {
     transform: translate3d(var(--quiz-count-cover-x), var(--quiz-count-cover-y), 0) scale(var(--quiz-count-cover-scale-x), var(--quiz-count-cover-scale-y));
   }
@@ -998,6 +1004,18 @@ body:has([data-ask-page]) footer {
     opacity: 1;
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
+  24% {
+    opacity: 1;
+    transform: translate3d(var(--quiz-count-scatter-launch-x), var(--quiz-count-scatter-launch-y), 0) rotate(var(--quiz-count-scatter-launch-rotation));
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(var(--quiz-count-scatter-x), var(--quiz-count-scatter-landing-y), 0) rotate(var(--quiz-count-scatter-rotation));
+  }
+  86% {
+    opacity: 0.92;
+    transform: translate3d(var(--quiz-count-scatter-x), var(--quiz-count-scatter-bounce-y), 0) rotate(var(--quiz-count-scatter-bounce-rotation));
+  }
   100% {
     opacity: 0;
     transform: translate3d(var(--quiz-count-scatter-x), var(--quiz-count-scatter-y), 0) rotate(var(--quiz-count-scatter-rotation));
@@ -1005,7 +1023,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-quiz-count-scatter {
-  animation: quiz-count-scatter 720ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+  animation: quiz-count-scatter 760ms cubic-bezier(0.2, 0.78, 0.26, 1) both;
   transform-origin: center;
   will-change: transform, opacity;
 }
