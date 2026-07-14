@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
@@ -13,7 +14,7 @@ import { vibrate } from "@/lib/vibration";
 import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
 
 interface MissionRewardOverlayProps {
-  mode: { kind: "chest"; tier: ChestTierDefinition } | { kind: "points"; amount: number } | null;
+  mode: { kind: "chest"; tier: ChestTierDefinition } | { kind: "points"; amount: number; source?: DOMRect } | null;
   onComplete: () => void;
 }
 
@@ -63,6 +64,10 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
     return null;
   }
 
+  if (activeMode.kind === "points") {
+    return <MissionPointsFlight amount={activeMode.amount} source={activeMode.source} totalPoints={stats.totalPoints} onComplete={handleChildComplete} />;
+  }
+
   return (
     <div
       data-mission-reward-overlay
@@ -85,22 +90,58 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
           exiting ? "scale-[0.985] opacity-0" : "scale-100 opacity-100",
         )}
       >
-        {activeMode.kind === "chest" ? (
-          <ChestOpeningView
-            tier={activeMode.tier}
-            totalPoints={stats.totalPoints}
-            onComplete={handleChildComplete}
-          />
-        ) : (
-          <MissionPointsCelebration
-            amount={activeMode.amount}
-            totalPoints={stats.totalPoints}
-            onComplete={handleChildComplete}
-          />
-        )}
+        <ChestOpeningView tier={activeMode.tier} totalPoints={stats.totalPoints} onComplete={handleChildComplete} />
       </div>
     </div>
   );
+}
+
+function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amount: number; source?: DOMRect; totalPoints: number; onComplete: () => void }) {
+  const { locale } = useLocale();
+  const scoreRef = useRef<HTMLSpanElement>(null);
+  const arrivedRef = useRef(new Set<number>());
+  const timersRef = useRef<number[]>([]);
+  const [visible, setVisible] = useState(false);
+  const [displayPoints, setDisplayPoints] = useState(totalPoints);
+  const [pulse, setPulse] = useState(0);
+  const [icons, setIcons] = useState<Array<{ id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number }>>([]);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    const startTimer = window.setTimeout(() => {
+      if (!scoreRef.current) return;
+      setVisible(true);
+      const target = scoreRef.current.getBoundingClientRect();
+      const count = Math.min(Math.ceil(amount / 2), 25);
+      const originX = source ? source.left + source.width / 2 : window.innerWidth / 2;
+      const originY = source ? source.top + source.height / 2 : window.innerHeight / 2;
+      const targetX = target.left + target.width / 2;
+      const targetY = target.top + target.height / 2;
+      setIcons(Array.from({ length: count }, (_, index) => ({ id: index, startX: originX + (Math.random() - 0.5) * 80, startY: originY + (Math.random() - 0.5) * 50, scatterX: (Math.random() - 0.5) * 150, scatterY: -35 - Math.random() * 100, targetX, targetY, delay: Math.round((count === 1 ? 0 : index / (count - 1)) * 780) })));
+    }, 100);
+    return () => { window.clearTimeout(startTimer); timers.forEach((timer) => window.clearTimeout(timer)); };
+  }, [amount, source]);
+
+  function handleArrival(id: number) {
+    if (arrivedRef.current.has(id)) return;
+    arrivedRef.current.add(id);
+    const index = arrivedRef.current.size;
+    setDisplayPoints(totalPoints + Math.min(amount, index * 2));
+    setPulse(index);
+    playSoundEffect("points");
+    vibrate("tap");
+    if (index === icons.length) {
+      timersRef.current.push(window.setTimeout(() => setVisible(false), 420));
+      timersRef.current.push(window.setTimeout(onComplete, 920));
+    }
+  }
+
+  return createPortal(<>
+    <div className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}>
+      <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"><Star className="size-5 fill-current" /><span ref={scoreRef} key={pulse} className={cn("text-lg font-bold", pulse > 0 && "animate-score-bobble")}>{formatPoints(locale, displayPoints)}</span></div>
+    </div>
+    {icons.map((icon) => <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[71] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleArrival(icon.id)}><ScoreIcon size={32} /></span>)}
+  </>, document.body);
 }
 
 function MissionPointsCelebration({

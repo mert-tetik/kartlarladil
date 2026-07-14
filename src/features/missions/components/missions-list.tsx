@@ -43,7 +43,7 @@ export function MissionsList() {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [rewardMode, setRewardMode] = useState<
     | { kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition }
-    | { kind: "points"; amount: number }
+    | { kind: "points"; amount: number; source?: DOMRect }
     | null
   >(null);
 
@@ -99,7 +99,7 @@ export function MissionsList() {
     void syncMissions();
   }, [hydrated, syncMissions, router, user]);
 
-  function handleClaim(missionId: string) {
+  function handleClaim(missionId: string, source?: DOMRect) {
     if (claimingId) return;
 
     const mission = MISSIONS.find((item) => item.id === missionId);
@@ -116,7 +116,7 @@ export function MissionsList() {
         setRewardMode({ kind: "chest", tier });
       }
     } else {
-      setRewardMode({ kind: "points", amount: reward.amount });
+      setRewardMode({ kind: "points", amount: reward.amount, source });
     }
 
     void claimMissionRewardAction(missionId).then(async (result) => {
@@ -200,7 +200,7 @@ export function MissionsList() {
             reward={mission.definition.reward}
             game={mission.definition.game}
             characterId={mission.definition.characterId}
-            onClaim={() => void handleClaim(mission.missionId)}
+            onClaim={(source) => void handleClaim(mission.missionId, source)}
             claiming={claimingId === mission.missionId}
           />
         ))}

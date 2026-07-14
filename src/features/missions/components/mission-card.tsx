@@ -23,7 +23,7 @@ interface MissionCardProps {
   reward: MissionDefinition["reward"];
   game?: MissionDefinition["game"];
   characterId?: MissionDefinition["characterId"];
-  onClaim: () => void;
+  onClaim: (source?: DOMRect) => void;
   claiming: boolean;
 }
 
@@ -73,13 +73,13 @@ export function MissionCard({
     }
   }
 
-  function handleClick() {
+  function handleClick(source?: DOMRect) {
     if (claiming) return;
 
     if (isWaiting) {
       playSoundEffect("mission-claim");
       vibrate("tap");
-      onClaim();
+      onClaim(source);
       return;
     }
 
@@ -92,7 +92,7 @@ export function MissionCard({
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      handleClick();
+      handleClick(event.currentTarget.getBoundingClientRect());
     }
   }
 
@@ -103,7 +103,7 @@ export function MissionCard({
       role="button"
       tabIndex={isClickable ? 0 : -1}
       aria-label={isWaiting ? t("missions.claim") : description}
-      onClick={handleClick}
+      onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect())}
       onKeyDown={handleKeyDown}
       className={cn(
         "relative flex items-center gap-4 rounded-2xl border p-4 shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
