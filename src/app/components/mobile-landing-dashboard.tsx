@@ -3,21 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, Library, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
-import { CardsIcon } from "@/components/icons/cards-icon";
 import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
 import { MissionIcon } from "@/components/mission-icon";
 import { ScoreIcon } from "@/components/score-icon";
 import { LanguageFlag } from "@/components/language-flag";
-import { Button } from "@/components/ui/button";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
-import { MobileTierSelector } from "@/app/components/mobile-tier-selector";
 import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-sheet";
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
+import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
+import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
+import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
 import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
@@ -34,7 +34,6 @@ import {
   hasPlayReviewEligibility,
 } from "@/features/reviews/play-review-eligibility";
 import { useProgressStats } from "@/features/progress/progress-client";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -47,6 +46,7 @@ import {
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 import { vibrate } from "@/lib/vibration";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
@@ -103,22 +103,14 @@ export function MobileLandingDashboard() {
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(defaultLanguage);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
-  const [tierSelectorOpen, setTierSelectorOpen] = useState(false);
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   const [rankInfoOpen, setRankInfoOpen] = useState(false);
   const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
-  const [selectedDetailTier, setSelectedDetailTier] = useState<Tier | "all">("all");
-  const [detailMenuOpen, setDetailMenuOpen] = useState(() => {
-    const menu = searchParams.get("menu");
-    return menu === "active" || menu === "learned";
-  });
-  const [detailMenuStatus, setDetailMenuStatus] = useState<"active" | "learned">(() => {
-    const menu = searchParams.get("menu");
-    return menu === "active" || menu === "learned" ? menu : "active";
-  });
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
+  const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
+  const [customCardOpen, setCustomCardOpen] = useState(false);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
@@ -178,7 +170,6 @@ export function MobileLandingDashboard() {
   }, [locale, selectedLanguage, detectedLocale]);
 
   useEffect(() => {
-    const menu = searchParams.get("menu");
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
     let timeoutId: number | undefined;
 
@@ -188,10 +179,6 @@ export function MobileLandingDashboard() {
       timeoutId = window.setTimeout(() => {
         setSelectedLanguage(requestedLanguage);
       }, 0);
-    }
-
-    if (menu === "active" || menu === "learned") {
-      router.replace(pathname, { scroll: false });
     }
 
     return () => {
@@ -251,41 +238,22 @@ export function MobileLandingDashboard() {
         ? "text-[0.66rem]"
         : "text-[0.72rem]";
 
-  const tierCounts = useMemo(() => {
-    const counts: Record<Tier, { active: number; learned: number }> = {
-      A1: { active: 0, learned: 0 },
-      A2: { active: 0, learned: 0 },
-      B1: { active: 0, learned: 0 },
-      B2: { active: 0, learned: 0 },
-      C1: { active: 0, learned: 0 },
-    };
-
-    for (const item of activeForLanguage) {
-      counts[item.card.tier].active += 1;
-    }
-    for (const item of learnedForLanguage) {
-      counts[item.card.tier].learned += 1;
-    }
-
-    return counts;
-  }, [activeForLanguage, learnedForLanguage]);
-
   function handleDrawCards() {
     vibrate("tap");
     requireAuthAction(() => {
-      const tutorialState = useTutorialStore.getState();
-      if (!tutorialState.completed && tutorialState.step === 0) {
-        tutorialState.advance();
+      const tutorial = useTutorialStore.getState();
+      if (!tutorial.completed && tutorial.step === 0) {
+        tutorial.complete();
       }
-      setTierSelectorOpen(true);
-    }, { nextPath: "/card-draw" });
+      setSwipeDeckOpen(true);
+    }, { nextPath: "/" });
   }
 
   function handleCreateCard() {
     vibrate("tap");
     requireAuthAction(() => {
-      router.push("/create-card");
-    }, { nextPath: "/create-card" });
+      setCustomCardOpen(true);
+    }, { nextPath: "/" });
   }
 
   function handleStartLearning() {
@@ -323,13 +291,6 @@ export function MobileLandingDashboard() {
     router.push(nextPath);
   }
 
-  function openDetailMenu(status: "active" | "learned") {
-    vibrate("tap");
-    setDetailMenuStatus(status);
-    setSelectedDetailTier("all");
-    setDetailMenuOpen(true);
-  }
-
   function handleSelectLanguage(language: LanguageCode) {
     vibrate("tap");
     allowRequestedLanguageRef.current = false;
@@ -352,7 +313,7 @@ export function MobileLandingDashboard() {
   }
 
   return (
-    <section data-mobile-landing-dashboard className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col gap-2.5 overflow-hidden bg-background px-4 py-1 lg:hidden">
+    <section data-mobile-landing-dashboard className="relative h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] overflow-y-auto overscroll-contain bg-background px-4 py-1 lg:hidden">
       {/* Leaderboard badge */}
       <button
         type="button"
@@ -423,7 +384,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="relative -mx-4 flex flex-1 min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+      <div className="relative -mx-4 flex min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
           className="absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
@@ -488,81 +449,25 @@ export function MobileLandingDashboard() {
         </span>
       </button>
 
-      {/* Draw cards + Create card buttons */}
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-2">
-        <Button
-          size="lg"
-          onClick={handleDrawCards}
-          data-tutorial-target="landing-draw-cards"
-          className="h-14 w-full gap-2 border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
-        >
-          <CardsIcon className="size-6" aria-hidden="true" />
-          {t("home.mobile.drawCards")}
-        </Button>
-        <Button
-          size="lg"
-            onClick={handleCreateCard}
-            data-create-card-action
-            data-tutorial-target="create-card"
-          className="h-14 w-full gap-2 border-0 bg-red-500 px-4 text-base font-bold text-white hover:bg-red-600 focus-visible:outline-red-500"
-        >
-          <Library className="size-5 shrink-0" aria-hidden="true" />
-          {t("cards.createCard")}
-        </Button>
-      </div>
-
       {/* Active / Learned row */}
-      <div className="relative grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <span className="whitespace-pre-line text-center text-[10px] font-extrabold uppercase tracking-widest text-white drop-shadow-md leading-none">
-            {t("home.mobile.myCards")}
-          </span>
-        </div>
+      <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
           variant="active"
-          onClick={() => openDetailMenu("active")}
+          onClick={() => setInfoSheetOpen(true)}
           dataTutorialTarget="landing-learning-cards"
         />
         <StatusBlock
           title={t("home.mobile.learnedCards")}
           count={learnedCount}
           variant="learned"
-          onClick={() => openDetailMenu("learned")}
+          onClick={() => setInfoSheetOpen(true)}
         />
       </div>
 
-      {/* Tier breakdown */}
-      <div className="grid shrink-0 grid-cols-5 gap-2">
-        {TIERS.map((tier) => {
-          const style = TIER_STYLES[tier];
-          const count = tierCounts[tier].active + tierCounts[tier].learned;
-
-          return (
-            <button
-              key={tier}
-              type="button"
-              onClick={() => {
-                vibrate("tap");
-                setSelectedDetailTier(tier);
-                setDetailMenuStatus("active");
-                setDetailMenuOpen(true);
-              }}
-              className={cn(
-                "flex flex-col items-center justify-center rounded-md py-1 text-[10px] font-bold text-white shadow-sm transition-transform active:scale-95",
-                style.accent,
-              )}
-            >
-              <span>{tier}</span>
-              <span className="text-xs">{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Action buttons */}
-      <div className="flex shrink-0 flex-col gap-3 pb-1">
+      <div className="mt-3 flex flex-col gap-3 pb-1">
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}
@@ -580,6 +485,13 @@ export function MobileLandingDashboard() {
         />
       </div>
 
+      <MobileLandingCardCenter
+        activeCards={activeForLanguage}
+        learnedCards={learnedForLanguage}
+        onOpenDraw={handleDrawCards}
+        onOpenCreate={handleCreateCard}
+      />
+
       {/* Sheets */}
       <MobileLanguageBottomSheet
         isOpen={languageSheetOpen}
@@ -587,12 +499,6 @@ export function MobileLandingDashboard() {
         options={languageStats}
         selectedLanguage={selectedLanguage}
         onSelect={handleSelectLanguage}
-      />
-
-      <MobileTierSelector
-        isOpen={tierSelectorOpen}
-        onClose={() => setTierSelectorOpen(false)}
-        language={selectedLanguage}
       />
 
       <MobileLandingInfoSheet
@@ -616,17 +522,8 @@ export function MobileLandingDashboard() {
         variant={lockedSheet ?? "active"}
       />
 
-      <TierDetailMenu
-        isOpen={detailMenuOpen}
-        onClose={() => setDetailMenuOpen(false)}
-        selectedTier={selectedDetailTier}
-        onTierChange={setSelectedDetailTier}
-        activeCards={activeForLanguage}
-        learnedCards={learnedForLanguage}
-        status={detailMenuStatus}
-        onStatusChange={setDetailMenuStatus}
-        selectedLanguage={selectedLanguage}
-      />
+      <MobileCardSwipeOverlay open={swipeDeckOpen} language={selectedLanguage} onClose={() => setSwipeDeckOpen(false)} />
+      <MobileCustomCardSheet open={customCardOpen} onClose={() => setCustomCardOpen(false)} />
 
       <UpgradeDialog
         open={showLanguageMatchDialog}
@@ -686,7 +583,7 @@ function StatusBlock({
   );
 }
 
-function TierDetailMenu({
+export function TierDetailMenu({
   isOpen,
   onClose,
   selectedTier,

@@ -628,7 +628,7 @@ const dictionary = {
   "home.mobile.drawCards": "Kart çek",
   "home.mobile.myCards": "kelime\nkartlarım",
   "home.mobile.selectTierTitle": "Hangi seviyede kart çekmek istersin?",
-  "home.mobile.activeCards": "Öğreniliyor",
+  "home.mobile.activeCards": "Öğrenilecekler",
   "home.mobile.learnedCards": "Öğrenildi",
   "home.mobile.startLearning": "Öğrenmeye Başla",
   "home.mobile.repeatLearned": "Öğrenilenleri Tekrar Et",
@@ -787,6 +787,13 @@ const dictionary = {
   "tutorial.closeRank": "Rütbe bilgilerini gördükten sonra çık.",
   "tutorial.openLeaderboard": "Sıralamadaki yerini görmek için buraya dokun.",
   "tutorial.backFromLeaderboard": "Sıralamayı gördükten sonra ana sayfaya dön.",
+  "cards.centerTitle": "Kartlar",
+  "cards.all": "Tüm Kartlar",
+  "cards.toLearn": "Öğrenilecekler",
+  "cards.listen": "Dinle",
+  "cards.addToDeck": "Kartlara ekle",
+  "cards.swipeHint": "Atlamak için sola, koleksiyonuna eklemek için sağa kaydır.",
+  "cards.createCustom": "Özel kart oluştur",
 } as const;
 
 export default dictionary;

@@ -628,7 +628,7 @@ const dictionary = {
   "home.mobile.drawCards": "Draw cards",
   "home.mobile.myCards": "我的单词\n卡片",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
-  "home.mobile.activeCards": "Learning",
+  "home.mobile.activeCards": "待学习",
   "home.mobile.learnedCards": "Learned",
   "home.mobile.startLearning": "Start Learning",
   "home.mobile.repeatLearned": "Review Learned",
@@ -788,6 +788,7 @@ const dictionary = {
   "tutorial.closeRank": "查看等级详情后退出。",
   "tutorial.openLeaderboard": "点击这里查看你在排行榜上的位置。",
   "tutorial.backFromLeaderboard": "查看排行榜后返回首页。",
+  "cards.centerTitle": "卡片", "cards.all": "全部卡片", "cards.toLearn": "待学习", "cards.listen": "朗读", "cards.addToDeck": "加入卡片", "cards.swipeHint": "向左滑动跳过，向右滑动加入收藏。", "cards.createCustom": "创建自定义卡片",
 } as const;
 
 export default dictionary;

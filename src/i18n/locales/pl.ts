@@ -628,7 +628,7 @@ const dictionary = {
   "home.mobile.drawCards": "Draw cards",
   "home.mobile.myCards": "Moje karty\nsłowne",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
-  "home.mobile.activeCards": "Learning",
+  "home.mobile.activeCards": "Do nauki",
   "home.mobile.learnedCards": "Learned",
   "home.mobile.startLearning": "Start Learning",
   "home.mobile.repeatLearned": "Review Learned",
@@ -788,6 +788,7 @@ const dictionary = {
   "tutorial.closeRank": "Wyjdź po obejrzeniu szczegółów swojej rangi.",
   "tutorial.openLeaderboard": "Dotknij tutaj, aby zobaczyć swoją pozycję w rankingu.",
   "tutorial.backFromLeaderboard": "Wróć do strony głównej po obejrzeniu rankingu.",
+  "cards.centerTitle": "Karty", "cards.all": "Wszystkie", "cards.toLearn": "Do nauki", "cards.listen": "Odsłuchaj", "cards.addToDeck": "Dodaj do kart", "cards.swipeHint": "Przesuń w lewo, aby pominąć, lub w prawo, aby dodać do kolekcji.", "cards.createCustom": "Utwórz własną kartę",
 } as const;
 
 export default dictionary;

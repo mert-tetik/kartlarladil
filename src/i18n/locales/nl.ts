@@ -628,7 +628,7 @@ const dictionary = {
   "home.mobile.drawCards": "Draw cards",
   "home.mobile.myCards": "Mijn woord\nkaarten",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
-  "home.mobile.activeCards": "Learning",
+  "home.mobile.activeCards": "Te leren",
   "home.mobile.learnedCards": "Learned",
   "home.mobile.startLearning": "Start Learning",
   "home.mobile.repeatLearned": "Review Learned",
@@ -788,6 +788,7 @@ const dictionary = {
   "tutorial.closeRank": "Sluit af nadat je je rangdetails hebt bekeken.",
   "tutorial.openLeaderboard": "Tik hier om je positie op het klassement te zien.",
   "tutorial.backFromLeaderboard": "Ga terug naar de startpagina nadat je het klassement hebt bekeken.",
+  "cards.centerTitle": "Kaarten", "cards.all": "Alle kaarten", "cards.toLearn": "Te leren", "cards.listen": "Luisteren", "cards.addToDeck": "Aan kaarten toevoegen", "cards.swipeHint": "Veeg links om over te slaan of rechts om aan je collectie toe te voegen.", "cards.createCustom": "Eigen kaart maken",
 } as const;
 
 export default dictionary;
