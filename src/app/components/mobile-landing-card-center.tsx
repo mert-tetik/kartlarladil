@@ -53,10 +53,10 @@ export function MobileLandingCardCenter({
         </div>
       </div>
 
-      <div className="sticky top-0 z-20 space-y-2 border-b border-border bg-background px-4 py-3">
+      <div className="sticky top-0 z-20 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm">
         <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">
           {(["all", "active", "learned"] as const).map((item) => (
-            <button key={item} type="button" onClick={() => setStatus(item)} className={cn("rounded-md px-2 py-2 text-xs font-semibold transition-colors", status === item ? "bg-background-card text-foreground shadow-sm" : "text-foreground-secondary")}>
+            <button key={item} type="button" onClick={() => setStatus(item)} className={cn("rounded-md px-2 py-2 text-xs font-semibold transition-all duration-300", status === item ? item === "all" ? "bg-white text-black shadow-sm" : item === "active" ? "bg-emerald-500 text-white shadow-sm" : "bg-sky-500 text-white shadow-sm" : "text-foreground-secondary")}>
               {t(`cards.${item === "all" ? "all" : item === "active" ? "toLearn" : "learned"}`)}
             </button>
           ))}

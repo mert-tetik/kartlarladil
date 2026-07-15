@@ -21,9 +21,18 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const [dragX, setDragX] = useState(0);
   const [dragY, setDragY] = useState(0);
   const [locked, setLocked] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [outgoing, setOutgoing] = useState<{ card: VocabularyCard; direction: "skip" | "add"; active: boolean } | null>(null);
+  const [incoming, setIncoming] = useState(false);
+  const [mounted, setMounted] = useState(open);
   const start = useRef<{ x: number; y: number } | null>(null);
   const card = deck[0] ?? null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMounted(open), open ? 0 : 300);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   const loadDeck = useCallback(() => {
     const next = TIERS.flatMap((tier) => {
@@ -42,12 +51,19 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   function finish(direction: "skip" | "add") {
     if (!card || locked) return;
     setLocked(true);
-    setDragX(direction === "add" ? window.innerWidth : -window.innerWidth);
+    setDragging(false);
+    setOutgoing({ card, direction, active: false });
+    setDeck((current) => current.slice(1));
+    setIncoming(true);
+    setDragX(0); setDragY(0);
+    window.requestAnimationFrame(() => {
+      setOutgoing((current) => current ? { ...current, active: true } : null);
+      window.requestAnimationFrame(() => setIncoming(false));
+    });
     window.setTimeout(async () => {
       if (direction === "add") await addCard(card.sourceKey);
-      setDeck((current) => current.slice(1));
-      setDragX(0); setDragY(0); setLocked(false);
-    }, 220);
+      setOutgoing(null); setLocked(false);
+    }, 280);
   }
 
   useEffect(() => {
@@ -55,18 +71,19 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     const timer = window.setTimeout(loadDeck, 0);
     return () => window.clearTimeout(timer);
   }, [deck.length, open, locked, loadDeck]);
-  if (!open) return null;
+  if (!mounted) return null;
   const leftActive = dragX <= -THRESHOLD;
   const rightActive = dragX >= THRESHOLD;
-  return <div role="dialog" aria-modal="true" className="fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] lg:hidden">
+  return <div role="dialog" aria-modal="true" className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-opacity duration-300 lg:hidden", open ? "opacity-100" : "pointer-events-none opacity-0")}>
     <div className="flex items-center justify-between"><p className="text-sm font-semibold text-foreground-secondary">{t("nav.cardDraw")}</p><button type="button" onClick={onClose} aria-label={t("common.close")} className="inline-flex size-10 items-center justify-center rounded-md text-foreground"><X className="size-6" /></button></div>
     <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { setDragX(event.clientX - start.current.x); setDragY(event.clientY - start.current.y); } }} onPointerUp={() => { if (dragX >= THRESHOLD) finish("add"); else if (dragX <= -THRESHOLD) finish("skip"); else { setDragX(0); setDragY(0); } start.current = null; }} className={cn("relative w-full max-w-[330px] touch-none transition-transform duration-200", locked ? "pointer-events-none" : "") } style={{ transform: `translateX(${dragX}px) rotate(${dragX / 18 + dragY / 90}deg)` }}>
+      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { setDragX(event.clientX - start.current.x); setDragY(event.clientY - start.current.y); } }} onPointerUp={() => { setDragging(false); if (dragX >= THRESHOLD) finish("add"); else if (dragX <= -THRESHOLD) finish("skip"); else { setDragX(0); setDragY(0); } start.current = null; }} className={cn("relative z-10 w-full max-w-[380px] touch-none", dragging ? "" : "transition-[transform,opacity] duration-300 ease-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? 56 : 0}px) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
         <div className={cn("pointer-events-none absolute inset-0 z-20 rounded-xl transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")} />
         {leftActive ? <span className="absolute right-5 top-5 z-30 text-xl font-bold text-white">{t("cards.skip")}</span> : null}
         {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
-        <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit className="aspect-[3/4] w-full" />
+        <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit className="aspect-[3/4] w-full scale-[1.06]" />
       </div> : <p className="text-sm text-foreground-secondary">{t("inventory.emptyAnyDescription")}</p>}
+      {outgoing ? <div className="pointer-events-none absolute z-20 w-full max-w-[380px] transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translateX(${outgoing.direction === "add" ? window.innerWidth : -window.innerWidth}px) rotate(${outgoing.direction === "add" ? 18 : -18}deg)` : "translateX(0)" }}><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit className="aspect-[3/4] w-full scale-[1.06]" /></div> : null}
     </div>
     <p className="text-center text-xs text-foreground-muted">{t("cards.swipeHint")}</p>
   </div>;

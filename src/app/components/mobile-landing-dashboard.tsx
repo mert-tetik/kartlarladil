@@ -384,7 +384,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="relative -mx-4 flex min-h-[150px] max-h-[52vh] flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+      <div className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
           className="absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
@@ -396,14 +396,14 @@ export function MobileLandingDashboard() {
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <div className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center self-stretch">
+        <div className="relative z-10 flex h-[142px] w-full items-center justify-center self-stretch">
           <button
             type="button"
             onClick={() => {
               vibrate("tap");
               setRankInfoOpen(true);
             }}
-            className="inline-flex h-full min-h-0 max-w-full items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex h-full w-[142px] items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             aria-label={getRankLabel(stats.rank, locale)}
             data-rank-icon-button
             data-tutorial-target="rank-info"
@@ -412,7 +412,7 @@ export function MobileLandingDashboard() {
             <img
               src={RANK_ICON_ASSETS[stats.rank.icon]}
               alt=""
-              className="h-full max-h-full w-auto max-w-full object-contain"
+              className="h-[128px] w-auto object-contain"
               draggable={false}
             />
           </button>
