@@ -90,7 +90,7 @@ export function MobileLandingCardCenter({
           data-mobile-card-filters
           className={cn(
             "z-40 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm",
-            filtersPinned ? "fixed inset-x-0 top-[var(--app-header-height)]" : "relative z-20",
+            filtersPinned ? "fixed inset-x-0 top-0" : "relative z-20",
           )}
         >
           <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">
