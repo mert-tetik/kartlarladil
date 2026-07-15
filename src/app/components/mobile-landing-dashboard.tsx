@@ -396,14 +396,14 @@ export function MobileLandingDashboard() {
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
-        <div className="relative z-10 flex h-[142px] w-full items-center justify-center self-stretch">
+        <div className="relative z-10 flex h-[150px] w-full items-center justify-center self-stretch">
           <button
             type="button"
             onClick={() => {
               vibrate("tap");
               setRankInfoOpen(true);
             }}
-            className="inline-flex h-full w-[142px] items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex h-full w-[150px] items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             aria-label={getRankLabel(stats.rank, locale)}
             data-rank-icon-button
             data-tutorial-target="rank-info"
@@ -412,7 +412,7 @@ export function MobileLandingDashboard() {
             <img
               src={RANK_ICON_ASSETS[stats.rank.icon]}
               alt=""
-              className="h-[128px] w-auto object-contain"
+              className="h-[136px] w-auto object-contain"
               draggable={false}
             />
           </button>

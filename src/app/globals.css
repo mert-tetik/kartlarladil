@@ -108,6 +108,20 @@ button:disabled,
 }
 
 @media (max-width: 1023px) {
+  body,
+  body * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"],
+  [data-allow-text-selection] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   input,
   textarea,
   select {
