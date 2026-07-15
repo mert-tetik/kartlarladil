@@ -28,6 +28,7 @@ import {
 } from "@/features/push/push-client";
 import { PUSH_APP_SURFACE, type PushActionResult, type PushPermissionState } from "@/features/push/push-types";
 import { useT } from "@/i18n/locale-provider";
+import { cn } from "@/lib/utils";
 
 interface PushNotificationsContextValue {
   supported: boolean;
