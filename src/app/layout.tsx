@@ -57,10 +57,12 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={direction} className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full" data-theme={themeId}>
-        <AppShell locale={locale} user={user}>{children}</AppShell>
+        <AppShell locale={locale} user={user}>
+          {children}
+          <TutorialPointer />
+          <GamesNavPointer />
+        </AppShell>
         <LemonSqueezyScript />
-        <TutorialPointer />
-        <GamesNavPointer />
       </body>
     </html>
   );
