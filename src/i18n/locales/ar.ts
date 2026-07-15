@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "اضغط على «إضافة».",
   "install.addToHomeScreen.guideFooter": "تظهر الأيقونة فقط على الجهاز الذي أضفتها عليه.",
   "install.addToHomeScreen.guideImageAlt": "مثال يوضح خيار «إضافة إلى الشاشة الرئيسية» على iPhone.",
+  "tutorial.drawCards": "اضغط هنا لسحب بطاقات عشوائية.",
+  "tutorial.chooseTier": "اختر مستوى صعوبة البطاقات الذي تريده.",
+  "tutorial.drawCardsAction": "اضغط هنا لاختيار بطاقات عشوائية.",
+  "tutorial.viewDrawnCards": "اضغط على البطاقة لرؤية وجهها الأمامي.",
+  "tutorial.addCard": "أضف هذه البطاقة إلى مجموعتك.",
+  "tutorial.returnHome": "ارجع إلى الصفحة الرئيسية.",
+  "tutorial.viewLearningCards": "اضغط هنا لرؤية مجموعة بطاقاتك.",
+  "tutorial.startLearning": "اضغط هنا لمراجعة مجموعتك وكسب النقاط.",
+  "tutorial.closeCollection": "اخرج بعد مشاهدة بطاقاتك.",
+  "tutorial.createCard": "اضغط هنا لإضافة أي كلمة تريدها إلى مجموعتك.",
+  "tutorial.backFromCreateCard": "ارجع إلى الصفحة الرئيسية بعد إضافة كلمتك.",
+  "tutorial.viewRank": "ترتقي في الرتبة كلما كسبت نقاطاً. يمكنك رؤية رتبتك هنا.",
+  "tutorial.closeRank": "اخرج بعد مشاهدة تفاصيل رتبتك.",
+  "tutorial.openLeaderboard": "اضغط هنا لرؤية موقعك في لوحة الصدارة.",
+  "tutorial.backFromLeaderboard": "ارجع إلى الصفحة الرئيسية بعد مشاهدة لوحة الصدارة.",
 } as const;
 
 export default dictionary;

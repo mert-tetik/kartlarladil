@@ -23,6 +23,21 @@
   --mobile-keyboard-offset: 0px;
 }
 
+/* Keep the TWA and mobile web UI independent from browser text autosizing. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+button,
+input,
+textarea,
+select {
+  font-synthesis: none;
+}
+
 :where([data-theme$="-dark"]) {
   --background: #090909;
   --background-card: #121212;
@@ -62,6 +77,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
   letter-spacing: 0;
+  min-width: 320px;
 }
 
 .scrollbar-hide {

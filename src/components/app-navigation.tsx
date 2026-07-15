@@ -111,6 +111,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
     return "/";
   })();
+  const mobileBackTutorialTarget =
+    pathname === "/card-draw"
+      ? "card-draw-navbar-back"
+      : pathname === "/create-card"
+        ? "create-card-navbar-back"
+        : pathname === "/leaderboard"
+          ? "leaderboard-navbar-back"
+          : undefined;
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -151,7 +159,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   requestMobileNavbarBack();
                 }
               }}
-              data-tutorial-target="navbar-back"
+              data-tutorial-target={mobileBackTutorialTarget}
               className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
             >
               <ChevronLeft className="size-6" aria-hidden="true" />

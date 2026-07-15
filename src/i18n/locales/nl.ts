@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Tik op Voeg toe.",
   "install.addToHomeScreen.guideFooter": "Het pictogram verschijnt alleen op het apparaat waarop je het hebt toegevoegd.",
   "install.addToHomeScreen.guideImageAlt": "Voorbeeld van de optie 'Zet op beginscherm' op een iPhone.",
+  "tutorial.drawCards": "Tik hier om willekeurige kaarten te trekken.",
+  "tutorial.chooseTier": "Kies de gewenste moeilijkheidsgraad van de kaarten.",
+  "tutorial.drawCardsAction": "Tik hier om willekeurige kaarten te selecteren.",
+  "tutorial.viewDrawnCards": "Tik op de kaart om de voorkant te zien.",
+  "tutorial.addCard": "Voeg deze kaart toe aan je collectie.",
+  "tutorial.returnHome": "Ga terug naar de startpagina.",
+  "tutorial.viewLearningCards": "Tik hier om je kaartencollectie te bekijken.",
+  "tutorial.startLearning": "Tik hier om je collectie te herhalen en punten te verdienen.",
+  "tutorial.closeCollection": "Sluit af nadat je je kaarten hebt bekeken.",
+  "tutorial.createCard": "Tik hier om elk gewenst woord aan je stapel toe te voegen.",
+  "tutorial.backFromCreateCard": "Ga terug naar de startpagina nadat je je woord hebt toegevoegd.",
+  "tutorial.viewRank": "Je stijgt in rang door punten te verdienen. Bekijk je rang hier.",
+  "tutorial.closeRank": "Sluit af nadat je je rangdetails hebt bekeken.",
+  "tutorial.openLeaderboard": "Tik hier om je positie op het klassement te zien.",
+  "tutorial.backFromLeaderboard": "Ga terug naar de startpagina nadat je het klassement hebt bekeken.",
 } as const;
 
 export default dictionary;

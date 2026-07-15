@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Stuknij Dodaj.",
   "install.addToHomeScreen.guideFooter": "Ikona pojawi się tylko na urządzeniu, na którym ją dodano.",
   "install.addToHomeScreen.guideImageAlt": "Przykład opcji „Dodaj do ekranu głównego” na iPhonie.",
+  "tutorial.drawCards": "Dotknij tutaj, aby wylosować losowe karty.",
+  "tutorial.chooseTier": "Wybierz żądany poziom trudności kart.",
+  "tutorial.drawCardsAction": "Dotknij tutaj, aby wybrać losowe karty.",
+  "tutorial.viewDrawnCards": "Dotknij karty, aby zobaczyć jej przednią stronę.",
+  "tutorial.addCard": "Dodaj tę kartę do swojej kolekcji.",
+  "tutorial.returnHome": "Wróć do strony głównej.",
+  "tutorial.viewLearningCards": "Dotknij tutaj, aby zobaczyć swoją kolekcję kart.",
+  "tutorial.startLearning": "Dotknij tutaj, aby powtórzyć kolekcję i zdobywać punkty.",
+  "tutorial.closeCollection": "Wyjdź po obejrzeniu swoich kart.",
+  "tutorial.createCard": "Dotknij tutaj, aby dodać dowolne słowo do swojej talii.",
+  "tutorial.backFromCreateCard": "Wróć do strony głównej po dodaniu słowa.",
+  "tutorial.viewRank": "Zdobywając punkty, awansujesz w randze. Zobacz swój ranking tutaj.",
+  "tutorial.closeRank": "Wyjdź po obejrzeniu szczegółów swojej rangi.",
+  "tutorial.openLeaderboard": "Dotknij tutaj, aby zobaczyć swoją pozycję w rankingu.",
+  "tutorial.backFromLeaderboard": "Wróć do strony głównej po obejrzeniu rankingu.",
 } as const;
 
 export default dictionary;

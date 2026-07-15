@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Tippe auf „Hinzufügen“.",
   "install.addToHomeScreen.guideFooter": "Das Symbol wird nur auf dem Gerät angezeigt, auf dem du es hinzugefügt hast.",
   "install.addToHomeScreen.guideImageAlt": "Beispiel mit der Option „Zum Home-Bildschirm“ auf einem iPhone.",
+  "tutorial.drawCards": "Tippe hier, um zufällige Karten zu ziehen.",
+  "tutorial.chooseTier": "Wähle die gewünschte Kartenschwierigkeit.",
+  "tutorial.drawCardsAction": "Tippe hier, um zufällige Karten auszuwählen.",
+  "tutorial.viewDrawnCards": "Tippe auf die Karte, um ihre Vorderseite zu sehen.",
+  "tutorial.addCard": "Füge diese Karte deiner Sammlung hinzu.",
+  "tutorial.returnHome": "Kehre zur Startseite zurück.",
+  "tutorial.viewLearningCards": "Tippe hier, um deine Kartensammlung zu sehen.",
+  "tutorial.startLearning": "Tippe hier, um deine Sammlung zu wiederholen und Punkte zu sammeln.",
+  "tutorial.closeCollection": "Schließe die Ansicht, nachdem du deine Karten gesehen hast.",
+  "tutorial.createCard": "Tippe hier, um ein beliebiges Wort deinem Stapel hinzuzufügen.",
+  "tutorial.backFromCreateCard": "Kehre nach dem Hinzufügen deines Wortes zur Startseite zurück.",
+  "tutorial.viewRank": "Mit gesammelten Punkten steigst du im Rang auf. Sieh deinen Rang hier.",
+  "tutorial.closeRank": "Schließe die Ansicht, nachdem du deine Rangdetails gesehen hast.",
+  "tutorial.openLeaderboard": "Tippe hier, um deine Position in der Rangliste zu sehen.",
+  "tutorial.backFromLeaderboard": "Kehre nach dem Ansehen der Rangliste zur Startseite zurück.",
 } as const;
 
 export default dictionary;

@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getTwaMode } from "@/features/install-app/twa-mode";
 import { useT } from "@/i18n/locale-provider";
 
 const COOKIE_NOTICE_KEY = "foxiesdeck-cookie-notice-dismissed";
@@ -10,6 +11,10 @@ const COOKIE_NOTICE_KEY = "foxiesdeck-cookie-notice-dismissed";
 function readDismissedState() {
   if (typeof window === "undefined") {
     return true;
+  }
+
+  if (getTwaMode()) {
+    return false;
   }
 
   try {

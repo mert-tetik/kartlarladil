@@ -4,6 +4,7 @@ export interface TutorialTarget {
   selector: string;
   pages: string[];
   advanceOnClick?: boolean;
+  pointerOffsetY?: number;
 }
 
 export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
@@ -42,12 +43,65 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
   },
   {
     step: 5,
-    key: "navbar-back",
-    selector: '[data-tutorial-target="navbar-back"]',
+    key: "card-draw-navbar-back",
+    selector: '[data-tutorial-target="card-draw-navbar-back"]',
     pages: ["/card-draw"],
+    pointerOffsetY: 12,
   },
   {
     step: 6,
+    key: "landing-learning-cards",
+    selector: '[data-tutorial-target="landing-learning-cards"]',
+    pages: ["/"],
+  },
+  {
+    step: 7,
+    key: "close-collection-menu",
+    selector: '[data-tutorial-target="close-collection-menu"]',
+    pages: ["/"],
+    pointerOffsetY: 12,
+  },
+  {
+    step: 8,
+    key: "create-card",
+    selector: '[data-tutorial-target="create-card"]',
+    pages: ["/"],
+  },
+  {
+    step: 9,
+    key: "create-card-navbar-back",
+    selector: '[data-tutorial-target="create-card-navbar-back"]',
+    pages: ["/create-card"],
+    pointerOffsetY: 12,
+  },
+  {
+    step: 10,
+    key: "rank-info",
+    selector: '[data-tutorial-target="rank-info"]',
+    pages: ["/"],
+  },
+  {
+    step: 11,
+    key: "close-rank-menu",
+    selector: '[data-tutorial-target="close-rank-menu"]',
+    pages: ["/"],
+    pointerOffsetY: 12,
+  },
+  {
+    step: 12,
+    key: "leaderboard",
+    selector: '[data-tutorial-target="leaderboard"]',
+    pages: ["/"],
+  },
+  {
+    step: 13,
+    key: "leaderboard-navbar-back",
+    selector: '[data-tutorial-target="leaderboard-navbar-back"]',
+    pages: ["/leaderboard"],
+    pointerOffsetY: 12,
+  },
+  {
+    step: 14,
     key: "start-learning",
     selector: '[data-tutorial-target="start-learning"]',
     pages: ["/"],

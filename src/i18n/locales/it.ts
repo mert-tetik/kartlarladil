@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Tocca Aggiungi.",
   "install.addToHomeScreen.guideFooter": "L’icona viene visualizzata solo sul dispositivo su cui l’hai aggiunta.",
   "install.addToHomeScreen.guideImageAlt": "Esempio dell’opzione “Aggiungi a Home” su un iPhone.",
+  "tutorial.drawCards": "Tocca qui per pescare carte casuali.",
+  "tutorial.chooseTier": "Scegli il livello di difficoltà delle carte che desideri.",
+  "tutorial.drawCardsAction": "Tocca qui per selezionare carte casuali.",
+  "tutorial.viewDrawnCards": "Tocca la carta per vedere il suo fronte.",
+  "tutorial.addCard": "Aggiungi questa carta alla tua collezione.",
+  "tutorial.returnHome": "Torna alla pagina iniziale.",
+  "tutorial.viewLearningCards": "Tocca qui per vedere la tua collezione di carte.",
+  "tutorial.startLearning": "Tocca qui per ripassare la tua collezione e guadagnare punti.",
+  "tutorial.closeCollection": "Esci dopo aver visto le tue carte.",
+  "tutorial.createCard": "Tocca qui per aggiungere qualsiasi parola al tuo mazzo.",
+  "tutorial.backFromCreateCard": "Torna alla pagina iniziale dopo aver aggiunto la parola.",
+  "tutorial.viewRank": "Salendo di punti aumenti di grado. Guarda qui il tuo grado.",
+  "tutorial.closeRank": "Esci dopo aver visto i dettagli del tuo grado.",
+  "tutorial.openLeaderboard": "Tocca qui per vedere la tua posizione in classifica.",
+  "tutorial.backFromLeaderboard": "Torna alla pagina iniziale dopo aver visto la classifica.",
 } as const;
 
 export default dictionary;

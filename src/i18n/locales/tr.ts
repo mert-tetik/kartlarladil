@@ -772,6 +772,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Ekle’ye dokunun.",
   "install.addToHomeScreen.guideFooter": "Simge yalnızca onu eklediğiniz aygıtta görünür.",
   "install.addToHomeScreen.guideImageAlt": "iPhone'da Ana Ekrana Ekle seçeneğini gösteren örnek.",
+  "tutorial.drawCards": "Rastgele kart çekmek için buraya dokunun.",
+  "tutorial.chooseTier": "İstediğin kart zorluk seviyesini seç.",
+  "tutorial.drawCardsAction": "Rastgele kart seçmek için buraya dokunun.",
+  "tutorial.viewDrawnCards": "Kartın ön yüzünü görmek için karta tıkla.",
+  "tutorial.addCard": "Bu kartı koleksiyonuna ekle.",
+  "tutorial.returnHome": "Ana sayfaya dön.",
+  "tutorial.viewLearningCards": "Kart koleksiyonunu görmek için buraya dokun.",
+  "tutorial.startLearning": "Koleksiyonunu tekrar edip puan kazanmak için buraya dokun.",
+  "tutorial.closeCollection": "Kartlarını gördükten sonra çık.",
+  "tutorial.createCard": "İstediğiniz kelimeyi destenize eklemek için buraya basın.",
+  "tutorial.backFromCreateCard": "Kelime ekleme işleminiz bittikten sonra ana sayfaya dönün.",
+  "tutorial.viewRank": "Puan kazandıkça rütbe atlarsın. Rütbeni buradan görebilirsin.",
+  "tutorial.closeRank": "Rütbe bilgilerini gördükten sonra çık.",
+  "tutorial.openLeaderboard": "Sıralamadaki yerini görmek için buraya dokun.",
+  "tutorial.backFromLeaderboard": "Sıralamayı gördükten sonra ana sayfaya dön.",
 } as const;
 
 export default dictionary;

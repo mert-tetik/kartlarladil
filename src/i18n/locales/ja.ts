@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "「追加」をタップします。",
   "install.addToHomeScreen.guideFooter": "アイコンは追加したデバイスにのみ表示されます。",
   "install.addToHomeScreen.guideImageAlt": "iPhoneの「ホーム画面に追加」オプションの例。",
+  "tutorial.drawCards": "ここをタップしてランダムなカードを引きます。",
+  "tutorial.chooseTier": "希望するカードの難易度を選択してください。",
+  "tutorial.drawCardsAction": "ここをタップしてランダムなカードを選びます。",
+  "tutorial.viewDrawnCards": "カードをタップして表面を確認します。",
+  "tutorial.addCard": "このカードをコレクションに追加します。",
+  "tutorial.returnHome": "ホーム画面に戻ります。",
+  "tutorial.viewLearningCards": "ここをタップしてカードコレクションを確認します。",
+  "tutorial.startLearning": "ここをタップしてコレクションを復習し、ポイントを獲得します。",
+  "tutorial.closeCollection": "カードを確認したら閉じます。",
+  "tutorial.createCard": "ここをタップして好きな単語をデッキに追加します。",
+  "tutorial.backFromCreateCard": "単語を追加したらホーム画面に戻ります。",
+  "tutorial.viewRank": "ポイントを獲得するとランクが上がります。ここでランクを確認できます。",
+  "tutorial.closeRank": "ランクの詳細を確認したら閉じます。",
+  "tutorial.openLeaderboard": "ここをタップしてランキングでの順位を確認します。",
+  "tutorial.backFromLeaderboard": "ランキングを確認したらホーム画面に戻ります。",
 } as const;
 
 export default dictionary;

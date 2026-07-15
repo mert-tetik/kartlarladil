@@ -21,7 +21,7 @@ interface TutorialState {
   setShowGamesPointer: (value: boolean) => void;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 15;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(

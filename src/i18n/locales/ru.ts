@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Нажмите «Добавить».",
   "install.addToHomeScreen.guideFooter": "Значок появится только на устройстве, на котором вы его добавили.",
   "install.addToHomeScreen.guideImageAlt": "Пример с пунктом «На экран Домой» на iPhone.",
+  "tutorial.drawCards": "Нажмите здесь, чтобы вытянуть случайные карточки.",
+  "tutorial.chooseTier": "Выберите желаемый уровень сложности карточек.",
+  "tutorial.drawCardsAction": "Нажмите здесь, чтобы выбрать случайные карточки.",
+  "tutorial.viewDrawnCards": "Нажмите на карточку, чтобы увидеть её лицевую сторону.",
+  "tutorial.addCard": "Добавьте эту карточку в свою коллекцию.",
+  "tutorial.returnHome": "Вернитесь на главную страницу.",
+  "tutorial.viewLearningCards": "Нажмите здесь, чтобы увидеть свою коллекцию карточек.",
+  "tutorial.startLearning": "Нажмите здесь, чтобы повторить коллекцию и получить очки.",
+  "tutorial.closeCollection": "Закройте меню после просмотра карточек.",
+  "tutorial.createCard": "Нажмите здесь, чтобы добавить любое слово в свою колоду.",
+  "tutorial.backFromCreateCard": "Вернитесь на главную страницу после добавления слова.",
+  "tutorial.viewRank": "Зарабатывая очки, вы повышаете ранг. Здесь можно увидеть свой ранг.",
+  "tutorial.closeRank": "Закройте меню после просмотра сведений о ранге.",
+  "tutorial.openLeaderboard": "Нажмите здесь, чтобы увидеть свою позицию в рейтинге.",
+  "tutorial.backFromLeaderboard": "Вернитесь на главную страницу после просмотра рейтинга.",
 } as const;
 
 export default dictionary;

@@ -2,6 +2,10 @@ import { render, fireEvent, waitFor } from "@testing-library/react";
 import { TutorialPointer } from "@/features/tutorial/tutorial-pointer";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
+vi.mock("@/i18n/locale-provider", () => ({
+  useT: () => (key: string) => key,
+}));
+
 function setMobileViewport() {
   Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 412 });
   window.dispatchEvent(new Event("resize"));
@@ -143,6 +147,23 @@ describe("TutorialPointer", () => {
     });
   });
 
+  it("positions the pointer slightly below close targets", async () => {
+    setMobileViewport();
+    useTutorialStore.setState({ completed: false, step: 7 });
+    createTarget({
+      name: "close-collection-menu",
+      rect: { left: 320, top: 200, width: 40, height: 40 },
+    });
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      const pointer = document.querySelector(".tutorial-pointer") as HTMLElement;
+      expect(pointer).toBeInTheDocument();
+      expect(pointer.style.top).toBe("216px");
+    });
+  });
+
   it("does not render on desktop", async () => {
     setDesktopViewport();
     createTarget();
@@ -205,6 +226,23 @@ describe("TutorialPointer", () => {
     fireEvent.pointerDown(target);
 
     expect(useTutorialStore.getState().step).toBe(3);
+  });
+
+  it("uses the create card navbar target only on the create card route", async () => {
+    setMobileViewport();
+    window.history.pushState({}, "", "/create-card");
+    useTutorialStore.setState({ completed: false, step: 9 });
+    const target = createTarget({ name: "create-card-navbar-back" });
+
+    render(<TutorialPointer />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".tutorial-pointer")).toBeInTheDocument();
+    });
+
+    fireEvent.pointerDown(target);
+
+    expect(useTutorialStore.getState().step).toBe(10);
   });
 
   it("does not render when the current step target is missing", async () => {
@@ -299,7 +337,7 @@ describe("TutorialPointer", () => {
 
   it("completes when the start learning target is clicked", async () => {
     setMobileViewport();
-    useTutorialStore.setState({ completed: false, step: 6 });
+    useTutorialStore.setState({ completed: false, step: 14 });
     const target = createTarget({ name: "start-learning" });
     target.setAttribute("aria-disabled", "true");
 
@@ -311,7 +349,7 @@ describe("TutorialPointer", () => {
 
     fireEvent.pointerDown(target);
 
-    expect(useTutorialStore.getState().step).toBe(7);
+    expect(useTutorialStore.getState().step).toBe(15);
     expect(useTutorialStore.getState().completed).toBe(true);
   });
 

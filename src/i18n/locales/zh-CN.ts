@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "轻点“添加”。",
   "install.addToHomeScreen.guideFooter": "该图标仅显示在您添加它的设备上。",
   "install.addToHomeScreen.guideImageAlt": "展示 iPhone“添加到主屏幕”选项的示例。",
+  "tutorial.drawCards": "点击这里随机抽卡。",
+  "tutorial.chooseTier": "选择你想要的卡牌难度等级。",
+  "tutorial.drawCardsAction": "点击这里随机选择卡牌。",
+  "tutorial.viewDrawnCards": "点击卡牌查看正面。",
+  "tutorial.addCard": "将这张卡加入你的收藏。",
+  "tutorial.returnHome": "返回首页。",
+  "tutorial.viewLearningCards": "点击这里查看你的卡牌收藏。",
+  "tutorial.startLearning": "点击这里复习收藏并赚取积分。",
+  "tutorial.closeCollection": "查看卡牌后退出。",
+  "tutorial.createCard": "点击这里将任意想要的单词加入你的卡组。",
+  "tutorial.backFromCreateCard": "添加单词后返回首页。",
+  "tutorial.viewRank": "获得积分后你的等级会提升。你可以在这里查看等级。",
+  "tutorial.closeRank": "查看等级详情后退出。",
+  "tutorial.openLeaderboard": "点击这里查看你在排行榜上的位置。",
+  "tutorial.backFromLeaderboard": "查看排行榜后返回首页。",
 } as const;
 
 export default dictionary;

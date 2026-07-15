@@ -772,6 +772,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "Tap Add.",
   "install.addToHomeScreen.guideFooter": "The icon appears only on the device where you added it.",
   "install.addToHomeScreen.guideImageAlt": "Example showing the Add to Home Screen option on an iPhone.",
+  "tutorial.drawCards": "Tap here to draw random cards.",
+  "tutorial.chooseTier": "Choose the card difficulty level you want.",
+  "tutorial.drawCardsAction": "Tap here to select random cards.",
+  "tutorial.viewDrawnCards": "Tap the card to see its front side.",
+  "tutorial.addCard": "Add this card to your collection.",
+  "tutorial.returnHome": "Return to the home page.",
+  "tutorial.viewLearningCards": "Tap here to view your card collection.",
+  "tutorial.startLearning": "Tap here to review your collection and earn points.",
+  "tutorial.closeCollection": "Exit after viewing your cards.",
+  "tutorial.createCard": "Tap here to add any word you want to your deck.",
+  "tutorial.backFromCreateCard": "Return to the home page after adding your word.",
+  "tutorial.viewRank": "You rank up as you earn points. View your rank here.",
+  "tutorial.closeRank": "Exit after viewing your rank details.",
+  "tutorial.openLeaderboard": "Tap here to see your position on the leaderboard.",
+  "tutorial.backFromLeaderboard": "Return to the home page after viewing the leaderboard.",
 } as const;
 
 export default dictionary;

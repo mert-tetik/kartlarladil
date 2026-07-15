@@ -50,9 +50,6 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
-import { PostPracticeTutorial } from "@/features/tutorial/components/post-practice-tutorial";
-import { POST_PRACTICE_TUTORIAL_COMPLETED_EVENT } from "@/features/push/push-client";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
@@ -303,9 +300,6 @@ export function QuizStation({
   const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
-  const showPostPracticeTutorial = useTutorialStore((state) => state.showPostPracticeTutorial);
-  const setShowPostPracticeTutorial = useTutorialStore((state) => state.setShowPostPracticeTutorial);
-  const setShowGamesPointer = useTutorialStore((state) => state.setShowGamesPointer);
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
@@ -340,23 +334,12 @@ export function QuizStation({
   const [streak, setStreak] = useState(0);
   const [pendingStreak, setPendingStreak] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
-  const [activePostPracticeTutorial, setActivePostPracticeTutorial] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
   const awardedStreakSessionRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const syncViewport = () => setIsMobileViewport(window.innerWidth <= 1023);
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    return () => window.removeEventListener("resize", syncViewport);
-  }, []);
 
   useEffect(() => {
     onPhaseChange?.(phase);
@@ -367,16 +350,6 @@ export function QuizStation({
       setShowSplash(true);
     }
   }, [phase]);
-
-  useEffect(() => {
-    if (phase === "result" && showPostPracticeTutorial && isMobileViewport) {
-      const timer = window.setTimeout(() => {
-        setActivePostPracticeTutorial(true);
-      }, 1700);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [phase, showPostPracticeTutorial, isMobileViewport]);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
 
@@ -806,18 +779,6 @@ export function QuizStation({
     router.push("/");
   }
 
-  function handleCompletePostPracticeTutorial() {
-    setActivePostPracticeTutorial(false);
-    setShowPostPracticeTutorial(false);
-    setShowGamesPointer(true);
-
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT));
-      });
-    }
-  }
-
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
     if (chestOpened) {
       setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
@@ -978,13 +939,10 @@ export function QuizStation({
             chestOpened={chestOpened}
             streakRewardStreak={getRewardableQuizStreak(maxStreak)}
             streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
-            locked={activePostPracticeTutorial && isMobileViewport}
+            locked={false}
             onRestart={handleRestart}
             onExit={handleExit}
           />
-          {activePostPracticeTutorial && isMobileViewport ? (
-            <PostPracticeTutorial onComplete={handleCompletePostPracticeTutorial} />
-          ) : null}
         </div>
       </QuizViewportOverlay>
     );

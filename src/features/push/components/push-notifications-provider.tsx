@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import {
@@ -22,16 +21,13 @@ import {
   getCurrentBrowserPushSubscription,
   getCurrentPushPermission,
   isPushSupported,
-  markPushPromptDismissed,
   readLastPushActivityPing,
-  readPushPromptDismissedUntil,
   serializePushSubscription,
   unsubscribeBrowserPushSubscription,
   writeLastPushActivityPing,
 } from "@/features/push/push-client";
 import { PUSH_APP_SURFACE, type PushActionResult, type PushPermissionState } from "@/features/push/push-types";
 import { useT } from "@/i18n/locale-provider";
-import { cn } from "@/lib/utils";
 
 interface PushNotificationsContextValue {
   supported: boolean;
@@ -55,8 +51,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
   const [enabled, setEnabled] = useState(Boolean(user?.profile.pushMarketingEnabled));
   const [permission, setPermission] = useState<PushPermissionState>(() => getCurrentPushPermission());
   const [busy, setBusy] = useState(false);
-  const [promptOpen, setPromptOpen] = useState(false);
-  const [promptError, setPromptError] = useState("");
   const syncAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -127,8 +121,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     }
 
     setBusy(true);
-    setPromptError("");
-
     try {
       let nextPermission = getCurrentPushPermission();
 
@@ -164,7 +156,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
 
       clearPushPromptDismissed();
       setEnabled(true);
-      setPromptOpen(false);
       await pingActivity(true);
 
       return { ok: true, message: t("push.settings.enabledMessage") };
@@ -197,7 +188,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
       }
 
       setEnabled(false);
-      setPromptOpen(false);
 
       return { ok: true, message: t("push.settings.disabledMessage") };
     } catch (error) {
@@ -212,26 +202,22 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
 
   useEffect(() => {
     if (!user || !isTwa || !supported) {
-      setPromptOpen(false);
       return;
     }
 
     function handlePushPromptRequested() {
-      const dismissedUntil = readPushPromptDismissedUntil();
       const currentPermission = getCurrentPushPermission();
 
       if (
         enabled ||
         busy ||
-        currentPermission === "denied" ||
-        dismissedUntil > Date.now()
+        currentPermission === "denied"
       ) {
         return;
       }
 
       setPermission(currentPermission);
-      setPromptError("");
-      setPromptOpen(true);
+      void enableNotifications();
     }
 
     window.addEventListener(POST_PRACTICE_NOTIFICATION_PROMPT_EVENT, handlePushPromptRequested);
@@ -239,7 +225,7 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     return () => {
       window.removeEventListener(POST_PRACTICE_NOTIFICATION_PROMPT_EVENT, handlePushPromptRequested);
     };
-  }, [busy, enabled, isTwa, supported, user]);
+  }, [busy, enableNotifications, enabled, isTwa, supported, user]);
 
   useEffect(() => {
     if (!user || !isTwa || !supported) {
@@ -331,55 +317,6 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
   return (
     <PushNotificationsContext.Provider value={value}>
       {children}
-      {promptOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 p-4 sm:items-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="push-prompt-title"
-            className="w-full max-w-md rounded-lg border border-border bg-background-card p-6 shadow-2xl"
-          >
-            <h2 id="push-prompt-title" className="text-xl font-semibold text-foreground">
-              {t("push.prompt.title")}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-foreground-secondary">
-              {t("push.prompt.body")}
-            </p>
-            {promptError ? (
-              <p className="mt-3 text-sm font-medium text-rose-600">{promptError}</p>
-            ) : null}
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                size="md"
-                disabled={busy}
-                onClick={() => {
-                  void enableNotifications().then((result) => {
-                    if (!result.ok) {
-                      setPromptError(result.message || t("push.settings.errorUnknown"));
-                    }
-                  });
-                }}
-              >
-                {busy ? t("common.loading") : t("push.prompt.enable")}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="md"
-                disabled={busy}
-                onClick={() => {
-                  markPushPromptDismissed();
-                  setPromptOpen(false);
-                }}
-              >
-                {t("push.prompt.dismiss")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </PushNotificationsContext.Provider>
   );
 }

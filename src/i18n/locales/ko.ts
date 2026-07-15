@@ -773,6 +773,21 @@ const dictionary = {
   "install.addToHomeScreen.guideStep5": "추가를 탭합니다.",
   "install.addToHomeScreen.guideFooter": "아이콘은 추가한 기기에서만 표시됩니다.",
   "install.addToHomeScreen.guideImageAlt": "iPhone의 홈 화면에 추가 옵션을 보여 주는 예시입니다.",
+  "tutorial.drawCards": "여기를 눌러 무작위 카드를 뽑으세요.",
+  "tutorial.chooseTier": "원하는 카드 난이도를 선택하세요.",
+  "tutorial.drawCardsAction": "여기를 눌러 무작위 카드를 선택하세요.",
+  "tutorial.viewDrawnCards": "카드를 눌러 앞면을 확인하세요.",
+  "tutorial.addCard": "이 카드를 컬렉션에 추가하세요.",
+  "tutorial.returnHome": "홈으로 돌아가세요.",
+  "tutorial.viewLearningCards": "여기를 눌러 카드 컬렉션을 확인하세요.",
+  "tutorial.startLearning": "여기를 눌러 컬렉션을 복습하고 포인트를 받으세요.",
+  "tutorial.closeCollection": "카드를 확인한 후 나가세요.",
+  "tutorial.createCard": "여기를 눌러 원하는 단어를 덱에 추가하세요.",
+  "tutorial.backFromCreateCard": "단어를 추가한 후 홈으로 돌아가세요.",
+  "tutorial.viewRank": "포인트를 얻을수록 등급이 올라갑니다. 여기서 등급을 확인하세요.",
+  "tutorial.closeRank": "등급 정보를 확인한 후 나가세요.",
+  "tutorial.openLeaderboard": "여기를 눌러 리더보드 순위를 확인하세요.",
+  "tutorial.backFromLeaderboard": "리더보드를 확인한 후 홈으로 돌아가세요.",
 } as const;
 
 export default dictionary;

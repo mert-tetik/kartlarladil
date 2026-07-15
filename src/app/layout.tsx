@@ -25,7 +25,9 @@ const fraunces = Fraunces({
 
 export const viewport: Viewport = {
   width: "device-width",
+  viewportFit: "cover",
   initialScale: 1,
+  minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
   interactiveWidget: "resizes-visual",

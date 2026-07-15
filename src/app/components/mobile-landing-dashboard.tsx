@@ -364,6 +364,7 @@ export function MobileLandingDashboard() {
         }}
         className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 text-white transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
+        data-tutorial-target="leaderboard"
       >
         <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
           <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
@@ -444,6 +445,7 @@ export function MobileLandingDashboard() {
             className="inline-flex h-full min-h-0 max-w-full items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             aria-label={getRankLabel(stats.rank, locale)}
             data-rank-icon-button
+            data-tutorial-target="rank-info"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -499,8 +501,9 @@ export function MobileLandingDashboard() {
         </Button>
         <Button
           size="lg"
-          onClick={handleCreateCard}
-          data-create-card-action
+            onClick={handleCreateCard}
+            data-create-card-action
+            data-tutorial-target="create-card"
           className="h-14 w-full gap-2 border-0 bg-red-500 px-4 text-base font-bold text-white hover:bg-red-600 focus-visible:outline-red-500"
         >
           <Library className="size-5 shrink-0" aria-hidden="true" />
@@ -520,6 +523,7 @@ export function MobileLandingDashboard() {
           count={activeCount}
           variant="active"
           onClick={() => openDetailMenu("active")}
+          dataTutorialTarget="landing-learning-cards"
         />
         <StatusBlock
           title={t("home.mobile.learnedCards")}
@@ -656,11 +660,13 @@ function StatusBlock({
   count,
   variant,
   onClick,
+  dataTutorialTarget,
 }: {
   title: string;
   count: number;
   variant: "active" | "learned";
   onClick: () => void;
+  dataTutorialTarget?: string;
 }) {
   const isActive = variant === "active";
 
@@ -668,6 +674,7 @@ function StatusBlock({
     <button
       type="button"
       onClick={onClick}
+      data-tutorial-target={dataTutorialTarget}
       className={cn(
         "flex flex-col items-center justify-center py-2 text-white transition-transform active:scale-[0.98]",
         isActive ? "bg-emerald-500" : "bg-sky-500",
@@ -781,6 +788,7 @@ function TierDetailMenu({
               <button
                 type="button"
                 onClick={onClose}
+                data-tutorial-target="close-collection-menu"
                 className="inline-flex size-10 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
                 aria-label={t("common.close")}
               >

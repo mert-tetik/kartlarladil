@@ -75,6 +75,7 @@ export function MobileRankInfoSheet({
           <button
             type="button"
             onClick={onClose}
+            data-tutorial-target="close-rank-menu"
             aria-label={t("common.close")}
             className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
           >

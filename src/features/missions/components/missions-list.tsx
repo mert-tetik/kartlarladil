@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -105,21 +106,27 @@ export function MissionsList() {
     const mission = MISSIONS.find((item) => item.id === missionId);
     if (!mission) return;
 
-    setClaimingId(missionId);
-    markClaimed(missionId);
-
     const { reward } = mission;
 
+    // Mount the reward UI before the server action can occupy the main thread.
     if (reward.kind === "chest") {
       const tier = CHEST_TIERS.find((item) => item.tier === reward.tier);
-      if (tier) {
+      if (!tier) return;
+
+      flushSync(() => {
+        setClaimingId(missionId);
+        markClaimed(missionId);
         setRewardMode({ kind: "chest", tier });
-      }
+      });
     } else {
-      setRewardMode({ kind: "points", amount: reward.amount, source });
+      flushSync(() => {
+        setClaimingId(missionId);
+        markClaimed(missionId);
+        setRewardMode({ kind: "points", amount: reward.amount, source });
+      });
     }
 
-    void claimMissionRewardAction(missionId).then(async (result) => {
+    window.requestAnimationFrame(() => void claimMissionRewardAction(missionId).then(async (result) => {
       if (result.status === "success") {
         if (result.reward && typeof result.points === "number") {
           sendTwaAnalyticsEvent("fd_mission_reward_claimed", {
@@ -151,7 +158,7 @@ export function MissionsList() {
       }
 
       setClaimingId(null);
-    });
+    }));
   }
 
   const handleRewardComplete = useCallback(() => {
