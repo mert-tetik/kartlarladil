@@ -80,7 +80,7 @@ const dictionary = {
   "auth.google.signIn": "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Google",
   "auth.google.signUp": "Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Google",
   "auth.mobile.useEmailInstead": "Use email instead",
-  "auth.mobile.welcomeTitle": "Welcome To FoxiesDeck!",
+  "auth.mobile.welcomeTitle": "أهلاً بك!",
   "auth.mobile.welcomeDescription": "Learn vocabulary with cards. Earn points, get gifts and rank up!",
   "auth.login.description": "Ø¥Ø¯Ø§Ø±Ø© Ù…Ø¬Ù…ÙˆØ¹Ø© Ø¨Ø·Ø§Ù‚Ø§ØªÙƒØŒ ØªÙ‚Ø¯Ù… Ø§Ù„ØªØ¹Ù„Ù…ØŒ ÙˆØ¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ø¹ Ø¬Ù„Ø³Ø© Ø¢Ù…Ù†Ø©.",
   "auth.login.forgotPassword": "Ù†Ø³ÙŠØª ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±",
