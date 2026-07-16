@@ -369,7 +369,7 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
 
 @keyframes mobile-custom-card-reveal-rise {
   from {
-    transform: translateY(38dvh) scale(0.42);
+    transform: translateY(30dvh) scale(0.42);
   }
 
   to {
@@ -379,6 +379,20 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
 
 .animate-mobile-custom-card-reveal-rise {
   animation: mobile-custom-card-reveal-rise 1200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes mobile-custom-card-reveal-return {
+  from {
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    transform: translateY(30dvh) scale(0.42);
+  }
+}
+
+.animate-mobile-custom-card-reveal-return {
+  animation: mobile-custom-card-reveal-return 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes page-transition-enter {

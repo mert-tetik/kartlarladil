@@ -1,0 +1,15 @@
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[browser] Uncaught SyntaxError: Invalid or unexpected token
+SyntaxError: Invalid or unexpected token
+[browser] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead. 
+[browser] Uncaught ChunkLoadError: Loading chunk app/layout failed.
+(missing: http://127.0.0.1:3000/_next/static/chunks/app/layout.js)
+    at AppShell (src\components\app-shell.tsx:33:5)
+    at RootLayout (src\app\layout.tsx:60:9)
+  31 | }) {
+  32 |   return (
+> 33 |     <LocaleProvider initialLocale={locale}>
+     |     ^
+  34 |       <BodyScrollLock />
+  35 |       <MobileViewportController />
+  36 |       <GlobalTapVibration />
