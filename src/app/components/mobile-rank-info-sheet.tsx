@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Progress } from "@/components/ui/progress";
@@ -87,18 +88,18 @@ export function MobileRankInfoSheet({
           <div className="flex flex-col items-center py-4">
             <RankIcon icon={rank.icon} className="size-32" sizes="128px" />
             <h3 className="mt-4 text-2xl font-extrabold text-brand">{getRankLabel(rank, locale)}</h3>
-            <p className="mt-1 text-sm font-semibold text-foreground-secondary">
-              {formatNumber(locale, totalPoints)} {t("home.mobile.pointsLabel")}
+            <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground-secondary">
+              {formatNumber(locale, totalPoints)} <ScoreIcon size={18} className="size-[18px]" />
             </p>
           </div>
 
           {nextRank ? (
-            <div className="space-y-2 rounded-xl border border-border bg-background p-4">
+            <div className="space-y-2 rounded-xl bg-background p-4">
               <div className="flex items-center justify-between text-sm font-semibold">
                 <span className="text-foreground-secondary">{t("home.mobile.rankInfoProgress")}</span>
-                <span className="text-foreground">{formatNumber(locale, pointsToNextRank)} {t("home.mobile.pointsLabel")}</span>
+                <span className="inline-flex items-center gap-1 text-foreground"><span>{formatNumber(locale, pointsToNextRank)}</span><ScoreIcon size={16} className="size-4" /><span>{t("home.mobile.rankInfoRemaining")}</span></span>
               </div>
-              <Progress value={rankProgressPercent} className="h-2" />
+              <Progress value={rankProgressPercent} className="h-2 bg-white/20" indicatorClassName="bg-gradient-to-r from-amber-400 to-orange-500" />
               <p className="text-xs text-foreground-secondary">
                 {t("home.mobile.rankInfoNextRank", { rank: getRankLabel(nextRank, locale) })}
               </p>
@@ -116,23 +117,23 @@ export function MobileRankInfoSheet({
                 <div
                   key={item.id}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3 transition-colors",
+                    "flex items-center gap-3 rounded-xl p-3 transition-colors",
                     current
-                      ? "border-brand bg-brand/10"
-                      : "border-border bg-background",
+                      ? "border border-amber-200/75 bg-gradient-to-r from-amber-400 to-orange-500"
+                      : "bg-background",
                   )}
                 >
                   <RankIcon icon={item.icon} className="size-8" sizes="32px" />
                   <div className="flex-1">
-                    <p className={cn("text-sm font-bold", current ? "text-brand" : "text-foreground")}>
+                    <p className={cn("text-sm font-bold", current ? "text-white" : "text-foreground")}>
                       {getRankLabel(item, locale)}
                     </p>
-                    <p className="text-xs text-foreground-secondary">
-                      {formatNumber(locale, item.minPoints)} {t("home.mobile.pointsLabel")}
+                    <p className={cn("inline-flex items-center gap-1 text-xs", current ? "text-white/85" : "text-foreground-secondary")}>
+                      {formatNumber(locale, item.minPoints)} <ScoreIcon size={13} className="size-3" />
                     </p>
                   </div>
                   {current ? (
-                    <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
                       {t("home.mobile.currentRank")}
                     </span>
                   ) : null}
