@@ -111,6 +111,10 @@ vi.mock("@/features/inventory/inventory-store", () => ({
 
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+      configurable: true,
+      value: vi.fn(),
+    });
     window.localStorage.clear();
     inventoryCardsMock.value = [];
     isTwaModeMock.value = false;
@@ -204,6 +208,30 @@ describe("MobileLandingDashboard language sync", () => {
       "z-50",
       "size-12",
     );
+  });
+
+  it("expands the card center before enabling landing scroll", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    const dashboard = document.querySelector("[data-mobile-landing-dashboard]");
+    expect(dashboard).toHaveClass("overflow-y-hidden");
+    expect(screen.queryByRole("button", { name: "T\u00fcm Kartlar" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Kartlar" }));
+
+    expect(dashboard).toHaveClass("overflow-y-auto");
+    expect(screen.getByRole("button", { name: "T\u00fcm Kartlar" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Kartlar" }));
+
+    expect(dashboard).toHaveClass("overflow-y-hidden");
+    expect(screen.queryByRole("button", { name: "T\u00fcm Kartlar" })).not.toBeInTheDocument();
   });
 
   it("updates the visible card language when onboarding writes a new landing language", async () => {

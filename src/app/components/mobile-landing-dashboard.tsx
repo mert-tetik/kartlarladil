@@ -112,6 +112,7 @@ export function MobileLandingDashboard() {
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
+  const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
@@ -316,6 +317,7 @@ export function MobileLandingDashboard() {
   function openCardCenter(status: "active" | "learned") {
     vibrate("tap");
     setCardCenterStatus(status);
+    setCardCenterOpen(true);
 
     window.requestAnimationFrame(() => {
       const scrollContainer = document.querySelector<HTMLElement>("[data-mobile-landing-dashboard]");
@@ -327,8 +329,23 @@ export function MobileLandingDashboard() {
     });
   }
 
+  function handleCardCenterOpenChange(nextOpen: boolean) {
+    vibrate("tap");
+    setCardCenterOpen(nextOpen);
+
+    window.requestAnimationFrame(() => {
+      const scrollContainer = document.querySelector<HTMLElement>("[data-mobile-landing-dashboard]");
+      const cardCenter = scrollContainer?.querySelector<HTMLElement>("[data-mobile-card-center]");
+
+      scrollContainer?.scrollTo({
+        top: nextOpen && cardCenter ? cardCenter.offsetTop : 0,
+        behavior: "smooth",
+      });
+    });
+  }
+
   return (
-    <section data-mobile-landing-dashboard className="relative h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] overflow-y-auto overscroll-contain bg-background px-4 py-1 lg:hidden">
+    <section data-mobile-landing-dashboard className={cn("relative h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-y-hidden")}>
       {/* Leaderboard badge */}
       <button
         type="button"
@@ -507,7 +524,9 @@ export function MobileLandingDashboard() {
         activeCards={activeForLanguage}
         learnedCards={learnedForLanguage}
         status={cardCenterStatus}
+        isOpen={cardCenterOpen}
         onStatusChange={setCardCenterStatus}
+        onOpenChange={handleCardCenterOpenChange}
         onOpenDraw={handleDrawCards}
         onOpenCreate={handleCreateCard}
       />
