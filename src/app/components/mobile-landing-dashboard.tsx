@@ -57,7 +57,7 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
 }
 
 const MOBILE_TOP_ACTION_BUTTON_CLASSNAME =
-  "absolute top-2 z-10 flex h-[2.45rem] w-[8rem] items-center gap-1.5 rounded-2xl px-2.5 py-1 text-white transition-transform active:scale-[0.98]";
+  "absolute top-2 z-40 flex h-[2.45rem] w-[8rem] touch-manipulation items-center gap-1.5 rounded-2xl px-2.5 py-1 text-white transition-transform active:scale-[0.98]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -392,7 +392,7 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-0 top-14 z-30 inline-flex size-11 items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
+        className="absolute right-0 top-14 z-50 inline-flex size-12 touch-manipulation items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
@@ -401,11 +401,11 @@ export function MobileLandingDashboard() {
       {/* Rank */}
       <div className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
-          className="absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
+          className="pointer-events-none absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"
         />
         <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">

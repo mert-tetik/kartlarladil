@@ -148,9 +148,9 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
     setLoading(true); setError(""); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setPreviewOrigin(null); setPreviewReturnPosition(null);
     try {
       const match = localCardRepository.list({ query: term }).find((card) => normalizeSearch(card.term) === normalized) ?? localCardRepository.list({ query: term })[0];
-      if (match) { showPreview(match); return; }
+      if (match) { showPreview(match); setTerm(""); return; }
       const result = await generateCardRequest({ locale, term: term.trim() });
-      setAiResponse(result); showPreview(buildPreviewVocabularyCard(result));
+      setAiResponse(result); showPreview(buildPreviewVocabularyCard(result)); setTerm("");
     } catch { setError(t("createCard.error.unknown")); } finally { setLoading(false); }
   }
   async function add() {

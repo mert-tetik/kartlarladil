@@ -12,6 +12,8 @@ import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
+// Temporary visual-test mode. Set to false to restore the one-time demo behavior.
+const REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING = true;
 
 export function MobileCardSwipeOverlay({ open, language, onClose }: { open: boolean; language: LanguageCode; onClose: () => void }) {
   const t = useT();
@@ -63,8 +65,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   }, [language, usedIds]);
 
   useEffect(() => {
-    if (!open || typeof window === "undefined" || window.localStorage.getItem(DEMO_KEY)) return;
-    const timers = [window.setTimeout(() => setLocked(true), 0), window.setTimeout(() => setDragX(-THRESHOLD - 12), 220), window.setTimeout(() => setDragX(THRESHOLD + 12), 1220), window.setTimeout(() => setDragX(0), 2220), window.setTimeout(() => { window.localStorage.setItem(DEMO_KEY, "1"); setLocked(false); }, 2700)];
+    if (!open || typeof window === "undefined" || (!REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING && window.localStorage.getItem(DEMO_KEY))) return;
+    const timers = [window.setTimeout(() => setLocked(true), 0), window.setTimeout(() => setDragX(-THRESHOLD - 12), 220), window.setTimeout(() => setDragX(THRESHOLD + 12), 1220), window.setTimeout(() => setDragX(0), 2220), window.setTimeout(() => { if (!REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING) window.localStorage.setItem(DEMO_KEY, "1"); setLocked(false); }, 2700)];
     return () => timers.forEach(window.clearTimeout);
   }, [open]);
 

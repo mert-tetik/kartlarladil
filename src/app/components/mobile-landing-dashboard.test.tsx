@@ -201,8 +201,8 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByRole("button", { name: "Nasıl kullanılır?" })).toHaveClass(
-      "z-30",
-      "size-11",
+      "z-50",
+      "size-12",
     );
   });
 
