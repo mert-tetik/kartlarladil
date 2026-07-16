@@ -19,6 +19,13 @@ import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 type OnboardingStep = "native" | "learning" | "picture";
 
+function getLanguageOrder(firstLanguage: LanguageCode) {
+  return [
+    ...LANGUAGES.filter((language) => language.code === firstLanguage),
+    ...LANGUAGES.filter((language) => language.code !== firstLanguage),
+  ];
+}
+
 export function MobileOnboardingForm({
   onComplete,
   countryCode,
@@ -34,6 +41,10 @@ export function MobileOnboardingForm({
   const [step, setStep] = useState<OnboardingStep>("native");
   const [preferredUiLocale, setPreferredUiLocale] = useState<LocaleCode>(initialDefaults.preferredUiLocale);
   const [preferredLanguageCode, setPreferredLanguageCode] = useState<LanguageCode>(initialDefaults.preferredLanguageCode);
+  const [languageOrders, setLanguageOrders] = useState(() => ({
+    native: getLanguageOrder(initialDefaults.preferredUiLocale),
+    learning: getLanguageOrder(initialDefaults.preferredLanguageCode),
+  }));
   const [profilePictureIndex, setProfilePictureIndex] = useState(0);
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -48,6 +59,10 @@ export function MobileOnboardingForm({
     const defaults = getOnboardingLanguageDefaults(null, detectedLocale);
     setPreferredUiLocale(defaults.preferredUiLocale);
     setPreferredLanguageCode(defaults.preferredLanguageCode);
+    setLanguageOrders({
+      native: getLanguageOrder(defaults.preferredUiLocale),
+      learning: getLanguageOrder(defaults.preferredLanguageCode),
+    });
   }, [countryCode, detectedLocale]);
 
   useEffect(() => {
@@ -107,11 +122,7 @@ export function MobileOnboardingForm({
       : step === "learning"
         ? t("auth.onboarding.learningLanguageTitle")
         : t("profilePicture.title");
-  const selectedLanguage = step === "native" ? preferredUiLocale : preferredLanguageCode;
-  const orderedLanguages = [
-    ...LANGUAGES.filter((language) => language.code === selectedLanguage),
-    ...LANGUAGES.filter((language) => language.code !== selectedLanguage),
-  ];
+  const orderedLanguages = step === "native" ? languageOrders.native : languageOrders.learning;
 
   return (
     <form
@@ -153,11 +164,21 @@ export function MobileOnboardingForm({
                   }}
                   className={cn(
                     "flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg px-2 text-center transition-transform duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-25",
-                    selected ? "text-brand" : "text-foreground-secondary hover:text-foreground",
+                    selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
                   )}
                 >
-                  <LanguageFlag code={language.code} className="h-14 w-20 rounded-md border-0" />
-                  <span className="text-sm font-semibold leading-tight">{getLanguageDisplayName(language.code, locale)}</span>
+                  <LanguageFlag
+                    code={language.code}
+                    className={cn("h-14 w-20 rounded-md border-0 transition-transform duration-300", selected && "scale-110")}
+                  />
+                  <span className={cn(
+                    "text-sm font-semibold leading-tight",
+                    selected
+                      ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent"
+                      : "text-foreground-secondary",
+                  )}>
+                    {getLanguageDisplayName(language.code, locale)}
+                  </span>
                 </button>
               );
             })}

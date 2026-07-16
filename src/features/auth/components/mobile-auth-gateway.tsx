@@ -36,9 +36,13 @@ function OnboardingBackground() {
 function GatewayShell({
   children,
   isTestMode,
+  centered = false,
+  showBackground = true,
 }: {
   children: ReactNode;
   isTestMode: boolean;
+  centered?: boolean;
+  showBackground?: boolean;
 }) {
   return (
     <div
@@ -48,8 +52,13 @@ function GatewayShell({
         !isTestMode && "max-lg:block lg:hidden",
       )}
     >
-      <OnboardingBackground />
-      <div className="relative z-10 flex min-h-full w-full items-end justify-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8">
+      {showBackground ? <OnboardingBackground /> : null}
+      <div className={cn(
+        "relative z-10 flex min-h-full w-full justify-center px-6",
+        centered
+          ? "items-center py-[max(1.5rem,env(safe-area-inset-bottom))]"
+          : "items-end pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8",
+      )}>
         <div className="flex w-full justify-center">
           {children}
         </div>
@@ -239,7 +248,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   if (needsOnboarding) {
     return (
-      <GatewayShell isTestMode={isTestMode}>
+      <GatewayShell isTestMode={isTestMode} centered showBackground={false}>
         <MobileOnboardingForm countryCode={countryCode} onComplete={handleOnboardingComplete} />
       </GatewayShell>
     );

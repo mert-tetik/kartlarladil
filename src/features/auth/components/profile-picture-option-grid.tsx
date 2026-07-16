@@ -38,13 +38,13 @@ export function ProfilePictureOptionGrid({
             aria-pressed={selected}
             className={cn(
               "group flex min-w-0 flex-col items-center gap-2 rounded-lg py-1 text-center transition-transform duration-200 active:scale-95 disabled:opacity-60",
-              selected ? "text-brand" : "text-foreground-secondary hover:text-foreground",
+              selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
             )}
           >
             <span
               className={cn(
-                "relative block size-20 overflow-hidden rounded-full ring-offset-2 ring-offset-background-card transition-transform duration-200 group-hover:scale-[1.03]",
-                selected && "ring-2 ring-brand",
+                "relative block size-20 overflow-hidden rounded-full ring-offset-2 ring-offset-background-card transition-transform duration-300 group-hover:scale-[1.03]",
+                selected && "scale-110 ring-2 ring-amber-400",
               )}
             >
               <ProfilePicture profilePictureIndex={profilePictureIndex} alt="" className="size-full rounded-full" />
@@ -54,7 +54,12 @@ export function ProfilePictureOptionGrid({
                 </span>
               ) : null}
             </span>
-            <span className="w-full truncate text-xs font-semibold">{name}</span>
+            <span className={cn(
+              "w-full truncate text-xs font-semibold",
+              selected
+                ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent"
+                : "text-foreground-secondary",
+            )}>{name}</span>
           </button>
         );
       })}
