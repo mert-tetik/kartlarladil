@@ -27,12 +27,14 @@ interface ProfileRow {
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
   theme: string | null;
+  profile_picture_index: number | null;
 }
 
 function normalizeProfile(row?: ProfileRow | null): AuthProfile {
   const preferredLanguageCode = row?.preferred_language_code;
   const preferredUiLocale = row?.preferred_ui_locale;
   const preferredTier = row?.preferred_tier;
+  const profilePictureIndex = row?.profile_picture_index;
 
   return {
     displayName: row?.display_name ?? null,
@@ -53,6 +55,13 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
     pushMarketingEnabled: row?.push_marketing_enabled ?? false,
     leaderboardVisible: row?.leaderboard_visible ?? false,
     theme: row?.theme ?? null,
+    profilePictureIndex:
+      typeof profilePictureIndex === "number" &&
+      Number.isInteger(profilePictureIndex) &&
+      profilePictureIndex >= 0 &&
+      profilePictureIndex <= 18
+        ? profilePictureIndex
+        : null,
   };
 }
 
@@ -85,7 +94,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -154,7 +163,7 @@ export async function ensureUserProfile(
         preferences?.preferredTier ?? (isPreferredTier(metadataTier) ? metadataTier : "A1"),
       onboarding_completed: false,
     })
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
     .maybeSingle<ProfileRow>();
 
   if (error) {

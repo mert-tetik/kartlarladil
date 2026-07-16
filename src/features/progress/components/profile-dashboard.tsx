@@ -5,6 +5,7 @@ import { BookOpen, Boxes, CheckCircle2, Trophy } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIER_STYLES } from "@/data/tiers";
 import type { AuthShellUser } from "@/features/auth/auth-types";
+import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -65,9 +66,11 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
       <section className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 items-center justify-center rounded-lg bg-background-inverse text-2xl font-bold text-foreground-inverse">
-              {(user.profile.displayName?.[0] ?? user.email[0]).toLocaleUpperCase(locale)}
-            </div>
+            <ProfilePicture
+              profilePictureIndex={user.profile.profilePictureIndex}
+              alt={user.profile.displayName || t("profile.fallbackName")}
+              className="size-16 rounded-lg"
+            />
             <div>
               <p className="text-sm font-semibold text-foreground-muted">{user.email}</p>
               <h2 className="mt-1 font-display text-4xl font-semibold text-foreground">

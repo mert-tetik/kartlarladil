@@ -36,6 +36,7 @@ export function MobileRankInfoSheet({
   const { locale } = useLocale();
   const mounted = useIsClient();
   const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
   const dragOffsetY = useRef(0);
 
@@ -70,8 +71,9 @@ export function MobileRankInfoSheet({
       />
       <div
         className={cn(
-          "relative flex max-h-[85dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl transition-transform duration-300",
+          "relative flex max-h-[85dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl",
           isOpen ? "translate-y-0" : "translate-y-full",
+          isDragging ? "transition-none" : "transition-transform duration-300 ease-out",
         )}
         style={isOpen ? { transform: `translateY(${dragY}px)` } : undefined}
       >
@@ -80,6 +82,7 @@ export function MobileRankInfoSheet({
             if (!isOpen) return;
             dragStartY.current = event.clientY;
             dragOffsetY.current = 0;
+            setIsDragging(true);
             event.currentTarget.setPointerCapture(event.pointerId);
           }}
           onPointerMove={(event) => {
@@ -92,6 +95,7 @@ export function MobileRankInfoSheet({
             const shouldClose = dragOffsetY.current > 110;
             dragStartY.current = null;
             dragOffsetY.current = 0;
+            setIsDragging(false);
             if (shouldClose) {
               setDragY(0);
               onClose();
@@ -101,6 +105,7 @@ export function MobileRankInfoSheet({
           onPointerCancel={() => {
             dragStartY.current = null;
             dragOffsetY.current = 0;
+            setIsDragging(false);
             setDragY(0);
           }}
           className="mx-auto flex h-8 w-16 touch-none items-center justify-center"

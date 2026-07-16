@@ -21,6 +21,7 @@ export interface AuthProfile {
   pushMarketingEnabled?: boolean;
   leaderboardVisible?: boolean;
   theme?: string | null;
+  profilePictureIndex?: number | null;
 }
 
 export interface AuthShellUser {

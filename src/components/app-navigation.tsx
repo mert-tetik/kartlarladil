@@ -13,6 +13,7 @@ import {
   Gamepad2,
   Home,
   MessageCircle,
+  Palette,
   type LucideIcon,
 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -25,6 +26,7 @@ import {
   subscribeMobileNavbarBackOverride,
 } from "@/components/mobile-navbar-back";
 import { AccountMenu } from "@/features/auth/components/account-menu";
+import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialog";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -78,6 +80,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileBackOverride, setMobileBackOverride] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const showMobileBackButton =
     isMobileViewport &&
     (mobileBackOverride ||
@@ -165,12 +168,26 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               <ChevronLeft className="size-6" aria-hidden="true" />
               <span className="sr-only">{t("common.back")}</span>
             </Link>
+          ) : user ? (
+            <button
+              type="button"
+              onClick={() => {
+                vibrate("tap");
+                setThemeOpen(true);
+              }}
+              aria-label={t("theme.title")}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 lg:hidden"
+            >
+              <Palette className="size-5" aria-hidden="true" />
+            </button>
           ) : (
-            <Link href="/" prefetch className="flex shrink-0 items-center gap-3 font-semibold text-white">
-              <Logo size={40} priority />
-              <span className="hidden font-display text-xl sm:inline">{APP_NAME}</span>
-            </Link>
+            <div className="size-10 shrink-0 lg:hidden" aria-hidden="true" />
           )}
+
+          <Link href="/" prefetch className="hidden shrink-0 items-center gap-3 font-semibold text-white lg:flex">
+            <Logo size={40} priority />
+            <span className="font-display text-xl">{APP_NAME}</span>
+          </Link>
 
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
@@ -217,6 +234,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </div>
         </div>
       </header>
+
+      {user ? <ThemePickerDialog open={themeOpen} onOpenChange={setThemeOpen} /> : null}
 
       <div
         data-mobile-main-nav-frame

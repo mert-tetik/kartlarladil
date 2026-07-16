@@ -6,7 +6,8 @@ import { BarChart3, CreditCard, LogOut, Palette, Settings, Shield, UserRound, Vi
 import { TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
-import { getAccountInitial, getAccountLabel } from "@/features/auth/account-display";
+import { getAccountLabel } from "@/features/auth/account-display";
+import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
@@ -19,17 +20,19 @@ import { useVibration } from "@/lib/vibration";
 
 const MOBILE_LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const MOBILE_LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 
 export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { clearUser } = useAuthSession();
-  const initial = getAccountInitial(user);
   const { stats } = useProgressStats();
   const { locale } = useLocale();
   const t = useT();
   const { supported: vibrationSupported, enabled: vibrationEnabled, toggle: toggleVibration } = useVibration();
+  const isMobileMenu = navbar && isMobileViewport;
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -40,6 +43,19 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => mediaQuery.removeEventListener("change", syncViewport);
   }, []);
 
   return (
@@ -58,7 +74,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
             navbar && open && "ring-white/20",
           )}
         >
-          {initial}
+          <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt={getAccountLabel(user)} className="size-full rounded-full" />
           <PlanBadge className="absolute -bottom-2 left-1/2 z-10 -translate-x-1/2 border-2 border-foreground-inverse px-1.5 py-0 text-[10px] shadow-sm" />
         </button>
       </div>
@@ -68,75 +84,91 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
           role="menu"
           className="animate-menu-pop absolute right-0 top-12 z-[60] w-72 rounded-lg border border-border bg-background-card p-2 text-sm shadow-2xl"
         >
-          <div className="px-3 py-3">
-            <p className="font-semibold text-foreground">{getAccountLabel(user)}</p>
-            <p className="mt-1 truncate text-foreground-muted">{user.email}</p>
-            <div className="mt-2">
-              <Link
-                href="/pricing"
-                onClick={() => setOpen(false)}
-                className="inline-block cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-              >
-                <PlanBadge />
-              </Link>
-            </div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-foreground-muted">{t("rank.current")}</p>
-                <p className="mt-1 font-semibold text-foreground">{getRankLabel(stats.rank, locale)}</p>
+          {isMobileMenu ? (
+            <>
+              <div className="flex flex-col items-center px-3 py-4 text-center">
+                <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt={getAccountLabel(user)} className="size-20 rounded-full border border-border" />
+                <p className="mt-3 max-w-full truncate font-semibold text-foreground">{getAccountLabel(user)}</p>
+                <p className="mt-1 max-w-full truncate text-foreground-muted">{user.email}</p>
+                <PlanBadge className="mt-3" />
               </div>
-              <div className="flex items-center gap-2 rounded-full bg-background-card px-3 py-1 text-sm font-bold text-foreground">
-                <RankIcon icon={stats.rank.icon} className={cn("size-4", getRankIconTone(stats.rank.icon))} />
-                {formatNumber(locale, stats.totalPoints)}
-              </div>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-background-card">
-              <div className="h-full rounded-full bg-background-inverse" style={{ width: `${stats.rankProgressPercent}%` }} />
-            </div>
-            <p className="mt-2 text-xs text-foreground-muted">
-              {stats.nextRank
-                ? t("rank.next", {
-                    rank: getRankLabel(stats.nextRank, locale),
-                    points: formatNumber(locale, stats.pointsToNextRank),
-                  })
-                : t("rank.completed")}
-            </p>
-            <div className="mt-3 grid grid-cols-5 gap-1.5">
-              {stats.tierStats.map((tier) => {
-                const style = TIER_STYLES[tier.tier];
-
-                return (
-                  <div
-                    key={tier.tier}
-                    className={cn("rounded-md border bg-background-card p-2 text-center", style.border)}
-                    title={`${tier.tier} ${getTierLabel(tier.tier, locale)}: ${tier.learned}`}
+              <div className="h-px bg-border" />
+              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
+            </>
+          ) : (
+            <>
+              <div className="px-3 py-3">
+                <p className="font-semibold text-foreground">{getAccountLabel(user)}</p>
+                <p className="mt-1 truncate text-foreground-muted">{user.email}</p>
+                <div className="mt-2">
+                  <Link
+                    href="/pricing"
+                    onClick={() => setOpen(false)}
+                    className="inline-block cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                   >
-                    <span className={cn("block text-xs font-bold", style.text)}>{tier.tier}</span>
-                    <span className="mt-1 block text-[11px] font-semibold text-foreground-secondary">{tier.learned}</span>
+                    <PlanBadge />
+                  </Link>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground-muted">{t("rank.current")}</p>
+                    <p className="mt-1 font-semibold text-foreground">{getRankLabel(stats.rank, locale)}</p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="h-px bg-border" />
-          <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} onClick={() => setOpen(false)} />
-          <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              setThemeOpen(true);
-            }}
-            className="mt-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-          >
-            <Palette className="size-4" aria-hidden="true" />
-            {t("theme.title")}
-          </button>
-          <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} onClick={() => setOpen(false)} />
-          <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
+                  <div className="flex items-center gap-2 rounded-full bg-background-card px-3 py-1 text-sm font-bold text-foreground">
+                    <RankIcon icon={stats.rank.icon} className={cn("size-4", getRankIconTone(stats.rank.icon))} />
+                    {formatNumber(locale, stats.totalPoints)}
+                  </div>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-background-card">
+                  <div className="h-full rounded-full bg-background-inverse" style={{ width: `${stats.rankProgressPercent}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-foreground-muted">
+                  {stats.nextRank
+                    ? t("rank.next", {
+                        rank: getRankLabel(stats.nextRank, locale),
+                        points: formatNumber(locale, stats.pointsToNextRank),
+                      })
+                    : t("rank.completed")}
+                </p>
+                <div className="mt-3 grid grid-cols-5 gap-1.5">
+                  {stats.tierStats.map((tier) => {
+                    const style = TIER_STYLES[tier.tier];
+
+                    return (
+                      <div
+                        key={tier.tier}
+                        className={cn("rounded-md border bg-background-card p-2 text-center", style.border)}
+                        title={`${tier.tier} ${getTierLabel(tier.tier, locale)}: ${tier.learned}`}
+                      >
+                        <span className={cn("block text-xs font-bold", style.text)}>{tier.tier}</span>
+                        <span className="mt-1 block text-[11px] font-semibold text-foreground-secondary">{tier.learned}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="h-px bg-border" />
+              <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  setThemeOpen(true);
+                }}
+                className="mt-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+              >
+                <Palette className="size-4" aria-hidden="true" />
+                {t("theme.title")}
+              </button>
+              <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
+            </>
+          )}
           {vibrationSupported ? (
             <button
               type="button"

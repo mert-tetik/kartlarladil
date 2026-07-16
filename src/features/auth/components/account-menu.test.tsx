@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
@@ -73,6 +73,33 @@ const testUser: AuthShellUser = {
 };
 
 describe("AccountMenu", () => {
+  it("centers account identity and omits rank, profile, theme, and subscription links", async () => {
+    const user = userEvent.setup();
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: matchMedia });
+
+    render(
+      <AuthSessionProvider user={testUser}>
+        <LocaleProvider initialLocale="tr">
+          <AccountMenu user={testUser} navbar />
+        </LocaleProvider>
+      </AuthSessionProvider>,
+    );
+
+    await waitFor(() => expect(matchMedia).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: /hesap men\u00fcs\u00fc/i }));
+
+    expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
+    expect(document.querySelector('a[href="/profile"]')).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/pricing"]')).not.toBeInTheDocument();
+    expect(screen.queryByText("A1")).not.toBeInTheDocument();
+  });
+
   it("requests mobile auth immediately when logout is clicked", async () => {
     const user = userEvent.setup();
 
