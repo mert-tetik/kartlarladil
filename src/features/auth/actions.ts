@@ -9,6 +9,7 @@ import {
   getFormString,
   loginSchema,
   onboardingSchema,
+  profilePictureIndexSchema,
   profileSchema,
   registerSchema,
   resetPasswordSchema,
@@ -280,6 +281,59 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
   };
 }
 
+export async function updateProfilePictureAction(profilePictureIndex: number): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
+  const parsed = profilePictureIndexSchema.safeParse(profilePictureIndex);
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: t("auth.message.profileSaveFailed"),
+    };
+  }
+
+  const supabase = await createActionSupabaseClient();
+
+  if (!supabase) {
+    return authNotConfiguredState(locale);
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      status: "error",
+      message: t("auth.message.profileAuthRequired"),
+    };
+  }
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      profile_picture_index: parsed.data,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    return {
+      status: "error",
+      message: t("auth.message.profileSaveFailed"),
+    };
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/profile");
+
+  return {
+    status: "success",
+    message: t("auth.message.profileSaved"),
+  };
+}
+
 export async function signInWithGoogleAction(
   _state: AuthActionState,
   formData: FormData,
@@ -405,6 +459,7 @@ export async function completeOnboardingAction(
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
     preferredUiLocale: getFormString(formData, "preferredUiLocale") || locale,
     preferredTier: getFormString(formData, "preferredTier"),
+    profilePictureIndex: getFormString(formData, "profilePictureIndex") || undefined,
     next: getFormString(formData, "next"),
     skipRedirect: getFormString(formData, "skipRedirect"),
   });
@@ -438,6 +493,7 @@ export async function completeOnboardingAction(
       preferred_language_code: parsed.data.preferredLanguageCode,
       preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
       preferred_tier: parsed.data.preferredTier,
+      ...(parsed.data.profilePictureIndex !== undefined ? { profile_picture_index: parsed.data.profilePictureIndex } : {}),
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     },

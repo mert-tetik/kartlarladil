@@ -8,6 +8,7 @@ import { logoutAction } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { getAccountLabel } from "@/features/auth/account-display";
 import { ProfilePicture } from "@/features/auth/components/profile-picture";
+import { ProfilePicturePickerDialog } from "@/features/auth/components/profile-picture-picker-dialog";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
@@ -25,6 +26,7 @@ const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [profilePictureOpen, setProfilePictureOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { clearUser } = useAuthSession();
@@ -87,7 +89,17 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
           {isMobileMenu ? (
             <>
               <div className="flex flex-col items-center px-3 py-4 text-center">
-                <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt={getAccountLabel(user)} className="size-20 rounded-full border border-border" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setProfilePictureOpen(true);
+                  }}
+                  className="rounded-full transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  aria-label={t("profilePicture.title")}
+                >
+                  <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt="" className="size-20 rounded-full border border-border" />
+                </button>
                 <p className="mt-3 max-w-full truncate font-semibold text-foreground">{getAccountLabel(user)}</p>
                 <p className="mt-1 max-w-full truncate text-foreground-muted">{user.email}</p>
                 <PlanBadge className="mt-3" />
@@ -219,6 +231,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
         </div>
       ) : null}
       <ThemePickerDialog open={themeOpen} onOpenChange={setThemeOpen} />
+      <ProfilePicturePickerDialog open={profilePictureOpen} onOpenChange={setProfilePictureOpen} />
     </div>
   );
 }

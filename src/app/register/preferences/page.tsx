@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
 import { OnboardingForm } from "@/features/auth/components/onboarding-form";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath, getSearchParamValue } from "@/features/auth/auth-redirects";
@@ -30,7 +31,7 @@ export default async function OnboardingPage({
   const t = createTranslator(await getServerLocale());
   const params = await searchParams;
   const nextPath = getSafeNextPath(getSearchParamValue(params.next), DEFAULT_AUTH_REDIRECT);
-  const user = await getCurrentAuthUser();
+  const [user, requestHeaders] = await Promise.all([getCurrentAuthUser(), headers()]);
 
   if (!user) {
     const returnPath = `/register/preferences?next=${encodeURIComponent(nextPath)}`;
@@ -39,7 +40,7 @@ export default async function OnboardingPage({
 
   return (
     <AuthPageShell title={t("auth.onboarding.title")} description={t("auth.onboarding.description")} hideBranding hideHeader>
-      <OnboardingForm nextPath={nextPath} />
+      <OnboardingForm nextPath={nextPath} countryCode={requestHeaders.get("x-vercel-ip-country")} />
     </AuthPageShell>
   );
 }

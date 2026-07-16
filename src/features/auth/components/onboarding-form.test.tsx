@@ -27,7 +27,7 @@ describe("OnboardingForm", () => {
       container.querySelector<HTMLInputElement>(
         'input[name="preferredLanguageCode"]',
       ),
-    ).toHaveValue("tr");
+    ).toHaveValue("es");
 
     const tierInputs = container.querySelectorAll<HTMLInputElement>(
       'input[name="preferredTier"]',

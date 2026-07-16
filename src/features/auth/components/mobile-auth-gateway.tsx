@@ -84,7 +84,7 @@ function saveWebChoice() {
   window.sessionStorage.setItem(WEB_CHOICE_KEY, "true");
 }
 
-export function MobileAuthGateway() {
+export function MobileAuthGateway({ countryCode }: { countryCode: string | null }) {
   const { user } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
   const activateTutorial = useTutorialStore((state) => state.activate);
@@ -240,7 +240,7 @@ export function MobileAuthGateway() {
   if (needsOnboarding) {
     return (
       <GatewayShell isTestMode={isTestMode}>
-        <MobileOnboardingForm onComplete={handleOnboardingComplete} />
+        <MobileOnboardingForm countryCode={countryCode} onComplete={handleOnboardingComplete} />
       </GatewayShell>
     );
   }

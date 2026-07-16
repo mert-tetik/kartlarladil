@@ -12,6 +12,11 @@ const languageCodeSchema = z.enum(LANGUAGE_CODES);
 const localeCodeSchema = z.enum(LOCALE_CODES);
 const tierSchema = z.enum(["A1", "A2", "B1", "B2", "C1"]);
 const preferredTierSchema = z.enum(PREFERRED_TIERS);
+const profilePictureIndexFormSchema = z
+  .string()
+  .trim()
+  .transform((value) => Number(value))
+  .pipe(z.number().int().min(0).max(18));
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("auth.validation.invalidEmail"),
@@ -38,6 +43,7 @@ export const onboardingSchema = z
     preferredLanguageCode: languageCodeSchema,
     preferredUiLocale: localeCodeSchema.optional(),
     preferredTier: preferredTierSchema,
+    profilePictureIndex: profilePictureIndexFormSchema.optional(),
     next: nextPathSchema,
     skipRedirect: z
       .union([z.literal("on"), z.literal("")])
@@ -78,6 +84,8 @@ export const profileSchema = z.object({
     .transform((value) => (value === "" ? null : value)),
   preferredTier: z.union([preferredTierSchema, z.literal("")]).transform((value) => (value === "" ? null : value)),
 });
+
+export const profilePictureIndexSchema = z.number().int().min(0).max(18);
 
 export const deleteAccountSchema = z.object({
   confirmation: z

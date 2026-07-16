@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
 import { TutorialPointer } from "@/features/tutorial/tutorial-pointer";
 import { GamesNavPointer } from "@/features/tutorial/components/games-nav-pointer";
@@ -49,15 +50,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getServerLocale();
-  const direction = await getServerTextDirection();
-  const user = await getCurrentAuthUser();
+  const [locale, direction, user, requestHeaders] = await Promise.all([
+    getServerLocale(),
+    getServerTextDirection(),
+    getCurrentAuthUser(),
+    headers(),
+  ]);
   const themeId = user?.profile.theme ?? DEFAULT_THEME_ID;
+  const onboardingCountryCode = requestHeaders.get("x-vercel-ip-country");
 
   return (
     <html lang={locale} dir={direction} className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full" data-theme={themeId}>
-        <AppShell locale={locale} user={user}>
+        <AppShell locale={locale} user={user} onboardingCountryCode={onboardingCountryCode}>
           {children}
           <TutorialPointer />
           <GamesNavPointer />

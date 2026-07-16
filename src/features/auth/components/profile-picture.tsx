@@ -1,6 +1,28 @@
 import { cn } from "@/lib/utils";
+import type { TranslationKey } from "@/i18n/dictionaries";
 
 export const PROFILE_PICTURE_COUNT = 19;
+export const PROFILE_PICTURE_NAMES = [
+  "cat",
+  "dog",
+  "rabbit",
+  "bear",
+  "panda",
+  "lion",
+  "elephant",
+  "penguin",
+  "koala",
+  "monkey",
+  "giraffe",
+  "zebra",
+  "cow",
+  "pig",
+  "frog",
+  "chick",
+  "sheep",
+  "raccoon",
+  "hippopotamus",
+] as const;
 
 export function getProfilePictureSource(profilePictureIndex: number | null | undefined) {
   const resolvedIndex =
@@ -14,6 +36,11 @@ export function getProfilePictureSource(profilePictureIndex: number | null | und
   return `/profile-pictures/pp_${resolvedIndex + 1}.png`;
 }
 
+export function getProfilePictureNameKey(profilePictureIndex: number): TranslationKey {
+  const name = PROFILE_PICTURE_NAMES[profilePictureIndex] ?? PROFILE_PICTURE_NAMES[0];
+  return `profilePicture.name.${name}` as TranslationKey;
+}
+
 export function ProfilePicture({
   profilePictureIndex,
   alt,
@@ -24,12 +51,15 @@ export function ProfilePicture({
   className?: string;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={getProfilePictureSource(profilePictureIndex)}
-      alt={alt}
-      className={cn("shrink-0 object-cover", className)}
-      draggable={false}
-    />
+    <span className={cn("block shrink-0 overflow-hidden", className)}>
+      {/* Keep the upper portrait area prominent in the compact avatar crop. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={getProfilePictureSource(profilePictureIndex)}
+        alt={alt}
+        className="size-full scale-125 object-cover object-[50%_18%]"
+        draggable={false}
+      />
+    </span>
   );
 }

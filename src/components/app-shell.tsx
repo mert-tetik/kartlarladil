@@ -24,10 +24,12 @@ export function AppShell({
   children,
   locale,
   user,
+  onboardingCountryCode,
 }: {
   children: ReactNode;
   locale: LocaleCode;
   user: AuthShellUser | null;
+  onboardingCountryCode: string | null;
 }) {
   return (
     <LocaleProvider initialLocale={locale}>
@@ -43,7 +45,7 @@ export function AppShell({
                   <div className="flex min-h-screen flex-col bg-background text-foreground">
                     <AppNavigation user={user} />
                     <RankUpTestOverlay />
-                    <MobileAuthGateway />
+                    <MobileAuthGateway countryCode={onboardingCountryCode} />
                     <PostPracticeLeaderboardConsentGate />
                     <RouteAwareShell>{children}</RouteAwareShell>
                     <SiteFooter className="max-lg:hidden" />

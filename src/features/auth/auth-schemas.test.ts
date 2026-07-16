@@ -3,6 +3,7 @@ import {
   deleteAccountSchema,
   loginSchema,
   onboardingSchema,
+  profilePictureIndexSchema,
   profileSchema,
   updatePasswordSchema,
 } from "@/features/auth/auth-schemas";
@@ -65,6 +66,14 @@ describe("auth schemas", () => {
 
     expect(result.success).toBe(true);
     expect(result.success ? result.data.preferredTier : null).toBe("all");
+  });
+
+  it("accepts only supported profile picture indices", () => {
+    expect(profilePictureIndexSchema.safeParse(0).success).toBe(true);
+    expect(profilePictureIndexSchema.safeParse(18).success).toBe(true);
+    expect(profilePictureIndexSchema.safeParse(-1).success).toBe(false);
+    expect(profilePictureIndexSchema.safeParse(19).success).toBe(false);
+    expect(profilePictureIndexSchema.safeParse(2.5).success).toBe(false);
   });
 
   it("rejects invalid tier values", () => {
