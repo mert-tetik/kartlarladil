@@ -789,6 +789,8 @@ const dictionary = {
   "tutorial.openLeaderboard": "Toque aqui para ver sua posição no ranking.",
   "tutorial.backFromLeaderboard": "Volte para a página inicial depois de ver o ranking.",
   "cards.centerTitle": "Cartões", "cards.all": "Todos", "cards.toLearn": "Para aprender", "cards.listen": "Ouvir", "cards.addToDeck": "Adicionar aos cartões", "cards.swipeHint": "Deslize para a esquerda para pular ou para a direita para adicionar à coleção.", "cards.createCustom": "Criar cartão personalizado",
+  "cards.swipeInstruction": "Deslize para a esquerda para pular o cartão ou para a direita para adicioná-lo à sua coleção.",
+  "cards.randomDrawTitle": "Tire um cartão aleatório",
 } as const;
 
 export default dictionary;

@@ -789,6 +789,8 @@ const dictionary = {
   "tutorial.openLeaderboard": "اضغط هنا لرؤية موقعك في لوحة الصدارة.",
   "tutorial.backFromLeaderboard": "ارجع إلى الصفحة الرئيسية بعد مشاهدة لوحة الصدارة.",
   "cards.centerTitle": "البطاقات", "cards.all": "كل البطاقات", "cards.toLearn": "للتعلّم", "cards.listen": "استمع", "cards.addToDeck": "أضف إلى البطاقات", "cards.swipeHint": "اسحب لليسار للتخطي أو لليمين لإضافة البطاقة إلى مجموعتك.", "cards.createCustom": "إنشاء بطاقة مخصصة",
+  "cards.swipeInstruction": "اسحب إلى اليسار لتخطي البطاقة أو إلى اليمين لإضافتها إلى مجموعتك.",
+  "cards.randomDrawTitle": "اسحب بطاقة عشوائية",
 } as const;
 
 export default dictionary;

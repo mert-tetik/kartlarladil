@@ -795,6 +795,8 @@ const dictionary = {
   "cards.addToDeck": "Zu Karten hinzufügen",
   "cards.swipeHint": "Wische nach links zum Überspringen oder nach rechts zum Hinzufügen.",
   "cards.createCustom": "Eigene Karte erstellen",
+  "cards.swipeInstruction": "Wische nach links, um die Karte zu überspringen, oder nach rechts, um sie deiner Sammlung hinzuzufügen.",
+  "cards.randomDrawTitle": "Ziehe eine zufällige Karte",
 } as const;
 
 export default dictionary;

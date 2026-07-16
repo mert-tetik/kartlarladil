@@ -795,6 +795,8 @@ const dictionary = {
   "cards.addToDeck": "Добавить к карточкам",
   "cards.swipeHint": "Смахните влево, чтобы пропустить, или вправо, чтобы добавить в коллекцию.",
   "cards.createCustom": "Создать свою карточку",
+  "cards.swipeInstruction": "Смахните влево, чтобы пропустить карточку, или вправо, чтобы добавить её в коллекцию.",
+  "cards.randomDrawTitle": "Вытянуть случайную карточку",
 } as const;
 
 export default dictionary;

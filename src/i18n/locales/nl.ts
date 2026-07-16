@@ -789,6 +789,8 @@ const dictionary = {
   "tutorial.openLeaderboard": "Tik hier om je positie op het klassement te zien.",
   "tutorial.backFromLeaderboard": "Ga terug naar de startpagina nadat je het klassement hebt bekeken.",
   "cards.centerTitle": "Kaarten", "cards.all": "Alle kaarten", "cards.toLearn": "Te leren", "cards.listen": "Luisteren", "cards.addToDeck": "Aan kaarten toevoegen", "cards.swipeHint": "Veeg links om over te slaan of rechts om aan je collectie toe te voegen.", "cards.createCustom": "Eigen kaart maken",
+  "cards.swipeInstruction": "Veeg links om de kaart over te slaan of rechts om hem aan je collectie toe te voegen.",
+  "cards.randomDrawTitle": "Trek een willekeurige kaart",
 } as const;
 
 export default dictionary;

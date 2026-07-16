@@ -789,6 +789,8 @@ const dictionary = {
   "tutorial.openLeaderboard": "여기를 눌러 리더보드 순위를 확인하세요.",
   "tutorial.backFromLeaderboard": "리더보드를 확인한 후 홈으로 돌아가세요.",
   "cards.centerTitle": "카드", "cards.all": "모든 카드", "cards.toLearn": "학습할 카드", "cards.listen": "듣기", "cards.addToDeck": "카드에 추가", "cards.swipeHint": "왼쪽으로 밀면 건너뛰고 오른쪽으로 밀면 컬렉션에 추가합니다.", "cards.createCustom": "맞춤 카드 만들기",
+  "cards.swipeInstruction": "카드를 건너뛰려면 왼쪽으로, 컬렉션에 추가하려면 오른쪽으로 밀어 주세요.",
+  "cards.randomDrawTitle": "무작위 카드 뽑기",
 } as const;
 
 export default dictionary;

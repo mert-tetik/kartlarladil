@@ -794,6 +794,8 @@ const dictionary = {
   "cards.addToDeck": "Add to cards",
   "cards.swipeHint": "Swipe left to skip or right to add to your collection.",
   "cards.createCustom": "Create custom card",
+  "cards.swipeInstruction": "Swipe left to skip the card or right to add it to your collection.",
+  "cards.randomDrawTitle": "Draw a random card",
 } as const;
 
 export default dictionary;

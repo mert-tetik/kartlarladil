@@ -794,6 +794,8 @@ const dictionary = {
   "cards.addToDeck": "Kartlara ekle",
   "cards.swipeHint": "Atlamak için sola, koleksiyonuna eklemek için sağa kaydır.",
   "cards.createCustom": "Özel kart oluştur",
+  "cards.swipeInstruction": "Kartı geçmek için sola, koleksiyonuna eklemek için sağa kaydır.",
+  "cards.randomDrawTitle": "Rastgele kart çek",
 } as const;
 
 export default dictionary;
