@@ -28,17 +28,20 @@ const TIER_TEXT_COLOR: Record<Tier, string> = {
 export function MobileLandingCardCenter({
   activeCards,
   learnedCards,
+  status,
+  onStatusChange,
   onOpenDraw,
   onOpenCreate,
 }: {
   activeCards: InventoryCardView[];
   learnedCards: InventoryCardView[];
+  status: CardStatusFilter;
+  onStatusChange: (status: CardStatusFilter) => void;
   onOpenDraw: () => void;
   onOpenCreate: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const [status, setStatus] = useState<CardStatusFilter>("all");
   const [tier, setTier] = useState<Tier | "all">("all");
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
   const [filtersPinned, setFiltersPinned] = useState(false);
@@ -72,7 +75,7 @@ export function MobileLandingCardCenter({
   }, []);
 
   return (
-    <section className="mt-3 pb-6" aria-label={t("cards.centerTitle")}>
+    <section data-mobile-card-center className="mt-3 pb-6" aria-label={t("cards.centerTitle")}>
       <div className="flex items-center justify-between border-y border-border bg-background-card px-4 py-3">
         <h2 className="text-lg font-semibold text-foreground">{t("cards.centerTitle")}</h2>
         <div className="flex items-center gap-1">
@@ -95,7 +98,7 @@ export function MobileLandingCardCenter({
         >
           <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">
             {(["all", "active", "learned"] as const).map((item) => (
-              <button key={item} type="button" onClick={() => setStatus(item)} className={cn("rounded-md px-2 py-2 text-xs font-semibold transition-all duration-300", status === item ? item === "all" ? "bg-white text-black shadow-sm" : item === "active" ? "bg-emerald-500 text-white shadow-sm" : "bg-sky-500 text-white shadow-sm" : "text-foreground-secondary")}>
+              <button key={item} type="button" onClick={() => onStatusChange(item)} className={cn("rounded-md px-2 py-2 text-xs font-semibold transition-all duration-300", status === item ? item === "all" ? "bg-white text-black shadow-sm" : item === "active" ? "bg-emerald-500 text-white shadow-sm" : "bg-sky-500 text-white shadow-sm" : "text-foreground-secondary")}>
                 {t(`cards.${item === "all" ? "all" : item === "active" ? "toLearn" : "learned"}`)}
               </button>
             ))}
@@ -133,7 +136,7 @@ function CardRow({ card, status, locale, onOpen }: { card: VocabularyCard; statu
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <span className={cn("text-xs font-bold", TIER_TEXT_COLOR[card.tier])}>{card.tier}</span>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground-secondary"><span>{points}</span><ScoreIcon size={15} className="h-4 w-auto" /></span>
-            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", isLearned ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300" : "bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300")}>{t(isLearned ? "inventory.status.learned" : "inventory.status.active")}</span>
+            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", isLearned ? "bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300")}>{t(isLearned ? "inventory.status.learned" : "inventory.status.active")}</span>
           </div>
         </div>
         <p className="pl-[34px] text-sm text-foreground-secondary">{getCardTranslation(card, locale)}</p>

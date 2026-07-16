@@ -111,6 +111,7 @@ export function MobileLandingDashboard() {
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
+  const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
 
   useEffect(() => {
@@ -312,6 +313,20 @@ export function MobileLandingDashboard() {
     setSelectedLanguage(nextCardLanguage);
   }
 
+  function openCardCenter(status: "active" | "learned") {
+    vibrate("tap");
+    setCardCenterStatus(status);
+
+    window.requestAnimationFrame(() => {
+      const scrollContainer = document.querySelector<HTMLElement>("[data-mobile-landing-dashboard]");
+      const cardCenter = scrollContainer?.querySelector<HTMLElement>("[data-mobile-card-center]");
+
+      if (scrollContainer && cardCenter) {
+        scrollContainer.scrollTo({ top: cardCenter.offsetTop, behavior: "smooth" });
+      }
+    });
+  }
+
   return (
     <section data-mobile-landing-dashboard className="relative h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] overflow-y-auto overscroll-contain bg-background px-4 py-1 lg:hidden">
       {/* Leaderboard badge */}
@@ -436,7 +451,7 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setLanguageSheetOpen(true);
         }}
-        className="flex w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 py-1.5 text-left transition-colors hover:bg-background-muted"
+        className="flex h-14 w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 text-left transition-colors hover:bg-background-muted"
       >
         <span className="flex items-center gap-3">
           <LanguageFlag code={selectedLanguage} className="h-6 w-9" />
@@ -450,19 +465,22 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Active / Learned row */}
-      <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
+      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border border-border">
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
           variant="active"
-          onClick={() => setInfoSheetOpen(true)}
+          onClick={() => openCardCenter("active")}
           dataTutorialTarget="landing-learning-cards"
         />
+        <div className="flex min-w-20 items-center justify-center border-x border-border bg-background-card px-2 text-center text-sm font-semibold text-foreground">
+          {t("nav.inventory")}
+        </div>
         <StatusBlock
           title={t("home.mobile.learnedCards")}
           count={learnedCount}
           variant="learned"
-          onClick={() => setInfoSheetOpen(true)}
+          onClick={() => openCardCenter("learned")}
         />
       </div>
 
@@ -488,6 +506,8 @@ export function MobileLandingDashboard() {
       <MobileLandingCardCenter
         activeCards={activeForLanguage}
         learnedCards={learnedForLanguage}
+        status={cardCenterStatus}
+        onStatusChange={setCardCenterStatus}
         onOpenDraw={handleDrawCards}
         onOpenCreate={handleCreateCard}
       />

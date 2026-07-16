@@ -26,6 +26,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const [incoming, setIncoming] = useState(false);
   const [mounted, setMounted] = useState(open);
   const start = useRef<{ x: number; y: number } | null>(null);
+  const dragPosition = useRef({ x: 0, y: 0 });
   const card = deck[0] ?? null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
 
@@ -55,6 +56,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     setOutgoing({ card, direction, active: false });
     setDeck((current) => current.slice(1));
     setIncoming(true);
+    dragPosition.current = { x: 0, y: 0 };
     setDragX(0); setDragY(0);
     window.requestAnimationFrame(() => {
       setOutgoing((current) => current ? { ...current, active: true } : null);
@@ -71,13 +73,39 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     const timer = window.setTimeout(loadDeck, 0);
     return () => window.clearTimeout(timer);
   }, [deck.length, open, locked, loadDeck]);
+
+  function resetDrag() {
+    start.current = null;
+    dragPosition.current = { x: 0, y: 0 };
+    setDragging(false);
+    setDragX(0);
+    setDragY(0);
+  }
+
+  function finishDrag() {
+    const { x } = dragPosition.current;
+    start.current = null;
+
+    if (x >= THRESHOLD) {
+      finish("add");
+      return;
+    }
+
+    if (x <= -THRESHOLD) {
+      finish("skip");
+      return;
+    }
+
+    resetDrag();
+  }
+
   if (!mounted) return null;
   const leftActive = dragX <= -THRESHOLD;
   const rightActive = dragX >= THRESHOLD;
   return <div role="dialog" aria-modal="true" className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-opacity duration-300 lg:hidden", open ? "opacity-100" : "pointer-events-none opacity-0")}>
     <div className="flex items-center justify-between"><p className="text-sm font-semibold text-foreground-secondary">{t("nav.cardDraw")}</p><button type="button" onClick={onClose} aria-label={t("common.close")} className="inline-flex size-10 items-center justify-center rounded-md text-foreground"><X className="size-6" /></button></div>
     <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { setDragX(event.clientX - start.current.x); setDragY(event.clientY - start.current.y); } }} onPointerUp={() => { setDragging(false); if (dragX >= THRESHOLD) finish("add"); else if (dragX <= -THRESHOLD) finish("skip"); else { setDragX(0); setDragY(0); } start.current = null; }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging ? "" : "transition-[transform,opacity] duration-300 ease-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? 56 : 0}px) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
+      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging ? "" : "transition-[transform,opacity] duration-300 ease-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? 56 : 0}px) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
         <div className={cn("pointer-events-none absolute inset-0 z-20 rounded-xl transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")} />
         {leftActive ? <span className="absolute right-5 top-5 z-30 text-xl font-bold text-white">{t("cards.skip")}</span> : null}
         {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
