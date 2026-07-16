@@ -114,16 +114,20 @@ export function MobileOnboardingForm({
   ];
 
   return (
-    <form ref={formRef} action={formAction} className="animate-screen-pop flex h-[min(76dvh,44rem)] w-full max-w-sm flex-col overflow-hidden">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="animate-screen-pop grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden supports-[height:100dvh]:h-[min(76dvh,44rem)]"
+    >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
       <input type="hidden" name="preferredLanguageCode" value={preferredLanguageCode} />
       <input type="hidden" name="preferredTier" value="all" />
       <input type="hidden" name="profilePictureIndex" value={profilePictureIndex} />
       <input type="hidden" name="skipRedirect" value="on" />
 
-      <header className="shrink-0 pb-5 pt-1 text-center">
+      <div className="shrink-0 pb-5 pt-1 text-center">
         <h2 className="font-display text-3xl font-semibold leading-tight text-foreground">{heading}</h2>
-      </header>
+      </div>
 
       {isLanguageStep ? (
         <div className="min-h-0 flex-1 overflow-y-auto px-1">
@@ -165,7 +169,7 @@ export function MobileOnboardingForm({
         </div>
       )}
 
-      <footer className="shrink-0 pt-5">
+      <div className="shrink-0 pt-5">
         <FormMessage state={state} />
         {isLanguageStep ? (
           <button
@@ -180,7 +184,7 @@ export function MobileOnboardingForm({
             {t("auth.onboarding.continue")}
           </SubmitButton>
         )}
-      </footer>
+      </div>
     </form>
   );
 }
