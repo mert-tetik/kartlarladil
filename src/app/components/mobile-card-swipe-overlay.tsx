@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
-const CARD_CONTENT_SCALE = 1.1;
+const CARD_CONTENT_SCALE = 1.15;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
 // Temporary visual-test mode. Set to false to restore the one-time demo behavior.
 const REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING = true;
