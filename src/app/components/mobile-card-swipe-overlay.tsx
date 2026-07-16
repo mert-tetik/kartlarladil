@@ -25,14 +25,33 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const [outgoing, setOutgoing] = useState<{ card: VocabularyCard; direction: "skip" | "add"; active: boolean } | null>(null);
   const [incoming, setIncoming] = useState(false);
   const [mounted, setMounted] = useState(open);
+  const [entered, setEntered] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const dragPosition = useRef({ x: 0, y: 0 });
   const card = deck[0] ?? null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setMounted(open), open ? 0 : 300);
-    return () => window.clearTimeout(timer);
+    if (open) {
+      let enterFrame: number | null = null;
+      const mountFrame = window.requestAnimationFrame(() => {
+        setMounted(true);
+        enterFrame = window.requestAnimationFrame(() => setEntered(true));
+      });
+
+      return () => {
+        window.cancelAnimationFrame(mountFrame);
+        if (enterFrame) window.cancelAnimationFrame(enterFrame);
+      };
+    }
+
+    const exitFrame = window.requestAnimationFrame(() => setEntered(false));
+    const timer = window.setTimeout(() => setMounted(false), 300);
+
+    return () => {
+      window.cancelAnimationFrame(exitFrame);
+      window.clearTimeout(timer);
+    };
   }, [open]);
 
   const loadDeck = useCallback(() => {
@@ -62,9 +81,10 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
       setOutgoing((current) => current ? { ...current, active: true } : null);
       window.requestAnimationFrame(() => setIncoming(false));
     });
-    window.setTimeout(async () => {
-      if (direction === "add") await addCard(card.sourceKey);
-      setOutgoing(null); setLocked(false);
+    window.setTimeout(() => {
+      if (direction === "add") void addCard(card.sourceKey);
+      setOutgoing(null);
+      setLocked(false);
     }, 280);
   }
 
@@ -102,7 +122,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   if (!mounted) return null;
   const leftActive = dragX <= -THRESHOLD;
   const rightActive = dragX >= THRESHOLD;
-  return <div role="dialog" aria-modal="true" className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-opacity duration-300 lg:hidden", open ? "opacity-100" : "pointer-events-none opacity-0")}>
+  return <div role="dialog" aria-modal="true" className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
     <div className="flex items-center justify-between"><p className="text-sm font-semibold text-foreground-secondary">{t("nav.cardDraw")}</p><button type="button" onClick={onClose} aria-label={t("common.close")} className="inline-flex size-10 items-center justify-center rounded-md text-foreground"><X className="size-6" /></button></div>
     <div className="relative flex flex-1 items-center justify-center overflow-hidden">
       {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging ? "" : "transition-[transform,opacity] duration-300 ease-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? 56 : 0}px) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
