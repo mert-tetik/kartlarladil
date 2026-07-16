@@ -29,6 +29,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const [dragging, setDragging] = useState(false);
   const [outgoing, setOutgoing] = useState<{ card: VocabularyCard; direction: "skip" | "add"; active: boolean } | null>(null);
   const [incoming, setIncoming] = useState(false);
+  const [completedSwipes, setCompletedSwipes] = useState(0);
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -59,6 +60,13 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     };
   }, [open]);
 
+  useEffect(() => {
+    if (open) {
+      const resetTimer = window.setTimeout(() => setCompletedSwipes(0), 0);
+      return () => window.clearTimeout(resetTimer);
+    }
+  }, [open]);
+
   const loadDeck = useCallback(() => {
     const next = TIERS.flatMap((tier) => {
       const choices = localCardRepository.list({ language, tier }).filter((candidate) => !usedIds.has(candidate.sourceKey) && !usedIds.has(candidate.id));
@@ -79,6 +87,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     setDragging(false);
     setOutgoing({ card, direction, active: false });
     setDeck((current) => current.slice(1));
+    setCompletedSwipes((count) => count + 1);
     setIncoming(true);
     dragPosition.current = { x: 0, y: 0 };
     setDragX(0); setDragY(0);
@@ -130,7 +139,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   return <div role="dialog" aria-modal="true" className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
     <div className="flex items-center justify-between"><p className="text-sm font-semibold text-foreground-secondary">{t("cards.randomDrawTitle")}</p><button type="button" onClick={onClose} aria-label={t("common.close")} className="inline-flex size-10 items-center justify-center rounded-md text-foreground"><X className="size-6" /></button></div>
     <div className="relative flex flex-1 -translate-y-8 items-center justify-center overflow-hidden">
-      <p className="pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground">
+      <p className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}
       </p>
       {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-700 ease-in-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? "100dvh" : "0px"}) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
