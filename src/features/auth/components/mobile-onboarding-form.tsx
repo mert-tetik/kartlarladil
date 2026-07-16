@@ -19,11 +19,20 @@ import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 type OnboardingStep = "native" | "learning" | "picture";
 
-function getLanguageOrder(firstLanguage: LanguageCode) {
-  return [
+function getLanguageOrder(firstLanguage: LanguageCode, turkishThird = false) {
+  const ordered = [
     ...LANGUAGES.filter((language) => language.code === firstLanguage),
     ...LANGUAGES.filter((language) => language.code !== firstLanguage),
   ];
+
+  if (!turkishThird) {
+    return ordered;
+  }
+
+  const turkish = ordered.find((language) => language.code === "tr");
+  return turkish
+    ? [...ordered.filter((language) => language.code !== "tr").slice(0, 2), turkish, ...ordered.filter((language) => language.code !== "tr").slice(2)]
+    : ordered;
 }
 
 export function MobileOnboardingForm({
@@ -42,7 +51,7 @@ export function MobileOnboardingForm({
   const [preferredUiLocale, setPreferredUiLocale] = useState<LocaleCode>(initialDefaults.preferredUiLocale);
   const [preferredLanguageCode, setPreferredLanguageCode] = useState<LanguageCode>(initialDefaults.preferredLanguageCode);
   const [languageOrders, setLanguageOrders] = useState(() => ({
-    native: getLanguageOrder(initialDefaults.preferredUiLocale),
+    native: getLanguageOrder(initialDefaults.preferredUiLocale, true),
     learning: getLanguageOrder(initialDefaults.preferredLanguageCode),
   }));
   const [profilePictureIndex, setProfilePictureIndex] = useState(0);
@@ -60,7 +69,7 @@ export function MobileOnboardingForm({
     setPreferredUiLocale(defaults.preferredUiLocale);
     setPreferredLanguageCode(defaults.preferredLanguageCode);
     setLanguageOrders({
-      native: getLanguageOrder(defaults.preferredUiLocale),
+      native: getLanguageOrder(defaults.preferredUiLocale, true),
       learning: getLanguageOrder(defaults.preferredLanguageCode),
     });
   }, [countryCode, detectedLocale]);
@@ -123,6 +132,11 @@ export function MobileOnboardingForm({
         ? t("auth.onboarding.learningLanguageTitle")
         : t("profilePicture.title");
   const orderedLanguages = step === "native" ? languageOrders.native : languageOrders.learning;
+  const actionButtonClass = step === "native"
+    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+    : step === "learning"
+      ? "bg-blue-500 text-white hover:bg-blue-600"
+      : "bg-red-500 text-white hover:bg-red-600";
 
   return (
     <form
@@ -196,12 +210,12 @@ export function MobileOnboardingForm({
           <button
             type="button"
             onClick={advanceLanguageStep}
-            className="h-14 w-full rounded-lg bg-brand px-5 text-base font-bold text-brand-foreground transition-transform active:scale-[0.99]"
+            className={cn("h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
           >
             {t("auth.onboarding.selectLanguage")}
           </button>
         ) : (
-          <SubmitButton className="h-14 w-full text-base font-bold" pendingLabel={t("auth.onboarding.pending")}>
+          <SubmitButton className={cn("h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
             {t("auth.onboarding.continue")}
           </SubmitButton>
         )}
