@@ -4,7 +4,6 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
 await page.goto("http://127.0.0.1:3000/visual-test-custom-card", { waitUntil: "domcontentloaded" });
-await page.locator("#mobile-custom-term").waitFor({ state: "visible" });
 await page.addStyleTag({
   content: `
     [data-mobile-auth-gateway] { display: none !important; }
@@ -12,6 +11,7 @@ await page.addStyleTag({
   `,
 });
 await page.getByRole("button", { name: "Open custom card sheet" }).click();
+await page.locator("#mobile-custom-term").waitFor({ state: "visible" });
 
 const consent = page.getByRole("button", { name: /got it/i });
 if (await consent.count()) await consent.click();
@@ -28,7 +28,7 @@ await page.screenshot({ path: "artifacts/custom-card-loop-slot-empty.png", fullP
 await page.waitForTimeout(1450);
 await page.screenshot({ path: "artifacts/custom-card-loop-front.png", fullPage: true });
 
-await page.locator(".animate-mobile-custom-card-reveal-rise").locator("xpath=following-sibling::div//button").first().click();
+await page.locator("[data-mobile-custom-card-preview-back]").click();
 await page.waitForTimeout(120);
 await page.screenshot({ path: "artifacts/custom-card-loop-returning.png", fullPage: true });
 await page.waitForTimeout(950);
