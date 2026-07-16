@@ -7,6 +7,7 @@ import { ScoreIcon } from "@/components/score-icon";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
+import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -156,7 +157,7 @@ export function LeaderboardPageClient() {
                       ref={entry.isViewer ? viewerRowRef : null}
                       data-leaderboard-entry={entry.isViewer ? "viewer" : "item"}
                       className={cn(
-                        "grid grid-cols-[3rem_3rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-3 py-3 text-left",
+                        "grid grid-cols-[2rem_2.75rem_3rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-3 py-3 text-left",
                         entry.isViewer
                           ? "border-brand/40 bg-brand/10"
                           : "border-border bg-background",
@@ -165,6 +166,11 @@ export function LeaderboardPageClient() {
                       <span className="text-sm font-semibold text-foreground-secondary">
                         {entry.position}.
                       </span>
+                      <ProfilePicture
+                        profilePictureIndex={entry.profilePictureIndex}
+                        alt=""
+                        className="size-9 rounded-full"
+                      />
                       <div className="flex items-center justify-center">
                         <RankIcon icon={entry.rankIcon} className="size-8" sizes="32px" />
                       </div>

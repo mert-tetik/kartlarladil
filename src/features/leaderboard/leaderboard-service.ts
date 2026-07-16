@@ -13,6 +13,7 @@ interface LeaderboardProfileRow {
   streak_points: number | null;
   mission_points: number | null;
   leaderboard_visible: boolean | null;
+  profile_picture_index: number | null;
 }
 
 interface LearnedCardRow {
@@ -81,6 +82,13 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
       return {
         userId: profile.user_id,
         displayName: profile.display_name?.trim() || null,
+        profilePictureIndex:
+          typeof profile.profile_picture_index === "number" &&
+          Number.isInteger(profile.profile_picture_index) &&
+          profile.profile_picture_index >= 0 &&
+          profile.profile_picture_index <= 18
+            ? profile.profile_picture_index
+            : null,
         totalPoints,
         leaderboardVisible: profile.leaderboard_visible ?? false,
       };
@@ -106,6 +114,7 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
           userId: profile.userId,
           position: index + 1,
           displayName: profile.leaderboardVisible ? (profile.displayName ?? "") : "",
+          profilePictureIndex: profile.profilePictureIndex,
           totalPoints: profile.totalPoints,
           rankIcon: getRankForPoints(profile.totalPoints).icon,
           isViewer: profile.userId === viewerUserId,

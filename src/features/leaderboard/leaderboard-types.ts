@@ -4,6 +4,7 @@ export interface LeaderboardEntry {
   userId: string;
   position: number;
   displayName: string;
+  profilePictureIndex: number | null;
   totalPoints: number;
   rankIcon: RankIconId;
   isViewer: boolean;
