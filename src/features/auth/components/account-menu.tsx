@@ -77,7 +77,6 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
           )}
         >
           <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt={getAccountLabel(user)} className="size-full rounded-full" />
-          <PlanBadge className="absolute -bottom-2 left-1/2 z-10 -translate-x-1/2 border-2 border-foreground-inverse px-1.5 py-0 text-[10px] shadow-sm" />
         </button>
       </div>
 

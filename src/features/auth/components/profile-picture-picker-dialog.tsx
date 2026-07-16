@@ -147,7 +147,7 @@ export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePictur
 
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <UserRound className="size-5 text-brand" aria-hidden="true" />
+            <UserRound className="size-5 text-foreground" aria-hidden="true" />
             <h2 id="profile-picture-picker-title" className="text-lg font-semibold text-foreground">
               {t("profilePicture.title")}
             </h2>

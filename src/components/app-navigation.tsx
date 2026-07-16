@@ -30,6 +30,7 @@ import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialo
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
 import { useT } from "@/i18n/locale-provider";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -202,6 +203,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
+            {user ? (
+              <PlanBadge className="border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white" />
+            ) : null}
             <div className="mr-auto lg:order-last lg:mr-0">
               <LocaleSwitcher navbar />
             </div>

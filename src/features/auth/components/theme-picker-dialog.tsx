@@ -252,7 +252,7 @@ function ThemePickerTitle({ id, compact = false }: { id: string; compact?: boole
 
   return (
     <div className="flex items-center gap-2">
-      <Palette className={compact ? "size-5 text-brand" : "size-6 text-brand"} aria-hidden="true" />
+      <Palette className={compact ? "size-5 text-foreground" : "size-6 text-foreground"} aria-hidden="true" />
       <h2 id={id} className={cn("font-semibold text-foreground", compact ? "text-lg" : "text-xl")}>
         {t("theme.title")}
       </h2>
