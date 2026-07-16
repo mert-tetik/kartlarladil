@@ -367,6 +367,20 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
   }
 }
 
+@keyframes mobile-custom-card-reveal-rise {
+  from {
+    transform: translateY(38dvh) scale(0.42);
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-mobile-custom-card-reveal-rise {
+  animation: mobile-custom-card-reveal-rise 1200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 @keyframes page-transition-enter {
   0% {
     opacity: 0;
