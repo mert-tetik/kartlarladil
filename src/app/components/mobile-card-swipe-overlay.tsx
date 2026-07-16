@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
-const CARD_CONTENT_SCALE = 1.15;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
 // Temporary visual-test mode. Set to false to restore the one-time demo behavior.
 const REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING = true;
@@ -134,16 +133,16 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
       <p className="pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground">
         {t("cards.swipeInstruction")}
       </p>
-      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-700 ease-in-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? "100dvh" : "0px"}) rotate(${dragX / 18 + dragY / 90}deg) scale(${CARD_CONTENT_SCALE})`, opacity: incoming ? 0 : 1 }}>
+      {card ? <div onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-700 ease-in-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? "100dvh" : "0px"}) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
         <div className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
           {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
           {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
         </div>
         {leftActive ? <span className="absolute right-5 top-5 z-30 text-xl font-bold text-white">{t("cards.skip")}</span> : null}
         {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
-        <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" />
+        <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.15} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" />
       </div> : null}
-      {outgoing ? <div className="pointer-events-none absolute z-20 w-[78vw] max-w-[300px] transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translateX(${outgoing.direction === "add" ? window.innerWidth : -window.innerWidth}px) rotate(${outgoing.direction === "add" ? 18 : -18}deg) scale(${CARD_CONTENT_SCALE})` : `scale(${CARD_CONTENT_SCALE})` }}><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div> : null}
+      {outgoing ? <div className="pointer-events-none absolute z-20 w-[78vw] max-w-[300px] transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translateX(${outgoing.direction === "add" ? window.innerWidth : -window.innerWidth}px) rotate(${outgoing.direction === "add" ? 18 : -18}deg)` : "translateX(0)" }}><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.15} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div> : null}
     </div>
   </div>;
 }

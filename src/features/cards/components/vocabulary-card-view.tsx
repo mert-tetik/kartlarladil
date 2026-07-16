@@ -35,6 +35,7 @@ interface VocabularyCardViewProps {
   showActions?: boolean;
   frontFit?: boolean;
   frontMinimal?: boolean;
+  frontContentScale?: number;
   compact?: boolean;
   translationLocale?: LocaleCode;
   onClick?: () => void;
@@ -69,6 +70,7 @@ export function VocabularyCardView({
   showActions = true,
   frontFit = false,
   frontMinimal = false,
+  frontContentScale = 1,
   compact = false,
   translationLocale,
   onClick,
@@ -176,6 +178,7 @@ export function VocabularyCardView({
           showActions={showActions}
           frontFit={frontFit}
           frontMinimal={frontMinimal}
+          frontContentScale={frontContentScale}
           isControlled={isControlled}
           compact={compact}
           translationLocale={translationLocale}
@@ -206,6 +209,7 @@ function CardFront({
   showActions = true,
   frontFit = false,
   frontMinimal = false,
+  frontContentScale = 1,
   compact = false,
   translationLocale,
 }: {
@@ -220,6 +224,7 @@ function CardFront({
   showActions?: boolean;
   frontFit?: boolean;
   frontMinimal?: boolean;
+  frontContentScale?: number;
   isControlled?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
@@ -270,22 +275,21 @@ function CardFront({
       aria-hidden={!isFaceUp}
       inert={!isFaceUp}
       className={cn(
-        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-background-card [backface-visibility:hidden]",
-        compact ? "p-1.5 sm:p-2" : "p-2.5 sm:p-4",
-        frontFit ? "justify-between" : "max-sm:justify-between",
+        "absolute inset-0 overflow-hidden rounded-lg border bg-background-card [backface-visibility:hidden]",
         "dark:text-white",
         style.border,
       )}
     >
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 text-white",
-          compact
-            ? "-mx-1.5 -mt-1.5 px-2 py-1 sm:-mx-2 sm:-mt-2 sm:px-2.5 sm:py-1.5"
-            : "-mx-2.5 -mt-2.5 px-3 py-2 sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
-          style.accent,
-        )}
-      >
+      <div className={cn("flex h-full flex-col", compact ? "p-1.5 sm:p-2" : "p-2.5 sm:p-4", frontFit ? "justify-between" : "max-sm:justify-between")} style={frontContentScale === 1 ? undefined : { transform: `scale(${frontContentScale})` }}>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 text-white",
+            compact
+              ? "-mx-1.5 -mt-1.5 px-2 py-1 sm:-mx-2 sm:-mt-2 sm:px-2.5 sm:py-1.5"
+              : "-mx-2.5 -mt-2.5 px-3 py-2 sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
+            style.accent,
+          )}
+        >
         {!frontMinimal ? (
           <span className="text-sm font-bold sm:text-base">
             {card.tier} · {getTierLabel(card.tier, locale)}
@@ -317,9 +321,9 @@ function CardFront({
             </Button>
           </div>
         ) : null}
-      </div>
+        </div>
 
-      <div className={cn("flex flex-1 flex-col justify-center text-center", compact ? "py-1 max-sm:py-0.5" : "py-4 max-sm:py-2", frontMinimal && "gap-1")}>
+        <div className={cn("flex flex-1 flex-col justify-center text-center", compact ? "py-1 max-sm:py-0.5" : "py-4 max-sm:py-2", frontMinimal && "gap-1")}>
         {!frontMinimal ? (
           <>
             <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
@@ -382,17 +386,17 @@ function CardFront({
             {cardTranslation}
           </p>
         </div>
-      </div>
+        </div>
 
-      <div
-        className={cn(
-          "space-y-2 text-white",
-          compact
-            ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
-            : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
-          style.accent,
-        )}
-      >
+        <div
+          className={cn(
+            "space-y-2 text-white",
+            compact
+              ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
+              : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
+            style.accent,
+          )}
+        >
         {!frontMinimal ? (
           <div
             className={cn(
@@ -451,6 +455,7 @@ function CardFront({
             </Button>
           </div>
         ) : null}
+        </div>
       </div>
     </div>
   );
