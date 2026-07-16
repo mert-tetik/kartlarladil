@@ -76,6 +76,10 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
             step={3}
             text={t("home.mobile.infoStep3")}
           />
+          <InfoRow
+            step={4}
+            text={t("home.mobile.infoStep4")}
+          />
         </div>
       </div>
     </div>
@@ -85,11 +89,18 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
   return createPortal(content, document.body);
 }
 
-function InfoRow({ step, text }: { step: 1 | 2 | 3; text: string }) {
+const INFO_STEP_STYLES = {
+  1: "bg-emerald-500",
+  2: "bg-sky-500",
+  3: "bg-rose-500",
+  4: "bg-gradient-to-r from-amber-400 to-orange-500",
+} as const;
+
+function InfoRow({ step, text }: { step: 1 | 2 | 3 | 4; text: string }) {
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-transparent bg-transparent p-4">
-      <span className="shrink-0 font-display text-3xl font-bold leading-none text-brand">{step}</span>
-      <p className="text-sm leading-6 text-foreground">{text}</p>
+    <div className={cn("flex items-start gap-4 rounded-xl p-4 shadow-sm", INFO_STEP_STYLES[step])}>
+      <span className="shrink-0 font-mono text-2xl font-medium leading-none tracking-tight text-white">{step}</span>
+      <p className="text-sm font-medium leading-6 text-white">{text}</p>
     </div>
   );
 }
