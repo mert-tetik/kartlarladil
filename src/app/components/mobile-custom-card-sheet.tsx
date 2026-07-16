@@ -75,7 +75,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
     if (!preview || previewReturning) return;
 
     const expandTimer = window.setTimeout(() => setPreviewExpanded(true), 48);
-    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), 1350);
+    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), 820);
 
     return () => {
       window.clearTimeout(expandTimer);
@@ -168,7 +168,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
   const previewTarget = {
     left: Math.max(0, (sheetSize.width - 190) / 2),
-    top: Math.max(72, (sheetSize.height - 253) / 2 - 32),
+    top: Math.max(48, (sheetSize.height - 253) / 2 - 76),
     width: 190,
     height: 253,
   };
@@ -210,13 +210,15 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       returnFrame.current = null;
     }, 680);
   };
-  const previewStyle = previewReturning && previewReturnPosition
-    ? { left: `${previewReturnPosition.left}px`, top: `${previewReturnPosition.top}px`, width: `${previewReturnPosition.width}px`, height: `${previewReturnPosition.height}px` }
+  const previewPosition = previewReturning && previewReturnPosition
+    ? previewReturnPosition
     : previewExpanded
-    ? { left: `${previewTarget.left}px`, top: `${previewTarget.top}px`, width: `${previewTarget.width}px`, height: `${previewTarget.height}px` }
+    ? previewTarget
     : previewOrigin
-      ? { left: `${previewOrigin.left}px`, top: `${previewOrigin.top}px`, width: `${previewOrigin.width}px`, height: `${previewOrigin.height}px` }
-      : { left: "calc(50% - 46px)", top: "calc(100% - 13rem)", width: "92px", height: "123px" };
+      ? previewOrigin
+      : { left: previewTarget.left, top: sheetSize.height - 208, width: 92, height: 123 };
+  const previewScale = previewPosition.width / previewTarget.width;
+  const previewTransform = `translate3d(${previewPosition.left - previewTarget.left}px, ${previewPosition.top - previewTarget.top}px, 0) scale(${previewScale})`;
   return <div role="dialog" aria-modal="true" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }} className={`fixed inset-0 z-[71] flex flex-col justify-end bg-black/50 transition-opacity duration-300 lg:hidden ${entered ? "opacity-100" : "pointer-events-none opacity-0"}`}>
     <div ref={setSheetElement} className={`relative flex h-[78dvh] max-h-[94dvh] flex-col overflow-y-auto rounded-t-xl bg-background-card p-5 shadow-sm transition-transform duration-300 ease-out ${entered ? "translate-y-0" : "translate-y-full"}`} style={{ transform: entered ? `translateY(${dragY}px)` : undefined }}>
       <div className="relative z-30 mb-4">
@@ -232,7 +234,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
         <button type="button" onClick={onClose} aria-label={t("common.close")} className="absolute right-0 top-0 inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary"><X className="size-5" /></button>
       </div>
       <CardBackLoop cards={loopCards} extractedSlotId={previewOrigin?.slotId} className="absolute inset-x-0 bottom-[4.5rem] z-0" />
-      {!preview ? <div className="relative z-10 flex flex-1 flex-col pt-12"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button></div> : <><div className={cn("absolute z-20 overflow-hidden rounded-[inherit]", !previewReturning && "transition-[left,top,width,height] duration-[1200ms] ease-out")} style={previewStyle}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" /></div><div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 20}px` }}><button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || previewReturning || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></>}
+      {!preview ? <div className="relative z-10 flex flex-1 flex-col pt-12"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button></div> : <><div className="absolute z-20 h-[253px] w-[190px]" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}><div className={cn("size-full origin-top-left", !previewReturning && "transition-transform duration-700 ease-out")} style={{ transform: previewTransform }}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" /></div></div><div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 16}px` }}><button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || previewReturning || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></>}
       {error ? <p role="alert" className="relative z-30 mt-3 text-sm text-destructive">{error}</p> : null}
     </div>
   </div>;
