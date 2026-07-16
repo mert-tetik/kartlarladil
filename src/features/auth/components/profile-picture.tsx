@@ -57,7 +57,7 @@ export function ProfilePicture({
       <img
         src={getProfilePictureSource(profilePictureIndex)}
         alt={alt}
-        className="size-full scale-150 object-cover object-[50%_18%]"
+        className="size-full origin-top scale-150 object-cover object-top"
         draggable={false}
       />
     </span>
