@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Library, Loader2, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generateCardRequest } from "@/features/cards/create-card-client";
@@ -40,11 +40,14 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
   const [previewOrigin, setPreviewOrigin] = useState<LoopSlotOrigin | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const [previewReturnPosition, setPreviewReturnPosition] = useState<LoopSlotOrigin | null>(null);
+  const [sheetElement, setSheetElement] = useState<HTMLDivElement | null>(null);
+  const [sheetSize, setSheetSize] = useState({ width: 390, height: 660 });
   const dragStartY = useRef<number | null>(null);
   const dragOffsetY = useRef(0);
   const returnTimer = useRef<number | null>(null);
   const returnMoveTimer = useRef<number | null>(null);
+  const returnFrame = useRef<number | null>(null);
   const loopCards = useMemo(
     () => TIERS.flatMap((tier) => localCardRepository.list({ tier }).slice(0, 1)),
     [],
@@ -83,11 +86,29 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
   useEffect(() => () => {
     if (returnTimer.current) window.clearTimeout(returnTimer.current);
     if (returnMoveTimer.current) window.clearTimeout(returnMoveTimer.current);
+    if (returnFrame.current) window.cancelAnimationFrame(returnFrame.current);
   }, []);
+
+  useEffect(() => {
+    if (!sheetElement) return;
+
+    const updateSize = () => {
+      const nextSize = { width: sheetElement.clientWidth, height: sheetElement.clientHeight };
+      setSheetSize((currentSize) => currentSize.width === nextSize.width && currentSize.height === nextSize.height ? currentSize : nextSize);
+    };
+    const measureTimer = window.setTimeout(updateSize, 0);
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(sheetElement);
+
+    return () => {
+      window.clearTimeout(measureTimer);
+      observer.disconnect();
+    };
+  }, [sheetElement]);
 
   if (!mounted) return null;
   const captureLoopOrigin = (tier: VocabularyCard["tier"], slotId?: string): LoopSlotOrigin | null => {
-    const sheet = sheetRef.current;
+    const sheet = sheetElement;
     if (!sheet) return null;
 
     const sheetRect = sheet.getBoundingClientRect();
@@ -124,7 +145,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
   async function generate() {
     const normalized = normalizeSearch(term);
     if (!normalized) return;
-    setLoading(true); setError(""); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setPreviewOrigin(null);
+    setLoading(true); setError(""); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setPreviewOrigin(null); setPreviewReturnPosition(null);
     try {
       const match = localCardRepository.list({ query: term }).find((card) => normalizeSearch(card.term) === normalized) ?? localCardRepository.list({ query: term })[0];
       if (match) { showPreview(match); return; }
@@ -145,30 +166,59 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
     } catch { setError(t("createCard.error.addFailed")); } finally { setAdding(false); }
   }
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
+  const previewTarget = {
+    left: Math.max(0, (sheetSize.width - 190) / 2),
+    top: Math.max(72, (sheetSize.height - 253) / 2 - 32),
+    width: 190,
+    height: 253,
+  };
   const returnPreviewToLoop = () => {
     if (!preview || previewReturning) return;
     setPreviewRevealed(false);
     setPreviewReturning(true);
-    const currentOrigin = captureLoopOrigin(preview.tier, previewOrigin?.slotId);
-    if (currentOrigin) setPreviewOrigin(currentOrigin);
-    returnMoveTimer.current = window.setTimeout(() => setPreviewExpanded(false), 180);
+    returnMoveTimer.current = window.setTimeout(() => {
+      const startTime = window.performance.now();
+      const duration = 460;
+      const animateReturn = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const easedProgress = 1 - (1 - progress) ** 3;
+        const liveOrigin = captureLoopOrigin(preview.tier, previewOrigin?.slotId) ?? previewOrigin;
+        if (liveOrigin) {
+          setPreviewReturnPosition({
+            ...liveOrigin,
+            left: previewTarget.left + (liveOrigin.left - previewTarget.left) * easedProgress,
+            top: previewTarget.top + (liveOrigin.top - previewTarget.top) * easedProgress,
+            width: previewTarget.width + (liveOrigin.width - previewTarget.width) * easedProgress,
+            height: previewTarget.height + (liveOrigin.height - previewTarget.height) * easedProgress,
+          });
+        }
+        if (progress < 1) {
+          returnFrame.current = window.requestAnimationFrame(animateReturn);
+        }
+      };
+      returnFrame.current = window.requestAnimationFrame(animateReturn);
+    }, 140);
     returnTimer.current = window.setTimeout(() => {
       setPreview(null);
       setAiResponse(null);
       setPreviewExpanded(false);
       setPreviewReturning(false);
       setPreviewOrigin(null);
+      setPreviewReturnPosition(null);
       returnTimer.current = null;
       returnMoveTimer.current = null;
-    }, 1380);
+      returnFrame.current = null;
+    }, 680);
   };
-  const previewStyle = previewExpanded
-    ? { left: "calc(50% - 95px)", top: "calc(50% - 126px)", width: "190px", height: "253px" }
+  const previewStyle = previewReturning && previewReturnPosition
+    ? { left: `${previewReturnPosition.left}px`, top: `${previewReturnPosition.top}px`, width: `${previewReturnPosition.width}px`, height: `${previewReturnPosition.height}px` }
+    : previewExpanded
+    ? { left: `${previewTarget.left}px`, top: `${previewTarget.top}px`, width: `${previewTarget.width}px`, height: `${previewTarget.height}px` }
     : previewOrigin
       ? { left: `${previewOrigin.left}px`, top: `${previewOrigin.top}px`, width: `${previewOrigin.width}px`, height: `${previewOrigin.height}px` }
       : { left: "calc(50% - 46px)", top: "calc(100% - 13rem)", width: "92px", height: "123px" };
   return <div role="dialog" aria-modal="true" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }} className={`fixed inset-0 z-[71] flex flex-col justify-end bg-black/50 transition-opacity duration-300 lg:hidden ${entered ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-    <div ref={sheetRef} className={`relative flex h-[78dvh] max-h-[94dvh] flex-col overflow-y-auto rounded-t-xl bg-background-card p-5 shadow-sm transition-transform duration-300 ease-out ${entered ? "translate-y-0" : "translate-y-full"}`} style={{ transform: entered ? `translateY(${dragY}px)` : undefined }}>
+    <div ref={setSheetElement} className={`relative flex h-[78dvh] max-h-[94dvh] flex-col overflow-y-auto rounded-t-xl bg-background-card p-5 shadow-sm transition-transform duration-300 ease-out ${entered ? "translate-y-0" : "translate-y-full"}`} style={{ transform: entered ? `translateY(${dragY}px)` : undefined }}>
       <div className="relative z-30 mb-4">
         <div
           onPointerDown={(event) => { if (entered) { dragStartY.current = event.clientY; dragOffsetY.current = 0; event.currentTarget.setPointerCapture(event.pointerId); } }}
@@ -182,7 +232,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
         <button type="button" onClick={onClose} aria-label={t("common.close")} className="absolute right-0 top-0 inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary"><X className="size-5" /></button>
       </div>
       <CardBackLoop cards={loopCards} extractedSlotId={previewOrigin?.slotId} className="absolute inset-x-0 bottom-[4.5rem] z-0" />
-      {!preview ? <div className="relative z-10 flex flex-1 flex-col"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Library className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button></div> : <><div className="absolute z-20 overflow-hidden rounded-[inherit] transition-[left,top,width,height] duration-[1200ms] ease-out" style={previewStyle}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" /></div><div className={cn("absolute inset-x-5 top-[calc(50%+9rem)] z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}><button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md border border-border text-sm font-semibold text-foreground disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || previewReturning || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></>}
+      {!preview ? <div className="relative z-10 flex flex-1 flex-col pt-12"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button></div> : <><div className={cn("absolute z-20 overflow-hidden rounded-[inherit]", !previewReturning && "transition-[left,top,width,height] duration-[1200ms] ease-out")} style={previewStyle}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" /></div><div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 20}px` }}><button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || previewReturning || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></>}
       {error ? <p role="alert" className="relative z-30 mt-3 text-sm text-destructive">{error}</p> : null}
     </div>
   </div>;
