@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useT } from "@/i18n/locale-provider";
@@ -15,6 +15,9 @@ interface MobileLandingInfoSheetProps {
 export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoSheetProps) {
   const t = useT();
   const mounted = useIsClient();
+  const [dragY, setDragY] = useState(0);
+  const dragStartY = useRef<number | null>(null);
+  const dragOffsetY = useRef(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -50,7 +53,40 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
           "relative flex max-h-[75dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl transition-transform duration-300",
           isOpen ? "translate-y-0" : "translate-y-full",
         )}
+        style={isOpen ? { transform: `translateY(${dragY}px)` } : undefined}
       >
+        <div
+          onPointerDown={(event) => {
+            if (!isOpen) return;
+            dragStartY.current = event.clientY;
+            dragOffsetY.current = 0;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (dragStartY.current === null) return;
+            const nextOffset = Math.max(0, event.clientY - dragStartY.current);
+            dragOffsetY.current = nextOffset;
+            setDragY(nextOffset);
+          }}
+          onPointerUp={() => {
+            const shouldClose = dragOffsetY.current > 110;
+            dragStartY.current = null;
+            dragOffsetY.current = 0;
+            if (shouldClose) {
+              setDragY(0);
+              onClose();
+            }
+            else setDragY(0);
+          }}
+          onPointerCancel={() => {
+            dragStartY.current = null;
+            dragOffsetY.current = 0;
+            setDragY(0);
+          }}
+          className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
+        >
+          <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
+        </div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">{t("home.mobile.infoTitle")}</h2>
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
@@ -35,6 +35,9 @@ export function MobileRankInfoSheet({
   const t = useT();
   const { locale } = useLocale();
   const mounted = useIsClient();
+  const [dragY, setDragY] = useState(0);
+  const dragStartY = useRef<number | null>(null);
+  const dragOffsetY = useRef(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -70,7 +73,40 @@ export function MobileRankInfoSheet({
           "relative flex max-h-[85dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl transition-transform duration-300",
           isOpen ? "translate-y-0" : "translate-y-full",
         )}
+        style={isOpen ? { transform: `translateY(${dragY}px)` } : undefined}
       >
+        <div
+          onPointerDown={(event) => {
+            if (!isOpen) return;
+            dragStartY.current = event.clientY;
+            dragOffsetY.current = 0;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (dragStartY.current === null) return;
+            const nextOffset = Math.max(0, event.clientY - dragStartY.current);
+            dragOffsetY.current = nextOffset;
+            setDragY(nextOffset);
+          }}
+          onPointerUp={() => {
+            const shouldClose = dragOffsetY.current > 110;
+            dragStartY.current = null;
+            dragOffsetY.current = 0;
+            if (shouldClose) {
+              setDragY(0);
+              onClose();
+            }
+            else setDragY(0);
+          }}
+          onPointerCancel={() => {
+            dragStartY.current = null;
+            dragOffsetY.current = 0;
+            setDragY(0);
+          }}
+          className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
+        >
+          <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
+        </div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">{t("home.mobile.rankInfoTitle")}</h2>
           <button
@@ -125,15 +161,15 @@ export function MobileRankInfoSheet({
                 >
                   <RankIcon icon={item.icon} className="size-8" sizes="32px" />
                   <div className="flex-1">
-                    <p className={cn("text-sm font-bold", current ? "text-white" : "text-foreground")}>
+                    <p className={cn("text-sm font-bold", current ? "text-black" : "text-foreground")}>
                       {getRankLabel(item, locale)}
                     </p>
-                    <p className={cn("inline-flex items-center gap-1 text-xs", current ? "text-white/85" : "text-foreground-secondary")}>
+                    <p className={cn("inline-flex items-center gap-1 text-xs", current ? "text-black/70" : "text-foreground-secondary")}>
                       {formatNumber(locale, item.minPoints)} <ScoreIcon size={13} className="size-3" />
                     </p>
                   </div>
                   {current ? (
-                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-bold text-black">
                       {t("home.mobile.currentRank")}
                     </span>
                   ) : null}
