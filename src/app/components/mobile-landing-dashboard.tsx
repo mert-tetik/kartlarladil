@@ -465,7 +465,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Active / Learned row */}
-      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border border-border">
+      <div className="relative mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
@@ -473,9 +473,9 @@ export function MobileLandingDashboard() {
           onClick={() => openCardCenter("active")}
           dataTutorialTarget="landing-learning-cards"
         />
-        <div className="flex min-w-20 items-center justify-center border-x border-border bg-background-card px-2 text-center text-sm font-semibold text-foreground">
+        <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.25)]">
           {t("nav.inventory")}
-        </div>
+        </span>
         <StatusBlock
           title={t("home.mobile.learnedCards")}
           count={learnedCount}

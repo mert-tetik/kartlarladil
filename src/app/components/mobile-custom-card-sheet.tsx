@@ -8,7 +8,7 @@ import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { normalizeSearch } from "@/lib/utils";
+import { cn, normalizeSearch } from "@/lib/utils";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { TIERS } from "@/data/tiers";
 import type { VocabularyCard } from "@/types/domain";
@@ -62,7 +62,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
     if (!preview) return;
 
     const frame = window.requestAnimationFrame(() => setPreviewExpanded(true));
-    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), 520);
+    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), 760);
 
     return () => {
       window.cancelAnimationFrame(frame);
@@ -109,16 +109,16 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
         </div>
         <button type="button" onClick={onClose} aria-label={t("common.close")} className="absolute right-0 top-0 inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary"><X className="size-5" /></button>
       </div>
-      {!preview ? <div className="flex flex-1 flex-col"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Library className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button><CardBackLoop cards={loopCards} /></div> : <div className="flex flex-1 -translate-y-5 flex-col justify-center"><div className={`mx-auto w-full max-w-[190px] transition-[opacity,transform] duration-500 ease-out ${previewExpanded ? "translate-y-0 scale-100 opacity-100" : "translate-y-20 scale-75 opacity-0"}`}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div><div className={`mt-5 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out ${previewRevealed ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}><button type="button" disabled={!previewRevealed} onClick={() => { setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); }} className="h-10 rounded-md border border-border text-sm font-semibold text-foreground disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></div>}
+      {!preview ? <div className="flex flex-1 flex-col"><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="h-12 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Library className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button><CardBackLoop cards={loopCards} /></div> : <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden"><CardBackLoop cards={loopCards} className={cn("absolute inset-x-0 bottom-1 z-0 transition-opacity duration-300", previewRevealed ? "opacity-0" : "opacity-100")} /><div className="relative z-10 flex flex-1 flex-col items-center justify-center pb-12"><div className={cn("w-full max-w-[190px] transition-[opacity,transform] duration-[700ms] ease-out", previewExpanded ? "translate-y-0 scale-100 opacity-100" : "translate-y-[38dvh] scale-[0.42] opacity-100")}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div><div className={cn("mt-5 grid w-full grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}><button type="button" disabled={!previewRevealed} onClick={() => { setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); }} className="h-10 rounded-md border border-border text-sm font-semibold text-foreground disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || adding || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{adding ? <Loader2 className="size-4 animate-spin" /> : null}{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></div></div>}
       {error ? <p role="alert" className="mt-3 text-sm text-destructive">{error}</p> : null}
     </div>
   </div>;
 }
 
-function CardBackLoop({ cards }: { cards: VocabularyCard[] }) {
+function CardBackLoop({ cards, className }: { cards: VocabularyCard[]; className?: string }) {
   if (!cards.length) return null;
 
   const sequence = [...cards, ...cards];
 
-  return <div className="mobile-custom-card-loop mt-auto pb-10 pt-7" aria-hidden="true"><div className="mobile-custom-card-loop-track">{sequence.map((card, index) => <div key={`${card.id}-${index}`} className="w-[74px] shrink-0"><VocabularyCardView card={card} initialFace="back" face="back" flippable={false} showActions={false} compact className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div>)}</div></div>;
+  return <div className={cn("mobile-custom-card-loop mt-auto pb-10 pt-7", className)} aria-hidden="true"><div className="mobile-custom-card-loop-track">{sequence.map((card, index) => <div key={`${card.id}-${index}`} className="w-[74px] shrink-0"><VocabularyCardView card={card} initialFace="back" face="back" flippable={false} showActions={false} compact className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div>)}</div></div>;
 }
