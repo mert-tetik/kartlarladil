@@ -204,7 +204,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
-              <PlanBadge className="border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white" />
+              <>
+                <Link href="/pricing" className="inline-flex lg:hidden" aria-label={t("page.pricing.title")}>
+                  <PlanBadge className="h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white" />
+                </Link>
+                <PlanBadge className="hidden h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white lg:inline-flex" />
+              </>
             ) : null}
             <div className="mr-auto lg:order-last lg:mr-0">
               <LocaleSwitcher navbar />

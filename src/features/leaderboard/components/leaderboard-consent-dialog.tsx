@@ -42,12 +42,17 @@ export function LeaderboardConsentDialog({
         ) : null}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>
-            {t("leaderboard.allowCancel")}
-          </Button>
-          <Button type="button" disabled={busy} onClick={onConfirm}>
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={onConfirm}
+            className="bg-gradient-to-r from-blue-500 to-emerald-500 text-white hover:from-blue-600 hover:to-emerald-600"
+          >
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
             {busy ? t("common.loading") : t("leaderboard.allowConfirm")}
+          </Button>
+          <Button type="button" disabled={busy} onClick={onClose} className="bg-red-500 text-white hover:bg-red-600">
+            {t("leaderboard.allowCancel")}
           </Button>
         </div>
       </div>
