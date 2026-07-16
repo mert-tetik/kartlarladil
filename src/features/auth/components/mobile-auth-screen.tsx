@@ -31,21 +31,18 @@ export function MobileAuthScreen() {
 
   return (
     <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center pb-10 text-center">
-      <h1 className="flex flex-wrap items-center justify-center gap-x-2 font-display text-3xl font-semibold text-white">
-        <span className="h-9 w-44 shrink-0 overflow-hidden" aria-hidden="true">
-          <Image
-            src="/splash.png"
-            alt={APP_NAME}
-            width={1024}
-            height={1024}
-            priority
-            className="h-auto w-full -translate-y-[40%]"
-          />
-        </span>
-        {t("auth.mobile.welcomeTitle")}
-      </h1>
+      <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
+        <Image
+          src="/splash.png"
+          alt={APP_NAME}
+          width={1024}
+          height={1024}
+          priority
+          className="h-auto w-full -translate-y-[40%]"
+        />
+      </div>
 
-      <p className="mt-4 text-base leading-relaxed text-foreground-secondary">
+      <p className="mt-6 text-base leading-relaxed text-foreground-secondary">
         {t("auth.mobile.welcomeDescription")}
       </p>
 
@@ -60,7 +57,7 @@ export function MobileAuthScreen() {
           variant="secondary"
           size="lg"
           onClick={() => setMode("email")}
-          className="h-14 w-full gap-2 text-base font-semibold"
+          className="h-14 w-full gap-2 bg-sky-500 text-base font-semibold text-white hover:bg-sky-600"
         >
           <Mail className="size-5" aria-hidden="true" />
           {t("auth.mobile.useEmailInstead")}

@@ -81,7 +81,7 @@ const dictionary = {
   "auth.google.signUp": "Googleë¡œ ê°€ì…",
   "auth.mobile.useEmailInstead": "Use email instead",
   "auth.mobile.welcomeTitle": "환영합니다!",
-  "auth.mobile.welcomeDescription": "Learn vocabulary with cards. Earn points, get gifts and rank up!",
+  "auth.mobile.welcomeDescription": "단어를 잃지 마세요! FoxiesDeck 컬렉션에 카드로 추가하고 학습하세요!",
   "auth.login.description": "ì•ˆì „í•œ ì„¸ì…˜ìœ¼ë¡œ ì¹´ë“œ í’€, í•™ìŠµ ì§„í–‰ ë° ê³„ì • ì„¤ì •ì„ ê´€ë¦¬í•˜ì„¸ìš”.",
   "auth.login.forgotPassword": "ë¹„ë°€ë²ˆí˜¸ë¥¼ ìŠìœ¼ì…¨ë‚˜ìš”?",
   "auth.login.noAccount": "ê³„ì •ì´ ì—†ìœ¼ì‹ ê°€ìš”?",

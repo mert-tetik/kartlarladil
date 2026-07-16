@@ -81,7 +81,7 @@ const dictionary = {
   "auth.google.signUp": "Googleã§ã‚µã‚¤ãƒ³ã‚¢ãƒƒãƒ—",
   "auth.mobile.useEmailInstead": "Use email instead",
   "auth.mobile.welcomeTitle": "ようこそ！",
-  "auth.mobile.welcomeDescription": "Learn vocabulary with cards. Earn points, get gifts and rank up!",
+  "auth.mobile.welcomeDescription": "覚えた単語を失わないで！FoxiesDeckコレクションにカードとして追加して学習しましょう！",
   "auth.login.description": "ã‚«ãƒ¼ãƒ‰ãƒ—ãƒ¼ãƒ«ã€å­¦ç¿’é€²è¡ŒçŠ¶æ³ã€ã‚¢ã‚«ã‚¦ãƒ³ãƒˆè¨­å®šã‚’å®‰å…¨ãªã‚»ãƒƒã‚·ãƒ§ãƒ³ã§ç®¡ç†ã—ã¾ã™ã€‚",
   "auth.login.forgotPassword": "ãƒ‘ã‚¹ãƒ¯ãƒ¼ãƒ‰ã‚’å¿˜ã‚ŒãŸ",
   "auth.login.noAccount": "ã‚¢ã‚«ã‚¦ãƒ³ãƒˆã¯ã‚ã‚Šã¾ã›ã‚“ã‹ï¼Ÿ",
