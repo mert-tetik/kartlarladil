@@ -59,9 +59,9 @@ describe("UpgradeDialog", () => {
     renderDialog({ open: true, errorCode: "free_active_card_limit" });
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading")).toHaveTextContent(/Aktif kart kotan doldu/i);
+    expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
-    expect(screen.getByRole("button", { name: /Kartları öğren/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-emerald-500");
   });
 
   it("navigates to the learn page when the learn cards button is clicked", async () => {

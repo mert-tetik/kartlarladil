@@ -79,7 +79,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
           ) : null}
           {errorCode === "free_active_card_limit" ? (
             <Button
-              className="w-full"
+              className="w-full border-0 bg-emerald-500 text-white hover:bg-emerald-600"
               onClick={() => {
                 vibrate("tap");
                 onOpenChange(false);
