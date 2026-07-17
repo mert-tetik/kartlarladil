@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "ã€Œè¿½åŠ ã€ã‚’ã‚¿ãƒƒãƒ—ã™ã‚‹ã¨ã€FoxiesDeckãŒãƒ›ãƒ¼ãƒ ç”»é¢ã«ã‚¢ãƒ—ãƒªã‚¢ã‚¤ã‚³ãƒ³ã¨ã—ã¦è¿½åŠ ã•ã‚Œã¾ã™ã€‚",
   "install.addToHomeScreen.fallback": "ã€Œãƒ›ãƒ¼ãƒ ç”»é¢ã«è¿½åŠ ã€ãŒè¡¨ç¤ºã•ã‚Œãªã„å ´åˆã¯ã€å…±æœ‰ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã‚’ä¸‹ã«ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã—ã¦ãã ã•ã„ã€‚",
   "home.mobile.drawCards": "Draw cards",
+  "home.mobile.addCard": "カードを追加",
   "home.mobile.myCards": "マイ単語\nカード",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "学習するカード",

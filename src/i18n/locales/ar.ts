@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "Ø§Ø¶ØºØ· 'Ø¥Ø¶Ø§ÙØ©'Ø› Ø³ÙŠØ¸Ù‡Ø± FoxiesDeck Ø¹Ù„Ù‰ Ø§Ù„Ø´Ø§Ø´Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© ÙƒØªØ·Ø¨ÙŠÙ‚.",
   "install.addToHomeScreen.fallback": "Ø¥Ø°Ø§ Ù„Ù… ØªØ¸Ù‡Ø± Ø§Ù„Ø®ÙŠØ§Ø±ØŒ Ù…Ø±Ù‘Ø± Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ø´Ø§Ø±ÙƒØ© Ù„Ø£Ø³ÙÙ„.",
   "home.mobile.drawCards": "Draw cards",
+  "home.mobile.addCard": "إضافة بطاقة",
   "home.mobile.myCards": "بطاقات\nالكلماتي",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "للتعلّم",

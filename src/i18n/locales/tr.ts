@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "'Ekle' butonuna basın; FoxiesDeck uygulama simgesi olarak ana ekranınıza eklenecek.",
   "install.addToHomeScreen.fallback": "Eğer 'Ana Ekrana Ekle' seçeneği gözükmüyorsa, paylaş menüsünü aşağı kaydırarak arayın.",
   "home.mobile.drawCards": "Kart çek",
+  "home.mobile.addCard": "Kart Ekle",
   "home.mobile.myCards": "kelime\nkartlarım",
   "home.mobile.selectTierTitle": "Hangi seviyede kart çekmek istersin?",
   "home.mobile.activeCards": "Öğrenilecekler",

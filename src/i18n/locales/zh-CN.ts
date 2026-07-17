@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "ç‚¹å‡»â€œæ·»åŠ â€ï¼›FoxiesDeck å°†ä½œä¸ºåº”ç”¨å›¾æ ‡å‡ºç°åœ¨ä¸»å±å¹•ä¸Šã€‚",
   "install.addToHomeScreen.fallback": "å¦‚æœçœ‹ä¸åˆ°â€œæ·»åŠ åˆ°ä¸»å±å¹•â€ï¼Œè¯·åœ¨åˆ†äº«èœå•ä¸­å‘ä¸‹æ»šåŠ¨æŸ¥æ‰¾ã€‚",
   "home.mobile.drawCards": "Draw cards",
+  "home.mobile.addCard": "添加卡片",
   "home.mobile.myCards": "我的单词\n卡片",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "待学习",

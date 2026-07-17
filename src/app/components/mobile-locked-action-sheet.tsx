@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { GraduationCap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,21 @@ interface MobileLockedActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
   variant: "active" | "learned";
+  onOpenDraw: () => void;
+  onOpenCreate: () => void;
+  onStartLearning: () => void;
+  canStartLearning: boolean;
 }
 
-export function MobileLockedActionSheet({ isOpen, onClose, variant }: MobileLockedActionSheetProps) {
+export function MobileLockedActionSheet({
+  isOpen,
+  onClose,
+  variant,
+  onOpenDraw,
+  onOpenCreate,
+  onStartLearning,
+  canStartLearning,
+}: MobileLockedActionSheetProps) {
   const t = useT();
   const mounted = useIsClient();
   const isActive = variant === "active";
@@ -80,9 +92,41 @@ export function MobileLockedActionSheet({ isOpen, onClose, variant }: MobileLock
           </p>
         </div>
 
-        <Button size="lg" onClick={onClose} className="mt-4 w-full">
-          {t("common.close")}
-        </Button>
+        <div className="mt-4 grid gap-2">
+          {isActive ? (
+            <>
+              <button
+                type="button"
+                onClick={onOpenDraw}
+                className="h-12 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+              >
+                {t("cards.randomDrawTitle")}
+              </button>
+              <button
+                type="button"
+                onClick={onOpenCreate}
+                className="h-12 rounded-xl bg-gradient-to-r from-rose-500 to-violet-600 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+              >
+                {t("home.mobile.addCard")}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={!canStartLearning}
+              onClick={onStartLearning}
+              className={cn(
+                "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white shadow-lg transition-colors hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              <GraduationCap className="size-5" aria-hidden="true" />
+              {t("home.mobile.startLearning")}
+            </button>
+          )}
+          <Button size="lg" onClick={onClose} className="w-full">
+            {t("common.close")}
+          </Button>
+        </div>
       </div>
     </div>
   );

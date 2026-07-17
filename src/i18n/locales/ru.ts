@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "Нажмите «Добавить»; иконка FoxiesDeck появится на главном экране.",
   "install.addToHomeScreen.fallback": "Если пункта «На экран Домой» нет, прокрутите меню «Поделиться» вниз.",
   "home.mobile.drawCards": "Вытянуть карты",
+  "home.mobile.addCard": "Добавить карточку",
   "home.mobile.myCards": "Мои\nкарточки",
   "home.mobile.selectTierTitle": "С какого уровня вы хотите тянуть карты?",
   "home.mobile.activeCards": "К изучению",

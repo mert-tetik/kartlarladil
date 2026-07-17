@@ -253,6 +253,24 @@ export function MobileLandingDashboard() {
     }, { nextPath: "/" });
   }
 
+  function closeLockedSheetThen(action: () => void) {
+    setLockedSheet(null);
+    window.setTimeout(action, 220);
+  }
+
+  function handleLockedSheetDraw() {
+    closeLockedSheetThen(handleDrawCards);
+  }
+
+  function handleLockedSheetCreate() {
+    closeLockedSheetThen(handleCreateCard);
+  }
+
+  function handleLockedSheetStartLearning() {
+    if (activeCount === 0) return;
+    closeLockedSheetThen(handleStartLearning);
+  }
+
   function handleStartLearning() {
     vibrate("tap");
     if (activeCount === 0) {
@@ -554,6 +572,10 @@ export function MobileLandingDashboard() {
         isOpen={lockedSheet !== null}
         onClose={() => setLockedSheet(null)}
         variant={lockedSheet ?? "active"}
+        onOpenDraw={handleLockedSheetDraw}
+        onOpenCreate={handleLockedSheetCreate}
+        onStartLearning={handleLockedSheetStartLearning}
+        canStartLearning={activeCount > 0}
       />
 
       <MobileCardSwipeOverlay open={swipeDeckOpen} language={selectedLanguage} onClose={() => setSwipeDeckOpen(false)} />

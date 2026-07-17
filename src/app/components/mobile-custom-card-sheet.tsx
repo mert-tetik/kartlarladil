@@ -177,12 +177,14 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
         optimisticCard,
       }).catch(() => undefined);
 
-      setPreview(null); setAiResponse(null); setTerm(""); onClose();
+      setTerm("");
+      returnPreviewToLoop();
       return;
     }
 
     void addCard(preview.sourceKey).catch(() => undefined);
-    setPreview(null); setAiResponse(null); setTerm(""); onClose();
+    setTerm("");
+    returnPreviewToLoop();
   }
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
   const previewTarget = {
@@ -191,7 +193,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
     width: 190,
     height: 253,
   };
-  const returnPreviewToLoop = () => {
+  function returnPreviewToLoop() {
     if (!preview || previewReturning) return;
     setPreviewRevealed(false);
     setPreviewReturning(true);
@@ -228,7 +230,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       returnMoveTimer.current = null;
       returnFrame.current = null;
     }, 680);
-  };
+  }
   const previewPosition = previewReturning && previewReturnPosition
     ? previewReturnPosition
     : previewExpanded

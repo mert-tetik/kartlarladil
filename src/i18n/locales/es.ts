@@ -626,6 +626,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "Toca 'AÃ±adir'; FoxiesDeck aparecerÃ¡ en tu pantalla de inicio como una app.",
   "install.addToHomeScreen.fallback": "Si no ves la opciÃ³n, desplÃ¡zate hacia abajo en el menÃº de compartir.",
   "home.mobile.drawCards": "Draw cards",
+  "home.mobile.addCard": "Añadir tarjeta",
   "home.mobile.myCards": "Mis cartas\nde palabras",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "Por aprender",

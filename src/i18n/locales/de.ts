@@ -625,6 +625,7 @@ const dictionary = {
   "install.addToHomeScreen.step3": "Tippe auf 'HinzufÃ¼gen'; FoxiesDeck erscheint als App-Symbol auf deinem Startbildschirm.",
   "install.addToHomeScreen.fallback": "Falls 'Zum Startbildschirm hinzufÃ¼gen' nicht angezeigt wird, scrolle im Teilen-MenÃ¼ nach unten.",
   "home.mobile.drawCards": "Draw cards",
+  "home.mobile.addCard": "Karte hinzufügen",
   "home.mobile.myCards": "Meine Wort-\nkarten",
   "home.mobile.selectTierTitle": "Which level do you want to draw cards from?",
   "home.mobile.activeCards": "Zu lernen",
