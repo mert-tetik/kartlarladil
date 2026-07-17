@@ -181,10 +181,18 @@ export function MobileOnboardingForm({
                     selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
                   )}
                 >
-                  <LanguageFlag
-                    code={language.code}
-                    className={cn("h-14 w-20 rounded-md border-0 transition-transform duration-300", selected && "scale-110")}
-                  />
+                  <span
+                    data-onboarding-language-flag={language.code}
+                    className={cn(
+                      "inline-flex rounded-md p-[2px] transition-all duration-300",
+                      selected && "bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500",
+                    )}
+                  >
+                    <LanguageFlag
+                      code={language.code}
+                      className={cn("h-14 w-20 rounded-[4px] border-0 transition-transform duration-300", selected && "scale-110")}
+                    />
+                  </span>
                   <span className={cn(
                     "text-sm font-semibold leading-tight",
                     selected

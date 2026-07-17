@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
@@ -68,15 +68,37 @@ describe("LandingTutorial", () => {
     renderTutorial();
 
     const dialog = await screen.findByRole("dialog");
-    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveTextContent("tutorial.landingDrawRandom");
+    const message = document.querySelector("[data-landing-tutorial-message]") as HTMLElement;
+    const nextButton = screen.getByRole("button", { name: "tutorial.next" });
+
+    expect(message).toHaveTextContent("tutorial.landingDrawRandom");
     expect(document.querySelector("[data-landing-tutorial-spotlight]")).toHaveClass("rounded-full", "border-red-500");
+    expect(Number.parseFloat(nextButton.style.top)).toBeCloseTo(Number.parseFloat(message.style.top) + 96);
 
     fireEvent.click(dialog);
     expect(useTutorialStore.getState().step).toBe(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
+    fireEvent.click(nextButton);
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(1));
     expect(document.querySelector("[data-landing-tutorial-message]")).toHaveTextContent("tutorial.landingCreateCustom");
+  });
+
+  it("uses rectangular spotlights for the card center and learning actions", async () => {
+    renderTutorial();
+
+    for (const step of [2, 3, 4]) {
+      act(() => {
+        useTutorialStore.setState({ active: true, completed: false, step, testMode: false });
+      });
+
+      await waitFor(() => {
+        const spotlight = document.querySelector("[data-landing-tutorial-spotlight]");
+        expect(spotlight).toHaveAttribute("data-spotlight-shape", "rectangle");
+        expect(spotlight).toHaveClass("rounded-lg", "border-red-500");
+      });
+    }
+
+    expect(document.querySelectorAll("[data-landing-tutorial-rect-mask]")).toHaveLength(4);
   });
 
   it("uses the required color sequence and finishes with the understood action", async () => {
@@ -84,9 +106,13 @@ describe("LandingTutorial", () => {
 
     const nextButton = await screen.findByRole("button", { name: "tutorial.next" });
     expect(nextButton).toHaveClass("bg-emerald-500");
+    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-emerald-500");
 
     useTutorialStore.setState({ active: true, completed: false, step: 1, testMode: false });
-    await waitFor(() => expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-blue-500"));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-blue-500");
+      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-blue-500");
+    });
 
     useTutorialStore.setState({ active: true, completed: false, step: 7, testMode: false });
     const lastButton = await screen.findByRole("button", { name: "tutorial.understood" });

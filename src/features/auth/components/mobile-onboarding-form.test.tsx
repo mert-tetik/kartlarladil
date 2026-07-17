@@ -38,9 +38,11 @@ describe("MobileOnboardingForm", () => {
     expect(screen.getByRole("heading", { name: "Ana dilinizi seçiniz" })).toBeVisible();
     expect(container.querySelector<HTMLInputElement>('input[name="preferredUiLocale"]')).toHaveValue("tr");
     expect(container.querySelector<HTMLInputElement>('input[name="preferredLanguageCode"]')).toHaveValue("en");
+    expect(container.querySelector('[data-onboarding-language-flag="tr"]')).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
     expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    expect(container.querySelector('[data-onboarding-language-flag="en"]')).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
     expect(screen.getByRole("heading", { name: "Profil fotoğrafı seç" })).toBeVisible();

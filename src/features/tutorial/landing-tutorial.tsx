@@ -11,6 +11,9 @@ const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
 const VIEWPORT_GAP = 16;
 const MESSAGE_WIDTH = 296;
+const MESSAGE_HEIGHT = 84;
+const NEXT_BUTTON_HEIGHT = 56;
+const NEXT_BUTTON_GAP = 12;
 
 const STEP_MESSAGE_KEYS = [
   "tutorial.landingDrawRandom",
@@ -30,13 +33,24 @@ const NEXT_COLORS = [
   "bg-amber-400 hover:bg-amber-500",
 ] as const;
 
+const RECTANGULAR_TARGETS = new Set<TutorialTarget["key"]>([
+  "landing-card-center",
+  "start-learning",
+  "repeat-learned",
+]);
+
 interface SpotlightPosition {
   target: TutorialTarget;
+  shape: "circle" | "rectangle";
+  left: number;
+  top: number;
+  width: number;
+  height: number;
   centerX: number;
   centerY: number;
   radius: number;
   messageTop: number;
-  nextAtTop: boolean;
+  nextTop: number;
 }
 
 export function LandingTutorial() {
@@ -86,22 +100,36 @@ export function LandingTutorial() {
     }
 
     const rect = element.getBoundingClientRect();
-    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     const radius = Math.hypot(rect.width, rect.height) / 2 + SPOTLIGHT_PADDING;
-    const nextAtTop = centerY > viewportHeight / 2;
-    const messageHeight = 84;
-    const messageTop = nextAtTop
-      ? clamp(centerY - radius - messageHeight - VIEWPORT_GAP, VIEWPORT_GAP, viewportHeight - messageHeight - VIEWPORT_GAP)
-      : clamp(centerY + radius + VIEWPORT_GAP, VIEWPORT_GAP, viewportHeight - messageHeight - VIEWPORT_GAP);
+    const shape = RECTANGULAR_TARGETS.has(target.key) ? "rectangle" : "circle";
+    const left = shape === "rectangle" ? rect.left - SPOTLIGHT_PADDING : centerX - radius;
+    const top = shape === "rectangle" ? rect.top - SPOTLIGHT_PADDING : centerY - radius;
+    const width = shape === "rectangle" ? rect.width + SPOTLIGHT_PADDING * 2 : radius * 2;
+    const height = shape === "rectangle" ? rect.height + SPOTLIGHT_PADDING * 2 : radius * 2;
+    const calloutHeight = MESSAGE_HEIGHT + NEXT_BUTTON_GAP + NEXT_BUTTON_HEIGHT;
+    const messageTop = centerY > viewportHeight / 2
+      ? clamp(top - calloutHeight - VIEWPORT_GAP, VIEWPORT_GAP, viewportHeight - calloutHeight - VIEWPORT_GAP)
+      : clamp(top + height + VIEWPORT_GAP, VIEWPORT_GAP, viewportHeight - calloutHeight - VIEWPORT_GAP);
 
-    setPosition({ target, centerX, centerY, radius, messageTop, nextAtTop });
+    setPosition({
+      target,
+      shape,
+      left,
+      top,
+      width,
+      height,
+      centerX,
+      centerY,
+      radius,
+      messageTop,
+      nextTop: messageTop + MESSAGE_HEIGHT + NEXT_BUTTON_GAP,
+    });
   }, []);
 
   useEffect(() => {
-    updatePosition();
     const frameId = window.requestAnimationFrame(updatePosition);
     const timerIds = [100, 250, 600].map((delay) => window.setTimeout(updatePosition, delay));
     const observer = new MutationObserver(updatePosition);
@@ -138,7 +166,6 @@ export function LandingTutorial() {
     return null;
   }
 
-  const diameter = position.radius * 2;
   const mask = `radial-gradient(circle ${position.radius}px at ${position.centerX}px ${position.centerY}px, transparent ${Math.max(0, position.radius - 1)}px, #000 ${position.radius}px)`;
   const buttonLabel = step === STEP_MESSAGE_KEYS.length - 1 ? t("tutorial.understood") : t("tutorial.next");
 
@@ -161,25 +188,41 @@ export function LandingTutorial() {
       onClickCapture={blockUnderlyingInteraction}
       onWheelCapture={blockUnderlyingInteraction}
     >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-black/80"
-        style={{ maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
-      />
+      {position.shape === "circle" ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-black/80"
+          style={{ maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
+        />
+      ) : (
+        <>
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="fixed left-0 right-0 top-0 bg-black/80" style={{ height: position.top }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="fixed left-0 bg-black/80" style={{ top: position.top, width: position.left, height: position.height }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="fixed right-0 bg-black/80" style={{ top: position.top, left: position.left + position.width, height: position.height }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="fixed bottom-0 left-0 right-0 bg-black/80" style={{ top: position.top + position.height }} />
+        </>
+      )}
       <div
         aria-hidden="true"
         data-landing-tutorial-spotlight
-        className="pointer-events-none fixed rounded-full border-2 border-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_28px_rgba(239,68,68,0.55)]"
+        data-spotlight-shape={position.shape}
+        className={cn(
+          "pointer-events-none fixed border-2 border-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_28px_rgba(239,68,68,0.55)]",
+          position.shape === "circle" ? "rounded-full" : "rounded-lg",
+        )}
         style={{
-          left: position.centerX - position.radius,
-          top: position.centerY - position.radius,
-          width: diameter,
-          height: diameter,
+          left: position.left,
+          top: position.top,
+          width: position.width,
+          height: position.height,
         }}
       />
       <p
         data-landing-tutorial-message
-        className="pointer-events-none fixed z-10 rounded-lg bg-black/85 px-4 py-3 text-center text-base font-semibold leading-snug text-white shadow-sm"
+        className={cn(
+          "pointer-events-none fixed z-10 rounded-lg px-4 py-3 text-center text-base font-semibold leading-snug text-white shadow-sm",
+          NEXT_COLORS[step % NEXT_COLORS.length],
+        )}
         style={{
           left: "50%",
           top: position.messageTop,
@@ -196,11 +239,9 @@ export function LandingTutorial() {
         onClick={advance}
         className={cn(
           "fixed left-4 right-4 z-20 h-14 rounded-lg text-base font-bold text-white shadow-sm transition-colors active:scale-[0.98] focus:outline-none focus-visible:outline-none",
-          position.nextAtTop
-            ? "top-[max(1rem,env(safe-area-inset-top))]"
-            : "bottom-[calc(var(--mobile-nav-bar-height)+1rem)]",
           NEXT_COLORS[step % NEXT_COLORS.length],
         )}
+        style={{ top: position.nextTop }}
       >
         {buttonLabel}
       </button>
