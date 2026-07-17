@@ -118,6 +118,9 @@ export function MissionsList() {
   }, [pendingClaimIds, pendingClaimOwnerId, user]);
 
   function handleClaim(missionId: string, source?: DOMRect) {
+    if (!user) return;
+
+    const userId = user.id;
     if (pendingClaimOwnerId === user?.id && pendingClaimIds.has(missionId)) return;
 
     const mission = MISSIONS.find((item) => item.id === missionId);
@@ -132,17 +135,17 @@ export function MissionsList() {
       if (!tier) return;
 
       flushSync(() => {
-        markClaimPending(missionId, user.id);
+        markClaimPending(missionId, userId);
         setRewardMode({ missionId, kind: "chest", tier });
       });
     } else {
       flushSync(() => {
-        markClaimPending(missionId, user.id);
+        markClaimPending(missionId, userId);
         setRewardMode({ missionId, kind: "points", amount: reward.amount, source });
       });
     }
 
-    window.requestAnimationFrame(() => void enqueueMissionClaim(user.id, missionId).then((result) => {
+    window.requestAnimationFrame(() => void enqueueMissionClaim(userId, missionId).then((result) => {
       if (result.status === "success") {
         if (result.reward && typeof result.points === "number") {
           sendTwaAnalyticsEvent("fd_mission_reward_claimed", {
