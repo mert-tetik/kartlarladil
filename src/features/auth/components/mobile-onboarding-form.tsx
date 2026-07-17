@@ -36,6 +36,10 @@ function getLanguageOrder(firstLanguage: LanguageCode, turkishThird = false) {
     : ordered;
 }
 
+function getDefaultLearningLanguage(nativeLanguage: LanguageCode | LocaleCode): LanguageCode {
+  return nativeLanguage === "en" ? "es" : "en";
+}
+
 export function MobileOnboardingForm({
   onComplete,
   countryCode,
@@ -60,6 +64,7 @@ export function MobileOnboardingForm({
   const formRef = useRef<HTMLFormElement | null>(null);
   const handledSuccessRef = useRef(false);
   const hasSelectedLanguageRef = useRef(false);
+  const hasSelectedLearningLanguageRef = useRef(false);
 
   useEffect(() => {
     if (countryCode || hasSelectedLanguageRef.current) {
@@ -107,8 +112,13 @@ export function MobileOnboardingForm({
     hasSelectedLanguageRef.current = true;
     setPreferredUiLocale(code);
 
-    if (preferredLanguageCode === code) {
-      setPreferredLanguageCode(code === "en" ? "es" : "en");
+    if (!hasSelectedLearningLanguageRef.current || preferredLanguageCode === code) {
+      const defaultLearningLanguage = getDefaultLearningLanguage(code);
+      setPreferredLanguageCode(defaultLearningLanguage);
+      setLanguageOrders((current) => ({
+        ...current,
+        learning: getLanguageOrder(defaultLearningLanguage),
+      }));
     }
   }
 
@@ -118,6 +128,7 @@ export function MobileOnboardingForm({
     }
 
     hasSelectedLanguageRef.current = true;
+    hasSelectedLearningLanguageRef.current = true;
     setPreferredLanguageCode(code);
   }
 

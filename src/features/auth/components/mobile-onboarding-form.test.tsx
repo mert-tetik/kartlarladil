@@ -25,6 +25,28 @@ const testUser: AuthShellUser = {
 };
 
 describe("MobileOnboardingForm", () => {
+  it("defaults to English unless English is the selected native language", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <MobileOnboardingForm countryCode="TR" />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const selectNativeLanguage = async (code: string) => {
+      const flag = container.querySelector(`[data-onboarding-language-flag="${code}"]`);
+      await user.click(flag?.closest("button") as HTMLButtonElement);
+    };
+
+    await selectNativeLanguage("en");
+    expect(container.querySelector<HTMLInputElement>('input[name="preferredLanguageCode"]')).toHaveValue("es");
+
+    await selectNativeLanguage("de");
+    expect(container.querySelector<HTMLInputElement>('input[name="preferredLanguageCode"]')).toHaveValue("en");
+  });
+
   it("uses the country default and guides the user through language and avatar steps", async () => {
     const user = userEvent.setup();
     const { container } = render(
