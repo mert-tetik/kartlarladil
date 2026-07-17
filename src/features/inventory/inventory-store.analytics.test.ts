@@ -3,7 +3,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getTierRequirement } from "@/features/quiz/quiz-engine";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
-import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { addCloudInventoryCardAction, createCustomCardAction } from "@/features/inventory/cloud-actions";
 import type { VocabularyCard } from "@/types/domain";
@@ -354,6 +354,40 @@ describe("inventory store analytics", () => {
     ]);
     expect(localCardRepository.findById(optimisticCard.sourceKey)).toBeUndefined();
     expect(localCardRepository.findById(savedCard.sourceKey)).toEqual(savedCard);
+  });
+
+  it("exposes the active card limit when an optimistic custom card is rejected", async () => {
+    const optimisticCard: VocabularyCard = {
+      ...testCard,
+      id: "pending-limit-card",
+      sourceKey: "pending-limit-card",
+    };
+    vi.mocked(createCustomCardAction).mockResolvedValue({
+      status: "error",
+      message: "Active card limit reached",
+      errorCode: "free_active_card_limit",
+    });
+
+    const creation = useInventoryStore.getState().createCustomCard({
+      language: optimisticCard.language,
+      tier: optimisticCard.tier,
+      termKind: optimisticCard.termKind,
+      draft: {
+        term: optimisticCard.term,
+        partOfSpeech: optimisticCard.partOfSpeech,
+        pronunciation: optimisticCard.pronunciation,
+        translations: optimisticCard.translations,
+        example: optimisticCard.example,
+        exampleTranslation: optimisticCard.exampleTranslation,
+        grammar: optimisticCard.grammar.rules,
+        termKind: optimisticCard.termKind,
+      },
+      optimisticCard,
+    });
+
+    await expect(creation).rejects.toEqual(expect.any(InventoryActionError));
+    await expect(creation).rejects.toMatchObject({ errorCode: "free_active_card_limit" });
+    expect(useInventoryStore.getState().cards).toEqual([]);
   });
 });
 

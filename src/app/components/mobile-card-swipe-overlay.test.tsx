@@ -1,9 +1,18 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
-import type { VocabularyCard } from "@/types/domain";
+import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 const addCardMock = vi.fn();
+const inventoryState: {
+  cards: InventoryCard[];
+  activeCardLimit: number | null;
+  addCard: typeof addCardMock;
+} = {
+  cards: [],
+  activeCardLimit: null,
+  addCard: addCardMock,
+};
 
 vi.mock("@/features/cards/card-repository", () => ({
   localCardRepository: {
@@ -12,8 +21,7 @@ vi.mock("@/features/cards/card-repository", () => ({
 }));
 
 vi.mock("@/features/inventory/inventory-store", () => ({
-  useInventoryStore: (selector: (state: { cards: never[]; addCard: typeof addCardMock }) => unknown) =>
-    selector({ cards: [], addCard: addCardMock }),
+  useInventoryStore: (selector: (state: typeof inventoryState) => unknown) => selector(inventoryState),
 }));
 
 vi.mock("@/features/cards/components/vocabulary-card-view", () => ({
@@ -56,6 +64,9 @@ describe("MobileCardSwipeOverlay", () => {
     });
     HTMLElement.prototype.setPointerCapture = vi.fn();
     addCardMock.mockReset();
+    addCardMock.mockResolvedValue({ ok: true, firstCardAdded: false });
+    inventoryState.cards = [];
+    inventoryState.activeCardLimit = null;
   });
 
   afterEach(() => {
@@ -119,5 +130,33 @@ describe("MobileCardSwipeOverlay", () => {
     });
 
     expect(addCardMock).toHaveBeenCalledWith("A1");
+  });
+
+  it("opens the active card limit popup instead of swiping a card into a full deck", async () => {
+    inventoryState.cards = [{ cardId: "active-card", status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" }];
+    inventoryState.activeCardLimit = 1;
+    const onSubscriptionLimitReached = vi.fn();
+
+    render(
+      <MobileCardSwipeOverlay
+        open
+        language="en"
+        onClose={vi.fn()}
+        onSubscriptionLimitReached={onSubscriptionLimitReached}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const swipeCard = document.querySelector("[data-card-swipe-card]") as HTMLElement;
+    fireEvent.pointerDown(swipeCard, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
+    fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
+
+    expect(onSubscriptionLimitReached).toHaveBeenCalledWith("free_active_card_limit");
+    expect(document.querySelector("[data-card-swipe-outgoing]")).not.toBeInTheDocument();
+    expect(addCardMock).not.toHaveBeenCalled();
   });
 });

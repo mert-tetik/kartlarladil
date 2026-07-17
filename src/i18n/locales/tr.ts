@@ -797,7 +797,7 @@ const dictionary = {
   "tutorial.landingReviewLearned": "Öğrendiğin kelimeleri tekrar et",
   "tutorial.landingRank": "Kelime öğrendikçe puan kazan ve rütbe atla",
   "tutorial.landingLeaderboard": "Puanlarla dünya sıralamasına gir!",
-  "tutorial.landingGames": "Kelime oyunları oynarken öğren ve puan kazan!",
+  "tutorial.landingGames": "Kelime oyunları oynayarak öğren ve puan kazan!",
   "tutorial.next": "Sonraki",
   "tutorial.understood": "Anlaşıldı",
   "cards.centerTitle": "Kartlar",

@@ -8,7 +8,7 @@ import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
-import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
+import type { InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
   addCloudInventoryCardAction,
@@ -36,6 +36,13 @@ interface AddCardResult {
   ok: boolean;
   firstCardAdded: boolean;
   limitReached?: boolean;
+}
+
+export class InventoryActionError extends Error {
+  constructor(message: string, readonly errorCode?: LimitErrorCode) {
+    super(message);
+    this.name = "InventoryActionError";
+  }
 }
 
 interface InventoryState {
@@ -506,7 +513,7 @@ export const useInventoryStore = create<InventoryState>()(
           } else {
             set({ cloudLoading: false, cloudError: message });
           }
-          throw new Error(message);
+          throw new InventoryActionError(message, result.errorCode);
         }
 
         const created = result.data;

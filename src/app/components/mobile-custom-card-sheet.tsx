@@ -6,12 +6,12 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
-import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { TIERS } from "@/data/tiers";
-import type { VocabularyCard } from "@/types/domain";
+import type { LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 type LoopSlotOrigin = {
   slotId: string;
@@ -21,12 +21,13 @@ type LoopSlotOrigin = {
   height: number;
 };
 
-export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
   const { locale } = useLocale();
   const t = useT();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
   const addCard = useInventoryStore((state) => state.addCard);
   const cards = useInventoryStore((state) => state.cards);
+  const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const [term, setTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<VocabularyCard | null>(null);
@@ -150,11 +151,26 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       if (match) { showPreview(match); setTerm(""); return; }
       const result = await generateCardRequest({ locale, term: term.trim() });
       setAiResponse(result); showPreview(buildPreviewVocabularyCard(result)); setTerm("");
-    } catch { setError(t("createCard.error.unknown")); } finally { setLoading(false); }
+    } catch (error) {
+      const limitError = getSubscriptionLimitError(error);
+      if (limitError) {
+        onSubscriptionLimitReached?.(limitError);
+      } else {
+        setError(t("createCard.error.unknown"));
+      }
+    } finally { setLoading(false); }
   }
   function add() {
     if (!preview) return;
     setError("");
+
+    if (
+      activeCardLimit !== null &&
+      cards.filter((card) => card.status === "active").length >= activeCardLimit
+    ) {
+      onSubscriptionLimitReached?.("free_active_card_limit");
+      return;
+    }
 
     if (aiResponse) {
       const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
@@ -175,14 +191,24 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
           termKind: aiResponse.termKind,
         },
         optimisticCard,
-      }).catch(() => undefined);
+      }).catch((error: unknown) => {
+        if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") {
+          onSubscriptionLimitReached?.(error.errorCode);
+        }
+      });
 
       setTerm("");
       returnPreviewToLoop();
       return;
     }
 
-    void addCard(preview.sourceKey).catch(() => undefined);
+    void addCard(preview.sourceKey)
+      .then((result) => {
+        if (result.limitReached) {
+          onSubscriptionLimitReached?.("free_active_card_limit");
+        }
+      })
+      .catch(() => undefined);
     setTerm("");
     returnPreviewToLoop();
   }
@@ -260,6 +286,20 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       {error ? <p role="alert" className="relative z-30 mt-3 text-sm text-destructive">{error}</p> : null}
     </div>
   </div>;
+}
+
+function getSubscriptionLimitError(error: unknown): LimitErrorCode | null {
+  if (!(error instanceof Error)) return null;
+
+  switch (error.message) {
+    case "free_active_card_limit":
+    case "free_learned_card_limit":
+    case "ai_daily_limit":
+    case "ai_monthly_limit":
+      return error.message;
+    default:
+      return null;
+  }
 }
 
 function CardBackLoop({ cards, extractedSlotId, className }: { cards: VocabularyCard[]; extractedSlotId?: string; className?: string }) {

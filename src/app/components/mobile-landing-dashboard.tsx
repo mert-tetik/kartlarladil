@@ -23,7 +23,7 @@ import {
   subscribeLandingCardLanguage,
   writeLandingCardLanguage,
 } from "@/app/components/landing-card-language";
-import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
@@ -107,6 +107,7 @@ export function MobileLandingDashboard() {
   const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
+  const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
@@ -579,8 +580,28 @@ export function MobileLandingDashboard() {
         canStartLearning={activeCount > 0}
       />
 
-      <MobileCardSwipeOverlay open={swipeDeckOpen} language={selectedLanguage} onClose={() => setSwipeDeckOpen(false)} />
-      <MobileCustomCardSheet open={customCardOpen} onClose={() => setCustomCardOpen(false)} />
+      <MobileCardSwipeOverlay
+        open={swipeDeckOpen}
+        language={selectedLanguage}
+        onClose={() => setSwipeDeckOpen(false)}
+        onSubscriptionLimitReached={(errorCode) => setCardLimitError(errorCode)}
+      />
+      <MobileCustomCardSheet
+        open={customCardOpen}
+        onClose={() => setCustomCardOpen(false)}
+        onSubscriptionLimitReached={(errorCode) => setCardLimitError(errorCode)}
+      />
+
+      <UpgradeDialog
+        open={cardLimitError !== null}
+        errorCode={cardLimitError}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setCardLimitError(null);
+          }
+        }}
+        selectedLanguage={selectedLanguage}
+      />
 
       <UpgradeDialog
         open={showLanguageMatchDialog}

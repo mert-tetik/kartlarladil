@@ -8,7 +8,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { TIERS } from "@/data/tiers";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import type { LanguageCode, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
@@ -23,9 +23,10 @@ const OFFSCREEN_SIDE_OFFSET = 80;
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
 
-export function MobileCardSwipeOverlay({ open, language, onClose }: { open: boolean; language: LanguageCode; onClose: () => void }) {
+export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
   const t = useT();
   const inventory = useInventoryStore((state) => state.cards);
+  const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const addCard = useInventoryStore((state) => state.addCard);
   const [deck, setDeck] = useState<VocabularyCard[]>([]);
   const [demoX, setDemoX] = useState(0);
@@ -102,6 +103,17 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
 
   function finish(direction: SwipeDirection) {
     if (!card || locked) return;
+
+    if (
+      direction === "add" &&
+      activeCardLimit !== null &&
+      inventory.filter((item) => item.status === "active").length >= activeCardLimit
+    ) {
+      resetDrag();
+      onSubscriptionLimitReached?.("free_active_card_limit");
+      return;
+    }
+
     const currentPosition = dragPosition.current;
     const currentRotation = currentPosition.x / 18 + currentPosition.y / 90;
 
@@ -184,7 +196,13 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
         return;
       }
 
-      void Promise.resolve(addCard(cardId)).catch(() => undefined);
+      void Promise.resolve(addCard(cardId))
+        .then((result) => {
+          if (result.limitReached) {
+            onSubscriptionLimitReached?.("free_active_card_limit");
+          }
+        })
+        .catch(() => undefined);
     };
     const browserWindow = window as typeof window & {
       requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
