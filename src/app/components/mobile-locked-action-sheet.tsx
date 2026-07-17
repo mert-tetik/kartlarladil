@@ -123,7 +123,14 @@ export function MobileLockedActionSheet({
               {t("home.mobile.startLearning")}
             </button>
           )}
-          <Button size="lg" onClick={onClose} className="w-full">
+          <Button
+            size="lg"
+            onClick={onClose}
+            className={cn(
+              "w-full border-0 text-white",
+              isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-sky-500 hover:bg-sky-600",
+            )}
+          >
             {t("common.close")}
           </Button>
         </div>

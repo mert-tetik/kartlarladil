@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type SVGProps } from "react";
-import { ChevronDown, Volume2 } from "lucide-react";
+import { ChevronDown, Languages, Volume2 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
 import { ScoreIcon } from "@/components/score-icon";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
@@ -9,11 +9,12 @@ import { getCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm, speakText } from "@/features/cards/card-speech";
 import { TIER_STYLES, TIERS } from "@/data/tiers";
 import { getPointsForTier } from "@/features/progress/progress-stats";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
-import type { Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardStatusFilter = "all" | "active" | "learned";
 
@@ -28,6 +29,7 @@ const TIER_TEXT_COLOR: Record<Tier, string> = {
 export function MobileLandingCardCenter({
   activeCards,
   learnedCards,
+  selectedLanguage,
   status,
   isOpen,
   onStatusChange,
@@ -37,6 +39,7 @@ export function MobileLandingCardCenter({
 }: {
   activeCards: InventoryCardView[];
   learnedCards: InventoryCardView[];
+  selectedLanguage: LanguageCode;
   status: CardStatusFilter;
   isOpen: boolean;
   onStatusChange: (status: CardStatusFilter) => void;
@@ -53,10 +56,14 @@ export function MobileLandingCardCenter({
   const cards = useMemo(
     () => {
       const sourceCards = status === "active" ? activeCards : status === "learned" ? learnedCards : [...activeCards, ...learnedCards];
-      return sourceCards.filter(({ card }) => tier === "all" || card.tier === tier);
+      // Keep the optimistic and cloud-backed views in the same newest-first order.
+      return sourceCards
+        .filter(({ card }) => tier === "all" || card.tier === tier)
+        .sort((left, right) => Date.parse(right.inventory.addedAt) - Date.parse(left.inventory.addedAt));
     },
     [activeCards, learnedCards, status, tier],
   );
+  const statusLabel = t(`cards.${status === "all" ? "all" : status === "active" ? "toLearn" : "learned"}`);
 
   useEffect(() => {
     const scrollContainer = filterSlotRef.current?.closest<HTMLElement>("[data-mobile-landing-dashboard]");
@@ -104,7 +111,7 @@ export function MobileLandingCardCenter({
 
       {isOpen ? (
         <div id="mobile-card-center-content" className="animate-screen-pop">
-          <div ref={filterSlotRef} className={filtersPinned ? "h-[6.5rem]" : undefined}>
+          <div ref={filterSlotRef} className={filtersPinned ? "h-[8.5rem]" : undefined}>
             <div
               data-mobile-card-filters
               className={cn(
@@ -121,7 +128,27 @@ export function MobileLandingCardCenter({
               </div>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 <FilterChip label={t("home.mobile.allTiers")} selected={tier === "all"} onClick={() => setTier("all")} />
-                {TIERS.map((item) => <FilterChip key={item} label={item} selected={tier === item} onClick={() => setTier(item)} className={TIER_STYLES[item].text} />)}
+                {TIERS.map((item) => (
+                  <FilterChip
+                    key={item}
+                    label={item}
+                    selected={tier === item}
+                    onClick={() => setTier(item)}
+                    className={TIER_STYLES[item].text}
+                    selectedClassName={cn(TIER_STYLES[item].accent, item === "B2" ? "text-black" : "text-white")}
+                  />
+                ))}
+              </div>
+              <div
+                className={cn(
+                  "flex h-8 items-center gap-2 rounded-md px-3 text-xs font-semibold text-white transition-colors duration-300 ease-out",
+                  status === "all" ? "bg-black" : status === "active" ? "bg-emerald-500" : "bg-sky-500",
+                )}
+              >
+                <Languages className="size-3.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{getLanguageDisplayName(selectedLanguage, locale)}</span>
+                <span className="text-white/60" aria-hidden="true">•</span>
+                <span className="truncate">{statusLabel}</span>
               </div>
             </div>
           </div>
@@ -183,6 +210,6 @@ function CardRow({ card, status, locale, onOpen }: { card: VocabularyCard; statu
   );
 }
 
-function FilterChip({ label, selected, onClick, className }: { label: string; selected: boolean; onClick: () => void; className?: string }) {
-  return <button type="button" onClick={onClick} className={cn("shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors", selected ? "border-transparent bg-foreground text-background" : "border-border bg-background-card text-foreground-secondary", className)}>{label}</button>;
+function FilterChip({ label, selected, onClick, className, selectedClassName }: { label: string; selected: boolean; onClick: () => void; className?: string; selectedClassName?: string }) {
+  return <button type="button" onClick={onClick} className={cn("shrink-0 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors", selected ? cn("border-transparent bg-foreground text-background", selectedClassName) : cn("border-border bg-background-card text-foreground-secondary", className))}>{label}</button>;
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X } from "lucide-react";
+import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
@@ -371,7 +372,7 @@ function RankUpMenu({
           }
         }}
       >
-        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
+        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+56px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
           <button
             type="button"
             aria-label={t("rank.closeUp")}
@@ -382,15 +383,18 @@ function RankUpMenu({
           </button>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <RankIcon icon={rank.icon} className={cn("size-36 sm:size-40 lg:size-32", getRankIconTone(rank.icon))} sizes="192px" />
+            <RankIcon icon={rank.icon} className={cn("size-44 sm:size-48 lg:size-40", getRankIconTone(rank.icon))} sizes="224px" />
 
-            <p className="mt-8 text-4xl font-bold text-brand sm:text-5xl">{t("rank.up")}</p>
+            <p className="mt-7 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">{t("rank.up")}</p>
             <p className="mt-4 text-3xl font-bold text-foreground sm:text-4xl">{getRankLabel(rank, locale)}</p>
             <p className="mt-3 text-base font-semibold text-foreground-secondary">{t("rank.current")}</p>
 
-            <div className="mt-8 w-full max-w-sm rounded-lg border border-border/80 bg-background-card/78 px-4 py-4 backdrop-blur-sm">
+            <div className="mt-7 flex w-full max-w-sm flex-col items-center px-4 py-3">
               <p className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</p>
-              <p className="mt-2 text-2xl font-bold text-brand">{formatPoints(locale, points)}</p>
+              <div className="mt-2 flex items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-2xl font-bold text-transparent">
+                <span>{formatNumber(locale, points)}</span>
+                <ScoreIcon size={28} className="size-7" />
+              </div>
             </div>
           </div>
 
@@ -398,7 +402,7 @@ function RankUpMenu({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-hover"
+              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
             >
               {t("auth.onboarding.continue")}
             </button>

@@ -118,9 +118,11 @@ describe("RankProgressPopover", () => {
     });
     expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
-    expect(within(rankUpDialog).getByText("200 puan")).toBeVisible();
+    expect(within(rankUpDialog).getByText("200")).toBeVisible();
+    expect(within(rankUpDialog).queryByText("200 puan")).not.toBeInTheDocument();
+    expect(rankUpDialog.querySelector('img[src*="score-icon.png"]')).toBeInTheDocument();
 
-    expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toBeVisible();
+    expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
 
     fireEvent.click(screen.getByRole("button", { name: "Devam" }));
 

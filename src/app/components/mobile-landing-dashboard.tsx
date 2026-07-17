@@ -536,6 +536,7 @@ export function MobileLandingDashboard() {
       <MobileLandingCardCenter
         activeCards={activeForLanguage}
         learnedCards={learnedForLanguage}
+        selectedLanguage={selectedLanguage}
         status={cardCenterStatus}
         isOpen={cardCenterOpen}
         onStatusChange={setCardCenterStatus}

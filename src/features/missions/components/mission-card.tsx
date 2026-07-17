@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
-import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
 
@@ -48,7 +47,6 @@ export function MissionCard({
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
   const isClickable = (isWaiting && !claiming) || isLocked;
-  const rewardPoints = reward.kind === "chest" ? getChestRewardPoints(reward.tier) : reward.amount;
 
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
 
@@ -162,15 +160,17 @@ export function MissionCard({
           >
             {description}
           </p>
-          <div
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 text-sm font-bold",
-              isLocked ? "text-foreground-secondary" : "text-white",
-            )}
-          >
-            <span>{rewardPoints}</span>
-            <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
-          </div>
+          {reward.kind === "points" ? (
+            <div
+              className={cn(
+                "shrink-0 flex items-center gap-1.5 text-sm font-bold",
+                isLocked ? "text-foreground-secondary" : "text-white",
+              )}
+            >
+              <span>{reward.amount}</span>
+              <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
