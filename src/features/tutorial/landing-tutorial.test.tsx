@@ -106,12 +106,12 @@ describe("LandingTutorial", () => {
 
     const nextButton = await screen.findByRole("button", { name: "tutorial.next" });
     expect(nextButton).toHaveClass("bg-emerald-500");
-    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-emerald-500");
+    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-emerald-500");
 
     useTutorialStore.setState({ active: true, completed: false, step: 1, testMode: false });
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-blue-500");
-      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-blue-500");
+      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-blue-500");
     });
 
     useTutorialStore.setState({ active: true, completed: false, step: 7, testMode: false });

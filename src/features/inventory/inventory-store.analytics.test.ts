@@ -5,7 +5,7 @@ import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
-import { createCustomCardAction } from "@/features/inventory/cloud-actions";
+import { addCloudInventoryCardAction, createCustomCardAction } from "@/features/inventory/cloud-actions";
 import type { VocabularyCard } from "@/types/domain";
 
 vi.mock("@/lib/twa-analytics", () => ({
@@ -59,6 +59,57 @@ describe("inventory store analytics", () => {
         term_kind: testCard.termKind,
       },
     });
+  });
+
+  it("keeps later optimistic cloud additions while earlier queued additions resolve", async () => {
+    const secondCard = VOCABULARY_CARDS.find(
+      (card) => card.language === "en" && card.tier === "A2",
+    )!;
+    let resolveFirstAdd!: (value: Awaited<ReturnType<typeof addCloudInventoryCardAction>>) => void;
+    let resolveSecondAdd!: (value: Awaited<ReturnType<typeof addCloudInventoryCardAction>>) => void;
+
+    vi.mocked(addCloudInventoryCardAction)
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveFirstAdd = resolve;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveSecondAdd = resolve;
+      }));
+    useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
+
+    const firstAdd = useInventoryStore.getState().addCard(testCard.id);
+    const secondAdd = useInventoryStore.getState().addCard(secondCard.id);
+
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([testCard.id, secondCard.id]);
+
+    await waitForQueuedCloudAdd();
+    resolveFirstAdd({
+      status: "success",
+      message: "",
+      data: {
+        cards: [{ cardId: testCard.id, status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" }],
+        attempts: [],
+      },
+    });
+    await firstAdd;
+
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([secondCard.id, testCard.id]);
+
+    await waitForQueuedCloudAdd();
+    resolveSecondAdd({
+      status: "success",
+      message: "",
+      data: {
+        cards: [
+          { cardId: testCard.id, status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" },
+          { cardId: secondCard.id, status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:01.000Z" },
+        ],
+        attempts: [],
+      },
+    });
+    await secondAdd;
+
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([testCard.id, secondCard.id]);
   });
 
   it("sends a card learned event on the first learned transition", async () => {
@@ -305,3 +356,7 @@ describe("inventory store analytics", () => {
     expect(localCardRepository.findById(savedCard.sourceKey)).toEqual(savedCard);
   });
 });
+
+function waitForQueuedCloudAdd() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+}

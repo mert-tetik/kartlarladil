@@ -134,8 +134,13 @@ export const useInventoryStore = create<InventoryState>()(
             return;
           }
 
+          const currentState = get();
           set({
-            cards: inventoryResult.data.cards,
+            cards: mergeCloudInventoryCards(
+              inventoryResult.data.cards,
+              currentState.cards,
+              currentState.pendingCardIds,
+            ),
             attempts: inventoryResult.data.attempts,
             cloudLoading: false,
             cloudError: "",
@@ -187,7 +192,7 @@ export const useInventoryStore = create<InventoryState>()(
           addPendingCardId(set, cardId);
 
           set({ cloudLoading: true, cloudError: "" });
-          const result = await addCloudInventoryCardAction(cardId);
+          const result = await enqueueCloudCardAddition(get().ownerUserId, () => addCloudInventoryCardAction(cardId));
           removePendingCardId(set, cardId);
 
           if (result.status === "error" || !result.data) {
@@ -204,14 +209,19 @@ export const useInventoryStore = create<InventoryState>()(
           }
 
           if (get().cards.some((card) => card.cardId === cardId)) {
+            const currentState = get();
             set({
-              cards: result.data.cards,
+              cards: mergeCloudInventoryCards(
+                result.data.cards,
+                currentState.cards,
+                currentState.pendingCardIds,
+              ),
               attempts: result.data.attempts,
-              cloudLoading: false,
+              cloudLoading: currentState.pendingCardIds.size > 0,
               cloudError: "",
             });
           } else {
-            set({ cloudLoading: false, cloudError: "" });
+            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
           }
 
           const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
@@ -476,6 +486,7 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: true,
             cloudError: "",
           });
+          addPendingCardId(set, optimisticCardId);
         } else {
           set({ cloudLoading: true, cloudError: "" });
         }
@@ -486,6 +497,7 @@ export const useInventoryStore = create<InventoryState>()(
           const message = getCloudActionErrorMessage(result);
           if (optimisticCardId) {
             customCardRegistry.unregister(optimisticCardId);
+            removePendingCardId(set, optimisticCardId);
             set({
               cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
               cloudLoading: false,
@@ -500,6 +512,7 @@ export const useInventoryStore = create<InventoryState>()(
         const created = result.data;
         if (optimisticCardId) {
           customCardRegistry.unregister(optimisticCardId);
+          removePendingCardId(set, optimisticCardId);
         }
         customCardRegistry.register(created.vocabularyCard);
 
@@ -554,6 +567,38 @@ function removePendingCardId(set: (fn: (state: InventoryState) => InventoryState
     next.delete(cardId);
     return { ...state, pendingCardIds: next };
   });
+}
+
+const cloudCardAddQueues = new Map<string, Promise<void>>();
+
+function enqueueCloudCardAddition<T>(ownerUserId: string | null, operation: () => Promise<T>): Promise<T> {
+  const queueKey = ownerUserId ?? "active-session";
+  const previous = cloudCardAddQueues.get(queueKey) ?? Promise.resolve();
+  const queuedOperation = previous.catch(() => undefined).then(operation);
+
+  cloudCardAddQueues.set(
+    queueKey,
+    queuedOperation.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+
+  return queuedOperation;
+}
+
+function mergeCloudInventoryCards(
+  cloudCards: InventoryCard[],
+  localCards: InventoryCard[],
+  pendingCardIds: ReadonlySet<string>,
+) {
+  const pendingCards = localCards.filter((card) => pendingCardIds.has(card.cardId));
+  const pendingIds = new Set(pendingCards.map((card) => card.cardId));
+
+  return [
+    ...pendingCards,
+    ...cloudCards.filter((card) => !pendingIds.has(card.cardId)),
+  ];
 }
 
 function getCloudActionErrorMessage(result: { message?: string; errorCode?: string }) {

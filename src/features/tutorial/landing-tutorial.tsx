@@ -33,6 +33,13 @@ const NEXT_COLORS = [
   "bg-amber-400 hover:bg-amber-500",
 ] as const;
 
+const MESSAGE_TEXT_COLORS = [
+  "text-emerald-500",
+  "text-blue-500",
+  "text-red-500",
+  "text-amber-400",
+] as const;
+
 const RECTANGULAR_TARGETS = new Set<TutorialTarget["key"]>([
   "landing-card-center",
   "start-learning",
@@ -220,8 +227,8 @@ export function LandingTutorial() {
       <p
         data-landing-tutorial-message
         className={cn(
-          "pointer-events-none fixed z-10 rounded-lg px-4 py-3 text-center text-base font-semibold leading-snug text-white shadow-sm",
-          NEXT_COLORS[step % NEXT_COLORS.length],
+          "pointer-events-none fixed z-10 rounded-lg bg-white px-4 py-3 text-center text-base font-semibold leading-snug shadow-sm",
+          MESSAGE_TEXT_COLORS[step % MESSAGE_TEXT_COLORS.length],
         )}
         style={{
           left: "50%",
