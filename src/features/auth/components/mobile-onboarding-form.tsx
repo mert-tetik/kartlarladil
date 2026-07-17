@@ -199,12 +199,12 @@ export function MobileOnboardingForm({
                     data-onboarding-language-flag={language.code}
                     className={cn(
                       "inline-flex rounded-md p-[2px] transition-all duration-300",
-                      selected && "bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500",
+                      selected && "scale-110 bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500",
                     )}
                   >
                     <LanguageFlag
                       code={language.code}
-                      className={cn("h-14 w-20 rounded-[4px] border-0 transition-transform duration-300", selected && "scale-110")}
+                      className="h-14 w-20 rounded-[4px] border-0"
                     />
                   </span>
                   <span className={cn(
