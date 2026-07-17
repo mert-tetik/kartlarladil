@@ -12,10 +12,12 @@ import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
-// Temporary visual-test mode. Set to false to restore the one-time demo behavior.
-const REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING = true;
 const DEMO_START_DELAY = 1000;
 const DEMO_SIDE_HOLD = 1800;
+const CARD_EXIT_DURATION = 320;
+const INCOMING_ENTRY_DELAY = 32;
+const INCOMING_ENTRY_DURATION = 520;
+const INCOMING_START_OFFSET = 180;
 
 export function MobileCardSwipeOverlay({ open, language, onClose }: { open: boolean; language: LanguageCode; onClose: () => void }) {
   const t = useT();
@@ -27,8 +29,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const [locked, setLocked] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [outgoing, setOutgoing] = useState<{ card: VocabularyCard; direction: "skip" | "add"; active: boolean } | null>(null);
-  const [incoming, setIncoming] = useState(false);
+  const [outgoing, setOutgoing] = useState<{ card: VocabularyCard; direction: "skip" | "add"; active: boolean; x: number; rotation: number } | null>(null);
+  const [incoming, setIncoming] = useState<"idle" | "preparing" | "entering">("idle");
   const [completedSwipes, setCompletedSwipes] = useState(0);
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
@@ -76,30 +78,33 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   }, [language, usedIds]);
 
   useEffect(() => {
-    if (!open || typeof window === "undefined" || (!REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING && window.localStorage.getItem(DEMO_KEY))) return;
-    const timers = [window.setTimeout(() => { setLocked(true); setDemoActive(true); setDragging(false); start.current = null; setDragX(0); setDragY(0); }, 0), window.setTimeout(() => setDragX(-THRESHOLD - 12), DEMO_START_DELAY), window.setTimeout(() => setDragX(THRESHOLD + 12), DEMO_START_DELAY + DEMO_SIDE_HOLD), window.setTimeout(() => setDragX(0), DEMO_START_DELAY + DEMO_SIDE_HOLD * 2), window.setTimeout(() => { if (!REPLAY_DEMO_ON_EVERY_OPEN_FOR_TESTING) window.localStorage.setItem(DEMO_KEY, "1"); setDemoActive(false); setLocked(false); }, DEMO_START_DELAY + DEMO_SIDE_HOLD * 2 + 500)];
+    if (!open || typeof window === "undefined" || window.localStorage.getItem(DEMO_KEY)) return;
+    const timers = [window.setTimeout(() => { setLocked(true); setDemoActive(true); setDragging(false); start.current = null; setDragX(0); setDragY(0); }, 0), window.setTimeout(() => setDragX(-THRESHOLD - 12), DEMO_START_DELAY), window.setTimeout(() => setDragX(THRESHOLD + 12), DEMO_START_DELAY + DEMO_SIDE_HOLD), window.setTimeout(() => setDragX(0), DEMO_START_DELAY + DEMO_SIDE_HOLD * 2), window.setTimeout(() => { window.localStorage.setItem(DEMO_KEY, "1"); setDemoActive(false); setLocked(false); }, DEMO_START_DELAY + DEMO_SIDE_HOLD * 2 + 500)];
     return () => timers.forEach(window.clearTimeout);
   }, [open]);
 
   function finish(direction: "skip" | "add") {
     if (!card || locked) return;
+    const currentPosition = dragPosition.current;
+    const currentRotation = currentPosition.x / 18 + currentPosition.y / 90;
+
     setLocked(true);
     setDragging(false);
-    setOutgoing({ card, direction, active: false });
+    setOutgoing({ card, direction, active: false, x: currentPosition.x, rotation: currentRotation });
     setDeck((current) => current.slice(1));
     setCompletedSwipes((count) => count + 1);
-    setIncoming(true);
+    setIncoming("preparing");
+    if (direction === "add") void addCard(card.sourceKey);
     dragPosition.current = { x: 0, y: 0 };
     setDragX(0); setDragY(0);
     window.requestAnimationFrame(() => {
       setOutgoing((current) => current ? { ...current, active: true } : null);
-      window.requestAnimationFrame(() => setIncoming(false));
+      window.setTimeout(() => setIncoming("entering"), INCOMING_ENTRY_DELAY);
     });
     window.setTimeout(() => {
-      if (direction === "add") void addCard(card.sourceKey);
       setOutgoing(null);
-      setLocked(false);
-    }, 280);
+    }, CARD_EXIT_DURATION);
+    window.setTimeout(() => setLocked(false), INCOMING_ENTRY_DELAY + INCOMING_ENTRY_DURATION);
   }
 
   useEffect(() => {
@@ -142,7 +147,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
       <p className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}
       </p>
-      {card ? <div data-card-swipe-card onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-700 ease-in-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate(${dragX}px, ${incoming ? "100dvh" : "0px"}) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming ? 0 : 1 }}>
+      {card ? <div data-card-swipe-card onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={(event) => { if (start.current && !locked) { const nextPosition = { x: event.clientX - start.current.x, y: event.clientY - start.current.y }; dragPosition.current = nextPosition; setDragX(nextPosition.x); setDragY(nextPosition.y); } }} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-500 ease-out", locked ? "pointer-events-none" : "") } style={{ transform: `translate3d(${dragX}px, ${incoming === "preparing" ? INCOMING_START_OFFSET : 0}px, 0) rotate(${dragX / 18 + dragY / 90}deg)`, opacity: incoming === "preparing" ? 0 : 1 }}>
         <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
           {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
           {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
@@ -151,7 +156,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
         {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
         <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" />
       </div> : null}
-      {outgoing ? <div className="pointer-events-none absolute z-20 w-[78vw] max-w-[300px] transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translateX(${outgoing.direction === "add" ? window.innerWidth : -window.innerWidth}px) rotate(${outgoing.direction === "add" ? 18 : -18}deg)` : "translateX(0)" }}><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div> : null}
+      {outgoing ? <div data-card-swipe-outgoing className="pointer-events-none absolute z-20 w-[78vw] max-w-[300px] transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translate3d(${outgoing.x + (outgoing.direction === "add" ? window.innerWidth + 80 : -window.innerWidth - 80)}px, 0, 0) rotate(${outgoing.rotation + (outgoing.direction === "add" ? 22 : -22)}deg)` : `translate3d(${outgoing.x}px, 0, 0) rotate(${outgoing.rotation}deg)` }}><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div> : null}
     </div>
   </div>;
 }

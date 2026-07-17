@@ -153,15 +153,39 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       setAiResponse(result); showPreview(buildPreviewVocabularyCard(result)); setTerm("");
     } catch { setError(t("createCard.error.unknown")); } finally { setLoading(false); }
   }
-  async function add() {
+  function add() {
     if (!preview) return;
-    setAdding(true); setError("");
+    setError("");
+
+    if (aiResponse) {
+      const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+      const optimisticCard = { ...preview, id: optimisticId, sourceKey: optimisticId };
+
+      void createCustomCard({
+        language: aiResponse.language,
+        tier: aiResponse.tier,
+        termKind: aiResponse.termKind,
+        draft: {
+          term: aiResponse.term,
+          partOfSpeech: aiResponse.partOfSpeech,
+          pronunciation: aiResponse.pronunciation,
+          translations: aiResponse.translations,
+          example: aiResponse.example,
+          exampleTranslation: aiResponse.exampleTranslation,
+          grammar: aiResponse.grammar,
+          termKind: aiResponse.termKind,
+        },
+        optimisticCard,
+      }).catch(() => undefined);
+
+      setPreview(null); setAiResponse(null); setTerm(""); onClose();
+      return;
+    }
+
+    setAdding(true);
     try {
-      if (aiResponse) await createCustomCard({ language: aiResponse.language, tier: aiResponse.tier, termKind: aiResponse.termKind, draft: { term: aiResponse.term, partOfSpeech: aiResponse.partOfSpeech, pronunciation: aiResponse.pronunciation, translations: aiResponse.translations, example: aiResponse.example, exampleTranslation: aiResponse.exampleTranslation, grammar: aiResponse.grammar, termKind: aiResponse.termKind } });
-      else {
-        const result = await addCard(preview.sourceKey);
-        if (!result.ok) throw new Error("add_failed");
-      }
+      const result = await addCard(preview.sourceKey);
+      if (!result.ok) throw new Error("add_failed");
       setPreview(null); setAiResponse(null); setTerm(""); onClose();
     } catch { setError(t("createCard.error.addFailed")); } finally { setAdding(false); }
   }

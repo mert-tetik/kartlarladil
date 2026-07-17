@@ -35,17 +35,17 @@ describe("MissionRewardOverlay", () => {
     vi.useRealTimers();
   });
 
-  it("renders the mission points reward as a full-screen layout", () => {
-    const { container } = render(
+  it("renders mission points as a non-blocking flight to the score display", () => {
+    render(
       <LocaleProvider initialLocale="en">
         <MissionRewardOverlay mode={{ kind: "points", amount: 75 }} onComplete={vi.fn()} />
       </LocaleProvider>,
     );
 
-    expect(container.querySelector("[data-mission-reward-overlay]")).toHaveClass("fixed", "inset-0");
-    expect(container.querySelector("[data-mission-points-celebration]")).toHaveClass("min-h-full");
-    expect(container.querySelector("[data-mission-total-points-shell]")).toBeInTheDocument();
-    expect(container.querySelector("[data-mission-total-points]")).toHaveTextContent("420");
+    expect(document.body.querySelector("[data-mission-reward-overlay]")).not.toBeInTheDocument();
+    const points = document.body.querySelector("span.text-lg.font-bold");
+    expect(points).toHaveTextContent("420");
+    expect(points?.parentElement?.parentElement).toHaveClass("fixed", "pointer-events-none");
   });
 
   it("unmounts the chest reward overlay after the child flow completes", () => {

@@ -111,7 +111,7 @@ export default function CreateCardPage() {
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
       playSoundEffect("card-ready");
-    } catch (error) {
+    } catch {
       setErrorCode(getThrownErrorMessage(error));
     } finally {
       setLoading(false);
@@ -121,35 +121,53 @@ export default function CreateCardPage() {
   async function handleAdd() {
     if (!foundCard) return;
 
-    setAdding(true);
     setErrorCode(null);
 
-    try {
-      if (aiResponse) {
-        await withTimeout(
-          createCustomCard({
-            language: aiResponse.language,
-            tier: aiResponse.tier,
-            termKind: aiResponse.termKind,
-            draft: {
-              term: aiResponse.term,
-              partOfSpeech: aiResponse.partOfSpeech,
-              pronunciation: aiResponse.pronunciation,
-              translations: aiResponse.translations,
-              example: aiResponse.example,
-              exampleTranslation: aiResponse.exampleTranslation,
-              grammar: aiResponse.grammar,
-              termKind: aiResponse.termKind,
-            },
-          }),
-          ADD_TO_DECK_TIMEOUT_MS,
-        );
-      } else {
-        const result = await withTimeout(addCard(foundCard.sourceKey), ADD_TO_DECK_TIMEOUT_MS);
+    if (aiResponse) {
+      const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+      const optimisticCard = { ...foundCard, id: optimisticId, sourceKey: optimisticId };
 
-        if (!result.ok) {
-          throw new Error(result.limitReached ? "free_active_card_limit" : "unknown");
-        }
+      const completeTimer = window.setTimeout(() => {
+        setFoundCard(null);
+        setAiResponse(null);
+        setTerm("");
+        setIsExiting(false);
+        setToast({ type: "success", message: t("createCard.success.added") });
+      }, 300);
+
+      void createCustomCard({
+        language: aiResponse.language,
+        tier: aiResponse.tier,
+        termKind: aiResponse.termKind,
+        draft: {
+          term: aiResponse.term,
+          partOfSpeech: aiResponse.partOfSpeech,
+          pronunciation: aiResponse.pronunciation,
+          translations: aiResponse.translations,
+          example: aiResponse.example,
+          exampleTranslation: aiResponse.exampleTranslation,
+          grammar: aiResponse.grammar,
+          termKind: aiResponse.termKind,
+        },
+        optimisticCard,
+      }).catch(() => {
+        window.clearTimeout(completeTimer);
+        setFoundCard(null);
+        setAiResponse(null);
+        setIsExiting(false);
+        setToast({ type: "error", message: t("createCard.error.addFailed") });
+      });
+
+      setIsExiting(true);
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const result = await withTimeout(addCard(foundCard.sourceKey), ADD_TO_DECK_TIMEOUT_MS);
+
+      if (!result.ok) {
+        throw new Error(result.limitReached ? "free_active_card_limit" : "unknown");
       }
 
       setIsExiting(true);

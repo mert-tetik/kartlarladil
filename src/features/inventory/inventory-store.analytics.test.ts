@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getTierRequirement } from "@/features/quiz/quiz-engine";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
+import { localCardRepository } from "@/features/cards/card-repository";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { createCustomCardAction } from "@/features/inventory/cloud-actions";
@@ -31,6 +33,7 @@ describe("inventory store analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    customCardRegistry.clear();
     useInventoryStore.setState({
       cards: [],
       attempts: [],
@@ -237,5 +240,68 @@ describe("inventory store analytics", () => {
         term_kind: customCard.termKind,
       },
     });
+  });
+
+  it("shows an optimistic custom card before its background creation completes", async () => {
+    const optimisticCard: VocabularyCard = {
+      ...testCard,
+      id: "pending-custom-card-1",
+      sourceKey: "pending-custom-card-1",
+    };
+    const savedCard: VocabularyCard = {
+      ...testCard,
+      id: "custom-card-2",
+      sourceKey: "custom-card-2",
+    };
+    let resolveCreation!: (value: Awaited<ReturnType<typeof createCustomCardAction>>) => void;
+
+    vi.mocked(createCustomCardAction).mockImplementation(
+      () => new Promise((resolve) => {
+        resolveCreation = resolve;
+      }),
+    );
+
+    const creation = useInventoryStore.getState().createCustomCard({
+      language: optimisticCard.language,
+      tier: optimisticCard.tier,
+      termKind: optimisticCard.termKind,
+      draft: {
+        term: optimisticCard.term,
+        partOfSpeech: optimisticCard.partOfSpeech,
+        pronunciation: optimisticCard.pronunciation,
+        translations: optimisticCard.translations,
+        example: optimisticCard.example,
+        exampleTranslation: optimisticCard.exampleTranslation,
+        grammar: optimisticCard.grammar.rules,
+        termKind: optimisticCard.termKind,
+      },
+      optimisticCard,
+    });
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
+    ]);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
+
+    resolveCreation({
+      status: "success",
+      message: "",
+      data: {
+        card: {
+          cardId: savedCard.sourceKey,
+          status: "active",
+          correctCount: 0,
+          addedAt: "2026-07-17T00:00:00.000Z",
+        },
+        vocabularyCard: savedCard,
+      },
+    });
+    await creation;
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: savedCard.sourceKey, status: "active" }),
+    ]);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toBeUndefined();
+    expect(localCardRepository.findById(savedCard.sourceKey)).toEqual(savedCard);
   });
 });

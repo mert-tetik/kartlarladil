@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
@@ -13,7 +13,8 @@ import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
-import { listUserMissionsAction, claimMissionRewardAction } from "@/features/missions/mission-actions";
+import { listUserMissionsAction } from "@/features/missions/mission-actions";
+import { enqueueMissionClaim, resumePendingMissionClaims } from "@/features/missions/mission-claim-queue";
 import { buildMissionViewModels } from "@/features/missions/mission-progress";
 import { useMissionClaimStore } from "@/features/missions/mission-claim-store";
 import { MISSIONS } from "@/features/missions/missions-data";
@@ -38,15 +39,20 @@ export function MissionsList() {
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
-  const { claimedIds, setClaimedIds, markClaimed, unmarkClaimed } = useMissionClaimStore();
+  const claimedIds = useMissionClaimStore((state) => state.claimedIds);
+  const pendingClaimIds = useMissionClaimStore((state) => state.pendingClaimIds);
+  const pendingClaimOwnerId = useMissionClaimStore((state) => state.pendingClaimOwnerId);
+  const setClaimedIds = useMissionClaimStore((state) => state.setClaimedIds);
+  const markClaimPending = useMissionClaimStore((state) => state.markClaimPending);
   const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [rewardMode, setRewardMode] = useState<
-    | { kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition }
-    | { kind: "points"; amount: number; source?: DOMRect }
+    | { missionId: string; kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition }
+    | { missionId: string; kind: "points"; amount: number; source?: DOMRect }
     | null
   >(null);
+  const hasResumedPendingClaimsRef = useRef(false);
 
   const snapshot = useMemo<MissionProgressSnapshot>(() => {
     const totalCards = cards.length;
@@ -71,18 +77,21 @@ export function MissionsList() {
     if (!user) return;
 
     setSyncing(true);
-    setError(null);
+    setLoadError(null);
 
     const result = await listUserMissionsAction(snapshot);
 
     if (result.status === "success") {
-      setClaimedIds(result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId));
+      setClaimedIds(
+        result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId),
+        user.id,
+      );
     } else if (result.message === "auth_required") {
       router.replace("/login?next=/missions");
       setSyncing(false);
       return;
     } else {
-      setError(result.message ?? t("missions.loadError"));
+      setLoadError(result.message ?? t("missions.loadError"));
     }
 
     setSyncing(false);
@@ -100,13 +109,22 @@ export function MissionsList() {
     void syncMissions();
   }, [hydrated, syncMissions, router, user]);
 
+  useEffect(() => {
+    if (!user || hasResumedPendingClaimsRef.current) return;
+    hasResumedPendingClaimsRef.current = true;
+    if (pendingClaimOwnerId === user.id) {
+      resumePendingMissionClaims(user.id, pendingClaimIds);
+    }
+  }, [pendingClaimIds, pendingClaimOwnerId, user]);
+
   function handleClaim(missionId: string, source?: DOMRect) {
-    if (claimingId) return;
+    if (pendingClaimOwnerId === user?.id && pendingClaimIds.has(missionId)) return;
 
     const mission = MISSIONS.find((item) => item.id === missionId);
     if (!mission) return;
 
     const { reward } = mission;
+    setClaimError(null);
 
     // Mount the reward UI before the server action can occupy the main thread.
     if (reward.kind === "chest") {
@@ -114,19 +132,17 @@ export function MissionsList() {
       if (!tier) return;
 
       flushSync(() => {
-        setClaimingId(missionId);
-        markClaimed(missionId);
-        setRewardMode({ kind: "chest", tier });
+        markClaimPending(missionId, user.id);
+        setRewardMode({ missionId, kind: "chest", tier });
       });
     } else {
       flushSync(() => {
-        setClaimingId(missionId);
-        markClaimed(missionId);
-        setRewardMode({ kind: "points", amount: reward.amount, source });
+        markClaimPending(missionId, user.id);
+        setRewardMode({ missionId, kind: "points", amount: reward.amount, source });
       });
     }
 
-    window.requestAnimationFrame(() => void claimMissionRewardAction(missionId).then(async (result) => {
+    window.requestAnimationFrame(() => void enqueueMissionClaim(user.id, missionId).then((result) => {
       if (result.status === "success") {
         if (result.reward && typeof result.points === "number") {
           sendTwaAnalyticsEvent("fd_mission_reward_claimed", {
@@ -146,18 +162,13 @@ export function MissionsList() {
             chestPoints: result.chestPoints,
           });
         }
-        await syncMissions();
       } else if (result.message === "auth_required") {
-        setRewardMode(null);
-        unmarkClaimed(missionId);
+        setRewardMode((current) => current?.missionId === missionId ? null : current);
         router.replace("/login?next=/missions");
       } else {
-        setError(result.message ?? t("missions.claimError"));
-        unmarkClaimed(missionId);
-        setRewardMode(null);
+        setClaimError(result.message ?? t("missions.claimError"));
+        setRewardMode((current) => current?.missionId === missionId ? null : current);
       }
-
-      setClaimingId(null);
     }));
   }
 
@@ -169,10 +180,10 @@ export function MissionsList() {
     return null;
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-12 text-center">
-        <p className="text-sm text-foreground-secondary">{error}</p>
+        <p className="text-sm text-foreground-secondary">{loadError}</p>
         <Button onClick={() => void syncMissions()}>{t("common.retry")}</Button>
       </div>
     );
@@ -195,6 +206,7 @@ export function MissionsList() {
           {t("missions.syncing")}
         </div>
       )}
+      {claimError ? <p role="alert" className="text-sm text-destructive">{claimError}</p> : null}
       <div className={cn("flex flex-col gap-3 pb-8")}>
         {missions.map((mission) => (
           <MissionCard
@@ -208,7 +220,7 @@ export function MissionsList() {
             game={mission.definition.game}
             characterId={mission.definition.characterId}
             onClaim={(source) => void handleClaim(mission.missionId, source)}
-            claiming={claimingId === mission.missionId}
+            claiming={pendingClaimOwnerId === user.id && pendingClaimIds.has(mission.missionId)}
           />
         ))}
       </div>

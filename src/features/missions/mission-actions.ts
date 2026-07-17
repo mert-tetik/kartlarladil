@@ -125,7 +125,10 @@ export async function listUserMissionsAction(
   }
 }
 
-export async function claimMissionRewardAction(missionId: string): Promise<ClaimMissionResult> {
+export async function claimMissionRewardAction(
+  missionId: string,
+  expectedUserId?: string,
+): Promise<ClaimMissionResult> {
   try {
     const authed = await getAuthedSupabase();
 
@@ -134,6 +137,9 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
     }
 
     const { userId, supabase } = authed;
+    if (expectedUserId && expectedUserId !== userId) {
+      return { status: "error", message: "auth_required" };
+    }
     const mission = MISSIONS_BY_ID.get(missionId);
 
     if (!mission) {
@@ -181,34 +187,38 @@ export async function claimMissionRewardAction(missionId: string): Promise<Claim
         return { status: "error", message: "invalid_chest_reward" };
       }
 
-      const { error: chestIncError } = await supabase.rpc("increment_chest_points", {
-        p_user_id: userId,
-        p_points: points,
-      });
+      const [
+        { error: chestIncError },
+        { error: chestRewardError },
+        { error: missionRewardError },
+      ] = await Promise.all([
+        supabase.rpc("increment_chest_points", {
+          p_user_id: userId,
+          p_points: points,
+        }),
+        supabase.from("chest_rewards").insert({
+          user_id: userId,
+          tier: reward.tier,
+          points,
+        }),
+        supabase.from("mission_rewards").insert({
+          user_id: userId,
+          mission_id: missionId,
+          reward_type: "chest",
+          chest_tier: reward.tier,
+          points,
+        }),
+      ]);
 
       if (chestIncError) {
         console.error("increment_chest_points failed:", chestIncError);
         throw chestIncError;
       }
 
-      const { error: chestRewardError } = await supabase.from("chest_rewards").insert({
-        user_id: userId,
-        tier: reward.tier,
-        points,
-      });
-
       if (chestRewardError) {
         console.error("chest_rewards insert failed:", chestRewardError);
         throw chestRewardError;
       }
-
-      const { error: missionRewardError } = await supabase.from("mission_rewards").insert({
-        user_id: userId,
-        mission_id: missionId,
-        reward_type: "chest",
-        chest_tier: reward.tier,
-        points,
-      });
 
       if (missionRewardError) {
         console.error("mission_rewards insert failed:", missionRewardError);

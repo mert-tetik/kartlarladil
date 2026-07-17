@@ -8,7 +8,7 @@ import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
-import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier } from "@/types/domain";
+import type { InventoryCard, LanguageCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
   addCloudInventoryCardAction,
@@ -72,6 +72,7 @@ interface InventoryState {
     tier: Tier;
     termKind: TermKind;
     draft: GeneratedCardDraft;
+    optimisticCard?: VocabularyCard;
   }) => Promise<void>;
 }
 
@@ -459,23 +460,55 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async createCustomCard(input) {
-        set({ cloudLoading: true, cloudError: "" });
+        const optimisticCard = input.optimisticCard;
+        const optimisticCardId = optimisticCard?.sourceKey;
+        const request = {
+          language: input.language,
+          tier: input.tier,
+          termKind: input.termKind,
+          draft: input.draft,
+        };
 
-        const result = await createCustomCardAction(input);
+        if (optimisticCard && optimisticCardId) {
+          customCardRegistry.register(optimisticCard);
+          set({
+            cards: addCardToInventory(get().cards, optimisticCardId),
+            cloudLoading: true,
+            cloudError: "",
+          });
+        } else {
+          set({ cloudLoading: true, cloudError: "" });
+        }
+
+        const result = await createCustomCardAction(request);
 
         if (result.status === "error" || !result.data) {
           const message = getCloudActionErrorMessage(result);
-          set({ cloudLoading: false, cloudError: message });
+          if (optimisticCardId) {
+            customCardRegistry.unregister(optimisticCardId);
+            set({
+              cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
+              cloudLoading: false,
+              cloudError: message,
+            });
+          } else {
+            set({ cloudLoading: false, cloudError: message });
+          }
           throw new Error(message);
         }
 
         const created = result.data;
+        if (optimisticCardId) {
+          customCardRegistry.unregister(optimisticCardId);
+        }
         customCardRegistry.register(created.vocabularyCard);
 
         set({
           cards: [
             created.card,
-            ...get().cards.filter((card) => card.cardId !== created.card.cardId),
+            ...get().cards.filter(
+              (card) => card.cardId !== created.card.cardId && card.cardId !== optimisticCardId,
+            ),
           ],
           cloudLoading: false,
           cloudError: "",

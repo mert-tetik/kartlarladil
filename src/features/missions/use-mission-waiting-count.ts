@@ -38,7 +38,10 @@ export function useMissionWaitingCount(): number {
     void (async () => {
       const result = await listUserMissionsAction(snapshot);
       if (!cancelled && result.status === "success") {
-        setClaimedIds(result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId));
+        setClaimedIds(
+          result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId),
+          user.id,
+        );
       }
     })();
 
