@@ -78,7 +78,7 @@ describe("MobileCardSwipeOverlay", () => {
     fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
 
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
-    expect(addCardMock).toHaveBeenCalledWith("A1");
+    expect(addCardMock).not.toHaveBeenCalled();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toHaveStyle({ transform: "translate3d(150px, 0, 0) rotate(8.333333333333334deg)" });
     expect(document.querySelector('[data-card-swipe-outgoing-state="add"]')).toHaveClass("bg-emerald-500/85");
     expect(document.querySelector("[data-card-swipe-card]")).not.toBeInTheDocument();
@@ -113,5 +113,11 @@ describe("MobileCardSwipeOverlay", () => {
     });
 
     expect(document.querySelector("[data-card-swipe-card]")).toHaveStyle({ transform: "translate3d(0px, 0px, 0) rotate(0deg)", opacity: "1" });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(521);
+    });
+
+    expect(addCardMock).toHaveBeenCalledWith("A1");
   });
 });

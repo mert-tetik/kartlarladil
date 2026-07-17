@@ -42,6 +42,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
   const start = useRef<{ x: number; y: number } | null>(null);
   const mainCardRef = useRef<HTMLDivElement>(null);
   const swipeFeedbackRef = useRef<SwipeDirection | null>(null);
+  const swipeAnimationActiveRef = useRef(false);
+  const swipeInteractionActiveRef = useRef(false);
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
@@ -104,6 +106,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     const currentRotation = currentPosition.x / 18 + currentPosition.y / 90;
 
     cancelPendingDragFrame();
+    swipeInteractionActiveRef.current = false;
+    swipeAnimationActiveRef.current = true;
     setLocked(true);
     setDragging(false);
     setOutgoing({ card, direction, active: false, x: currentPosition.x, rotation: currentRotation });
@@ -111,7 +115,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     setCompletedSwipes((count) => count + 1);
     setIncoming("waiting");
     setIncomingDirection(direction);
-    if (direction === "add") void addCard(card.sourceKey);
+    const addedCardId = direction === "add" ? card.sourceKey : null;
     dragPosition.current = { x: 0, y: 0 };
     queuedDragPosition.current = { x: 0, y: 0 };
     swipeFeedbackRef.current = null;
@@ -130,7 +134,11 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
     window.setTimeout(() => {
       setIncoming("idle");
       setIncomingDirection(null);
+      swipeAnimationActiveRef.current = false;
       setLocked(false);
+      if (addedCardId) {
+        scheduleCardAddInBackground(addedCardId);
+      }
     }, CARD_EXIT_DURATION + INCOMING_ENTRY_DELAY + INCOMING_ENTRY_DURATION);
   }
 
@@ -142,6 +150,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
 
   function resetDrag() {
     cancelPendingDragFrame();
+    swipeInteractionActiveRef.current = false;
     start.current = null;
     dragPosition.current = { x: 0, y: 0 };
     queuedDragPosition.current = { x: 0, y: 0 };
@@ -166,6 +175,27 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
       window.cancelAnimationFrame(dragFrame.current);
       dragFrame.current = null;
     }
+  }
+
+  function scheduleCardAddInBackground(cardId: string) {
+    const run = () => {
+      if (swipeAnimationActiveRef.current || swipeInteractionActiveRef.current) {
+        window.setTimeout(run, 160);
+        return;
+      }
+
+      void Promise.resolve(addCard(cardId)).catch(() => undefined);
+    };
+    const browserWindow = window as typeof window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    };
+
+    if (browserWindow.requestIdleCallback) {
+      browserWindow.requestIdleCallback(run, { timeout: 1200 });
+      return;
+    }
+
+    window.setTimeout(run, 0);
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -232,7 +262,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose }: { open: bool
       <p className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}
       </p>
-      {shouldRenderCard ? <div ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-500 ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
+      {shouldRenderCard ? <div ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { swipeInteractionActiveRef.current = true; start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-500 ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
         <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
           {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
           {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
