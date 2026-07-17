@@ -111,7 +111,7 @@ export default function CreateCardPage() {
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
       playSoundEffect("card-ready");
-    } catch {
+    } catch (error) {
       setErrorCode(getThrownErrorMessage(error));
     } finally {
       setLoading(false);
@@ -178,7 +178,7 @@ export default function CreateCardPage() {
         setIsExiting(false);
         setToast({ type: "success", message: t("createCard.success.added") });
       }, 300);
-    } catch (error) {
+    } catch {
       setIsExiting(true);
       window.setTimeout(() => {
         setFoundCard(null);
