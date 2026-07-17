@@ -43,9 +43,18 @@ describe("MobileOnboardingForm", () => {
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
     expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
     expect(container.querySelector('[data-onboarding-language-flag="en"]')).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
+    expect(container.querySelector('[data-onboarding-language-flag="tr"]')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Geri dön" }));
+    expect(screen.getByRole("heading", { name: "Ana dilinizi seçiniz" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Dil seç" }));
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
     expect(screen.getByRole("heading", { name: "Profil fotoğrafı seç" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Kedi" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Geri dön" }));
+    expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
   });
 });

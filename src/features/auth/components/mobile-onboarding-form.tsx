@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
 import { writeLandingCardLanguage } from "@/app/components/landing-card-language";
@@ -124,6 +125,10 @@ export function MobileOnboardingForm({
     setStep((current) => (current === "native" ? "learning" : "picture"));
   }
 
+  function goBack() {
+    setStep((current) => (current === "picture" ? "learning" : "native"));
+  }
+
   const isLanguageStep = step === "native" || step === "learning";
   const heading =
     step === "native"
@@ -131,7 +136,8 @@ export function MobileOnboardingForm({
       : step === "learning"
         ? t("auth.onboarding.learningLanguageTitle")
         : t("profilePicture.title");
-  const orderedLanguages = step === "native" ? languageOrders.native : languageOrders.learning;
+  const orderedLanguages = (step === "native" ? languageOrders.native : languageOrders.learning)
+    .filter((language) => step !== "learning" || language.code !== preferredUiLocale);
   const actionButtonClass = step === "native"
     ? "bg-emerald-500 text-white hover:bg-emerald-600"
     : step === "learning"
@@ -150,7 +156,17 @@ export function MobileOnboardingForm({
       <input type="hidden" name="profilePictureIndex" value={profilePictureIndex} />
       <input type="hidden" name="skipRedirect" value="on" />
 
-      <div className="shrink-0 pb-5 pt-1 text-center">
+      <div className="relative shrink-0 pb-5 pt-1 text-center">
+        {step !== "native" ? (
+          <button
+            type="button"
+            aria-label={t("common.back")}
+            onClick={goBack}
+            className="absolute left-0 top-0 inline-flex size-10 items-center justify-center text-foreground transition-transform active:scale-95"
+          >
+            <ChevronLeft className="size-6" aria-hidden="true" />
+          </button>
+        ) : null}
         <h2 className="font-display text-3xl font-semibold leading-tight text-foreground">{heading}</h2>
       </div>
 
@@ -161,13 +177,11 @@ export function MobileOnboardingForm({
               const selected = step === "native"
                 ? preferredUiLocale === language.code
                 : preferredLanguageCode === language.code;
-              const unavailable = step === "learning" && language.code === preferredUiLocale;
 
               return (
                 <button
                   key={language.code}
                   type="button"
-                  disabled={unavailable}
                   aria-pressed={selected}
                   onClick={() => {
                     if (step === "native") {
@@ -177,7 +191,7 @@ export function MobileOnboardingForm({
                     }
                   }}
                   className={cn(
-                    "flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg px-2 text-center transition-transform duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-25",
+                    "flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg px-2 text-center transition-transform duration-200 active:scale-95",
                     selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
                   )}
                 >
