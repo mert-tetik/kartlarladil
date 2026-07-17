@@ -153,7 +153,7 @@ export function MobileCustomCardSheet({ open, onClose }: { open: boolean; onClos
       setAiResponse(result); showPreview(buildPreviewVocabularyCard(result)); setTerm("");
     } catch { setError(t("createCard.error.unknown")); } finally { setLoading(false); }
   }
-  function add() {
+  async function add() {
     if (!preview) return;
     setError("");
 
