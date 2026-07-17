@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
-import { TutorialPointer } from "@/features/tutorial/tutorial-pointer";
-import { GamesNavPointer } from "@/features/tutorial/components/games-nav-pointer";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
@@ -64,8 +62,6 @@ export default async function RootLayout({
       <body className="min-h-full" data-theme={themeId}>
         <AppShell locale={locale} user={user} onboardingCountryCode={onboardingCountryCode}>
           {children}
-          <TutorialPointer />
-          <GamesNavPointer />
         </AppShell>
         <LemonSqueezyScript />
       </body>

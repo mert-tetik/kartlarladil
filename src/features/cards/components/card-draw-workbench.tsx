@@ -28,7 +28,6 @@ import {
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { Button } from "@/components/ui/button";
@@ -111,9 +110,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
-  const tutorialStep = useTutorialStore((state) => state.step);
-  const tutorialCompleted = useTutorialStore((state) => state.completed);
-  const advanceTutorial = useTutorialStore((state) => state.advance);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -333,9 +329,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     }
     window.history.replaceState(null, "", url.toString());
 
-    if (!tutorialCompleted && nextPreferences.tier !== undefined && nextPreferences.tier !== tier && tutorialStep === 1) {
-      advanceTutorial();
-    }
   }
 
   function selectSuggestion(card: VocabularyCard) {
@@ -442,11 +435,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
           setLimitError("free_active_card_limit");
           return;
         }
-      }
-
-      const tutorialState = useTutorialStore.getState();
-      if (!tutorialState.completed && tutorialState.step === 4) {
-        tutorialState.advance();
       }
 
       dismissCard(cardId, "add");

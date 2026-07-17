@@ -5,8 +5,7 @@ import { MobileTierSelector } from "@/app/components/mobile-tier-selector";
 import { requestMobileNavbarBack } from "@/components/mobile-navbar-back";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
-const { advanceTutorialMock, routerPushMock } = vi.hoisted(() => ({
-  advanceTutorialMock: vi.fn(),
+const { routerPushMock } = vi.hoisted(() => ({
   routerPushMock: vi.fn(),
 }));
 
@@ -17,20 +16,9 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/features/tutorial/tutorial-store", () => ({
-  useTutorialStore: {
-    getState: () => ({
-      completed: true,
-      step: 0,
-      advance: advanceTutorialMock,
-    }),
-  },
-}));
-
 describe("MobileTierSelector", () => {
   beforeEach(() => {
     routerPushMock.mockReset();
-    advanceTutorialMock.mockReset();
   });
 
   it("routes the all option to the all-tier card draw filter", async () => {

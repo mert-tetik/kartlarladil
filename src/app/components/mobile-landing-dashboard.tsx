@@ -46,7 +46,6 @@ import {
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 import { vibrate } from "@/lib/vibration";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
@@ -243,10 +242,6 @@ export function MobileLandingDashboard() {
   function handleDrawCards() {
     vibrate("tap");
     requireAuthAction(() => {
-      const tutorial = useTutorialStore.getState();
-      if (!tutorial.completed && tutorial.step === 0) {
-        tutorial.complete();
-      }
       setSwipeDeckOpen(true);
     }, { nextPath: "/" });
   }
@@ -416,7 +411,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+      <div data-tutorial-target="rank-info" className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
           className="pointer-events-none absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
@@ -438,7 +433,6 @@ export function MobileLandingDashboard() {
             className="inline-flex h-full w-[150px] items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             aria-label={getRankLabel(stats.rank, locale)}
             data-rank-icon-button
-            data-tutorial-target="rank-info"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -517,6 +511,7 @@ export function MobileLandingDashboard() {
           locked={learnedCount === 0}
           onClick={handleRepeatLearned}
           variant="learned"
+          dataTutorialTarget="repeat-learned"
         />
       </div>
 

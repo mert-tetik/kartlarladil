@@ -641,6 +641,10 @@ body:has([data-create-card-page]) footer {
   display: none;
 }
 
+body:has([data-landing-tutorial]) [data-cookie-notice] {
+  display: none;
+}
+
 body:has([data-create-card-page]) [data-cookie-notice] {
   display: none;
 }

@@ -8,8 +8,6 @@ interface TutorialState {
   completed: boolean;
   step: number;
   testMode: boolean;
-  showPostPracticeTutorial: boolean;
-  showGamesPointer: boolean;
   advance: () => void;
   complete: () => void;
   reset: () => void;
@@ -17,11 +15,9 @@ interface TutorialState {
   deactivate: () => void;
   enableTestMode: () => void;
   disableTestMode: () => void;
-  setShowPostPracticeTutorial: (value: boolean) => void;
-  setShowGamesPointer: (value: boolean) => void;
 }
 
-const TOTAL_STEPS = 15;
+const TOTAL_STEPS = 8;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(
@@ -30,8 +26,6 @@ export const useTutorialStore = create<TutorialState>()(
       completed: false,
       step: 0,
       testMode: false,
-      showPostPracticeTutorial: false,
-      showGamesPointer: false,
       advance: () => {
         set((state) => {
           const nextStep = state.step + 1;
@@ -48,8 +42,6 @@ export const useTutorialStore = create<TutorialState>()(
       deactivate: () => set({ active: false }),
       enableTestMode: () => set({ testMode: true }),
       disableTestMode: () => set({ testMode: false }),
-      setShowPostPracticeTutorial: (value) => set({ showPostPracticeTutorial: value }),
-      setShowGamesPointer: (value) => set({ showGamesPointer: value }),
     }),
     {
       name: "foxiesdeck:tutorial",
@@ -57,7 +49,6 @@ export const useTutorialStore = create<TutorialState>()(
         completed: state.completed,
         step: state.step,
         testMode: state.testMode,
-        showPostPracticeTutorial: state.showPostPracticeTutorial,
       }),
       onRehydrateStorage: () => (state) => {
         if (typeof window === "undefined") return;

@@ -15,6 +15,7 @@ import { PushNotificationsProvider } from "@/features/push/components/push-notif
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
+import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -50,6 +51,7 @@ export function AppShell({
                     <RouteAwareShell>{children}</RouteAwareShell>
                     <SiteFooter className="max-lg:hidden" />
                     <CookieNotice />
+                    <LandingTutorial />
                   </div>
                 </PushNotificationsProvider>
               </ThemeProvider>

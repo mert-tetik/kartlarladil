@@ -7,7 +7,6 @@ describe("useTutorialStore", () => {
       completed: false,
       step: 0,
       testMode: false,
-      showPostPracticeTutorial: false,
     });
   });
 
@@ -18,7 +17,6 @@ describe("useTutorialStore", () => {
     expect(state.step).toBe(0);
     expect(state.completed).toBe(false);
     expect(state.testMode).toBe(false);
-    expect(state.showPostPracticeTutorial).toBe(false);
   });
 
   it("advances through steps", () => {
@@ -34,11 +32,11 @@ describe("useTutorialStore", () => {
   it("marks completed after the final step", () => {
     const { advance } = useTutorialStore.getState();
 
-    for (let i = 0; i < 15; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       advance();
     }
 
-    expect(useTutorialStore.getState().step).toBe(15);
+    expect(useTutorialStore.getState().step).toBe(8);
     expect(useTutorialStore.getState().completed).toBe(true);
   });
 
@@ -61,7 +59,7 @@ describe("useTutorialStore", () => {
 
     activate();
 
-    for (let i = 0; i < 15; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       advance();
     }
 
@@ -79,13 +77,4 @@ describe("useTutorialStore", () => {
     expect(useTutorialStore.getState().testMode).toBe(false);
   });
 
-  it("can arm and clear the post-practice tutorial gate", () => {
-    const { setShowPostPracticeTutorial } = useTutorialStore.getState();
-
-    setShowPostPracticeTutorial(true);
-    expect(useTutorialStore.getState().showPostPracticeTutorial).toBe(true);
-
-    setShowPostPracticeTutorial(false);
-    expect(useTutorialStore.getState().showPostPracticeTutorial).toBe(false);
-  });
 });

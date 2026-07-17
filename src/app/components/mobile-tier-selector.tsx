@@ -12,7 +12,6 @@ import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 import { vibrate } from "@/lib/vibration";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import type { CardDrawTierFilter } from "@/features/cards/card-draw-preferences";
 import type { LanguageCode } from "@/types/domain";
 
@@ -55,10 +54,6 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
 
   function handleSelect(tier: CardDrawTierFilter) {
     vibrate("tap");
-    const tutorialState = useTutorialStore.getState();
-    if (!tutorialState.completed && tutorialState.step === 1) {
-      tutorialState.advance();
-    }
     const nextHref = `/card-draw?language=${encodeURIComponent(language)}&tier=${encodeURIComponent(tier)}`;
     onClose();
     router.push(nextHref);
