@@ -972,7 +972,7 @@ export function QuizStation({
     return (
       <QuizViewportOverlay
         overlay="chest"
-        className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-4 sm:p-6"
+        className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-0"
       >
         <ChestCelebrationView
           onComplete={() => setPhase("chest")}

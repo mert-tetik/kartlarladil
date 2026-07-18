@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition, type PointerEvent } from "r
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Lock, Palette, X } from "lucide-react";
-import { Button, buttonClassName } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { updateThemeAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -223,20 +223,20 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
             <h3 className="text-lg font-semibold text-foreground">{t("theme.upgradeTitle")}</h3>
             <p className="mt-2 text-sm text-foreground-secondary">{t("theme.upgradeDescription")}</p>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button variant="ghost" onClick={() => setShowUpgrade(false)}>
-                {t("common.maybeLater")}
-              </Button>
+            <div className="mt-6 flex flex-col gap-3">
               <Link
                 href="/pricing"
-                className={buttonClassName("primary", "md")}
+                className="inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
                 onClick={() => {
                   setShowUpgrade(false);
                   onOpenChange(false);
                 }}
               >
-                {t("theme.upgradeCta")}
+                {t("limit.upgradeButtonFirstMonthFree")}
               </Link>
+              <Button variant="ghost" onClick={() => setShowUpgrade(false)}>
+                {t("common.maybeLater")}
+              </Button>
             </div>
           </div>
         </div>

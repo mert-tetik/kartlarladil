@@ -127,6 +127,10 @@ describe("buildLevelConfig", () => {
 });
 
 describe("isGameLevelLocked", () => {
+  it("keeps the first 15 levels available on the free plan", () => {
+    expect(FREE_GAME_LEVEL_LIMIT).toBe(15);
+  });
+
   it("returns false for levels up to the free limit", () => {
     expect(isGameLevelLocked(FREE_GAME_LEVEL_LIMIT)).toBe(false);
   });

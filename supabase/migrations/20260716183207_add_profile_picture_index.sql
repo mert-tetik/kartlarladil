@@ -15,3 +15,4 @@ alter table public.user_profiles
 alter table public.user_profiles
   add constraint user_profiles_profile_picture_index_check
     check (profile_picture_index between 0 and 18);
+

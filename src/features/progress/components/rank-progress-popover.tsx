@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
@@ -34,7 +35,9 @@ export function RankProgressPopover({
   const [forcedRankUpOpen, setForcedRankUpOpen] = useState(Boolean(forceRankUpRank));
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
-  const visibleRankUp = forceRankUpRank ? (forcedRankUpOpen ? forceRankUpRank : null) : rankUpRank;
+  const tutorialVisible = useTutorialStore((state) => state.testMode || (state.active && !state.completed));
+  const pendingRankUp = forceRankUpRank ? (forcedRankUpOpen ? forceRankUpRank : null) : rankUpRank;
+  const visibleRankUp = tutorialVisible ? null : pendingRankUp;
   const { locale } = useLocale();
   const t = useT();
 
@@ -391,7 +394,7 @@ function RankUpMenu({
 
             <div className="mt-7 flex w-full max-w-sm flex-col items-center px-4 py-3">
               <p className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</p>
-              <div className="mt-2 flex items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-2xl font-bold text-transparent">
+              <div data-rank-up-total-score className="mt-2 flex origin-center scale-125 items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-2xl font-bold text-transparent">
                 <span>{formatNumber(locale, points)}</span>
                 <ScoreIcon size={28} className="size-7" />
               </div>

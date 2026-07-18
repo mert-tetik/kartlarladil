@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { vi } from "vitest";
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
@@ -26,6 +27,7 @@ vi.mock("@/lib/twa-analytics", () => ({
 describe("RankProgressPopover", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    useTutorialStore.setState({ active: false, completed: false, step: 0, testMode: false });
   });
 
   afterEach(() => {
@@ -121,12 +123,34 @@ describe("RankProgressPopover", () => {
     expect(within(rankUpDialog).getByText("200")).toBeVisible();
     expect(within(rankUpDialog).queryByText("200 puan")).not.toBeInTheDocument();
     expect(rankUpDialog.querySelector('img[src*="score-icon.png"]')).toBeInTheDocument();
+    expect(rankUpDialog.querySelector("[data-rank-up-total-score]")).toHaveClass("scale-125");
 
     expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
 
     fireEvent.click(screen.getByRole("button", { name: "Devam" }));
 
     expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+  });
+
+  it("defers the rank-up menu until the landing tutorial has finished", () => {
+    vi.useFakeTimers();
+    const nextStats = makeStats(200);
+    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(190)} />);
+
+    useTutorialStore.setState({ active: true, completed: false, step: 0, testMode: false });
+    rerender(<RankProgressPopover stats={nextStats} />);
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+
+    act(() => {
+      useTutorialStore.setState({ active: false, completed: true });
+    });
+
+    expect(screen.getByRole("dialog", { name: /Rank atlad/ })).toBeVisible();
   });
 
   it("opens the rank-up overlay in test mode from the URL param", () => {

@@ -106,7 +106,7 @@ export function buildLevelConfig(
   };
 }
 
-export const FREE_GAME_LEVEL_LIMIT = 20;
+export const FREE_GAME_LEVEL_LIMIT = 15;
 
 export function isGameLevelLocked(level: number): boolean {
   return level > FREE_GAME_LEVEL_LIMIT;

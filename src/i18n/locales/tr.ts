@@ -717,7 +717,7 @@ const dictionary = {
   "games.wordChallenge.description": "Anlam doğru mu yanlış mı?",
   "games.level": "Seviye {level}",
   "games.levelLockedTitle": "Seviye kilitli",
-  "games.levelLockedDescription": "10. seviyenin ötesindeki oyun seviyeleri için planını yükselt.",
+  "games.levelLockedDescription": "15. seviyenin ötesindeki oyun seviyeleri için planını yükselt.",
   "games.nextLevel": "Sonraki Seviye",
   "games.tryAgain": "Tekrar Dene",
   "games.menu": "Menü",

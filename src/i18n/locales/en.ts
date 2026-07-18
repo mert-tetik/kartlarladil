@@ -715,7 +715,7 @@ const dictionary = {
   "games.wordChallenge.description": "Is the meaning correct or wrong?",
   "games.level": "Level {level}",
   "games.levelLockedTitle": "Level locked",
-  "games.levelLockedDescription": "Upgrade your plan to play game levels beyond 10.",
+  "games.levelLockedDescription": "Upgrade your plan to play game levels beyond 15.",
   "games.nextLevel": "Next Level",
   "games.tryAgain": "Try Again",
   "games.menu": "Menu",

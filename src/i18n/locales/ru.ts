@@ -718,7 +718,7 @@ const dictionary = {
   "games.wordChallenge.description": "Значение верно или нет?",
   "games.level": "Уровень {level}",
   "games.levelLockedTitle": "Уровень заблокирован",
-  "games.levelLockedDescription": "Обнови план для игровых уровней выше 10.",
+  "games.levelLockedDescription": "Обнови план для игровых уровней выше 15.",
   "games.nextLevel": "Следующий уровень",
   "games.tryAgain": "Попробовать снова",
   "games.menu": "Меню",
