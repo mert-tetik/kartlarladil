@@ -37,6 +37,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   const scoreRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<number[]>([]);
   const arrivedIconIdsRef = useRef(new Set<number>());
+  const completedRef = useRef(false);
   const [breaking, setBreaking] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
@@ -46,7 +47,21 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   useEffect(() => {
     const timers = timersRef.current;
     const breakTimer = window.setTimeout(() => {
-      if (!rewardRef.current || !scoreRef.current) return;
+      // If the DOM refs are not mounted by the time the break timer fires, we still
+      // need to ensure the reward view completes — schedule a short fallback that
+      // closes the view so it doesn't get stuck.
+      if (!rewardRef.current || !scoreRef.current) {
+        timers.push(
+          window.setTimeout(() => {
+            if (completedRef.current) return;
+            completedRef.current = true;
+            setExiting(true);
+            onComplete();
+          }, 420),
+        );
+        return;
+      }
+
       setBreaking(true);
       playSoundEffect("card-ready");
 
@@ -66,12 +81,27 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
           delay: Math.round(ratio * LAST_START_MS),
         };
       });
+
       setFlightIcons(icons);
+
+      // Fallback: in case some animations don't fire their animationend events
+      // (or the browser prevents them), force completion after a safe maximum time.
+      // The icons start within LAST_START_MS and each animation is ~700ms (see CSS).
+      const TOTAL_FALLBACK_MS = LAST_START_MS + 700 + 1000;
+      timers.push(
+        window.setTimeout(() => {
+          if (completedRef.current) return;
+          completedRef.current = true;
+          setExiting(true);
+          onComplete();
+        }, TOTAL_FALLBACK_MS),
+      );
     }, BREAK_DELAY_MS);
 
     return () => {
       window.clearTimeout(breakTimer);
       timers.forEach((timer) => window.clearTimeout(timer));
+      timers.length = 0;
     };
   }, [onComplete, points, totalPoints]);
 
@@ -86,8 +116,12 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
     vibrate("tap");
 
     if (arrivalIndex === flightIcons.length) {
-      timersRef.current.push(window.setTimeout(() => setExiting(true), 420));
-      timersRef.current.push(window.setTimeout(onComplete, 780));
+      // mark completed and schedule exit + onComplete similar to previous behavior
+      if (!completedRef.current) {
+        completedRef.current = true;
+        timersRef.current.push(window.setTimeout(() => setExiting(true), 420));
+        timersRef.current.push(window.setTimeout(() => onComplete(), 780));
+      }
     }
   }
 
