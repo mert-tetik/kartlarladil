@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getTwaMode } from "@/features/install-app/twa-mode";
 import { useT } from "@/i18n/locale-provider";
@@ -65,7 +64,7 @@ export function AppImageCacheGate() {
     <div
       aria-busy="true"
       aria-label={t("common.loading")}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0f172a] px-8 text-white"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white"
       data-app-image-cache-gate
       role="status"
     >
@@ -80,13 +79,13 @@ export function AppImageCacheGate() {
             width={1024}
           />
         </div>
-        <div className="mt-8 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+        <p className="mt-8 text-sm font-semibold text-white">Loading</p>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
           <div
             className="h-full rounded-full bg-white transition-transform duration-200 ease-out"
             style={{ transform: `scaleX(${percentage / 100})`, transformOrigin: "left" }}
           />
         </div>
-        <Loader2 aria-hidden="true" className="mt-5 size-5 animate-spin text-white/80" />
         <span className="sr-only">{t("common.loading")}</span>
       </div>
     </div>
