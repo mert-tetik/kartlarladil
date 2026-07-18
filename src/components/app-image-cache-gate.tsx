@@ -9,6 +9,9 @@ const IMAGE_CACHE_NAME = "foxiesdeck-image-assets";
 const IMAGE_MANIFEST_URL = "/image-cache-manifest.json";
 const IMAGE_MANIFEST_STORAGE_KEY = "foxiesdeck:image-cache-manifest";
 const IMAGE_CACHE_CONCURRENCY = 6;
+const EXIT_ANIMATION_DURATION_MS = 320;
+
+type CacheGatePhase = "hidden" | "loading" | "exiting";
 
 interface ImageAsset {
   url: string;
@@ -22,7 +25,7 @@ interface ImageManifest {
 
 export function AppImageCacheGate() {
   const t = useT();
-  const [visible, setVisible] = useState(false);
+  const [phase, setPhase] = useState<CacheGatePhase>("hidden");
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
 
   useEffect(() => {
@@ -31,10 +34,11 @@ export function AppImageCacheGate() {
     }
 
     let cancelled = false;
+    let exitTimer: number | undefined;
     void Promise.resolve().then(async () => {
       if (cancelled) return;
 
-      setVisible(true);
+      setPhase("loading");
 
       try {
         await prepareImageCache((nextProgress) => {
@@ -44,17 +48,21 @@ export function AppImageCacheGate() {
         });
       } finally {
         if (!cancelled) {
-          setVisible(false);
+          setPhase("exiting");
+          exitTimer = window.setTimeout(() => setPhase("hidden"), EXIT_ANIMATION_DURATION_MS);
         }
       }
     });
 
     return () => {
       cancelled = true;
+      if (exitTimer !== undefined) {
+        window.clearTimeout(exitTimer);
+      }
     };
   }, []);
 
-  if (!visible) {
+  if (phase === "hidden") {
     return null;
   }
 
@@ -64,7 +72,9 @@ export function AppImageCacheGate() {
     <div
       aria-busy="true"
       aria-label={t("common.loading")}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white"
+      className={`fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white transition-[opacity,transform] duration-300 ease-out ${
+        phase === "exiting" ? "pointer-events-none -translate-y-3 opacity-0" : "translate-y-0 opacity-100"
+      }`}
       data-app-image-cache-gate
       role="status"
     >
