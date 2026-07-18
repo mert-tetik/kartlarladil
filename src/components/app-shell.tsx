@@ -3,6 +3,7 @@ import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { CookieNotice } from "@/components/cookie-notice";
 import { GlobalTapVibration } from "@/components/global-tap-vibration";
 import { AppNavigation } from "@/components/app-navigation";
+import { AppImageCacheGate } from "@/components/app-image-cache-gate";
 import { MobileViewportController } from "@/components/mobile-viewport-controller";
 import { RouteAwareShell } from "@/components/route-aware-shell";
 import { SiteFooter } from "@/components/site-footer";
@@ -52,6 +53,7 @@ export function AppShell({
                     <SiteFooter className="max-lg:hidden" />
                     <CookieNotice />
                     <LandingTutorial />
+                    <AppImageCacheGate />
                   </div>
                 </PushNotificationsProvider>
               </ThemeProvider>

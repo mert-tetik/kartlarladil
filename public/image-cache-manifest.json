@@ -1,0 +1,397 @@
+{
+  "version": "a5bf4725edd1a841d1b905a378e7ccb3eed106fd586889fb0110117e6a650e00",
+  "assets": [
+    {
+      "url": "/ai-characters/campus-friend.png",
+      "revision": "9812f738cebcf39303e89c36e3b51ea8fa69529fb85b0e9401f623ef9ce5219d"
+    },
+    {
+      "url": "/ai-characters/friendly-worker.png",
+      "revision": "18a3808743934ac1717cf2d7089e77aa2a8c68725e61643f93b4ed302bf436a6"
+    },
+    {
+      "url": "/ai-characters/gentle-companion.png",
+      "revision": "2d2aae34d1236efd39f9a5672939d866c43ddc2b0c5c6327298c0a1438046dc6"
+    },
+    {
+      "url": "/ai-characters/gothic-calm.png",
+      "revision": "5a7ebb99d1859e8f9bf630c3a864fa3f208010227bb6ec7900b77081d0d838af"
+    },
+    {
+      "url": "/ai-characters/skater-coach.png",
+      "revision": "b61dba7082961e10e9d346fc45213179f999500f6fc3d3dbd65f5a901091e2fc"
+    },
+    {
+      "url": "/ai-characters/sleepy-student.png",
+      "revision": "34ab17b64b2212abf73857c460395f06ea57d02d5ccd99f6bee9bb895e0cb0e3"
+    },
+    {
+      "url": "/ai-characters/soft-artist.png",
+      "revision": "e33b64f3a93b7400ac1ae6bd42637481c03aa2048a3039d9802d5662797f6c71"
+    },
+    {
+      "url": "/ai-characters/study-buddy.png",
+      "revision": "ca62ce343008565d0b59bc9450a6295d0e143c92a38e69a8baa396a24742848a"
+    },
+    {
+      "url": "/ai-characters/warm-grandmother.png",
+      "revision": "b38821ac0217c493602a63544c5910c30bcc60b07dfc6f03c0363196d01117b2"
+    },
+    {
+      "url": "/ai-characters/wise-elder.png",
+      "revision": "ae5b991be8d6a77b32e278fe0c8d7211052440c52b33ad1d6950fde585802beb"
+    },
+    {
+      "url": "/apple-icon.png",
+      "revision": "9d0fa2d0789ef328934bafacf721deb9f3f2a026c0851044958a9a9ceac5ada0"
+    },
+    {
+      "url": "/chests/chest-sprite.png",
+      "revision": "0fb076e853d395e01390c8cd541fe7dba01c95540ed3b96b457d65df6dd5875f"
+    },
+    {
+      "url": "/create-card-illustration.png",
+      "revision": "115112cdfcb16747f25ec93afdf3bfd1515f40cc9ca4bd65091a7ab93621718e"
+    },
+    {
+      "url": "/custom-card-page-bg.png",
+      "revision": "d4ed70974c3662b1409547254f11f90a437b79e15fca8d3721cea8d8e7441ea2"
+    },
+    {
+      "url": "/flags/4x3/cn.svg",
+      "revision": "981da9bdf82d48e31691f20578cefcb26cf7d0bd95e4ebd5c0df00bdfe988c1a"
+    },
+    {
+      "url": "/flags/4x3/de.svg",
+      "revision": "efd480af5a154a7651f29da23ee0d09dbc892410fb4041898ddf8face336c575"
+    },
+    {
+      "url": "/flags/4x3/es.svg",
+      "revision": "f9cfaff858e95f830733ade9591037b5322dfb5827a53b70956a3d190bb49b9a"
+    },
+    {
+      "url": "/flags/4x3/fr.svg",
+      "revision": "a526851c372e3372b1596be71af355ea72b1650bbc4c06e6e2c226900d3de6cc"
+    },
+    {
+      "url": "/flags/4x3/gb.svg",
+      "revision": "c8be1e7208798a4ae692ee1e937065d498bb29e741943f6172b29118b8ed8066"
+    },
+    {
+      "url": "/flags/4x3/it.svg",
+      "revision": "9fa88118818d9b64838f578e2babcca3d0630aed21b5c33b34aff7ac5ce506bc"
+    },
+    {
+      "url": "/flags/4x3/jp.svg",
+      "revision": "bfea80baf9989383dc4bf7ca594ed95be0df0ff125bfc88d0bfa878eb0198022"
+    },
+    {
+      "url": "/flags/4x3/kr.svg",
+      "revision": "7a6cd5b51d0e2841ed8b79b1147ad8a66cf3c09f6344d4a63b5e4413ffa5d15b"
+    },
+    {
+      "url": "/flags/4x3/nl.svg",
+      "revision": "8f691f17fe70894537af8e92f2ca47761d353639b0defc15cbe561eb503ab010"
+    },
+    {
+      "url": "/flags/4x3/pl.svg",
+      "revision": "06687a4b90fc00195d0795aea1c26a9f73f1b6ea6a76e358724b2f1f32b7c8f4"
+    },
+    {
+      "url": "/flags/4x3/pt.svg",
+      "revision": "a7a2cf0b44aaaaf4f3bdc0ee0fa308ec7085bdfedd3f72da1473d43fd2a569fb"
+    },
+    {
+      "url": "/flags/4x3/ru.svg",
+      "revision": "7100aaae51ff3b6a2bf0ca932b3bc518bdc760814725e7cca31d821a26c3dd7c"
+    },
+    {
+      "url": "/flags/4x3/sa.svg",
+      "revision": "5738c8cfca5fea63587cbcf69237996c8ce6283f8016853150686f37311b620e"
+    },
+    {
+      "url": "/flags/4x3/tr.svg",
+      "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
+    },
+    {
+      "url": "/icon-192.png",
+      "revision": "ed4a6a197835c213d1c5b7a767337361ba59f90cffd74043739dbdf0681bfb1c"
+    },
+    {
+      "url": "/icon-maskable.png",
+      "revision": "adcf88711a2a566f12a1c34cdf39ceac1098c9a07f1278a2ba9e9bd3c3e8e109"
+    },
+    {
+      "url": "/icon.png",
+      "revision": "409b22d33bc30e334fed550e07d94dd4381e74f9edf78a68462b0076ef646957"
+    },
+    {
+      "url": "/install/add-to-home-screen-menu.png",
+      "revision": "652685c41f23968e22fcdcd9a6bc9b3adf8afb03f73d17a1805d6204e5b04994"
+    },
+    {
+      "url": "/install/home-screen-icon.png",
+      "revision": "9d850a12e14c3609d2e7a307e4b213f8f073ab0055e074a1b83bbcefe7b53c5e"
+    },
+    {
+      "url": "/install/instruction.png",
+      "revision": "1e0ea0f025c978a331e416479d7e8c35b138eca0d8a56103864f00905e74c983"
+    },
+    {
+      "url": "/install/safari.svg",
+      "revision": "07e28cf4b39de197861debb8a6ae44904cd4aaa485bb3a7cec66c01bde1a9243"
+    },
+    {
+      "url": "/landing-rank-bg.jpg",
+      "revision": "78851e2dc81f54ffcdc90f841693cad392ed2aafe8978b8815004ee070773f68"
+    },
+    {
+      "url": "/logo.png",
+      "revision": "2ea8d24acf0484d1a1e0e02737940fc3f13e869a935c945fe3c6e75b90d04ddd"
+    },
+    {
+      "url": "/mascots/mascot1.png",
+      "revision": "cd55612af17d1c3b13745e8547dd08a464a52ac18f1d337d389a43034aa6f98e"
+    },
+    {
+      "url": "/mascots/mascot10.png",
+      "revision": "c0c3d7f89ee7ffe7ca00bc86eda8fd1afe703a2b3ba2d7bc8723e123e4bf2c58"
+    },
+    {
+      "url": "/mascots/mascot11.png",
+      "revision": "3dc93176923dffee8435a54d06b4564afb19acdbfc14082f0efaf10a09585fe7"
+    },
+    {
+      "url": "/mascots/mascot12.png",
+      "revision": "42434418ab65b810318287a634a7b3d6eb85e57a45488ab4f03c6acd486b0821"
+    },
+    {
+      "url": "/mascots/mascot13.png",
+      "revision": "bcb7d4feb4b9ba72aae65c1792c9bd086d2549ff14b7850de7307c104945aa71"
+    },
+    {
+      "url": "/mascots/mascot14.png",
+      "revision": "d0657f6b9ccb5fe4fd00a2bbd41c7e919906c7d897ac777e895b474ff5f11fa8"
+    },
+    {
+      "url": "/mascots/mascot15.png",
+      "revision": "981e97e2b0ee144b3a9bac2a15006046328802b57a74cb4f8c6c7778909d844e"
+    },
+    {
+      "url": "/mascots/mascot16.png",
+      "revision": "e955b45f20fce6c8aba595eacf6fc29280aac5e6a648693e6311617f24614c41"
+    },
+    {
+      "url": "/mascots/mascot17.png",
+      "revision": "5e7071ecddd5b48f6a4a38def6e2cd32284095f3bf6524affb34eed3f2d46369"
+    },
+    {
+      "url": "/mascots/mascot2.png",
+      "revision": "c9d9e07fb5c1f3f7d21129b01581cc736e6f736cf897d3d41e5b5a11355d0c1f"
+    },
+    {
+      "url": "/mascots/mascot3.png",
+      "revision": "504a60d149651ea41b8b8f8caacb34e00c3189d604fa8854b7b140772650537a"
+    },
+    {
+      "url": "/mascots/mascot4.png",
+      "revision": "0342681639559515683b610d513469e6634a1c452a54963b6a88376d3e2506c1"
+    },
+    {
+      "url": "/mascots/mascot5.png",
+      "revision": "7c8902fc9f7c4ff5c892e3f7af62824a51fecea5bc741489edbc766454eb1ed0"
+    },
+    {
+      "url": "/mascots/mascot6.png",
+      "revision": "412681535f59e64729c60520d7fb7ec37184e063e2fb57179d780848645955e9"
+    },
+    {
+      "url": "/mascots/mascot7.png",
+      "revision": "bf7c2b07e0f705e5afca021af482c21422c6a1b94b26e4c41ba50bc8feae3cd2"
+    },
+    {
+      "url": "/mascots/mascot8.png",
+      "revision": "dc8833582627ba9350d3ba89249fbc866e9fb4324359d4b8ebe34ea5b7ee9fd5"
+    },
+    {
+      "url": "/mascots/mascot9.png",
+      "revision": "4f68eb4441d2eb182b7212eb782ae95b55295bd2535120eb17864f35e34d28f0"
+    },
+    {
+      "url": "/mission-icon.png",
+      "revision": "8da593a48f0bbfe9849cf25f5369d7c1e978bf341a90929e0e310cab8128641d"
+    },
+    {
+      "url": "/onboarding-bg.jpg",
+      "revision": "118c646018d05c708a0c250e9ac2e2e9958e85d175dcfda56b8c53d51f1ac294"
+    },
+    {
+      "url": "/onboarding-premium-hero.png",
+      "revision": "ba5be9fcd0c87d4e8200d1bc5239a9e7abdec0b127164375d3035af7bda181f3"
+    },
+    {
+      "url": "/pointer-icon.png",
+      "revision": "119fadd0ba9f41614ea3dd9295e2c7409796728812ceb14b49a4b0dd30b466c0"
+    },
+    {
+      "url": "/pricing-top-hero.png",
+      "revision": "ba5be9fcd0c87d4e8200d1bc5239a9e7abdec0b127164375d3035af7bda181f3"
+    },
+    {
+      "url": "/profile-pictures/pp_1.png",
+      "revision": "7f7cccb03505d5fedb4afd74e9eb3e5dfa59e4bb3e5c11fe7a9fd1fab86745e9"
+    },
+    {
+      "url": "/profile-pictures/pp_10.png",
+      "revision": "e7199fa2c76084ca940fc8079c203c55ab9feabb11550a67bbfd6654f4588d88"
+    },
+    {
+      "url": "/profile-pictures/pp_11.png",
+      "revision": "61103ba4a8bed64451903db30e97f927053774a9fe844c3222a5c5f50c15e462"
+    },
+    {
+      "url": "/profile-pictures/pp_12.png",
+      "revision": "f7963e1d70d9618f2c8b17d95206a4bbff1905fdab04307af47b5471b4816158"
+    },
+    {
+      "url": "/profile-pictures/pp_13.png",
+      "revision": "662219da0e18f02d3e4ef039e77b72e8b959b0e414c80f0ac6317861ef8c8465"
+    },
+    {
+      "url": "/profile-pictures/pp_14.png",
+      "revision": "65afdc4df17e5f3dfec82d69e22a4b82c26f73bfcbc8716a931890362b2edae8"
+    },
+    {
+      "url": "/profile-pictures/pp_15.png",
+      "revision": "f07f6aa209799ebd03b236b4b0933dc408931a0357f9a1f58eb763f03df68f86"
+    },
+    {
+      "url": "/profile-pictures/pp_16.png",
+      "revision": "1ad61f19416cf73b86b5ebc113829ae4dcee32613d5ad4a94a03b5f0d96232af"
+    },
+    {
+      "url": "/profile-pictures/pp_17.png",
+      "revision": "2854519864d29a2e59f10ed41c8d8ce636427f412b13f3428f5a0ff25daea95b"
+    },
+    {
+      "url": "/profile-pictures/pp_18.png",
+      "revision": "aa5b3b2b8d953f1dd23c1bb26f4e305e503b9e93f8d543152ef8f44f703de574"
+    },
+    {
+      "url": "/profile-pictures/pp_19.png",
+      "revision": "3a721f6207fb820e185400e80daf41e4b8f29fbf89066c1fe7f27a47cdd6ae61"
+    },
+    {
+      "url": "/profile-pictures/pp_2.png",
+      "revision": "e6ac70455ec1d72dd6ef18004196c47d68886b252171994146c6e0fb32ce9567"
+    },
+    {
+      "url": "/profile-pictures/pp_3.png",
+      "revision": "3b837d3e2fdecd6f2b172a0bbe222ce9001274557fe3b4b64d48460d8deae11f"
+    },
+    {
+      "url": "/profile-pictures/pp_4.png",
+      "revision": "1443d0d1dfdd202c31d57f1ed1e2543dc266fe7acdd1954ce626ecedd1aebd45"
+    },
+    {
+      "url": "/profile-pictures/pp_5.png",
+      "revision": "57109cb1bb5bd91a90828b4173b49e95ea82418d91469273382d9ab858a0b022"
+    },
+    {
+      "url": "/profile-pictures/pp_6.png",
+      "revision": "202f1324e1be93223c8fbe764a6b68a85146eb52cdc57110393a6481489ac650"
+    },
+    {
+      "url": "/profile-pictures/pp_7.png",
+      "revision": "1ebfcbe7c518cf9b33c37bed0d414eda062c7d6d4e1c0745012b12a0b5e09075"
+    },
+    {
+      "url": "/profile-pictures/pp_8.png",
+      "revision": "14f2dcf4aa5c9ea33daea37b26ad18b03c62f707b7e5492f650510fbb3c9c152"
+    },
+    {
+      "url": "/profile-pictures/pp_9.png",
+      "revision": "433dcb0d8c32145b7c0c7f9fa4129e9e0e6854f7c64f92a433f7f3deadd6d6df"
+    },
+    {
+      "url": "/rank-up-bg.png",
+      "revision": "66cbae35ee031fbe895e63ed718cd7b9390b68183ac95348b70912c429e7a864"
+    },
+    {
+      "url": "/ranks/rank1.png",
+      "revision": "6d631caf9ceb7ee20771a705b8398f10d9a6bb384beb1634f580aed04c2f18b0"
+    },
+    {
+      "url": "/ranks/rank10.png",
+      "revision": "b116dcae6742663f24790acf9b3debdf5f47300d3ce82ee97a3b228be1c3bad7"
+    },
+    {
+      "url": "/ranks/rank2.png",
+      "revision": "35506df31f519ba54d9dd1f525c5701d4fd3bdf1b7518d6ece4a80be3f31ad82"
+    },
+    {
+      "url": "/ranks/rank3.png",
+      "revision": "decb51efe67f30242deee83f2abdcfeb4307ab0d9b7ccc9c21f270c0b2997dcc"
+    },
+    {
+      "url": "/ranks/rank4.png",
+      "revision": "59615b823d258a7ffa56b5adb5637d46f8011c8b39ab6b30a4cc70f67d3c92f9"
+    },
+    {
+      "url": "/ranks/rank5.png",
+      "revision": "b794e0a3bdf307997e4c96ff499cd37f24a0c73a1712ccffdd3c638f1a58d20f"
+    },
+    {
+      "url": "/ranks/rank6.png",
+      "revision": "4c22667bbb72c0aa24f0145f4e85353e23b740c7efb78689022c7dc06dd2d0a7"
+    },
+    {
+      "url": "/ranks/rank7.png",
+      "revision": "ddd022a73ae1e64f57285c212a31e024054a39d2fc3c1c5046bbec6e707c3a22"
+    },
+    {
+      "url": "/ranks/rank8.png",
+      "revision": "4f261d73683c316d80e4cc8771dc14ac86a7c8e1f5050b628cc531ec77c188d2"
+    },
+    {
+      "url": "/ranks/rank9.png",
+      "revision": "300579a046f97d86cdd00ee2d31c348bc3020daf43b3b066ae28c08cfcfd506d"
+    },
+    {
+      "url": "/score-icon.png",
+      "revision": "f15a4eb80dc5e110d5c83842440133f64733898f5c2bb24637d1008932b8841c"
+    },
+    {
+      "url": "/splash.png",
+      "revision": "b5398ff29a40b19ef883927b3343222fc76234ea58aab5eb9aa57fdea8622de7"
+    },
+    {
+      "url": "/tutorial-post-practice/fifth-screen.png",
+      "revision": "10b380e5e7953b51bd6bce9c60c7ffff3f9bae091cdca2cfff45bab04f9b4bf5"
+    },
+    {
+      "url": "/tutorial-post-practice/first-screen.png",
+      "revision": "59df58f351f3aa7dc28360a4c8e31c057a979bb90d95c525a079b6f2791cf6f1"
+    },
+    {
+      "url": "/tutorial-post-practice/fourth-screen.png",
+      "revision": "db4c36e0c1c316ea2ec23bdba2d8b099a3b500289e894567ed6c2380c8eebf9a"
+    },
+    {
+      "url": "/tutorial-post-practice/second-screen.png",
+      "revision": "9b4f5cf57593977c640372f7f37dd3c24fe2573a8dd882024c2d0846050f5110"
+    },
+    {
+      "url": "/tutorial-post-practice/seventh-screen.png",
+      "revision": "05c5588ebf3d0d40ab7f20bc8504502f3ce94d6838e952d4da37c7885079e849"
+    },
+    {
+      "url": "/tutorial-post-practice/sixth-screen.png",
+      "revision": "a6d6e5c039945357c4afcc7e7c5b3e0d5c03cb646d6712b452c5bd02be2b66f3"
+    },
+    {
+      "url": "/tutorial-post-practice/third-screen.png",
+      "revision": "1600f687bfa81c72496e413802d05754236e123959c2030b62e81697fa445dd1"
+    }
+  ]
+}
