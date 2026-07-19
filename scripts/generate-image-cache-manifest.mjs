@@ -6,6 +6,12 @@ const projectRoot = process.cwd();
 const publicDirectory = join(projectRoot, "public");
 const outputPath = join(publicDirectory, "image-cache-manifest.json");
 const imageExtension = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
+const CRITICAL_IMAGE_URLS = new Set([
+  "/logo.png",
+  "/mission-icon.png",
+  "/score-icon.png",
+  "/splash.png",
+]);
 
 async function collectImages(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -35,9 +41,12 @@ const assets = await Promise.all(
   }),
 );
 const version = createHash("sha256").update(JSON.stringify(assets)).digest("hex");
+const criticalAssets = assets.filter(
+  (asset) => CRITICAL_IMAGE_URLS.has(asset.url) || asset.url.startsWith("/flags/"),
+);
 
 await writeFile(
   outputPath,
-  `${JSON.stringify({ version, assets }, null, 2)}\n`,
+  `${JSON.stringify({ version, assets, criticalAssets }, null, 2)}\n`,
   "utf8",
 );

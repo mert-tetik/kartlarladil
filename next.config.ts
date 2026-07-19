@@ -7,6 +7,7 @@ const IMAGE_CACHE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 interface ImageCacheManifest {
   assets: Array<{ url: string; revision: string }>;
+  criticalAssets?: Array<{ url: string; revision: string }>;
 }
 
 function readImageCacheManifest(): ImageCacheManifest {
@@ -62,9 +63,9 @@ export default withPWA({
   reloadOnOnline: false,
   cacheStartUrl: false,
   workboxOptions: {
-    // Only static visual assets are installed ahead of time. Documents, RSC
-    // payloads and API responses stay online-first.
-    additionalManifestEntries: imageCacheManifest.assets,
+    // Keep service worker installation small. The rest of the visual catalog
+    // is filled by the TWA image cache gate after the app becomes interactive.
+    additionalManifestEntries: imageCacheManifest.criticalAssets ?? [],
     runtimeCaching: imageRuntimeCaching,
   },
 })(nextConfig);

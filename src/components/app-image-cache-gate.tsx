@@ -4,24 +4,22 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getTwaMode } from "@/features/install-app/twa-mode";
 import { useT } from "@/i18n/locale-provider";
+import {
+  getAssetsRequiringCache,
+  getCriticalImageAssets,
+  type ImageCacheAsset,
+  type ImageCacheManifest,
+} from "@/lib/image-cache-plan";
 
 const IMAGE_CACHE_NAME = "foxiesdeck-image-assets";
 const IMAGE_MANIFEST_URL = "/image-cache-manifest.json";
 const IMAGE_MANIFEST_STORAGE_KEY = "foxiesdeck:image-cache-manifest";
-const IMAGE_CACHE_CONCURRENCY = 6;
+const CRITICAL_IMAGE_CACHE_CONCURRENCY = 3;
+const BACKGROUND_IMAGE_CACHE_CONCURRENCY = 2;
+const BACKGROUND_CACHE_DELAY_MS = 1_200;
 const EXIT_ANIMATION_DURATION_MS = 320;
 
 type CacheGatePhase = "hidden" | "loading" | "exiting";
-
-interface ImageAsset {
-  url: string;
-  revision: string;
-}
-
-interface ImageManifest {
-  version: string;
-  assets: ImageAsset[];
-}
 
 export function AppImageCacheGate() {
   const t = useT();
@@ -35,21 +33,28 @@ export function AppImageCacheGate() {
 
     let cancelled = false;
     let exitTimer: number | undefined;
+    let cancelBackgroundCache: (() => void) | undefined;
     void Promise.resolve().then(async () => {
       if (cancelled) return;
 
       setPhase("loading");
+      let manifest: ImageCacheManifest | null = null;
 
       try {
-        await prepareImageCache((nextProgress) => {
+        manifest = await prepareCriticalImageCache((nextProgress) => {
           if (!cancelled) {
             setProgress(nextProgress);
           }
         });
+      } catch {
+        // The app remains usable online if Cache Storage is temporarily unavailable.
       } finally {
         if (!cancelled) {
           setPhase("exiting");
           exitTimer = window.setTimeout(() => setPhase("hidden"), EXIT_ANIMATION_DURATION_MS);
+          if (manifest) {
+            cancelBackgroundCache = scheduleBackgroundImageCache(manifest);
+          }
         }
       }
     });
@@ -59,6 +64,7 @@ export function AppImageCacheGate() {
       if (exitTimer !== undefined) {
         window.clearTimeout(exitTimer);
       }
+      cancelBackgroundCache?.();
     };
   }, []);
 
@@ -102,32 +108,94 @@ export function AppImageCacheGate() {
   );
 }
 
-async function prepareImageCache(onProgress: (progress: { completed: number; total: number }) => void) {
+async function prepareCriticalImageCache(
+  onProgress: (progress: { completed: number; total: number }) => void,
+) {
   const manifest = await readImageManifest();
 
   if (!manifest || manifest.assets.length === 0) {
-    return;
+    return null;
   }
 
   const cachedPaths = await getCachedPaths();
   const cachedManifest = readStoredManifest();
-  const requiresRefresh = cachedManifest?.version !== manifest.version;
-  const assetsToCache = requiresRefresh
-    ? manifest.assets
-    : manifest.assets.filter((asset) => !cachedPaths.has(toCachePath(asset.url)));
+  const assetsToCache = getAssetsRequiringCache({
+    candidates: getCriticalImageAssets(manifest),
+    cachedPaths,
+    cachedManifest,
+  });
 
   if (assetsToCache.length > 0) {
-    const failedAssets = await cacheAssets(assetsToCache, onProgress);
-
-    if (failedAssets > 0) {
-      return;
+    const cachedAssets = await cacheAssets(
+      assetsToCache,
+      onProgress,
+      CRITICAL_IMAGE_CACHE_CONCURRENCY,
+    );
+    if (cachedAssets.length > 0) {
+      storeCachedAssetRevisions(manifest, cachedManifest, cachedAssets);
     }
   }
 
-  window.localStorage.setItem(IMAGE_MANIFEST_STORAGE_KEY, JSON.stringify(manifest));
+  return manifest;
 }
 
-async function readImageManifest(): Promise<ImageManifest | null> {
+function scheduleBackgroundImageCache(manifest: ImageCacheManifest) {
+  let idleCallbackId: number | undefined;
+  let timeoutId: number | undefined;
+  let cancelled = false;
+  const browserWindow = window as typeof window & {
+    cancelIdleCallback?: (handle: number) => void;
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+  };
+
+  const cacheInBackground = () => {
+    if (cancelled) return;
+    void cacheRemainingImages(manifest).catch(() => undefined);
+  };
+
+  if (browserWindow.requestIdleCallback) {
+    idleCallbackId = browserWindow.requestIdleCallback(cacheInBackground, {
+      timeout: BACKGROUND_CACHE_DELAY_MS,
+    });
+  } else {
+    timeoutId = window.setTimeout(cacheInBackground, BACKGROUND_CACHE_DELAY_MS);
+  }
+
+  return () => {
+    cancelled = true;
+    if (idleCallbackId !== undefined) {
+      browserWindow.cancelIdleCallback?.(idleCallbackId);
+    }
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  };
+}
+
+async function cacheRemainingImages(manifest: ImageCacheManifest) {
+  const cachedPaths = await getCachedPaths();
+  const cachedManifest = readStoredManifest();
+  const assetsToCache = getAssetsRequiringCache({
+    candidates: manifest.assets,
+    cachedPaths,
+    cachedManifest,
+  });
+
+  if (assetsToCache.length === 0) {
+    return;
+  }
+
+  const cachedAssets = await cacheAssets(
+    assetsToCache,
+    () => undefined,
+    BACKGROUND_IMAGE_CACHE_CONCURRENCY,
+  );
+  if (cachedAssets.length > 0) {
+    storeCachedAssetRevisions(manifest, cachedManifest, cachedAssets);
+  }
+}
+
+async function readImageManifest(): Promise<ImageCacheManifest | null> {
   try {
     const response = await fetch(IMAGE_MANIFEST_URL, { cache: "no-store" });
 
@@ -142,7 +210,7 @@ async function readImageManifest(): Promise<ImageManifest | null> {
   }
 }
 
-function readStoredManifest(): ImageManifest | null {
+function readStoredManifest(): ImageCacheManifest | null {
   try {
     const stored = window.localStorage.getItem(IMAGE_MANIFEST_STORAGE_KEY);
     if (!stored) return null;
@@ -154,18 +222,48 @@ function readStoredManifest(): ImageManifest | null {
   }
 }
 
-function isImageManifest(value: unknown): value is ImageManifest {
+function isImageManifest(value: unknown): value is ImageCacheManifest {
   if (!value || typeof value !== "object") return false;
 
-  const manifest = value as Partial<ImageManifest>;
+  const manifest = value as Partial<ImageCacheManifest>;
   return (
     typeof manifest.version === "string" &&
     Array.isArray(manifest.assets) &&
-    manifest.assets.every(
-      (asset) =>
-        typeof asset?.url === "string" &&
-        typeof asset?.revision === "string",
-    )
+    isImageAssetList(manifest.assets) &&
+    (manifest.criticalAssets === undefined ||
+      (Array.isArray(manifest.criticalAssets) && isImageAssetList(manifest.criticalAssets)))
+  );
+}
+
+function isImageAssetList(assets: unknown[]): assets is ImageCacheAsset[] {
+  return assets.every((asset) => {
+    if (!asset || typeof asset !== "object") return false;
+
+    const candidate = asset as Partial<ImageCacheAsset>;
+    return typeof candidate.url === "string" && typeof candidate.revision === "string";
+  });
+}
+
+function storeCachedAssetRevisions(
+  manifest: ImageCacheManifest,
+  cachedManifest: ImageCacheManifest | null,
+  cachedAssets: ImageCacheAsset[],
+) {
+  const revisions = new Map(cachedManifest?.assets.map((asset) => [asset.url, asset.revision]));
+  for (const asset of cachedAssets) {
+    revisions.set(asset.url, asset.revision);
+  }
+
+  const cachedManifestAssets = manifest.assets.filter(
+    (asset) => revisions.get(asset.url) === asset.revision,
+  );
+  window.localStorage.setItem(
+    IMAGE_MANIFEST_STORAGE_KEY,
+    JSON.stringify({
+      version: manifest.version,
+      assets: cachedManifestAssets,
+      criticalAssets: manifest.criticalAssets,
+    }),
   );
 }
 
@@ -183,13 +281,14 @@ async function getCachedPaths(): Promise<Set<string>> {
 }
 
 async function cacheAssets(
-  assets: ImageAsset[],
+  assets: ImageCacheAsset[],
   onProgress: (progress: { completed: number; total: number }) => void,
+  concurrency: number,
 ) {
   const cache = await window.caches.open(IMAGE_CACHE_NAME);
   let nextIndex = 0;
   let completed = 0;
-  let failedAssets = 0;
+  const cachedAssets: ImageCacheAsset[] = [];
 
   const cacheNextAsset = async () => {
     while (nextIndex < assets.length) {
@@ -200,14 +299,12 @@ async function cacheAssets(
         requestUrl.searchParams.set("image-cache-revision", asset.revision);
         const response = await fetch(requestUrl, { cache: "reload" });
 
-        if (!response.ok) {
-          failedAssets += 1;
-        } else {
+        if (response.ok) {
           await cache.put(asset.url, response.clone());
+          cachedAssets.push(asset);
         }
       } catch {
         // A failed file remains absent from the cache and is retried next launch.
-        failedAssets += 1;
       } finally {
         completed += 1;
         onProgress({ completed, total: assets.length });
@@ -216,10 +313,10 @@ async function cacheAssets(
   };
 
   await Promise.all(
-    Array.from({ length: Math.min(IMAGE_CACHE_CONCURRENCY, assets.length) }, cacheNextAsset),
+    Array.from({ length: Math.min(concurrency, assets.length) }, cacheNextAsset),
   );
 
-  return failedAssets;
+  return cachedAssets;
 }
 
 function toCachePath(value: string): string {

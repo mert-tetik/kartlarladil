@@ -433,5 +433,79 @@
       "url": "/tutorial-post-practice/third-screen.png",
       "revision": "1600f687bfa81c72496e413802d05754236e123959c2030b62e81697fa445dd1"
     }
+  ],
+  "criticalAssets": [
+    {
+      "url": "/flags/4x3/cn.svg",
+      "revision": "981da9bdf82d48e31691f20578cefcb26cf7d0bd95e4ebd5c0df00bdfe988c1a"
+    },
+    {
+      "url": "/flags/4x3/de.svg",
+      "revision": "efd480af5a154a7651f29da23ee0d09dbc892410fb4041898ddf8face336c575"
+    },
+    {
+      "url": "/flags/4x3/es.svg",
+      "revision": "f9cfaff858e95f830733ade9591037b5322dfb5827a53b70956a3d190bb49b9a"
+    },
+    {
+      "url": "/flags/4x3/fr.svg",
+      "revision": "a526851c372e3372b1596be71af355ea72b1650bbc4c06e6e2c226900d3de6cc"
+    },
+    {
+      "url": "/flags/4x3/gb.svg",
+      "revision": "c8be1e7208798a4ae692ee1e937065d498bb29e741943f6172b29118b8ed8066"
+    },
+    {
+      "url": "/flags/4x3/it.svg",
+      "revision": "9fa88118818d9b64838f578e2babcca3d0630aed21b5c33b34aff7ac5ce506bc"
+    },
+    {
+      "url": "/flags/4x3/jp.svg",
+      "revision": "bfea80baf9989383dc4bf7ca594ed95be0df0ff125bfc88d0bfa878eb0198022"
+    },
+    {
+      "url": "/flags/4x3/kr.svg",
+      "revision": "7a6cd5b51d0e2841ed8b79b1147ad8a66cf3c09f6344d4a63b5e4413ffa5d15b"
+    },
+    {
+      "url": "/flags/4x3/nl.svg",
+      "revision": "8f691f17fe70894537af8e92f2ca47761d353639b0defc15cbe561eb503ab010"
+    },
+    {
+      "url": "/flags/4x3/pl.svg",
+      "revision": "06687a4b90fc00195d0795aea1c26a9f73f1b6ea6a76e358724b2f1f32b7c8f4"
+    },
+    {
+      "url": "/flags/4x3/pt.svg",
+      "revision": "a7a2cf0b44aaaaf4f3bdc0ee0fa308ec7085bdfedd3f72da1473d43fd2a569fb"
+    },
+    {
+      "url": "/flags/4x3/ru.svg",
+      "revision": "7100aaae51ff3b6a2bf0ca932b3bc518bdc760814725e7cca31d821a26c3dd7c"
+    },
+    {
+      "url": "/flags/4x3/sa.svg",
+      "revision": "5738c8cfca5fea63587cbcf69237996c8ce6283f8016853150686f37311b620e"
+    },
+    {
+      "url": "/flags/4x3/tr.svg",
+      "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
+    },
+    {
+      "url": "/logo.png",
+      "revision": "2ea8d24acf0484d1a1e0e02737940fc3f13e869a935c945fe3c6e75b90d04ddd"
+    },
+    {
+      "url": "/mission-icon.png",
+      "revision": "8da593a48f0bbfe9849cf25f5369d7c1e978bf341a90929e0e310cab8128641d"
+    },
+    {
+      "url": "/score-icon.png",
+      "revision": "f15a4eb80dc5e110d5c83842440133f64733898f5c2bb24637d1008932b8841c"
+    },
+    {
+      "url": "/splash.png",
+      "revision": "b5398ff29a40b19ef883927b3343222fc76234ea58aab5eb9aa57fdea8622de7"
+    }
   ]
 }
