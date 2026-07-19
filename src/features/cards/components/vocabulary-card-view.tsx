@@ -8,7 +8,7 @@ import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
@@ -264,8 +264,7 @@ function CardFront({
     event.stopPropagation();
     const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
     requireAuth(() => {
-      requestRouteTransition();
-      router.push(askPath);
+      navigateWithRouteTransition(() => router.push(askPath));
     }, { nextPath: askPath });
   }
 

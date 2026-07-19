@@ -49,7 +49,7 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -284,8 +284,7 @@ export function MobileLandingDashboard() {
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
       if (!isActiveNavigationIntent(navigationIntent)) return;
-      requestRouteTransition();
-      router.push(nextPath);
+      navigateWithRouteTransition(() => router.push(nextPath));
     }, { nextPath });
   }
 
@@ -314,8 +313,7 @@ export function MobileLandingDashboard() {
       return;
     }
 
-    requestRouteTransition();
-    router.push(nextPath);
+    navigateWithRouteTransition(() => router.push(nextPath));
   }
 
   function handleSelectLanguage(language: LanguageCode) {
@@ -379,8 +377,7 @@ export function MobileLandingDashboard() {
           const navigationIntent = beginNavigationIntent();
           requireAuthAction(() => {
             if (!isActiveNavigationIntent(navigationIntent)) return;
-            requestRouteTransition();
-            router.push("/leaderboard");
+            navigateWithRouteTransition(() => router.push("/leaderboard"));
           }, { nextPath: "/leaderboard" });
         }}
         className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 text-white transition-transform active:scale-[0.98]"
@@ -411,8 +408,7 @@ export function MobileLandingDashboard() {
           requireAuthAction(() => {
             if (typeof window !== "undefined" && window.innerWidth >= 1024) {
               if (!isActiveNavigationIntent(navigationIntent)) return;
-              requestRouteTransition();
-              router.push("/missions");
+              navigateWithRouteTransition(() => router.push("/missions"));
               return;
             }
             setMissionsPanelOpen(true);

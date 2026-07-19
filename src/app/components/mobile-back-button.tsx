@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 
 export function MobileBackButton() {
@@ -17,11 +17,10 @@ export function MobileBackButton() {
   }
 
   function handleBack() {
-    requestRouteTransition();
     vibrate("tap");
 
     if (pathname === "/card-draw" || pathname === "/learn" || pathname === "/learned" || pathname === "/pricing") {
-      router.push("/");
+      navigateWithRouteTransition(() => router.push("/"));
       return;
     }
 
@@ -30,14 +29,14 @@ export function MobileBackButton() {
       // /ai-practice/[language]/[character] -> /ai-practice/[language]
       // /ai-practice/[language] -> /ai-practice
       if (segments.length >= 3) {
-        router.push(`/${segments.slice(0, 2).join("/")}`);
+        navigateWithRouteTransition(() => router.push(`/${segments.slice(0, 2).join("/")}`));
         return;
       }
-      router.push("/ai-practice");
+      navigateWithRouteTransition(() => router.push("/ai-practice"));
       return;
     }
 
-    router.back();
+    navigateWithRouteTransition(() => router.back());
   }
 
   return (

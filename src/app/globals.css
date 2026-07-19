@@ -169,7 +169,7 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
   pointer-events: none;
   position: fixed;
   transform: translate3d(0, -100%, 0);
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 250;
 }
 
@@ -187,14 +187,23 @@ html[data-route-transition="entering"] .route-transition-curtain {
   display: none;
 }
 
-html[data-route-transition="preparing"] .route-transition-item {
+html[data-route-transition="preparing"] [data-route-transition-item] {
   translate: 110vw 0 !important;
   transition: none !important;
 }
 
-html[data-route-transition="entering"] .route-transition-item {
-  translate: 0 0 !important;
-  transition: translate 480ms cubic-bezier(0.22, 1, 0.36, 1) var(--route-enter-delay, 0ms) !important;
+html[data-route-transition="entering"] [data-route-transition-item] {
+  animation: route-transition-item-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) var(--route-enter-delay, 0ms) both !important;
+}
+
+@keyframes route-transition-item-enter {
+  from {
+    translate: 110vw 0;
+  }
+
+  to {
+    translate: 0 0;
+  }
 }
 
 .card-draw-card-deal {

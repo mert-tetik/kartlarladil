@@ -2,11 +2,13 @@
 
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { beginNavigationIntent } from "@/lib/navigation-intent";
-import { requestRouteTransition, subscribeRouteTransition } from "@/lib/route-transition";
+import {
+  ROUTE_TRANSITION_COVER_DURATION_MS,
+  subscribeRouteTransition,
+} from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
 
-const COVER_DURATION_MS = 360;
+const COVER_DURATION_MS = ROUTE_TRANSITION_COVER_DURATION_MS;
 const ENTER_DURATION_MS = 480;
 const MAX_ENTER_DELAY_MS = 360;
 const TOTAL_ENTER_DURATION_MS = ENTER_DURATION_MS + MAX_ENTER_DELAY_MS;
@@ -36,6 +38,8 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
   const coverTimerRef = useRef<number | null>(null);
   const entryTimerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const contentWaitTimerRef = useRef<number | null>(null);
+  const contentObserverRef = useRef<MutationObserver | null>(null);
   const previousRouteKeyRef = useRef(routeKey);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -50,12 +54,14 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     clearRouteTransitionItems();
 
     const root = mainRef.current;
-    if (!root) return;
+    if (!root) return 0;
 
     const viewportHeight = Math.max(window.innerHeight, 1);
     const candidates = root.querySelectorAll<HTMLElement>(
       "button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, label, img",
     );
+
+    let itemCount = 0;
 
     candidates.forEach((element) => {
       const interactiveParent = element.closest("button, a[href], [role='button']");
@@ -71,7 +77,10 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       const delay = Math.round(30 + verticalProgress * (MAX_ENTER_DELAY_MS - 30));
       element.dataset.routeTransitionItem = "";
       element.style.setProperty("--route-enter-delay", `${delay}ms`);
+      itemCount += 1;
     });
+
+    return itemCount;
   });
 
   useEffect(() => {
@@ -88,6 +97,12 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         window.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      if (contentWaitTimerRef.current !== null) {
+        window.clearTimeout(contentWaitTimerRef.current);
+        contentWaitTimerRef.current = null;
+      }
+      contentObserverRef.current?.disconnect();
+      contentObserverRef.current = null;
     }
 
     function startRouteTransition() {
@@ -97,53 +112,9 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       setTransitionPhase("covering");
     }
 
-    function startNavigationSignal(event: MouseEvent) {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return;
-      }
-
-      const interactiveElement = (event.target as Element | null)?.closest(
-        "a[href], button, [role='button']",
-      );
-
-      if (!(interactiveElement instanceof HTMLElement)) {
-        return;
-      }
-
-      if (interactiveElement instanceof HTMLButtonElement && interactiveElement.disabled) {
-        return;
-      }
-
-      // Any new user action cancels a pending asynchronous navigation.
-      beginNavigationIntent();
-
-      const anchor = interactiveElement.closest("a[href]");
-
-      if (!(anchor instanceof HTMLAnchorElement)) {
-        return;
-      }
-
-      if (anchor.target || anchor.hasAttribute("download")) {
-        return;
-      }
-
-      const targetUrl = new URL(anchor.href, window.location.href);
-      const currentUrl = new URL(window.location.href);
-      const sameOrigin = targetUrl.origin === currentUrl.origin;
-      const sameRoute = targetUrl.pathname === currentUrl.pathname && targetUrl.search === currentUrl.search;
-
-      if (!sameOrigin || sameRoute) {
-        return;
-      }
-
-      requestRouteTransition();
-    }
-
-    window.addEventListener("click", startNavigationSignal, true);
     const unsubscribe = subscribeRouteTransition(startRouteTransition);
 
     return () => {
-      window.removeEventListener("click", startNavigationSignal, true);
       unsubscribe();
       clearTransitionTimers();
     };
@@ -162,26 +133,62 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     const remainingCoverTime = Math.max(0, COVER_DURATION_MS - elapsed);
 
     const coverTimer = window.setTimeout(() => {
-      prepareRouteTransitionItems();
-      applyRouteTransitionPhase("preparing");
-      setTransitionPhase("preparing");
-      // Commit the off-screen placement before the entrance transition starts.
-      void mainRef.current?.offsetWidth;
-      animationFrameRef.current = window.requestAnimationFrame(() => {
+      const root = mainRef.current;
+      let entranceStarted = false;
+
+      function startEntrance() {
+        if (entranceStarted) return;
+        entranceStarted = true;
+        contentObserverRef.current?.disconnect();
+        contentObserverRef.current = null;
+        if (contentWaitTimerRef.current !== null) {
+          window.clearTimeout(contentWaitTimerRef.current);
+          contentWaitTimerRef.current = null;
+        }
+
+        applyRouteTransitionPhase("preparing");
+        setTransitionPhase("preparing");
+        // Commit the off-screen placement before the entrance animation starts.
+        void mainRef.current?.offsetWidth;
         animationFrameRef.current = window.requestAnimationFrame(() => {
-          applyRouteTransitionPhase("entering");
-          setTransitionPhase("entering");
-          entryTimerRef.current = window.setTimeout(() => {
-            applyRouteTransitionPhase("idle");
-            transitionStartedAtRef.current = null;
-            setTransitionPhase("idle");
-          }, TOTAL_ENTER_DURATION_MS);
+          animationFrameRef.current = window.requestAnimationFrame(() => {
+            applyRouteTransitionPhase("entering");
+            setTransitionPhase("entering");
+            entryTimerRef.current = window.setTimeout(() => {
+              applyRouteTransitionPhase("idle");
+              transitionStartedAtRef.current = null;
+              setTransitionPhase("idle");
+            }, TOTAL_ENTER_DURATION_MS);
+          });
         });
-      });
+      }
+
+      function prepareTargetContent() {
+        if (prepareRouteTransitionItems() > 0) {
+          startEntrance();
+        }
+      }
+
+      prepareTargetContent();
+      if (entranceStarted || !root) return;
+
+      contentObserverRef.current = new MutationObserver(prepareTargetContent);
+      contentObserverRef.current.observe(root, { childList: true, subtree: true });
+      contentWaitTimerRef.current = window.setTimeout(() => {
+        startEntrance();
+      }, 10000);
     }, remainingCoverTime);
 
     coverTimerRef.current = coverTimer;
-    return () => window.clearTimeout(coverTimer);
+    return () => {
+      window.clearTimeout(coverTimer);
+      contentObserverRef.current?.disconnect();
+      contentObserverRef.current = null;
+      if (contentWaitTimerRef.current !== null) {
+        window.clearTimeout(contentWaitTimerRef.current);
+        contentWaitTimerRef.current = null;
+      }
+    };
   }, [routeKey]);
 
   useEffect(() => {

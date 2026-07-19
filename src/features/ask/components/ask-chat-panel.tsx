@@ -26,7 +26,7 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -484,8 +484,7 @@ function ChatHeader({
           <InlineLanguagePicker
             value={language}
             onChange={(code) => {
-              requestRouteTransition();
-              router.push(`/ask/${code}`);
+              navigateWithRouteTransition(() => router.push(`/ask/${code}`));
             }}
           />
         </p>

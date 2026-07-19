@@ -9,7 +9,7 @@ import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { VocabularyCard } from "@/types/domain";
 
 interface MobileCardDisplaySheetProps {
@@ -44,8 +44,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
   function handleAskClick() {
     const askPath = `/ask/${currentCard.language}?term=${encodeURIComponent(currentCard.term)}`;
     requireAuth(() => {
-      requestRouteTransition();
-      router.push(askPath);
+      navigateWithRouteTransition(() => router.push(askPath));
     }, { nextPath: askPath });
   }
 

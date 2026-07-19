@@ -6,6 +6,7 @@ import { AppNavigation } from "@/components/app-navigation";
 import { AppImageCacheGate } from "@/components/app-image-cache-gate";
 import { MobileViewportController } from "@/components/mobile-viewport-controller";
 import { RouteAwareShell } from "@/components/route-aware-shell";
+import { RouteTransitionProvider } from "@/components/route-transition-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TwaAnalyticsProvider } from "@/components/twa-analytics-provider";
@@ -44,17 +45,19 @@ export function AppShell({
             <ProgressStatsProvider>
               <ThemeProvider initialTheme={user?.profile.theme}>
                 <PushNotificationsProvider>
-                  <div className="flex min-h-screen flex-col bg-background text-foreground">
-                    <AppNavigation user={user} />
-                    <RankUpTestOverlay />
-                    <MobileAuthGateway countryCode={onboardingCountryCode} />
-                    <PostPracticeLeaderboardConsentGate />
-                    <RouteAwareShell>{children}</RouteAwareShell>
-                    <SiteFooter className="max-lg:hidden" />
-                    <CookieNotice />
-                    <LandingTutorial />
-                    <AppImageCacheGate />
-                  </div>
+                  <RouteTransitionProvider>
+                    <div className="flex min-h-screen flex-col bg-background text-foreground">
+                      <AppNavigation user={user} />
+                      <RankUpTestOverlay />
+                      <MobileAuthGateway countryCode={onboardingCountryCode} />
+                      <PostPracticeLeaderboardConsentGate />
+                      <RouteAwareShell>{children}</RouteAwareShell>
+                      <SiteFooter className="max-lg:hidden" />
+                      <CookieNotice />
+                      <LandingTutorial />
+                      <AppImageCacheGate />
+                    </div>
+                  </RouteTransitionProvider>
                 </PushNotificationsProvider>
               </ThemeProvider>
             </ProgressStatsProvider>

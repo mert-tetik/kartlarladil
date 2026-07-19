@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { listUserMissionsAction } from "@/features/missions/mission-actions";
 import { enqueueMissionClaim, resumePendingMissionClaims } from "@/features/missions/mission-claim-queue";
 import { buildMissionViewModels } from "@/features/missions/mission-progress";
@@ -88,8 +88,7 @@ export function MissionsList() {
         user.id,
       );
     } else if (result.message === "auth_required") {
-      requestRouteTransition();
-      router.replace("/login?next=/missions");
+      navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       setSyncing(false);
       return;
     } else {
@@ -101,8 +100,7 @@ export function MissionsList() {
 
   useEffect(() => {
     if (!user) {
-      requestRouteTransition();
-      router.replace("/login?next=/missions");
+      navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       return;
     }
 
@@ -170,8 +168,7 @@ export function MissionsList() {
         }
       } else if (result.message === "auth_required") {
         setRewardMode((current) => current?.missionId === missionId ? null : current);
-        requestRouteTransition();
-        router.replace("/login?next=/missions");
+        navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       } else {
         setClaimError(result.message ?? t("missions.claimError"));
         setRewardMode((current) => current?.missionId === missionId ? null : current);

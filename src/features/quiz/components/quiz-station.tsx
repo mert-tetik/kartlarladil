@@ -89,7 +89,7 @@ import {
 } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
@@ -777,8 +777,7 @@ export function QuizStation({
   }
 
   function handleExit() {
-    requestRouteTransition();
-    router.push("/");
+    navigateWithRouteTransition(() => router.push("/"));
   }
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
@@ -865,8 +864,7 @@ export function QuizStation({
         )}
         action={
           <Button onClick={() => {
-            requestRouteTransition();
-            router.push("/card-draw");
+            navigateWithRouteTransition(() => router.push("/card-draw"));
           }}>
             {t("quiz.backToDraw")}
           </Button>
@@ -2680,8 +2678,7 @@ export function ResultView({
           <button
             type="button"
             onClick={() => {
-              requestRouteTransition();
-              router.push("/leaderboard");
+              navigateWithRouteTransition(() => router.push("/leaderboard"));
             }}
             className="flex flex-col items-center gap-1 text-brand"
           >

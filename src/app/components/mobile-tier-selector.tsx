@@ -10,7 +10,7 @@ import {
 } from "@/components/mobile-navbar-back";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { requestRouteTransition } from "@/lib/route-transition";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { useIsClient } from "@/lib/use-is-client";
 import { vibrate } from "@/lib/vibration";
 import type { CardDrawTierFilter } from "@/features/cards/card-draw-preferences";
@@ -57,8 +57,7 @@ export function MobileTierSelector({ isOpen, onClose, language }: MobileTierSele
     vibrate("tap");
     const nextHref = `/card-draw?language=${encodeURIComponent(language)}&tier=${encodeURIComponent(tier)}`;
     onClose();
-    requestRouteTransition();
-    router.push(nextHref);
+    navigateWithRouteTransition(() => router.push(nextHref));
   }
 
   const content = (
