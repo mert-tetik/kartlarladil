@@ -445,7 +445,7 @@ export function MobileLandingDashboard() {
       {/* Rank */}
       <div data-tutorial-target="rank-info" className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
-          className="pointer-events-none absolute inset-0 scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
+          className="pointer-events-none absolute inset-0 hidden scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
           aria-hidden="true"
         />
         <div
