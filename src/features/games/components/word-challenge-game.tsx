@@ -143,6 +143,9 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
       {showSplash ? (
         <GameStartSplash
+          game="wordChallenge"
+          level={level}
+          tier={getHighestTierForLevel(level)}
           onComplete={handleSplashComplete}
           onExited={() => setShowSplash(false)}
         />

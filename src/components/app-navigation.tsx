@@ -75,6 +75,13 @@ const mobileNavItems: readonly NavItem[] = [
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 
+const MOBILE_NAV_ACTIVE_COLORS: Partial<Record<NavItem["href"], string>> = {
+  "/games": "text-emerald-500",
+  "/ai-practice": "text-blue-500",
+  "/ask": "text-red-500",
+  "/pricing": "text-amber-400",
+};
+
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
@@ -154,6 +161,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         className="sticky top-0 z-50 border-b border-white/10 bg-black text-white"
       >
         <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2">
           {showMobileBackButton ? (
             <Link
               href={mobileBackHref}
@@ -186,10 +194,15 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <div className="size-10 shrink-0 lg:hidden" aria-hidden="true" />
           )}
 
+          <div className="shrink-0 lg:hidden">
+            <LocaleSwitcher navbar />
+          </div>
+
           <Link href="/" prefetch className="hidden shrink-0 items-center gap-3 font-semibold text-white lg:flex">
             <Logo size={40} priority />
             <span className="font-display text-xl">{APP_NAME}</span>
           </Link>
+          </div>
 
           <nav aria-label={t("nav.topMenu")} className="hidden items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
@@ -212,7 +225,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                 <PlanBadge className="hidden h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white lg:inline-flex" />
               </>
             ) : null}
-            <div className="mr-auto lg:order-last lg:mr-0">
+            <div className="mr-auto hidden lg:order-last lg:mr-0 lg:block">
               <LocaleSwitcher navbar />
             </div>
             {user ? (
@@ -273,7 +286,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                     aria-current={active ? "page" : undefined}
                     className="flex h-full items-center justify-center"
                   >
-                    <span className="relative -top-4 inline-flex size-14 items-center justify-center rounded-full bg-brand text-background shadow-lg transition-transform hover:scale-105 active:scale-95">
+                    <span
+                      className={cn(
+                        "relative -top-4 inline-flex size-14 items-center justify-center rounded-full bg-brand transition-[box-shadow,color,transform] duration-300 hover:scale-105 active:scale-95",
+                        active ? "text-white shadow-[0_0_20px_rgba(255,255,255,0.45)]" : "text-background shadow-lg",
+                      )}
+                    >
                       <Icon className="size-5" strokeWidth={2.5} aria-hidden="true" />
                     </span>
                   </Link>
@@ -289,8 +307,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   data-games-nav-target={item.href === "/games" ? "" : undefined}
                   data-tutorial-target={item.href === "/games" ? "games-nav" : undefined}
                   className={cn(
-                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors hover:text-foreground",
-                    active && "text-brand",
+                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors duration-300 hover:text-foreground",
+                    active && MOBILE_NAV_ACTIVE_COLORS[item.href],
                   )}
                 >
                   <span className="relative inline-flex">

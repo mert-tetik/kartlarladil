@@ -18,6 +18,7 @@ import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
+import { GameLaunchCover } from "@/features/games/components/game-launch-cover";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -52,6 +53,7 @@ export function AppShell({
                       <MobileAuthGateway countryCode={onboardingCountryCode} />
                       <PostPracticeLeaderboardConsentGate />
                       <RouteAwareShell>{children}</RouteAwareShell>
+                      <GameLaunchCover />
                       <SiteFooter className="max-lg:hidden" />
                       <CookieNotice />
                       <LandingTutorial />

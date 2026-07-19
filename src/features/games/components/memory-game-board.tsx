@@ -189,6 +189,9 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
       {showSplash ? (
         <GameStartSplash
+          game="memory"
+          level={level}
+          tier={getHighestTierForLevel(level)}
           onComplete={handleSplashComplete}
           onExited={() => setShowSplash(false)}
         />

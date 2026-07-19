@@ -292,6 +292,9 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
       {showSplash ? (
         <GameStartSplash
+          game="wordMatch"
+          level={level}
+          tier={getHighestTierForLevel(level)}
           onComplete={handleSplashComplete}
           onExited={() => setShowSplash(false)}
         />
@@ -424,4 +427,3 @@ function getTierStrokeClass(tier: import("@/types/domain").Tier): string {
   };
   return map[tier];
 }
-

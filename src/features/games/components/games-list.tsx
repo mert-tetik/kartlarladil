@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Image, { type StaticImageData } from "next/image";
-import Link from "next/link";
 import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
 import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
 import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
@@ -18,6 +17,7 @@ import type { LanguageCode } from "@/types/domain";
 import type { GameName } from "../game-types";
 import { useGameProgressStore } from "../game-progress-store";
 import { getHighestTierForLevel } from "../game-levels";
+import { GAME_LAUNCH_COLORS, requestGameLaunch } from "../game-launch-transition";
 
 interface GameEntry {
   name: GameName;
@@ -80,6 +80,20 @@ export function GamesList() {
     setSelectedLanguage(language);
   }
 
+  function handleGameLaunch(event: MouseEvent<HTMLButtonElement>, game: GameEntry) {
+    vibrate("tap");
+    const rect = event.currentTarget.getBoundingClientRect();
+    requestGameLaunch({
+      game: game.name,
+      href: game.href,
+      color: GAME_LAUNCH_COLORS[game.name],
+      origin: {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      },
+    });
+  }
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:flex-row sm:gap-6">
       <div className="flex w-full max-w-sm flex-col gap-4 sm:max-w-none sm:flex-1">
@@ -108,18 +122,20 @@ export function GamesList() {
             const tier = getHighestTierForLevel(progress.currentLevel);
 
             return (
-              <Link
+              <button
                 key={game.name}
-                href={game.href}
+                type="button"
+                data-game-launch={game.name}
+                onClick={(event) => handleGameLaunch(event, game)}
                 className={cn(
                   "flex w-full flex-col items-start justify-start gap-3 rounded-2xl p-6 text-left transition-[transform,box-shadow] hover:scale-[1.02] active:scale-95 sm:aspect-[1.3/1] sm:flex-1",
                   game.variant === "red"
-                    ? "bg-red-500 text-white shadow-[0_12px_30px_rgba(239,68,68,0.38)] hover:bg-red-600 hover:shadow-[0_14px_34px_rgba(239,68,68,0.5)]"
+                    ? "bg-red-500 text-white shadow-[0_18px_44px_rgba(239,68,68,0.58)] hover:bg-red-600 hover:shadow-[0_22px_50px_rgba(239,68,68,0.68)]"
                     : game.variant === "green"
-                      ? "bg-emerald-500 text-white shadow-[0_12px_30px_rgba(16,185,129,0.38)] hover:bg-emerald-600 hover:shadow-[0_14px_34px_rgba(16,185,129,0.5)]"
+                      ? "bg-emerald-500 text-white shadow-[0_18px_44px_rgba(16,185,129,0.58)] hover:bg-emerald-600 hover:shadow-[0_22px_50px_rgba(16,185,129,0.68)]"
                       : game.variant === "lightBlue"
-                        ? "bg-sky-400 text-white shadow-[0_12px_30px_rgba(56,189,248,0.38)] hover:bg-sky-500 hover:shadow-[0_14px_34px_rgba(56,189,248,0.5)]"
-                        : "bg-blue-500 text-white shadow-[0_12px_30px_rgba(59,130,246,0.38)] hover:bg-blue-600 hover:shadow-[0_14px_34px_rgba(59,130,246,0.5)]",
+                        ? "bg-sky-400 text-white shadow-[0_18px_44px_rgba(56,189,248,0.58)] hover:bg-sky-500 hover:shadow-[0_22px_50px_rgba(56,189,248,0.68)]"
+                        : "bg-blue-500 text-white shadow-[0_18px_44px_rgba(59,130,246,0.58)] hover:bg-blue-600 hover:shadow-[0_22px_50px_rgba(59,130,246,0.68)]",
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -136,7 +152,7 @@ export function GamesList() {
                 <div className="mt-2 text-sm font-semibold text-white/80">
                   {t("games.level", { level: progress.currentLevel })} · {tier}
                 </div>
-              </Link>
+              </button>
             );
           })}
         </div>
