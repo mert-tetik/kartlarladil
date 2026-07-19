@@ -11,6 +11,7 @@ import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { getLanguageDisplayName } from "@/i18n/labels";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
@@ -99,7 +100,9 @@ export function GamesList() {
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:flex-row sm:gap-6">
       <div className="flex w-full max-w-sm flex-col gap-4 sm:max-w-none sm:flex-1">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-foreground">{t("games.title")}</h1>
+          <h1 className={cn("text-2xl font-bold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("games.title"))}
+          </h1>
           <button
             type="button"
             onClick={() => {
@@ -145,7 +148,9 @@ export function GamesList() {
                     height={32}
                     className="size-8 object-contain"
                   />
-                  <h2 className="text-xl font-bold text-slate-950">{t(game.titleKey)}</h2>
+                  <h2 className={cn("text-xl font-bold text-slate-950", canUseSuperWater(locale) && "font-super-water")}>
+                    {formatSuperWaterText(locale, t(game.titleKey))}
+                  </h2>
                 </div>
                 <p className="text-sm text-slate-950/80">{t(game.descriptionKey)}</p>
                 <div className="mt-2 text-sm font-semibold text-slate-950/70">

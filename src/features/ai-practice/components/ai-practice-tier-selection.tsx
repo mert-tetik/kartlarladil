@@ -5,6 +5,8 @@ import { Crown, Leaf, Mountain, Sprout, TreePine } from "lucide-react";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier } from "@/types/domain";
 
 const TIER_ICONS: Record<Tier, typeof Sprout> = {
@@ -28,8 +30,8 @@ export function AiPracticeTierSelection({
   return (
     <div className="relative w-full">
       <div className="flex flex-col items-center justify-center gap-6 pt-6">
-        <h1 className="text-center font-display text-3xl font-semibold text-foreground">
-          {t("page.aiPractice.tierSelectionTitle")}
+        <h1 className={cn("text-center font-display text-3xl font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, t("page.aiPractice.tierSelectionTitle"))}
         </h1>
 
         <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

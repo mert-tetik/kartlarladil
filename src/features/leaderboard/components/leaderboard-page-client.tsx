@@ -11,6 +11,7 @@ import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
 export function LeaderboardPageClient() {
@@ -73,8 +74,8 @@ export function LeaderboardPageClient() {
       >
         <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center">
           <div className="space-y-2">
-            <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">
-              {t("leaderboard.title")}
+            <h1 className={cn("font-display text-4xl font-semibold text-foreground sm:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, t("leaderboard.title"))}
             </h1>
             <div className="space-y-1">
               <p
@@ -96,7 +97,9 @@ export function LeaderboardPageClient() {
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2 text-foreground">
                 <LeaderboardIcon className="size-4 text-brand" />
-                <span className="text-sm font-semibold">{t("leaderboard.title")}</span>
+                <span className={cn("text-sm font-semibold", canUseSuperWater(locale) && "font-super-water")}>
+                  {formatSuperWaterText(locale, t("leaderboard.title"))}
+                </span>
               </div>
               {data?.canViewLeaderboard ? (
                 <span className="text-xs font-medium text-foreground-secondary">

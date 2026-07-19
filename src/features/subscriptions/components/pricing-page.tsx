@@ -36,6 +36,7 @@ import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-p
 import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import {
@@ -45,7 +46,7 @@ import {
   type LocalizedPricingStatus,
 } from "@/features/subscriptions/components/use-localized-pricing";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
+import type { LocaleCode, SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
 
 type BillingCycle = GooglePlayBillingCycle;
 
@@ -137,8 +138,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
 
       <div className="hidden animate-screen-pop lg:block">
         <div className="relative z-10 text-center">
-          <h1 className="font-display text-4xl font-semibold text-white md:text-5xl">
-            {t("pricing.title")}
+          <h1 className={cn("font-display text-4xl font-semibold text-white md:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("pricing.title"))}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary dark:text-white">
             {t("pricing.mobileFeatureUnlimitedAccess")}
@@ -814,11 +815,12 @@ function MobilePlanPerks({
   planLabel: string;
 }) {
   const t = useT();
+  const { locale } = useLocale();
 
   return (
     <div className="mt-4 rounded-2xl border border-transparent bg-transparent p-5">
-      <h2 className={cn("text-center font-display text-[1.65rem] font-bold leading-tight", PRICING_GRADIENT_TEXT_CLASS)}>
-        {t("pricing.mobileFeaturesTitle", { plan: planLabel })}
+      <h2 className={cn("text-center font-display text-[1.65rem] font-bold leading-tight", PRICING_GRADIENT_TEXT_CLASS, canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, t("pricing.mobileFeaturesTitle", { plan: planLabel }))}
       </h2>
       <ul className="mt-4 divide-y divide-border/45">
         <MobilePerkItem icon={Layers} colorClass="text-blue-500">
@@ -856,7 +858,7 @@ interface MobilePricingViewProps {
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
   entitlements: ReturnType<typeof useSubscription>["entitlements"];
-  locale: string;
+  locale: LocaleCode;
 }
 
 function MobilePricingView({
@@ -883,8 +885,8 @@ function MobilePricingView({
     <div className="relative z-10 flex flex-col pb-[7.5rem] lg:hidden">
       <div className="animate-screen-pop">
         <div className="text-center">
-        <h1 className="font-display text-3xl font-semibold text-white">
-          {t("pricing.title")}
+        <h1 className={cn("font-display text-3xl font-semibold text-white", canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, t("pricing.title"))}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary dark:text-white">
           {t("pricing.mobileFeatureUnlimitedAccess")}

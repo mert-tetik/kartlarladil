@@ -57,8 +57,8 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
 }
 
-const MOBILE_TOP_ACTION_BUTTON_CLASSNAME =
-  "absolute top-2 z-40 flex h-[2.45rem] w-[8rem] touch-manipulation items-center gap-1.5 rounded-2xl px-2.5 py-1 text-white transition-transform active:scale-[0.98]";
+const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
+  "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -390,7 +390,7 @@ export function MobileLandingDashboard() {
         {leaderboardButtonLabel ? (
           <span
             className={cn(
-              "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]",
+              MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
             )}
           >
@@ -399,7 +399,7 @@ export function MobileLandingDashboard() {
         ) : null}
       </button>
 
-      {/* Missions box */}
+      {/* Missions action */}
       <button
         type="button"
         onClick={() => {
@@ -414,19 +414,18 @@ export function MobileLandingDashboard() {
             setMissionsPanelOpen(true);
           }, { nextPath: "/missions" });
         }}
-        className={cn(
-          MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
-          "right-2 w-[7.25rem] border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
-        )}
+        className="absolute right-2 top-2 z-40 inline-flex h-[2.45rem] touch-manipulation items-center gap-2 text-white transition-transform active:scale-[0.98]"
         aria-label={t("home.mobile.missions")}
       >
-        <MissionIcon size={28} className="mt-0.5 h-[1.72rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
-        <span className="flex-1 truncate text-left text-sm font-bold">{t("home.mobile.missions")}</span>
-        {waitingMissionCount > 0 ? (
-          <span className="absolute -left-2 -top-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse">
-            {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
-          </span>
-        ) : null}
+        <span className={MOBILE_TOP_ACTION_LABEL_CLASSNAME}>{t("home.mobile.missions")}</span>
+        <span className="relative inline-flex h-[2.45rem] w-[2.45rem] shrink-0 items-center justify-center" data-mobile-missions-icon>
+          <MissionIcon size={31} className="h-[2rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
+          {waitingMissionCount > 0 ? (
+            <span className="absolute -left-2 -bottom-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse">
+              {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
+            </span>
+          ) : null}
+        </span>
       </button>
 
       {/* Info icon */}

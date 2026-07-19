@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Super Water";
+  src: url("/fonts/super-water.ttf") format("truetype");
+  font-display: swap;
+}
+
 @variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *):not([data-theme="default"]):not(:where([data-theme="default"] *)));
 
 :root {
@@ -78,6 +84,11 @@ body {
   font-family: var(--font-manrope), sans-serif;
   letter-spacing: 0;
   min-width: 320px;
+}
+
+.font-super-water {
+  font-family: "Super Water", var(--font-manrope), sans-serif;
+  font-weight: 400;
 }
 
 .scrollbar-hide {

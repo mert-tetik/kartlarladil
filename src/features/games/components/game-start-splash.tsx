@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import {
   GAME_LAUNCH_COLORS,
   consumePendingGameLaunch,
   hasPendingGameLaunch,
 } from "@/features/games/game-launch-transition";
 import type { GameName } from "@/features/games/game-types";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/domain";
 
 interface GameStartSplashProps {
@@ -34,6 +36,7 @@ const GAME_TITLE_KEYS = {
 
 export function GameStartSplash({ onComplete, onExited, game, level, tier }: GameStartSplashProps) {
   const t = useT();
+  const { locale } = useLocale();
   const onCompleteRef = useRef(onComplete);
   const onExitedRef = useRef(onExited);
   const [isGameLaunchSequence] = useState(() => hasPendingGameLaunch(game));
@@ -111,25 +114,25 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
       {isGameLaunchSequence ? (
         <div key={stage} className="animate-game-launch-copy px-6 text-center text-white">
           {stage === "title" ? (
-            <span className="block break-words font-display text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl">
-              {t(GAME_TITLE_KEYS[game])}
+            <span className={cn("block break-words font-display text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, t(GAME_TITLE_KEYS[game]))}
             </span>
           ) : stage === "details" ? (
             <div className="flex flex-col items-center gap-3">
-              <span className="font-display text-4xl font-bold sm:text-5xl">
-                {t("games.level", { level })}
+              <span className={cn("font-display text-4xl font-bold sm:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, t("games.level", { level }))}
               </span>
-              <span className="text-5xl font-bold sm:text-6xl">{tier}</span>
+              <span className={cn("text-5xl font-bold sm:text-6xl", canUseSuperWater(locale) && "font-super-water")}>{tier}</span>
             </div>
           ) : (
-            <span className="block break-words font-display text-6xl font-bold tracking-wider sm:text-7xl lg:text-8xl">
-              {t("games.startSplash")}
+            <span className={cn("block break-words font-display text-6xl font-bold tracking-wider sm:text-7xl lg:text-8xl", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, t("games.startSplash"))}
             </span>
           )}
         </div>
       ) : (
-        <span className="break-words px-6 text-center text-5xl font-bold uppercase tracking-wider text-white sm:text-6xl lg:text-7xl">
-          {t("games.startSplash")}
+        <span className={cn("break-words px-6 text-center text-5xl font-bold uppercase tracking-wider text-white sm:text-6xl lg:text-7xl", canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, t("games.startSplash"))}
         </span>
       )}
     </div>,

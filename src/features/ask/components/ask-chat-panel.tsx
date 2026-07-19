@@ -27,6 +27,7 @@ import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -476,6 +477,7 @@ function ChatHeader({
   language: LanguageCode;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const router = useRouter();
 
   return (
@@ -484,7 +486,9 @@ function ChatHeader({
         <Image src="/mascots/mascot14.png" alt="FoxiesDeck" fill sizes="48px" className="object-contain" priority />
       </div>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{t("page.ask.title")}</h1>
+        <h1 className={cn("truncate text-base font-semibold text-foreground sm:text-lg", canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, t("page.ask.title"))}
+        </h1>
         <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
           <InlineLanguagePicker
             value={language}
@@ -512,6 +516,7 @@ function MessageList({
   onSpeak: (message: ClientMessage) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
 
   return (
     <div
@@ -524,7 +529,9 @@ function MessageList({
           <div className="relative size-24">
             <Image src="/mascots/mascot16.png" alt="" fill sizes="96px" className="object-contain" />
           </div>
-          <h2 className="mt-5 text-xl font-semibold text-foreground">{t("page.ask.title")}</h2>
+          <h2 className={cn("mt-5 text-xl font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("page.ask.title"))}
+          </h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
         </div>
       ) : (
