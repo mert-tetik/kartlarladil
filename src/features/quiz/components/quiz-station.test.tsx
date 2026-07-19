@@ -601,6 +601,24 @@ describe("QuizStation sound feedback", () => {
     expect(nextButton).toBeEnabled();
   });
 
+  it("uses one mobile quiz control bar for exit, session progress, and score", async () => {
+    renderQuizStation();
+    await startChoiceQuiz();
+
+    const bar = document.querySelector<HTMLElement>("[data-mobile-quiz-top-bar]");
+    const progress = bar?.querySelector<HTMLElement>("[data-quiz-session-progress]");
+    const progressTrack = progress?.querySelector<HTMLElement>("div");
+    const progressIndicator = progressTrack?.firstElementChild;
+
+    expect(bar).toBeInTheDocument();
+    expect(document.querySelector("[data-mobile-quiz-top-bars]")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Çık" })).toBeInTheDocument();
+    expect(progress).toHaveAttribute("aria-valuenow", "1");
+    expect(progressTrack).toHaveClass("h-3.5", "rounded-full");
+    expect(progressIndicator).toHaveClass("bg-gradient-to-r", "from-amber-300", "to-orange-500");
+    expect(bar?.querySelector("[data-quiz-total-score]")).toHaveTextContent("0");
+  });
+
   it("reveals and then updates progress without moving the quiz layout", async () => {
     renderQuizStation();
     await startChoiceQuiz();

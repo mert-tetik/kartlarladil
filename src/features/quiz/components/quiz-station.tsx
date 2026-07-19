@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LANGUAGES } from "@/data/languages";
-import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
+import { TIER_STYLES } from "@/data/tiers";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import {
@@ -1154,18 +1154,16 @@ export function QuizStation({
         />
       ) : null}
       {!isSplash ? (
-        <MobileQuizTopBars
-          mode={mode}
-          item={item}
+        <MobileQuizTopBar
           currentIndex={currentIndex}
           total={deck.length}
-          showingAnswer={showingAnswer}
-          lastAnswerCorrect={lastAnswerCorrect}
+          totalPoints={stats.totalPoints}
+          onExit={handleExit}
         />
       ) : null}
       <div
         className={cn(
-          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[calc(var(--app-header-height)+5rem)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
+          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
           isSplash ? "opacity-0" : "animate-screen-pop",
         )}
         data-learn-quiz-page="quiz"
@@ -1804,88 +1802,60 @@ function QuizProgressHeader({
   );
 }
 
-function MobileQuizTopBars({
-  mode,
-  item,
+function MobileQuizTopBar({
   currentIndex,
   total,
-  showingAnswer,
-  lastAnswerCorrect,
+  totalPoints,
+  onExit,
 }: {
-  mode: PracticeMode;
-  item: QuizItem;
   currentIndex: number;
   total: number;
-  showingAnswer: boolean;
-  lastAnswerCorrect: boolean | null;
+  totalPoints: number;
+  onExit: () => void;
 }) {
+  const { locale } = useLocale();
   const t = useT();
-  const style = TIER_STYLES[item.card.tier];
-  const requirement = TIER_REQUIREMENTS[item.card.tier];
-  const delta =
-    showingAnswer && lastAnswerCorrect !== null
-      ? lastAnswerCorrect
-        ? 1
-        : -1
-      : 0;
-  const displayCorrectCount = Math.max(
-    0,
-    Math.min(requirement, item.inventoryCard.correctCount + delta),
-  );
-  const learningProgress = Math.min(
-    100,
-    (displayCorrectCount / requirement) * 100,
-  );
   const quizProgress = Math.min(100, ((currentIndex + 1) / total) * 100);
 
   return (
     <div
-      className="fixed inset-x-0 top-[var(--app-header-height)] z-40 flex h-20 flex-col lg:hidden"
-      data-mobile-quiz-top-bars
+      className="fixed inset-x-0 top-0 z-[60] flex h-16 items-center gap-3 bg-black px-4 text-white lg:hidden"
+      data-mobile-quiz-top-bar
     >
-      <div className="flex h-11 shrink-0 flex-col justify-center gap-1 bg-black px-4 py-1.5 text-white">
-        <div className="flex items-center justify-between text-xs font-semibold">
-          <span>{t("quiz.activeBadge")}</span>
-          <span>
-            {currentIndex + 1} / {total}
-          </span>
-        </div>
+      <button
+        type="button"
+        onClick={onExit}
+        aria-label={t("quiz.exit")}
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      >
+        <X className="size-6" aria-hidden="true" />
+      </button>
+
+      <div
+        className="min-w-0 flex-1"
+        role="progressbar"
+        aria-label={`${currentIndex + 1} / ${total}`}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={currentIndex + 1}
+        data-quiz-session-progress
+      >
         <Progress
           value={quizProgress}
-          className="bg-[#131313]"
-          indicatorClassName="bg-red-500"
+          className="h-3.5 rounded-full bg-white/15"
+          indicatorClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 transition-[width] duration-300 ease-out"
         />
       </div>
 
       <div
-        className={cn(
-          "flex h-9 items-center justify-center px-4 text-white",
-          style.accent,
-        )}
+        className="inline-flex shrink-0 items-center gap-1.5"
+        aria-label={formatPoints(locale, totalPoints)}
+        data-quiz-total-score
       >
-        {mode === "active" ? (
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span>
-                {item.inventoryCard.status === "learned"
-                  ? t("cards.learned")
-                  : t("quiz.cardLearningProcess")}
-              </span>
-              <span>
-                {displayCorrectCount}/{requirement}
-              </span>
-            </div>
-            <Progress
-              value={learningProgress}
-              className="bg-[#131313]"
-              indicatorClassName="bg-white"
-            />
-          </div>
-        ) : (
-          <Badge className="border-transparent bg-white/20 text-white">
-            {t("quiz.reviewBadge")}
-          </Badge>
-        )}
+        <ScoreIcon size={22} className="size-[22px]" />
+        <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-base font-bold text-transparent">
+          {formatNumber(locale, totalPoints)}
+        </span>
       </div>
     </div>
   );
