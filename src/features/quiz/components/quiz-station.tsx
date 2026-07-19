@@ -176,6 +176,15 @@ interface SentenceCompletionQuizItem extends BaseQuizItem {
 
 type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
+type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
+
+interface QuizCardProgressFeedback {
+  id: string;
+  cardId: string;
+  stage: Exclude<QuizCardFeedbackStage, "idle">;
+  baseCount: number;
+  targetCount: number;
+}
 
 interface QuizResult {
   correct: VocabularyCard[];
@@ -326,6 +335,7 @@ export function QuizStation({
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
+  const [cardProgressFeedback, setCardProgressFeedback] = useState<QuizCardProgressFeedback | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [textResult, setTextResult] = useState<
     "idle" | "correct" | "incorrect"
@@ -352,7 +362,58 @@ export function QuizStation({
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
+  const cardProgressTimeoutIdsRef = useRef<number[]>([]);
   const awardedStreakSessionRef = useRef<string | null>(null);
+
+  const clearCardProgressFeedback = useCallback(() => {
+    cardProgressTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    cardProgressTimeoutIdsRef.current = [];
+    setCardProgressFeedback(null);
+  }, []);
+
+  const startCardProgressFeedback = useCallback((item: QuizItem, isCorrect: boolean) => {
+    if (item.questionType === "text" || item.willLearn) {
+      return;
+    }
+
+    clearCardProgressFeedback();
+
+    const id = `${currentIndex}:${item.card.id}`;
+    const baseCount = item.inventoryCard.correctCount;
+    const targetCount = Math.max(
+      0,
+      Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
+    );
+
+    setCardProgressFeedback({
+      id,
+      cardId: item.card.id,
+      stage: "growing",
+      baseCount,
+      targetCount,
+    });
+
+    const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"] | null) => {
+      const timeoutId = window.setTimeout(() => {
+        if (stage === null) {
+          setCardProgressFeedback(null);
+        } else {
+          setCardProgressFeedback((current) =>
+            current?.id === id ? { ...current, stage } : current,
+          );
+        }
+        cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
+          (activeTimeoutId) => activeTimeoutId !== timeoutId,
+        );
+      }, delay);
+      cardProgressTimeoutIdsRef.current.push(timeoutId);
+    };
+
+    // Keep the starting value visible for a moment before its width changes.
+    schedule(110, "revealing");
+    schedule(200, "updating");
+    schedule(680, null);
+  }, [clearCardProgressFeedback, currentIndex]);
 
   useEffect(() => {
     onPhaseChange?.(phase);
@@ -485,6 +546,7 @@ export function QuizStation({
       });
 
       setDeck(items);
+      clearCardProgressFeedback();
       setCurrentIndex(0);
       setShowingAnswer(false);
       setTextAnswer("");
@@ -499,7 +561,7 @@ export function QuizStation({
       awardedStreakSessionRef.current = null;
       setPhase("quiz-start");
     },
-    [cards, mode, locale],
+    [cards, clearCardProgressFeedback, mode, locale],
   );
 
   useEffect(() => {
@@ -516,11 +578,12 @@ export function QuizStation({
   }, [phase, selectedLanguage, cards, mode, buildDeck]);
 
   const resetQuestionUi = useCallback(() => {
+    clearCardProgressFeedback();
     setShowingAnswer(false);
     setTextAnswer("");
     setTextResult("idle");
     setLastAnswerCorrect(null);
-  }, []);
+  }, [clearCardProgressFeedback]);
 
   const advanceQuiz = useCallback(
     ({
@@ -597,6 +660,7 @@ export function QuizStation({
       if (deferredRecordTimeoutRef.current !== null) {
         window.clearTimeout(deferredRecordTimeoutRef.current);
       }
+      cardProgressTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     },
     [],
   );
@@ -723,6 +787,8 @@ export function QuizStation({
           setLastAnswerCorrect(isCorrect);
         });
 
+        startCardProgressFeedback(item, isCorrect);
+
         playSoundEffect(isCorrect ? "correct" : "incorrect");
         vibrate(isCorrect ? "correct" : "incorrect");
 
@@ -777,6 +843,7 @@ export function QuizStation({
 
   function handleNext() {
     if (pendingStreak) return;
+    clearCardProgressFeedback();
     advanceQuiz();
   }
 
@@ -1062,6 +1129,16 @@ export function QuizStation({
   const isSplash = phase === "quiz-start";
   const isCardFirstQuestion =
     item.questionType === "choice" || item.questionType === "true-false";
+  const activeCardFeedback = cardProgressFeedback?.cardId === item.card.id
+    ? cardProgressFeedback
+    : null;
+  const cardFeedbackStage: QuizCardFeedbackStage = activeCardFeedback?.stage ?? "idle";
+  const cardFooterMode = cardFeedbackStage === "revealing" || cardFeedbackStage === "updating"
+    ? "progress"
+    : "empty";
+  const cardFooterProgressCount = cardFeedbackStage === "updating"
+    ? activeCardFeedback?.targetCount
+    : activeCardFeedback?.baseCount;
 
   return (
     <>
@@ -1169,12 +1246,22 @@ export function QuizStation({
             className="order-2 flex items-center justify-center lg:hidden"
             data-quiz-mobile-card-slot
           >
-            <MobileQuizCard item={item} face={showingAnswer ? "front" : "back"} />
+            <MobileQuizCard
+              item={item}
+              face={showingAnswer ? "front" : "back"}
+              feedbackStage={cardFeedbackStage}
+              footerMode={cardFooterMode}
+              footerProgressCount={cardFooterProgressCount}
+            />
           </div>
 
           <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
             <div
-              className="h-[440px] w-auto focus:outline-none"
+              className={cn(
+                "relative h-[440px] w-auto transform-gpu transition-transform duration-200 ease-out will-change-transform focus:outline-none",
+                cardFeedbackStage !== "idle" && "z-20 -translate-x-16 scale-[1.1]",
+              )}
+              data-quiz-card-feedback={cardFeedbackStage}
               aria-hidden="true"
             >
               <VocabularyCardView
@@ -1184,6 +1271,8 @@ export function QuizStation({
                 initialFace="back"
                 face={showingAnswer ? "front" : "back"}
                 flippable={false}
+                footerMode={cardFooterMode}
+                footerProgressCount={cardFooterProgressCount}
                 className="h-full w-auto min-h-0 max-w-full"
               />
             </div>
@@ -1228,18 +1317,26 @@ export function QuizStation({
 function MobileQuizCard({
   item,
   face,
+  feedbackStage,
+  footerMode,
+  footerProgressCount,
 }: {
   item: QuizItem;
   face: "front" | "back";
+  feedbackStage: QuizCardFeedbackStage;
+  footerMode: "empty" | "progress";
+  footerProgressCount?: number;
 }) {
   return (
     <div
       className={cn(
-        "w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0",
+        "relative w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0 transform-gpu transition-transform duration-200 ease-out will-change-transform",
+        feedbackStage !== "idle" && "z-20 -translate-y-6 scale-[1.12]",
       )}
       data-quiz-mobile-card
       data-quiz-mobile-card-kind={item.questionType}
       data-quiz-card-term={item.card.term}
+      data-quiz-card-feedback={feedbackStage}
     >
       <VocabularyCardView
         card={item.card}
@@ -1248,6 +1345,8 @@ function MobileQuizCard({
         initialFace="back"
         face={face}
         flippable={false}
+        footerMode={footerMode}
+        footerProgressCount={footerProgressCount}
         className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
       />
     </div>

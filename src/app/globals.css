@@ -439,6 +439,22 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+@keyframes quiz-card-progress-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-quiz-card-progress-reveal {
+  animation: quiz-card-progress-reveal 140ms ease-out both;
+}
+
 @keyframes route-view-enter {
   0% {
     opacity: 0.92;

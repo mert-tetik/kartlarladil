@@ -20,6 +20,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import type { InventoryCard, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
+type CardFooterMode = "auto" | "empty" | "progress";
 
 interface VocabularyCardViewProps {
   card: VocabularyCard;
@@ -39,6 +40,8 @@ interface VocabularyCardViewProps {
   frontContentScale?: number;
   compact?: boolean;
   translationLocale?: LocaleCode;
+  footerMode?: CardFooterMode;
+  footerProgressCount?: number;
   onClick?: () => void;
 }
 
@@ -74,6 +77,8 @@ export function VocabularyCardView({
   frontContentScale = 1,
   compact = false,
   translationLocale,
+  footerMode = "auto",
+  footerProgressCount,
   onClick,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -183,6 +188,8 @@ export function VocabularyCardView({
           isControlled={isControlled}
           compact={compact}
           translationLocale={translationLocale}
+          footerMode={footerMode}
+          footerProgressCount={footerProgressCount}
         />
         <CardBack
           card={card}
@@ -213,6 +220,8 @@ function CardFront({
   frontContentScale = 1,
   compact = false,
   translationLocale,
+  footerMode = "auto",
+  footerProgressCount,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -229,6 +238,8 @@ function CardFront({
   isControlled?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
+  footerMode?: CardFooterMode;
+  footerProgressCount?: number;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -237,7 +248,8 @@ function CardFront({
   const style = TIER_STYLES[card.tier];
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
-  const progress = inventory ? Math.min(100, (inventory.correctCount / requirement) * 100) : 0;
+  const visibleProgressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
+  const progress = inventory ? Math.min(100, (visibleProgressCount / requirement) * 100) : 0;
   const learned = inventory?.status === "learned";
   const showOwnedState = owned && !allowOwnedAdd;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
@@ -394,14 +406,16 @@ function CardFront({
 
       <div
         className={cn(
-          "space-y-2 text-white",
+          "text-white",
           compact
             ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
             : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
           style.accent,
+          footerMode === "auto" ? "space-y-2" : "flex min-h-12 items-center",
         )}
+        data-card-footer-mode={footerMode}
       >
-        {!frontMinimal ? (
+        {!frontMinimal && footerMode === "auto" ? (
           <div
             className={cn(
               "flex w-full items-center justify-center text-center",
@@ -422,15 +436,19 @@ function CardFront({
           </div>
         ) : null}
 
-        {inventory && !frontMinimal ? (
-          <div className="space-y-1">
+        {inventory && !frontMinimal && footerMode !== "empty" ? (
+          <div className="animate-quiz-card-progress-reveal w-full space-y-1" data-card-progress>
             <div className="flex items-center justify-between text-xs font-semibold">
               <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
               <span>
-                {inventory.correctCount}/{requirement}
+                {visibleProgressCount}/{requirement}
               </span>
             </div>
-            <Progress value={progress} className="bg-white/30" indicatorClassName="bg-white" />
+            <Progress
+              value={progress}
+              className="bg-white/30"
+              indicatorClassName="bg-white transition-[width] duration-300 ease-out"
+            />
           </div>
         ) : null}
 

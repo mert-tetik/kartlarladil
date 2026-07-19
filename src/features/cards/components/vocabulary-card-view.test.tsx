@@ -100,6 +100,44 @@ describe("VocabularyCardView", () => {
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
   });
 
+  it("keeps the footer blank when quiz progress is not being revealed", () => {
+    const { container } = renderCard(
+      <VocabularyCardView
+        card={testCard}
+        inventory={{
+          cardId: testCard.id,
+          status: "active",
+          correctCount: 1,
+          addedAt: "2026-07-19T00:00:00.000Z",
+        }}
+        footerMode="empty"
+      />,
+    );
+
+    expect(container.querySelector('[data-card-footer-mode="empty"]')).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-card-example-row]")).not.toBeInTheDocument();
+  });
+
+  it("shows the supplied quiz progress value only while progress is revealed", () => {
+    const { container } = renderCard(
+      <VocabularyCardView
+        card={testCard}
+        inventory={{
+          cardId: testCard.id,
+          status: "active",
+          correctCount: 1,
+          addedAt: "2026-07-19T00:00:00.000Z",
+        }}
+        footerMode="progress"
+        footerProgressCount={2}
+      />,
+    );
+
+    expect(container.querySelector('[data-card-footer-mode="progress"]')).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
+  });
+
   it("navigates to the ask page when the ask button is pressed", async () => {
     const user = userEvent.setup();
 

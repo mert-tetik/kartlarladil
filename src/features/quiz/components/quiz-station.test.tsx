@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
@@ -26,6 +26,10 @@ beforeEach(() => {
 
 afterAll(() => {
   mathRandomSpy.mockRestore();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 vi.mock("next/navigation", () => ({
@@ -137,6 +141,17 @@ const learnedCardCandidate = VOCABULARY_CARDS.find(
 );
 if (!learnedCardCandidate) {
   throw new Error("No learned card candidate found for quiz tests");
+}
+
+const additionalActiveCard = VOCABULARY_CARDS.find(
+  (card) =>
+    card.language === "en" &&
+    card.tier === "A1" &&
+    card.id !== testCard.id &&
+    card.id !== learnedCardCandidate.id,
+);
+if (!additionalActiveCard) {
+  throw new Error("No additional active card candidate found for quiz tests");
 }
 
 const learnedInventoryCard: InventoryCard = {
@@ -584,6 +599,110 @@ describe("QuizStation sound feedback", () => {
     expect(slot).toContainElement(nextButton);
     expect(nextButton).not.toHaveClass("invisible");
     expect(nextButton).toBeEnabled();
+  });
+
+  it("reveals and then updates progress without moving the quiz layout", async () => {
+    renderQuizStation();
+    await startChoiceQuiz();
+    vi.useFakeTimers();
+
+    const layout = document.querySelector("[data-quiz-mobile-layout]");
+    const card = document.querySelector<HTMLElement>("[data-quiz-mobile-card]");
+
+    expect(layout).toBeInTheDocument();
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "idle");
+    expect(document.querySelector("[data-card-footer-mode='empty']")).toBeInTheDocument();
+    expect(document.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "growing");
+    expect(card).toHaveClass("-translate-y-6", "scale-[1.12]");
+    expect(layout).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(110);
+    });
+
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "revealing");
+    expect(document.querySelector("[data-card-footer-mode='progress']")).toBeInTheDocument();
+    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("0/4");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(90);
+    });
+
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "updating");
+    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+  });
+
+  it("lets the next-question action skip the card progress animation", async () => {
+    useInventoryStore.setState({
+      cards: [
+        inventoryCard,
+        {
+          ...inventoryCard,
+          cardId: additionalActiveCard.id,
+        },
+        learnedInventoryCard,
+      ],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    renderQuizStation();
+    await startChoiceQuiz();
+    vi.useFakeTimers();
+
+    fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+    expect(document.querySelector("[data-quiz-mobile-card]")).toHaveAttribute(
+      "data-quiz-card-feedback",
+      "growing",
+    );
+
+    fireEvent.click(document.querySelector<HTMLElement>("[data-quiz-next-button]")!);
+
+    expect(document.querySelector("[data-quiz-mobile-card]")).toHaveAttribute(
+      "data-quiz-card-feedback",
+      "idle",
+    );
+    expect(document.querySelector("[data-card-footer-mode='empty']")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(document.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+  });
+
+  it("does not run the progress animation for a card-learning question", async () => {
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    const input = await screen.findByRole("textbox");
+    fireEvent.change(input, { target: { value: testCard.term } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("correct");
+    });
+
+    expect(document.querySelector("[data-quiz-mobile-card]")).toHaveAttribute(
+      "data-quiz-card-feedback",
+      "idle",
+    );
+    expect(document.querySelector("[data-card-footer-mode='empty']")).toBeInTheDocument();
+    expect(document.querySelector("[data-card-progress]")).not.toBeInTheDocument();
   });
 
   it("places the text-answer question above the card on mobile", async () => {
