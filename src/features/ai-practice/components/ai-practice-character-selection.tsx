@@ -51,15 +51,15 @@ export function AiPracticeCharacterSelection({
             vibrate("tap");
             setLanguageSheetOpen(true);
           }}
-          className="flex w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 py-1.5 text-left transition-colors hover:bg-background-muted"
+          className="flex w-full shrink-0 items-center justify-between rounded-xl border border-black/10 bg-white px-4 py-1.5 text-left text-slate-950 transition-colors hover:bg-slate-100"
         >
           <span className="flex items-center gap-3">
             <LanguageFlag code={selectedLanguage} className="h-6 w-9" />
-            <span className="text-base font-semibold text-foreground">
+            <span className="text-base font-semibold text-slate-950">
               {getLanguageDisplayName(selectedLanguage, locale)}
             </span>
           </span>
-          <span className="text-xs font-semibold text-foreground-muted">{t("home.mobile.cardLanguage")}</span>
+          <span className="text-xs font-semibold text-slate-500">{t("home.mobile.cardLanguage")}</span>
         </button>
       </div>
 
@@ -74,6 +74,8 @@ export function AiPracticeCharacterSelection({
         }}
         showBackdrop
         sheetClassName="max-h-[50dvh]"
+        visualStyle="light"
+        showCounts={false}
       />
 
       <div

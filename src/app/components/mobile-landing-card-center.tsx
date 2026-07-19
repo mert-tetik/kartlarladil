@@ -100,10 +100,10 @@ export function MobileLandingCardCenter({
           <ChevronDown className={cn("size-5 transition-transform duration-300", isOpen && "rotate-180")} aria-hidden="true" />
         </button>
         <div className="absolute inset-y-0 right-2 z-10 flex items-center gap-1">
-          <button type="button" onClick={onOpenDraw} aria-label={t("nav.cardDraw")} data-tutorial-target="landing-draw-cards" className="inline-flex size-10 items-center justify-center rounded-md transition-transform active:scale-[0.92]">
+          <button type="button" onClick={onOpenDraw} aria-label={t("nav.cardDraw")} data-tutorial-target="landing-draw-cards" className="inline-flex size-10 items-center justify-center rounded-full bg-black transition-transform hover:bg-black/85 active:scale-[0.92]">
             <CardsIcon gradientFrom="#facc15" gradientTo="#f97316" className="size-6" aria-hidden="true" />
           </button>
-          <button type="button" onClick={onOpenCreate} aria-label={t("cards.createCustom")} data-tutorial-target="landing-create-card" className="inline-flex size-10 items-center justify-center rounded-md transition-transform active:scale-[0.92]">
+          <button type="button" onClick={onOpenCreate} aria-label={t("cards.createCustom")} data-tutorial-target="landing-create-card" className="inline-flex size-10 items-center justify-center rounded-full bg-black transition-transform hover:bg-black/85 active:scale-[0.92]">
             <GradientPlusIcon className="size-6" aria-hidden="true" />
           </button>
         </div>

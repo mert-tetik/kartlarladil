@@ -28,6 +28,8 @@ interface MobileLanguageBottomSheetProps {
   allLabel?: string;
   showBackdrop?: boolean;
   sheetClassName?: string;
+  visualStyle?: "default" | "light";
+  showCounts?: boolean;
 }
 
 export function MobileLanguageBottomSheet({
@@ -42,6 +44,8 @@ export function MobileLanguageBottomSheet({
   allLabel,
   showBackdrop = true,
   sheetClassName,
+  visualStyle = "default",
+  showCounts = true,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -53,19 +57,16 @@ export function MobileLanguageBottomSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const visualDragY = isOpen ? Math.max(0, dragY) : 0;
-
-  useEffect(() => {
-    if (isOpen) return;
-    setDragY(0);
-    setIsDragging(false);
-    startYRef.current = null;
-  }, [isOpen]);
+  const isLight = visualStyle === "light";
 
   useEffect(() => {
     if (!isOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        setDragY(0);
+        setIsDragging(false);
+        startYRef.current = null;
         onClose();
       }
     }
@@ -75,6 +76,13 @@ export function MobileLanguageBottomSheet({
   }, [isOpen, onClose]);
 
   const sortedOptions = [...options].sort((a, b) => b.count - a.count);
+
+  function closeSheet() {
+    setDragY(0);
+    setIsDragging(false);
+    startYRef.current = null;
+    onClose();
+  }
 
   function handlePointerDown(event: React.PointerEvent) {
     startYRef.current = event.clientY;
@@ -101,7 +109,7 @@ export function MobileLanguageBottomSheet({
     startYRef.current = null;
 
     if (delta > sheetHeight * 0.35 || delta > 160) {
-      onClose();
+      closeSheet();
     } else {
       setDragY(0);
     }
@@ -110,7 +118,7 @@ export function MobileLanguageBottomSheet({
   function handleSelect(language: LanguageCode) {
     vibrate("tap");
     onSelect(language);
-    onClose();
+    closeSheet();
   }
 
   const content = (
@@ -126,17 +134,18 @@ export function MobileLanguageBottomSheet({
     >
       <div
         className={cn("absolute inset-0", showBackdrop ? "bg-black/50" : "bg-transparent")}
-        onClick={onClose}
+        onClick={closeSheet}
         aria-hidden="true"
       />
       <div
         ref={sheetRef}
         style={{
-          transform: `translate3d(0, ${visualDragY}px, 0)`,
+          transform: isOpen ? `translate3d(0, ${visualDragY}px, 0)` : "translate3d(0, 100%, 0)",
           transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
         className={cn(
-          "relative flex max-h-[85dvh] flex-col rounded-t-2xl bg-background-card shadow-2xl",
+          "relative flex max-h-[85dvh] flex-col rounded-t-2xl shadow-2xl",
+          isLight ? "bg-white text-slate-950" : "bg-background-card",
           sheetClassName,
           isDragging ? "cursor-grabbing" : "",
         )}
@@ -147,10 +156,13 @@ export function MobileLanguageBottomSheet({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="flex shrink-0 cursor-grab flex-col items-center border-b border-border bg-background-card px-4 py-3 active:cursor-grabbing"
+          className={cn(
+            "flex shrink-0 cursor-grab flex-col items-center border-b px-4 py-3 active:cursor-grabbing",
+            isLight ? "border-black/10 bg-white" : "border-border bg-background-card",
+          )}
         >
-          <div className="mb-3 h-1.5 w-12 rounded-full bg-foreground-muted/40" />
-          <h2 className="w-full text-left text-base font-semibold text-foreground">
+          <div className={cn("mb-3 h-1.5 w-12 rounded-full", isLight ? "bg-black/25" : "bg-foreground-muted/40")} />
+          <h2 className={cn("w-full text-left text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
             {t("home.mobile.selectLanguage")}
           </h2>
         </div>
@@ -163,22 +175,22 @@ export function MobileLanguageBottomSheet({
                 onClick={() => {
                   vibrate("tap");
                   onSelectAll?.();
-                  onClose();
+                  closeSheet();
                 }}
                 className={cn(
                   "flex items-center justify-between rounded-xl border p-3 text-left transition-colors",
                   isAllSelected
-                    ? "border-foreground bg-background-muted"
-                    : "border-border bg-background hover:bg-background-muted",
+                    ? isLight ? "border-slate-950 bg-slate-100" : "border-foreground bg-background-muted"
+                    : isLight ? "border-slate-200 bg-white hover:bg-slate-50" : "border-border bg-background hover:bg-background-muted",
                 )}
               >
-                <span className="text-base font-semibold text-foreground">
+                <span className={cn("text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
                   {allLabel ?? t("home.mobile.allTiers")}
                 </span>
               </button>
             ) : null}
             {sortedOptions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-foreground-secondary">
+              <p className={cn("py-8 text-center text-sm", isLight ? "text-slate-500" : "text-foreground-secondary")}>
                 {t("quiz.noPracticeLanguagesDescription")}
               </p>
             ) : (
@@ -195,24 +207,26 @@ export function MobileLanguageBottomSheet({
                     className={cn(
                       "flex items-center justify-between rounded-xl border p-3 text-left transition-colors",
                       selected
-                        ? "border-foreground bg-background-muted"
-                        : "border-border bg-background hover:bg-background-muted",
+                        ? isLight ? "border-slate-950 bg-slate-100" : "border-foreground bg-background-muted"
+                        : isLight ? "border-slate-200 bg-white hover:bg-slate-50" : "border-border bg-background hover:bg-background-muted",
                     )}
                   >
                     <span className="flex items-center gap-3">
                       <LanguageFlag code={option.code} className="h-8 w-12" />
-                      <span className="text-base font-semibold text-foreground">
+                      <span className={cn("text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
                         {getLanguageDisplayName(option.code, locale)}
                       </span>
                     </span>
-                    <span className="flex flex-col items-end">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
-                        {t("home.mobile.cardsLabel")}
+                    {showCounts ? (
+                      <span className="flex flex-col items-end">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                          {t("home.mobile.cardsLabel")}
+                        </span>
+                        <span className="text-xl font-bold text-foreground">
+                          {option.count}
+                        </span>
                       </span>
-                      <span className="text-xl font-bold text-foreground">
-                        {option.count}
-                      </span>
-                    </span>
+                    ) : null}
                   </button>
                 );
               })
@@ -223,6 +237,6 @@ export function MobileLanguageBottomSheet({
     </div>
   );
 
-  if (!mounted || typeof document === "undefined" || !isOpen) return null;
+  if (!mounted || typeof document === "undefined") return null;
   return createPortal(content, document.body);
 }

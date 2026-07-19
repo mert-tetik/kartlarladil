@@ -70,6 +70,7 @@ export function GamesList() {
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
 
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
+  const displayedLanguage = selectedLanguage === "all" ? readLandingCardLanguage() ?? locale : selectedLanguage;
 
   useEffect(() => {
     const landingLanguage = readLandingCardLanguage() ?? locale;
@@ -107,11 +108,9 @@ export function GamesList() {
             }}
             className="flex w-40 shrink-0 items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-left text-black transition-colors hover:bg-slate-100"
           >
-            <LanguageFlag code={selectedLanguage === "all" ? locale : selectedLanguage} className="h-5 w-7" />
+            <LanguageFlag code={displayedLanguage} className="h-5 w-7" />
             <span className="truncate text-sm font-semibold text-black">
-              {selectedLanguage === "all"
-                ? t("home.mobile.allTiers")
-                : getLanguageDisplayName(selectedLanguage, locale)}
+              {getLanguageDisplayName(displayedLanguage, locale)}
             </span>
           </button>
         </div>
@@ -146,10 +145,10 @@ export function GamesList() {
                     height={32}
                     className="size-8 object-contain"
                   />
-                  <h2 className="text-xl font-bold">{t(game.titleKey)}</h2>
+                  <h2 className="text-xl font-bold text-slate-950">{t(game.titleKey)}</h2>
                 </div>
-                <p className="text-sm text-white/90">{t(game.descriptionKey)}</p>
-                <div className="mt-2 text-sm font-semibold text-white/80">
+                <p className="text-sm text-slate-950/80">{t(game.descriptionKey)}</p>
+                <div className="mt-2 text-sm font-semibold text-slate-950/70">
                   {t("games.level", { level: progress.currentLevel })} · {tier}
                 </div>
               </button>
@@ -162,11 +161,10 @@ export function GamesList() {
         isOpen={languageSheetOpen}
         onClose={() => setLanguageSheetOpen(false)}
         options={languageOptions}
-        selectedLanguage={selectedLanguage === "all" ? locale : selectedLanguage}
+        selectedLanguage={displayedLanguage}
         onSelect={handleSelect}
-        allowAll
-        isAllSelected={selectedLanguage === "all"}
-        onSelectAll={() => setSelectedLanguage("all")}
+        visualStyle="light"
+        showCounts={false}
       />
     </div>
   );

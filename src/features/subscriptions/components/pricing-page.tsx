@@ -117,8 +117,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       data-pricing-page
       className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 sm:px-6 lg:px-8 lg:pb-10"
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-56 w-screen -translate-x-1/2 overflow-hidden">
-        <div className={cn("absolute -top-20 left-[-5%] h-72 w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-80 w-screen -translate-x-1/2 overflow-hidden">
+        <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
       </div>
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
@@ -137,14 +137,14 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
 
       <div className="hidden animate-screen-pop lg:block">
         <div className="relative z-10 text-center">
-          <h1 className={cn("font-display text-4xl font-semibold md:text-5xl", PRICING_GRADIENT_TEXT_CLASS)}>
+          <h1 className="font-display text-4xl font-semibold text-white md:text-5xl">
             {t("pricing.title")}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary dark:text-white">
             {t("pricing.mobileFeatureUnlimitedAccess")}
           </p>
           {isTwa ? (
-            <p className={cn("mt-3 text-sm font-bold uppercase", PRICING_GRADIENT_TEXT_CLASS)}>
+            <p className="mt-3 text-sm font-bold uppercase text-white">
               {t("pricing.firstMonthFreeBanner")}
             </p>
           ) : null}
@@ -883,14 +883,14 @@ function MobilePricingView({
     <div className="relative z-10 flex flex-col pb-[7.5rem] lg:hidden">
       <div className="animate-screen-pop">
         <div className="text-center">
-        <h1 className={cn("font-display text-3xl font-semibold", PRICING_GRADIENT_TEXT_CLASS)}>
+        <h1 className="font-display text-3xl font-semibold text-white">
           {t("pricing.title")}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary dark:text-white">
           {t("pricing.mobileFeatureUnlimitedAccess")}
         </p>
         {isTwa ? (
-          <p className={cn("mt-2 text-xs font-bold uppercase", PRICING_GRADIENT_TEXT_CLASS)}>
+          <p className="mt-2 text-xs font-bold uppercase text-white">
             {t("pricing.firstMonthFreeBanner")}
           </p>
         ) : null}

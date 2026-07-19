@@ -289,7 +289,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                     <span
                       className={cn(
                         "relative -top-4 inline-flex size-14 items-center justify-center rounded-full bg-brand transition-[box-shadow,color,transform] duration-300 hover:scale-105 active:scale-95",
-                        active ? "text-white shadow-[0_0_20px_rgba(255,255,255,0.45)]" : "text-background shadow-lg",
+                        active ? "text-white shadow-[0_0_20px_var(--brand)]" : "text-background shadow-lg",
                       )}
                     >
                       <Icon className="size-5" strokeWidth={2.5} aria-hidden="true" />
