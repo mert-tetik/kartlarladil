@@ -799,6 +799,7 @@ const dictionary = {
   "tutorial.landingRank": "Изучая слова, зарабатывай очки и повышай ранг.",
   "tutorial.landingLeaderboard": "Попади в мировой рейтинг благодаря очкам!",
   "tutorial.landingGames": "Учись и зарабатывай очки, играя в словесные игры!",
+  "tutorial.landingAiPractice": "Зарабатывай очки, практикуя разговорную речь!",
   "tutorial.next": "Далее",
   "tutorial.understood": "Понятно",
   "cards.centerTitle": "Карточки",

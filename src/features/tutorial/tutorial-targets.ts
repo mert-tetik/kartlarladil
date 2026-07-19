@@ -45,6 +45,11 @@ export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
     key: "games-nav",
     selector: '[data-tutorial-target="games-nav"]',
   },
+  {
+    step: 8,
+    key: "ai-practice-nav",
+    selector: '[data-tutorial-target="ai-practice-nav"]',
+  },
 ];
 
 export function getTargetForStep(step: number, pathname: string): TutorialTarget | null {

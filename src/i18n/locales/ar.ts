@@ -799,6 +799,7 @@ const dictionary = {
   "tutorial.landingRank": "اكسب نقاطًا وارتقِ في الرتبة كلما تعلمت كلمات.",
   "tutorial.landingLeaderboard": "ادخل الترتيب العالمي بنقاطك!",
   "tutorial.landingGames": "تعلّم واكسب نقاطًا أثناء لعب ألعاب الكلمات!",
+  "tutorial.landingAiPractice": "اكسب نقاطًا من خلال ممارسة المحادثة!",
   "tutorial.next": "التالي",
   "tutorial.understood": "فهمت",
   "cards.centerTitle": "البطاقات", "cards.all": "كل البطاقات", "cards.toLearn": "للتعلّم", "cards.listen": "استمع", "cards.addToDeck": "أضف إلى البطاقات", "cards.swipeHint": "اسحب لليسار للتخطي أو لليمين لإضافة البطاقة إلى مجموعتك.", "cards.createCustom": "إنشاء بطاقة مخصصة",

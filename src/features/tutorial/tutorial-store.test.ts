@@ -32,11 +32,11 @@ describe("useTutorialStore", () => {
   it("marks completed after the final step", () => {
     const { advance } = useTutorialStore.getState();
 
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 9; i += 1) {
       advance();
     }
 
-    expect(useTutorialStore.getState().step).toBe(8);
+    expect(useTutorialStore.getState().step).toBe(9);
     expect(useTutorialStore.getState().completed).toBe(true);
   });
 
@@ -59,7 +59,7 @@ describe("useTutorialStore", () => {
 
     activate();
 
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 9; i += 1) {
       advance();
     }
 

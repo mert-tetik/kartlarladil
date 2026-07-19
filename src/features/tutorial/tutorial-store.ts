@@ -17,7 +17,7 @@ interface TutorialState {
   disableTestMode: () => void;
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(

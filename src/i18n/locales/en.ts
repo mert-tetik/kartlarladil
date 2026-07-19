@@ -796,6 +796,7 @@ const dictionary = {
   "tutorial.landingRank": "Earn points and rank up as you learn words.",
   "tutorial.landingLeaderboard": "Compete on the global leaderboard with your points!",
   "tutorial.landingGames": "Learn and earn points while playing word games!",
+  "tutorial.landingAiPractice": "Earn points by practicing conversation!",
   "tutorial.next": "Next",
   "tutorial.understood": "Got it",
   "cards.centerTitle": "Cards",

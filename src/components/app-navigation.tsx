@@ -276,6 +276,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
               const isHome = item.href === "/";
               const isPremium = item.href === "/pricing";
+              const tutorialTarget = item.href === "/games"
+                ? "games-nav"
+                : item.href === "/ai-practice"
+                  ? "ai-practice-nav"
+                  : undefined;
 
               if (isHome) {
                 return (
@@ -305,7 +310,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   prefetch={shouldPrefetch ? true : undefined}
                   aria-current={active ? "page" : undefined}
                   data-games-nav-target={item.href === "/games" ? "" : undefined}
-                  data-tutorial-target={item.href === "/games" ? "games-nav" : undefined}
+                  data-tutorial-target={tutorialTarget}
                   className={cn(
                     "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors duration-300 hover:text-foreground",
                     active && MOBILE_NAV_ACTIVE_COLORS[item.href],

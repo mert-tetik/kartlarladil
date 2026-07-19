@@ -16,6 +16,7 @@ const TARGETS = [
   "rank-info",
   "leaderboard",
   "games-nav",
+  "ai-practice-nav",
 ] as const;
 
 describe("LandingTutorial", () => {
@@ -114,9 +115,9 @@ describe("LandingTutorial", () => {
       expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-blue-500");
     });
 
-    useTutorialStore.setState({ active: true, completed: false, step: 7, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, step: 8, testMode: false });
     const lastButton = await screen.findByRole("button", { name: "tutorial.understood" });
-    expect(lastButton).toHaveClass("bg-amber-400");
+    expect(lastButton).toHaveClass("bg-emerald-500");
 
     fireEvent.click(lastButton);
     await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true));

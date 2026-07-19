@@ -24,6 +24,7 @@ const STEP_MESSAGE_KEYS = [
   "tutorial.landingRank",
   "tutorial.landingLeaderboard",
   "tutorial.landingGames",
+  "tutorial.landingAiPractice",
 ] as const;
 
 const NEXT_COLORS = [

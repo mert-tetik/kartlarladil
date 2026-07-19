@@ -799,6 +799,7 @@ const dictionary = {
   "tutorial.landingRank": "Gagne des points et monte en rang en apprenant des mots.",
   "tutorial.landingLeaderboard": "Entre dans le classement mondial grâce à tes points !",
   "tutorial.landingGames": "Apprends et gagne des points en jouant à des jeux de mots !",
+  "tutorial.landingAiPractice": "Gagne des points en pratiquant la conversation !",
   "tutorial.next": "Suivant",
   "tutorial.understood": "Compris",
   "cards.centerTitle": "Cartes", "cards.all": "Toutes", "cards.toLearn": "À apprendre", "cards.listen": "Écouter", "cards.addToDeck": "Ajouter aux cartes", "cards.swipeHint": "Glissez à gauche pour passer ou à droite pour ajouter à votre collection.", "cards.createCustom": "Créer une carte personnalisée",

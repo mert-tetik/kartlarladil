@@ -1,6 +1,6 @@
 # Mobile Landing Tutorial Flow
 
-This is the current first-use tutorial for mobile users. It deliberately replaces the former pointer-based, route-changing tutorial. The tutorial is implemented by `LandingTutorial` and all eight steps remain on `/`.
+This is the current first-use tutorial for mobile users. It deliberately replaces the former pointer-based, route-changing tutorial. The tutorial is implemented by `LandingTutorial` and all nine steps remain on `/`.
 
 ## Display Conditions
 
@@ -20,7 +20,8 @@ This is the current first-use tutorial for mobile users. It deliberately replace
 | 5 | Review learned button | Öğrendiğin kelimeleri tekrar et | Green |
 | 6 | Rank area | Kelime öğrendikçe puan kazan ve rütbe atla | Blue |
 | 7 | Leaderboard button | Puanlarla dünya sıralamasına gir! | Red |
-| 8 | Games item in the mobile bottom bar | Kelime oyunları oynarken öğren ve puan kazan! | Yellow |
+| 8 | Games item in the mobile bottom bar | Kelime oyunları oynayarak öğren ve puan kazan! | Yellow |
+| 9 | AI Practice item in the mobile bottom bar | Konuşma pratiği yaparak puan kazan! | Green |
 
 ## Interaction Rules
 

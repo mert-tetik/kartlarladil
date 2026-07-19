@@ -798,6 +798,7 @@ const dictionary = {
   "tutorial.landingRank": "Verdiene beim Lernen von Wörtern Punkte und steige im Rang auf.",
   "tutorial.landingLeaderboard": "Komm mit deinen Punkten in die Weltrangliste!",
   "tutorial.landingGames": "Lerne und verdiene Punkte beim Spielen von Wortspielen!",
+  "tutorial.landingAiPractice": "Sammle Punkte, indem du das Sprechen übst!",
   "tutorial.next": "Weiter",
   "tutorial.understood": "Verstanden",
   "cards.centerTitle": "Karten",

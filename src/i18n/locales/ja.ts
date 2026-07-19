@@ -799,6 +799,7 @@ const dictionary = {
   "tutorial.landingRank": "単語を学ぶほどポイントを獲得し、ランクアップできます。",
   "tutorial.landingLeaderboard": "ポイントで世界ランキングに参加しよう！",
   "tutorial.landingGames": "単語ゲームを楽しみながら学び、ポイントを獲得しよう！",
+  "tutorial.landingAiPractice": "会話練習でポイントを獲得しよう！",
   "tutorial.next": "次へ",
   "tutorial.understood": "わかりました",
   "cards.centerTitle": "カード", "cards.all": "すべて", "cards.toLearn": "学習するカード", "cards.listen": "聞く", "cards.addToDeck": "カードに追加", "cards.swipeHint": "左にスワイプするとスキップ、右にスワイプするとコレクションに追加します。", "cards.createCustom": "カスタムカードを作成",

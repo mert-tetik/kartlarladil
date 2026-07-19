@@ -799,6 +799,7 @@ const dictionary = {
   "tutorial.landingRank": "Verdien punten en stijg in rang terwijl je woorden leert.",
   "tutorial.landingLeaderboard": "Kom met je punten in de wereldranglijst!",
   "tutorial.landingGames": "Leer en verdien punten terwijl je woordspellen speelt!",
+  "tutorial.landingAiPractice": "Verdien punten door gesprekken te oefenen!",
   "tutorial.next": "Volgende",
   "tutorial.understood": "Begrepen",
   "cards.centerTitle": "Kaarten", "cards.all": "Alle kaarten", "cards.toLearn": "Te leren", "cards.listen": "Luisteren", "cards.addToDeck": "Aan kaarten toevoegen", "cards.swipeHint": "Veeg links om over te slaan of rechts om aan je collectie toe te voegen.", "cards.createCustom": "Eigen kaart maken",
