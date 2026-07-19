@@ -46,6 +46,8 @@ export const useTutorialStore = create<TutorialState>()(
     {
       name: "foxiesdeck:tutorial",
       partialize: (state) => ({
+        // Keep an unfinished onboarding tutorial alive across an app restart.
+        active: state.active,
         completed: state.completed,
         step: state.step,
         testMode: state.testMode,

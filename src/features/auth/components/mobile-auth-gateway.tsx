@@ -273,6 +273,9 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }
 
   function handleOnboardingComplete() {
+    // Start immediately and persist the unfinished flow in case the app closes here.
+    resetTutorial();
+    activateTutorial();
     setOnboardingCompletedInSession(true);
     setOfferTriggered(true);
     setOfferActive(true);

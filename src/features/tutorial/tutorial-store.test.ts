@@ -67,6 +67,23 @@ describe("useTutorialStore", () => {
     expect(useTutorialStore.getState().active).toBe(false);
   });
 
+  it("persists an unfinished active tutorial", () => {
+    const { activate, advance } = useTutorialStore.getState();
+
+    activate();
+    advance();
+
+    const stored = JSON.parse(window.localStorage.getItem("foxiesdeck:tutorial") ?? "{}") as {
+      state?: { active?: boolean; completed?: boolean; step?: number };
+    };
+
+    expect(stored.state).toMatchObject({
+      active: true,
+      completed: false,
+      step: 1,
+    });
+  });
+
   it("can enable and disable test mode", () => {
     const { enableTestMode, disableTestMode } = useTutorialStore.getState();
 
