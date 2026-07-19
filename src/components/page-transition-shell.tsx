@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { beginNavigationIntent } from "@/lib/navigation-intent";
 import { cn } from "@/lib/utils";
 
 export function PageTransitionShell({ children }: { children: ReactNode }) {
@@ -28,7 +29,22 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         return;
       }
 
-      const anchor = (event.target as Element | null)?.closest("a[href]");
+      const interactiveElement = (event.target as Element | null)?.closest(
+        "a[href], button, [role='button']",
+      );
+
+      if (!(interactiveElement instanceof HTMLElement)) {
+        return;
+      }
+
+      if (interactiveElement instanceof HTMLButtonElement && interactiveElement.disabled) {
+        return;
+      }
+
+      // Any new user action cancels a pending asynchronous navigation.
+      beginNavigationIntent();
+
+      const anchor = interactiveElement.closest("a[href]");
 
       if (!(anchor instanceof HTMLAnchorElement)) {
         return;

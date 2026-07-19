@@ -48,6 +48,7 @@ import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 
 import { vibrate } from "@/lib/vibration";
+import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -279,7 +280,9 @@ export function MobileLandingDashboard() {
       return;
     }
     const nextPath = `/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`;
+    const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
+      if (!isActiveNavigationIntent(navigationIntent)) return;
       router.push(nextPath);
     }, { nextPath });
   }
@@ -291,13 +294,18 @@ export function MobileLandingDashboard() {
       return;
     }
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
+    const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
-      void verifyLearnedReviewAccess(nextPath);
+      void verifyLearnedReviewAccess(nextPath, navigationIntent);
     }, { nextPath });
   }
 
-  async function verifyLearnedReviewAccess(nextPath: string) {
+  async function verifyLearnedReviewAccess(nextPath: string, navigationIntent: number) {
     const verifiedEntitlements = await refreshEntitlements();
+
+    if (!isActiveNavigationIntent(navigationIntent)) {
+      return;
+    }
 
     if ((verifiedEntitlements?.effectivePlan ?? "free") === "free") {
       setShowLearnedReviewUpgrade(true);
@@ -365,7 +373,9 @@ export function MobileLandingDashboard() {
         type="button"
         onClick={() => {
           vibrate("tap");
+          const navigationIntent = beginNavigationIntent();
           requireAuthAction(() => {
+            if (!isActiveNavigationIntent(navigationIntent)) return;
             router.push("/leaderboard");
           }, { nextPath: "/leaderboard" });
         }}
@@ -393,8 +403,10 @@ export function MobileLandingDashboard() {
         type="button"
         onClick={() => {
           vibrate("tap");
+          const navigationIntent = beginNavigationIntent();
           requireAuthAction(() => {
             if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+              if (!isActiveNavigationIntent(navigationIntent)) return;
               router.push("/missions");
               return;
             }
