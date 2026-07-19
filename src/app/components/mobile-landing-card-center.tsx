@@ -95,7 +95,7 @@ export function MobileLandingCardCenter({
   return (
     <section data-mobile-card-center className="mt-3 pb-6" aria-label={t("cards.centerTitle")}>
       <div className="relative h-14 w-full">
-        <button type="button" onClick={handleToggle} aria-expanded={isOpen} aria-controls="mobile-card-center-content" data-tutorial-target="landing-card-center" className="flex h-14 w-full items-center justify-start gap-2 rounded-xl border border-border bg-background-card px-4 pr-24 text-base font-semibold text-foreground transition-colors hover:bg-background-muted active:scale-[0.98]">
+        <button type="button" onClick={handleToggle} aria-expanded={isOpen} aria-controls="mobile-card-center-content" data-tutorial-target="landing-card-center" className="flex h-14 w-full items-center justify-start gap-2 rounded-xl border border-black/10 bg-white px-4 pr-24 text-base font-semibold text-black transition-colors hover:bg-slate-100 active:scale-[0.98]">
           <span>{t("cards.centerTitle")}</span>
           <ChevronDown className={cn("size-5 transition-transform duration-300", isOpen && "rotate-180")} aria-hidden="true" />
         </button>
@@ -116,7 +116,7 @@ export function MobileLandingCardCenter({
               data-mobile-card-filters
               className={cn(
                 "z-40 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm",
-                filtersPinned ? "fixed inset-x-0 top-0" : "relative z-20 -mx-4",
+                filtersPinned ? "fixed inset-x-0 top-[var(--app-header-height)]" : "relative z-20 -mx-4",
               )}
             >
               <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">

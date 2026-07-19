@@ -384,7 +384,7 @@ export function MobileLandingDashboard() {
         aria-label={t("leaderboard.open")}
         data-tutorial-target="leaderboard"
       >
-        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-2xl border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
+        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-full border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
           <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
         </span>
         {leaderboardButtonLabel ? (
@@ -416,7 +416,7 @@ export function MobileLandingDashboard() {
         }}
         className={cn(
           MOBILE_TOP_ACTION_BUTTON_CLASSNAME,
-          "right-2 w-[7.65rem] border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
+          "right-2 w-[7.25rem] border border-amber-200/35 bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_10px_26px_rgba(249,115,22,0.28)]",
         )}
         aria-label={t("home.mobile.missions")}
       >
@@ -475,14 +475,16 @@ export function MobileLandingDashboard() {
             />
           </button>
         </div>
-        <h1 className="relative z-10 text-center text-lg font-bold text-brand">
+        <h1 className="relative z-10 text-center text-lg font-bold text-white">
           {getRankLabel(stats.rank, locale)}
         </h1>
         <div
           className="relative z-10 mt-0.5 flex items-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
           aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
         >
-          <span>{formatNumber(locale, stats.totalPoints)}</span>
+          <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            {formatNumber(locale, stats.totalPoints)}
+          </span>
           <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
         </div>
       </div>
@@ -494,15 +496,15 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setLanguageSheetOpen(true);
         }}
-        className="flex h-14 w-full shrink-0 items-center justify-between rounded-xl border border-border bg-background-card px-4 text-left transition-colors hover:bg-background-muted"
+        className="flex h-14 w-full shrink-0 items-center justify-between rounded-xl border border-black/10 bg-white px-4 text-left text-black transition-colors hover:bg-slate-100"
       >
         <span className="flex items-center gap-3">
           <LanguageFlag code={selectedLanguage} className="h-6 w-9" />
-          <span className="text-base font-semibold text-foreground">
+          <span className="text-base font-semibold text-black">
             {getLanguageDisplayName(selectedLanguage, locale)}
           </span>
         </span>
-        <span className="text-xs font-semibold text-foreground-muted">
+        <span className="text-xs font-semibold text-slate-500">
           {t("home.mobile.cardLanguage")}
         </span>
       </button>
