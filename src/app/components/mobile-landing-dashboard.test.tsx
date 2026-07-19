@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
@@ -197,17 +197,14 @@ describe("MobileLandingDashboard language sync", () => {
     expect(requestGooglePlayReviewMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the how-to button above the rank layer with a full touch target", () => {
+  it("temporarily hides the how-to action on mobile", () => {
     render(
       <LocaleProvider initialLocale="tr">
         <MobileLandingDashboard />
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Nasıl kullanılır?" })).toHaveClass(
-      "z-50",
-      "size-12",
-    );
+    expect(document.querySelector("[data-mobile-landing-info-action]")).toHaveAttribute("hidden");
   });
 
   it("expands the card center before enabling landing scroll", async () => {
@@ -243,16 +240,18 @@ describe("MobileLandingDashboard language sync", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText(getLanguageDisplayName("ko", "tr"))).toBeInTheDocument();
+    const landingLanguageButton = document.querySelector<HTMLButtonElement>("[data-mobile-landing-card-language]");
+    expect(landingLanguageButton).not.toBeNull();
+    expect(within(landingLanguageButton!).getByText(getLanguageDisplayName("ko", "tr"))).toBeInTheDocument();
 
     act(() => {
       writeLandingCardLanguage("en");
     });
 
     await waitFor(() => {
-      expect(screen.getByText(getLanguageDisplayName("en", "tr"))).toBeInTheDocument();
+      expect(within(landingLanguageButton!).getByText(getLanguageDisplayName("en", "tr"))).toBeInTheDocument();
     });
-    expect(screen.queryByText(getLanguageDisplayName("ko", "tr"))).not.toBeInTheDocument();
+    expect(within(landingLanguageButton!).queryByText(getLanguageDisplayName("ko", "tr"))).not.toBeInTheDocument();
   });
 
   it("opens the subscription dialog for free users reviewing learned cards", async () => {

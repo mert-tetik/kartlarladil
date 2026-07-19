@@ -417,7 +417,6 @@ export function MobileLandingDashboard() {
         className="absolute right-2 top-2 z-40 inline-flex h-[2.45rem] touch-manipulation items-center gap-2 text-white transition-transform active:scale-[0.98]"
         aria-label={t("home.mobile.missions")}
       >
-        <span className={MOBILE_TOP_ACTION_LABEL_CLASSNAME}>{t("home.mobile.missions")}</span>
         <span className="relative inline-flex h-[2.45rem] w-[2.45rem] shrink-0 items-center justify-center" data-mobile-missions-icon>
           <MissionIcon size={31} className="h-[2rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
           {waitingMissionCount > 0 ? (
@@ -435,7 +434,9 @@ export function MobileLandingDashboard() {
           vibrate("tap");
           setInfoSheetOpen(true);
         }}
-        className="absolute right-0 top-14 z-50 inline-flex size-12 touch-manipulation items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
+        data-mobile-landing-info-action
+        hidden
+        className="absolute right-0 top-14 z-50 hidden size-12 touch-manipulation items-center justify-center rounded-full text-white transition-colors hover:text-white/80"
         aria-label={t("home.mobile.infoTitle")}
       >
         <Info className="size-5" aria-hidden="true" />
@@ -451,7 +452,7 @@ export function MobileLandingDashboard() {
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"
         />
-        <span className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/60">
+        <span className="relative z-10 hidden text-[10px] font-bold uppercase tracking-widest text-white/60">
           {t("home.mobile.rankLabel")}
         </span>
         <div className="relative z-10 flex h-[150px] w-full items-center justify-center self-stretch">
@@ -491,6 +492,7 @@ export function MobileLandingDashboard() {
       {/* Language selector */}
       <button
         type="button"
+        data-mobile-landing-card-language
         onClick={() => {
           vibrate("tap");
           setLanguageSheetOpen(true);

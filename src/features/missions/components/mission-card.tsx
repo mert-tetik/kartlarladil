@@ -145,8 +145,8 @@ export function MissionCard({
         </div>
 
         {isLocked ? (
-          <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-background-card text-foreground-muted shadow-sm">
-            <Lock className="size-3" aria-hidden="true" />
+          <div className="absolute -top-5 left-1/2 z-20 flex size-10 -translate-x-1/2 items-center justify-center rounded-full bg-background-card text-foreground-muted shadow-sm">
+            <Lock className="size-6" aria-hidden="true" />
           </div>
         ) : null}
       </div>

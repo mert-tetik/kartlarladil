@@ -160,7 +160,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         data-route-transition-navigation
         className="sticky top-0 z-50 border-b border-white/10 bg-black text-white"
       >
-        <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">
           {showMobileBackButton ? (
             <Link
@@ -194,10 +194,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <div className="size-10 shrink-0 lg:hidden" aria-hidden="true" />
           )}
 
-          <div className="shrink-0 lg:hidden">
-            <LocaleSwitcher navbar />
-          </div>
-
           <Link href="/" prefetch className="hidden shrink-0 items-center gap-3 font-semibold text-white lg:flex">
             <Logo size={40} priority />
             <span className="font-display text-xl">{APP_NAME}</span>
@@ -216,12 +212,13 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             })}
           </nav>
 
+          <div className="absolute left-1/2 z-10 -translate-x-1/2 lg:hidden">
+            <LocaleSwitcher navbar />
+          </div>
+
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
               <>
-                <Link href="/pricing" className="inline-flex lg:hidden" aria-label={t("page.pricing.title")}>
-                  <PlanBadge variant="mobile-game" />
-                </Link>
                 <PlanBadge className="hidden h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white lg:inline-flex" />
               </>
             ) : null}

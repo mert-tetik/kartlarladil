@@ -141,7 +141,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           <h1 className={cn("font-display text-4xl font-semibold text-white md:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("pricing.title"))}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-foreground-secondary dark:text-white">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-black">
             {t("pricing.mobileFeatureUnlimitedAccess")}
           </p>
           {isTwa ? (
@@ -888,7 +888,7 @@ function MobilePricingView({
         <h1 className={cn("font-display text-3xl font-semibold text-white", canUseSuperWater(locale) && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.title"))}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-secondary dark:text-white">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-black">
           {t("pricing.mobileFeatureUnlimitedAccess")}
         </p>
         {isTwa ? (

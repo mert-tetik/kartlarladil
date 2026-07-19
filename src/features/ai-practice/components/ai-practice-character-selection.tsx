@@ -40,7 +40,7 @@ export function AiPracticeCharacterSelection({
 
   return (
     <div
-      className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:mx-auto lg:h-[480px] lg:max-w-5xl max-lg:flex-1 max-lg:min-h-0 max-lg:h-full max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0"
+      className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:mx-auto lg:h-[480px] lg:max-w-5xl max-lg:mx-auto max-lg:flex-1 max-lg:h-full max-lg:min-h-0 max-lg:w-[calc(100%_-_1.5rem)] max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4"
       data-ai-practice-character-container
     >
       <div className="mb-4">
@@ -78,7 +78,7 @@ export function AiPracticeCharacterSelection({
       />
 
       <div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4 xl:grid-cols-5"
         data-ai-practice-character-list
       >
         {getAiPracticeCharacters().map((character) => {

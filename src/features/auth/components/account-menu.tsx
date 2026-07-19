@@ -101,7 +101,6 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 </button>
                 <p className="mt-3 max-w-full truncate font-semibold text-foreground">{getAccountLabel(user)}</p>
                 <p className="mt-1 max-w-full truncate text-foreground-muted">{user.email}</p>
-                <PlanBadge className="mt-3" />
               </div>
               <div className="h-px bg-border" />
               <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
