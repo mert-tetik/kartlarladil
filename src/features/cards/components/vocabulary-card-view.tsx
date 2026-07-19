@@ -8,6 +8,7 @@ import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
@@ -262,7 +263,10 @@ function CardFront({
   function handleAskClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
     const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
-    requireAuth(() => router.push(askPath), { nextPath: askPath });
+    requireAuth(() => {
+      requestRouteTransition();
+      router.push(askPath);
+    }, { nextPath: askPath });
   }
 
   function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {

@@ -7,6 +7,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useT } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
+import { requestRouteTransition } from "@/lib/route-transition";
 import type { LanguageCode, LimitErrorCode } from "@/types/domain";
 
 export type UpgradeDialogErrorCode =
@@ -87,6 +88,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
                   ? `/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`
                   : "/learn?mode=active";
                 requireAuthAction(() => {
+                  requestRouteTransition();
                   router.push(nextPath);
                 }, { nextPath });
               }}

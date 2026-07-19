@@ -49,6 +49,7 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -283,6 +284,7 @@ export function MobileLandingDashboard() {
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
       if (!isActiveNavigationIntent(navigationIntent)) return;
+      requestRouteTransition();
       router.push(nextPath);
     }, { nextPath });
   }
@@ -312,6 +314,7 @@ export function MobileLandingDashboard() {
       return;
     }
 
+    requestRouteTransition();
     router.push(nextPath);
   }
 
@@ -376,6 +379,7 @@ export function MobileLandingDashboard() {
           const navigationIntent = beginNavigationIntent();
           requireAuthAction(() => {
             if (!isActiveNavigationIntent(navigationIntent)) return;
+            requestRouteTransition();
             router.push("/leaderboard");
           }, { nextPath: "/leaderboard" });
         }}
@@ -407,6 +411,7 @@ export function MobileLandingDashboard() {
           requireAuthAction(() => {
             if (typeof window !== "undefined" && window.innerWidth >= 1024) {
               if (!isActiveNavigationIntent(navigationIntent)) return;
+              requestRouteTransition();
               router.push("/missions");
               return;
             }

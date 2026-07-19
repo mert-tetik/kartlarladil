@@ -16,6 +16,7 @@ import type { TranslationKey } from "@/i18n/types";
 import type { VocabularyCard } from "@/types/domain";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { requestRouteTransition } from "@/lib/route-transition";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
 const CREATE_CARD_FRAME_CLASS_NAME =
@@ -44,6 +45,7 @@ export default function CreateCardPage() {
 
   useEffect(() => {
     if (!user) {
+      requestRouteTransition();
       router.replace(`/register?next=${encodeURIComponent("/create-card")}`);
     }
   }, [user, router]);

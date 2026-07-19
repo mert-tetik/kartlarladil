@@ -1,27 +1,52 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { beginNavigationIntent } from "@/lib/navigation-intent";
+import { requestRouteTransition, subscribeRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
+
+const COVER_DURATION_MS = 360;
+const ENTER_DURATION_MS = 480;
+
+type RouteTransitionPhase = "idle" | "covering" | "preparing" | "entering";
 
 export function PageTransitionShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeKey = `${pathname}?${searchParams.toString()}`;
   const isFullScreenRoute =
     pathname === "/learn" ||
     pathname === "/learned" ||
     pathname === "/leaderboard" ||
     pathname.startsWith("/games/");
-  const [navigationPending, setNavigationPending] = useState(false);
-  const pendingTimerRef = useRef<number | null>(null);
-  const previousPathnameRef = useRef(pathname);
+  const [transitionPhase, setTransitionPhase] = useState<RouteTransitionPhase>("idle");
+  const transitionStartedAtRef = useRef<number | null>(null);
+  const coverTimerRef = useRef<number | null>(null);
+  const entryTimerRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const previousRouteKeyRef = useRef(routeKey);
 
   useEffect(() => {
-    function clearPendingTimer() {
-      if (pendingTimerRef.current) {
-        window.clearTimeout(pendingTimerRef.current);
-        pendingTimerRef.current = null;
+    function clearTransitionTimers() {
+      if (coverTimerRef.current !== null) {
+        window.clearTimeout(coverTimerRef.current);
+        coverTimerRef.current = null;
       }
+      if (entryTimerRef.current !== null) {
+        window.clearTimeout(entryTimerRef.current);
+        entryTimerRef.current = null;
+      }
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    }
+
+    function startRouteTransition() {
+      clearTransitionTimers();
+      transitionStartedAtRef.current = window.performance.now();
+      setTransitionPhase("covering");
     }
 
     function startNavigationSignal(event: MouseEvent) {
@@ -63,41 +88,58 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         return;
       }
 
-      setNavigationPending(true);
-      clearPendingTimer();
-      pendingTimerRef.current = window.setTimeout(() => setNavigationPending(false), 1600);
+      requestRouteTransition();
     }
 
     window.addEventListener("click", startNavigationSignal, true);
+    const unsubscribe = subscribeRouteTransition(startRouteTransition);
 
     return () => {
       window.removeEventListener("click", startNavigationSignal, true);
-      clearPendingTimer();
+      unsubscribe();
+      clearTransitionTimers();
     };
   }, []);
 
   useEffect(() => {
-    if (previousPathnameRef.current === pathname) {
+    if (previousRouteKeyRef.current === routeKey) {
       return;
     }
 
-    previousPathnameRef.current = pathname;
+    previousRouteKeyRef.current = routeKey;
 
-    if (!navigationPending) {
+    const elapsed = transitionStartedAtRef.current
+      ? window.performance.now() - transitionStartedAtRef.current
+      : COVER_DURATION_MS;
+    const remainingCoverTime = Math.max(0, COVER_DURATION_MS - elapsed);
+
+    const coverTimer = window.setTimeout(() => {
+      setTransitionPhase("preparing");
+      animationFrameRef.current = window.requestAnimationFrame(() => {
+        setTransitionPhase("entering");
+        entryTimerRef.current = window.setTimeout(() => {
+          transitionStartedAtRef.current = null;
+          setTransitionPhase("idle");
+        }, ENTER_DURATION_MS);
+      });
+    }, remainingCoverTime);
+
+    coverTimerRef.current = coverTimer;
+    return () => window.clearTimeout(coverTimer);
+  }, [routeKey]);
+
+  useEffect(() => {
+    if (transitionPhase === "idle") {
+      delete document.documentElement.dataset.routeTransition;
       return;
     }
 
-    const settleTimer = window.setTimeout(() => setNavigationPending(false), 220);
-
-    return () => window.clearTimeout(settleTimer);
-  }, [navigationPending, pathname]);
+    document.documentElement.dataset.routeTransition = transitionPhase;
+  }, [transitionPhase]);
 
   return (
     <>
-      <div
-        aria-hidden="true"
-        className={navigationPending ? "route-progress-indicator is-active" : "route-progress-indicator"}
-      />
+      <div aria-hidden="true" className="route-transition-curtain" />
       <main
         key={pathname}
         className={cn(

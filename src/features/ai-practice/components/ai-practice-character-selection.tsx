@@ -11,6 +11,7 @@ import { LANGUAGES } from "@/data/languages";
 import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 
 import type { LanguageCode, LocaleCode, Tier } from "@/types/domain";
@@ -34,6 +35,7 @@ export function AiPracticeCharacterSelection({
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);
+    requestRouteTransition();
     router.replace(`/ai-practice/${code}/character?tier=${tier}`);
   }
 

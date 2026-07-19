@@ -8,6 +8,7 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
@@ -55,15 +56,19 @@ export function MissionCard({
 
     switch (type) {
       case "add_cards":
+        requestRouteTransition();
         router.push("/card-draw");
         break;
       case "learn_cards":
+        requestRouteTransition();
         router.push(`/learn?mode=active&language=${encodeURIComponent(preferredLanguage)}`);
         break;
       case "game_level":
+        requestRouteTransition();
         router.push("/games");
         break;
       case "ai_practice":
+        requestRouteTransition();
         router.push("/ai-practice");
         break;
       default:

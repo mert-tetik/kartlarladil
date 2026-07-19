@@ -6,6 +6,7 @@ import { normalizePreferredTier } from "@/features/auth/preferred-tier";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { beginNavigationIntent } from "@/lib/navigation-intent";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { setTwaAnalyticsUserId } from "@/lib/twa-analytics";
 import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
@@ -212,6 +213,7 @@ export function useRequireAuthAction() {
 
       const nextPath = getSafeNextPath(options?.nextPath ?? getCurrentClientPath(pathname), DEFAULT_AUTH_REDIRECT);
       beginNavigationIntent();
+      requestRouteTransition();
       router.push(`/register?next=${encodeURIComponent(nextPath)}`);
 
       return undefined;

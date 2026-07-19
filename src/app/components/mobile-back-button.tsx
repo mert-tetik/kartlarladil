@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { requestRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 
 export function MobileBackButton() {
@@ -16,6 +17,7 @@ export function MobileBackButton() {
   }
 
   function handleBack() {
+    requestRouteTransition();
     vibrate("tap");
 
     if (pathname === "/card-draw" || pathname === "/learn" || pathname === "/learned" || pathname === "/pricing") {
