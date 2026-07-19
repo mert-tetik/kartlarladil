@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
@@ -9,6 +10,7 @@ import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboardi
 import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile-subscription-offer-screen";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { shouldKeepMobileGatewayBootstrapVisible } from "@/features/auth/mobile-gateway-bootstrap";
 import {
   initTwaModeStore,
   isInstalledApp,
@@ -17,6 +19,35 @@ import {
 } from "@/features/install-app/twa-mode";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
+
+const BOOTSTRAP_EXIT_DURATION_MS = 320;
+
+type BootstrapPhase = "visible" | "exiting" | "hidden";
+
+function MobileGatewayBootstrap({ phase }: { phase: Exclude<BootstrapPhase, "hidden"> }) {
+  return (
+    <div
+      aria-busy="true"
+      className={cn(
+        "fixed inset-0 z-[210] flex items-center justify-center bg-[#f76808] px-8 text-white transition-[opacity,transform] duration-300 ease-out lg:hidden",
+        phase === "exiting" && "pointer-events-none -translate-y-3 opacity-0",
+      )}
+      data-mobile-gateway-bootstrap
+      role="status"
+    >
+      <div className="h-12 w-72 max-w-full overflow-hidden">
+        <Image
+          alt="FoxiesDeck"
+          className="h-auto w-full -translate-y-[40%]"
+          height={1024}
+          priority
+          src="/splash.png"
+          width={1024}
+        />
+      </div>
+    </div>
+  );
+}
 
 function OnboardingBackground() {
   return (
@@ -111,6 +142,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
+  const [bootstrapPhase, setBootstrapPhase] = useState<BootstrapPhase>("visible");
+  const bootstrapFinishedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -203,9 +236,34 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isTestMode ||
     (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
 
-  if (!mounted || !showGateway || isPublicMobilePath || isRankUpTestMode) {
-    return null;
-  }
+  const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
+    mounted,
+    isMobileViewport,
+    isPublicMobilePath,
+    isRankUpTestMode,
+    isOfferTriggered,
+    isEntitlementsLoading,
+  });
+
+  useEffect(() => {
+    if (bootstrapFinishedRef.current) return;
+
+    if (shouldKeepBootstrapVisible) {
+      const resumeFrame = window.requestAnimationFrame(() => setBootstrapPhase("visible"));
+      return () => window.cancelAnimationFrame(resumeFrame);
+    }
+
+    const exitFrame = window.requestAnimationFrame(() => setBootstrapPhase("exiting"));
+    const finishTimer = window.setTimeout(() => {
+      bootstrapFinishedRef.current = true;
+      setBootstrapPhase("hidden");
+    }, BOOTSTRAP_EXIT_DURATION_MS);
+
+    return () => {
+      window.cancelAnimationFrame(exitFrame);
+      window.clearTimeout(finishTimer);
+    };
+  }, [shouldKeepBootstrapVisible]);
 
   const isInstalled = isInstalledApp() && !isTestMode;
 
@@ -227,44 +285,49 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     router.replace("/");
   }
 
-  if (isIosTestMode && !hasChosenWeb) {
-    return (
+  let gateway: ReactNode = null;
+
+  if (mounted && showGateway && !isPublicMobilePath && !isRankUpTestMode) {
+    if (isIosTestMode && !hasChosenWeb) {
+      gateway = (
       <GatewayShell isTestMode={isTestMode}>
         <MobileAppChoiceScreen
           forceApple
           onContinueOnWeb={handleContinueOnWeb}
         />
       </GatewayShell>
-    );
-  }
-
-  if (shouldShowOffer) {
-    return (
+      );
+    } else if (shouldShowOffer) {
+      gateway = (
       <GatewayShell isTestMode={isTestMode}>
         <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
       </GatewayShell>
-    );
-  }
-
-  if (needsOnboarding) {
-    return (
+      );
+    } else if (needsOnboarding) {
+      gateway = (
       <GatewayShell isTestMode={isTestMode} centered showBackground={false}>
         <MobileOnboardingForm countryCode={countryCode} onComplete={handleOnboardingComplete} />
       </GatewayShell>
-    );
-  }
-
-  if (!isInstalled && !hasChosenWeb) {
-    return (
+      );
+    } else if (!isInstalled && !hasChosenWeb) {
+      gateway = (
       <GatewayShell isTestMode={isTestMode}>
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </GatewayShell>
-    );
+      );
+    } else {
+      gateway = (
+        <GatewayShell isTestMode={isTestMode}>
+          <MobileAuthScreen />
+        </GatewayShell>
+      );
+    }
   }
 
   return (
-    <GatewayShell isTestMode={isTestMode}>
-      <MobileAuthScreen />
-    </GatewayShell>
+    <>
+      {gateway}
+      {bootstrapPhase === "hidden" ? null : <MobileGatewayBootstrap phase={bootstrapPhase} />}
+    </>
   );
 }
