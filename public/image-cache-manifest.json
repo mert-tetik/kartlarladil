@@ -1,5 +1,5 @@
 {
-  "version": "a5bf4725edd1a841d1b905a378e7ccb3eed106fd586889fb0110117e6a650e00",
+  "version": "5ab78cb78382e5bfeffc8cf25184f85fbabe8965715bb276a3bf798e8031be26",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.png",
@@ -40,6 +40,46 @@
     {
       "url": "/ai-characters/wise-elder.png",
       "revision": "ae5b991be8d6a77b32e278fe0c8d7211052440c52b33ad1d6950fde585802beb"
+    },
+    {
+      "url": "/ai-chat-backgrounds/campus-friend.webp",
+      "revision": "355723b6f4a5203791ee1813bb30d144c4add3855cdf00780035c622664154bb"
+    },
+    {
+      "url": "/ai-chat-backgrounds/friendly-worker.webp",
+      "revision": "cf977ec1ce3905fc9fe0f7e70ea13ab14307bc56a0a5952925076ceca9dfc46d"
+    },
+    {
+      "url": "/ai-chat-backgrounds/gentle-companion.webp",
+      "revision": "749f4a5e7a8da066f9eeb820dd7b56560e76d6569bd1de05e8d40d3bd6f63b9a"
+    },
+    {
+      "url": "/ai-chat-backgrounds/gothic-calm.webp",
+      "revision": "60ababeb602238b5fe7a7d3b325c4eca4dba4d79a43945b2aa41597f0738f84d"
+    },
+    {
+      "url": "/ai-chat-backgrounds/skater-coach.webp",
+      "revision": "2b166a81db82d055b197e7dee21b4db00a212d4b274b512a64a64340eed353bd"
+    },
+    {
+      "url": "/ai-chat-backgrounds/sleepy-student.webp",
+      "revision": "749f4a5e7a8da066f9eeb820dd7b56560e76d6569bd1de05e8d40d3bd6f63b9a"
+    },
+    {
+      "url": "/ai-chat-backgrounds/soft-artist.webp",
+      "revision": "8ea00d86aea6f320ae65120978396b51f8bd3eab46aa60532880b379e90cf192"
+    },
+    {
+      "url": "/ai-chat-backgrounds/study-buddy.webp",
+      "revision": "f18c0de34da3d70c6942ee24b1861bd620702856fbed34b0bdc8e5ea26e8b42e"
+    },
+    {
+      "url": "/ai-chat-backgrounds/warm-grandmother.webp",
+      "revision": "e1cabc335998ecc0f2d806a19ee424345aed610aeb3fa214f387a5bb8af008df"
+    },
+    {
+      "url": "/ai-chat-backgrounds/wise-elder.webp",
+      "revision": "939db71c60560111fd13b797fee3b4645950c258becab00324ee9f69d8627e52"
     },
     {
       "url": "/apple-icon.png",
