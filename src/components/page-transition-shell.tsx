@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { beginNavigationIntent } from "@/lib/navigation-intent";
 import { requestRouteTransition, subscribeRouteTransition } from "@/lib/route-transition";
@@ -26,6 +26,42 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
   const entryTimerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const previousRouteKeyRef = useRef(routeKey);
+  const mainRef = useRef<HTMLElement>(null);
+
+  const clearRouteTransitionItems = useEffectEvent(() => {
+    mainRef.current?.querySelectorAll<HTMLElement>("[data-route-transition-item]").forEach((element) => {
+      element.removeAttribute("data-route-transition-item");
+      element.style.removeProperty("--route-enter-delay");
+    });
+  });
+
+  const prepareRouteTransitionItems = useEffectEvent(() => {
+    clearRouteTransitionItems();
+
+    const root = mainRef.current;
+    if (!root) return;
+
+    const viewportHeight = Math.max(window.innerHeight, 1);
+    const candidates = root.querySelectorAll<HTMLElement>(
+      "button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, img",
+    );
+
+    candidates.forEach((element) => {
+      const interactiveParent = element.closest("button, a[href], [role='button']");
+      if (interactiveParent && interactiveParent !== element) {
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const isVisible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < viewportHeight;
+      if (!isVisible) return;
+
+      const verticalProgress = Math.min(1, Math.max(0, rect.top / viewportHeight));
+      const delay = Math.round(30 + verticalProgress * 330);
+      element.dataset.routeTransitionItem = "";
+      element.style.setProperty("--route-enter-delay", `${delay}ms`);
+    });
+  });
 
   useEffect(() => {
     function clearTransitionTimers() {
@@ -114,6 +150,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     const remainingCoverTime = Math.max(0, COVER_DURATION_MS - elapsed);
 
     const coverTimer = window.setTimeout(() => {
+      prepareRouteTransitionItems();
       setTransitionPhase("preparing");
       animationFrameRef.current = window.requestAnimationFrame(() => {
         setTransitionPhase("entering");
@@ -131,6 +168,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (transitionPhase === "idle") {
       delete document.documentElement.dataset.routeTransition;
+      clearRouteTransitionItems();
       return;
     }
 
@@ -141,6 +179,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     <>
       <div aria-hidden="true" className="route-transition-curtain" />
       <main
+        ref={mainRef}
         key={pathname}
         className={cn(
           "page-transition-shell lg:pb-0",
