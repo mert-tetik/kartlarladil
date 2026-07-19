@@ -207,7 +207,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             {user ? (
               <>
                 <Link href="/pricing" className="inline-flex lg:hidden" aria-label={t("page.pricing.title")}>
-                  <PlanBadge className="h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white" />
+                  <PlanBadge variant="mobile-game" />
                 </Link>
                 <PlanBadge className="hidden h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white lg:inline-flex" />
               </>
