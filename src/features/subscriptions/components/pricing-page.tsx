@@ -117,8 +117,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       data-pricing-page
       className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 sm:px-6 lg:px-8 lg:pb-10"
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-28 w-screen -translate-x-1/2 overflow-hidden">
-        <div className={cn("absolute -top-20 left-[-5%] h-40 w-[110%] rounded-b-[50%] opacity-35", PRICING_GRADIENT_SURFACE_CLASS)} />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-56 w-screen -translate-x-1/2 overflow-hidden">
+        <div className={cn("absolute -top-20 left-[-5%] h-72 w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
       </div>
       <Suspense fallback={null}>
         <CheckoutSuccessPoller />
