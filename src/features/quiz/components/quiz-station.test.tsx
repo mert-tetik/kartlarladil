@@ -500,6 +500,7 @@ describe("QuizStation sound feedback", () => {
   it("shows a centered true-false question above the card for zero-progress cards", async () => {
     mathRandomSpy
       .mockReset()
+      .mockReturnValueOnce(0.75)
       .mockReturnValueOnce(0.25)
       .mockReturnValueOnce(0.75)
       .mockReturnValue(0.75);
@@ -528,6 +529,7 @@ describe("QuizStation sound feedback", () => {
   it("shows the actual meaning in feedback when a true-false answer is wrong", async () => {
     mathRandomSpy
       .mockReset()
+      .mockReturnValueOnce(0.75)
       .mockReturnValueOnce(0.25)
       .mockReturnValueOnce(0.1)
       .mockReturnValueOnce(0)
@@ -547,6 +549,21 @@ describe("QuizStation sound feedback", () => {
         document.querySelector("[data-quiz-mobile-feedback]"),
       ).toHaveTextContent(`Doğru cevap: ${correctAnswer}`);
     });
+  });
+
+  it("shows a six-option sentence completion prompt spoken by an AI Practice character", async () => {
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector("[data-quiz-sentence]")).toHaveTextContent("_____");
+    expect(document.querySelectorAll("[data-quiz-sentence-option]")).toHaveLength(6);
+    expect(document.querySelector('[data-quiz-question-content="sentence-completion"] img')).toBeInTheDocument();
   });
 
   it("reserves the next-card slot before a choice answer is shown", async () => {

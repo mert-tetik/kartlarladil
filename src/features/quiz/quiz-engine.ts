@@ -7,12 +7,14 @@ import type {
   PracticeAttempt,
   PracticeMode,
   QuizQuestion,
+  SentenceCompletionQuizQuestion,
   Tier,
   TrueFalseQuizQuestion,
   VocabularyCard,
 } from "@/types/domain";
 
 export const TRUE_FALSE_FIRST_LEARN_PROBABILITY = 0.5;
+export const SENTENCE_COMPLETION_PROBABILITY = 1 / 3;
 
 export function getTierRequirement(tier: Tier) {
   return TIER_REQUIREMENTS[tier];
@@ -125,12 +127,72 @@ export function buildTrueFalseQuizQuestion(
   };
 }
 
+export function buildSentenceCompletionQuizQuestion(
+  card: VocabularyCard,
+  allCards: VocabularyCard[],
+): SentenceCompletionQuizQuestion | null {
+  if (card.termKind !== "word") {
+    return null;
+  }
+
+  const sentenceWithBlank = card.examples
+    .map((example) => replaceTermWithBlank(example.sentence, card.term))
+    .find((sentence): sentence is string => sentence !== null);
+
+  if (!sentenceWithBlank) {
+    return null;
+  }
+
+  const seenTerms = new Set([card.term.toLocaleLowerCase()]);
+  const distractors = allCards.reduce<string[]>((terms, candidate) => {
+    const normalizedTerm = candidate.term.toLocaleLowerCase();
+    if (
+      candidate.language !== card.language ||
+      candidate.termKind !== "word" ||
+      seenTerms.has(normalizedTerm)
+    ) {
+      return terms;
+    }
+
+    seenTerms.add(normalizedTerm);
+    terms.push(candidate.term);
+    return terms;
+  }, []);
+
+  if (distractors.length < 5) {
+    return null;
+  }
+
+  return {
+    card,
+    sentenceWithBlank,
+    options: shuffle([card.term, ...shuffle(distractors).slice(0, 5)]),
+    correctAnswer: card.term,
+  };
+}
+
 export function shouldUseTrueFalseQuestion(inventoryCard: InventoryCard, mode: PracticeMode) {
   return (
     mode === "active" &&
     inventoryCard.correctCount === 0 &&
     Math.random() < TRUE_FALSE_FIRST_LEARN_PROBABILITY
   );
+}
+
+export function shouldUseSentenceCompletionQuestion(isLearningQuestion: boolean) {
+  return !isLearningQuestion && Math.random() < SENTENCE_COMPLETION_PROBABILITY;
+}
+
+function replaceTermWithBlank(sentence: string, term: string) {
+  const normalizedSentence = sentence.toLocaleLowerCase();
+  const normalizedTerm = term.toLocaleLowerCase();
+  const termIndex = normalizedSentence.indexOf(normalizedTerm);
+
+  if (termIndex < 0) {
+    return null;
+  }
+
+  return `${sentence.slice(0, termIndex)}_____${sentence.slice(termIndex + term.length)}`;
 }
 
 export function isAnswerSimilarEnough(input: string, correctAnswer: string, threshold = 0.75) {

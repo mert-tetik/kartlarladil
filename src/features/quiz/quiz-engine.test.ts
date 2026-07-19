@@ -6,10 +6,12 @@ import {
   addCardToInventory,
   applyAnswerProgress,
   buildQuizQuestion,
+  buildSentenceCompletionQuizQuestion,
   buildTrueFalseQuizQuestion,
   createInventoryCard,
   getTierRequirement,
   isAnswerSimilarEnough,
+  shouldUseSentenceCompletionQuestion,
   shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import type { InventoryCard } from "@/types/domain";
@@ -185,6 +187,26 @@ describe("quiz engine", () => {
     randomSpy.mockRestore();
   });
 
+  it("builds a six-option sentence completion question from the card example", () => {
+    const card = VOCABULARY_CARDS.find((item) =>
+      item.examples.some((example) =>
+        example.sentence.toLocaleLowerCase().includes(item.term.toLocaleLowerCase()),
+      ),
+    );
+    expect(card).toBeDefined();
+
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const question = buildSentenceCompletionQuizQuestion(card!, VOCABULARY_CARDS);
+
+    expect(question).not.toBeNull();
+    expect(question?.sentenceWithBlank).toContain("_____");
+    expect(question?.options).toHaveLength(6);
+    expect(question?.options).toContain(card!.term);
+    expect(question?.correctAnswer).toBe(card!.term);
+
+    randomSpy.mockRestore();
+  });
+
   it("uses the true-false question type only for zero-progress active cards and only below the 50% cutoff", () => {
     const activeCard = createInventoryCard(VOCABULARY_CARDS[0].id);
     const randomSpy = vi.spyOn(Math, "random");
@@ -196,6 +218,21 @@ describe("quiz engine", () => {
     expect(shouldUseTrueFalseQuestion(activeCard, "active")).toBe(false);
     expect(shouldUseTrueFalseQuestion({ ...activeCard, correctCount: 1 }, "active")).toBe(false);
     expect(shouldUseTrueFalseQuestion(activeCard, "learned")).toBe(false);
+
+    randomSpy.mockRestore();
+  });
+
+  it("uses sentence completion one third of the time except for card-learning questions", () => {
+    const randomSpy = vi.spyOn(Math, "random");
+
+    randomSpy.mockReturnValue(0);
+    expect(shouldUseSentenceCompletionQuestion(true)).toBe(false);
+
+    randomSpy.mockReturnValue(0.32);
+    expect(shouldUseSentenceCompletionQuestion(false)).toBe(true);
+
+    randomSpy.mockReturnValue(0.34);
+    expect(shouldUseSentenceCompletionQuestion(false)).toBe(false);
 
     randomSpy.mockRestore();
   });

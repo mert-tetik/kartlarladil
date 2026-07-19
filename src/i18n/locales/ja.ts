@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "単語を入力...",
   "quiz.learningQuizPrompt": "{language} の単語を入力してください",
   "quiz.learningQuizTitle": "このカードを学ぶ準備ができました",
+  "quiz.sentenceCompletionBadge": "文を完成させよう",
+  "quiz.sentenceCompletionPrompt": "正しい単語を選んで文を完成させよう。",
   "quiz.loadingDescription": "あなたのカードプールが読み込まれています。",
   "quiz.loadingTitle": "練習の準備中",
   "quiz.nextCard": "次のカード",

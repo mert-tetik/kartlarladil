@@ -467,6 +467,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "Type the word...",
   "quiz.learningQuizPrompt": "Type the {language} word",
   "quiz.learningQuizTitle": "You're about to learn this card",
+  "quiz.sentenceCompletionBadge": "Sentence completion",
+  "quiz.sentenceCompletionPrompt": "Complete the sentence by choosing the correct word",
   "quiz.loadingDescription": "Your card pool is being read.",
   "quiz.loadingTitle": "Preparing practice",
   "quiz.nextCard": "Next card",

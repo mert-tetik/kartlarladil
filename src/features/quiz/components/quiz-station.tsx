@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -36,13 +37,16 @@ import {
   getStudyLocale,
 } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
+import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   buildQuizQuestion,
+  buildSentenceCompletionQuizQuestion,
   buildTrueFalseQuizQuestion,
   getTierRequirement,
   isAnswerSimilarEnough,
+  shouldUseSentenceCompletionQuestion,
   shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
@@ -100,7 +104,9 @@ import type {
   LimitErrorCode,
   PracticeMode,
   QuizQuestion,
+  SentenceCompletionQuizQuestion,
   TrueFalseQuizQuestion,
+  AiPracticeCharacter,
   VocabularyCard,
 } from "@/types/domain";
 
@@ -162,7 +168,13 @@ interface TrueFalseQuizItem extends BaseQuizItem {
   question: TrueFalseQuizQuestion;
 }
 
-type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem;
+interface SentenceCompletionQuizItem extends BaseQuizItem {
+  questionType: "sentence-completion";
+  question: SentenceCompletionQuizQuestion;
+  character: AiPracticeCharacter;
+}
+
+type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 
 interface QuizResult {
@@ -418,14 +430,30 @@ export function QuizStation({
         const willLearn =
           inventoryCard.status !== "learned" &&
           inventoryCard.correctCount + 1 >= requirement;
+        const isLearningQuestion = mode === "active" && willLearn;
 
-        if (mode === "active" && willLearn) {
+        if (isLearningQuestion) {
           return {
             card,
             inventoryCard,
             questionType: "text",
             question: { correctAnswer: card.term },
             willLearn: true,
+          };
+        }
+
+        const sentenceCompletionQuestion = shouldUseSentenceCompletionQuestion(isLearningQuestion)
+          ? buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS)
+          : null;
+
+        if (sentenceCompletionQuestion) {
+          return {
+            card,
+            inventoryCard,
+            questionType: "sentence-completion",
+            question: sentenceCompletionQuestion,
+            character: getRandomQuizCharacter(),
+            willLearn: false,
           };
         }
 
@@ -1110,6 +1138,15 @@ export function QuizStation({
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
+              ) : item.questionType === "sentence-completion" ? (
+                <SentenceCompletionQuestion
+                  key={currentIndex}
+                  item={item}
+                  showingAnswer={showingAnswer}
+                  onAnswer={handleAnswer}
+                  onNext={handleNext}
+                  showNextButton={!pendingStreak}
+                />
               ) : (
                 <TextQuestion
                   key={currentIndex}
@@ -1158,7 +1195,7 @@ export function QuizStation({
           isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
           isCorrect={lastAnswerCorrect ?? false}
           correctAnswer={
-            item.questionType === "text"
+            item.questionType === "text" || item.questionType === "sentence-completion"
               ? item.question.correctAnswer
               : item.questionType === "true-false"
                 ? item.question.actualMeaning
@@ -1219,6 +1256,11 @@ function MobileQuizCard({
 
 function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function getRandomQuizCharacter() {
+  const characters = getAiPracticeCharacters();
+  return characters[Math.floor(Math.random() * characters.length)]!;
 }
 
 export function LanguageSelection({
@@ -1650,6 +1692,8 @@ function QuizProgressHeader({
         <Badge className={cn("border-transparent", style.text)}>
           {item.questionType === "text"
             ? t("quiz.learningQuizBadge")
+            : item.questionType === "sentence-completion"
+              ? t("quiz.sentenceCompletionBadge")
             : item.questionType === "true-false"
               ? t("games.wordChallenge.title")
             : mode === "learned"
@@ -1904,6 +1948,94 @@ function QuizAnswerButton({
       />
       <span className="relative z-10 w-full">{children}</span>
     </button>
+  );
+}
+
+function SentenceCompletionQuestion({
+  item,
+  showingAnswer,
+  onAnswer,
+  onNext,
+  showNextButton = true,
+}: {
+  item: SentenceCompletionQuizItem;
+  showingAnswer: boolean;
+  onAnswer: (answer: string, isCorrect: boolean) => void;
+  onNext: () => void;
+  showNextButton?: boolean;
+}) {
+  const t = useT();
+  const { question, character } = item;
+  const characterName = getCharacterName(character, item.card.language);
+
+  return (
+    <div
+      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      data-quiz-question-content="sentence-completion"
+    >
+      <p className="text-center text-sm font-semibold text-foreground-muted">
+        {t("quiz.sentenceCompletionPrompt")}
+      </p>
+
+      <div className="flex items-start gap-3">
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-full border border-border bg-background-muted sm:size-14">
+          <Image
+            src={character.imageSrc}
+            alt={characterName}
+            fill
+            sizes="56px"
+            className="object-cover"
+          />
+        </div>
+        <div className="relative min-h-20 flex-1 rounded-lg bg-background-card px-4 py-3 text-left before:absolute before:-left-1.5 before:top-5 before:size-3 before:rotate-45 before:bg-background-card">
+          <p className="relative text-xs font-semibold text-foreground-muted">{characterName}</p>
+          <p
+            className="relative mt-1 text-lg font-semibold leading-relaxed text-foreground sm:text-xl"
+            data-quiz-sentence
+          >
+            {question.sentenceWithBlank}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        {question.options.map((option, index) => {
+          const isCorrectOption = option === question.correctAnswer;
+          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+
+          return (
+            <QuizAnswerButton
+              key={option}
+              type="button"
+              data-quiz-sentence-option={option}
+              onClick={() => onAnswer(option, isCorrectOption)}
+              disabled={showingAnswer}
+              interactive={!showingAnswer}
+              baseClassName={optionColor}
+              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
+              incorrectOverlayClassName="bg-red-950"
+              className="min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base"
+            >
+              {option}
+            </QuizAnswerButton>
+          );
+        })}
+      </div>
+
+      <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
+        <Button
+          className={cn(
+            "w-full bg-brand hover:bg-brand-hover max-lg:hidden",
+            (!showingAnswer || !showNextButton) && "invisible pointer-events-none",
+          )}
+          data-quiz-next-button
+          disabled={!showingAnswer || !showNextButton}
+          onClick={onNext}
+        >
+          {t("quiz.nextCard")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

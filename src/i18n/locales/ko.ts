@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "단어를 입력하세요...",
   "quiz.learningQuizPrompt": "{language} 단어를 입력하세요",
   "quiz.learningQuizTitle": "이 카드를 학습할 준비가 되었습니다",
+  "quiz.sentenceCompletionBadge": "문장 완성",
+  "quiz.sentenceCompletionPrompt": "올바른 단어를 골라 문장을 완성하세요.",
   "quiz.loadingDescription": "카드 풀이 읽히고 있습니다.",
   "quiz.loadingTitle": "연습 준비 중",
   "quiz.nextCard": "다음 카드",

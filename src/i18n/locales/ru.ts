@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "Введите слово...",
   "quiz.learningQuizPrompt": "Введите слово на {language}",
   "quiz.learningQuizTitle": "Вы собираетесь изучить эту карточку",
+  "quiz.sentenceCompletionBadge": "Заполни предложение",
+  "quiz.sentenceCompletionPrompt": "Заверши предложение, выбрав правильное слово.",
   "quiz.loadingDescription": "Ваш пул карточек считывается.",
   "quiz.loadingTitle": "Подготовка практики",
   "quiz.nextCard": "Следующая карточка",

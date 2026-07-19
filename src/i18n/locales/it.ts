@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "Digita la parola...",
   "quiz.learningQuizPrompt": "Digita la parola in {language}",
   "quiz.learningQuizTitle": "Stai per apprendere questa carta",
+  "quiz.sentenceCompletionBadge": "Completa la frase",
+  "quiz.sentenceCompletionPrompt": "Completa la frase scegliendo la parola corretta.",
   "quiz.loadingDescription": "Il tuo pool di carte viene letto.",
   "quiz.loadingTitle": "Preparazione pratica",
   "quiz.nextCard": "Prossima carta",

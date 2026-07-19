@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "Kelimeyi yaz...",
   "quiz.learningQuizPrompt": "{language} kelimesini yaz",
   "quiz.learningQuizTitle": "Bu kartı öğrenmek üzeresin",
+  "quiz.sentenceCompletionBadge": "Cümle tamamlama",
+  "quiz.sentenceCompletionPrompt": "Doğru kelimeyi seçerek cümleyi tamamla",
   "quiz.loadingDescription": "Kart haznen okunuyor.",
   "quiz.loadingTitle": "Alıştırma hazırlanıyor",
   "quiz.nextCard": "Sonraki kart",

@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "اكتب الكلمة...",
   "quiz.learningQuizPrompt": "اكتب الكلمة {language}",
   "quiz.learningQuizTitle": "أنت على وشك تعلم هذه البطاقة",
+  "quiz.sentenceCompletionBadge": "أكمل الجملة",
+  "quiz.sentenceCompletionPrompt": "أكمل الجملة باختيار الكلمة الصحيحة.",
   "quiz.loadingDescription": "يتم قراءة مجموعة بطاقاتك.",
   "quiz.loadingTitle": "تحضير الممارسة",
   "quiz.nextCard": "البطاقة التالية",

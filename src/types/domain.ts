@@ -112,6 +112,13 @@ export interface TrueFalseQuizQuestion {
   correctAnswer: "true" | "false";
 }
 
+export interface SentenceCompletionQuizQuestion {
+  card: VocabularyCard;
+  sentenceWithBlank: string;
+  options: string[];
+  correctAnswer: string;
+}
+
 export type TierPoints = Record<Tier, number>;
 
 export type RankIconId =

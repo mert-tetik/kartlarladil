@@ -469,6 +469,8 @@ const dictionary = {
   "quiz.learningQuizPlaceholder": "输入单词...",
   "quiz.learningQuizPrompt": "输入 {language} 单词",
   "quiz.learningQuizTitle": "您即将学习这张卡片",
+  "quiz.sentenceCompletionBadge": "完成句子",
+  "quiz.sentenceCompletionPrompt": "选择正确的单词完成句子。",
   "quiz.loadingDescription": "您的卡片池正在读取中。",
   "quiz.loadingTitle": "准备练习",
   "quiz.nextCard": "下一张卡片",
