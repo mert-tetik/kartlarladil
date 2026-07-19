@@ -8,8 +8,19 @@ import { cn } from "@/lib/utils";
 
 const COVER_DURATION_MS = 360;
 const ENTER_DURATION_MS = 480;
+const MAX_ENTER_DELAY_MS = 360;
+const TOTAL_ENTER_DURATION_MS = ENTER_DURATION_MS + MAX_ENTER_DELAY_MS;
 
 type RouteTransitionPhase = "idle" | "covering" | "preparing" | "entering";
+
+function applyRouteTransitionPhase(phase: RouteTransitionPhase) {
+  if (phase === "idle") {
+    delete document.documentElement.dataset.routeTransition;
+    return;
+  }
+
+  document.documentElement.dataset.routeTransition = phase;
+}
 
 export function PageTransitionShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -43,7 +54,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
 
     const viewportHeight = Math.max(window.innerHeight, 1);
     const candidates = root.querySelectorAll<HTMLElement>(
-      "button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, img",
+      "button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, label, img",
     );
 
     candidates.forEach((element) => {
@@ -57,7 +68,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       if (!isVisible) return;
 
       const verticalProgress = Math.min(1, Math.max(0, rect.top / viewportHeight));
-      const delay = Math.round(30 + verticalProgress * 330);
+      const delay = Math.round(30 + verticalProgress * (MAX_ENTER_DELAY_MS - 30));
       element.dataset.routeTransitionItem = "";
       element.style.setProperty("--route-enter-delay", `${delay}ms`);
     });
@@ -82,6 +93,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     function startRouteTransition() {
       clearTransitionTimers();
       transitionStartedAtRef.current = window.performance.now();
+      applyRouteTransitionPhase("covering");
       setTransitionPhase("covering");
     }
 
@@ -151,13 +163,20 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
 
     const coverTimer = window.setTimeout(() => {
       prepareRouteTransitionItems();
+      applyRouteTransitionPhase("preparing");
       setTransitionPhase("preparing");
+      // Commit the off-screen placement before the entrance transition starts.
+      void mainRef.current?.offsetWidth;
       animationFrameRef.current = window.requestAnimationFrame(() => {
-        setTransitionPhase("entering");
-        entryTimerRef.current = window.setTimeout(() => {
-          transitionStartedAtRef.current = null;
-          setTransitionPhase("idle");
-        }, ENTER_DURATION_MS);
+        animationFrameRef.current = window.requestAnimationFrame(() => {
+          applyRouteTransitionPhase("entering");
+          setTransitionPhase("entering");
+          entryTimerRef.current = window.setTimeout(() => {
+            applyRouteTransitionPhase("idle");
+            transitionStartedAtRef.current = null;
+            setTransitionPhase("idle");
+          }, TOTAL_ENTER_DURATION_MS);
+        });
       });
     }, remainingCoverTime);
 
@@ -167,12 +186,12 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (transitionPhase === "idle") {
-      delete document.documentElement.dataset.routeTransition;
+      applyRouteTransitionPhase("idle");
       clearRouteTransitionItems();
       return;
     }
 
-    document.documentElement.dataset.routeTransition = transitionPhase;
+    applyRouteTransitionPhase(transitionPhase);
   }, [transitionPhase]);
 
   return (
