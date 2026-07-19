@@ -340,7 +340,7 @@ const dictionary = {
   "page.accountSubscription.description": "Zobacz swojÄ… aktywnÄ… subskrypcjÄ™ i ostatnie zdarzenia webhook.",
   "page.accountSubscription.title": "Szczegóły subskrypcji",
   "page.aiPractice.charactersDescription": "Wybierz styl rozmowy do Ä‡wiczenia {language}.",
-  "page.aiPractice.charactersTitle": "Wybierz postaÄ‡",
+  "page.aiPractice.charactersTitle": "Z kim chcesz porozmawiać?",
   "page.aiPractice.chooseLanguagePrompt": "Wybierz jÄ™zyk, który chcesz Ä‡wiczyÄ‡",
   "page.aiPractice.description": "Wybierz jÄ™zyk, postaÄ‡ i rozpocznij niezapisywany czat w jÄ™zyku docelowym.",
   "page.aiPractice.tierSelectionTitle": "Choose level",

@@ -33,6 +33,10 @@ vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({ refreshStats: vi.fn() }),
 }));
 
+vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
+  UpgradeDialog: () => null,
+}));
+
 const testCharacter = getAiPracticeCharacters()[0]!;
 
 afterEach(() => {
@@ -45,7 +49,7 @@ afterEach(() => {
 });
 
 describe("AiPracticeChatPanel", () => {
-  it("keeps messages in a fixed scroll area with avatars and message actions", async () => {
+  it("keeps messages in a fixed scroll area with the compact header and message actions", async () => {
     const user = userEvent.setup();
 
     vi.stubGlobal("fetch", makeFetchMock({ chatText: "hey, nice to meet you" }));
@@ -57,7 +61,7 @@ describe("AiPracticeChatPanel", () => {
     await sendMessage(user, "hello");
 
     expect(await screen.findByText("hey, nice to meet you")).toBeVisible();
-    expect(screen.getAllByAltText("Clara").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByAltText("Clara")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Translate" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("button", { name: "Speak message" }).length).toBeGreaterThanOrEqual(2);
   });
@@ -119,7 +123,7 @@ describe("AiPracticeChatPanel", () => {
     expect(utterance.lang).toBe("en-US");
   });
 
-  it("sends final microphone transcript as a message", async () => {
+  it("sends an interim microphone transcript as a message when recording stops", async () => {
     const user = userEvent.setup();
     const fetchMock = makeFetchMock({ chatText: "voice answer" });
     const recognition = installSpeechRecognitionMock();
@@ -135,7 +139,7 @@ describe("AiPracticeChatPanel", () => {
     expect(recognition.instance?.start).toHaveBeenCalledTimes(1);
 
     act(() => {
-      recognition.instance?.onresult?.(makeSpeechResultEvent("spoken hello"));
+      recognition.instance?.onresult?.(makeSpeechResultEvent("spoken hello", false));
     });
 
     await user.click(screen.getByRole("button", { name: "Stop recording" }));
@@ -241,13 +245,13 @@ function installSpeechRecognitionMock() {
   return recognition;
 }
 
-function makeSpeechResultEvent(transcript: string) {
+function makeSpeechResultEvent(transcript: string, isFinal = true) {
   return {
     resultIndex: 0,
     results: [
       {
         0: { transcript },
-        isFinal: true,
+        isFinal,
       },
     ],
   };

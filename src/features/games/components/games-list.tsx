@@ -163,7 +163,6 @@ export function GamesList() {
         options={languageOptions}
         selectedLanguage={displayedLanguage}
         onSelect={handleSelect}
-        visualStyle="light"
         showCounts={false}
       />
     </div>

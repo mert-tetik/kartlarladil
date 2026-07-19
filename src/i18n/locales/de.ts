@@ -339,7 +339,7 @@ const dictionary = {
   "page.accountSubscription.description": "Sieh dir dein aktives Abonnement und die neuesten Webhook-Ereignisse an.",
   "page.accountSubscription.title": "Abonnementdetails",
   "page.aiPractice.charactersDescription": "Wähle einen Gesprächsstil für {language}.",
-  "page.aiPractice.charactersTitle": "Figur wählen",
+  "page.aiPractice.charactersTitle": "Mit wem möchtest du sprechen?",
   "page.aiPractice.chooseLanguagePrompt": "Wähle die Sprache, die du üben möchtest",
   "page.aiPractice.description": "Wähle eine Übungssprache, suche eine Figur aus und starte einen ungespeicherten Chat in der Zielsprache.",
   "page.aiPractice.tierSelectionTitle": "Choose level",

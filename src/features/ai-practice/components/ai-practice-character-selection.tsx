@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
@@ -40,7 +40,7 @@ export function AiPracticeCharacterSelection({
 
   return (
     <div
-      className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:h-[480px] max-lg:flex-1 max-lg:min-h-0 max-lg:h-full max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0"
+      className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:mx-auto lg:h-[480px] lg:max-w-5xl max-lg:flex-1 max-lg:min-h-0 max-lg:h-full max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4 max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:rounded-none max-sm:border-x-0"
       data-ai-practice-character-container
     >
       <div className="mb-4">
@@ -74,7 +74,6 @@ export function AiPracticeCharacterSelection({
         }}
         showBackdrop
         sheetClassName="max-h-[50dvh]"
-        visualStyle="light"
         showCounts={false}
       />
 
@@ -112,12 +111,6 @@ export function AiPracticeCharacterSelection({
                     className="mt-1 size-4 shrink-0 text-foreground-muted transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground"
                     aria-hidden="true"
                   />
-                </div>
-                <div className="mt-4 flex items-center justify-end gap-2">
-                  <span className="flex items-center gap-1 text-xs font-semibold text-foreground-muted">
-                    <MessageCircle className="size-3.5" aria-hidden="true" />
-                    Chat
-                  </span>
                 </div>
               </div>
             </Link>

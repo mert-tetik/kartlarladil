@@ -340,7 +340,7 @@ const dictionary = {
   "page.accountSubscription.description": "Просмотрите вашу активную подписку и недавние события вебхука.",
   "page.accountSubscription.title": "Детали подписки",
   "page.aiPractice.charactersDescription": "Выберите стиль беседы для практики {language}.",
-  "page.aiPractice.charactersTitle": "Выберите персонажа",
+  "page.aiPractice.charactersTitle": "С кем вы хотите поговорить?",
   "page.aiPractice.chooseLanguagePrompt": "Выберите язык, на котором хотите практиковаться",
   "page.aiPractice.description": "Выберите язык практики, персонажа и начните несохраняемый чат на целевом языке.",
   "page.aiPractice.tierSelectionTitle": "На каком уровне вы хотите практиковаться?",

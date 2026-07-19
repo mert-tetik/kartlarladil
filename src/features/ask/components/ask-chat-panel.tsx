@@ -96,6 +96,7 @@ export function AskChatPanel({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
+  const latestTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const initialSentRef = useRef(false);
 
@@ -312,7 +313,7 @@ export function AskChatPanel({
     void submitContent(draft);
   }
 
-  function toggleRecording() {
+  async function toggleRecording() {
     if (isRecording) {
       shouldSendTranscriptRef.current = true;
       recognitionRef.current?.stop();
@@ -329,6 +330,7 @@ export function AskChatPanel({
     const recognition = new SpeechRecognition();
 
     finalTranscriptRef.current = "";
+    latestTranscriptRef.current = "";
     shouldSendTranscriptRef.current = true;
     setDraft("");
     setInterimTranscript("");
@@ -359,21 +361,24 @@ export function AskChatPanel({
         finalTranscriptRef.current = `${finalTranscriptRef.current} ${final}`.trim();
       }
 
-      setInterimTranscript(interim || finalTranscriptRef.current);
+      latestTranscriptRef.current = `${finalTranscriptRef.current} ${interim}`.trim();
+      setInterimTranscript(latestTranscriptRef.current);
     };
     recognition.onerror = () => {
       shouldSendTranscriptRef.current = false;
       setIsRecording(false);
       setInterimTranscript("");
+      latestTranscriptRef.current = "";
       recognitionRef.current = null;
       stopAudioVisualizer();
     };
     recognition.onend = () => {
-      const transcript = finalTranscriptRef.current.trim();
+      const transcript = (latestTranscriptRef.current || finalTranscriptRef.current).trim();
       const shouldSend = shouldSendTranscriptRef.current;
 
       setIsRecording(false);
       setInterimTranscript("");
+      latestTranscriptRef.current = "";
       recognitionRef.current = null;
       stopAudioVisualizer();
 
@@ -386,8 +391,8 @@ export function AskChatPanel({
     setIsRecording(true);
 
     try {
+      await startAudioVisualizer();
       recognition.start();
-      void startAudioVisualizer();
     } catch {
       shouldSendTranscriptRef.current = false;
       setIsRecording(false);
@@ -564,7 +569,9 @@ function ChatMessage({
           <div
             className={cn(
               "rounded-lg px-4 py-3 text-sm leading-6",
-              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground whitespace-pre-wrap",
+              isUser
+                ? "bg-background-inverse text-foreground-inverse"
+                : "border border-white bg-white text-slate-950 whitespace-pre-wrap",
             )}
           >
             {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}

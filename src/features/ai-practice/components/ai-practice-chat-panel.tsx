@@ -13,6 +13,7 @@ import Image from "next/image";
 import { Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
@@ -102,12 +103,14 @@ export function AiPracticeChatPanel({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
+  const latestTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const { locale } = useLocale();
   const t = useT();
   const { refreshStats } = useProgressStats();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
+  const chatBackground = getAiPracticeChatBackground(character.id);
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -352,7 +355,7 @@ export function AiPracticeChatPanel({
     void submitContent(draft);
   }
 
-  function toggleRecording() {
+  async function toggleRecording() {
     if (isRecording) {
       shouldSendTranscriptRef.current = true;
       recognitionRef.current?.stop();
@@ -369,6 +372,7 @@ export function AiPracticeChatPanel({
     const recognition = new SpeechRecognition();
 
     finalTranscriptRef.current = "";
+    latestTranscriptRef.current = "";
     shouldSendTranscriptRef.current = true;
     setDraft("");
     setInterimTranscript("");
@@ -399,21 +403,24 @@ export function AiPracticeChatPanel({
         finalTranscriptRef.current = `${finalTranscriptRef.current} ${final}`.trim();
       }
 
-      setInterimTranscript(interim || finalTranscriptRef.current);
+      latestTranscriptRef.current = `${finalTranscriptRef.current} ${interim}`.trim();
+      setInterimTranscript(latestTranscriptRef.current);
     };
     recognition.onerror = () => {
       shouldSendTranscriptRef.current = false;
       setIsRecording(false);
       setInterimTranscript("");
+      latestTranscriptRef.current = "";
       recognitionRef.current = null;
       stopAudioVisualizer();
     };
     recognition.onend = () => {
-      const transcript = finalTranscriptRef.current.trim();
+      const transcript = (latestTranscriptRef.current || finalTranscriptRef.current).trim();
       const shouldSend = shouldSendTranscriptRef.current;
 
       setIsRecording(false);
       setInterimTranscript("");
+      latestTranscriptRef.current = "";
       recognitionRef.current = null;
       stopAudioVisualizer();
 
@@ -426,8 +433,8 @@ export function AiPracticeChatPanel({
     setIsRecording(true);
 
     try {
+      await startAudioVisualizer();
       recognition.start();
-      void startAudioVisualizer();
     } catch {
       shouldSendTranscriptRef.current = false;
       setIsRecording(false);
@@ -465,7 +472,12 @@ export function AiPracticeChatPanel({
   }
 
   return (
-    <section className="relative flex h-full max-h-full min-h-0 w-full flex-col rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+    <section className="relative flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
+      />
       <ChatHeader
         character={character}
         characterName={characterName}
@@ -481,7 +493,7 @@ export function AiPracticeChatPanel({
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
       />
-      <div className="shrink-0 bg-background-card">
+      <div className="relative z-10 shrink-0 bg-background-card/85 backdrop-blur-sm">
         <ChatComposer
           draft={isRecording && interimTranscript ? interimTranscript : draft}
           pending={pending}
@@ -522,18 +534,14 @@ function ChatHeader({
   tier: Tier;
 }) {
   return (
-    <header className="relative flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
-      <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-background-muted">
-        <Image src={character.imageSrc} alt={characterName} fill sizes="48px" className="object-cover" priority />
+    <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-white/15 bg-background-card/85 px-3 py-2 backdrop-blur-sm sm:px-4">
+      <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-background-muted">
+        <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" priority />
       </div>
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{characterName}</h1>
-        <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-foreground-muted">
-          <span className="shrink-0 rounded bg-background-muted px-1.5 py-0.5 text-xs font-semibold text-foreground-secondary">
-            {tier}
-          </span>
-        </p>
-      </div>
+      <h1 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">{characterName}</h1>
+      <span className="shrink-0 rounded-md bg-background-muted px-2 py-1 text-xs font-semibold text-foreground-secondary">
+        {tier}
+      </span>
     </header>
   );
 }
@@ -562,7 +570,7 @@ function MessageList({
   return (
     <div
       ref={refObject}
-      className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto p-3 sm:p-5"
+      className="relative z-10 min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto p-3 sm:p-5"
       data-ai-chat-scroll="true"
     >
       {messages.length === 0 ? (
@@ -583,8 +591,6 @@ function MessageList({
             <ChatMessage
               key={message.id}
               message={message}
-              character={character}
-              characterName={characterName}
               pending={pending && message.role === "assistant" && !message.content}
               onTranslate={() => onTranslate(message)}
               onSpeak={() => onSpeak(message)}
@@ -598,15 +604,11 @@ function MessageList({
 
 function ChatMessage({
   message,
-  character,
-  characterName,
   pending,
   onTranslate,
   onSpeak,
 }: {
   message: ClientMessage;
-  character: AiPracticeCharacter;
-  characterName: string;
   pending: boolean;
   onTranslate: () => void;
   onSpeak: () => void;
@@ -614,18 +616,15 @@ function ChatMessage({
   const isUser = message.role === "user";
 
   return (
-    <article className={cn("flex gap-3 animate-message-pop", isUser && "flex-row-reverse")}>
-      {!isUser && (
-        <div className="relative mt-1 size-8 shrink-0 overflow-hidden rounded-lg bg-background-muted sm:size-9">
-          <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" />
-        </div>
-      )}
-      <div className={cn("min-w-0 flex-1", isUser ? "items-end" : "items-start")}>
+    <article className={cn("flex animate-message-pop", isUser ? "justify-end" : "justify-start")}>
+      <div className="min-w-0 flex-1">
         <div className={cn("flex max-w-[86%] flex-col", isUser ? "ml-auto items-end" : "items-start")}>
           <div
             className={cn(
-              "rounded-lg px-4 py-3 text-sm leading-6",
-              isUser ? "bg-background-inverse text-foreground-inverse" : "border border-border bg-background text-foreground whitespace-pre-wrap",
+              "min-h-20 rounded-2xl px-5 py-4 text-sm leading-6",
+              isUser
+                ? "bg-background-inverse text-foreground-inverse"
+                : "relative bg-white text-slate-950 shadow-sm whitespace-pre-wrap before:absolute before:-left-1.5 before:top-4 before:size-3 before:rotate-45 before:bg-white",
             )}
           >
             {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}

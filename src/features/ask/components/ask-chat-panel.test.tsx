@@ -23,6 +23,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
+  UpgradeDialog: () => null,
+}));
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -80,6 +84,27 @@ describe("AskChatPanel", () => {
     expect(await screen.findByText("answer 1")).toBeVisible();
   });
 
+  it("sends an interim microphone transcript when recording stops", async () => {
+    const user = userEvent.setup();
+    const recognition = installSpeechRecognitionMock();
+
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("voice answer"))));
+
+    renderPanel({ initialTerm: "" });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Mikrofonu başlat" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Mikrofonu başlat" }));
+    expect(recognition.instance?.start).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      recognition.instance?.onresult?.(makeSpeechResultEvent("sesli merhaba", false));
+    });
+
+    await user.click(screen.getByRole("button", { name: "Kaydı durdur" }));
+    expect(await screen.findByText("sesli merhaba")).toBeVisible();
+    expect(await screen.findByText("voice answer")).toBeVisible();
+  });
+
   it("keeps the composer docked at the bottom without fixed positioning when the viewport shrinks", () => {
     const keyboard = installMobileKeyboardEnvironment({ viewportHeight: 844 });
 
@@ -105,6 +130,43 @@ function renderPanel({ initialTerm }: { initialTerm: string }) {
       <AskChatPanel language="en" initialTerm={initialTerm} />
     </LocaleProvider>,
   );
+}
+
+function installSpeechRecognitionMock() {
+  const recognition: {
+    instance: MockSpeechRecognition | null;
+  } = { instance: null };
+
+  class MockSpeechRecognition {
+    lang = "";
+    continuous = false;
+    interimResults = false;
+    onend: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onresult: ((event: ReturnType<typeof makeSpeechResultEvent>) => void) | null = null;
+    start = vi.fn();
+    stop = vi.fn(() => this.onend?.());
+
+    constructor() {
+      recognition.instance = this;
+    }
+  }
+
+  vi.stubGlobal("webkitSpeechRecognition", MockSpeechRecognition);
+
+  return recognition;
+}
+
+function makeSpeechResultEvent(transcript: string, isFinal: boolean) {
+  return {
+    resultIndex: 0,
+    results: [
+      {
+        0: { transcript },
+        isFinal,
+      },
+    ],
+  };
 }
 
 function installMobileKeyboardEnvironment({

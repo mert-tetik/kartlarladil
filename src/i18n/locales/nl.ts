@@ -340,7 +340,7 @@ const dictionary = {
   "page.accountSubscription.description": "Bekijk je actieve abonnement en recente webhook-gebeurtenissen.",
   "page.accountSubscription.title": "Abonnementsdetails",
   "page.aiPractice.charactersDescription": "Kies een gesprekstijl voor {language}.",
-  "page.aiPractice.charactersTitle": "Personage kiezen",
+  "page.aiPractice.charactersTitle": "Met wie wil je praten?",
   "page.aiPractice.chooseLanguagePrompt": "Kies de taal die je wilt oefenen",
   "page.aiPractice.description": "Kies een oefentaal, selecteer een personage en start een niet-opgeslagen chat in de doeltaal.",
   "page.aiPractice.tierSelectionTitle": "Choose level",
