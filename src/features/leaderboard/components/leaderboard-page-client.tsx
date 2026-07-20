@@ -69,7 +69,7 @@ export function LeaderboardPageClient() {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[60%] top-[-170vw] z-0 size-[220vw] -translate-x-1/2 rounded-full bg-black lg:hidden"
+          className="pointer-events-none absolute left-[60%] top-[-190vw] z-0 size-[220vw] -translate-x-1/2 rounded-full bg-black lg:hidden"
         />
         <div className="relative z-10 flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center max-lg:justify-start max-lg:gap-4">
           <div className="hidden space-y-2 lg:block">
@@ -95,7 +95,7 @@ export function LeaderboardPageClient() {
           </div>
 
           <div className="flex w-full items-center justify-center text-foreground lg:hidden">
-            <h1 className={cn("font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
+            <h1 className={cn("translate-y-6 font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
               {formatSuperWaterText(locale, t("leaderboard.title"))}
             </h1>
           </div>
