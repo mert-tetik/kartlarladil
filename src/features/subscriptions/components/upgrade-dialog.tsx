@@ -66,17 +66,19 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
 
         <div className="mt-6 flex flex-col gap-3">
           {showsUpgradeCta ? (
-            <Link
-              href="/pricing"
-              className={buttonClassName(
-                "primary",
-                "md",
-                "mobile-primary-action-depth w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
-              )}
-              onClick={() => onOpenChange(false)}
-            >
-              {t("limit.upgradeButtonFirstMonthFree")}
-            </Link>
+            <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-deep-orange w-full rounded-md">
+              <Link
+                href="/pricing"
+                className={buttonClassName(
+                  "primary",
+                  "md",
+                  "w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
+                )}
+                onClick={() => onOpenChange(false)}
+              >
+                {t("limit.upgradeButtonFirstMonthFree")}
+              </Link>
+            </div>
           ) : null}
           {errorCode === "free_active_card_limit" ? (
             <Button

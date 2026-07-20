@@ -140,12 +140,11 @@ button:disabled,
   }
 }
 
-/* Game-style mobile CTAs keep their existing color while exposing a crisp darker base. */
+/* Game-style mobile CTAs keep their existing face while exposing a darker base behind it. */
 .mobile-primary-action-depth {
   isolation: isolate;
   position: relative;
-  z-index: 0;
-  box-shadow: none !important;
+  overflow: visible;
 }
 
 .mobile-primary-action-depth::after {
@@ -154,11 +153,43 @@ button:disabled,
   inset: 0;
   content: "";
   border-radius: inherit;
-  background: inherit;
   filter: brightness(0.72) saturate(1.06);
   pointer-events: none;
   transform: translateY(6px);
-  clip-path: inset(calc(100% - 6px) 0 0);
+}
+
+.mobile-primary-action-depth > :is(a, button) {
+  position: relative;
+  z-index: 1;
+  box-shadow: none !important;
+}
+
+.mobile-primary-action-depth--emerald::after {
+  background: var(--color-emerald-500);
+}
+
+.mobile-primary-action-depth--sky::after {
+  background: var(--color-sky-500);
+}
+
+.mobile-primary-action-depth--blue::after {
+  background: var(--color-blue-500);
+}
+
+.mobile-primary-action-depth--red::after {
+  background: var(--color-red-500);
+}
+
+.mobile-primary-action-depth--amber-orange::after {
+  background: linear-gradient(to right, var(--color-amber-400), var(--color-orange-500));
+}
+
+.mobile-primary-action-depth--amber-deep-orange::after {
+  background: linear-gradient(to right, var(--color-amber-500), var(--color-orange-500));
+}
+
+.mobile-primary-action-depth--rose-violet::after {
+  background: linear-gradient(to right, var(--color-rose-500), var(--color-violet-600));
 }
 
 .mobile-main-nav-frame {

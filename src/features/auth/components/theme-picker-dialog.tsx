@@ -225,16 +225,18 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
             <p className="mt-2 text-sm text-foreground-secondary">{t("theme.upgradeDescription")}</p>
 
             <div className="mt-6 flex flex-col gap-3">
-              <Link
-                href="/pricing"
-                className="mobile-primary-action-depth inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
-                onClick={() => {
-                  setShowUpgrade(false);
-                  onOpenChange(false);
-                }}
-              >
-                {t("limit.upgradeButtonFirstMonthFree")}
-              </Link>
+              <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-orange w-full rounded-md">
+                <Link
+                  href="/pricing"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
+                  onClick={() => {
+                    setShowUpgrade(false);
+                    onOpenChange(false);
+                  }}
+                >
+                  {t("limit.upgradeButtonFirstMonthFree")}
+                </Link>
+              </div>
               <Button variant="ghost" onClick={() => setShowUpgrade(false)}>
                 {t("common.maybeLater")}
               </Button>

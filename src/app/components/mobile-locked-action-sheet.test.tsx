@@ -51,9 +51,9 @@ describe("MobileLockedActionSheet", () => {
     renderSheet();
 
     expect(screen.getByText("common.close")).toHaveClass("bg-emerald-500");
-    expect(screen.getByText("common.close")).toHaveClass("mobile-primary-action-depth");
-    expect(screen.getByRole("button", { name: "cards.randomDrawTitle" })).toHaveClass("mobile-primary-action-depth");
-    expect(screen.getByRole("button", { name: "home.mobile.addCard" })).toHaveClass("mobile-primary-action-depth");
+    expect(screen.getByText("common.close").closest(".mobile-primary-action-depth")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "cards.randomDrawTitle" }).closest(".mobile-primary-action-depth")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "home.mobile.addCard" }).closest(".mobile-primary-action-depth")).not.toBeNull();
   });
 
   it("keeps start learning disabled when the learned deck sheet has no learning cards", () => {
@@ -68,6 +68,6 @@ describe("MobileLockedActionSheet", () => {
 
     expect(props.onStartLearning).not.toHaveBeenCalled();
     expect(screen.getByText("common.close")).toHaveClass("bg-sky-500");
-    expect(startLearning).toHaveClass("mobile-primary-action-depth");
+    expect(startLearning.closest(".mobile-primary-action-depth")).not.toBeNull();
   });
 });

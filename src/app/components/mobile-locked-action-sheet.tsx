@@ -97,44 +97,55 @@ export function MobileLockedActionSheet({
         <div className="mt-4 grid gap-2">
           {isActive ? (
             <>
-              <button
-                type="button"
-                onClick={onOpenDraw}
-                className="mobile-primary-action-depth h-12 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-sm font-bold text-white transition-transform active:scale-[0.98]"
-              >
-                {t("cards.randomDrawTitle")}
-              </button>
-              <button
-                type="button"
-                onClick={onOpenCreate}
-                className="mobile-primary-action-depth h-12 rounded-xl bg-gradient-to-r from-rose-500 to-violet-600 text-sm font-bold text-white transition-transform active:scale-[0.98]"
-              >
-                {t("home.mobile.addCard")}
-              </button>
+              <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-orange rounded-xl">
+                <button
+                  type="button"
+                  onClick={onOpenDraw}
+                  className="h-12 w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+                >
+                  {t("cards.randomDrawTitle")}
+                </button>
+              </div>
+              <div className="mobile-primary-action-depth mobile-primary-action-depth--rose-violet rounded-xl">
+                <button
+                  type="button"
+                  onClick={onOpenCreate}
+                  className="h-12 w-full rounded-xl bg-gradient-to-r from-rose-500 to-violet-600 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+                >
+                  {t("home.mobile.addCard")}
+                </button>
+              </div>
             </>
           ) : (
-            <button
-              type="button"
-              disabled={!canStartLearning}
-              onClick={onStartLearning}
+            <div className="mobile-primary-action-depth mobile-primary-action-depth--emerald rounded-xl">
+              <button
+                type="button"
+                disabled={!canStartLearning}
+                onClick={onStartLearning}
+                className={cn(
+                  "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <GraduationCap className="size-5" aria-hidden="true" />
+                {t("home.mobile.startLearning")}
+              </button>
+            </div>
+          )}
+          <div className={cn(
+            "mobile-primary-action-depth w-full rounded-md",
+            isActive ? "mobile-primary-action-depth--emerald" : "mobile-primary-action-depth--sky",
+          )}>
+            <Button
+              size="lg"
+              onClick={onClose}
               className={cn(
-                "mobile-primary-action-depth flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+                "w-full border-0 text-white",
+                isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-sky-500 hover:bg-sky-600",
               )}
             >
-              <GraduationCap className="size-5" aria-hidden="true" />
-              {t("home.mobile.startLearning")}
-            </button>
-          )}
-          <Button
-            size="lg"
-            onClick={onClose}
-            className={cn(
-              "mobile-primary-action-depth w-full border-0 text-white",
-              isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-sky-500 hover:bg-sky-600",
-            )}
-          >
-            {t("common.close")}
-          </Button>
+              {t("common.close")}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

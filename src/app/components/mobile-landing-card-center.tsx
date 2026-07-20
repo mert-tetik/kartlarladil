@@ -88,7 +88,7 @@ export function MobileLandingCardCenter({
         <div id="mobile-card-center-content" className="animate-screen-pop">
           <div
             data-mobile-card-filters
-            className="sticky top-0 z-40 -mx-4 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm"
+            className="sticky -top-1 z-40 -mx-4 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm"
           >
               <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">
                 {(["all", "active", "learned"] as const).map((item) => (

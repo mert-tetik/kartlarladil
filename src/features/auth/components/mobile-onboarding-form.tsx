@@ -154,6 +154,11 @@ export function MobileOnboardingForm({
     : step === "learning"
       ? "bg-blue-500 text-white hover:bg-blue-600"
       : "bg-red-500 text-white hover:bg-red-600";
+  const actionDepthClass = step === "native"
+    ? "mobile-primary-action-depth--emerald"
+    : step === "learning"
+      ? "mobile-primary-action-depth--blue"
+      : "mobile-primary-action-depth--red";
 
   return (
     <form
@@ -240,17 +245,21 @@ export function MobileOnboardingForm({
       <div className="shrink-0 pt-5">
         <FormMessage state={state} />
         {isLanguageStep ? (
-          <button
-            type="button"
-            onClick={advanceLanguageStep}
-            className={cn("mobile-primary-action-depth h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
-          >
-            {t("auth.onboarding.selectLanguage")}
-          </button>
+          <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
+            <button
+              type="button"
+              onClick={advanceLanguageStep}
+              className={cn("h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
+            >
+              {t("auth.onboarding.selectLanguage")}
+            </button>
+          </div>
         ) : (
-          <SubmitButton className={cn("mobile-primary-action-depth h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
-            {t("auth.onboarding.continue")}
-          </SubmitButton>
+          <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
+            <SubmitButton className={cn("h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
+              {t("auth.onboarding.continue")}
+            </SubmitButton>
+          </div>
         )}
       </div>
     </form>

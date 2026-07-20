@@ -59,7 +59,7 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
 }
 
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
-  "max-w-[4.6rem] rounded-md border-2 border-[#BD8B1D] bg-[#FCC241] px-1.5 py-1 text-left font-semibold leading-[1.05] text-[#0B53B1]";
+  "whitespace-nowrap rounded-sm border border-[#BD8B1D] bg-[#FCC241] px-1.5 py-0.5 text-left font-semibold leading-none text-[#0B53B1]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -406,7 +406,7 @@ export function MobileLandingDashboard() {
         {leaderboardButtonLabel ? (
           <span
             className={cn(
-              "absolute -bottom-0.5 -right-5 origin-top-left -rotate-12",
+              "absolute bottom-0 left-[1.8rem] origin-bottom-left -rotate-6",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
             )}
@@ -958,21 +958,26 @@ function ActionButton({
   dataTutorialTarget?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-disabled={locked}
-      data-tutorial-target={dataTutorialTarget}
-      className={cn(
-        "mobile-primary-action-depth flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
-        variant === "active"
-          ? "bg-emerald-500 hover:bg-emerald-600"
-          : "bg-sky-500 hover:bg-sky-600",
-        locked && "opacity-50",
-      )}
-    >
-      <Icon className="size-5" aria-hidden="true" />
-      {label}
-    </button>
+    <div className={cn(
+      "mobile-primary-action-depth w-full rounded-xl",
+      variant === "active" ? "mobile-primary-action-depth--emerald" : "mobile-primary-action-depth--sky",
+    )}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-disabled={locked}
+        data-tutorial-target={dataTutorialTarget}
+        className={cn(
+          "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
+          variant === "active"
+            ? "bg-emerald-500 hover:bg-emerald-600"
+            : "bg-sky-500 hover:bg-sky-600",
+          locked && "opacity-50",
+        )}
+      >
+        <Icon className="size-5" aria-hidden="true" />
+        {label}
+      </button>
+    </div>
   );
 }

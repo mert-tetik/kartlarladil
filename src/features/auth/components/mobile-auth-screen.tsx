@@ -52,16 +52,18 @@ export function MobileAuthScreen() {
           label={t("auth.google.signIn")}
         />
 
-        <Button
-          type="button"
-          variant="secondary"
-          size="lg"
-          onClick={() => setMode("email")}
-          className="mobile-primary-action-depth h-14 w-full gap-2 bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600"
-        >
-          <Mail className="size-5" aria-hidden="true" />
-          {t("auth.mobile.useEmailInstead")}
-        </Button>
+        <div className="mobile-primary-action-depth mobile-primary-action-depth--emerald w-full rounded-md">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setMode("email")}
+            className="h-14 w-full gap-2 bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600"
+          >
+            <Mail className="size-5" aria-hidden="true" />
+            {t("auth.mobile.useEmailInstead")}
+          </Button>
+        </div>
       </div>
     </div>
   );

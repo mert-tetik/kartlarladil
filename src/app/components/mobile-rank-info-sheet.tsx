@@ -139,30 +139,25 @@ export function MobileRankInfoSheet({
               return (
                 <div key={item.id} className="flex w-full flex-col items-center">
                   <div className="flex flex-col items-center">
-                    <div className={cn("rounded-full p-1.5", current && "bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 shadow-sm")}>
+                    <div className={cn("rounded-full p-1.5", current && "bg-gradient-to-b from-orange-500 via-amber-400 to-amber-300 shadow-sm")}>
                       <div className={cn("rounded-full p-2", current && "bg-background-card")}>
                         <RankIcon icon={item.icon} className="size-32" sizes="128px" />
                       </div>
                     </div>
-                    <h3 className={cn("mt-3 text-center text-xl font-bold", current ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent" : "text-foreground")}>
-                      {getRankLabel(item, locale)}
+                    <h3 className={cn("mt-3 text-center text-xl font-bold", current ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent" : "text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+                      {formatSuperWaterText(locale, getRankLabel(item, locale))}
                     </h3>
                     <p className={cn("mt-1 inline-flex items-center gap-1.5 text-sm font-semibold", current ? "text-amber-600 dark:text-amber-400" : "text-foreground-secondary")}>
                       {formatNumber(locale, item.minPoints)}
                       <ScoreIcon size={17} className="size-4" />
                     </p>
-                    {current ? (
-                      <span className="mt-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-1 text-[10px] font-bold text-slate-950">
-                        {t("home.mobile.currentRank")}
-                      </span>
-                    ) : null}
                   </div>
 
                   {next ? (
                     <div className="relative my-4 h-20 w-full" aria-label={`${formatNumber(locale, Math.round(connectorProgress))}%`}>
                       <span className="absolute left-1/2 top-0 h-full w-3 -translate-x-1/2 overflow-hidden rounded-full bg-background-muted">
                         <span
-                          className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-orange-500 to-amber-300 transition-[height] duration-500 ease-out"
+                          className="absolute inset-x-0 top-0 rounded-full bg-gradient-to-b from-orange-500 to-amber-300 transition-[height] duration-500 ease-out"
                           style={{ height: `${connectorProgress}%` }}
                         />
                       </span>
