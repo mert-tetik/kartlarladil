@@ -406,7 +406,7 @@ export function MobileLandingDashboard() {
         {leaderboardButtonLabel ? (
           <span
             className={cn(
-              "absolute -bottom-2.5 left-[0.2rem] origin-bottom-left -rotate-12",
+              "absolute -bottom-3 left-[0.2rem] origin-bottom-left -rotate-12 inline-flex whitespace-nowrap rounded-[0.2rem] bg-gradient-to-r from-[#FDF4A5] to-[#F5AC27] px-0.5 py-px",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
             )}

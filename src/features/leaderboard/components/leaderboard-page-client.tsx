@@ -65,9 +65,13 @@ export function LeaderboardPageClient() {
     <>
       <section
         data-leaderboard-page
-        className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:bg-brand max-lg:px-3 max-lg:py-4"
+        className="relative isolate mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:bg-brand max-lg:px-3 max-lg:py-4"
       >
-        <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center max-lg:justify-start max-lg:gap-4">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-[-145vw] z-0 size-[160vw] -translate-x-1/2 rounded-full bg-black lg:hidden"
+        />
+        <div className="relative z-10 flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center max-lg:justify-start max-lg:gap-4">
           <div className="hidden space-y-2 lg:block">
             <h1 className={cn("font-display text-4xl font-semibold text-foreground sm:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
               {formatSuperWaterText(locale, t("leaderboard.title"))}
@@ -90,25 +94,13 @@ export function LeaderboardPageClient() {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-foreground lg:hidden">
-            <div className="min-w-0 text-center">
-              <h1 className={cn("font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
-                {formatSuperWaterText(locale, t("leaderboard.title"))}
-              </h1>
-              <p data-leaderboard-scope className="mt-1 text-xs font-medium text-brand-foreground/80">
-                {t("leaderboard.scope")}
-              </p>
-            </div>
-            <div className="min-w-9 text-right">
-              {data?.canViewLeaderboard ? (
-                <span className="text-xs font-semibold text-brand-foreground/85">
-                  {formatNumber(locale, data.entries.length)}
-                </span>
-              ) : null}
-            </div>
+          <div className="flex w-full items-center justify-center text-foreground lg:hidden">
+            <h1 className={cn("font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, t("leaderboard.title"))}
+            </h1>
           </div>
 
-          <div className="flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background-card shadow-sm max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent max-lg:shadow-none">
+          <div className="flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background-card shadow-sm max-lg:mt-auto max-lg:h-[calc(100%-10rem)] max-lg:flex-none max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent max-lg:shadow-none">
             <div className="flex items-center justify-between border-b border-border px-4 py-3 max-lg:hidden">
               <span className={cn("text-sm font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
                 {formatSuperWaterText(locale, t("leaderboard.title"))}
