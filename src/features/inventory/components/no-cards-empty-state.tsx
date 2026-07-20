@@ -27,7 +27,7 @@ export function NoCardsEmptyState({
       data-no-cards-empty-state={variant}
     >
       <EmptyState
-        mascot="/mascots/mascot17.png"
+        mascot="/mascots/mascot17.webp"
         title={t(titleKey)}
         description={t(descriptionKey)}
         action={

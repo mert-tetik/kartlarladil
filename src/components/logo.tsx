@@ -10,7 +10,7 @@ interface LogoProps {
 export function Logo({ size = 40, className, priority }: LogoProps) {
   return (
     <Image
-      src="/logo.png"
+      src="/logo.webp"
       alt="FoxiesDeck"
       width={size}
       height={size}

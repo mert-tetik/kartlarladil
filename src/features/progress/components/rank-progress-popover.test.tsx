@@ -122,7 +122,7 @@ describe("RankProgressPopover", () => {
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
     expect(within(rankUpDialog).getByText("200")).toBeVisible();
     expect(within(rankUpDialog).queryByText("200 puan")).not.toBeInTheDocument();
-    expect(rankUpDialog.querySelector('img[src*="score-icon.png"]')).toBeInTheDocument();
+    expect(rankUpDialog.querySelector('img[src*="score-icon.webp"]')).toBeInTheDocument();
     expect(rankUpDialog.querySelector("[data-rank-up-total-score]")).toHaveClass("scale-125");
 
     expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");

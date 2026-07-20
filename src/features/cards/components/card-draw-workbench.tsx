@@ -734,7 +734,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
                   </div>
                 ) : (
                   <EmptyState
-                    mascot="/mascots/mascot17.png"
+                    mascot="/mascots/mascot17.webp"
                     title={hasDrawn ? t("cards.emptyDrawTitle") : t("cards.drawPromptTitle")}
                     description={hasDrawn ? t("cards.emptyDrawDescription") : t("cards.drawPromptDescription")}
                     descriptionClassName={hasDrawn ? undefined : "max-lg:hidden"}

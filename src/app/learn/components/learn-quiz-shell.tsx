@@ -73,7 +73,7 @@ export function LearnQuizShell({
           <PageHeader
             title={title}
             description=" "
-            mascot="/mascots/mascot5.png"
+            mascot="/mascots/mascot5.webp"
             mascotSize="lg"
             centered
             titleClassName="text-white text-5xl md:text-6xl lg:text-7xl"
@@ -133,7 +133,7 @@ function LearnQuizShellLoading({
           <PageHeader
             title={title}
             description=" "
-            mascot="/mascots/mascot5.png"
+            mascot="/mascots/mascot5.webp"
             mascotSize="lg"
             centered
             titleClassName="text-white text-5xl md:text-6xl lg:text-7xl"

@@ -81,15 +81,15 @@ const PRICING_GRADIENT_BORDER_CLASS =
   "border-transparent [background:linear-gradient(var(--background-card),var(--background-card))_padding-box,linear-gradient(90deg,#fde047,#facc15,#f97316)_border-box]";
 
 export const PLANS: PricingPlan[] = [
-  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
-  { plan: "basic", monthlyPrice: 3, yearlyPrice: 30, mascot: "/mascots/mascot15.png" },
-  { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.png" },
+  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.webp" },
+  { plan: "basic", monthlyPrice: 3, yearlyPrice: 30, mascot: "/mascots/mascot15.webp" },
+  { plan: "pro", monthlyPrice: 9, yearlyPrice: 90, popular: true, mascot: "/mascots/mascot16.webp" },
 ];
 
 export const TWA_PLANS: PricingPlan[] = [
-  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.png" },
-  { plan: "basic", monthlyPrice: 2, yearlyPrice: 20, mascot: "/mascots/mascot15.png" },
-  { plan: "pro", monthlyPrice: 6, yearlyPrice: 60, popular: true, mascot: "/mascots/mascot16.png" },
+  { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.webp" },
+  { plan: "basic", monthlyPrice: 2, yearlyPrice: 20, mascot: "/mascots/mascot15.webp" },
+  { plan: "pro", monthlyPrice: 6, yearlyPrice: 60, popular: true, mascot: "/mascots/mascot16.webp" },
 ];
 
 export function getReferenceUsdPrice(
@@ -729,8 +729,8 @@ const MOBILE_OPTIONS: MobileOption[] = [
 ];
 
 const MASCOT_BY_PLAN: Record<Exclude<SubscriptionPlan, "free">, string> = {
-  basic: "/mascots/mascot15.png",
-  pro: "/mascots/mascot16.png",
+  basic: "/mascots/mascot15.webp",
+  pro: "/mascots/mascot16.webp",
 };
 
 function getPlanDiscountRate(plan: Exclude<SubscriptionPlan, "free">, isTwa: boolean): number | null {

@@ -2,6 +2,7 @@
 
 import { claimMissionRewardAction, type ClaimMissionResult } from "./mission-actions";
 import { useMissionClaimStore } from "./mission-claim-store";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 
 interface QueuedMissionClaim {
   userId: string;
@@ -42,6 +43,7 @@ async function processQueue() {
     const store = useMissionClaimStore.getState();
     if (result.status === "success") {
       store.resolvePendingClaim(task.missionId, task.userId);
+      refreshLeaderboardPositions();
     } else {
       store.rejectPendingClaim(task.missionId, task.userId);
     }

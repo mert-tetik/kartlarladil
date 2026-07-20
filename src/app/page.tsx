@@ -106,7 +106,7 @@ export default async function Home() {
           <div className="flex w-full flex-col items-center gap-4 sm:gap-8 lg:flex-row">
             <div className="order-1 flex shrink-0 items-center justify-center lg:order-none lg:w-[360px]">
               <Image
-                src="/mascots/mascot1.png"
+                src="/mascots/mascot1.webp"
                 alt=""
                 width={360}
                 height={380}
@@ -177,7 +177,7 @@ export default async function Home() {
         <div className="mx-auto grid w-full max-w-[1500px] items-center justify-items-center gap-6 px-4 py-16 text-center max-lg:gap-3 max-lg:py-8 sm:px-6 max-lg:grid-cols-1 lg:grid-cols-[140px_minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-8 lg:px-8 lg:text-left">
           <div className="order-first flex items-center justify-center lg:order-none">
             <Image
-              src="/mascots/mascot16.png"
+              src="/mascots/mascot16.webp"
               alt=""
               width={140}
               height={140}
@@ -232,9 +232,9 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              ["/mascots/mascot6.png", t("home.steps.one.title"), t("home.steps.one.description")],
-              ["/mascots/mascot7.png", t("home.steps.two.title"), t("home.steps.two.description")],
-              ["/mascots/mascot8.png", t("home.steps.three.title"), t("home.steps.three.description")],
+              ["/mascots/mascot6.webp", t("home.steps.one.title"), t("home.steps.one.description")],
+              ["/mascots/mascot7.webp", t("home.steps.two.title"), t("home.steps.two.description")],
+              ["/mascots/mascot8.webp", t("home.steps.three.title"), t("home.steps.three.description")],
             ].map(([mascot, title, description]) => (
               <article key={mascot} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
                 <div className="relative h-14 w-14">
@@ -252,7 +252,7 @@ export default async function Home() {
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
             <div className="relative h-44 w-44">
-              <Image src="/mascots/mascot9.png" alt="" fill sizes="176px" className="object-contain" />
+              <Image src="/mascots/mascot9.webp" alt="" fill sizes="176px" className="object-contain" />
             </div>
             <h2 className="mt-5 font-display text-4xl font-semibold text-slate-950 dark:text-white">{t("home.points.title")}</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 dark:text-foreground-secondary">{t("home.points.description")}</p>

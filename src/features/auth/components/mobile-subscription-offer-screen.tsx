@@ -150,7 +150,7 @@ export function MobileSubscriptionOfferScreen({
     <div className="animate-screen-pop flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden overflow-y-auto rounded-2xl bg-background-card text-center shadow-xl">
       <div className="relative isolate h-[42vh] min-h-[260px] w-full overflow-hidden">
         <Image
-          src="/onboarding-premium-hero.png"
+          src="/onboarding-premium-hero.webp"
           alt=""
           fill
           priority

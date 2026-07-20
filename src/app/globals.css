@@ -590,6 +590,37 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
 }
 
 @media (max-width: 1023px) {
+  /* Keep the character picker in a real viewport band. PageTransitionShell has
+     a transform, so a fixed child would otherwise be sized by a zero-height
+     transition container and render outside the visible area. */
+  body:has([data-ai-practice-page]) .page-transition-shell {
+    animation: none;
+    bottom: var(--mobile-nav-bar-height);
+    display: flex;
+    flex-direction: column;
+    left: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+    position: fixed;
+    right: 0;
+    top: var(--app-header-height);
+    transform: none;
+    will-change: auto;
+  }
+
+  body:has([data-ai-practice-page]) #main-content {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  body:has([data-ai-practice-page]) .page-transition-shell > div,
+  body:has([data-ai-practice-page]) [data-ai-practice-page] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   body:has([data-card-draw-page]) footer {
     display: none;
   }

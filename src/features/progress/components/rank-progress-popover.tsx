@@ -150,7 +150,7 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
             <div className="flex items-center gap-4">
               <div className="relative hidden h-16 w-16 shrink-0 md:block">
                 <Image
-                  src="/mascots/mascot9.png"
+                  src="/mascots/mascot9.webp"
                   alt=""
                   fill
                   sizes="64px"
@@ -353,7 +353,7 @@ function RankUpMenu({
     >
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
         <Image
-          src="/rank-up-bg.png"
+          src="/rank-up-bg.webp"
           alt=""
           fill
           priority

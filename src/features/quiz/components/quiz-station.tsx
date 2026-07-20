@@ -59,6 +59,7 @@ import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { awardQuizStreakPoints } from "@/features/quiz/actions";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
@@ -895,6 +896,7 @@ export function QuizStation({
 
     if (result.success) {
       await refreshStats();
+      refreshLeaderboardPositions();
     }
   }
 
@@ -925,6 +927,7 @@ export function QuizStation({
 
       if (result.success) {
         await refreshStats();
+        refreshLeaderboardPositions();
         return;
       }
 
@@ -2585,10 +2588,6 @@ export function CelebrationView({
       data-quiz-celebration
       data-quiz-celebration-stage="score-flight"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-80" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.14),_transparent_34%)]" />
-      </div>
-
       <div className="relative flex h-full w-full items-center justify-center">
         <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
           <div

@@ -26,6 +26,7 @@ import { useGameProgressStore } from "../game-progress-store";
 import { useGameSounds } from "../use-game-sounds";
 import { useGameTimer } from "../game-timer";
 import { addGamePointsAction } from "../game-actions";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import type { WordMatchItem } from "../game-types";
 import { GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
@@ -189,7 +190,11 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
         updateProfileField({
           aiPracticePoints: (user.profile.aiPracticePoints ?? 0) + points,
         });
-        void addGamePointsAction(points).then(() => refreshProfile());
+        void addGamePointsAction(points).then(async (result) => {
+          if (result.status !== "success") return;
+          await refreshProfile();
+          refreshLeaderboardPositions();
+        });
       }
       setPhase("completed");
     }

@@ -19,7 +19,7 @@ export function AskSection({ title, description, cta, href }: AskSectionProps) {
           <div className="flex items-center gap-5">
             <div className="relative shrink-0">
               <Image
-                src="/mascots/mascot1.png"
+                src="/mascots/mascot1.webp"
                 alt=""
                 width={72}
                 height={76}

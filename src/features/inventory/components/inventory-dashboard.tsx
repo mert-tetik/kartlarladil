@@ -130,7 +130,7 @@ export function InventoryDashboard({
       {showHeader ? (
         <PageHeader
           title={t("page.inventory.title")}
-          mascot="/mascots/mascot10.png"
+          mascot="/mascots/mascot10.webp"
           mascotSize="lg"
           titleClassName="text-3xl md:text-4xl"
         />
@@ -288,7 +288,7 @@ function InventoryDashboardLoading({
       {showHeader ? (
         <PageHeader
           title={pageTitle}
-          mascot="/mascots/mascot10.png"
+          mascot="/mascots/mascot10.webp"
           mascotSize="lg"
           titleClassName="text-3xl md:text-4xl"
         />

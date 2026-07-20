@@ -26,6 +26,7 @@ import {
   createPracticeAttempt,
 } from "@/features/quiz/quiz-engine";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 
 interface RecordAnswerResult {
   attempt: PracticeAttempt;
@@ -391,7 +392,9 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
-          if (inventoryCard && isFirstLearnedTransition(ownedCard?.status ?? "active", inventoryCard.status)) {
+          const didLearnCard = inventoryCard && isFirstLearnedTransition(ownedCard?.status ?? "active", inventoryCard.status);
+
+          if (didLearnCard) {
             sendTwaAnalyticsEvent("fd_card_learned", {
               params: {
                 card_id: inventoryCard.cardId,
@@ -401,6 +404,10 @@ export const useInventoryStore = create<InventoryState>()(
                 correct_count: inventoryCard.correctCount,
               },
             });
+          }
+
+          if (didLearnCard) {
+            refreshLeaderboardPositions();
           }
 
           await syncMissionsFromClientState();

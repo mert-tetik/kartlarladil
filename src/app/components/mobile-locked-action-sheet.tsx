@@ -83,7 +83,7 @@ export function MobileLockedActionSheet({
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/mascots/mascot12.png"
+            src="/mascots/mascot12.webp"
             alt=""
             className="h-40 w-auto object-contain"
           />

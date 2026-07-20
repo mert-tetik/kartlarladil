@@ -9,7 +9,7 @@ describe("AI practice characters", () => {
     expect(characters).toHaveLength(10);
 
     for (const character of characters) {
-      expect(character.imageSrc).toMatch(/^\/ai-characters\/[a-z0-9-]+\.png$/);
+      expect(character.imageSrc).toMatch(/^\/ai-characters\/[a-z0-9-]+\.webp$/);
       expect(character.imageSrc).not.toContain("ChatGPT");
       expect(character.promptProfile.trim().length).toBeGreaterThan(80);
       expect(character.conversationStyle.length).toBeGreaterThanOrEqual(3);

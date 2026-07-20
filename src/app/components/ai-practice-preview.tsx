@@ -41,7 +41,7 @@ export async function AiPracticePreview() {
         <div className="flex flex-col items-center gap-2 lg:gap-1 lg:flex-row lg:justify-between">
           <div className="flex shrink-0 items-center justify-center">
             <Image
-              src="/mascots/mascot4.png"
+              src="/mascots/mascot4.webp"
               alt=""
               width={180}
               height={180}

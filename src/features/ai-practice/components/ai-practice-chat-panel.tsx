@@ -21,6 +21,7 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { cn, createId } from "@/lib/utils";
 import type {
@@ -269,6 +270,7 @@ export function AiPracticeChatPanel({
 
       updateMessageScore(userMessage.id, points);
       playSoundEffect("points");
+      refreshLeaderboardPositions();
       void refreshStats();
       void syncMissionsFromClientState();
     } catch {

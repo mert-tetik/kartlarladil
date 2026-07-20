@@ -33,7 +33,7 @@ export function getProfilePictureSource(profilePictureIndex: number | null | und
       ? profilePictureIndex
       : 0;
 
-  return `/profile-pictures/pp_${resolvedIndex + 1}.png`;
+  return `/profile-pictures/pp_${resolvedIndex + 1}.webp`;
 }
 
 export function getProfilePictureNameKey(profilePictureIndex: number): TranslationKey {

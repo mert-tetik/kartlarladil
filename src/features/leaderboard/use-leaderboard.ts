@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LeaderboardPayload } from "@/features/leaderboard/leaderboard-types";
+import { LEADERBOARD_REFRESH_EVENT } from "@/features/leaderboard/leaderboard-refresh";
 
 let leaderboardCache: LeaderboardPayload | null = null;
 
@@ -63,6 +64,19 @@ export function useLeaderboardData({
 
     return () => window.clearTimeout(timer);
   }, [enabled, fetchLeaderboard, refreshOnMount]);
+
+  useEffect(() => {
+    function refreshAfterPointsChange() {
+      leaderboardCache = null;
+      void fetchLeaderboard({ showLoading: false });
+    }
+
+    window.addEventListener(LEADERBOARD_REFRESH_EVENT, refreshAfterPointsChange);
+
+    return () => {
+      window.removeEventListener(LEADERBOARD_REFRESH_EVENT, refreshAfterPointsChange);
+    };
+  }, [fetchLeaderboard]);
 
   return {
     data,

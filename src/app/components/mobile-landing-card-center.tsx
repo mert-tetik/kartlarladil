@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type SVGProps } from "react";
+import { useId, useMemo, useState, type SVGProps } from "react";
 import { ChevronDown, Languages, Volume2 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
 import { ScoreIcon } from "@/components/score-icon";
@@ -51,8 +51,6 @@ export function MobileLandingCardCenter({
   const t = useT();
   const [tier, setTier] = useState<Tier | "all">("all");
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
-  const [filtersPinned, setFiltersPinned] = useState(false);
-  const filterSlotRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
       const sourceCards = status === "active" ? activeCards : status === "learned" ? learnedCards : [...activeCards, ...learnedCards];
@@ -65,30 +63,7 @@ export function MobileLandingCardCenter({
   );
   const statusLabel = t(`cards.${status === "all" ? "all" : status === "active" ? "toLearn" : "learned"}`);
 
-  useEffect(() => {
-    const scrollContainer = filterSlotRef.current?.closest<HTMLElement>("[data-mobile-landing-dashboard]");
-
-    if (!scrollContainer) return;
-
-    const updatePinnedState = () => {
-      const slotTop = filterSlotRef.current?.getBoundingClientRect().top;
-      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 64;
-
-      setFiltersPinned((current) => {
-        const next = typeof slotTop === "number" && slotTop <= headerBottom;
-        return current === next ? current : next;
-      });
-    };
-
-    scrollContainer.addEventListener("scroll", updatePinnedState, { passive: true });
-
-    return () => scrollContainer.removeEventListener("scroll", updatePinnedState);
-  }, [isOpen]);
-
   function handleToggle() {
-    if (isOpen) {
-      setFiltersPinned(false);
-    }
     onOpenChange(!isOpen);
   }
 
@@ -111,14 +86,10 @@ export function MobileLandingCardCenter({
 
       {isOpen ? (
         <div id="mobile-card-center-content" className="animate-screen-pop">
-          <div ref={filterSlotRef} className={filtersPinned ? "h-[8.5rem]" : undefined}>
-            <div
-              data-mobile-card-filters
-              className={cn(
-                "z-40 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm",
-                filtersPinned ? "fixed inset-x-0 top-[var(--app-header-height)]" : "relative z-20 -mx-4",
-              )}
-            >
+          <div
+            data-mobile-card-filters
+            className="sticky top-0 z-40 -mx-4 space-y-2 border-b border-border bg-background px-4 py-3 shadow-sm"
+          >
               <div className="grid grid-cols-3 gap-1 rounded-lg bg-background-muted p-1">
                 {(["all", "active", "learned"] as const).map((item) => (
                   <button key={item} type="button" onClick={() => onStatusChange(item)} className={cn("rounded-md px-2 py-2 text-xs font-semibold transition-all duration-300", status === item ? item === "all" ? "bg-white text-black shadow-sm" : item === "active" ? "bg-emerald-500 text-white shadow-sm" : "bg-sky-500 text-white shadow-sm" : "text-foreground-secondary")}>
@@ -150,7 +121,6 @@ export function MobileLandingCardCenter({
                 <span className="text-white/60" aria-hidden="true">•</span>
                 <span className="truncate">{statusLabel}</span>
               </div>
-            </div>
           </div>
 
           <div className="divide-y divide-border border-b border-border bg-background-card">

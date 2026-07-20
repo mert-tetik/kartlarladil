@@ -285,10 +285,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       data-chest-opening-layout
       className="animate-screen-pop relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.28),_transparent_42%),radial-gradient(circle_at_bottom,_rgba(245,158,11,0.18),_transparent_38%)]" />
-      </div>
-
       <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
         <div className="flex justify-center pt-1 sm:pt-2">
           <div

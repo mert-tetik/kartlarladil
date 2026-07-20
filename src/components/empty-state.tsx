@@ -20,7 +20,7 @@ export function EmptyState({
     <div className={cn("rounded-lg border border-dashed border-transparent bg-transparent p-8 text-center", className)}>
       <div className="relative mx-auto h-32 w-32">
         <Image
-          src={mascot ?? "/mascots/mascot12.png"}
+          src={mascot ?? "/mascots/mascot12.webp"}
           alt=""
           fill
           sizes="128px"

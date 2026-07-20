@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
-import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
 import { MissionIcon } from "@/components/mission-icon";
 import { ScoreIcon } from "@/components/score-icon";
 import { LanguageFlag } from "@/components/language-flag";
@@ -87,11 +87,6 @@ export function MobileLandingDashboard() {
       return requestedLanguage;
     }
 
-    const stored = readLandingCardLanguage();
-    if (stored) {
-      return stored;
-    }
-
     const preferred = user?.profile.preferredLanguageCode;
     if (preferred && LANGUAGES.some((item) => item.code === preferred)) {
       return preferred;
@@ -116,6 +111,7 @@ export function MobileLandingDashboard() {
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
+  const hasPendingStoredLandingLanguageRef = useRef(false);
 
   useEffect(() => {
     router.prefetch("/create-card");
@@ -134,20 +130,34 @@ export function MobileLandingDashboard() {
   }, [cards.length, hydrated, isTwa]);
 
   useEffect(() => {
-    return subscribeLandingCardLanguage(() => {
-      const stored = readLandingCardLanguage();
+    // Browser storage is intentionally read after hydration. Reading it while
+    // initializing state can make the first client render differ from SSR.
+    const stored = readLandingCardLanguage();
+    if (!allowRequestedLanguageRef.current && stored) {
+      hasPendingStoredLandingLanguageRef.current = true;
+      setSelectedLanguage(stored);
+    }
 
-      if (!stored) {
+    return subscribeLandingCardLanguage(() => {
+      const nextStoredLanguage = readLandingCardLanguage();
+
+      if (!nextStoredLanguage) {
         return;
       }
 
       allowRequestedLanguageRef.current = false;
-      setSelectedLanguage(stored);
+      setSelectedLanguage(nextStoredLanguage);
     });
   }, []);
 
   useEffect(() => {
     if (allowRequestedLanguageRef.current) {
+      return;
+    }
+
+    // Let the post-hydration storage restore win over automatic locale syncing.
+    if (hasPendingStoredLandingLanguageRef.current) {
+      hasPendingStoredLandingLanguageRef.current = false;
       return;
     }
 
@@ -380,16 +390,22 @@ export function MobileLandingDashboard() {
             navigateWithRouteTransition(() => router.push("/leaderboard"));
           }, { nextPath: "/leaderboard" });
         }}
-        className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 text-white transition-transform active:scale-[0.98]"
+        className="absolute left-2 top-2 z-10 inline-flex size-14 items-center justify-center text-white transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
         data-tutorial-target="leaderboard"
       >
-        <span className="inline-flex h-[2.45rem] w-[2.45rem] items-center justify-center rounded-full border border-fuchsia-200/35 bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-600 shadow-[0_10px_26px_rgba(219,39,119,0.3)]">
-          <LeaderboardIcon className="h-[1.55rem] w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]" />
-        </span>
+        <Image
+          src="/leaderboard-icon.png"
+          alt=""
+          aria-hidden="true"
+          width={56}
+          height={56}
+          className="h-14 w-14 object-contain"
+        />
         {leaderboardButtonLabel ? (
           <span
             className={cn(
+              "absolute -bottom-0.5 -right-5 origin-top-left -rotate-12",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
             )}
@@ -444,10 +460,6 @@ export function MobileLandingDashboard() {
 
       {/* Rank */}
       <div data-tutorial-target="rank-info" className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
-        <div
-          className="pointer-events-none absolute inset-0 hidden scale-y-[-1] bg-[url('/landing-rank-bg.jpg')] bg-cover bg-center"
-          aria-hidden="true"
-        />
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"

@@ -14,6 +14,7 @@ import { useGameSounds } from "../use-game-sounds";
 import { useGameTimer } from "../game-timer";
 import type { WordChallengeItem } from "../game-types";
 import { addGamePointsAction } from "../game-actions";
+import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
@@ -104,7 +105,11 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
             updateProfileField({
               aiPracticePoints: (user.profile.aiPracticePoints ?? 0) + points,
             });
-            void addGamePointsAction(points).then(() => refreshProfile());
+            void addGamePointsAction(points).then(async (result) => {
+              if (result.status !== "success") return;
+              await refreshProfile();
+              refreshLeaderboardPositions();
+            });
           }
           setPhase("completed");
         } else {

@@ -63,7 +63,7 @@ export function ReviewSection({ user, existingReview, t }: ReviewSectionProps) {
     <section className="relative isolate overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.5]">
         <Image
-          src="/mascots/mascot13.png"
+          src="/mascots/mascot13.webp"
           alt=""
           fill
           sizes="100vw"

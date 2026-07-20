@@ -12,7 +12,7 @@ export function ScoreIcon({
 }) {
   return (
     <Image
-      src="/score-icon.png"
+      src="/score-icon.webp"
       alt={alt}
       width={size}
       height={size}

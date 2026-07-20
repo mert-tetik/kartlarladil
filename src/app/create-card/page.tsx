@@ -227,7 +227,7 @@ export default function CreateCardPage() {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-[50vh] w-screen">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/custom-card-page-bg.png"
+          src="/custom-card-page-bg.webp"
           alt=""
           className="h-full w-full object-cover object-bottom"
         />

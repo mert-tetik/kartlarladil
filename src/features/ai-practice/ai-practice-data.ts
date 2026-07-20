@@ -39,7 +39,7 @@ const localeSummary = {
 const AI_PRACTICE_CHARACTER_DATA = [
   {
     id: "gentle-companion",
-    imageSrc: "/ai-characters/gentle-companion.png",
+    imageSrc: "/ai-characters/gentle-companion.webp",
     sourcePersonality: "Regular, soft woman",
     namesByLanguage: languageNames({
       tr: "Selen",
@@ -71,7 +71,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "gothic-calm",
-    imageSrc: "/ai-characters/gothic-calm.png",
+    imageSrc: "/ai-characters/gothic-calm.webp",
     sourcePersonality: "Very calm, gothic and cool girl",
     namesByLanguage: languageNames({
       tr: "Lal",
@@ -118,7 +118,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "campus-friend",
-    imageSrc: "/ai-characters/campus-friend.png",
+    imageSrc: "/ai-characters/campus-friend.webp",
     sourcePersonality: "Student, woman",
     namesByLanguage: languageNames({
       tr: "Ece",
@@ -165,7 +165,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "soft-artist",
-    imageSrc: "/ai-characters/soft-artist.png",
+    imageSrc: "/ai-characters/soft-artist.webp",
     sourcePersonality: "Very soft blonde pretty boy",
     namesByLanguage: languageNames({
       tr: "Aras",
@@ -211,7 +211,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "skater-coach",
-    imageSrc: "/ai-characters/skater-coach.png",
+    imageSrc: "/ai-characters/skater-coach.webp",
     sourcePersonality: "Cool and badass skater woman",
     namesByLanguage: languageNames({
       tr: "Duru",
@@ -258,7 +258,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "study-buddy",
-    imageSrc: "/ai-characters/study-buddy.png",
+    imageSrc: "/ai-characters/study-buddy.webp",
     sourcePersonality: "Student, woman",
     namesByLanguage: languageNames({
       tr: "İdil",
@@ -304,7 +304,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "sleepy-student",
-    imageSrc: "/ai-characters/sleepy-student.png",
+    imageSrc: "/ai-characters/sleepy-student.webp",
     sourcePersonality: "Very tired student boy",
     namesByLanguage: languageNames({
       tr: "Mert",
@@ -350,7 +350,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "friendly-worker",
-    imageSrc: "/ai-characters/friendly-worker.png",
+    imageSrc: "/ai-characters/friendly-worker.webp",
     sourcePersonality: "Bald, uncle, hardworker, very friendly",
     namesByLanguage: languageNames({
       tr: "Kemal",
@@ -396,7 +396,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "warm-grandmother",
-    imageSrc: "/ai-characters/warm-grandmother.png",
+    imageSrc: "/ai-characters/warm-grandmother.webp",
     sourcePersonality: "An old woman",
     namesByLanguage: languageNames({
       tr: "Nermin",
@@ -442,7 +442,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   },
   {
     id: "wise-elder",
-    imageSrc: "/ai-characters/wise-elder.png",
+    imageSrc: "/ai-characters/wise-elder.webp",
     sourcePersonality: "A wise old man",
     namesByLanguage: languageNames({
       tr: "İrfan",
