@@ -1,5 +1,5 @@
 {
-  "version": "b12c9ff1ea1718183227f4fd8500cdb70df6d24850e20c6ec67ae73734b1a35d",
+  "version": "b8cb12e8e571fe8e3167962c1639140ef1a1ccc011f440eb1977771b37a102da",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -164,6 +164,10 @@
     {
       "url": "/game-backgrounds/dark-game-bg.jpg",
       "revision": "378786bf755baa0255d478f939761aed022b8b3c5fa94edae2522073f3f19c4c"
+    },
+    {
+      "url": "/game-backgrounds/games-page-bg.png",
+      "revision": "356bd8ee6ad04006ed1ad3774f90fc7cd513a75bb1e7ec2cebe1fb03a00b7e85"
     },
     {
       "url": "/game-backgrounds/green-game-bg.jpg",

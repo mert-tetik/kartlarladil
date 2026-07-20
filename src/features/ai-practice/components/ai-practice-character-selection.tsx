@@ -110,7 +110,7 @@ export function AiPracticeCharacterSelection({
                   alt={characterName}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-                  className="object-contain object-bottom transition-transform duration-300 group-hover:scale-[1.03]"
+                  className="scale-[1.08] object-contain object-bottom transition-transform duration-300 group-hover:scale-[1.11]"
                 />
               </div>
               <div className="p-4">
