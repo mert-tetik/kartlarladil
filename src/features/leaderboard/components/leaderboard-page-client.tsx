@@ -69,7 +69,7 @@ export function LeaderboardPageClient() {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[60%] top-[-190vw] z-0 size-[220vw] -translate-x-1/2 rounded-full bg-black lg:hidden"
+          className="pointer-events-none absolute left-[60%] top-[-150vw] z-0 size-[220vw] -translate-x-1/2 rounded-full bg-black lg:hidden"
         />
         <div className="relative z-10 flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center max-lg:justify-start max-lg:gap-4">
           <div className="hidden space-y-2 lg:block">
@@ -95,7 +95,7 @@ export function LeaderboardPageClient() {
           </div>
 
           <div className="flex w-full items-center justify-center text-foreground lg:hidden">
-            <h1 className={cn("translate-y-6 font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
+            <h1 className={cn("translate-y-10 font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
               {formatSuperWaterText(locale, t("leaderboard.title"))}
             </h1>
           </div>
@@ -168,17 +168,26 @@ export function LeaderboardPageClient() {
                         entry.isViewer
                           ? "border-brand/40 bg-brand/10"
                           : "border-border bg-background",
-                        "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--brand),black_52%)_0%,color-mix(in_oklab,var(--brand),white_30%)_100%)] max-lg:p-px",
+                        entry.isViewer
+                          ? "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-white max-lg:p-[3px]"
+                          : "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--brand),black_52%)_0%,color-mix(in_oklab,var(--brand),white_30%)_100%)] max-lg:p-px",
                       )}
                     >
-                      <div className="contents max-lg:grid max-lg:grid-cols-[1.5rem_2.25rem_2.25rem_minmax(0,1fr)_auto] max-lg:items-center max-lg:gap-0.5 max-lg:rounded-full max-lg:bg-[color-mix(in_oklab,var(--brand),black_28%)] max-lg:px-2.5 max-lg:py-2">
+                      <div
+                        className={cn(
+                          "contents max-lg:grid max-lg:grid-cols-[1.5rem_2.25rem_2.25rem_minmax(0,1fr)_auto] max-lg:items-center max-lg:gap-0.5 max-lg:rounded-full max-lg:px-2.5 max-lg:py-2",
+                          entry.isViewer
+                            ? "max-lg:bg-[color-mix(in_oklab,var(--brand),black_45%)]"
+                            : "max-lg:bg-[color-mix(in_oklab,var(--brand),black_28%)]",
+                        )}
+                      >
                         <span className="text-sm font-semibold text-foreground-secondary max-lg:text-brand-foreground/70">
                           {entry.position}.
                         </span>
                         <ProfilePicture
                           profilePictureIndex={entry.profilePictureIndex}
                           alt=""
-                          className="size-9 rounded-full"
+                          className={cn("size-9 rounded-full", entry.isViewer && "max-lg:ring-2 max-lg:ring-white")}
                         />
                         <div className="flex items-center justify-center">
                           <RankIcon icon={entry.rankIcon} className="size-8" sizes="32px" />
