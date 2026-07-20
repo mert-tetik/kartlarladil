@@ -33,7 +33,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const [scorePulse, setScorePulse] = useState(0);
   const [flightIcons, setFlightIcons] = useState<Array<{ id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number }>>([]);
   const [isExiting, setIsExiting] = useState(false);
-  const exitTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     if (!success || gainedPoints <= 0 || !scoreRef.current || !rewardSourceRef.current) return;

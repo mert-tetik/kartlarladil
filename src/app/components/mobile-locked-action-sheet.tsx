@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { GraduationCap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 
@@ -28,6 +29,7 @@ export function MobileLockedActionSheet({
   canStartLearning,
 }: MobileLockedActionSheetProps) {
   const t = useT();
+  const { locale } = useLocale();
   const mounted = useIsClient();
   const isActive = variant === "active";
 
@@ -67,8 +69,8 @@ export function MobileLockedActionSheet({
         )}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle")}
+          <h2 className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle"))}
           </h2>
           <button
             type="button"

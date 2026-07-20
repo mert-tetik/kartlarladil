@@ -6,6 +6,7 @@ import { LANGUAGES } from "@/data/languages";
 import { LanguageFlag } from "@/components/language-flag";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 import { vibrate } from "@/lib/vibration";
@@ -162,8 +163,8 @@ export function MobileLanguageBottomSheet({
           )}
         >
           <div className={cn("mb-3 h-1.5 w-12 rounded-full", isLight ? "bg-black/25" : "bg-foreground-muted/40")} />
-          <h2 className={cn("w-full text-left text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
-            {t("home.mobile.selectLanguage")}
+          <h2 className={cn("w-full text-left text-base font-semibold", isLight ? "text-slate-950" : "text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("home.mobile.selectLanguage"))}
           </h2>
         </div>
 

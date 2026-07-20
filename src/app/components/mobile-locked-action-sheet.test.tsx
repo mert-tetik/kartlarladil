@@ -8,6 +8,7 @@ vi.mock("@/lib/use-is-client", () => ({
 
 vi.mock("@/i18n/locale-provider", () => ({
   useT: () => (key: string) => key,
+  useLocale: () => ({ locale: "en" }),
 }));
 
 vi.mock("react-dom", async () => {

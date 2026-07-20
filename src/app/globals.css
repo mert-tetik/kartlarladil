@@ -450,6 +450,24 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+@media (max-width: 1023px) {
+  .navbar-locale-top-sheet {
+    animation: navbar-locale-top-sheet-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: top center;
+    will-change: transform;
+  }
+}
+
+@keyframes navbar-locale-top-sheet-enter {
+  from {
+    transform: translate3d(0, -100%, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @keyframes quiz-card-progress-reveal {
   from {
     opacity: 0;

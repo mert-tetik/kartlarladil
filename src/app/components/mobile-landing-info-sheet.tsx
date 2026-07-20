@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
 
@@ -14,6 +15,7 @@ interface MobileLandingInfoSheetProps {
 
 export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoSheetProps) {
   const t = useT();
+  const { locale } = useLocale();
   const mounted = useIsClient();
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -93,7 +95,9 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
           <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         </div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("home.mobile.infoTitle")}</h2>
+          <h2 className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("home.mobile.infoTitle"))}
+          </h2>
           <button
             type="button"
             onClick={onClose}

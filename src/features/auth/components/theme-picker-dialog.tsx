@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { updateThemeAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { THEMES, isPaidPlan, isThemePaid, type ThemeDefinition } from "@/lib/themes";
 
@@ -188,7 +189,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
             <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
           </div>
           <div className="mb-4 flex items-center justify-between">
-            <ThemePickerTitle id="mobile-theme-sheet-title" compact />
+            <ThemePickerTitle id="mobile-theme-sheet-title" compact useSuperWater />
             <button
               type="button"
               onClick={handleClose}
@@ -247,14 +248,16 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   );
 }
 
-function ThemePickerTitle({ id, compact = false }: { id: string; compact?: boolean }) {
+function ThemePickerTitle({ id, compact = false, useSuperWater = false }: { id: string; compact?: boolean; useSuperWater?: boolean }) {
   const t = useT();
+  const { locale } = useLocale();
+  const title = t("theme.title");
 
   return (
     <div className="flex items-center gap-2">
       <Palette className={compact ? "size-5 text-foreground" : "size-6 text-foreground"} aria-hidden="true" />
-      <h2 id={id} className={cn("font-semibold text-foreground", compact ? "text-lg" : "text-xl")}>
-        {t("theme.title")}
+      <h2 id={id} className={cn("font-semibold text-foreground", compact ? "text-lg" : "text-xl", useSuperWater && canUseSuperWater(locale) && "font-super-water")}>
+        {useSuperWater ? formatSuperWaterText(locale, title) : title}
       </h2>
     </div>
   );

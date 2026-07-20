@@ -62,7 +62,7 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
           className={cn(
             "h-9 gap-1.5 px-2",
             navbar &&
-              "bg-white/5 text-white hover:bg-white/10 hover:text-white max-lg:border-transparent lg:border-white/15",
+              "border-transparent bg-transparent text-white hover:bg-transparent hover:text-white lg:border-white/15 lg:bg-white/5 lg:hover:bg-white/10",
           )}
         >
           <LanguageFlag code={locale} className="h-4 w-6" />
@@ -88,56 +88,63 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
             aria-labelledby={buttonId}
             className={cn(
               "animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg",
-              navbar && "fixed left-1/2 right-auto top-[72px] w-64 max-w-[calc(100vw-1rem)] -translate-x-1/2 border-white/10 bg-black text-white shadow-sm",
+              navbar && "navbar-locale-top-sheet fixed left-1/2 right-auto top-[72px] flex w-64 max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col border-white/10 bg-black p-1 text-white shadow-sm max-lg:inset-x-0 max-lg:top-[var(--app-header-height)] max-lg:w-full max-lg:max-w-none max-lg:translate-x-0 max-lg:rounded-b-2xl max-lg:rounded-t-none max-lg:border-x-0 max-lg:border-t-0 max-lg:border-border max-lg:bg-background-card max-lg:p-0 max-lg:text-foreground",
             )}
           >
-            {LANGUAGES.map((language) => {
-              const selected = language.code === locale;
-              const nextLocale = language.code as LocaleCode;
+            <div className={cn(navbar && "max-lg:flex-1 max-lg:overflow-y-auto max-lg:p-3")}>
+              {LANGUAGES.map((language) => {
+                const selected = language.code === locale;
+                const nextLocale = language.code as LocaleCode;
 
-              return (
-                <button
-                  key={language.code}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onClick={() => {
-                    if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
-                      setDialogError("learn_locale_locked");
+                return (
+                  <button
+                    key={language.code}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
+                        setDialogError("learn_locale_locked");
+                        setOpen(false);
+                        return;
+                      }
+
+                      const cardLanguage = readLandingCardLanguage();
+                      if (cardLanguage && cardLanguage === nextLocale) {
+                        setDialogError("language_match_not_allowed");
+                        setOpen(false);
+                        return;
+                      }
+
+                      setLocale(nextLocale);
                       setOpen(false);
-                      return;
-                    }
-
-                    const cardLanguage = readLandingCardLanguage();
-                    if (cardLanguage && cardLanguage === nextLocale) {
-                      setDialogError("language_match_not_allowed");
-                      setOpen(false);
-                      return;
-                    }
-
-                    setLocale(nextLocale);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
-                    selected && "bg-background-muted",
-                    navbar && "text-white hover:bg-white/10",
-                    navbar && selected && "bg-white/10",
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <LanguageFlag code={language.code} className="h-4 w-6" />
-                    <span className="min-w-0">
-                      <span className={cn("block truncate font-semibold text-foreground", navbar && "text-white")}>{language.nativeName}</span>
-                      <span className={cn("block truncate text-xs text-foreground-muted", navbar && "text-white/60")}>
-                        {getLanguageDisplayName(language.code, locale)}
+                    }}
+                    className={cn(
+                      "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
+                      selected && "bg-background-muted",
+                      navbar && "lg:text-white lg:hover:bg-white/10",
+                      navbar && selected && "lg:bg-white/10",
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <LanguageFlag code={language.code} className="h-4 w-6" />
+                      <span className="min-w-0">
+                        <span className={cn("block truncate font-semibold text-foreground", navbar && "lg:text-white")}>{language.nativeName}</span>
+                        <span className={cn("block truncate text-xs text-foreground-muted", navbar && "lg:text-white/60")}>
+                          {getLanguageDisplayName(language.code, locale)}
+                        </span>
                       </span>
                     </span>
-                  </span>
-                  {selected ? <Check aria-hidden="true" className={cn("size-4 text-foreground", navbar && "text-white")} /> : null}
-                </button>
-              );
-            })}
+                    {selected ? <Check aria-hidden="true" className={cn("size-4 text-foreground", navbar && "lg:text-white")} /> : null}
+                  </button>
+                );
+              })}
+            </div>
+            {navbar ? (
+              <div className="hidden h-10 shrink-0 items-center justify-center border-t border-border lg:hidden" aria-hidden="true">
+                <span className="h-1 w-10 rounded-full bg-foreground-muted/40" />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

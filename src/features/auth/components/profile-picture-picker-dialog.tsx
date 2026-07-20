@@ -6,7 +6,8 @@ import { UserRound, X } from "lucide-react";
 import { updateProfilePictureAction } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { ProfilePictureOptionGrid } from "@/features/auth/components/profile-picture-option-grid";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
 interface ProfilePicturePickerDialogProps {
@@ -16,6 +17,7 @@ interface ProfilePicturePickerDialogProps {
 
 export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePicturePickerDialogProps) {
   const t = useT();
+  const { locale } = useLocale();
   const { user, updateProfileField } = useAuthSession();
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
@@ -148,8 +150,8 @@ export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePictur
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UserRound className="size-5 text-foreground" aria-hidden="true" />
-            <h2 id="profile-picture-picker-title" className="text-lg font-semibold text-foreground">
-              {t("profilePicture.title")}
+            <h2 id="profile-picture-picker-title" className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, t("profilePicture.title"))}
             </h2>
           </div>
           <button

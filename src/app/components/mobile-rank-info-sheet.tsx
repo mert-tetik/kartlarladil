@@ -8,6 +8,7 @@ import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Progress } from "@/components/ui/progress";
 import { useT, useLocale } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { formatNumber, getRankLabel } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { useIsClient } from "@/lib/use-is-client";
@@ -113,7 +114,9 @@ export function MobileRankInfoSheet({
           <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         </div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("home.mobile.rankInfoTitle")}</h2>
+          <h2 className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("home.mobile.rankInfoTitle"))}
+          </h2>
           <button
             type="button"
             onClick={onClose}

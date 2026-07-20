@@ -37,6 +37,7 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { cn } from "@/lib/utils";
 import {
@@ -58,7 +59,7 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
 }
 
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
-  "max-w-[4.6rem] text-left font-semibold leading-[1.05] text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]";
+  "max-w-[4.6rem] rounded-md border-2 border-[#BD8B1D] bg-[#FCC241] px-1.5 py-1 text-left font-semibold leading-[1.05] text-[#0B53B1]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -390,7 +391,7 @@ export function MobileLandingDashboard() {
             navigateWithRouteTransition(() => router.push("/leaderboard"));
           }, { nextPath: "/leaderboard" });
         }}
-        className="absolute left-2 top-2 z-10 inline-flex size-14 items-center justify-center text-white transition-transform active:scale-[0.98]"
+        className="absolute left-2 top-2 z-50 inline-flex h-[2.45rem] w-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
         aria-label={t("leaderboard.open")}
         data-tutorial-target="leaderboard"
       >
@@ -398,9 +399,9 @@ export function MobileLandingDashboard() {
           src="/leaderboard-icon.png"
           alt=""
           aria-hidden="true"
-          width={56}
-          height={56}
-          className="h-14 w-14 object-contain"
+          width={31}
+          height={31}
+          className="h-[2rem] w-auto object-contain"
         />
         {leaderboardButtonLabel ? (
           <span
@@ -487,8 +488,8 @@ export function MobileLandingDashboard() {
             />
           </button>
         </div>
-        <h1 className="relative z-10 text-center text-lg font-bold text-white">
-          {getRankLabel(stats.rank, locale)}
+        <h1 className={cn("relative z-10 text-center text-lg font-bold text-white", canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, getRankLabel(stats.rank, locale))}
         </h1>
         <div
           className="relative z-10 mt-0.5 flex items-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
