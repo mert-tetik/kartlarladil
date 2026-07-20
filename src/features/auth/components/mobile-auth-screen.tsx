@@ -57,7 +57,7 @@ export function MobileAuthScreen() {
           variant="secondary"
           size="lg"
           onClick={() => setMode("email")}
-          className="h-14 w-full gap-2 bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600"
+          className="mobile-primary-action-depth h-14 w-full gap-2 bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600"
         >
           <Mail className="size-5" aria-hidden="true" />
           {t("auth.mobile.useEmailInstead")}

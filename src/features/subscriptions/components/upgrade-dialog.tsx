@@ -71,7 +71,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
               className={buttonClassName(
                 "primary",
                 "md",
-                "w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
+                "mobile-primary-action-depth w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 focus-visible:outline-orange-500",
               )}
               onClick={() => onOpenChange(false)}
             >

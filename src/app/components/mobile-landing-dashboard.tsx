@@ -964,7 +964,7 @@ function ActionButton({
       aria-disabled={locked}
       data-tutorial-target={dataTutorialTarget}
       className={cn(
-        "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white shadow-lg transition-colors active:scale-[0.98]",
+        "mobile-primary-action-depth flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
         variant === "active"
           ? "bg-emerald-500 hover:bg-emerald-600"
           : "bg-sky-500 hover:bg-sky-600",

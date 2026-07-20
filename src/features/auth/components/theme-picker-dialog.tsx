@@ -227,7 +227,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
             <div className="mt-6 flex flex-col gap-3">
               <Link
                 href="/pricing"
-                className="inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
+                className="mobile-primary-action-depth inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
                 onClick={() => {
                   setShowUpgrade(false);
                   onOpenChange(false);
