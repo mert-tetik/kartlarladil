@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, LayoutGrid, RotateCcw, Star } from "lucide-react";
+import { LayoutGrid, Play, RotateCcw, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
-import { buttonClassName } from "@/components/ui/button";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
@@ -99,29 +98,29 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
         </h1>
       </div>
 
-      <div className="flex w-full max-w-xs flex-col gap-3">
+      <div className="flex items-center justify-center gap-5">
         <button
           type="button"
           onClick={onPrimary}
           className={cn(
-            buttonClassName("primary", "lg", "w-full"),
-            "inline-flex items-center justify-center gap-2",
-            success ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-red-500 text-white hover:bg-red-600",
+            "inline-flex size-20 items-center justify-center rounded-full text-white shadow-sm transition-transform hover:scale-105 active:scale-95",
+            "bg-emerald-500 hover:bg-emerald-600",
           )}
+          aria-label={success ? t("games.nextLevel") : t("games.tryAgain")}
         >
-          {success ? <ArrowRight className="size-4" aria-hidden="true" /> : <RotateCcw className="size-4" aria-hidden="true" />}
-          {success ? t("games.nextLevel") : t("games.tryAgain")}
+          {success ? (
+            <Play className="size-10 fill-current" strokeWidth={2.5} aria-hidden="true" />
+          ) : (
+            <RotateCcw className="size-10" strokeWidth={3} aria-hidden="true" />
+          )}
         </button>
 
         <Link
           href="/games"
-          className={cn(
-            buttonClassName("primary", "lg", "w-full"),
-            "inline-flex items-center justify-center gap-2 bg-brand text-brand-foreground hover:bg-brand-hover",
-          )}
+          className="inline-flex size-20 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-red-600 active:scale-95"
+          aria-label={t("games.menu")}
         >
-          <LayoutGrid className="size-4" aria-hidden="true" />
-          {t("games.menu")}
+          <LayoutGrid className="size-9 fill-current" strokeWidth={2.5} aria-hidden="true" />
         </Link>
       </div>
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
