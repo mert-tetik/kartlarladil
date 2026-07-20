@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { LANGUAGES } from "@/data/languages";
 import {
@@ -25,10 +26,17 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
   const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [dialogError, setDialogError] = useState<UpgradeDialogErrorCode | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const buttonId = useId();
   const listboxId = useId();
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -36,7 +44,8 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
     }
 
     function closeOnOutsideClick(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !mobileMenuRef.current?.contains(target)) {
         setOpen(false);
       }
     }
@@ -45,6 +54,24 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
 
     return () => window.removeEventListener("pointerdown", closeOnOutsideClick);
   }, [open]);
+
+  function selectLocale(nextLocale: LocaleCode) {
+    if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
+      setDialogError("learn_locale_locked");
+      setOpen(false);
+      return;
+    }
+
+    const cardLanguage = readLandingCardLanguage();
+    if (cardLanguage && cardLanguage === nextLocale) {
+      setDialogError("language_match_not_allowed");
+      setOpen(false);
+      return;
+    }
+
+    setLocale(nextLocale);
+    setOpen(false);
+  }
 
   return (
     <>
@@ -81,14 +108,68 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
           />
         </Button>
 
+        {navbar && mounted
+          ? createPortal(
+              <div
+                ref={mobileMenuRef}
+                data-locale-menu="mobile"
+                id={`${listboxId}-mobile`}
+                role="listbox"
+                aria-labelledby={buttonId}
+                aria-hidden={!open}
+                inert={!open}
+                className={cn(
+                  "fixed inset-x-0 top-[var(--app-header-height)] z-[60] grid max-h-[calc(100dvh-var(--app-header-height))] grid-rows-[minmax(0,1fr)_2.5rem] overflow-hidden rounded-b-2xl border-x-0 border-b border-t-0 border-border bg-background-card text-foreground transition-[opacity,transform] duration-300 ease-out lg:hidden",
+                  open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0",
+                )}
+              >
+                <div className="grid min-h-0 grid-cols-3 content-start gap-x-2 gap-y-4 overflow-y-auto px-4 py-5">
+                  {LANGUAGES.map((language) => {
+                    const selected = language.code === locale;
+                    const nextLocale = language.code as LocaleCode;
+
+                    return (
+                      <button
+                        key={language.code}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => selectLocale(nextLocale)}
+                        className="relative flex aspect-square w-full flex-col items-center justify-center gap-2 border-0 bg-transparent p-1 text-center text-foreground transition-transform duration-200 active:scale-95"
+                      >
+                        <span className="relative inline-flex">
+                          <LanguageFlag code={language.code} className="h-10 w-14 rounded-md" />
+                          {selected ? (
+                            <Check
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-0 size-5 -translate-x-1/2 -translate-y-1/2 stroke-[3] text-foreground drop-shadow-[0_1px_1px_rgb(255_255_255_/_0.8)]"
+                            />
+                          ) : null}
+                        </span>
+                        <span className="max-w-full truncate text-xs font-semibold leading-tight text-foreground">
+                          {language.nativeName}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-center border-t border-border" aria-hidden="true">
+                  <span className="h-1 w-10 rounded-full bg-foreground-muted/40" />
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
+
         {open ? (
           <div
+            data-locale-menu="desktop"
             id={listboxId}
             role="listbox"
             aria-labelledby={buttonId}
             className={cn(
               "animate-menu-pop absolute right-0 top-[calc(100%+8px)] z-50 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-background-card p-1 shadow-lg",
-              navbar && "navbar-locale-top-sheet fixed left-1/2 right-auto top-[72px] flex w-64 max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col border-white/10 bg-black p-1 text-white shadow-sm max-lg:inset-x-0 max-lg:top-[var(--app-header-height)] max-lg:w-full max-lg:max-w-none max-lg:translate-x-0 max-lg:rounded-b-2xl max-lg:rounded-t-none max-lg:border-x-0 max-lg:border-t-0 max-lg:border-border max-lg:bg-background-card max-lg:p-0 max-lg:text-foreground",
+              navbar && "navbar-locale-top-sheet fixed left-1/2 right-auto top-[72px] flex w-64 max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col border-white/10 bg-black p-1 text-white shadow-sm max-lg:hidden",
             )}
           >
             <div className={cn(navbar && "max-lg:flex-1 max-lg:overflow-y-auto max-lg:p-3")}>
@@ -102,23 +183,7 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
                     type="button"
                     role="option"
                     aria-selected={selected}
-                    onClick={() => {
-                      if (shouldBlockLocaleChange(pathname, locale, nextLocale)) {
-                        setDialogError("learn_locale_locked");
-                        setOpen(false);
-                        return;
-                      }
-
-                      const cardLanguage = readLandingCardLanguage();
-                      if (cardLanguage && cardLanguage === nextLocale) {
-                        setDialogError("language_match_not_allowed");
-                        setOpen(false);
-                        return;
-                      }
-
-                      setLocale(nextLocale);
-                      setOpen(false);
-                    }}
+                    onClick={() => selectLocale(nextLocale)}
                     className={cn(
                       "flex h-11 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-sm transition-colors hover:bg-background",
                       selected && "bg-background-muted",

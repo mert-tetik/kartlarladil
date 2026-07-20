@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { LeaderboardIcon } from "@/components/icons/leaderboard-icon";
 import { ScoreIcon } from "@/components/score-icon";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -62,18 +61,14 @@ export function LeaderboardPageClient() {
     }
   }
 
-  const standingText = data
-    ? t("leaderboard.yourStanding", { position: formatNumber(locale, data.viewer.position) })
-    : t("leaderboard.positionLoading");
-
   return (
     <>
       <section
         data-leaderboard-page
-        className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:px-3 max-lg:py-3"
+        className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:bg-brand max-lg:px-3 max-lg:py-4"
       >
-        <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center">
-          <div className="space-y-2">
+        <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-center gap-3 text-center max-lg:justify-start max-lg:gap-4">
+          <div className="hidden space-y-2 lg:block">
             <h1 className={cn("font-display text-4xl font-semibold text-foreground sm:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
               {formatSuperWaterText(locale, t("leaderboard.title"))}
             </h1>
@@ -82,7 +77,9 @@ export function LeaderboardPageClient() {
                 data-leaderboard-standing
                 className="text-[2.25rem] font-bold leading-none text-brand sm:text-4xl"
               >
-                {standingText}
+                {data
+                  ? t("leaderboard.yourStanding", { position: formatNumber(locale, data.viewer.position) })
+                  : t("leaderboard.positionLoading")}
               </p>
               <p
                 data-leaderboard-scope
@@ -93,14 +90,29 @@ export function LeaderboardPageClient() {
             </div>
           </div>
 
-          <div className="flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2 text-foreground">
-                <LeaderboardIcon className="size-4 text-brand" />
-                <span className={cn("text-sm font-semibold", canUseSuperWater(locale) && "font-super-water")}>
-                  {formatSuperWaterText(locale, t("leaderboard.title"))}
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-foreground lg:hidden">
+            <div className="min-w-0 text-center">
+              <h1 className={cn("font-display text-5xl font-semibold leading-none", canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, t("leaderboard.title"))}
+              </h1>
+              <p data-leaderboard-scope className="mt-1 text-xs font-medium text-brand-foreground/80">
+                {t("leaderboard.scope")}
+              </p>
+            </div>
+            <div className="min-w-9 text-right">
+              {data?.canViewLeaderboard ? (
+                <span className="text-xs font-semibold text-brand-foreground/85">
+                  {formatNumber(locale, data.entries.length)}
                 </span>
-              </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background-card shadow-sm max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent max-lg:shadow-none">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3 max-lg:hidden">
+              <span className={cn("text-sm font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, t("leaderboard.title"))}
+              </span>
               {data?.canViewLeaderboard ? (
                 <span className="text-xs font-medium text-foreground-secondary">
                   {formatNumber(locale, data.entries.length)}
@@ -111,7 +123,7 @@ export function LeaderboardPageClient() {
             <div
               data-leaderboard-list
               data-state={loading ? "loading" : "loaded"}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 max-lg:px-0 max-lg:py-1"
             >
               {loading ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground-secondary">
@@ -164,25 +176,28 @@ export function LeaderboardPageClient() {
                         entry.isViewer
                           ? "border-brand/40 bg-brand/10"
                           : "border-border bg-background",
+                        "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--brand),black_52%)_0%,color-mix(in_oklab,var(--brand),white_30%)_100%)] max-lg:p-px",
                       )}
                     >
-                      <span className="text-sm font-semibold text-foreground-secondary">
-                        {entry.position}.
-                      </span>
-                      <ProfilePicture
-                        profilePictureIndex={entry.profilePictureIndex}
-                        alt=""
-                        className="size-9 rounded-full"
-                      />
-                      <div className="flex items-center justify-center">
-                        <RankIcon icon={entry.rankIcon} className="size-8" sizes="32px" />
-                      </div>
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {entry.displayName || t("leaderboard.anonymous")}
-                      </span>
-                      <div className="flex items-center gap-1.5 justify-self-end text-sm font-bold text-foreground">
-                        <span>{formatNumber(locale, entry.totalPoints)}</span>
-                        <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
+                      <div className="contents max-lg:grid max-lg:grid-cols-[1.5rem_2.25rem_2.25rem_minmax(0,1fr)_auto] max-lg:items-center max-lg:gap-0.5 max-lg:rounded-full max-lg:bg-[color-mix(in_oklab,var(--brand),black_28%)] max-lg:px-2.5 max-lg:py-2">
+                        <span className="text-sm font-semibold text-foreground-secondary max-lg:text-brand-foreground/70">
+                          {entry.position}.
+                        </span>
+                        <ProfilePicture
+                          profilePictureIndex={entry.profilePictureIndex}
+                          alt=""
+                          className="size-9 rounded-full"
+                        />
+                        <div className="flex items-center justify-center">
+                          <RankIcon icon={entry.rankIcon} className="size-8" sizes="32px" />
+                        </div>
+                        <span className="truncate text-sm font-semibold text-foreground max-lg:text-brand-foreground">
+                          {entry.displayName || t("leaderboard.anonymous")}
+                        </span>
+                        <div className="flex items-center gap-1.5 justify-self-end text-sm font-bold text-foreground max-lg:text-brand-foreground">
+                          <span>{formatNumber(locale, entry.totalPoints)}</span>
+                          <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
+                        </div>
                       </div>
                     </div>
                   ))}
