@@ -31,6 +31,7 @@ export function MemoryCard({ item, isFlipped, onClick, disabled, revealAll }: Me
         frontMinimal
         frontFit
         compact
+        primaryTranslationOnly
         onClick={onClick}
         className="h-full w-full"
       />

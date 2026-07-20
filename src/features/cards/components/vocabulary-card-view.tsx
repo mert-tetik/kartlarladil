@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
-import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
+import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
@@ -40,6 +40,7 @@ interface VocabularyCardViewProps {
   frontContentScale?: number;
   compact?: boolean;
   translationLocale?: LocaleCode;
+  primaryTranslationOnly?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
   onClick?: () => void;
@@ -77,6 +78,7 @@ export function VocabularyCardView({
   frontContentScale = 1,
   compact = false,
   translationLocale,
+  primaryTranslationOnly = false,
   footerMode = "auto",
   footerProgressCount,
   onClick,
@@ -188,6 +190,7 @@ export function VocabularyCardView({
           isControlled={isControlled}
           compact={compact}
           translationLocale={translationLocale}
+          primaryTranslationOnly={primaryTranslationOnly}
           footerMode={footerMode}
           footerProgressCount={footerProgressCount}
         />
@@ -220,6 +223,7 @@ function CardFront({
   frontContentScale = 1,
   compact = false,
   translationLocale,
+  primaryTranslationOnly = false,
   footerMode = "auto",
   footerProgressCount,
 }: {
@@ -238,6 +242,7 @@ function CardFront({
   isControlled?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
+  primaryTranslationOnly?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
 }) {
@@ -253,9 +258,11 @@ function CardFront({
   const learned = inventory?.status === "learned";
   const showOwnedState = owned && !allowOwnedAdd;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
-  const cardTranslation = translationLocale
-    ? getCardTranslationMeanings(card, translationLocale).slice(0, 3).join(", ")
-    : getCardTranslation(card, locale);
+  const cardTranslation = primaryTranslationOnly
+    ? getPrimaryCardTranslation(card, translationLocale ?? locale)
+    : translationLocale
+      ? getCardTranslationMeanings(card, translationLocale).slice(0, 3).join(", ")
+      : getCardTranslation(card, locale);
 
   function handleDetailsClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();

@@ -28,7 +28,7 @@ import { useGameTimer } from "../game-timer";
 import { addGamePointsAction } from "../game-actions";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import type { WordMatchItem } from "../game-types";
-import { GameShell } from "./game-shell";
+import { GAME_BACKGROUND_SOURCES, GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
 import { GameResultScreen } from "./game-result-screen";
@@ -287,7 +287,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
   });
 
   return (
-    <GameShell>
+    <GameShell backgroundSrc={GAME_BACKGROUND_SOURCES.wordMatch}>
       <GameHeader
         level={level}
         tiers={[getHighestTierForLevel(level)]}

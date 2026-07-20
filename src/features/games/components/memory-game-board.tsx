@@ -19,7 +19,7 @@ import { useGameTimer } from "../game-timer";
 import type { MemoryCardItem } from "../game-types";
 import { addGamePointsAction } from "../game-actions";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
-import { GameShell } from "./game-shell";
+import { GAME_BACKGROUND_SOURCES, GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
 import { GameResultScreen } from "./game-result-screen";
@@ -184,7 +184,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const revealAll = phase === "reveal";
 
   return (
-    <GameShell>
+    <GameShell backgroundSrc={GAME_BACKGROUND_SOURCES.memory}>
       <GameHeader
         level={level}
         tiers={[getHighestTierForLevel(level)]}

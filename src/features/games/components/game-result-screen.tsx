@@ -12,6 +12,7 @@ import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { GAME_BACKGROUND_SOURCES } from "./game-shell";
 
 interface GameResultScreenProps {
   level: number;
@@ -68,7 +69,16 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   }
 
   return (
-    <div className="animate-screen-pop flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+    <div
+      className="animate-screen-pop flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center"
+      style={{
+        backgroundImage: success
+          ? `linear-gradient(rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.1)), url(${GAME_BACKGROUND_SOURCES.levelComplete})`
+          : `linear-gradient(rgb(15 23 42 / 0.28), rgb(15 23 42 / 0.28)), url(${GAME_BACKGROUND_SOURCES.levelFailed})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
+    >
       <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
         <Star className="size-5 fill-current" aria-hidden="true" />
         <span
@@ -84,7 +94,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
       </div>
 
       <div ref={rewardSourceRef} className="flex flex-col items-center gap-2">
-        <h1 className="text-3xl font-black text-foreground sm:text-4xl">
+        <h1 className={cn("text-3xl font-black sm:text-4xl", success ? "text-foreground" : "text-white")}>
           {success ? t("games.completed", { level }) : t("games.failed", { level })}
         </h1>
       </div>

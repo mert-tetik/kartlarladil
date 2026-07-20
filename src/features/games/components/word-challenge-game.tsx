@@ -15,7 +15,7 @@ import { useGameTimer } from "../game-timer";
 import type { WordChallengeItem } from "../game-types";
 import { addGamePointsAction } from "../game-actions";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
-import { GameShell } from "./game-shell";
+import { GAME_BACKGROUND_SOURCES, GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
 import { GameResultScreen } from "./game-result-screen";
@@ -138,7 +138,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const progressLabel = t("games.wordChallenge.progress", { current: index + 1, total: questionCount });
 
   return (
-    <GameShell>
+    <GameShell backgroundSrc={GAME_BACKGROUND_SOURCES.wordChallenge}>
       <GameHeader
         level={level}
         tiers={[getHighestTierForLevel(level)]}

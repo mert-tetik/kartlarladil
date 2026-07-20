@@ -1,5 +1,5 @@
 {
-  "version": "6d004585509269affdd53894f32448983789814e98a57a19a02f339b5428b0fe",
+  "version": "f834963e69f90e0c6d5958cf409030a102033c410568e67ebfcb0a8be76ff16e",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -148,6 +148,26 @@
     {
       "url": "/flags/4x3/tr.svg",
       "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
+    },
+    {
+      "url": "/game-backgrounds/blue-game-bg.jpg",
+      "revision": "ee98ae829fa020c7cf1ea916793ab7db0a5302da7b97b8f093214993eee7a1f9"
+    },
+    {
+      "url": "/game-backgrounds/dark-game-bg.jpg",
+      "revision": "378786bf755baa0255d478f939761aed022b8b3c5fa94edae2522073f3f19c4c"
+    },
+    {
+      "url": "/game-backgrounds/green-game-bg.jpg",
+      "revision": "02ec2f6d73624151cfd39d66101eaea7b9beb0bb7f0cf4ece6de4695f54dbc03"
+    },
+    {
+      "url": "/game-backgrounds/red-game-bg.jpg",
+      "revision": "03b22f8702cd7107dda82dc243d66a58f9700b240cdad36d9b32d4b87827c08d"
+    },
+    {
+      "url": "/game-backgrounds/yellow-game-bg.jpg",
+      "revision": "62995afbb749a30cf4c8f4d51e70e8ec6f315c4a75af9256a45b379fa785bd51"
     },
     {
       "url": "/icon-192.png",

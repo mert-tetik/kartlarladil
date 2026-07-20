@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
-import { getCardTranslation } from "@/features/cards/card-localization";
+import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 const mockPush = vi.fn();
@@ -98,6 +98,19 @@ describe("VocabularyCardView", () => {
     expect(examplePreview).toHaveClass("truncate");
     expect(container).not.toHaveTextContent("is useful in a clear sentence");
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
+  });
+
+  it("can limit the visible translation to the first meaning", () => {
+    const multiMeaningCard = VOCABULARY_CARDS.find(
+      (card) => card.language === "en" && getCardTranslationMeanings(card, "tr").length > 1,
+    )!;
+    const meanings = getCardTranslationMeanings(multiMeaningCard, "tr");
+    const { container } = renderCard(
+      <VocabularyCardView card={multiMeaningCard} primaryTranslationOnly />,
+    );
+
+    expect(container).toHaveTextContent(getPrimaryCardTranslation(multiMeaningCard, "tr"));
+    expect(container).not.toHaveTextContent(meanings.slice(0, 3).join(", "));
   });
 
   it("keeps the footer blank when quiz progress is not being revealed", () => {
