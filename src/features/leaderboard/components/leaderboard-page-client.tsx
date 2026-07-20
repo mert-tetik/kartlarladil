@@ -111,6 +111,10 @@ export function LeaderboardPageClient() {
                 </span>
               ) : null}
             </div>
+            <div
+              aria-hidden="true"
+              className="mx-auto mb-2 hidden h-1.5 w-[calc(100%+0.75rem)] shrink-0 rounded-full bg-white max-lg:block"
+            />
 
             <div
               data-leaderboard-list
