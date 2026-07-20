@@ -6,7 +6,6 @@ import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
-import { Progress } from "@/components/ui/progress";
 import { useT, useLocale } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { formatNumber, getRankLabel } from "@/i18n/labels";
@@ -18,20 +17,14 @@ interface MobileRankInfoSheetProps {
   isOpen: boolean;
   onClose: () => void;
   rank: RankDefinition;
-  nextRank: RankDefinition | null;
   totalPoints: number;
-  pointsToNextRank: number;
-  rankProgressPercent: number;
 }
 
 export function MobileRankInfoSheet({
   isOpen,
   onClose,
   rank,
-  nextRank,
   totalPoints,
-  pointsToNextRank,
-  rankProgressPercent,
 }: MobileRankInfoSheetProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -113,73 +106,67 @@ export function MobileRankInfoSheet({
         >
           <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
         </div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("home.mobile.rankInfoTitle"))}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            data-tutorial-target="close-rank-menu"
-            aria-label={t("common.close")}
-            className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-          >
-            <X className="size-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-base font-bold text-foreground">
+              {formatNumber(locale, totalPoints)}
+              <ScoreIcon size={21} className="size-5" />
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              data-tutorial-target="close-rank-menu"
+              aria-label={t("common.close")}
+              className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex flex-col items-center py-4">
-            <RankIcon icon={rank.icon} className="size-32" sizes="128px" />
-            <h3 className="mt-4 text-2xl font-extrabold text-brand">{getRankLabel(rank, locale)}</h3>
-            <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground-secondary">
-              {formatNumber(locale, totalPoints)} <ScoreIcon size={18} className="size-[18px]" />
-            </p>
-          </div>
-
-          {nextRank ? (
-            <div className="space-y-2 rounded-xl bg-background p-4">
-              <div className="flex items-center justify-between text-sm font-semibold">
-                <span className="text-foreground-secondary">{t("home.mobile.rankInfoProgress")}</span>
-                <span className="inline-flex items-center gap-1 text-foreground"><span>{formatNumber(locale, pointsToNextRank)}</span><ScoreIcon size={16} className="size-4" /><span>{t("home.mobile.rankInfoRemaining")}</span></span>
-              </div>
-              <Progress value={rankProgressPercent} className="h-2 bg-white/20" indicatorClassName="bg-gradient-to-r from-amber-400 to-orange-500" />
-              <p className="text-xs text-foreground-secondary">
-                {t("home.mobile.rankInfoNextRank", { rank: getRankLabel(nextRank, locale) })}
-              </p>
-            </div>
-          ) : (
-            <p className="text-center text-sm font-semibold text-foreground-secondary">
-              {t("home.mobile.rankInfoMaxRank")}
-            </p>
-          )}
-
-          <div className="mt-6 space-y-2">
-            {RANKS.map((item) => {
+        <div className="flex-1 overflow-y-auto overscroll-contain px-1 pb-8">
+          <div className="flex flex-col items-center pt-2">
+            {RANKS.map((item, index) => {
               const current = item.id === rank.id;
+              const next = RANKS[index + 1] ?? null;
+              const connectorProgress = next
+                ? Math.min(100, Math.max(0, ((totalPoints - item.minPoints) / (next.minPoints - item.minPoints)) * 100))
+                : 0;
+
               return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl p-3 transition-colors",
-                    current
-                      ? "border border-amber-200/75 bg-gradient-to-r from-amber-400 to-orange-500"
-                      : "bg-background",
-                  )}
-                >
-                  <RankIcon icon={item.icon} className="size-8" sizes="32px" />
-                  <div className="flex-1">
-                    <p className={cn("text-sm font-bold", current ? "text-black" : "text-foreground")}>
+                <div key={item.id} className="flex w-full flex-col items-center">
+                  <div className="flex flex-col items-center">
+                    <div className={cn("rounded-full p-1.5", current && "bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 shadow-sm")}>
+                      <div className={cn("rounded-full p-2", current && "bg-background-card")}>
+                        <RankIcon icon={item.icon} className="size-32" sizes="128px" />
+                      </div>
+                    </div>
+                    <h3 className={cn("mt-3 text-center text-xl font-bold", current ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent" : "text-foreground")}>
                       {getRankLabel(item, locale)}
+                    </h3>
+                    <p className={cn("mt-1 inline-flex items-center gap-1.5 text-sm font-semibold", current ? "text-amber-600 dark:text-amber-400" : "text-foreground-secondary")}>
+                      {formatNumber(locale, item.minPoints)}
+                      <ScoreIcon size={17} className="size-4" />
                     </p>
-                    <p className={cn("inline-flex items-center gap-1 text-xs", current ? "text-black/70" : "text-foreground-secondary")}>
-                      {formatNumber(locale, item.minPoints)} <ScoreIcon size={13} className="size-3" />
-                    </p>
+                    {current ? (
+                      <span className="mt-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-1 text-[10px] font-bold text-slate-950">
+                        {t("home.mobile.currentRank")}
+                      </span>
+                    ) : null}
                   </div>
-                  {current ? (
-                    <span className="rounded-full bg-white/45 px-2 py-0.5 text-[10px] font-bold text-black">
-                      {t("home.mobile.currentRank")}
-                    </span>
+
+                  {next ? (
+                    <div className="relative my-4 h-20 w-full" aria-label={`${formatNumber(locale, Math.round(connectorProgress))}%`}>
+                      <span className="absolute left-1/2 top-0 h-full w-3 -translate-x-1/2 overflow-hidden rounded-full bg-background-muted">
+                        <span
+                          className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-orange-500 to-amber-300 transition-[height] duration-500 ease-out"
+                          style={{ height: `${connectorProgress}%` }}
+                        />
+                      </span>
+                    </div>
                   ) : null}
                 </div>
               );

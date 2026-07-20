@@ -593,10 +593,7 @@ export function MobileLandingDashboard() {
         isOpen={rankInfoOpen}
         onClose={() => setRankInfoOpen(false)}
         rank={stats.rank}
-        nextRank={stats.nextRank}
         totalPoints={stats.totalPoints}
-        pointsToNextRank={stats.pointsToNextRank}
-        rankProgressPercent={stats.rankProgressPercent}
       />
 
       <MobileLockedActionSheet
