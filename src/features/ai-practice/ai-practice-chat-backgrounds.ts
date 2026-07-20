@@ -1,7 +1,7 @@
 const AI_PRACTICE_CHAT_BACKGROUNDS = {
   "gentle-companion": {
-    imageSrc: "/ai-chat-backgrounds/gentle-companion.webp",
-    overlay: "linear-gradient(145deg, rgba(21, 34, 27, 0.84), rgba(45, 24, 20, 0.58))",
+    imageSrc: "/ai-chat-backgrounds/gentle-companion.jpg",
+    overlay: "linear-gradient(145deg, rgba(44, 23, 12, 0.86), rgba(132, 66, 25, 0.58))",
   },
   "gothic-calm": {
     imageSrc: "/ai-chat-backgrounds/gothic-calm.webp",
@@ -20,12 +20,12 @@ const AI_PRACTICE_CHAT_BACKGROUNDS = {
     overlay: "linear-gradient(145deg, rgba(18, 20, 25, 0.72), rgba(176, 47, 46, 0.48))",
   },
   "study-buddy": {
-    imageSrc: "/ai-chat-backgrounds/study-buddy.webp",
-    overlay: "linear-gradient(145deg, rgba(9, 4, 18, 0.9), rgba(75, 24, 98, 0.74))",
+    imageSrc: "/ai-chat-backgrounds/study-buddy.jpg",
+    overlay: "linear-gradient(145deg, rgba(14, 5, 28, 0.92), rgba(86, 29, 121, 0.74))",
   },
   "sleepy-student": {
     imageSrc: "/ai-chat-backgrounds/sleepy-student.webp",
-    overlay: "linear-gradient(145deg, rgba(121, 39, 83, 0.78), rgba(248, 130, 167, 0.42))",
+    overlay: "linear-gradient(145deg, rgba(31, 12, 53, 0.84), rgba(194, 71, 149, 0.5))",
   },
   "friendly-worker": {
     imageSrc: "/ai-chat-backgrounds/friendly-worker.webp",

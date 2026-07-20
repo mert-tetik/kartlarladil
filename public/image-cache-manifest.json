@@ -1,5 +1,5 @@
 {
-  "version": "f834963e69f90e0c6d5958cf409030a102033c410568e67ebfcb0a8be76ff16e",
+  "version": "b12c9ff1ea1718183227f4fd8500cdb70df6d24850e20c6ec67ae73734b1a35d",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -50,6 +50,10 @@
       "revision": "cf977ec1ce3905fc9fe0f7e70ea13ab14307bc56a0a5952925076ceca9dfc46d"
     },
     {
+      "url": "/ai-chat-backgrounds/gentle-companion.jpg",
+      "revision": "6f3e9f43047f7b89d198b2caa22e8fef7d47a956f85033d74f2791922faa05a9"
+    },
+    {
       "url": "/ai-chat-backgrounds/gentle-companion.webp",
       "revision": "749f4a5e7a8da066f9eeb820dd7b56560e76d6569bd1de05e8d40d3bd6f63b9a"
     },
@@ -63,11 +67,15 @@
     },
     {
       "url": "/ai-chat-backgrounds/sleepy-student.webp",
-      "revision": "749f4a5e7a8da066f9eeb820dd7b56560e76d6569bd1de05e8d40d3bd6f63b9a"
+      "revision": "d294571725e074b768b967d9eb1f9f9df386596028437ab914087ee16218840c"
     },
     {
       "url": "/ai-chat-backgrounds/soft-artist.webp",
       "revision": "8ea00d86aea6f320ae65120978396b51f8bd3eab46aa60532880b379e90cf192"
+    },
+    {
+      "url": "/ai-chat-backgrounds/study-buddy.jpg",
+      "revision": "1aa061ecc4757f9d6f836abc5774ec72fb5aa62f93cf1db7b7bc9bcae2083946"
     },
     {
       "url": "/ai-chat-backgrounds/study-buddy.webp",

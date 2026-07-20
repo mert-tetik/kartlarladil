@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { LanguageFlag } from "@/components/language-flag";
+import { setMobileNavbarBackOverride } from "@/components/mobile-navbar-back";
 import { LANGUAGES } from "@/data/languages";
+import { getAiPracticeChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
 import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -32,6 +34,14 @@ export function AiPracticeCharacterSelection({
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const locale = clientLocale ?? serverLocale;
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
+
+  useEffect(() => {
+    setMobileNavbarBackOverride(true);
+
+    return () => {
+      setMobileNavbarBackOverride(false);
+    };
+  }, []);
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);
@@ -83,6 +93,7 @@ export function AiPracticeCharacterSelection({
       >
         {getAiPracticeCharacters().map((character) => {
           const characterName = getCharacterName(character, selectedLanguage);
+          const chatBackground = getAiPracticeChatBackground(character.id);
 
           return (
             <Link
@@ -90,13 +101,16 @@ export function AiPracticeCharacterSelection({
               href={`/ai-practice/${selectedLanguage}?character=${character.id}`}
               className="group overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
-              <div className="relative aspect-square overflow-hidden bg-background-muted">
+              <div
+                className="relative aspect-square overflow-hidden bg-background-muted"
+                style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
+              >
                 <Image
                   src={character.imageSrc}
                   alt={characterName}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  className="object-contain object-bottom transition-transform duration-300 group-hover:scale-[1.03]"
                 />
               </div>
               <div className="p-4">

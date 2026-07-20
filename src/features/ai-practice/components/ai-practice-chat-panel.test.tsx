@@ -14,7 +14,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, className }: { src: string; alt: string; className?: string }) => (
+    <img src={src} alt={alt} className={className} />
+  ),
 }));
 
 vi.mock("next/link", () => ({
@@ -64,6 +66,17 @@ describe("AiPracticeChatPanel", () => {
     expect(screen.getAllByAltText("Clara")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Translate" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("button", { name: "Speak message" }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("zooms the chat portrait inside its circle and gives the tier its own color without a surface", () => {
+    renderPanel();
+
+    const portrait = screen.getByAltText("Clara");
+    const tier = screen.getByText("A1");
+
+    expect(portrait).toHaveClass("scale-[2]", "object-top");
+    expect(tier).toHaveClass("text-emerald-600", "dark:text-emerald-400");
+    expect(tier).not.toHaveClass("bg-background-muted");
   });
 
   it("translates a message once and reuses the cached translation", async () => {

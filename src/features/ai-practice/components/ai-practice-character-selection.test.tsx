@@ -19,4 +19,20 @@ describe("AiPracticeCharacterSelection", () => {
     expect(list).toBeInTheDocument();
     expect(screen.getAllByRole("link")).toHaveLength(getAiPracticeCharacters().length);
   });
+
+  it("uses each character's darkened chat background behind the selection portrait", () => {
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    const claraBackground = screen.getByRole("link", { name: /clara/i }).querySelector("[style]");
+    const noraBackground = screen.getByRole("link", { name: /nora/i }).querySelector("[style]");
+    const leoBackground = screen.getByRole("link", { name: /leo/i }).querySelector("[style]");
+
+    expect(claraBackground?.getAttribute("style")).toContain("gentle-companion.jpg");
+    expect(noraBackground?.getAttribute("style")).toContain("study-buddy.jpg");
+    expect(leoBackground?.getAttribute("style")).toContain("sleepy-student.webp");
+  });
 });

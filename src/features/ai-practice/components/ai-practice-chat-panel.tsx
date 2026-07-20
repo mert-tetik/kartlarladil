@@ -35,6 +35,14 @@ import type {
 
 type TranslationStatus = "idle" | "loading" | "ready" | "error";
 
+const CHAT_TIER_TEXT_CLASSES: Record<Tier, string> = {
+  A1: "text-emerald-600 dark:text-emerald-400",
+  A2: "text-sky-600 dark:text-sky-400",
+  B1: "text-violet-600 dark:text-violet-400",
+  B2: "text-amber-600 dark:text-amber-400",
+  C1: "text-rose-600 dark:text-rose-400",
+};
+
 interface ClientMessage extends AiPracticeMessage {
   id: string;
   score?: number;
@@ -538,10 +546,17 @@ function ChatHeader({
   return (
     <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-white/15 bg-background-card/85 px-3 py-2 backdrop-blur-sm sm:px-4">
       <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-background-muted">
-        <Image src={character.imageSrc} alt={characterName} fill sizes="36px" className="object-cover" priority />
+        <Image
+          src={character.imageSrc}
+          alt={characterName}
+          fill
+          sizes="36px"
+          className="origin-top scale-[2] object-cover object-top"
+          priority
+        />
       </div>
       <h1 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">{characterName}</h1>
-      <span className="shrink-0 rounded-md bg-background-muted px-2 py-1 text-xs font-semibold text-foreground-secondary">
+      <span className={cn("shrink-0 text-xs font-bold", CHAT_TIER_TEXT_CLASSES[tier])}>
         {tier}
       </span>
     </header>
@@ -578,7 +593,13 @@ function MessageList({
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
-            <Image src={character.imageSrc} alt="" fill sizes="96px" className="object-cover" />
+            <Image
+              src={character.imageSrc}
+              alt=""
+              fill
+              sizes="96px"
+              className="origin-top scale-[2] object-cover object-top"
+            />
           </div>
           <h2 className="mt-5 text-xl font-semibold text-foreground">
             {t("aiPractice.chat.emptyTitle", { name: characterName })}

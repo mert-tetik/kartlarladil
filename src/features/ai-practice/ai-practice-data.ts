@@ -5,6 +5,10 @@ import {
   OPENING_LINES_BY_LANGUAGE,
   PROMPT_PROFILES_BY_LOCALE,
 } from "./ai-practice-localization";
+import {
+  AI_PRACTICE_OPENING_LINE_OVERRIDES,
+  AI_PRACTICE_SUMMARY_OVERRIDES,
+} from "./ai-practice-persona-overrides";
 
 export const AI_PRACTICE_CHARACTER_IDS = [
   "gentle-companion",
@@ -72,7 +76,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   {
     id: "gothic-calm",
     imageSrc: "/ai-characters/gothic-calm.webp",
-    sourcePersonality: "Very calm, gothic and cool girl",
+    sourcePersonality: "Calm, refined, quietly mysterious woman",
     namesByLanguage: languageNames({
       tr: "Lal",
       en: "Raven",
@@ -166,7 +170,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   {
     id: "soft-artist",
     imageSrc: "/ai-characters/soft-artist.webp",
-    sourcePersonality: "Very soft blonde pretty boy",
+    sourcePersonality: "Extremely soft, tender, sensitive creative man",
     namesByLanguage: languageNames({
       tr: "Aras",
       en: "Elliot",
@@ -259,7 +263,7 @@ const AI_PRACTICE_CHARACTER_DATA = [
   {
     id: "study-buddy",
     imageSrc: "/ai-characters/study-buddy.webp",
-    sourcePersonality: "Student, woman",
+    sourcePersonality: "Introverted, gothic, guarded woman",
     namesByLanguage: languageNames({
       tr: "İdil",
       en: "Nora",
@@ -490,7 +494,11 @@ const AI_PRACTICE_CHARACTER_DATA = [
 
 export const AI_PRACTICE_CHARACTERS: AiPracticeCharacter[] = AI_PRACTICE_CHARACTER_DATA.map((character) => ({
   ...character,
-  openingLinesByLanguage: OPENING_LINES_BY_LANGUAGE[character.id] ?? {},
+  summaryByLocale: AI_PRACTICE_SUMMARY_OVERRIDES[character.id] ?? character.summaryByLocale,
+  openingLinesByLanguage: {
+    ...(OPENING_LINES_BY_LANGUAGE[character.id] ?? {}),
+    ...(AI_PRACTICE_OPENING_LINE_OVERRIDES[character.id] ?? {}),
+  },
 }));
 
 export function getAiPracticeCharacters() {

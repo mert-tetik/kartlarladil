@@ -59,7 +59,7 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
 }
 
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
-  "whitespace-nowrap rounded-sm border border-[#BD8B1D] bg-[#FCC241] px-1.5 py-0.5 text-left font-semibold leading-none text-[#0B53B1]";
+  "whitespace-nowrap text-left font-semibold leading-none text-[#3E82D1]";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -406,7 +406,7 @@ export function MobileLandingDashboard() {
         {leaderboardButtonLabel ? (
           <span
             className={cn(
-              "absolute bottom-0 left-[1.8rem] origin-bottom-left -rotate-6",
+              "absolute -bottom-1 left-[1.55rem] origin-bottom-left -rotate-6",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
             )}

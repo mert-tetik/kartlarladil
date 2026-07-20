@@ -1,5 +1,8 @@
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
-import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
+import {
+  getAiPracticeCharacters,
+  getRandomOpeningLine,
+} from "@/features/ai-practice/ai-practice-data";
 import { buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
 
 describe("AI practice characters", () => {
@@ -65,5 +68,42 @@ describe("AI practice characters", () => {
     for (const character of getAiPracticeCharacters()) {
       expect(character.conversationStyle.join(" ")).not.toMatch(/complete sentences|full sentence/i);
     }
+  });
+
+  it("uses the revised three-word summaries for Clara, Raven, Elliot, and Nora", () => {
+    const characters = getAiPracticeCharacters();
+    const byId = (id: string) => characters.find((character) => character.id === id)!;
+
+    expect(byId("gentle-companion").summaryByLocale.tr).toBe("Sıcak, pratik, destekleyici");
+    expect(byId("gothic-calm").summaryByLocale.en).toBe("Calm, refined, mysterious");
+    expect(byId("soft-artist").summaryByLocale.en).toBe("Soft, sensitive, tender");
+    expect(byId("study-buddy").summaryByLocale.tr).toBe("İçe dönük, gotik, mesafeli");
+  });
+
+  it("uses the revised Raven, Elliot, and Nora prompts", () => {
+    const characters = getAiPracticeCharacters();
+    const byId = (id: string) => characters.find((character) => character.id === id)!;
+
+    expect(buildAiPracticeInstructions({ character: byId("gothic-calm"), language: "en" })).toContain(
+      "not gothic, melodramatic, or brooding",
+    );
+    expect(buildAiPracticeInstructions({ character: byId("soft-artist"), language: "en" })).toContain(
+      "very soft, tender, emotionally attentive",
+    );
+    expect(buildAiPracticeInstructions({ character: byId("study-buddy"), language: "en" })).toContain(
+      "never frame the conversation as studying, practice, coaching, or an exercise",
+    );
+  });
+
+  it("randomly chooses from the revised character-specific opening lines", () => {
+    const nora = getAiPracticeCharacters().find((character) => character.id === "study-buddy")!;
+    const random = vi.spyOn(Math, "random");
+
+    random.mockReturnValueOnce(0).mockReturnValueOnce(0.99);
+
+    expect(getRandomOpeningLine(nora, "en")).toBe("Hey. You can stay if you want. What's on your mind?");
+    expect(getRandomOpeningLine(nora, "en")).toBe("Hey. No pressure. We can just talk for a bit.");
+
+    random.mockRestore();
   });
 });
