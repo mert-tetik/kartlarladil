@@ -450,11 +450,13 @@ function CheckoutButton({
   cycle,
   currentPlan,
   className,
+  showSubscribeForPaidUser = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
+  showSubscribeForPaidUser?: boolean;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCheckoutAction, {
@@ -499,7 +501,11 @@ function CheckoutButton({
         )}
         disabled={pending}
       >
-        {pending ? t("common.loading") : isPaidUser ? t("pricing.ctaManage") : t("pricing.ctaSubscribe")}
+        {pending
+          ? t("common.loading")
+          : isPaidUser && !showSubscribeForPaidUser
+            ? t("pricing.ctaManage")
+            : t("pricing.ctaSubscribe")}
       </Button>
       {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
     </form>
@@ -512,12 +518,14 @@ function PurchaseButton({
   currentPlan,
   provider,
   className,
+  showSubscribeForPaidUser = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   provider: SubscriptionProvider;
   className?: string;
+  showSubscribeForPaidUser?: boolean;
 }) {
   const isTwa = useTwaMode();
   const isPaid = currentPlan != null && currentPlan !== "free";
@@ -530,10 +538,26 @@ function PurchaseButton({
   }
 
   if (isTwa) {
-    return <GooglePlayCheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} className={className} />;
+    return (
+      <GooglePlayCheckoutButton
+        plan={plan}
+        cycle={cycle}
+        currentPlan={currentPlan}
+        className={className}
+        showSubscribeForPaidUser={showSubscribeForPaidUser}
+      />
+    );
   }
 
-  return <CheckoutButton plan={plan} cycle={cycle} currentPlan={currentPlan} className={className} />;
+  return (
+    <CheckoutButton
+      plan={plan}
+      cycle={cycle}
+      currentPlan={currentPlan}
+      className={className}
+      showSubscribeForPaidUser={showSubscribeForPaidUser}
+    />
+  );
 }
 
 function GooglePlayCheckoutButton({
@@ -541,11 +565,13 @@ function GooglePlayCheckoutButton({
   cycle,
   currentPlan,
   className,
+  showSubscribeForPaidUser = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
+  showSubscribeForPaidUser?: boolean;
 }) {
   const t = useT();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
@@ -584,7 +610,9 @@ function GooglePlayCheckoutButton({
     : isCurrentPlan
       ? t("pricing.ctaCurrent")
       : isPaidUser
-        ? t("pricing.ctaManage")
+        ? showSubscribeForPaidUser
+          ? t("pricing.ctaSubscribe")
+          : t("pricing.ctaManage")
         : t("pricing.ctaSubscribe");
 
   return (
@@ -772,30 +800,33 @@ const MOBILE_PERK_ARTWORK = [
     image: "/pricing-perks/collection.png",
     titleKey: "pricing.featureCards",
     descriptionKey: "pricing.featureLearnedReview",
-    accentClass: "from-amber-300 via-yellow-400 to-orange-500",
   },
   {
     id: "games",
     image: "/pricing-perks/games.png",
     titleKey: "pricing.featureGames",
     descriptionKey: "pricing.featureLearned",
-    accentClass: "from-emerald-300 via-cyan-400 to-blue-500",
   },
   {
     id: "practice",
     image: "/pricing-perks/practice.png",
     titleKey: "nav.aiPractice",
     descriptionKey: null,
-    accentClass: "from-violet-300 via-blue-400 to-amber-300",
   },
 ] as const;
 
-function MobilePricingPerkCarousel({ plan }: { plan: Exclude<SubscriptionPlan, "free"> }) {
+function MobilePricingPerkCarousel({
+  plan,
+  locale,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  locale: LocaleCode;
+}) {
   const t = useT();
 
   return (
     <div
-      className="-mx-4 h-[clamp(11rem,34dvh,17.5rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 h-[clamp(13rem,38dvh,20rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-mobile-pricing-perks
     >
       <div className="flex h-full w-max snap-x snap-mandatory gap-3 pr-4">
@@ -807,7 +838,7 @@ function MobilePricingPerkCarousel({ plan }: { plan: Exclude<SubscriptionPlan, "
           return (
             <article
               key={perk.id}
-              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#1b1b1d]"
+              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-[2rem] bg-[#29292d]"
             >
               <Image
                 src={perk.image}
@@ -817,16 +848,73 @@ function MobilePricingPerkCarousel({ plan }: { plan: Exclude<SubscriptionPlan, "
                 sizes="72vw"
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/5 to-transparent" />
-              <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", perk.accentClass)} />
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <h2 className="text-lg font-bold leading-tight text-white">{t(perk.titleKey)}</h2>
-                <p className="mt-1 max-w-[16rem] text-xs leading-4 text-white/75">{description}</p>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#171719]/95 via-transparent to-[#29292d]/20" />
+              <div className="absolute inset-x-0 bottom-0 flex min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center">
+                <h2
+                  className={cn(
+                    "text-xl font-semibold leading-none text-white",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}
+                >
+                  {formatSuperWaterText(locale, t(perk.titleKey))}
+                </h2>
+                <p className="mt-2 max-w-[16rem] text-xs leading-4 text-white/80">{description}</p>
               </div>
             </article>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function MobileBillingCycleToggle({
+  cycle,
+  yearlyDiscountRate,
+  onChange,
+}: {
+  cycle: BillingCycle;
+  yearlyDiscountRate: number | null;
+  onChange: (cycle: BillingCycle) => void;
+}) {
+  const t = useT();
+  const isYearly = cycle === "yearly";
+  const savings = yearlyDiscountRate && yearlyDiscountRate > 0
+    ? t("pricing.yearlyDiscount", { rate: yearlyDiscountRate })
+    : null;
+
+  return (
+    <div className="relative flex h-12 shrink-0 rounded-full bg-white/10 p-1">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-white transition-transform duration-300 ease-out",
+          isYearly && "translate-x-full",
+        )}
+      />
+      <button
+        type="button"
+        onClick={() => onChange("monthly")}
+        className={cn(
+          "relative z-10 flex flex-1 items-center justify-center rounded-full px-3 text-xs font-semibold transition-colors duration-300",
+          !isYearly ? "text-slate-950" : "text-white/70",
+        )}
+        aria-pressed={!isYearly}
+      >
+        {t("pricing.billingMonthly")}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("yearly")}
+        className={cn(
+          "relative z-10 flex flex-1 flex-col items-center justify-center rounded-full px-3 text-xs font-semibold leading-none transition-colors duration-300",
+          isYearly ? "text-slate-950" : "text-white/70",
+        )}
+        aria-pressed={isYearly}
+      >
+        <span>{t("pricing.billingYearly")}</span>
+        {savings ? <span className={cn("mt-0.5 text-[9px]", isYearly ? "text-emerald-700" : "text-emerald-300")}>{savings}</span> : null}
+      </button>
     </div>
   );
 }
@@ -874,7 +962,7 @@ function MobilePricingView({
       </header>
 
       <div className="mt-3 min-h-0 shrink-0">
-        <MobilePricingPerkCarousel plan={selectedOption.plan} />
+        <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
       </div>
 
       <div className="mt-3 grid shrink-0 grid-cols-2 gap-2">
@@ -908,31 +996,12 @@ function MobilePricingView({
         })}
       </div>
 
-      <div className="mt-2 grid shrink-0 grid-cols-2 gap-2">
-        {(["monthly", "yearly"] as const).map((cycle) => {
-          const isSelected = selectedOption.cycle === cycle;
-          const savings = cycle === "yearly" && yearlyDiscountRate && yearlyDiscountRate > 0
-            ? t("pricing.yearlyDiscount", { rate: yearlyDiscountRate })
-            : null;
-
-          return (
-            <button
-              key={cycle}
-              type="button"
-              onClick={() => handleSelect({ plan: selectedOption.plan, cycle })}
-              className={cn(
-                "flex h-11 flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-all duration-200",
-                isSelected
-                  ? "border-white bg-white text-slate-950"
-                  : "border-white/15 bg-transparent text-white/70",
-              )}
-              aria-pressed={isSelected}
-            >
-              <span>{cycle === "monthly" ? t("pricing.billingMonthly") : t("pricing.billingYearly")}</span>
-              {savings ? <span className="text-[9px] text-emerald-700">{savings}</span> : null}
-            </button>
-          );
-        })}
+      <div className="mt-2">
+        <MobileBillingCycleToggle
+          cycle={selectedOption.cycle}
+          yearlyDiscountRate={yearlyDiscountRate}
+          onChange={(cycle) => handleSelect({ plan: selectedOption.plan, cycle })}
+        />
       </div>
 
       <div className="mt-3 shrink-0">
@@ -952,6 +1021,7 @@ function MobilePricingView({
             currentPlan={currentPlan}
             provider={provider}
             className="h-14 rounded-2xl text-base"
+            showSubscribeForPaidUser={currentPlan === "basic" && selectedOption.plan === "pro"}
           />
         )}
       </div>
