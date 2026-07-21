@@ -1270,6 +1270,34 @@ body:has([data-ask-page]) footer {
   animation: quiz-start-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes game-start-splash-enter {
+  from {
+    transform: translate3d(0, -100%, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes game-start-splash-exit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.animate-game-start-splash-enter {
+  animation: game-start-splash-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-game-start-splash-exit {
+  animation: game-start-splash-exit 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes game-launch-splash {
   0%,
   89% {
@@ -1613,6 +1641,22 @@ body:has([data-games-active]) {
 
 .animate-word-match-shake {
   animation: word-match-shake 0.6s ease-in-out;
+}
+
+@keyframes word-match-line-connect {
+  from {
+    stroke-dashoffset: var(--word-match-line-length);
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-word-match-line-connect {
+  stroke-dasharray: var(--word-match-line-length);
+  stroke-dashoffset: var(--word-match-line-length);
+  animation: word-match-line-connect 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Mission badge pulse */

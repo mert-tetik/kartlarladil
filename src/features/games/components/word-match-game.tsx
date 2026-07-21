@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -40,6 +41,7 @@ interface WordMatchGameProps {
 }
 
 interface LineDef {
+  id: string;
   x1: number;
   y1: number;
   x2: number;
@@ -127,6 +129,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
     const wrapperRect = wrapper.getBoundingClientRect();
     const nextLines: LineDef[] = [];
+    const connectedPairIds = new Set<string>();
 
     for (const item of items) {
       if (!item.matched) continue;
@@ -137,6 +140,10 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
       );
       if (!pair) continue;
 
+      const pairId = [item.id, pair.id].sort().join(":");
+      if (connectedPairIds.has(pairId)) continue;
+      connectedPairIds.add(pairId);
+
       const a = itemRefs.current[item.id];
       const b = itemRefs.current[pair.id];
       if (!a || !b) continue;
@@ -145,6 +152,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
       const rectB = b.getBoundingClientRect();
 
       nextLines.push({
+        id: pairId,
         x1: rectA.left + rectA.width / 2 - wrapperRect.left,
         y1: rectA.top + rectA.height / 2 - wrapperRect.top,
         x2: rectB.left + rectB.width / 2 - wrapperRect.left,
@@ -287,7 +295,10 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
   });
 
   return (
-    <GameShell backgroundSrc={GAME_BACKGROUND_SOURCES.wordMatch}>
+    <GameShell
+      backgroundSrc={GAME_BACKGROUND_SOURCES.wordMatch}
+      backgroundOverlay="rgb(2 6 23 / 0.58)"
+    >
       <GameHeader
         level={level}
         tiers={[getHighestTierForLevel(level)]}
@@ -319,25 +330,30 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
             className="relative flex flex-1 flex-row gap-4"
           >
             <svg
-              className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full"
               style={{ overflow: "visible" }}
             >
-              {lines.map((line, index) => (
+              {lines.map((line) => {
+                const length = Math.hypot(line.x2 - line.x1, line.y2 - line.y1);
+
+                return (
                 <line
-                  key={index}
+                  key={line.id}
                   x1={line.x1}
                   y1={line.y1}
                   x2={line.x2}
                   y2={line.y2}
-                  className={cn("stroke-[3px]", getTierStrokeClass(line.tier))}
+                  className={cn("animate-word-match-line-connect stroke-[3px]", getTierStrokeClass(line.tier))}
                   strokeLinecap="round"
+                  style={{ "--word-match-line-length": length } as CSSProperties}
                 />
-              ))}
+                );
+              })}
             </svg>
 
             <div
               ref={boardRef}
-              className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4"
+              className="relative z-10 flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4"
             >
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.termColumn")}
@@ -356,7 +372,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4">
+            <div className="relative z-10 flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4">
               <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
                 {t("games.wordMatch.meaningColumn")}
               </h3>

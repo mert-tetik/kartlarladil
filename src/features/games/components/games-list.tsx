@@ -132,12 +132,12 @@ export function GamesList() {
                 className={cn(
                   "flex w-full flex-col items-start justify-start gap-3 rounded-2xl p-6 text-left transition-[transform,box-shadow] hover:scale-[1.02] active:scale-95 sm:aspect-[1.3/1] sm:flex-1",
                   game.variant === "red"
-                    ? "bg-red-500 text-white shadow-[0_18px_44px_rgba(239,68,68,0.58)] hover:bg-red-600 hover:shadow-[0_22px_50px_rgba(239,68,68,0.68)]"
+                    ? "bg-red-500 text-white shadow-[0_10px_24px_rgba(239,68,68,0.34)] hover:bg-red-600 hover:shadow-[0_12px_28px_rgba(239,68,68,0.42)]"
                     : game.variant === "green"
-                      ? "bg-emerald-500 text-white shadow-[0_18px_44px_rgba(16,185,129,0.58)] hover:bg-emerald-600 hover:shadow-[0_22px_50px_rgba(16,185,129,0.68)]"
+                      ? "bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.34)] hover:bg-emerald-600 hover:shadow-[0_12px_28px_rgba(16,185,129,0.42)]"
                       : game.variant === "lightBlue"
-                        ? "bg-sky-400 text-white shadow-[0_18px_44px_rgba(56,189,248,0.58)] hover:bg-sky-500 hover:shadow-[0_22px_50px_rgba(56,189,248,0.68)]"
-                        : "bg-blue-500 text-white shadow-[0_18px_44px_rgba(59,130,246,0.58)] hover:bg-blue-600 hover:shadow-[0_22px_50px_rgba(59,130,246,0.68)]",
+                        ? "bg-sky-400 text-white shadow-[0_10px_24px_rgba(56,189,248,0.34)] hover:bg-sky-500 hover:shadow-[0_12px_28px_rgba(56,189,248,0.42)]"
+                        : "bg-blue-500 text-white shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-blue-600 hover:shadow-[0_12px_28px_rgba(59,130,246,0.42)]",
                 )}
               >
                 <div className="flex items-center gap-3">

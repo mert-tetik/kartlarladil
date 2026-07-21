@@ -22,7 +22,7 @@ interface GameStartSplashProps {
 }
 
 const SPLASH_REVEAL_DURATION_MS = 720;
-const SPLASH_EXIT_DURATION_MS = 1200;
+const SPLASH_EXIT_DURATION_MS = 420;
 const GAME_LAUNCH_TITLE_DURATION_MS = 1500;
 const GAME_LAUNCH_DETAILS_DURATION_MS = 2800;
 const GAME_LAUNCH_START_DURATION_MS = 3800;
@@ -85,12 +85,12 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
 
     const completeTimer = window.setTimeout(() => {
       onCompleteRef.current();
+      setExiting(true);
     }, SPLASH_REVEAL_DURATION_MS);
 
     const exitTimer = window.setTimeout(() => {
-      setExiting(true);
       onExitedRef.current?.();
-    }, SPLASH_EXIT_DURATION_MS);
+    }, SPLASH_REVEAL_DURATION_MS + SPLASH_EXIT_DURATION_MS);
 
     return () => {
       window.clearTimeout(completeTimer);
@@ -98,7 +98,7 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
     };
   }, [isGameLaunchSequence]);
 
-  if (exiting || typeof document === "undefined") {
+  if (typeof document === "undefined") {
     return null;
   }
 
@@ -106,7 +106,10 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
     <div
       className={isGameLaunchSequence
         ? "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden animate-game-launch-splash"
-        : "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-brand animate-quiz-start-splash"}
+        : cn(
+          "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-brand",
+          exiting ? "animate-game-start-splash-exit" : "animate-game-start-splash-enter",
+        )}
       data-game-start-splash
       aria-hidden="true"
       style={isGameLaunchSequence ? { backgroundColor: GAME_LAUNCH_COLORS[game] } : undefined}

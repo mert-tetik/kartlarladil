@@ -7,6 +7,7 @@ interface GameShellProps {
   children: ReactNode;
   className?: string;
   backgroundSrc?: string;
+  backgroundOverlay?: string;
 }
 
 export const GAME_BACKGROUND_SOURCES = {
@@ -17,7 +18,7 @@ export const GAME_BACKGROUND_SOURCES = {
   levelFailed: "/game-backgrounds/dark-game-bg.jpg",
 } as const;
 
-export function GameShell({ children, className, backgroundSrc }: GameShellProps) {
+export function GameShell({ children, className, backgroundSrc, backgroundOverlay = "rgb(15 23 42 / 0.18)" }: GameShellProps) {
   return (
     <div
       data-games-active
@@ -26,7 +27,7 @@ export function GameShell({ children, className, backgroundSrc }: GameShellProps
         className,
       )}
       style={backgroundSrc ? {
-        backgroundImage: `linear-gradient(rgb(15 23 42 / 0.18), rgb(15 23 42 / 0.18)), url(${backgroundSrc})`,
+        backgroundImage: `linear-gradient(${backgroundOverlay}, ${backgroundOverlay}), url(${backgroundSrc})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       } : undefined}
