@@ -51,8 +51,15 @@ export async function POST(request: Request) {
     return Response.json({ accepted: false }, { status: 400 });
   }
 
-  const { userAnswer, correctAnswers, sourceAnswers, targetLanguage, sourceLanguage, promptContext } =
-    parsed.data;
+  const {
+    validationKind,
+    userAnswer,
+    correctAnswers,
+    sourceAnswers,
+    targetLanguage,
+    sourceLanguage,
+    promptContext,
+  } = parsed.data;
 
   const targetLanguageName = getLanguageDisplayName(targetLanguage, "en");
   const sourceLanguageName = getLanguageDisplayName(sourceLanguage, "en");
@@ -63,7 +70,7 @@ export async function POST(request: Request) {
     return Response.json({ accepted: false });
   }
 
-  const systemContent = [
+  const textAnswerSystemContent = [
     "You are a helpful language tutor validating a vocabulary quiz answer.",
     `The user is learning ${targetLanguageName}; the quiz UI is in ${sourceLanguageName}.`,
     `They were asked to produce the target word or phrase in ${targetLanguageName}.`,
@@ -96,6 +103,24 @@ export async function POST(request: Request) {
     'Correct: big, User: huge -> {"accepted": true}',
     'Correct: big, User: small -> {"accepted": false}',
   ].join("\n");
+
+  const sentenceCompletionSystemContent = [
+    "You are a helpful language tutor validating a sentence-completion quiz answer.",
+    `The blank must be completed in ${targetLanguageName}; the quiz UI is in ${sourceLanguageName}.`,
+    "Decide whether the user's selected word or phrase makes the provided sentence grammatical, natural, and plausible in its visible context.",
+    "Do not require the selection to match the canonical answer or preserve its exact meaning.",
+    "For example, if the canonical sentence is 'I drink tea.' and the user completes it as 'I drink coffee.', accept it.",
+    "",
+    "Accept only when the completed sentence is natural and grammatically valid in the target language.",
+    "Reject source/UI-language answers, mixed-language answers, ungrammatical completions, unnatural completions, or answers that contradict explicit context.",
+    "Never accept a choice merely because it is loosely related to the canonical answer.",
+    "",
+    'Respond ONLY with {"accepted": true} or {"accepted": false}.',
+  ].join("\n");
+
+  const systemContent = validationKind === "sentence_completion"
+    ? sentenceCompletionSystemContent
+    : textAnswerSystemContent;
 
   const userContent = [
     `Correct answers: ${correctAnswers.join(", ")}`,

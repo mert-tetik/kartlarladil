@@ -357,6 +357,7 @@ export function QuizStation({
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(
     null,
   );
+  const [lastAnswer, setLastAnswer] = useState<string | null>(null);
   const [results, setResults] = useState<QuizResult>({
     correct: [],
     incorrect: [],
@@ -583,6 +584,7 @@ export function QuizStation({
       setTextAnswer("");
       setTextResult("idle");
       setLastAnswerCorrect(null);
+      setLastAnswer(null);
       setResults({ correct: [], incorrect: [], learned: [] });
       setChestOpened(false);
       setAwardedChestTier(null);
@@ -619,6 +621,7 @@ export function QuizStation({
     setTextAnswer("");
     setTextResult("idle");
     setLastAnswerCorrect(null);
+    setLastAnswer(null);
   }, [clearCardProgressFeedback]);
 
   const advanceQuiz = useCallback(
@@ -781,6 +784,44 @@ export function QuizStation({
     }
   }
 
+  async function handleSentenceCompletionAnswer(answer: string, isCorrectOption: boolean) {
+    if (showingAnswer || isAiValidating) return;
+
+    const item = deck[currentIndex];
+    if (item.questionType !== "sentence-completion") return;
+
+    if (isCorrectOption) {
+      handleAnswer(answer, true);
+      return;
+    }
+
+    const { question } = item;
+    setIsAiValidating(true);
+
+    try {
+      const result = await aiValidateTextAnswer({
+        validationKind: "sentence_completion",
+        userAnswer: answer,
+        correctAnswers: [question.correctAnswer],
+        sourceAnswers: getCardTranslationMeanings(item.card, locale),
+        targetLanguage: item.card.language,
+        sourceLanguage: locale,
+        promptContext: [
+          `Sentence with blank: ${question.sentenceWithBlank}`,
+          `Canonical completed sentence: ${completeSentence(question.sentenceWithBlank, question.correctAnswer)}`,
+          `User completed sentence: ${completeSentence(question.sentenceWithBlank, answer)}`,
+        ].join("\n"),
+      });
+
+      // A quota, network, or model failure is intentionally counted as incorrect.
+      handleAnswer(answer, result.accepted);
+    } catch {
+      handleAnswer(answer, false);
+    } finally {
+      setIsAiValidating(false);
+    }
+  }
+
   async function handleAnswer(answer: string, isCorrect: boolean) {
     if (showingAnswer) return;
 
@@ -821,6 +862,7 @@ export function QuizStation({
           setShowingAnswer(true);
           setTextResult(isCorrect ? "correct" : "incorrect");
           setLastAnswerCorrect(isCorrect);
+          setLastAnswer(answer);
         });
 
         startCardProgressFeedback(item, isCorrect);
@@ -1335,7 +1377,10 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
-                  onAnswer={handleAnswer}
+                  isAiValidating={isAiValidating}
+                  selectedAnswer={lastAnswer}
+                  answerAccepted={lastAnswerCorrect}
+                  onAnswer={handleSentenceCompletionAnswer}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1559,6 +1604,10 @@ function MobileQuizCard({
 
 function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function completeSentence(sentenceWithBlank: string, answer: string) {
+  return sentenceWithBlank.replace("_____", answer);
 }
 
 function getRandomQuizCharacter() {
@@ -2203,6 +2252,7 @@ function QuizAnswerButton({
           "shadow-[0_12px_26px_-22px_rgba(69,10,10,0.78)]",
         className,
       )}
+      data-quiz-answer-feedback={feedbackState}
       {...props}
     >
       <span
@@ -2229,12 +2279,18 @@ function QuizAnswerButton({
 function SentenceCompletionQuestion({
   item,
   showingAnswer,
+  isAiValidating,
+  selectedAnswer,
+  answerAccepted,
   onAnswer,
   onNext,
   showNextButton = true,
 }: {
   item: SentenceCompletionQuizItem;
   showingAnswer: boolean;
+  isAiValidating: boolean;
+  selectedAnswer: string | null;
+  answerAccepted: boolean | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onNext: () => void;
   showNextButton?: boolean;
@@ -2277,6 +2333,16 @@ function SentenceCompletionQuestion({
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
           const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+          const isSelectedOption = option === selectedAnswer;
+          const feedbackState = !showingAnswer
+            ? "idle"
+            : isSelectedOption
+              ? answerAccepted
+                ? "correct"
+                : "incorrect"
+              : !answerAccepted && isCorrectOption
+                ? "correct"
+                : "idle";
 
           return (
             <QuizAnswerButton
@@ -2284,10 +2350,10 @@ function SentenceCompletionQuestion({
               type="button"
               data-quiz-sentence-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
-              disabled={showingAnswer}
-              interactive={!showingAnswer}
+              disabled={showingAnswer || isAiValidating}
+              interactive={!showingAnswer && !isAiValidating}
               baseClassName={optionColor}
-              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
+              feedbackState={feedbackState}
               incorrectOverlayClassName="bg-red-950"
               className="min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base"
             >

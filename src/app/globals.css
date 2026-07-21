@@ -167,6 +167,11 @@ button:disabled,
   box-shadow: none !important;
 }
 
+/* Locked actions retain their depth while using a fully opaque, darker face. */
+.mobile-primary-action-depth--locked::after {
+  filter: brightness(0.52) saturate(1.06);
+}
+
 .mobile-primary-action-depth--emerald::after {
   background: var(--color-emerald-500);
 }

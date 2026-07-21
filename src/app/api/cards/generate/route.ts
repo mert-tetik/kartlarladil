@@ -4,7 +4,11 @@ import {
   createAiPracticeSafetyIdentifier,
   extractResponseOutputText,
 } from "@/features/ai-practice/ai-practice-openai";
-import { createCardRequestSchema, generatedCardSchema } from "@/features/cards/create-card-schema";
+import {
+  createCardRequestSchema,
+  generatedCardSchema,
+  matchesRequestedTargetLanguage,
+} from "@/features/cards/create-card-schema";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
@@ -43,7 +47,10 @@ export async function POST(request: Request) {
 
   const openai = new OpenAI({ apiKey });
   const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
-  const instructions = buildCreateCardInstructions({ locale: parsed.data.locale });
+  const instructions = buildCreateCardInstructions({
+    locale: parsed.data.locale,
+    targetLanguage: parsed.data.targetLanguage,
+  });
   const input = buildCreateCardInput(parsed.data);
 
   let response;
@@ -79,6 +86,10 @@ export async function POST(request: Request) {
 
   if (!generated.success) {
     return Response.json({ errorCode: "invalid_request" }, { status: 502 });
+  }
+
+  if (!matchesRequestedTargetLanguage(generated.data, parsed.data.targetLanguage)) {
+    return Response.json({ errorCode: "upstream_error" }, { status: 502 });
   }
 
   // Usage was already atomically reserved before calling OpenAI.

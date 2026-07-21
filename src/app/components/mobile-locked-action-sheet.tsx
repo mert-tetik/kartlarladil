@@ -117,13 +117,16 @@ export function MobileLockedActionSheet({
               </div>
             </>
           ) : (
-            <div className="mobile-primary-action-depth mobile-primary-action-depth--emerald rounded-xl">
+            <div className={cn(
+              "mobile-primary-action-depth mobile-primary-action-depth--emerald rounded-xl",
+              !canStartLearning && "mobile-primary-action-depth--locked",
+            )}>
               <button
                 type="button"
                 disabled={!canStartLearning}
                 onClick={onStartLearning}
                 className={cn(
-                  "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+                  "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-emerald-700 disabled:opacity-100",
                 )}
               >
                 <GraduationCap className="size-5" aria-hidden="true" />

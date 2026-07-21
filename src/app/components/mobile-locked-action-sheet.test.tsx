@@ -68,6 +68,6 @@ describe("MobileLockedActionSheet", () => {
 
     expect(props.onStartLearning).not.toHaveBeenCalled();
     expect(screen.getByText("common.close")).toHaveClass("bg-sky-500");
-    expect(startLearning.closest(".mobile-primary-action-depth")).not.toBeNull();
+    expect(startLearning.closest(".mobile-primary-action-depth")).toHaveClass("mobile-primary-action-depth--locked");
   });
 });

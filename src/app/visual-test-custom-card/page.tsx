@@ -9,7 +9,7 @@ export default function VisualTestCustomCardPage() {
   return (
     <div className="min-h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] p-4">
       <button type="button" onClick={() => setOpen(true)}>Open custom card sheet</button>
-      <MobileCustomCardSheet open={open} onClose={() => setOpen(false)} />
+      <MobileCustomCardSheet open={open} onClose={() => setOpen(false)} landingLanguage="en" />
     </div>
   );
 }

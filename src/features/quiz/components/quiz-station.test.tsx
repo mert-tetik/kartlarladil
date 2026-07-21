@@ -581,6 +581,159 @@ describe("QuizStation sound feedback", () => {
     expect(document.querySelector('[data-quiz-question-content="sentence-completion"] img')).toBeInTheDocument();
   });
 
+  it("does not call AI validation for the canonical sentence completion answer", async () => {
+    const fetchSpy = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }));
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const canonicalOption = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]")).find(
+      (option) => option.textContent?.trim() === testCard.term,
+    );
+    expect(canonicalOption).toBeDefined();
+
+    fireEvent.click(canonicalOption!);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(playSoundEffect).toHaveBeenCalledWith("correct");
+    expect(canonicalOption).toHaveAttribute("data-quiz-answer-feedback", "correct");
+  });
+
+  it("accepts a natural alternative sentence completion through AI validation", async () => {
+    let resolveValidation: ((response: { json: () => Promise<{ accepted: boolean }> }) => void) | undefined;
+    const fetchSpy = vi.fn(() => new Promise<{ json: () => Promise<{ accepted: boolean }> }>((resolve) => {
+      resolveValidation = resolve;
+    }));
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const options = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]"));
+    const alternativeOption = options.find((option) => option.textContent?.trim() !== testCard.term);
+    const canonicalOption = options.find((option) => option.textContent?.trim() === testCard.term);
+    expect(alternativeOption).toBeDefined();
+    expect(canonicalOption).toBeDefined();
+
+    fireEvent.click(alternativeOption!);
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(options.every((option) => option.hasAttribute("disabled"))).toBe(true);
+    });
+
+    resolveValidation?.({ json: () => Promise.resolve({ accepted: true }) });
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("correct");
+    });
+
+    const requestBody = (fetchSpy.mock.calls as unknown as Array<[unknown, RequestInit]>)[0]?.[1]?.body;
+    const request = JSON.parse(String(requestBody)) as {
+      validationKind: string;
+      userAnswer: string;
+      promptContext: string;
+    };
+    expect(request.validationKind).toBe("sentence_completion");
+    expect(request.userAnswer).toBe(alternativeOption!.textContent?.trim());
+    expect(request.promptContext).toContain("Canonical completed sentence:");
+    expect(request.promptContext).toContain("User completed sentence:");
+    expect(alternativeOption).toHaveAttribute("data-quiz-answer-feedback", "correct");
+    expect(canonicalOption).toHaveAttribute("data-quiz-answer-feedback", "idle");
+  });
+
+  it("rejects an unnatural sentence completion alternative and reveals the canonical answer", async () => {
+    const fetchSpy = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ accepted: false }) }));
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const options = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]"));
+    const alternativeOption = options.find((option) => option.textContent?.trim() !== testCard.term);
+    const canonicalOption = options.find((option) => option.textContent?.trim() === testCard.term);
+    expect(alternativeOption).toBeDefined();
+    expect(canonicalOption).toBeDefined();
+
+    fireEvent.click(alternativeOption!);
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+    });
+
+    expect(alternativeOption).toHaveAttribute("data-quiz-answer-feedback", "incorrect");
+    expect(canonicalOption).toHaveAttribute("data-quiz-answer-feedback", "correct");
+  });
+
+  it("counts a sentence completion as incorrect when AI validation is rate limited", async () => {
+    const fetchSpy = vi.fn(() => Promise.resolve({
+      status: 429,
+      json: () => Promise.resolve({ errorCode: "ai_daily_limit" }),
+    }));
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const alternativeOption = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]")).find(
+      (option) => option.textContent?.trim() !== testCard.term,
+    );
+    expect(alternativeOption).toBeDefined();
+
+    fireEvent.click(alternativeOption!);
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+    });
+  });
+
+  it("counts a sentence completion as incorrect when AI validation fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("network error"))) as unknown as typeof fetch,
+    );
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const alternativeOption = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]")).find(
+      (option) => option.textContent?.trim() !== testCard.term,
+    );
+    expect(alternativeOption).toBeDefined();
+
+    fireEvent.click(alternativeOption!);
+
+    await waitFor(() => {
+      expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+    });
+  });
+
   it("reserves the next-card slot before a choice answer is shown", async () => {
     renderQuizStation();
     await startChoiceQuiz();

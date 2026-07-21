@@ -1,10 +1,15 @@
-import type { AiValidateAnswerRequest, AiValidateAnswerResponse } from "@/features/quiz/ai-validate-answer-schema";
+import type {
+  AiValidateAnswerRequest,
+  AiValidateAnswerResponse,
+  AiValidationKind,
+} from "@/features/quiz/ai-validate-answer-schema";
 import type { LanguageCode } from "@/types/domain";
 
 const API_ROUTE = "/api/quiz/validate-answer";
 const CLIENT_TIMEOUT_MS = 5_500;
 
 export interface AiValidateTextAnswerOptions {
+  validationKind?: AiValidationKind;
   userAnswer: string;
   correctAnswers: string[];
   sourceAnswers: string[];
@@ -17,6 +22,7 @@ export async function aiValidateTextAnswer(
   options: AiValidateTextAnswerOptions,
 ): Promise<{ accepted: boolean; errorCode?: "ai_daily_limit" | "ai_monthly_limit" }> {
   const body: AiValidateAnswerRequest = {
+    validationKind: options.validationKind ?? "text",
     userAnswer: options.userAnswer.trim(),
     correctAnswers: options.correctAnswers.map((answer) => answer.trim()),
     sourceAnswers: options.sourceAnswers.map((answer) => answer.trim()),

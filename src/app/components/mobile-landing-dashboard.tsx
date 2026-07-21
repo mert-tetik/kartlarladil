@@ -621,6 +621,7 @@ export function MobileLandingDashboard() {
       <MobileCustomCardSheet
         open={customCardOpen}
         onClose={() => setCustomCardOpen(false)}
+        landingLanguage={selectedLanguage}
         onSubscriptionLimitReached={(errorCode) => setCardLimitError(errorCode)}
       />
 
@@ -967,6 +968,7 @@ function ActionButton({
     <div className={cn(
       "mobile-primary-action-depth w-full rounded-xl",
       variant === "active" ? "mobile-primary-action-depth--emerald" : "mobile-primary-action-depth--sky",
+      locked && "mobile-primary-action-depth--locked",
     )}>
       <button
         type="button"
@@ -976,9 +978,8 @@ function ActionButton({
         className={cn(
           "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
           variant === "active"
-            ? "bg-emerald-500 hover:bg-emerald-600"
-            : "bg-sky-500 hover:bg-sky-600",
-          locked && "opacity-50",
+            ? locked ? "bg-emerald-700 hover:bg-emerald-700" : "bg-emerald-500 hover:bg-emerald-600"
+            : locked ? "bg-sky-700 hover:bg-sky-700" : "bg-sky-500 hover:bg-sky-600",
         )}
       >
         <Icon className="size-5" aria-hidden="true" />

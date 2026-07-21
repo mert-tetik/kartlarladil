@@ -1,12 +1,21 @@
 import { LOCALE_CODES } from "@/data/languages";
-import type { LocaleCode } from "@/types/domain";
+import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 export interface CreateCardPromptInput {
   locale: LocaleCode;
   term: string;
+  targetLanguage?: LanguageCode;
 }
 
-export function buildCreateCardInstructions({ locale }: { locale: LocaleCode }) {
+const NATIVE_WRITING_SYSTEMS: Partial<Record<LanguageCode, string>> = {
+  ru: "Cyrillic",
+  ar: "Arabic",
+  ja: "Japanese",
+  ko: "Korean",
+  "zh-CN": "Simplified Chinese",
+};
+
+export function buildCreateCardInstructions({ locale, targetLanguage }: { locale: LocaleCode; targetLanguage?: LanguageCode }) {
   const localeList = LOCALE_CODES.join(", ");
 
   return `You are a helpful vocabulary card generator for a language learning app.
@@ -30,7 +39,8 @@ ${LOCALE_CODES.map((code) => `    "${code}": "translation in ${code}"`).join(",\
 }
 
 Rules:
-- Choose an appropriate target language and CEFR tier for the requested term.
+- ${targetLanguage ? `Set language to exactly "${targetLanguage}". Do not choose another target language.` : "Choose an appropriate target language and CEFR tier for the requested term."}
+- ${targetLanguage && NATIVE_WRITING_SYSTEMS[targetLanguage] ? `When the requested term is written as a Latin-script transliteration, convert term to its canonical ${NATIVE_WRITING_SYSTEMS[targetLanguage]} spelling. Preserve the original meaning; keep the romanization only in pronunciation when useful. For example, Russian "ya ne znayu" becomes term "я не знаю".` : "Keep term in the target language's standard spelling."}
 - The example must use the term naturally.
 - Provide a translation for every locale key listed (${localeList}).
 - Keep all text concise and suitable for flashcards.
@@ -38,5 +48,7 @@ Rules:
 }
 
 export function buildCreateCardInput(input: CreateCardPromptInput) {
-  return `Generate a vocabulary card for: "${input.term}".`;
+  return input.targetLanguage
+    ? `Generate a ${input.targetLanguage} vocabulary card for: "${input.term}".`
+    : `Generate a vocabulary card for: "${input.term}".`;
 }

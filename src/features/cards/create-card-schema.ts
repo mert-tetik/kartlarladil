@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
+import type { LanguageCode } from "@/types/domain";
 
 export const createCardRequestSchema = z.object({
   locale: z.enum(LOCALE_CODES),
   term: z.string().min(1).max(120),
+  targetLanguage: z.enum(LANGUAGE_CODES).optional(),
 });
 
 export type CreateCardRequest = z.infer<typeof createCardRequestSchema>;
@@ -28,3 +30,10 @@ export const generatedCardSchema = z.object({
 });
 
 export type GeneratedCardResponse = z.infer<typeof generatedCardSchema>;
+
+export function matchesRequestedTargetLanguage(
+  card: Pick<GeneratedCardResponse, "language">,
+  targetLanguage?: LanguageCode,
+) {
+  return !targetLanguage || card.language === targetLanguage;
+}
