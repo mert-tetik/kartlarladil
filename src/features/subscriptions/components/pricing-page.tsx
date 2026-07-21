@@ -826,7 +826,7 @@ function MobilePricingPerkCarousel({
 
   return (
     <div
-      className="-mx-4 h-[clamp(13rem,38dvh,20rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-mobile-pricing-perks
     >
       <div className="flex h-full w-max snap-x snap-mandatory gap-3 pr-4">
@@ -846,7 +846,7 @@ function MobilePricingPerkCarousel({
                 fill
                 priority={index === 0}
                 sizes="72vw"
-                className="object-cover"
+                className="-translate-y-3 scale-110 object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#171719]/95 via-transparent to-[#29292d]/20" />
               <div className="absolute inset-x-0 bottom-0 flex min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center">
