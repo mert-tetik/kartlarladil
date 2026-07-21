@@ -14,6 +14,7 @@ export function Progress({
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-border", className)}>
       <div
+        data-progress-indicator
         className={cn("h-full rounded-full bg-background-inverse transition-all", indicatorClassName)}
         style={{ width: `${boundedValue}%` }}
       />

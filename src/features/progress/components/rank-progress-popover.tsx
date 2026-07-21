@@ -7,6 +7,11 @@ import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
+import {
+  acknowledgeRankUp,
+  isQuizRankUpDeferred,
+  readLastAcknowledgedRank,
+} from "@/features/progress/rank-up-flow";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -228,22 +233,6 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
   );
 }
 
-const LAST_RANK_STORAGE_KEY = "foxiesdeck:last-rank-id";
-
-function getRankStorageKey(userId: string) {
-  return `${LAST_RANK_STORAGE_KEY}:${userId}`;
-}
-
-function readLastAcknowledgedRank(userId: string | undefined): string | null {
-  if (typeof window === "undefined" || !userId) return null;
-  return window.localStorage.getItem(getRankStorageKey(userId));
-}
-
-function writeLastAcknowledgedRank(userId: string | undefined, rankId: string): void {
-  if (typeof window === "undefined" || !userId) return;
-  window.localStorage.setItem(getRankStorageKey(userId), rankId);
-}
-
 function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   const [displayStats, setDisplayStats] = useState(stats);
   const [scoreGain, setScoreGain] = useState(0);
@@ -260,7 +249,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
 
     const lastAcknowledged = readLastAcknowledgedRank(userId);
     if (lastAcknowledged === null) {
-      writeLastAcknowledgedRank(userId, stats.rank.id);
+      acknowledgeRankUp(userId, stats.rank.id);
     }
   }, [stats.rank.id, userId]);
 
@@ -302,6 +291,10 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
       setScoreGain(0);
 
       if (didRankUp) {
+        if (isQuizRankUpDeferred()) {
+          return;
+        }
+
         const lastAcknowledged = readLastAcknowledgedRank(userId);
         if (lastAcknowledged !== stats.rank.id) {
           playSoundEffect("rank-up");
@@ -314,7 +307,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
             },
           });
           setRankUpRank(stats.rank);
-          writeLastAcknowledgedRank(userId, stats.rank.id);
+          acknowledgeRankUp(userId, stats.rank.id);
         }
       }
     }, SCORE_GAIN_ANIMATION_MS);
@@ -333,7 +326,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   };
 }
 
-function RankUpMenu({
+export function RankUpMenu({
   rank,
   points,
   onClose,

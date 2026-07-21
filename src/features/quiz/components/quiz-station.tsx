@@ -55,6 +55,8 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { RankUpMenu } from "@/features/progress/components/rank-progress-popover";
+import { acknowledgeRankUp, setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -112,6 +114,7 @@ import type {
   SentenceCompletionQuizQuestion,
   TrueFalseQuizQuestion,
   AiPracticeCharacter,
+  RankDefinition,
   VocabularyCard,
 } from "@/types/domain";
 
@@ -123,6 +126,8 @@ type QuizPhase =
   | "streak-celebration"
   | "streak-reward"
   | "celebration"
+  | "result-pending"
+  | "rank-up"
   | "result"
   | "chest-celebration"
   | "chest";
@@ -150,6 +155,10 @@ const CHOICE_OPTION_COLORS = [
 ] as const;
 
 const QUIZ_COUNT_MIN = 10;
+const QUIZ_CARD_FLIP_DURATION_MS = 250;
+const QUIZ_CARD_GROW_DURATION_MS = 480;
+const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
+const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 2_000;
 
 interface BaseQuizItem {
   card: VocabularyCard;
@@ -364,11 +373,22 @@ export function QuizStation({
   const [showSplash, setShowSplash] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
+  const [pendingAnswerWrites, setPendingAnswerWrites] = useState(0);
+  const [pendingChestAward, setPendingChestAward] = useState(false);
+  const [pendingStreakAward, setPendingStreakAward] = useState(false);
+  const [pendingRankUp, setPendingRankUp] = useState<RankDefinition | null>(null);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
   const cardProgressTimeoutIdsRef = useRef<number[]>([]);
   const awardedStreakSessionRef = useRef<string | null>(null);
+  const quizStartRankRef = useRef<RankDefinition | null>(null);
+
+  useEffect(() => {
+    const isQuizInProgress = phase !== "language" && phase !== "count";
+    setQuizRankUpDeferred(isQuizInProgress);
+    return () => setQuizRankUpDeferred(false);
+  }, [phase]);
 
   const clearCardProgressFeedback = useCallback(() => {
     cardProgressTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
@@ -390,21 +410,23 @@ export function QuizStation({
       Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
     );
 
-    setCardProgressFeedback({
-      id,
-      cardId: item.card.id,
-      stage: "growing",
-      baseCount,
-      targetCount,
-    });
-
     const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"] | null) => {
       const timeoutId = window.setTimeout(() => {
         if (stage === null) {
           setCardProgressFeedback(null);
         } else {
           setCardProgressFeedback((current) =>
-            current?.id === id ? { ...current, stage } : current,
+            current?.id === id
+              ? { ...current, stage }
+              : stage === "growing"
+                ? {
+                    id,
+                    cardId: item.card.id,
+                    stage,
+                    baseCount,
+                    targetCount,
+                  }
+                : current,
           );
         }
         cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
@@ -414,10 +436,14 @@ export function QuizStation({
       cardProgressTimeoutIdsRef.current.push(timeoutId);
     };
 
-    // Keep the starting value visible for a moment before its width changes.
-    schedule(110, "revealing");
-    schedule(200, "updating");
-    schedule(680, null);
+    // The card flips first, then grows. Reveal its current progress once the
+    // growth settles and wait briefly before animating the changed value.
+    const growthStartAt = QUIZ_CARD_FLIP_DURATION_MS + 20;
+    const growthEndAt = growthStartAt + QUIZ_CARD_GROW_DURATION_MS;
+    schedule(growthStartAt, "growing");
+    schedule(growthEndAt, "revealing");
+    schedule(growthEndAt + QUIZ_CARD_PROGRESS_DELAY_MS, "updating");
+    schedule(growthEndAt + QUIZ_CARD_LARGE_HOLD_DURATION_MS, null);
   }, [clearCardProgressFeedback, currentIndex]);
 
   useEffect(() => {
@@ -564,9 +590,14 @@ export function QuizStation({
       setMaxStreak(0);
       setQuizSessionId(createQuizSessionId());
       awardedStreakSessionRef.current = null;
+      quizStartRankRef.current = stats.rank;
+      setPendingAnswerWrites(0);
+      setPendingChestAward(false);
+      setPendingStreakAward(false);
+      setPendingRankUp(null);
       setPhase("quiz-start");
     },
-    [cards, clearCardProgressFeedback, mode, locale],
+    [cards, clearCardProgressFeedback, mode, locale, stats.rank],
   );
 
   useEffect(() => {
@@ -615,7 +646,7 @@ export function QuizStation({
           setPhase("chest-celebration");
           return;
         }
-        setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
+        setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
         return;
       }
 
@@ -828,6 +859,7 @@ export function QuizStation({
         if (deferredRecordTimeoutRef.current !== null) {
           window.clearTimeout(deferredRecordTimeoutRef.current);
         }
+        setPendingAnswerWrites((current) => current + 1);
         deferredRecordTimeoutRef.current = window.setTimeout(() => {
           void recordAnswer({
             cardId: item.card.id,
@@ -836,6 +868,8 @@ export function QuizStation({
             isCorrect,
             mode,
             forceLearned: item.forceLearned,
+          }).finally(() => {
+            setPendingAnswerWrites((current) => Math.max(0, current - 1));
           });
           deferredRecordTimeoutRef.current = null;
         }, 0);
@@ -882,12 +916,13 @@ export function QuizStation({
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
     if (chestOpened) {
-      setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
+      setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
       return;
     }
 
     setChestOpened(true);
-    setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result");
+    setPendingChestAward(true);
+    setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
 
     const chestPoints = getChestRewardPoints(tier);
     if (user && chestPoints > 0) {
@@ -896,16 +931,20 @@ export function QuizStation({
       });
     }
 
-    const result = await awardChestPoints(tier);
+    try {
+      const result = await awardChestPoints(tier);
 
-    if (result.success) {
-      await refreshStats();
-      refreshLeaderboardPositions();
+      if (result.success) {
+        await refreshStats();
+        refreshLeaderboardPositions();
+      }
+    } finally {
+      setPendingChestAward(false);
     }
   }
 
   useEffect(() => {
-    if (phase !== "result" || !user || !quizSessionId) {
+    if (phase !== "result-pending" || !user || !quizSessionId) {
       return;
     }
 
@@ -922,22 +961,80 @@ export function QuizStation({
       return;
     }
 
+    setPendingStreakAward(true);
     updateProfileField({
       streakPoints: (user.profile.streakPoints ?? 0) + streakPoints,
     });
 
     void (async () => {
-      const result = await awardQuizStreakPoints(quizSessionId, maxStreak);
+      try {
+        const result = await awardQuizStreakPoints(quizSessionId, maxStreak);
 
-      if (result.success) {
+        if (result.success) {
+          await refreshStats();
+          refreshLeaderboardPositions();
+          return;
+        }
+
         await refreshStats();
-        refreshLeaderboardPositions();
+      } finally {
+        setPendingStreakAward(false);
+      }
+    })();
+  }, [maxStreak, phase, quizSessionId, refreshStats, updateProfileField, user]);
+
+  const requiresStreakAward =
+    phase === "result-pending" &&
+    user !== null &&
+    quizSessionId !== null &&
+    awardedStreakSessionRef.current !== quizSessionId &&
+    getQuizStreakRewardPoints(maxStreak) > 0;
+
+  useEffect(() => {
+    if (
+      phase !== "result-pending" ||
+      pendingAnswerWrites > 0 ||
+      pendingChestAward ||
+      pendingStreakAward ||
+      requiresStreakAward
+    ) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const startRank = quizStartRankRef.current;
+      const didRankUp = startRank !== null && stats.rank.minPoints > startRank.minPoints;
+
+      if (didRankUp) {
+        acknowledgeRankUp(user?.id, stats.rank.id);
+        playSoundEffect("rank-up");
+        sendTwaAnalyticsEvent("fd_rank_up", {
+          params: {
+            rank_id: stats.rank.id,
+            rank_icon: stats.rank.icon,
+            total_points: stats.totalPoints,
+            rank_min_points: stats.rank.minPoints,
+          },
+        });
+        setPendingRankUp(stats.rank);
+        setPhase("rank-up");
         return;
       }
 
-      await refreshStats();
-    })();
-  }, [maxStreak, phase, quizSessionId, refreshStats, updateProfileField, user]);
+      setPhase("result");
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [
+    pendingAnswerWrites,
+    pendingChestAward,
+    pendingStreakAward,
+    phase,
+    requiresStreakAward,
+    stats.rank,
+    stats.totalPoints,
+    user?.id,
+  ]);
 
   if (!hydrated && !canRenderPersistedQuizSetup) {
     return (
@@ -1053,6 +1150,19 @@ export function QuizStation({
     );
   }
 
+  if (phase === "rank-up" && pendingRankUp) {
+    return (
+      <RankUpMenu
+        rank={pendingRankUp}
+        points={stats.totalPoints}
+        onClose={() => {
+          setPendingRankUp(null);
+          setPhase("result");
+        }}
+      />
+    );
+  }
+
   if (phase === "streak-celebration") {
     return (
       <QuizStreakCelebrationView
@@ -1068,7 +1178,7 @@ export function QuizStation({
         streak={getRewardableQuizStreak(maxStreak)}
         points={getQuizStreakRewardPoints(maxStreak)}
         totalPoints={stats.totalPoints}
-        onComplete={() => setPhase("result")}
+        onComplete={() => setPhase("result-pending")}
       />
     );
   }
@@ -1248,7 +1358,10 @@ export function QuizStation({
           </div>
 
           <div
-            className="order-2 flex items-center justify-center lg:hidden"
+            className={cn(
+              "order-2 flex items-center justify-center lg:hidden",
+              item.questionType === "sentence-completion" && "max-lg:-translate-y-2",
+            )}
             data-quiz-mobile-card-slot
           >
             <MobileQuizCard
@@ -1332,28 +1445,114 @@ function MobileQuizCard({
   footerMode: "empty" | "progress";
   footerProgressCount?: number;
 }) {
+  const slotRef = useRef<HTMLDivElement>(null);
+  const centerFrameRef = useRef<number | null>(null);
+  const returnTimeoutRef = useRef<number | null>(null);
+  const [floatingOrigin, setFloatingOrigin] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [isCentered, setIsCentered] = useState(false);
+  const isFeedbackActive = feedbackStage !== "idle";
+
+  useLayoutEffect(() => {
+    if (!isFeedbackActive || floatingOrigin || !slotRef.current) return;
+
+    const rect = slotRef.current.getBoundingClientRect();
+    setFloatingOrigin({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    });
+  }, [floatingOrigin, isFeedbackActive]);
+
+  useEffect(() => {
+    if (!floatingOrigin) return;
+
+    if (isFeedbackActive) {
+      centerFrameRef.current = window.requestAnimationFrame(() => setIsCentered(true));
+      return () => {
+        if (centerFrameRef.current !== null) {
+          window.cancelAnimationFrame(centerFrameRef.current);
+          centerFrameRef.current = null;
+        }
+      };
+    }
+
+    setIsCentered(false);
+    returnTimeoutRef.current = window.setTimeout(() => {
+      setFloatingOrigin(null);
+      returnTimeoutRef.current = null;
+    }, QUIZ_CARD_GROW_DURATION_MS);
+
+    return () => {
+      if (returnTimeoutRef.current !== null) {
+        window.clearTimeout(returnTimeoutRef.current);
+        returnTimeoutRef.current = null;
+      }
+    };
+  }, [floatingOrigin, isFeedbackActive]);
+
+  useEffect(() => () => {
+    if (centerFrameRef.current !== null) {
+      window.cancelAnimationFrame(centerFrameRef.current);
+    }
+    if (returnTimeoutRef.current !== null) {
+      window.clearTimeout(returnTimeoutRef.current);
+    }
+  }, []);
+
+  const floatingStyle: CSSProperties | undefined = floatingOrigin
+    ? isCentered
+      ? {
+          left: "50vw",
+          top: "50dvh",
+          width: floatingOrigin.width,
+          height: floatingOrigin.height,
+          transform: "translate(-50%, -50%) scale(1.75)",
+        }
+      : {
+          left: floatingOrigin.left,
+          top: floatingOrigin.top,
+          width: floatingOrigin.width,
+          height: floatingOrigin.height,
+          transform: "translate(0, 0) scale(1)",
+        }
+    : undefined;
+
   return (
     <div
+      ref={slotRef}
       className={cn(
-        "relative w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0 transform-gpu transition-transform duration-200 ease-out will-change-transform",
-        feedbackStage !== "idle" && "z-20 -translate-y-6 scale-[1.12]",
+        "relative aspect-[3/4] w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0",
       )}
       data-quiz-mobile-card
       data-quiz-mobile-card-kind={item.questionType}
       data-quiz-card-term={item.card.term}
       data-quiz-card-feedback={feedbackStage}
     >
-      <VocabularyCardView
-        card={item.card}
-        inventory={item.inventoryCard}
-        owned
-        initialFace="back"
-        face={face}
-        flippable={false}
-        footerMode={footerMode}
-        footerProgressCount={footerProgressCount}
-        className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
-      />
+      <div
+        className={cn(
+          "h-full w-full transform-gpu transition-[left,top,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+          floatingOrigin ? "fixed z-[70]" : "relative",
+        )}
+        style={floatingStyle}
+      >
+        <VocabularyCardView
+          card={item.card}
+          inventory={item.inventoryCard}
+          owned
+          initialFace="back"
+          face={face}
+          flippable={false}
+          footerMode={footerMode}
+          footerProgressCount={footerProgressCount}
+          className="h-full w-full min-h-0 max-sm:min-h-0"
+        />
+      </div>
     </div>
   );
 }
@@ -2046,7 +2245,7 @@ function SentenceCompletionQuestion({
 
   return (
     <div
-      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 max-lg:translate-y-3 lg:gap-4 lg:p-8"
       data-quiz-question-content="sentence-completion"
     >
       <p className="text-center text-sm font-semibold text-foreground-muted">
@@ -2060,7 +2259,7 @@ function SentenceCompletionQuestion({
             alt={characterName}
             fill
             sizes="56px"
-            className="object-cover"
+            className="origin-top scale-[2] object-cover object-top"
           />
         </div>
         <div className="relative min-h-20 flex-1 rounded-lg bg-background-card px-4 py-3 text-left before:absolute before:-left-1.5 before:top-5 before:size-3 before:rotate-45 before:bg-background-card">

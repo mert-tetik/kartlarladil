@@ -539,6 +539,11 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }
 
+[data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator] {
+  transition-duration: 900ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes route-view-enter {
   0% {
     opacity: 0.92;

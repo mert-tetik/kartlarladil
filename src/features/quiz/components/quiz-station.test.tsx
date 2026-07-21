@@ -634,12 +634,18 @@ describe("QuizStation sound feedback", () => {
 
     fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
 
-    expect(card).toHaveAttribute("data-quiz-card-feedback", "growing");
-    expect(card).toHaveClass("-translate-y-6", "scale-[1.12]");
+    // The answer flip completes before the card starts moving toward the center.
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "idle");
     expect(layout).toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(110);
+      await vi.advanceTimersByTimeAsync(270);
+    });
+
+    expect(card).toHaveAttribute("data-quiz-card-feedback", "growing");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(480);
     });
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "revealing");
@@ -647,7 +653,7 @@ describe("QuizStation sound feedback", () => {
     expect(document.querySelector("[data-card-progress]")).toHaveTextContent("0/4");
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(90);
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "updating");
@@ -675,6 +681,9 @@ describe("QuizStation sound feedback", () => {
     vi.useFakeTimers();
 
     fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(270);
+    });
     expect(document.querySelector("[data-quiz-mobile-card]")).toHaveAttribute(
       "data-quiz-card-feedback",
       "growing",

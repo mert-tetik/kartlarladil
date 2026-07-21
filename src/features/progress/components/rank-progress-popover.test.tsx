@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { vi } from "vitest";
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
+import { setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -27,10 +28,12 @@ vi.mock("@/lib/twa-analytics", () => ({
 describe("RankProgressPopover", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    setQuizRankUpDeferred(false);
     useTutorialStore.setState({ active: false, completed: false, step: 0, testMode: false });
   });
 
   afterEach(() => {
+    setQuizRankUpDeferred(false);
     vi.useRealTimers();
     vi.clearAllMocks();
   });
@@ -151,6 +154,21 @@ describe("RankProgressPopover", () => {
     });
 
     expect(screen.getByRole("dialog", { name: /Rank atlad/ })).toBeVisible();
+  });
+
+  it("does not open the global rank-up menu while a quiz owns the result sequence", () => {
+    vi.useFakeTimers();
+    const nextStats = makeStats(200);
+    const { rerender } = renderRank(<RankProgressPopover stats={makeStats(190)} />);
+
+    setQuizRankUpDeferred(true);
+    rerender(<RankProgressPopover stats={nextStats} />);
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
   });
 
   it("opens the rank-up overlay in test mode from the URL param", () => {
