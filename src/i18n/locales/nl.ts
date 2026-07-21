@@ -391,6 +391,8 @@ const dictionary = {
   "pricing.ctaSkip": "Overslaan",
   "pricing.ctaManage": "Abonnement beheren",
   "pricing.ctaSubscribe": "Abonneren",
+  "pricing.ctaStartFirstMonthFreeTrial": "Start 1 maand gratis proefperiode",
+  "pricing.ctaTrialAfter": "Daarna {price} {period}",
   "pricing.ctaCurrentAndManage": "Huidig plan (Abonnement beheren)",
   "pricing.description": "Verwijder kaartlimieten en krijg meer AI Practice-berichten.",
   "pricing.featureAiDaily": "{count} AI-berichten per dag",

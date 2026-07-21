@@ -391,6 +391,8 @@ const dictionary = {
   "pricing.ctaSkip": "تخطي",
   "pricing.ctaManage": "إدارة الاشتراك",
   "pricing.ctaSubscribe": "اشترك",
+  "pricing.ctaStartFirstMonthFreeTrial": "ابدأ تجربة مجانية لمدة شهر",
+  "pricing.ctaTrialAfter": "بعد ذلك {price} {period}",
   "pricing.ctaCurrentAndManage": "الخطة الحالية (إدارة الاشتراك)",
   "pricing.description": "قم بإزالة حدود البطاقات واحصل على المزيد من رسائل AI Practice.",
   "pricing.featureAiDaily": "{count} رسائل AI يوميًا",

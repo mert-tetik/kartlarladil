@@ -391,6 +391,8 @@ const dictionary = {
   "pricing.ctaSkip": "Geç",
   "pricing.ctaManage": "Aboneliği yönet",
   "pricing.ctaSubscribe": "Abone Ol",
+  "pricing.ctaStartFirstMonthFreeTrial": "1 aylık ücretsiz denemeyi başlat",
+  "pricing.ctaTrialAfter": "Sonrasında {price} {period}",
   "pricing.ctaCurrentAndManage": "Mevcut Plan (Aboneliği Yönet)",
   "pricing.description": "Kart limitlerini kaldır ve AI Practice'te daha fazla mesaj hakkı kazan.",
   "pricing.featureAiDaily": "Günlük {count} AI mesaj",

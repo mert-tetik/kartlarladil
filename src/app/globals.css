@@ -27,6 +27,9 @@
   --app-header-height: 4rem;
   --mobile-nav-bar-height: 3.5rem;
   --mobile-keyboard-offset: 0px;
+  --pricing-mobile-surface: #36363b;
+  --pricing-mobile-surface-outline-top: #161619;
+  --pricing-mobile-surface-outline-bottom: #6a6a70;
 }
 
 /* Keep the TWA and mobile web UI independent from browser text autosizing. */

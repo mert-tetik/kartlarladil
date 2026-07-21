@@ -389,6 +389,8 @@ const dictionary = {
   "pricing.ctaSkip": "Skip",
   "pricing.ctaManage": "Manage subscription",
   "pricing.ctaSubscribe": "Subscribe",
+  "pricing.ctaStartFirstMonthFreeTrial": "Start 1 month free trial",
+  "pricing.ctaTrialAfter": "After {price} {period}",
   "pricing.ctaCurrentAndManage": "Current Plan (Manage Subscription)",
   "pricing.description": "Remove card limits and get more AI Practice messages.",
   "pricing.featureAiDaily": "{count} AI messages per day",

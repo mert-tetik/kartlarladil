@@ -450,12 +450,14 @@ function CheckoutButton({
   currentPlan,
   className,
   showSubscribeForPaidUser = false,
+  ctaContent,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
   showSubscribeForPaidUser?: boolean;
+  ctaContent?: React.ReactNode;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCheckoutAction, {
@@ -502,6 +504,8 @@ function CheckoutButton({
       >
         {pending
           ? t("common.loading")
+          : ctaContent
+            ? ctaContent
           : isPaidUser && !showSubscribeForPaidUser
             ? t("pricing.ctaManage")
             : t("pricing.ctaSubscribe")}
@@ -518,6 +522,7 @@ function PurchaseButton({
   provider,
   className,
   showSubscribeForPaidUser = false,
+  ctaContent,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
@@ -525,6 +530,7 @@ function PurchaseButton({
   provider: SubscriptionProvider;
   className?: string;
   showSubscribeForPaidUser?: boolean;
+  ctaContent?: React.ReactNode;
 }) {
   const isTwa = useTwaMode();
   const isPaid = currentPlan != null && currentPlan !== "free";
@@ -544,6 +550,7 @@ function PurchaseButton({
         currentPlan={currentPlan}
         className={className}
         showSubscribeForPaidUser={showSubscribeForPaidUser}
+        ctaContent={ctaContent}
       />
     );
   }
@@ -555,6 +562,7 @@ function PurchaseButton({
       currentPlan={currentPlan}
       className={className}
       showSubscribeForPaidUser={showSubscribeForPaidUser}
+      ctaContent={ctaContent}
     />
   );
 }
@@ -565,12 +573,14 @@ function GooglePlayCheckoutButton({
   currentPlan,
   className,
   showSubscribeForPaidUser = false,
+  ctaContent,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
   showSubscribeForPaidUser?: boolean;
+  ctaContent?: React.ReactNode;
 }) {
   const t = useT();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
@@ -607,12 +617,12 @@ function GooglePlayCheckoutButton({
   const buttonLabel = isLoading
     ? t("common.loading")
     : isCurrentPlan
-      ? t("pricing.ctaCurrent")
-      : isPaidUser
-        ? showSubscribeForPaidUser
-          ? t("pricing.ctaSubscribe")
-          : t("pricing.ctaManage")
-        : t("pricing.ctaSubscribe");
+    ? t("pricing.ctaCurrent")
+    : isPaidUser
+      ? showSubscribeForPaidUser
+        ? t("pricing.ctaSubscribe")
+        : t("pricing.ctaManage")
+      : t("pricing.ctaSubscribe");
 
   return (
     <div className="w-full space-y-2">
@@ -627,7 +637,7 @@ function GooglePlayCheckoutButton({
         disabled={isLoading || !isSupported}
         onClick={handleClick}
       >
-        {buttonLabel}
+        {isLoading ? t("common.loading") : ctaContent ?? buttonLabel}
       </Button>
 
       {!isSupported ? (
@@ -765,23 +775,14 @@ function MobileOptionPrice({
   isTwa: boolean;
 }) {
   const t = useT();
-  const plans = isTwa ? TWA_PLANS : PLANS;
-  const planItem = plans.find((item) => item.plan === plan);
-  const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, plan, cycle);
-  const fallbackPrice = cycle === "yearly" ? planItem?.yearlyPrice : planItem?.monthlyPrice;
-  const localized = getLocalizedPrice(localizedPricing, plan, cycle);
-
-  let primary: string;
-  if (googlePlayDetails) {
-    const amount = Number.parseFloat(googlePlayDetails.price.value);
-    primary = formatCurrency(amount, googlePlayDetails.price.currency, uiLocale);
-  } else if (localized) {
-    primary = formatCurrency(localized.amount, localized.currencyCode, uiLocale);
-  } else if (fallbackPrice != null) {
-    primary = `$${fallbackPrice}`;
-  } else {
-    primary = t("pricing.priceFree");
-  }
+  const primary = getMobileOptionPriceValue({
+    plan,
+    cycle,
+    localizedPricing,
+    googlePlayPricing,
+    uiLocale,
+    isTwa,
+  }) ?? t("pricing.priceFree");
 
   return (
     <span className="flex flex-col items-end leading-none">
@@ -791,6 +792,37 @@ function MobileOptionPrice({
       </span>
     </span>
   );
+}
+
+function getMobileOptionPriceValue({
+  plan,
+  cycle,
+  localizedPricing,
+  googlePlayPricing,
+  uiLocale,
+  isTwa,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  localizedPricing: LocalizedPricingStatus;
+  googlePlayPricing: GooglePlayPricingStatus;
+  uiLocale: string;
+  isTwa: boolean;
+}): string | null {
+  const plans = isTwa ? TWA_PLANS : PLANS;
+  const planItem = plans.find((item) => item.plan === plan);
+  const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, plan, cycle);
+  const fallbackPrice = cycle === "yearly" ? planItem?.yearlyPrice : planItem?.monthlyPrice;
+  const localized = getLocalizedPrice(localizedPricing, plan, cycle);
+
+  if (googlePlayDetails) {
+    const amount = Number.parseFloat(googlePlayDetails.price.value);
+    return formatCurrency(amount, googlePlayDetails.price.currency, uiLocale);
+  }
+
+  if (localized) return formatCurrency(localized.amount, localized.currencyCode, uiLocale);
+  if (fallbackPrice != null) return `$${fallbackPrice}`;
+  return null;
 }
 
 const MOBILE_PERK_ARTWORK = [
@@ -869,7 +901,7 @@ function MobilePricingPerkCarousel({
           return (
             <article
               key={perk.id}
-              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-[2rem] bg-[#29292d]"
+              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-[2rem] bg-[var(--pricing-mobile-surface)]"
             >
               <Image
                 src={perk.image}
@@ -879,7 +911,7 @@ function MobilePricingPerkCarousel({
                 sizes="72vw"
                 className="-translate-y-3 scale-110 object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#171719]/95 via-transparent to-[#29292d]/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#171719]/95 via-transparent to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center">
                 <h2
                   className={cn(
@@ -915,7 +947,7 @@ function MobileBillingCycleToggle({
     : null;
 
   return (
-    <div className="relative flex h-12 shrink-0 rounded-full bg-white/10 p-1">
+    <div className="relative flex h-12 shrink-0 rounded-full bg-[var(--pricing-mobile-surface)] p-1">
       <span
         aria-hidden="true"
         className={cn(
@@ -950,6 +982,22 @@ function MobileBillingCycleToggle({
   );
 }
 
+function MobileTrialCtaContent({ price, cycle }: { price: string; cycle: BillingCycle }) {
+  const t = useT();
+
+  return (
+    <span className="flex flex-col items-center justify-center leading-none">
+      <span className="text-sm font-semibold">{t("pricing.ctaStartFirstMonthFreeTrial")}</span>
+      <span className="mt-1 text-base font-medium text-slate-950/55">
+        {t("pricing.ctaTrialAfter", {
+          price,
+          period: cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth"),
+        })}
+      </span>
+    </span>
+  );
+}
+
 interface MobilePricingViewProps {
   user: AuthShellUser | null;
   isTwa: boolean;
@@ -979,10 +1027,25 @@ function MobilePricingView({
 
   const isCurrentPlan = currentPlan === selectedOption.plan;
   const yearlyDiscountRate = getPlanDiscountRate(selectedOption.plan, isTwa);
+  const selectedPrice = getMobileOptionPriceValue({
+    plan: selectedOption.plan,
+    cycle: selectedOption.cycle,
+    localizedPricing,
+    googlePlayPricing,
+    uiLocale: locale,
+    isTwa,
+  });
+  const showsFirstMonthTrial =
+    selectedOption.cycle === "monthly" &&
+    selectedPrice != null &&
+    (currentPlan == null || currentPlan === "free");
+  const ctaContent = showsFirstMonthTrial ? (
+    <MobileTrialCtaContent price={selectedPrice} cycle={selectedOption.cycle} />
+  ) : undefined;
 
   return (
     <div className="relative z-10 flex h-full flex-col overflow-hidden bg-[#080909] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
-      <header className="shrink-0 text-center">
+      <header className="shrink-0 translate-y-1.5 text-center">
         <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.title"))}
         </h1>
@@ -1006,10 +1069,10 @@ function MobilePricingView({
                 type="button"
                 onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
                 className={cn(
-                  "flex h-14 items-center justify-between rounded-xl border px-3 text-left transition-all duration-200",
+                  "flex h-14 items-center justify-between rounded-full border border-transparent px-3 text-left transition-all duration-200",
                   isSelected
-                    ? "border-yellow-300 bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 text-slate-950"
-                    : "border-white/15 bg-white/[0.04] text-white",
+                    ? "[background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] text-slate-950"
+                    : "[background:linear-gradient(var(--pricing-mobile-surface),var(--pricing-mobile-surface))_padding-box,linear-gradient(180deg,var(--pricing-mobile-surface-outline-top),var(--pricing-mobile-surface-outline-bottom))_border-box] text-white",
                 )}
                 aria-pressed={isSelected}
               >
@@ -1037,13 +1100,13 @@ function MobilePricingView({
 
       <div className="mt-3 shrink-0">
         {isCurrentPlan ? (
-          <CurrentPlanButton className="h-14 rounded-2xl border-0 bg-white/15 text-base text-white" />
+          <CurrentPlanButton className="h-14 rounded-2xl border-0 bg-[var(--pricing-mobile-surface)] text-base text-white" />
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
             className={buttonClassName("primary", "lg", cn("h-14 w-full rounded-2xl border-0 text-base", PRICING_GRADIENT_BUTTON_CLASS))}
           >
-            {t("pricing.ctaSubscribe")}
+            {ctaContent ?? t("pricing.ctaSubscribe")}
           </Link>
         ) : (
           <PurchaseButton
@@ -1053,6 +1116,7 @@ function MobilePricingView({
             provider={provider}
             className="h-14 rounded-2xl text-base"
             showSubscribeForPaidUser={currentPlan === "basic" && selectedOption.plan === "pro"}
+            ctaContent={ctaContent}
           />
         )}
       </div>

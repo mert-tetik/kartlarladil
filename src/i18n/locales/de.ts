@@ -390,6 +390,8 @@ const dictionary = {
   "pricing.ctaSkip": "Überspringen",
   "pricing.ctaManage": "Abonnement verwalten",
   "pricing.ctaSubscribe": "Abonnieren",
+  "pricing.ctaStartFirstMonthFreeTrial": "1 Monat kostenlos testen",
+  "pricing.ctaTrialAfter": "Danach {price} {period}",
   "pricing.ctaCurrentAndManage": "Aktueller Plan (Abonnement verwalten)",
   "pricing.description": "Entferne Kartenlimits und erhalte mehr AI Practice-Nachrichten.",
   "pricing.featureAiDaily": "{count} AI-Nachrichten pro Tag",
