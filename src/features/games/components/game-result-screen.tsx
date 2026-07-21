@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 import { LayoutGrid, Play, RotateCcw, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { useProgressStats } from "@/features/progress/progress-client";
+import {
+  getScoreFlightAwardAtArrival,
+  getScoreFlightIconCount,
+} from "@/features/progress/score-flight";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
@@ -39,7 +43,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
     if (!success || gainedPoints <= 0 || !scoreRef.current || !rewardSourceRef.current) return;
     const source = rewardSourceRef.current.getBoundingClientRect();
     const target = scoreRef.current.getBoundingClientRect();
-    const count = Math.min(Math.ceil(gainedPoints / 2), 25);
+    const count = getScoreFlightIconCount(gainedPoints);
     const targetX = target.left + target.width / 2;
     const targetY = target.top + target.height / 2;
     const startTimer = window.setTimeout(() => {
@@ -70,7 +74,9 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
 
   function handleFlightEnd(id: number) {
     const index = id + 1;
-    setDisplayPoints(basePoints + Math.min(gainedPoints, index * 2));
+    setDisplayPoints(
+      basePoints + getScoreFlightAwardAtArrival(gainedPoints, flightIcons.length, index),
+    );
     setScorePulse(index);
     playSoundEffect("points");
     vibrate("tap");

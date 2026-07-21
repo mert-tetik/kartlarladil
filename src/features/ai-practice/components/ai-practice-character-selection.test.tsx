@@ -1,10 +1,18 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { LANDING_CARD_LANGUAGE_KEY } from "@/app/components/landing-card-language";
 import { AiPracticeCharacterSelection } from "@/features/ai-practice/components/ai-practice-character-selection";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const defaultMatchMedia = window.matchMedia;
+
 describe("AiPracticeCharacterSelection", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+    window.matchMedia = defaultMatchMedia;
+  });
+
   it("renders its character list inside the mobile viewport container", () => {
     render(
       <LocaleProvider initialLocale="en">
@@ -34,5 +42,20 @@ describe("AiPracticeCharacterSelection", () => {
     expect(claraBackground?.getAttribute("style")).toContain("gentle-companion.jpg");
     expect(noraBackground?.getAttribute("style")).toContain("study-buddy.jpg");
     expect(leoBackground?.getAttribute("style")).toContain("sleepy-student.webp");
+  });
+
+  it("uses the landing card language when the mobile character selection first opens", async () => {
+    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, "es");
+    window.matchMedia = () => ({ matches: true }) as MediaQueryList;
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-ai-practice-language-button]")).toHaveTextContent("Spanish");
+    });
   });
 });

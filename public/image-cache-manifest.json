@@ -1,5 +1,5 @@
 {
-  "version": "b8cb12e8e571fe8e3167962c1639140ef1a1ccc011f440eb1977771b37a102da",
+  "version": "c55901550d5b404029c0d75e1325430038ac6c457d62f1ae9a67b9ca1322dc57",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -296,6 +296,18 @@
     {
       "url": "/onboarding-premium-hero.webp",
       "revision": "d7e723463b529f50f0b8d237e9341e7ac6f4d646a487d964649dbd1b794cf54b"
+    },
+    {
+      "url": "/pricing-perks/collection.png",
+      "revision": "2a0546a163e767d0ea160bd03f4a4ff2269d1c0bc26942bcb2f2d47a85a55d80"
+    },
+    {
+      "url": "/pricing-perks/games.png",
+      "revision": "3379beab7a39d05c8b437a5f50302e1ef5a0909b940b1eec78eb57f85522ce9f"
+    },
+    {
+      "url": "/pricing-perks/practice.png",
+      "revision": "8a1eacd4a368bd52c3181bbbab397a0fd473c111cfa402e36b2d08011136951b"
     },
     {
       "url": "/profile-pictures/pp_1.webp",

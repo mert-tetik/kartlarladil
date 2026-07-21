@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
+import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
 import { setMobileNavbarBackOverride } from "@/components/mobile-navbar-back";
 import { LANGUAGES } from "@/data/languages";
@@ -42,6 +43,22 @@ export function AiPracticeCharacterSelection({
       setMobileNavbarBackOverride(false);
     };
   }, []);
+
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1023px)").matches) {
+      return;
+    }
+
+    const landingLanguage = readLandingCardLanguage();
+    if (!landingLanguage || landingLanguage === language) {
+      return;
+    }
+
+    setSelectedLanguage(landingLanguage);
+    navigateWithRouteTransition(() => {
+      router.replace(`/ai-practice/${landingLanguage}/character?tier=${tier}`);
+    });
+  }, [language, router, tier]);
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);

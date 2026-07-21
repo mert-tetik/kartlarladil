@@ -844,7 +844,14 @@ body:has([data-create-card-page]) [data-create-card-page] {
   }
 
   body:has([data-pricing-page]) .page-transition-shell {
+    height: calc(100dvh - var(--app-header-height));
+    overflow: hidden;
     padding-bottom: 0;
+  }
+
+  body:has([data-pricing-page]) {
+    overflow: hidden;
+    overscroll-behavior-y: none;
   }
 }
 

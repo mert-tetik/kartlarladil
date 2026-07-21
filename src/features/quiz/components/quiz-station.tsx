@@ -55,6 +55,10 @@ import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
+import {
+  getScoreFlightAwardAtArrival,
+  getScoreFlightIconCount,
+} from "@/features/progress/score-flight";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import { awardChestPoints } from "@/features/quiz/actions";
 import { awardQuizStreakPoints } from "@/features/quiz/actions";
@@ -2541,7 +2545,7 @@ export function CelebrationView({
       const scoreBounds = scoreRef.current.getBoundingClientRect();
       const targetX = scoreBounds.left + scoreBounds.width / 2;
       const targetY = scoreBounds.top + scoreBounds.height / 2;
-      const iconCount = Math.min(Math.ceil(gainedPoints / 2), 25);
+      const iconCount = getScoreFlightIconCount(gainedPoints);
       const flightDuration = 700;
       const latestStart = 780;
       const nextIcons = Array.from({ length: iconCount }, (_, index) => {
@@ -2563,7 +2567,9 @@ export function CelebrationView({
 
       setFlightIcons(nextIcons);
       arrivalTimersRef.current = nextIcons.map((icon, index) => window.setTimeout(() => {
-        setDisplayPoints(basePoints + Math.min(gainedPoints, (index + 1) * 2));
+        setDisplayPoints(
+          basePoints + getScoreFlightAwardAtArrival(gainedPoints, iconCount, index + 1),
+        );
         setScorePulse(index + 1);
         playSoundEffect("points");
         vibrate("tap");

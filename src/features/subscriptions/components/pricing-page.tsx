@@ -4,18 +4,10 @@ import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { createPortal } from "react-dom";
 import {
   Check,
   X,
-  Layers,
-  BookOpen,
-  Headset,
-  Palette,
-  MessageCircle,
-  MessagesSquare,
-  Gamepad2,
-  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -70,15 +62,12 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_STICKY_CTA_CLASS = "h-[3.25rem] whitespace-nowrap text-sm";
 const PRICING_GRADIENT_TEXT_CLASS =
   "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent";
 const PRICING_GRADIENT_SURFACE_CLASS =
   "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500";
 const PRICING_GRADIENT_BUTTON_CLASS =
   "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 !text-slate-950 hover:brightness-105";
-const PRICING_GRADIENT_BORDER_CLASS =
-  "border-transparent [background:linear-gradient(var(--background-card),var(--background-card))_padding-box,linear-gradient(90deg,#fde047,#facc15,#f97316)_border-box]";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.webp" },
@@ -116,7 +105,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   return (
     <div
       data-pricing-page
-      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 sm:px-6 lg:px-8 lg:pb-10"
+      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-0 max-lg:overflow-hidden max-lg:p-0 sm:px-6 lg:px-8 lg:pb-10"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-80 w-screen -translate-x-1/2 overflow-hidden">
         <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
@@ -125,7 +114,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         <CheckoutSuccessPoller />
       </Suspense>
 
-      <div className="lg:hidden">
+      <div className="h-full lg:hidden">
         <MobilePricingView
           user={user}
           isTwa={isTwa}
@@ -718,20 +707,9 @@ function ConsentText() {
 type MobileOption = {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
-  popular?: boolean;
 };
 
-const MOBILE_OPTIONS: MobileOption[] = [
-  { plan: "basic", cycle: "monthly", popular: true },
-  { plan: "basic", cycle: "yearly" },
-  { plan: "pro", cycle: "monthly" },
-  { plan: "pro", cycle: "yearly" },
-];
-
-const MASCOT_BY_PLAN: Record<Exclude<SubscriptionPlan, "free">, string> = {
-  basic: "/mascots/mascot15.webp",
-  pro: "/mascots/mascot16.webp",
-};
+const DEFAULT_MOBILE_OPTION: MobileOption = { plan: "basic", cycle: "monthly" };
 
 function getPlanDiscountRate(plan: Exclude<SubscriptionPlan, "free">, isTwa: boolean): number | null {
   const plans = isTwa ? TWA_PLANS : PLANS;
@@ -779,75 +757,76 @@ function MobileOptionPrice({
   }
 
   return (
-    <div className="absolute right-0 top-1/2 flex -translate-y-1/2 shrink-0 flex-col items-end text-right leading-none">
-      <span className="font-display text-lg font-semibold tabular-nums text-foreground">
-        {primary}
-      </span>
-      <span className="mt-1 text-[11px] font-medium text-foreground-muted dark:text-foreground-secondary">
+    <span className="flex flex-col items-end leading-none">
+      <span className="font-display text-lg font-semibold tabular-nums text-white">{primary}</span>
+      <span className="mt-1 text-[10px] font-medium text-white/55">
         {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
       </span>
-    </div>
+    </span>
   );
 }
 
-function MobilePerkItem({
-  icon: Icon,
-  colorClass,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  colorClass: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <li className="flex items-start gap-4 py-3.5 text-[0.95rem] leading-6 text-foreground">
-      <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", colorClass)} />
-      <span>{children}</span>
-    </li>
-  );
-}
+const MOBILE_PERK_ARTWORK = [
+  {
+    id: "cards",
+    image: "/pricing-perks/collection.png",
+    titleKey: "pricing.featureCards",
+    descriptionKey: "pricing.featureLearnedReview",
+    accentClass: "from-amber-300 via-yellow-400 to-orange-500",
+  },
+  {
+    id: "games",
+    image: "/pricing-perks/games.png",
+    titleKey: "pricing.featureGames",
+    descriptionKey: "pricing.featureLearned",
+    accentClass: "from-emerald-300 via-cyan-400 to-blue-500",
+  },
+  {
+    id: "practice",
+    image: "/pricing-perks/practice.png",
+    titleKey: "nav.aiPractice",
+    descriptionKey: null,
+    accentClass: "from-violet-300 via-blue-400 to-amber-300",
+  },
+] as const;
 
-function MobilePlanPerks({
-  plan,
-  planLabel,
-}: {
-  plan: Exclude<SubscriptionPlan, "free">;
-  planLabel: string;
-}) {
+function MobilePricingPerkCarousel({ plan }: { plan: Exclude<SubscriptionPlan, "free"> }) {
   const t = useT();
-  const { locale } = useLocale();
 
   return (
-    <div className="mt-4 rounded-2xl border border-transparent bg-transparent p-5">
-      <h2 className={cn("text-center font-display text-[1.65rem] font-bold leading-tight", PRICING_GRADIENT_TEXT_CLASS, canUseSuperWater(locale) && "font-super-water")}>
-        {formatSuperWaterText(locale, t("pricing.mobileFeaturesTitle", { plan: planLabel }))}
-      </h2>
-      <ul className="mt-4 divide-y divide-border/45">
-        <MobilePerkItem icon={Layers} colorClass="text-blue-500">
-          {t("pricing.featureCards")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={BookOpen} colorClass="text-emerald-500">
-          {t("pricing.featureLearned")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={RotateCcw} colorClass="text-sky-500">
-          {t("pricing.featureLearnedReview")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={Palette} colorClass="text-violet-500">
-          {t("pricing.featureThemes")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={Gamepad2} colorClass="text-cyan-500">
-          {t("pricing.featureGames")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={Headset} colorClass="text-fuchsia-500">
-          {t("pricing.featurePrioritySupport")}
-        </MobilePerkItem>
-        <MobilePerkItem icon={MessageCircle} colorClass="text-amber-500">
-          {t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })}
-        </MobilePerkItem>
-        <MobilePerkItem icon={MessagesSquare} colorClass="text-rose-500">
-          {t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })}
-        </MobilePerkItem>
-      </ul>
+    <div
+      className="-mx-4 h-[clamp(11rem,34dvh,17.5rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      data-mobile-pricing-perks
+    >
+      <div className="flex h-full w-max snap-x snap-mandatory gap-3 pr-4">
+        {MOBILE_PERK_ARTWORK.map((perk, index) => {
+          const description = perk.descriptionKey
+            ? t(perk.descriptionKey)
+            : t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages });
+
+          return (
+            <article
+              key={perk.id}
+              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#1b1b1d]"
+            >
+              <Image
+                src={perk.image}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="72vw"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/5 to-transparent" />
+              <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", perk.accentClass)} />
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <h2 className="text-lg font-bold leading-tight text-white">{t(perk.titleKey)}</h2>
+                <p className="mt-1 max-w-[16rem] text-xs leading-4 text-white/75">{description}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -870,10 +849,9 @@ function MobilePricingView({
   locale,
 }: MobilePricingViewProps) {
   const t = useT();
-  const [selectedOption, setSelectedOption] = useState<MobileOption>(MOBILE_OPTIONS[0]);
+  const [selectedOption, setSelectedOption] = useState<MobileOption>(DEFAULT_MOBILE_OPTION);
   const currentPlan = entitlements?.effectivePlan ?? null;
   const provider = entitlements?.provider ?? "lemon_squeezy";
-  const stickyPortalTarget = typeof document === "undefined" ? null : document.body;
 
   const handleSelect = (option: MobileOption) => {
     vibrate("tap");
@@ -881,145 +859,107 @@ function MobilePricingView({
   };
 
   const isCurrentPlan = currentPlan === selectedOption.plan;
+  const yearlyDiscountRate = getPlanDiscountRate(selectedOption.plan, isTwa);
+
   return (
-    <div className="relative z-10 flex flex-col pb-[7.5rem] lg:hidden">
-      <div className="animate-screen-pop">
-        <div className="text-center">
-        <h1 className={cn("font-display text-3xl font-semibold text-white", canUseSuperWater(locale) && "font-super-water")}>
+    <div className="relative z-10 flex h-full flex-col overflow-hidden bg-[#080909] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
+      <header className="shrink-0 text-center">
+        <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.title"))}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-black">
-          {t("pricing.mobileFeatureUnlimitedAccess")}
-        </p>
-        {isTwa ? (
-          <p className="mt-2 text-xs font-bold uppercase text-white">
-            {t("pricing.firstMonthFreeBanner")}
-          </p>
-        ) : null}
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-[#ffd86a]">
+          <Sparkles className="size-3.5" aria-hidden="true" />
+          {t("pricing.firstMonthFreeBanner")}
         </div>
+      </header>
 
-        <div className="mt-8 space-y-3">
-        {MOBILE_OPTIONS.map((option) => {
-          const isSelected =
-            selectedOption.plan === option.plan && selectedOption.cycle === option.cycle;
-          const planLabel = t(`pricing.${option.plan}`);
-          const cycleLabel =
-            option.cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly");
-          const yearlyDiscountRate =
-            option.cycle === "yearly" ? getPlanDiscountRate(option.plan, isTwa) : null;
-          const yearlySavingsLabel =
-            yearlyDiscountRate && yearlyDiscountRate > 0
-              ? t("pricing.yearlyDiscount", { rate: yearlyDiscountRate })
-              : null;
+      <div className="mt-3 min-h-0 shrink-0">
+        <MobilePricingPerkCarousel plan={selectedOption.plan} />
+      </div>
+
+      <div className="mt-3 grid shrink-0 grid-cols-2 gap-2">
+        {(["basic", "pro"] as const).map((plan) => {
+          const isSelected = selectedOption.plan === plan;
 
           return (
-            <div key={`${option.plan}-${option.cycle}`}>
-              <button
-                type="button"
-                onClick={() => handleSelect(option)}
-                className={cn(
-                  "relative flex h-24 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all",
-                  isSelected
-                    ? cn(PRICING_GRADIENT_BORDER_CLASS, "shadow-md")
-                    : "border-border bg-background-card/60 hover:border-amber-400/60"
-                )}
-              >
-                {option.popular ? (
-                  <span className={cn("absolute -top-2.5 left-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase text-slate-950", PRICING_GRADIENT_SURFACE_CLASS)}>
-                    {t("pricing.mostPopular")}
-                  </span>
-                ) : null}
-                <div
-                  className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                    isSelected
-                      ? cn("border-yellow-200 text-slate-950", PRICING_GRADIENT_SURFACE_CLASS)
-                      : "border-foreground-muted bg-transparent"
-                  )}
-                >
-                  {isSelected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
-                </div>
-                <div className="relative flex min-w-0 flex-1 flex-col justify-center pr-22">
-                  {option.cycle === "monthly" ? (
-                    <span className={cn("text-left text-[10px] font-bold", PRICING_GRADIENT_TEXT_CLASS)}>
-                      {t("pricing.firstMonthFree")}
-                    </span>
-                  ) : null}
-                  <span className="mt-0.5 truncate text-left font-display text-base font-semibold">
-                    {planLabel}
-                  </span>
-                  <span className="mt-1 text-left text-[11px] font-medium text-foreground-muted dark:text-foreground-secondary">
-                    {cycleLabel}
-                  </span>
-                  {yearlySavingsLabel ? (
-                    <span className="mt-1 bg-gradient-to-r from-emerald-400 via-lime-300 to-emerald-200 bg-clip-text text-left text-[10px] font-bold text-transparent">
-                      {yearlySavingsLabel}
-                    </span>
-                  ) : null}
-                  <MobileOptionPrice
-                    plan={option.plan}
-                    cycle={option.cycle}
-                    localizedPricing={localizedPricing}
-                    googlePlayPricing={googlePlayPricing}
-                    uiLocale={locale}
-                    isTwa={isTwa}
-                  />
-                </div>
-                <div className="relative h-12 w-12 shrink-0">
-                  <Image
-                    src={MASCOT_BY_PLAN[option.plan]}
-                    alt=""
-                    fill
-                    sizes="48px"
-                    className="object-contain"
-                  />
-                </div>
-              </button>
-              {isSelected ? <MobilePlanPerks plan={option.plan} planLabel={planLabel} /> : null}
-            </div>
+            <button
+              key={plan}
+              type="button"
+              onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
+              className={cn(
+                "flex h-14 items-center justify-between rounded-xl border px-3 text-left transition-all duration-200",
+                isSelected
+                  ? "border-yellow-300 bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 text-slate-950"
+                  : "border-white/15 bg-white/[0.04] text-white",
+              )}
+              aria-pressed={isSelected}
+            >
+              <span className="font-display text-base font-semibold">{t(`pricing.${plan}`)}</span>
+              <MobileOptionPrice
+                plan={plan}
+                cycle={selectedOption.cycle}
+                localizedPricing={localizedPricing}
+                googlePlayPricing={googlePlayPricing}
+                uiLocale={locale}
+                isTwa={isTwa}
+              />
+            </button>
           );
         })}
       </div>
 
-        <div className="relative z-10 mt-10">
-          <PaymentProviderNotes />
-          <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-foreground-muted">
-            {t("pricing.contactEmail")}
-          </p>
-          <ConsentText />
-        </div>
+      <div className="mt-2 grid shrink-0 grid-cols-2 gap-2">
+        {(["monthly", "yearly"] as const).map((cycle) => {
+          const isSelected = selectedOption.cycle === cycle;
+          const savings = cycle === "yearly" && yearlyDiscountRate && yearlyDiscountRate > 0
+            ? t("pricing.yearlyDiscount", { rate: yearlyDiscountRate })
+            : null;
+
+          return (
+            <button
+              key={cycle}
+              type="button"
+              onClick={() => handleSelect({ plan: selectedOption.plan, cycle })}
+              className={cn(
+                "flex h-11 flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-all duration-200",
+                isSelected
+                  ? "border-white bg-white text-slate-950"
+                  : "border-white/15 bg-transparent text-white/70",
+              )}
+              aria-pressed={isSelected}
+            >
+              <span>{cycle === "monthly" ? t("pricing.billingMonthly") : t("pricing.billingYearly")}</span>
+              {savings ? <span className="text-[9px] text-emerald-700">{savings}</span> : null}
+            </button>
+          );
+        })}
       </div>
 
-      {stickyPortalTarget
-        ? createPortal(
-            <div
-              className="pointer-events-none fixed inset-x-0 z-30 lg:hidden"
-              style={{ bottom: 0 }}
-            >
-              <div className="pointer-events-auto w-full border-t border-border bg-background/95 px-4 pb-3 pt-3 shadow-sm backdrop-blur-md">
-                {isCurrentPlan ? (
-                  <CurrentPlanButton className={PRICING_STICKY_CTA_CLASS} />
-                ) : !user ? (
-                  <Link
-                    href={`/register?next=${encodeURIComponent("/pricing")}`}
-                    className={buttonClassName("primary", "lg", cn("w-full", PRICING_STICKY_CTA_CLASS))}
-                  >
-                    {t("pricing.ctaSubscribe")}
-                  </Link>
-                ) : (
-                  <PurchaseButton
-                    plan={selectedOption.plan}
-                    cycle={selectedOption.cycle}
-                    currentPlan={currentPlan}
-                    provider={provider}
-                    className={PRICING_STICKY_CTA_CLASS}
-                  />
-                )}
-              </div>
-            </div>,
-            stickyPortalTarget,
-          )
-        : null}
+      <div className="mt-3 shrink-0">
+        {isCurrentPlan ? (
+          <CurrentPlanButton className="h-14 rounded-2xl border-0 bg-white/15 text-base text-white" />
+        ) : !user ? (
+          <Link
+            href={`/register?next=${encodeURIComponent("/pricing")}`}
+            className={buttonClassName("primary", "lg", cn("h-14 w-full rounded-2xl border-0 text-base", PRICING_GRADIENT_BUTTON_CLASS))}
+          >
+            {t("pricing.ctaSubscribe")}
+          </Link>
+        ) : (
+          <PurchaseButton
+            plan={selectedOption.plan}
+            cycle={selectedOption.cycle}
+            currentPlan={currentPlan}
+            provider={provider}
+            className="h-14 rounded-2xl text-base"
+          />
+        )}
+      </div>
+
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-[10px] text-white/45">
+        <Link href="/terms" className="underline underline-offset-2">{t("pricing.consentTerms")}</Link>
+        <Link href="/privacy" className="underline underline-offset-2">{t("pricing.consentPrivacy")}</Link>
+      </div>
     </div>
   );
 }

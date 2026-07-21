@@ -12,6 +12,7 @@ import { generateWordChallengeItems } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
 import { useGameSounds } from "../use-game-sounds";
 import { useGameTimer } from "../game-timer";
+import { vibrate } from "@/lib/vibration";
 import type { WordChallengeItem } from "../game-types";
 import { addGamePointsAction } from "../game-actions";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
@@ -96,6 +97,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
 
       if (answer === currentItem.isTrue) {
         sounds.correct();
+        vibrate("word-challenge-correct");
         if (index + 1 >= items.length) {
           sounds.complete();
           const points = getPointsForLevel(level);
@@ -117,6 +119,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         }
       } else {
         sounds.incorrect();
+        vibrate("word-challenge-incorrect");
         setPhase("failed");
       }
     },

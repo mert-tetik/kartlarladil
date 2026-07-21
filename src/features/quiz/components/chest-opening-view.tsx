@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { CHEST_TIER_UI_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import {
+  getScoreFlightAwardAtArrival,
+  getScoreFlightIconCount,
+} from "@/features/progress/score-flight";
 import confetti from "canvas-confetti";
 
 interface ChestOpeningViewProps {
@@ -240,7 +244,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     const endX = end.left + end.width / 2;
     const endY = end.top + end.height / 2;
 
-    const iconCount = Math.min(Math.ceil(tier.points / 2), 25);
+    const iconCount = getScoreFlightIconCount(tier.points);
     const latestStart = 780;
     const icons = Array.from({ length: iconCount }, (_, index) => {
       const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
@@ -248,7 +252,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     });
     setFlightIcons(icons);
     arrivalTimersRef.current = icons.map((icon, index) => window.setTimeout(() => {
-      setDisplayPoints(stableTotalPoints + Math.min(tier.points, (index + 1) * 2));
+      setDisplayPoints(
+        stableTotalPoints + getScoreFlightAwardAtArrival(tier.points, iconCount, index + 1),
+      );
       playSoundEffect("points");
       vibrate("tap");
       if (index === icons.length - 1) setPointsPhase("added");

@@ -6,6 +6,10 @@ import { Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { useProgressStats } from "@/features/progress/progress-client";
+import {
+  getScoreFlightAwardAtArrival,
+  getScoreFlightIconCount,
+} from "@/features/progress/score-flight";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
@@ -112,7 +116,7 @@ function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amou
       if (!scoreRef.current) return;
       setVisible(true);
       const target = scoreRef.current.getBoundingClientRect();
-      const count = Math.min(Math.ceil(amount / 2), 25);
+      const count = getScoreFlightIconCount(amount);
       const originX = source ? source.left + source.width / 2 : window.innerWidth / 2;
       const originY = source ? source.top + source.height / 2 : window.innerHeight / 2;
       const targetX = target.left + target.width / 2;
@@ -126,7 +130,9 @@ function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amou
     if (arrivedRef.current.has(id)) return;
     arrivedRef.current.add(id);
     const index = arrivedRef.current.size;
-    setDisplayPoints(totalPoints + Math.min(amount, index * 2));
+    setDisplayPoints(
+      totalPoints + getScoreFlightAwardAtArrival(amount, icons.length, index),
+    );
     setPulse(index);
     playSoundEffect("points");
     vibrate("tap");

@@ -6,6 +6,10 @@ import { Flame, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { formatPoints } from "@/i18n/labels";
 import { useLocale } from "@/i18n/locale-provider";
+import {
+  getScoreFlightAwardAtArrival,
+  getScoreFlightIconCount,
+} from "@/features/progress/score-flight";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
@@ -67,7 +71,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
 
       const source = rewardRef.current.getBoundingClientRect();
       const target = scoreRef.current.getBoundingClientRect();
-      const iconCount = Math.min(Math.ceil(points / 2), 25);
+      const iconCount = getScoreFlightIconCount(points);
       const targetX = target.left + target.width / 2;
       const targetY = target.top + target.height / 2;
       const icons = Array.from({ length: iconCount }, (_, index) => {
@@ -110,7 +114,9 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
     arrivedIconIdsRef.current.add(icon.id);
 
     const arrivalIndex = arrivedIconIdsRef.current.size;
-    setDisplayPoints(totalPoints + Math.min(points, arrivalIndex * 2));
+    setDisplayPoints(
+      totalPoints + getScoreFlightAwardAtArrival(points, flightIcons.length, arrivalIndex),
+    );
     setScorePulse(arrivalIndex);
     playSoundEffect("points");
     vibrate("tap");
