@@ -418,9 +418,10 @@ const MatchButton = ({ item, onClick, ref }: MatchButtonProps & { ref?: React.Re
       disabled={item.matched}
       onClick={onClick}
       className={cn(
-        "relative z-20 w-full rounded-lg px-3 py-4 text-center text-sm font-semibold text-white transition-all active:scale-95 max-sm:mx-auto max-sm:max-w-[90%]",
-        "disabled:cursor-default disabled:opacity-40",
+        "relative z-20 w-full rounded-lg px-3 py-4 text-center text-sm font-semibold text-white transition-[background-color,box-shadow,transform] duration-300 active:scale-95 max-sm:mx-auto max-sm:max-w-[90%]",
+        "disabled:cursor-default",
         tierStyle.accent,
+        item.matched && "!bg-slate-950/70",
         item.selected && "scale-[1.02] shadow-lg ring-2 ring-white/80 ring-offset-2 ring-offset-background",
         item.shake && "animate-word-match-shake",
       )}
