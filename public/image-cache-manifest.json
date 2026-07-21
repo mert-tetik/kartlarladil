@@ -1,5 +1,5 @@
 {
-  "version": "c55901550d5b404029c0d75e1325430038ac6c457d62f1ae9a67b9ca1322dc57",
+  "version": "1519dbbcb7fd0003b097a4c8289d618ea7974b5c8b4b3e1f2260e2613e723e3a",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -306,8 +306,20 @@
       "revision": "3379beab7a39d05c8b437a5f50302e1ef5a0909b940b1eec78eb57f85522ce9f"
     },
     {
+      "url": "/pricing-perks/monthly-ai.png",
+      "revision": "1b46b3ef1e2c856aea38aed1d9a29b78c892adbccea57fd91a7cd72b1af8e486"
+    },
+    {
       "url": "/pricing-perks/practice.png",
       "revision": "8a1eacd4a368bd52c3181bbbab397a0fd473c111cfa402e36b2d08011136951b"
+    },
+    {
+      "url": "/pricing-perks/priority-support.png",
+      "revision": "cba40150c5b7c60d00887674817842c3874c094f0f0b5845a0156352e8d19a99"
+    },
+    {
+      "url": "/pricing-perks/themes.png",
+      "revision": "5a75df416f81d675310f41a7493bd4631913f95bb0d077a18fae6bfb9607474b"
     },
     {
       "url": "/profile-pictures/pp_1.webp",

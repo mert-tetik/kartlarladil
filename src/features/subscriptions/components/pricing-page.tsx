@@ -7,7 +7,6 @@ import Image from "next/image";
 import {
   Check,
   X,
-  Sparkles,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
@@ -796,22 +795,52 @@ function MobileOptionPrice({
 
 const MOBILE_PERK_ARTWORK = [
   {
-    id: "cards",
+    id: "new-cards",
     image: "/pricing-perks/collection.png",
     titleKey: "pricing.featureCards",
-    descriptionKey: "pricing.featureLearnedReview",
+    descriptionKey: "pricing.featureCardsDescription",
+  },
+  {
+    id: "learn-cards",
+    image: "/pricing-perks/collection.png",
+    titleKey: "pricing.featureLearned",
+    descriptionKey: "pricing.featureLearnedDescription",
+  },
+  {
+    id: "review-cards",
+    image: "/pricing-perks/collection.png",
+    titleKey: "pricing.featureLearnedReview",
+    descriptionKey: "pricing.featureLearnedReviewDescription",
   },
   {
     id: "games",
     image: "/pricing-perks/games.png",
     titleKey: "pricing.featureGames",
-    descriptionKey: "pricing.featureLearned",
+    descriptionKey: "pricing.featureGamesDescription",
   },
   {
     id: "practice",
     image: "/pricing-perks/practice.png",
     titleKey: "nav.aiPractice",
-    descriptionKey: null,
+    descriptionKey: "pricing.featureAiDaily",
+  },
+  {
+    id: "themes",
+    image: "/pricing-perks/themes.png",
+    titleKey: "pricing.featureThemes",
+    descriptionKey: "pricing.featureThemesDescription",
+  },
+  {
+    id: "priority-support",
+    image: "/pricing-perks/priority-support.png",
+    titleKey: "pricing.featurePrioritySupport",
+    descriptionKey: "pricing.featurePrioritySupportDescription",
+  },
+  {
+    id: "monthly-ai",
+    image: "/pricing-perks/monthly-ai.png",
+    titleKey: "nav.aiPractice",
+    descriptionKey: "pricing.featureAiMonthly",
   },
 ] as const;
 
@@ -826,14 +855,16 @@ function MobilePricingPerkCarousel({
 
   return (
     <div
-      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-full overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-mobile-pricing-perks
     >
       <div className="flex h-full w-max snap-x snap-mandatory gap-3 pr-4">
         {MOBILE_PERK_ARTWORK.map((perk, index) => {
-          const description = perk.descriptionKey
-            ? t(perk.descriptionKey)
-            : t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages });
+          const description = perk.id === "practice"
+            ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
+            : perk.id === "monthly-ai"
+              ? t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
+              : t(perk.descriptionKey);
 
           return (
             <article
@@ -955,46 +986,46 @@ function MobilePricingView({
         <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.title"))}
         </h1>
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-[#ffd86a]">
-          <Sparkles className="size-3.5" aria-hidden="true" />
+        <p className={cn("mt-3 text-base font-semibold", PRICING_GRADIENT_TEXT_CLASS)}>
           {t("pricing.firstMonthFreeBanner")}
-        </div>
+        </p>
       </header>
 
-      <div className="mt-3 min-h-0 shrink-0">
+      <div className="flex min-h-0 flex-1 items-center py-4">
         <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
       </div>
 
-      <div className="mt-3 grid shrink-0 grid-cols-2 gap-2">
-        {(["basic", "pro"] as const).map((plan) => {
-          const isSelected = selectedOption.plan === plan;
+      <div className="shrink-0">
+        <div className="grid grid-cols-2 gap-2">
+          {(["basic", "pro"] as const).map((plan) => {
+            const isSelected = selectedOption.plan === plan;
 
-          return (
-            <button
-              key={plan}
-              type="button"
-              onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
-              className={cn(
-                "flex h-14 items-center justify-between rounded-xl border px-3 text-left transition-all duration-200",
-                isSelected
-                  ? "border-yellow-300 bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 text-slate-950"
-                  : "border-white/15 bg-white/[0.04] text-white",
-              )}
-              aria-pressed={isSelected}
-            >
-              <span className="font-display text-base font-semibold">{t(`pricing.${plan}`)}</span>
-              <MobileOptionPrice
-                plan={plan}
-                cycle={selectedOption.cycle}
-                localizedPricing={localizedPricing}
-                googlePlayPricing={googlePlayPricing}
-                uiLocale={locale}
-                isTwa={isTwa}
-              />
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={plan}
+                type="button"
+                onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
+                className={cn(
+                  "flex h-14 items-center justify-between rounded-xl border px-3 text-left transition-all duration-200",
+                  isSelected
+                    ? "border-yellow-300 bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 text-slate-950"
+                    : "border-white/15 bg-white/[0.04] text-white",
+                )}
+                aria-pressed={isSelected}
+              >
+                <span className="font-display text-base font-semibold">{t(`pricing.${plan}`)}</span>
+                <MobileOptionPrice
+                  plan={plan}
+                  cycle={selectedOption.cycle}
+                  localizedPricing={localizedPricing}
+                  googlePlayPricing={googlePlayPricing}
+                  uiLocale={locale}
+                  isTwa={isTwa}
+                />
+              </button>
+            );
+          })}
+        </div>
 
       <div className="mt-2">
         <MobileBillingCycleToggle
@@ -1029,6 +1060,7 @@ function MobilePricingView({
       <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-[10px] text-white/45">
         <Link href="/terms" className="underline underline-offset-2">{t("pricing.consentTerms")}</Link>
         <Link href="/privacy" className="underline underline-offset-2">{t("pricing.consentPrivacy")}</Link>
+      </div>
       </div>
     </div>
   );
