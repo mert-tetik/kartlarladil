@@ -785,11 +785,10 @@ function MobileOptionPrice({
   }) ?? t("pricing.priceFree");
 
   return (
-    <span className="flex flex-col items-end leading-none">
-      <span className="font-display text-lg font-semibold tabular-nums text-white">{primary}</span>
-      <span className="mt-1 text-[10px] font-medium text-white/55">
-        {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
-      </span>
+    <span className="flex items-center justify-center gap-1 whitespace-nowrap text-xs font-medium leading-none text-white">
+      <span className="font-display text-sm font-semibold tabular-nums">{primary}</span>
+      <span aria-hidden="true">/</span>
+      <span>{cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly")}</span>
     </span>
   );
 }
@@ -828,19 +827,19 @@ function getMobileOptionPriceValue({
 const MOBILE_PERK_ARTWORK = [
   {
     id: "new-cards",
-    image: "/pricing-perks/collection.png",
+    image: "/pricing-perks/new-cards.png",
     titleKey: "pricing.featureCards",
     descriptionKey: "pricing.featureCardsDescription",
   },
   {
     id: "learn-cards",
-    image: "/pricing-perks/collection.png",
+    image: "/pricing-perks/learn-cards.png",
     titleKey: "pricing.featureLearned",
     descriptionKey: "pricing.featureLearnedDescription",
   },
   {
     id: "review-cards",
-    image: "/pricing-perks/collection.png",
+    image: "/pricing-perks/review-cards.png",
     titleKey: "pricing.featureLearnedReview",
     descriptionKey: "pricing.featureLearnedReviewDescription",
   },
@@ -995,11 +994,11 @@ function MobileSubscriptionCtaContent({
   const period = cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth");
 
   return (
-    <span className="flex flex-col items-center justify-center leading-none">
-      <span className="text-sm font-semibold">
+    <span className="flex flex-col items-center justify-center leading-tight">
+      <span className="text-base font-semibold">
         {hasFirstMonthTrial ? t("pricing.ctaStartFirstMonthFreeTrial") : t("pricing.ctaSubscribe")}
       </span>
-      <span className="mt-1 text-base font-medium text-slate-950/55">
+      <span className="mt-0.5 text-sm font-medium text-slate-950/55">
         {hasFirstMonthTrial
           ? t("pricing.ctaTrialAfter", { price, period })
           : t("pricing.ctaPriceWithPeriod", { price, period })}
@@ -1083,14 +1082,14 @@ function MobilePricingView({
                 type="button"
                 onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
                 className={cn(
-                  "flex h-14 items-center justify-between rounded-full border border-transparent px-3 text-left transition-all duration-200",
+                  "flex h-16 flex-col items-center justify-center rounded-full border border-transparent px-3 text-center transition-all duration-200",
                   isSelected
-                    ? "[background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] text-slate-950"
+                    ? "[background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] text-white"
                     : "[background:linear-gradient(var(--pricing-mobile-surface),var(--pricing-mobile-surface))_padding-box,linear-gradient(180deg,var(--pricing-mobile-surface-outline-top),var(--pricing-mobile-surface-outline-bottom))_border-box] text-white",
                 )}
                 aria-pressed={isSelected}
               >
-                <span className="font-display text-base font-semibold">{t(`pricing.${plan}`)}</span>
+                <span className="font-display text-base font-semibold leading-none text-white">{t(`pricing.${plan}`)}</span>
                 <MobileOptionPrice
                   plan={plan}
                   cycle={selectedOption.cycle}
