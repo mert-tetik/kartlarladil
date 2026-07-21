@@ -391,6 +391,7 @@ const dictionary = {
   "pricing.ctaSkip": "Salta",
   "pricing.ctaManage": "Gestisci abbonamento",
   "pricing.ctaSubscribe": "Abbonati",
+  "pricing.ctaPriceWithPeriod": "{price} {period}",
   "pricing.ctaStartFirstMonthFreeTrial": "Inizia 1 mese di prova gratuita",
   "pricing.ctaTrialAfter": "Dopo {price} {period}",
   "pricing.ctaCurrentAndManage": "Piano attuale (Gestisci abbonamento)",

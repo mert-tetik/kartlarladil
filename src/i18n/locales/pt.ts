@@ -391,6 +391,7 @@ const dictionary = {
   "pricing.ctaSkip": "Pular",
   "pricing.ctaManage": "Gerenciar assinatura",
   "pricing.ctaSubscribe": "Assinar",
+  "pricing.ctaPriceWithPeriod": "{price} {period}",
   "pricing.ctaStartFirstMonthFreeTrial": "Inicie 1 mês de teste grátis",
   "pricing.ctaTrialAfter": "Depois {price} {period}",
   "pricing.ctaCurrentAndManage": "Plano atual (Gerenciar assinatura)",

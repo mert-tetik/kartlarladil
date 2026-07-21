@@ -409,9 +409,10 @@ export function MobileLandingDashboard() {
               "absolute -bottom-3 left-[0.2rem] origin-bottom-left -rotate-12 inline-flex whitespace-nowrap bg-gradient-to-r from-[#FDF4A5] to-[#F5AC27] bg-clip-text px-0.5 py-px !text-transparent",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
+              canUseSuperWater(locale) && "font-super-water",
             )}
           >
-            {leaderboardButtonLabel}
+            {formatSuperWaterText(locale, leaderboardButtonLabel)}
           </span>
         ) : null}
       </button>
@@ -437,8 +438,13 @@ export function MobileLandingDashboard() {
         <span className="relative inline-flex h-[2.45rem] w-[2.45rem] shrink-0 items-center justify-center" data-mobile-missions-icon>
           <MissionIcon size={31} className="h-[2rem] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]" />
           {waitingMissionCount > 0 ? (
-            <span className="absolute -left-2 -bottom-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse">
-              {waitingMissionCount > 9 ? "9+" : waitingMissionCount}
+            <span
+              className={cn(
+                "absolute -left-2 -bottom-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_rgba(239,68,68,0.32)] animate-mission-badge-pulse",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
+            >
+              {formatSuperWaterText(locale, waitingMissionCount > 9 ? "9+" : String(waitingMissionCount))}
             </span>
           ) : null}
         </span>

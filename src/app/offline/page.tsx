@@ -1,24 +1,42 @@
 "use client";
 
-import { WifiOff } from "lucide-react";
-import { useT } from "@/i18n/locale-provider";
+import Image from "next/image";
+import { useLocale } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { cn } from "@/lib/utils";
 
 export default function OfflinePage() {
-  const t = useT();
+  const { locale, t } = useLocale();
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12 text-center">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-background-card p-8 shadow-sm">
-        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand/10 text-brand">
-          <WifiOff className="h-8 w-8" aria-hidden="true" />
+    <section
+      aria-labelledby="offline-title"
+      className="fixed inset-0 z-[210] flex min-h-dvh items-center justify-center bg-[#f76808] px-8 text-center text-white"
+    >
+      <div className="flex w-full max-w-[20rem] flex-col items-center">
+        <div className="h-14 w-72 max-w-full overflow-hidden">
+          <Image
+            alt="FoxiesDeck"
+            className="h-auto w-full -translate-y-[40%]"
+            height={1024}
+            priority
+            src="/splash.png"
+            width={1024}
+          />
         </div>
-        <h1 className="mb-3 text-2xl font-bold tracking-tight text-foreground">
-          {t("offline.title")}
+        <h1
+          id="offline-title"
+          className={cn(
+            "mt-12 text-4xl font-semibold leading-none text-white",
+            canUseSuperWater(locale) && "font-super-water",
+          )}
+        >
+          {formatSuperWaterText(locale, t("offline.title"))}
         </h1>
-        <p className="text-base leading-relaxed text-muted-foreground">
+        <p className="mt-5 max-w-xs text-base leading-relaxed text-white/85">
           {t("offline.description")}
         </p>
       </div>
-    </div>
+    </section>
   );
 }

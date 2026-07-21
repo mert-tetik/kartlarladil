@@ -391,6 +391,7 @@ const dictionary = {
   "pricing.ctaSkip": "Geç",
   "pricing.ctaManage": "Aboneliği yönet",
   "pricing.ctaSubscribe": "Abone Ol",
+  "pricing.ctaPriceWithPeriod": "{price} {period}",
   "pricing.ctaStartFirstMonthFreeTrial": "1 aylık ücretsiz denemeyi başlat",
   "pricing.ctaTrialAfter": "Sonrasında {price} {period}",
   "pricing.ctaCurrentAndManage": "Mevcut Plan (Aboneliği Yönet)",

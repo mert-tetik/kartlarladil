@@ -391,6 +391,7 @@ const dictionary = {
   "pricing.ctaSkip": "تخطي",
   "pricing.ctaManage": "إدارة الاشتراك",
   "pricing.ctaSubscribe": "اشترك",
+  "pricing.ctaPriceWithPeriod": "{price} {period}",
   "pricing.ctaStartFirstMonthFreeTrial": "ابدأ تجربة مجانية لمدة شهر",
   "pricing.ctaTrialAfter": "بعد ذلك {price} {period}",
   "pricing.ctaCurrentAndManage": "الخطة الحالية (إدارة الاشتراك)",

@@ -1512,7 +1512,7 @@ function MobileQuizCard({
           top: "50dvh",
           width: floatingOrigin.width,
           height: floatingOrigin.height,
-          transform: "translate(-50%, -50%) scale(1.75)",
+          transform: "translate(-50%, -50%) scale(1.35)",
         }
       : {
           left: floatingOrigin.left,

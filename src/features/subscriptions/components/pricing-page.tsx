@@ -982,17 +982,27 @@ function MobileBillingCycleToggle({
   );
 }
 
-function MobileTrialCtaContent({ price, cycle }: { price: string; cycle: BillingCycle }) {
+function MobileSubscriptionCtaContent({
+  price,
+  cycle,
+  hasFirstMonthTrial,
+}: {
+  price: string;
+  cycle: BillingCycle;
+  hasFirstMonthTrial: boolean;
+}) {
   const t = useT();
+  const period = cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth");
 
   return (
     <span className="flex flex-col items-center justify-center leading-none">
-      <span className="text-sm font-semibold">{t("pricing.ctaStartFirstMonthFreeTrial")}</span>
+      <span className="text-sm font-semibold">
+        {hasFirstMonthTrial ? t("pricing.ctaStartFirstMonthFreeTrial") : t("pricing.ctaSubscribe")}
+      </span>
       <span className="mt-1 text-base font-medium text-slate-950/55">
-        {t("pricing.ctaTrialAfter", {
-          price,
-          period: cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth"),
-        })}
+        {hasFirstMonthTrial
+          ? t("pricing.ctaTrialAfter", { price, period })
+          : t("pricing.ctaPriceWithPeriod", { price, period })}
       </span>
     </span>
   );
@@ -1039,8 +1049,12 @@ function MobilePricingView({
     selectedOption.cycle === "monthly" &&
     selectedPrice != null &&
     (currentPlan == null || currentPlan === "free");
-  const ctaContent = showsFirstMonthTrial ? (
-    <MobileTrialCtaContent price={selectedPrice} cycle={selectedOption.cycle} />
+  const ctaContent = selectedPrice ? (
+    <MobileSubscriptionCtaContent
+      price={selectedPrice}
+      cycle={selectedOption.cycle}
+      hasFirstMonthTrial={showsFirstMonthTrial}
+    />
   ) : undefined;
 
   return (
