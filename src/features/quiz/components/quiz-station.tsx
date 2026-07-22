@@ -159,6 +159,7 @@ const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
 const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 2_000;
+const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 
 interface BaseQuizItem {
   card: VocabularyCard;
@@ -1493,29 +1494,61 @@ function MobileQuizCard({
   const slotRef = useRef<HTMLDivElement>(null);
   const centerFrameRef = useRef<number | null>(null);
   const returnTimeoutRef = useRef<number | null>(null);
-  const [floatingOrigin, setFloatingOrigin] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
+  const [floatingFrame, setFloatingFrame] = useState<{
+    origin: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    returnTarget?: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
   } | null>(null);
   const [isCentered, setIsCentered] = useState(false);
   const isFeedbackActive = feedbackStage !== "idle";
 
   useLayoutEffect(() => {
-    if (!isFeedbackActive || floatingOrigin || !slotRef.current) return;
+    if (!slotRef.current) return;
 
-    const rect = slotRef.current.getBoundingClientRect();
-    setFloatingOrigin({
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    });
-  }, [floatingOrigin, isFeedbackActive]);
+    if (isFeedbackActive && !floatingFrame) {
+      const rect = slotRef.current.getBoundingClientRect();
+      setFloatingFrame({
+        origin: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+      });
+      return;
+    }
+
+    // The quiz layout can move while feedback is visible. Read the slot again
+    // after the footer disappears so the floating card returns to its real home.
+    if (!isFeedbackActive && floatingFrame && !floatingFrame.returnTarget) {
+      const rect = slotRef.current.getBoundingClientRect();
+      setFloatingFrame((current) =>
+        current
+          ? {
+              ...current,
+              returnTarget: {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+              },
+            }
+          : current,
+      );
+    }
+  }, [floatingFrame, isFeedbackActive]);
 
   useEffect(() => {
-    if (!floatingOrigin) return;
+    if (!floatingFrame) return;
 
     if (isFeedbackActive) {
       centerFrameRef.current = window.requestAnimationFrame(() => setIsCentered(true));
@@ -1527,19 +1560,25 @@ function MobileQuizCard({
       };
     }
 
-    setIsCentered(false);
+    if (!floatingFrame.returnTarget) return;
+
+    centerFrameRef.current = window.requestAnimationFrame(() => setIsCentered(false));
     returnTimeoutRef.current = window.setTimeout(() => {
-      setFloatingOrigin(null);
+      setFloatingFrame(null);
       returnTimeoutRef.current = null;
     }, QUIZ_CARD_GROW_DURATION_MS);
 
     return () => {
+      if (centerFrameRef.current !== null) {
+        window.cancelAnimationFrame(centerFrameRef.current);
+        centerFrameRef.current = null;
+      }
       if (returnTimeoutRef.current !== null) {
         window.clearTimeout(returnTimeoutRef.current);
         returnTimeoutRef.current = null;
       }
     };
-  }, [floatingOrigin, isFeedbackActive]);
+  }, [floatingFrame, isFeedbackActive]);
 
   useEffect(() => () => {
     if (centerFrameRef.current !== null) {
@@ -1550,20 +1589,21 @@ function MobileQuizCard({
     }
   }, []);
 
-  const floatingStyle: CSSProperties | undefined = floatingOrigin
+  const floatingStyle: CSSProperties | undefined = floatingFrame
     ? isCentered
       ? {
           left: "50vw",
-          top: "50dvh",
-          width: floatingOrigin.width,
-          height: floatingOrigin.height,
+          top: "50%",
+          width: floatingFrame.origin.width,
+          // Reserve the progress bar inside the card while it is enlarged.
+          height: floatingFrame.origin.height + QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX,
           transform: "translate(-50%, -50%) scale(1.35)",
         }
       : {
-          left: floatingOrigin.left,
-          top: floatingOrigin.top,
-          width: floatingOrigin.width,
-          height: floatingOrigin.height,
+          left: floatingFrame.returnTarget?.left ?? floatingFrame.origin.left,
+          top: floatingFrame.returnTarget?.top ?? floatingFrame.origin.top,
+          width: floatingFrame.returnTarget?.width ?? floatingFrame.origin.width,
+          height: floatingFrame.returnTarget?.height ?? floatingFrame.origin.height,
           transform: "translate(0, 0) scale(1)",
         }
     : undefined;
@@ -1581,8 +1621,8 @@ function MobileQuizCard({
     >
       <div
         className={cn(
-          "h-full w-full transform-gpu transition-[left,top,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
-          floatingOrigin ? "fixed z-[70]" : "relative",
+          "h-full w-full transform-gpu transition-[left,top,width,height,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+          floatingFrame ? "fixed z-[70]" : "relative",
         )}
         style={floatingStyle}
       >
@@ -1877,6 +1917,8 @@ export function CountSelection({
       height: bounds.height,
       scaleX,
       scaleY,
+      contentScaleX: 1 / scaleX,
+      contentScaleY: 1 / scaleY,
       targetX,
       targetY,
       scatter: QUIZ_COUNT_OPTIONS.map((option) => ({
@@ -1990,10 +2032,14 @@ export function CountSelection({
                 "--quiz-count-cover-y": `${launch.targetY}px`,
                 "--quiz-count-cover-scale-x": launch.scaleX,
                 "--quiz-count-cover-scale-y": launch.scaleY,
+                "--quiz-count-cover-content-scale-x": launch.contentScaleX,
+                "--quiz-count-cover-content-scale-y": launch.contentScaleY,
               } as CSSProperties}
             >
-              <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
-              <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
+              <div className="animate-quiz-count-cover-copy flex flex-col items-center justify-center gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
+                <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
+              </div>
             </div>,
             document.body,
           )
@@ -2011,6 +2057,8 @@ type CountLaunch = {
   height: number;
   scaleX: number;
   scaleY: number;
+  contentScaleX: number;
+  contentScaleY: number;
   targetX: number;
   targetY: number;
   scatter: Array<{
