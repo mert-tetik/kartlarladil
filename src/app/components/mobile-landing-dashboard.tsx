@@ -978,8 +978,8 @@ function ActionButton({
         className={cn(
           "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
           variant === "active"
-            ? locked ? "bg-emerald-700 hover:bg-emerald-700" : "bg-emerald-500 hover:bg-emerald-600"
-            : locked ? "bg-sky-700 hover:bg-sky-700" : "bg-sky-500 hover:bg-sky-600",
+            ? locked ? "bg-emerald-500 hover:bg-emerald-500" : "bg-emerald-500 hover:bg-emerald-600"
+            : locked ? "bg-sky-500 hover:bg-sky-500" : "bg-sky-500 hover:bg-sky-600",
         )}
       >
         <Icon className="size-5" aria-hidden="true" />

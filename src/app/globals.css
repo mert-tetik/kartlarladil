@@ -172,6 +172,11 @@ button:disabled,
   filter: brightness(0.52) saturate(1.06);
 }
 
+/* Keep locked labels and icons as opaque as the face, only darker. */
+.mobile-primary-action-depth--locked > :is(a, button) {
+  filter: brightness(0.52) saturate(1.06);
+}
+
 .mobile-primary-action-depth--emerald::after {
   background: var(--color-emerald-500);
 }
