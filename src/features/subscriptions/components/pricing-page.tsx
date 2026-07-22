@@ -762,6 +762,7 @@ function getPlanDiscountRate(plan: Exclude<SubscriptionPlan, "free">, isTwa: boo
 function MobileOptionPrice({
   plan,
   cycle,
+  isSelected,
   localizedPricing,
   googlePlayPricing,
   uiLocale,
@@ -769,6 +770,7 @@ function MobileOptionPrice({
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
+  isSelected: boolean;
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
   uiLocale: string;
@@ -785,7 +787,12 @@ function MobileOptionPrice({
   }) ?? t("pricing.priceFree");
 
   return (
-    <span className="flex items-center justify-center gap-1 whitespace-nowrap text-xs font-medium leading-none text-white">
+    <span
+      className={cn(
+        "relative z-10 flex items-center justify-center gap-1 whitespace-nowrap text-xs font-medium leading-none transition-colors duration-300",
+        isSelected ? "text-slate-950" : "text-white",
+      )}
+    >
       <span className="font-display text-sm font-semibold tabular-nums">{primary}</span>
       <span aria-hidden="true">/</span>
       <span>{cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly")}</span>
@@ -910,7 +917,10 @@ function MobilePricingPerkCarousel({
                 sizes="72vw"
                 className="-translate-y-3 scale-110 object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#171719]/95 via-transparent to-transparent" />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
+              />
               <div className="absolute inset-x-0 bottom-0 flex min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center">
                 <h2
                   className={cn(
@@ -1081,18 +1091,33 @@ function MobilePricingView({
                 key={plan}
                 type="button"
                 onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
-                className={cn(
-                  "flex h-16 flex-col items-center justify-center rounded-full border border-transparent px-3 text-center transition-all duration-200",
-                  isSelected
-                    ? "[background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] text-white"
-                    : "[background:linear-gradient(var(--pricing-mobile-surface),var(--pricing-mobile-surface))_padding-box,linear-gradient(180deg,var(--pricing-mobile-surface-outline-top),var(--pricing-mobile-surface-outline-bottom))_border-box] text-white",
-                )}
+                className="relative isolate flex h-16 flex-col items-center justify-center overflow-hidden rounded-full border border-transparent px-3 text-center"
                 aria-pressed={isSelected}
               >
-                <span className="font-display text-base font-semibold leading-none text-white">{t(`pricing.${plan}`)}</span>
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-full border border-transparent [background:linear-gradient(var(--pricing-mobile-surface),var(--pricing-mobile-surface))_padding-box,linear-gradient(180deg,var(--pricing-mobile-surface-outline-top),var(--pricing-mobile-surface-outline-bottom))_border-box]"
+                />
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none absolute inset-0 rounded-full border border-transparent [background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] transition-opacity duration-300 ease-out",
+                    isSelected ? "opacity-100" : "opacity-0",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "relative z-10 font-display text-lg font-semibold leading-none transition-colors duration-300",
+                    isSelected ? "text-slate-950" : "text-white",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}
+                >
+                  {formatSuperWaterText(locale, t(`pricing.${plan}`))}
+                </span>
                 <MobileOptionPrice
                   plan={plan}
                   cycle={selectedOption.cycle}
+                  isSelected={isSelected}
                   localizedPricing={localizedPricing}
                   googlePlayPricing={googlePlayPricing}
                   uiLocale={locale}
