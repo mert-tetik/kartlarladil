@@ -1229,10 +1229,10 @@ body:has([data-ask-page]) footer {
     transform: scale(1, 1);
   }
   18% {
-    transform: scale(1.1905, 1.1905);
+    transform: scale(1.04, 1.04);
   }
   34% {
-    transform: scale(1.087, 1.087);
+    transform: scale(1.02, 1.02);
   }
   100% {
     transform: scale(var(--quiz-count-cover-content-scale-x), var(--quiz-count-cover-content-scale-y));

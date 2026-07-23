@@ -80,6 +80,7 @@ import {
   getChestPreviewPairForCount,
   getChestLabelKey,
   getChestRewardPoints,
+  type ChestTier,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
@@ -158,7 +159,7 @@ const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
 const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
-const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 2_000;
+const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 
 interface BaseQuizItem {
@@ -345,6 +346,8 @@ export function QuizStation({
   const [startSplashSelection, setStartSplashSelection] = useState<{
     count: number;
     colorClass: string;
+    contentScale: number;
+    chestTiers?: ChestTier[];
   } | null>(null);
   const [awardedChestTier, setAwardedChestTier] = useState<ChestTierDefinition | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
@@ -1311,6 +1314,8 @@ export function QuizStation({
           }}
           selectedCount={startSplashSelection?.count}
           selectedColorClass={startSplashSelection?.colorClass}
+          selectedContentScale={startSplashSelection?.contentScale}
+          selectedChestTiers={startSplashSelection?.chestTiers}
         />
       ) : null}
       {!isSplash ? (
@@ -1589,23 +1594,36 @@ function MobileQuizCard({
     }
   }, []);
 
+  const returnOffset = floatingFrame?.returnTarget
+    ? {
+        x: floatingFrame.returnTarget.left - floatingFrame.origin.left,
+        y: floatingFrame.returnTarget.top - floatingFrame.origin.top,
+      }
+    : { x: 0, y: 0 };
+  const centerOffset = floatingFrame
+    ? {
+        x: `calc(50vw - ${floatingFrame.origin.left + floatingFrame.origin.width / 2}px)`,
+        y: `calc(50dvh - ${floatingFrame.origin.top + floatingFrame.origin.height / 2}px)`,
+      }
+    : null;
   const floatingStyle: CSSProperties | undefined = floatingFrame
-    ? isCentered
-      ? {
-          left: "50vw",
-          top: "50%",
-          width: floatingFrame.origin.width,
-          // Reserve the progress bar inside the card while it is enlarged.
-          height: floatingFrame.origin.height + QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX,
-          transform: "translate(-50%, -50%) scale(1.35)",
-        }
-      : {
-          left: floatingFrame.returnTarget?.left ?? floatingFrame.origin.left,
-          top: floatingFrame.returnTarget?.top ?? floatingFrame.origin.top,
-          width: floatingFrame.returnTarget?.width ?? floatingFrame.origin.width,
-          height: floatingFrame.returnTarget?.height ?? floatingFrame.origin.height,
-          transform: "translate(0, 0) scale(1)",
-        }
+    ? {
+        left: floatingFrame.origin.left,
+        top: floatingFrame.origin.top,
+        width: floatingFrame.origin.width,
+        height: floatingFrame.origin.height,
+        transformOrigin: "center",
+        transform: isCentered && centerOffset
+          ? `translate3d(${centerOffset.x}, ${centerOffset.y}, 0) scale(1.35)`
+          : `translate3d(${returnOffset.x}px, ${returnOffset.y}px, 0) scale(1)`,
+      }
+    : undefined;
+  const cardShellStyle: CSSProperties | undefined = floatingFrame
+    ? {
+        height: isCentered
+          ? `calc(100% + ${QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX}px)`
+          : "100%",
+      }
     : undefined;
 
   return (
@@ -1621,22 +1639,27 @@ function MobileQuizCard({
     >
       <div
         className={cn(
-          "h-full w-full transform-gpu transition-[left,top,width,height,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+          "h-full w-full transform-gpu transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
           floatingFrame ? "fixed z-[70]" : "relative",
         )}
         style={floatingStyle}
       >
-        <VocabularyCardView
-          card={item.card}
-          inventory={item.inventoryCard}
-          owned
-          initialFace="back"
-          face={face}
-          flippable={false}
-          footerMode={footerMode}
-          footerProgressCount={footerProgressCount}
-          className="h-full w-full min-h-0 max-sm:min-h-0"
-        />
+        <div
+          className="h-full w-full transition-[height] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={cardShellStyle}
+        >
+          <VocabularyCardView
+            card={item.card}
+            inventory={item.inventoryCard}
+            owned
+            initialFace="back"
+            face={face}
+            flippable={false}
+            footerMode={footerMode}
+            footerProgressCount={footerProgressCount}
+            className="h-full w-full min-h-0 max-sm:min-h-0"
+          />
+        </div>
       </div>
     </div>
   );
@@ -1808,7 +1831,15 @@ export function CountSelection({
   availableCount: number;
   selectedCount: number | null;
   locked?: boolean;
-  onSelect: (count: number, selection: { count: number; colorClass: string }) => void;
+  onSelect: (
+    count: number,
+    selection: {
+      count: number;
+      colorClass: string;
+      contentScale: number;
+      chestTiers?: ChestTier[];
+    },
+  ) => void;
   onBack?: () => void;
 }) {
   const { locale } = useLocale();
@@ -1905,6 +1936,8 @@ export function CountSelection({
     const bounds = button.getBoundingClientRect();
     const scaleX = window.innerWidth / bounds.width;
     const scaleY = window.innerHeight / bounds.height;
+    const contentScale = Math.min(scaleX, scaleY);
+    const chestTiers = showChestTiers ? getChestPreviewPairForCount(count) : undefined;
     const targetX = window.innerWidth / 2 - (bounds.left + bounds.width / 2);
     const targetY = window.innerHeight / 2 - (bounds.top + bounds.height / 2);
 
@@ -1917,8 +1950,11 @@ export function CountSelection({
       height: bounds.height,
       scaleX,
       scaleY,
-      contentScaleX: 1 / scaleX,
-      contentScaleY: 1 / scaleY,
+      // Keep the copy proportional while letting it grow with the cover.
+      contentScale,
+      contentScaleX: contentScale / scaleX,
+      contentScaleY: contentScale / scaleY,
+      chestTiers,
       targetX,
       targetY,
       scatter: QUIZ_COUNT_OPTIONS.map((option) => ({
@@ -1933,7 +1969,7 @@ export function CountSelection({
 
     launchTimerRef.current = window.setTimeout(() => {
       playSoundEffect("card-ready");
-      onSelect(count, { count, colorClass });
+      onSelect(count, { count, colorClass, contentScale, chestTiers });
       launchTimerRef.current = null;
     }, 1180);
   }
@@ -2039,6 +2075,16 @@ export function CountSelection({
               <div className="animate-quiz-count-cover-copy flex flex-col items-center justify-center gap-1">
                 <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
                 <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
+                {launch.chestTiers ? (
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                    {launch.chestTiers.map((tier) => (
+                      <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
+                        <MiniChestIcon className="text-white" />
+                        {t(getChestLabelKey(tier))}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>,
             document.body,
@@ -2057,8 +2103,10 @@ type CountLaunch = {
   height: number;
   scaleX: number;
   scaleY: number;
+  contentScale: number;
   contentScaleX: number;
   contentScaleY: number;
+  chestTiers?: ChestTier[];
   targetX: number;
   targetY: number;
   scatter: Array<{
