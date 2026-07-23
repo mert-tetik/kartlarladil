@@ -797,6 +797,7 @@ describe("QuizStation sound feedback", () => {
     });
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "growing");
+    expect(playSoundEffect).toHaveBeenCalledWith("card-ready");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(480);
@@ -812,6 +813,8 @@ describe("QuizStation sound feedback", () => {
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "updating");
     expect(document.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+    expect(playSoundEffect).toHaveBeenCalledWith("points");
+    expect(document.querySelector("[data-progress-indicator-overlay]")).toBeInTheDocument();
   });
 
   it("lets the next-question action skip the card progress animation", async () => {

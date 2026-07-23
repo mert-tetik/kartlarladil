@@ -455,6 +455,7 @@ function CardFront({
               value={progress}
               className="bg-white/30"
               indicatorClassName="bg-white transition-[width] duration-300 ease-out"
+              indicatorOverlayClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 opacity-0"
             />
           </div>
         ) : null}

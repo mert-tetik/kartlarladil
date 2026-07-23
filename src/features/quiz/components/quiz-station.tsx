@@ -161,6 +161,7 @@ const QUIZ_CARD_GROW_DURATION_MS = 480;
 const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
+const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
 
 interface BaseQuizItem {
   card: VocabularyCard;
@@ -418,6 +419,16 @@ export function QuizStation({
 
     const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"] | null) => {
       const timeoutId = window.setTimeout(() => {
+        if (stage === "growing") {
+          playSoundEffect("card-ready");
+          vibrate("flip");
+        }
+
+        if (stage === "updating") {
+          playSoundEffect("points");
+          vibrate("tap");
+        }
+
         if (stage === null) {
           setCardProgressFeedback(null);
         } else {
@@ -1577,7 +1588,7 @@ function MobileQuizCard({
     returnTimeoutRef.current = window.setTimeout(() => {
       setFloatingFrame(null);
       returnTimeoutRef.current = null;
-    }, QUIZ_CARD_GROW_DURATION_MS);
+    }, QUIZ_CARD_RETURN_SETTLE_DURATION_MS);
 
     return () => {
       if (centerFrameRef.current !== null) {
@@ -1606,10 +1617,10 @@ function MobileQuizCard({
         y: floatingFrame.returnTarget.top - floatingFrame.origin.top,
       }
     : { x: 0, y: 0 };
-  const centerOffset = floatingFrame
+  const centerOffset = floatingFrame && typeof window !== "undefined"
     ? {
-        x: `calc(50vw - ${floatingFrame.origin.left + floatingFrame.origin.width / 2}px)`,
-        y: `calc(50dvh - ${floatingFrame.origin.top + floatingFrame.origin.height / 2}px)`,
+        x: window.innerWidth / 2 - (floatingFrame.origin.left + floatingFrame.origin.width / 2),
+        y: window.innerHeight / 2 - (floatingFrame.origin.top + floatingFrame.origin.height / 2),
       }
     : null;
   const floatingStyle: CSSProperties | undefined = floatingFrame
@@ -1620,17 +1631,48 @@ function MobileQuizCard({
         height: floatingFrame.origin.height,
         transformOrigin: "center",
         transform: isCentered && centerOffset
-          ? `translate3d(${centerOffset.x}, ${centerOffset.y}, 0) scale(1.35)`
+          ? `translate3d(${centerOffset.x}px, ${centerOffset.y}px, 0) scale(1.35)`
           : `translate3d(${returnOffset.x}px, ${returnOffset.y}px, 0) scale(1)`,
       }
     : undefined;
   const cardShellStyle: CSSProperties | undefined = floatingFrame
     ? {
-        height: isCentered
-          ? `calc(100% + ${QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX}px)`
-          : "100%",
+      height: isCentered
+        ? `calc(100% + ${QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX}px)`
+        : "100%",
+      transform: isCentered
+        ? `translateY(-${QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX / 2}px)`
+        : "translateY(0)",
       }
     : undefined;
+
+  const cardFrame = (
+    <div
+      className={cn(
+        "h-full w-full transform-gpu transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+        floatingFrame ? "fixed z-[70]" : "relative",
+      )}
+      data-quiz-card-feedback={feedbackStage}
+      style={floatingStyle}
+    >
+      <div
+        className="h-full w-full transition-[height,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={cardShellStyle}
+      >
+        <VocabularyCardView
+          card={item.card}
+          inventory={item.inventoryCard}
+          owned
+          initialFace="back"
+          face={face}
+          flippable={false}
+          footerMode={footerMode}
+          footerProgressCount={footerProgressCount}
+          className="h-full w-full min-h-0 max-sm:min-h-0"
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -1643,30 +1685,7 @@ function MobileQuizCard({
       data-quiz-card-term={item.card.term}
       data-quiz-card-feedback={feedbackStage}
     >
-      <div
-        className={cn(
-          "h-full w-full transform-gpu transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
-          floatingFrame ? "fixed z-[70]" : "relative",
-        )}
-        style={floatingStyle}
-      >
-        <div
-          className="h-full w-full transition-[height] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={cardShellStyle}
-        >
-          <VocabularyCardView
-            card={item.card}
-            inventory={item.inventoryCard}
-            owned
-            initialFace="back"
-            face={face}
-            flippable={false}
-            footerMode={footerMode}
-            footerProgressCount={footerProgressCount}
-            className="h-full w-full min-h-0 max-sm:min-h-0"
-          />
-        </div>
-      </div>
+      {floatingFrame ? createPortal(cardFrame, document.body) : cardFrame}
     </div>
   );
 }
