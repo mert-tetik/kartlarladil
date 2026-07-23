@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LanguageFlag } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
 import { getLanguageDisplayName } from "@/i18n/labels";
@@ -31,21 +32,55 @@ export function MobileCustomCardLanguagePicker({
   const { locale } = useLocale();
   const t = useT();
   const [open, setOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
+  const [anchor, setAnchor] = useState<{
+    bottom: number;
+    left: number;
+    maxMenuHeight: number;
+    width: number;
+  } | null>(null);
+  const triggerRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const showTransliterationHint = usesNonLatinWritingSystem(resolvedLanguage);
 
+  function updateAnchor() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const bottom = Math.max(8, window.innerHeight - rect.top + 8);
+    setAnchor({
+      bottom,
+      left: Math.max(12, rect.left),
+      maxMenuHeight: Math.max(132, Math.min(256, rect.top - 76)),
+      width: Math.min(rect.width, window.innerWidth - Math.max(12, rect.left) - 12),
+    });
+  }
+
   useEffect(() => {
-    if (!open) return;
+    if (!open && !showTransliterationHint) return;
+
+    const frame = window.requestAnimationFrame(updateAnchor);
 
     function handlePointerDown(event: PointerEvent) {
-      if (!pickerRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setOpen(false);
       }
     }
 
+    function handleViewportChange() {
+      window.requestAnimationFrame(updateAnchor);
+    }
+
     window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [open]);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [open, showTransliterationHint]);
 
   function selectLanguage(nextValue: CustomCardTargetLanguage) {
     onChange(nextValue);
@@ -53,17 +88,59 @@ export function MobileCustomCardLanguagePicker({
   }
 
   const resolvedLanguageName = getLanguageDisplayName(resolvedLanguage, locale);
+  const dropdown = open && anchor && typeof document !== "undefined"
+    ? createPortal(
+      <div
+        ref={menuRef}
+        role="listbox"
+        aria-label={t("createCard.targetLanguage.label")}
+        className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-[opacity,transform] duration-200 ease-out"
+        style={{ bottom: anchor.bottom, left: anchor.left, maxHeight: anchor.maxMenuHeight, width: anchor.width }}
+      >
+        <LanguageOption
+          language={resolvedLanguage}
+          selected={value === "auto"}
+          label={t("createCard.targetLanguage.autoWithLanguage", { language: resolvedLanguageName })}
+          onClick={() => selectLanguage("auto")}
+        />
+        {LANGUAGES.map((language) => (
+          <LanguageOption
+            key={language.code}
+            language={language.code}
+            selected={value === language.code}
+            label={getLanguageDisplayName(language.code, locale)}
+            onClick={() => selectLanguage(language.code)}
+          />
+        ))}
+      </div>,
+      document.body,
+    )
+    : null;
+
+  const transliterationHint = showTransliterationHint && anchor && typeof document !== "undefined"
+    ? createPortal(
+      <p
+        className="pointer-events-none fixed z-[111] max-w-[calc(100vw-1.5rem)] rounded-lg bg-black/75 px-3 py-2 text-center text-xs leading-5 text-white shadow-lg"
+        style={{
+          bottom: anchor.bottom + (open ? anchor.maxMenuHeight + 10 : 0),
+          left: anchor.left,
+          width: anchor.width,
+        }}
+      >
+        {t("createCard.targetLanguage.transliterationHint", { language: resolvedLanguageName })}
+      </p>,
+      document.body,
+    )
+    : null;
 
   return (
-    <div ref={pickerRef} className="relative">
-      {showTransliterationHint ? (
-        <p className="mb-2 text-center text-xs leading-5 text-foreground-secondary">
-          {t("createCard.targetLanguage.transliterationHint", { language: resolvedLanguageName })}
-        </p>
-      ) : null}
+    <div ref={triggerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (!open) updateAnchor();
+          setOpen((current) => !current);
+        }}
         aria-expanded={open}
         aria-haspopup="listbox"
         className="flex h-11 w-full items-center gap-2 rounded-md border border-brand bg-white px-3 text-left text-sm font-semibold text-black"
@@ -76,49 +153,37 @@ export function MobileCustomCardLanguagePicker({
         </span>
         <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-180")} />
       </button>
-
-      {open ? (
-        <div
-          role="listbox"
-          aria-label={t("createCard.targetLanguage.label")}
-          className="absolute inset-x-0 bottom-full z-40 mb-2 max-h-56 overflow-y-auto rounded-md border border-border bg-white p-1 shadow-sm"
-        >
-          <button
-            type="button"
-            role="option"
-            aria-selected={value === "auto"}
-            onClick={() => selectLanguage("auto")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-slate-950 transition-colors",
-              value === "auto" ? "bg-slate-100" : "hover:bg-slate-50",
-            )}
-          >
-            <LanguageFlag code={resolvedLanguage} className="h-5 w-7 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{t("createCard.targetLanguage.autoWithLanguage", { language: resolvedLanguageName })}</span>
-            {value === "auto" ? <Check className="size-4 shrink-0" /> : null}
-          </button>
-          {LANGUAGES.map((language) => {
-            const selected = value === language.code;
-            return (
-              <button
-                key={language.code}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                onClick={() => selectLanguage(language.code)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-slate-950 transition-colors",
-                  selected ? "bg-slate-100" : "hover:bg-slate-50",
-                )}
-              >
-                <LanguageFlag code={language.code} className="h-5 w-7 shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{getLanguageDisplayName(language.code, locale)}</span>
-                {selected ? <Check className="size-4 shrink-0" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {dropdown}
+      {transliterationHint}
     </div>
+  );
+}
+
+function LanguageOption({
+  language,
+  selected,
+  label,
+  onClick,
+}: {
+  language: LanguageCode;
+  selected: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-950 transition-colors",
+        selected ? "bg-slate-100" : "hover:bg-slate-50",
+      )}
+    >
+      <LanguageFlag code={language} className="h-5 w-7 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {selected ? <Check className="size-4 shrink-0" /> : null}
+    </button>
   );
 }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
@@ -71,7 +71,9 @@ describe("UpgradeDialog", () => {
     await user.click(screen.getByRole("button", { name: /Kartları öğren/i }));
 
     expect(mockRequireAuthAction).toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith("/learn?mode=active");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/learn?mode=active");
+    });
   });
 
   it("shows the learned card limit message", () => {
@@ -121,11 +123,11 @@ describe("UpgradeDialog", () => {
     expect(screen.queryByRole("link", { name: /Plan/i })).not.toBeInTheDocument();
   });
 
-  it("closes the dialog when the close button is clicked", async () => {
+  it("closes the dialog when Maybe later is clicked", async () => {
     const user = userEvent.setup();
     const { onOpenChange } = renderDialog({ open: true, errorCode: "free_active_card_limit" });
 
-    await user.click(screen.getByRole("button", { name: /Kapat/i }));
+    await user.click(screen.getByRole("button", { name: /Belki sonra/i }));
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

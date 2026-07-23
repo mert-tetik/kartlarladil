@@ -16,10 +16,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  Check,
   CheckCircle2,
   Loader2,
   Medal,
-  RotateCcw,
+  Play,
   Star,
   Trophy,
   Volume2,
@@ -1650,7 +1651,8 @@ function MobileQuizCard({
     <div
       className={cn(
         "h-full w-full transform-gpu transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
-        floatingFrame ? "fixed z-[70]" : "relative",
+        // Above the question UI, below every quiz-wide overlay (streak, rewards, results).
+        floatingFrame ? "fixed z-20" : "relative",
       )}
       data-quiz-card-feedback={feedbackStage}
       style={floatingStyle}
@@ -3153,17 +3155,6 @@ export function ResultView({
     selectedCount,
     chestOpened,
   );
-  const messageKey = useMemo(
-    () =>
-      getQuizResultMessageKey(
-        performance.messageKeys,
-        results,
-        selectedCount,
-        chestOpened,
-      ),
-    [chestOpened, performance.messageKeys, results, selectedCount],
-  );
-
   const starRating = useMemo(() => {
     const accuracy = performance.accuracy;
     if (accuracy >= 90) return 5;
@@ -3234,14 +3225,14 @@ export function ResultView({
   const resultCards = [
     {
       key: "correct" as const,
-      icon: CheckCircle2,
+      icon: Check,
       label: t("quiz.resultCorrect"),
       count: results.correct.length,
       tone: "emerald" as const,
     },
     {
       key: "incorrect" as const,
-      icon: XCircle,
+      icon: X,
       label: t("quiz.resultIncorrect"),
       count: results.incorrect.length,
       tone: "rose" as const,
@@ -3267,10 +3258,10 @@ export function ResultView({
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-black" aria-hidden="true">
         <RankIcon
           icon={stats.rank.icon}
-          className="absolute left-1/2 top-1/2 h-auto w-[115vw] max-w-none -translate-x-1/2 -translate-y-1/2 blur-md saturate-125 opacity-25"
+          className="absolute left-1/2 top-1/2 h-auto w-[115vw] max-w-none -translate-x-1/2 -translate-y-1/2 blur-md saturate-125 opacity-35"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-black/35" />
       </div>
       <div
         data-quiz-result-panel
@@ -3287,7 +3278,7 @@ export function ResultView({
           >
             <span
               data-leaderboard-standing
-              className="text-[2.6rem] font-bold leading-none sm:text-5xl"
+              className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl"
             >
               {leaderboardStanding}
             </span>
@@ -3323,22 +3314,7 @@ export function ResultView({
                 {formatPoints(locale, stats.totalPoints)}
               </span>
             </div>
-            {streakRewardStreak > 0 && streakRewardPoints > 0 ? (
-              <p className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-sm font-semibold text-transparent">
-                {t("quiz.streakRewardSummary", {
-                  streak: streakRewardStreak,
-                  points: streakRewardPoints,
-                })}
-              </p>
-            ) : null}
           </div>
-
-          <p
-            className="mt-2.5 text-lg font-bold leading-tight text-brand sm:text-xl"
-            data-result-message-level={performance.level}
-          >
-            {t(messageKey)}
-          </p>
 
           <div
             className={cn(
@@ -3360,23 +3336,36 @@ export function ResultView({
             ))}
           </div>
 
-          <div className="mt-4 grid w-full grid-cols-2 gap-3 sm:mt-5">
-            <Button
+          <div className="mt-5 flex w-full items-center justify-center gap-5 sm:mt-6">
+            <button
+              type="button"
               disabled={locked}
-              className="h-14 w-full gap-2 bg-blue-500 px-4 text-base font-semibold text-white hover:bg-blue-600 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => {
+                navigateWithRouteTransition(() => router.push("/leaderboard"));
+              }}
+              aria-label={t("leaderboard.title")}
+            >
+              <Medal className="size-7 fill-current" strokeWidth={2.4} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              disabled={locked}
+              className="inline-flex size-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-emerald-600 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
               onClick={onRestart}
+              aria-label={t("quiz.restart")}
             >
-              <RotateCcw className="size-5" aria-hidden="true" />
-              {t("quiz.restart")}
-            </Button>
-            <Button
+              <Play className="size-10 fill-current" strokeWidth={2.5} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
               disabled={locked}
-              className="h-14 w-full gap-2 bg-red-500 px-4 text-base font-semibold text-white hover:bg-red-600 focus-visible:ring-red-500 disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex size-14 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-red-600 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
               onClick={onExit}
+              aria-label={t("quiz.exit")}
             >
-              <X className="size-5" aria-hidden="true" />
-              {t("quiz.exit")}
-            </Button>
+              <X className="size-7" strokeWidth={3} aria-hidden="true" />
+            </button>
           </div>
         </div>
       </div>

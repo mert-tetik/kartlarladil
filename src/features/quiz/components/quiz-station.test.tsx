@@ -9,6 +9,7 @@ import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
 import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
@@ -55,6 +56,10 @@ vi.mock("@/features/quiz/actions", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/lib/vibration", () => ({
+  vibrate: vi.fn(),
 }));
 
 vi.mock("@/lib/twa-analytics", () => ({
@@ -254,7 +259,7 @@ describe("ResultView star rating", () => {
     expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(1);
   });
 
-  it("shows the streak reward summary under the total points badge", () => {
+  it("keeps streak reward details out of the practice result", () => {
     render(
       <LocaleProvider initialLocale="tr">
         <ResultView
@@ -270,7 +275,20 @@ describe("ResultView star rating", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("10x streak! +40 points")).toBeInTheDocument();
+    expect(screen.queryByText("10x streak! +40 points")).not.toBeInTheDocument();
+  });
+
+  it("plays a points cue and haptic feedback as each star lands", async () => {
+    vi.useFakeTimers();
+    renderResultView(0, 5);
+    vi.clearAllMocks();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800);
+    });
+
+    expect(playSoundEffect).toHaveBeenCalledWith("points");
+    expect(vibrate).toHaveBeenCalledWith("tap");
   });
 
   it("shows the leaderboard standing and worldwide label in the result header", () => {

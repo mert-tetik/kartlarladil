@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { updateThemeAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { SubscriptionRestrictionSurface } from "@/features/subscriptions/components/subscription-restriction-surface";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,8 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   const { theme, setTheme } = useTheme();
   const { entitlements } = useSubscription();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeMounted, setUpgradeMounted] = useState(false);
+  const [upgradeVisible, setUpgradeVisible] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(open);
@@ -57,6 +60,25 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
       window.clearTimeout(timer);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (showUpgrade) {
+      const frame = window.requestAnimationFrame(() => {
+        setUpgradeMounted(true);
+        setUpgradeVisible(true);
+      });
+
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const exitFrame = window.requestAnimationFrame(() => setUpgradeVisible(false));
+    const timer = window.setTimeout(() => setUpgradeMounted(false), 300);
+
+    return () => {
+      window.cancelAnimationFrame(exitFrame);
+      window.clearTimeout(timer);
+    };
+  }, [showUpgrade]);
 
   if (!mounted || typeof document === "undefined") {
     return null;
@@ -211,24 +233,33 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
         </div>
       </div>
 
-      {showUpgrade ? (
+      {upgradeMounted || showUpgrade ? (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          className={cn(
+            "fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-out",
+            upgradeVisible ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               setShowUpgrade(false);
             }
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-border bg-background-card p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-foreground">{t("theme.upgradeTitle")}</h3>
-            <p className="mt-2 text-sm text-foreground-secondary">{t("theme.upgradeDescription")}</p>
+          <SubscriptionRestrictionSurface
+            labelledBy="theme-upgrade-title"
+            className={cn(
+              "origin-center transition-[opacity,transform] duration-300 ease-out",
+              upgradeVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-5 scale-[0.96] opacity-0",
+            )}
+          >
+            <div className="absolute inset-x-0 bottom-0 flex min-h-[51%] flex-col justify-end px-[7.5%] pb-[7.5%] pt-10">
+              <h3 id="theme-upgrade-title" className="text-xl font-bold leading-tight text-white sm:text-2xl">{t("theme.upgradeTitle")}</h3>
+              <p className="mt-2 text-sm leading-6 text-orange-50 sm:text-base">{t("theme.upgradeDescription")}</p>
 
-            <div className="mt-6 flex flex-col gap-3">
-              <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-orange w-full rounded-md">
+              <div className="mt-5 flex flex-col gap-2.5">
                 <Link
                   href="/pricing"
-                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] px-4 text-sm font-bold text-[#552000] transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
                   onClick={() => {
                     setShowUpgrade(false);
                     onOpenChange(false);
@@ -236,12 +267,16 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
                 >
                   {t("limit.upgradeButtonFirstMonthFree")}
                 </Link>
+                <Button
+                  variant="ghost"
+                  className="h-10 rounded-xl border border-white/30 bg-black/20 text-white hover:bg-black/35 hover:text-white"
+                  onClick={() => setShowUpgrade(false)}
+                >
+                  {t("common.maybeLater")}
+                </Button>
               </div>
-              <Button variant="ghost" onClick={() => setShowUpgrade(false)}>
-                {t("common.maybeLater")}
-              </Button>
             </div>
-          </div>
+          </SubscriptionRestrictionSurface>
         </div>
       ) : null}
       <LoadingOverlay show={isPending} />

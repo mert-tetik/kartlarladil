@@ -1,5 +1,5 @@
 {
-  "version": "0598a80922eac9cea88e30c5191952897364f3c64d30322cf5b58be99a60fde7",
+  "version": "f676595b305672c94587e9e39824940de1330526ba0d2b09e70d0e801b408fb1",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -460,6 +460,14 @@
     {
       "url": "/splash.png",
       "revision": "b5398ff29a40b19ef883927b3343222fc76234ea58aab5eb9aa57fdea8622de7"
+    },
+    {
+      "url": "/subscription-restrictions/subscription-restriction-en.png",
+      "revision": "e5c9391048e8eb121891c9925bf54c80e3a3aa65bd0650682f10630c68809aaf"
+    },
+    {
+      "url": "/subscription-restrictions/subscription-restriction-tr.png",
+      "revision": "eb87eddee93aebede76292ca745edd0c0a3dac78dbaf4e9ce8bf9da69bcc44b1"
     },
     {
       "url": "/tutorial-post-practice/fifth-screen.png",

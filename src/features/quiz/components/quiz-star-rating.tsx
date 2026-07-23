@@ -3,6 +3,8 @@
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 
 interface QuizStarRatingProps {
   rating: number;
@@ -48,6 +50,19 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
     return () => window.clearTimeout(timer);
   }, [clampedRating]);
 
+  useEffect(() => {
+    if (clampedRating === 0) return;
+
+    const timers = Array.from({ length: clampedRating }, (_, index) =>
+      window.setTimeout(() => {
+        playSoundEffect("points");
+        vibrate("tap");
+      }, PANEL_REVEAL_DELAY_MS + index * STAGGER_MS + DROP_DURATION_MS),
+    );
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [clampedRating]);
+
   return (
     <div
       className={cn(
@@ -75,7 +90,7 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
                   ready ? "animate-star-drop" : "opacity-0",
                 )}
                 style={{
-                  animationDelay: `${PANEL_REVEAL_DELAY_MS + index * STAGGER_MS}ms`,
+                  animationDelay: `${index * STAGGER_MS}ms`,
                 }}
                 data-quiz-star="filled"
                 data-quiz-star-index={index}
