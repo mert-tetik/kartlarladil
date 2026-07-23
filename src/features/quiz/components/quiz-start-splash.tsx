@@ -76,7 +76,7 @@ export function QuizStartSplash({
             <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
             <span className="text-4xl font-bold sm:text-5xl">{selectedCount}</span>
             {selectedChestTiers ? (
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              <div className="mt-1 flex flex-col items-center gap-1">
                 {selectedChestTiers.map((tier) => (
                   <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
                     <StartSplashChestIcon />

@@ -631,6 +631,7 @@ describe("QuizStation sound feedback", () => {
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       expect(options.every((option) => option.hasAttribute("disabled"))).toBe(true);
+      expect(alternativeOption?.querySelector("[data-quiz-sentence-option-loading]")).toBeInTheDocument();
     });
 
     resolveValidation?.({ json: () => Promise.resolve({ accepted: true }) });

@@ -373,6 +373,7 @@ export function QuizStation({
   const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAiValidating, setIsAiValidating] = useState(false);
+  const [aiValidatingSentenceAnswer, setAiValidatingSentenceAnswer] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
   const [pendingStreak, setPendingStreak] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
@@ -589,6 +590,7 @@ export function QuizStation({
       setTextResult("idle");
       setLastAnswerCorrect(null);
       setLastAnswer(null);
+      setAiValidatingSentenceAnswer(null);
       setResults({ correct: [], incorrect: [], learned: [] });
       setChestOpened(false);
       setAwardedChestTier(null);
@@ -626,6 +628,7 @@ export function QuizStation({
     setTextResult("idle");
     setLastAnswerCorrect(null);
     setLastAnswer(null);
+    setAiValidatingSentenceAnswer(null);
   }, [clearCardProgressFeedback]);
 
   const advanceQuiz = useCallback(
@@ -800,6 +803,7 @@ export function QuizStation({
     }
 
     const { question } = item;
+    setAiValidatingSentenceAnswer(answer);
     setIsAiValidating(true);
 
     try {
@@ -823,6 +827,7 @@ export function QuizStation({
       handleAnswer(answer, false);
     } finally {
       setIsAiValidating(false);
+      setAiValidatingSentenceAnswer(null);
     }
   }
 
@@ -1384,6 +1389,7 @@ export function QuizStation({
                   item={item}
                   showingAnswer={showingAnswer}
                   isAiValidating={isAiValidating}
+                  aiValidatingAnswer={aiValidatingSentenceAnswer}
                   selectedAnswer={lastAnswer}
                   answerAccepted={lastAnswerCorrect}
                   onAnswer={handleSentenceCompletionAnswer}
@@ -2038,7 +2044,7 @@ export function CountSelection({
               </span>
               <span className="text-4xl font-bold sm:text-5xl">{count}</span>
               {showChestTiers && previewPair ? (
-                <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                <div className="mt-1 flex flex-col items-center gap-1">
                   {previewPair.map((tier) => (
                     <span
                       key={tier}
@@ -2076,7 +2082,7 @@ export function CountSelection({
                 <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
                 <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
                 {launch.chestTiers ? (
-                  <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                  <div className="mt-1 flex flex-col items-center gap-1">
                     {launch.chestTiers.map((tier) => (
                       <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
                         <MiniChestIcon className="text-white" />
@@ -2376,6 +2382,7 @@ function SentenceCompletionQuestion({
   item,
   showingAnswer,
   isAiValidating,
+  aiValidatingAnswer,
   selectedAnswer,
   answerAccepted,
   onAnswer,
@@ -2385,6 +2392,7 @@ function SentenceCompletionQuestion({
   item: SentenceCompletionQuizItem;
   showingAnswer: boolean;
   isAiValidating: boolean;
+  aiValidatingAnswer: string | null;
   selectedAnswer: string | null;
   answerAccepted: boolean | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
@@ -2430,6 +2438,7 @@ function SentenceCompletionQuestion({
           const isCorrectOption = option === question.correctAnswer;
           const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
           const isSelectedOption = option === selectedAnswer;
+          const isValidatingOption = isAiValidating && option === aiValidatingAnswer;
           const feedbackState = !showingAnswer
             ? "idle"
             : isSelectedOption
@@ -2453,7 +2462,15 @@ function SentenceCompletionQuestion({
               incorrectOverlayClassName="bg-red-950"
               className="min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base"
             >
-              {option}
+              {isValidatingOption ? (
+                <Loader2
+                  className="size-5 animate-spin"
+                  data-quiz-sentence-option-loading
+                  aria-label={t("quiz.aiValidating")}
+                />
+              ) : (
+                option
+              )}
             </QuizAnswerButton>
           );
         })}
