@@ -75,6 +75,14 @@ describe("MobileCardSwipeOverlay", () => {
     window.localStorage.clear();
   });
 
+  it("marks the full-screen overlay to hide the mobile bottom navigation", () => {
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    expect(document.querySelector("[data-mobile-hide-bottom-nav='true']")).toHaveAttribute(
+      "data-card-swipe-incoming-state",
+    );
+  });
+
   it("waits for the outgoing card to leave before bringing the next card in from below", async () => {
     render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
 
