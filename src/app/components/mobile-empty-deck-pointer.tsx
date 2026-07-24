@@ -1,81 +1,50 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { MousePointer2 } from "lucide-react";
 
-const MOBILE_BREAKPOINT = 1023;
-const POINTER_SIZE = 48;
-const POINTER_OFFSET_BELOW_TARGET = 5;
 const BLOCKING_LAYER_SELECTOR = [
   "[data-landing-tutorial]",
   "[data-subscription-purchase-success-dialog]",
   '[data-mobile-auth-gateway]:not([aria-hidden="true"]):not([inert])',
   '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
   '[data-cookie-notice]:not([aria-hidden="true"]):not([inert])',
-  '[data-app-image-cache-gate]',
+  "[data-app-image-cache-gate]",
 ].join(", ");
 
-interface PointerPosition {
-  left: number;
-  top: number;
-}
-
 export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
-  const [position, setPosition] = useState<PointerPosition | null>(null);
-
-  const updatePosition = useCallback(() => {
-    if (!enabled || window.innerWidth > MOBILE_BREAKPOINT || hasBlockingLayer()) {
-      setPosition(null);
-      return;
-    }
-
-    const target = document.querySelector<HTMLElement>('[data-tutorial-target="landing-draw-cards"]');
-    if (!target || !isVisible(target)) {
-      setPosition(null);
-      return;
-    }
-
-    const rect = target.getBoundingClientRect();
-    setPosition({
-      left: rect.left + rect.width / 2 - POINTER_SIZE / 2,
-      // Keep the cursor slightly below the draw action instead of covering it.
-      top: rect.bottom - POINTER_OFFSET_BELOW_TARGET,
-    });
-  }, [enabled]);
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
-    const frameId = window.requestAnimationFrame(updatePosition);
-    const observer = new MutationObserver(updatePosition);
+    function updateBlockedState() {
+      setBlocked(hasBlockingLayer());
+    }
 
+    updateBlockedState();
+    const observer = new MutationObserver(updateBlockedState);
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ["aria-hidden", "class", "inert", "style"],
       childList: true,
       subtree: true,
     });
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
 
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      observer.disconnect();
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [updatePosition]);
+    return () => observer.disconnect();
+  }, []);
 
-  if (!position) {
+  if (!enabled || blocked) {
     return null;
   }
 
   return (
-    <MousePointer2
+    <span
       aria-hidden="true"
       data-mobile-empty-deck-pointer
       data-testid="mobile-empty-deck-pointer"
-      className="tutorial-pointer pointer-events-none text-black"
-      style={{ left: position.left, top: position.top, zIndex: 45 }}
-    />
+      className="pointer-events-none absolute left-1/2 top-[calc(100%-5px)] z-20 -translate-x-1/2"
+    >
+      <MousePointer2 className="empty-deck-pointer text-black" />
+    </span>
   );
 }
 
@@ -96,8 +65,7 @@ function isVisible(element: HTMLElement) {
       current.getAttribute("aria-hidden") === "true" ||
       style.display === "none" ||
       style.visibility === "hidden" ||
-      style.opacity === "0" ||
-      style.pointerEvents === "none"
+      style.opacity === "0"
     ) {
       return false;
     }

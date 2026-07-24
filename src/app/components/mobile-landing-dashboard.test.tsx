@@ -254,6 +254,34 @@ describe("MobileLandingDashboard language sync", () => {
     expect(within(landingLanguageButton!).queryByText(getLanguageDisplayName("ko", "tr"))).not.toBeInTheDocument();
   });
 
+  it("shows the draw pointer after switching from a populated language to an empty language", async () => {
+    const user = userEvent.setup();
+    const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
+    inventoryCardsMock.value = [{
+      cardId: englishCard.id,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-07-12T00:00:00.000Z",
+    }];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    expect(screen.queryByTestId("mobile-empty-deck-pointer")).not.toBeInTheDocument();
+
+    const languageButton = document.querySelector<HTMLButtonElement>("[data-mobile-landing-card-language]");
+    expect(languageButton).not.toBeNull();
+    await user.click(languageButton!);
+    await user.click(screen.getByRole("button", { name: /Fransızca/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mobile-empty-deck-pointer")).toBeInTheDocument();
+    });
+  });
+
   it("opens the subscription dialog for free users reviewing learned cards", async () => {
     const user = userEvent.setup();
     const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;

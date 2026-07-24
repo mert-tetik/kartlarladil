@@ -33,6 +33,7 @@ describe("MobileLandingCardCenter", () => {
           onOpenChange={vi.fn()}
           onOpenDraw={vi.fn()}
           onOpenCreate={vi.fn()}
+          showEmptyDeckPointer={false}
         />
       </LocaleProvider>,
     );

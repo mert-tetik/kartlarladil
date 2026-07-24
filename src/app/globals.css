@@ -1543,6 +1543,13 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   transition: top 0.2s ease-out, left 0.2s ease-out;
 }
 
+.empty-deck-pointer {
+  width: 48px;
+  height: 48px;
+  filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
+  animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
+}
+
 /* Games feature layout rules */
 .game-result-overlay {
   transform: translate3d(0, 0, 0);

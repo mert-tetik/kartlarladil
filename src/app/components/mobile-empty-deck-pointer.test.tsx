@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 
@@ -17,10 +17,6 @@ function setRect(element: HTMLElement, rect: Partial<DOMRect>) {
   } as DOMRect);
 }
 
-function useMobileViewport() {
-  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
-}
-
 describe("MobileEmptyDeckPointer", () => {
   afterEach(() => {
     document.body.innerHTML = "";
@@ -28,30 +24,14 @@ describe("MobileEmptyDeckPointer", () => {
   });
 
   it("marks the draw action without capturing its pointer events", async () => {
-    useMobileViewport();
-    const drawButton = document.createElement("button");
-    drawButton.dataset.tutorialTarget = "landing-draw-cards";
-    const onDraw = vi.fn();
-    drawButton.addEventListener("click", onDraw);
-    setRect(drawButton, {});
-    document.body.append(drawButton);
-
     render(<MobileEmptyDeckPointer enabled />);
 
     const pointer = await screen.findByTestId("mobile-empty-deck-pointer");
-    expect(pointer).toHaveClass("tutorial-pointer", "pointer-events-none");
-    expect(pointer).toHaveStyle({ top: "45px" });
-    fireEvent.click(drawButton);
-    expect(onDraw).toHaveBeenCalledOnce();
+    expect(pointer).toHaveClass("pointer-events-none", "absolute");
+    expect(pointer.querySelector("svg")).toHaveClass("empty-deck-pointer");
   });
 
   it("hides while the landing tutorial is open", async () => {
-    useMobileViewport();
-    const drawButton = document.createElement("button");
-    drawButton.dataset.tutorialTarget = "landing-draw-cards";
-    setRect(drawButton, {});
-    document.body.append(drawButton);
-
     const dialog = document.createElement("div");
     dialog.dataset.landingTutorial = "";
     setRect(dialog, { height: 200, width: 200 });
@@ -65,12 +45,6 @@ describe("MobileEmptyDeckPointer", () => {
   });
 
   it("hides while the subscription success popup is open", async () => {
-    useMobileViewport();
-    const drawButton = document.createElement("button");
-    drawButton.dataset.tutorialTarget = "landing-draw-cards";
-    setRect(drawButton, {});
-    document.body.append(drawButton);
-
     const dialog = document.createElement("div");
     dialog.dataset.subscriptionPurchaseSuccessDialog = "";
     setRect(dialog, { height: 200, width: 200 });

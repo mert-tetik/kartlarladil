@@ -18,7 +18,6 @@ import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-she
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
-import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
@@ -592,8 +591,8 @@ export function MobileLandingDashboard() {
         onOpenChange={handleCardCenterOpenChange}
         onOpenDraw={handleDrawCards}
         onOpenCreate={handleCreateCard}
+        showEmptyDeckPointer={activeCount === 0 && !hasLandingLayerOpen}
       />
-      <MobileEmptyDeckPointer enabled={hydrated && activeCount === 0 && !hasLandingLayerOpen} />
 
       {/* Sheets */}
       <MobileLanguageBottomSheet
