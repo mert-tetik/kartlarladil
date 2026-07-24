@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { AI_PRACTICE_DEFAULT_MODEL, extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
+import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +13,11 @@ const INSTRUCTIONS = [
   "Stay below 260 characters. Return only the post text. Never use an em dash or an en dash; use commas or full stops instead.",
 ].join("\n");
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+    return Response.json({ errorCode: "unauthorized" }, { status: 401 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {

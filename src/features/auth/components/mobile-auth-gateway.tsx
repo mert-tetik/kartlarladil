@@ -104,7 +104,7 @@ const LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 const MOBILE_BREAKPOINT = 1024;
 
-const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen"];
+const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation"];
 
 function getIsMobileViewport() {
   if (typeof window === "undefined") return false;

@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
       { source: "/ogren", destination: "/learn", permanent: true },
       { source: "/ogrenilenler", destination: "/learned", permanent: true },
       { source: "/profil", destination: "/profile", permanent: true },
+      { source: "/twitter-automation", destination: "/content-automation", permanent: true },
     ];
   },
 };

@@ -3,6 +3,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import type { Tier, VocabularyCard } from "@/types/domain";
+import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 
 type PostType = "word" | "phrase" | "random";
 
@@ -11,6 +12,10 @@ function isPhrase(card: VocabularyCard) {
 }
 
 export async function GET(request: Request) {
+  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+    return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const language = searchParams.get("language");
   const tier = searchParams.get("tier");

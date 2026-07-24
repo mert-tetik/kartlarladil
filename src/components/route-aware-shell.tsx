@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export function RouteAwareShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAccountPage = pathname === "/profile" || pathname.startsWith("/account/");
-  const hidesMobileBottomNav = pathname === "/pricing";
+  const hidesMobileBottomNav = pathname === "/pricing" || pathname === "/content-automation";
   const isFullScreenStudy =
     pathname === "/learn" ||
     pathname === "/learned" ||
