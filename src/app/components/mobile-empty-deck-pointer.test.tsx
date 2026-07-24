@@ -45,7 +45,7 @@ describe("MobileEmptyDeckPointer", () => {
     expect(onDraw).toHaveBeenCalledOnce();
   });
 
-  it("hides while an active modal is open", async () => {
+  it("hides while the landing tutorial is open", async () => {
     useMobileViewport();
     const drawButton = document.createElement("button");
     drawButton.dataset.tutorialTarget = "landing-draw-cards";
@@ -53,8 +53,7 @@ describe("MobileEmptyDeckPointer", () => {
     document.body.append(drawButton);
 
     const dialog = document.createElement("div");
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", "true");
+    dialog.dataset.landingTutorial = "";
     setRect(dialog, { height: 200, width: 200 });
     document.body.append(dialog);
 
@@ -65,7 +64,7 @@ describe("MobileEmptyDeckPointer", () => {
     });
   });
 
-  it("hides while a global alert dialog is open", async () => {
+  it("hides while the subscription success popup is open", async () => {
     useMobileViewport();
     const drawButton = document.createElement("button");
     drawButton.dataset.tutorialTarget = "landing-draw-cards";
@@ -73,8 +72,7 @@ describe("MobileEmptyDeckPointer", () => {
     document.body.append(drawButton);
 
     const dialog = document.createElement("div");
-    dialog.setAttribute("role", "alertdialog");
-    dialog.setAttribute("aria-modal", "true");
+    dialog.dataset.subscriptionPurchaseSuccessDialog = "";
     setRect(dialog, { height: 200, width: 200 });
     document.body.append(dialog);
 

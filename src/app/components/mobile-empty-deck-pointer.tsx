@@ -7,10 +7,8 @@ const MOBILE_BREAKPOINT = 1023;
 const POINTER_SIZE = 48;
 const POINTER_OFFSET_BELOW_TARGET = 5;
 const BLOCKING_LAYER_SELECTOR = [
-  '[role="dialog"][aria-modal="true"]:not([aria-hidden="true"]):not([inert])',
-  '[role="alertdialog"][aria-modal="true"]:not([aria-hidden="true"]):not([inert])',
-  '[role="menu"]:not([aria-hidden="true"]):not([inert])',
-  '[role="listbox"]:not([aria-hidden="true"]):not([inert])',
+  "[data-landing-tutorial]",
+  "[data-subscription-purchase-success-dialog]",
   '[data-mobile-auth-gateway]:not([aria-hidden="true"]):not([inert])',
   '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
   '[data-cookie-notice]:not([aria-hidden="true"]):not([inert])',
@@ -51,7 +49,7 @@ export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
 
     observer.observe(document.body, {
       attributes: true,
-      attributeFilter: ["aria-hidden", "aria-modal", "class", "inert", "role", "style"],
+      attributeFilter: ["aria-hidden", "class", "inert", "style"],
       childList: true,
       subtree: true,
     });

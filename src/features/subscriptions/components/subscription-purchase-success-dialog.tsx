@@ -40,6 +40,7 @@ export function SubscriptionPurchaseSuccessDialog({
       aria-describedby="subscription-purchase-success-description"
       aria-labelledby="subscription-purchase-success-title"
       aria-modal="true"
+      data-subscription-purchase-success-dialog
       className="fixed inset-0 z-[300] flex items-center justify-center bg-black/55 p-5"
       role="alertdialog"
     >
