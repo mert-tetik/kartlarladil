@@ -90,7 +90,7 @@ describe("subscription actions", () => {
       userId: "user-1",
       email: "test@example.com",
       variantId: "variant-basic-monthly",
-      returnUrl: "https://foxiesdeck.test/pricing?checkout=success",
+      returnUrl: "https://foxiesdeck.test/?checkout=success",
     });
   });
 

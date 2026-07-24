@@ -18,6 +18,7 @@ import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-she
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
+import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
@@ -238,6 +239,18 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
+  const hasLandingLayerOpen =
+    languageSheetOpen ||
+    infoSheetOpen ||
+    rankInfoOpen ||
+    lockedSheet !== null ||
+    showLanguageMatchDialog ||
+    showLearnedReviewUpgrade ||
+    cardLimitError !== null ||
+    missionsPanelOpen ||
+    swipeDeckOpen ||
+    customCardOpen ||
+    cardCenterOpen;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
     leaderboardViewer && leaderboardViewer.userId === user?.id ? leaderboardViewer.position : null;
@@ -580,6 +593,7 @@ export function MobileLandingDashboard() {
         onOpenDraw={handleDrawCards}
         onOpenCreate={handleCreateCard}
       />
+      <MobileEmptyDeckPointer enabled={hydrated && activeCount === 0 && !hasLandingLayerOpen} />
 
       {/* Sheets */}
       <MobileLanguageBottomSheet

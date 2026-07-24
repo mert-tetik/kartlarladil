@@ -10,8 +10,6 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
-export type CustomCardTargetLanguage = "auto" | LanguageCode;
-
 const NON_LATIN_SCRIPT_LANGUAGES = new Set<LanguageCode>(["ru", "ar", "ja", "ko", "zh-CN"]);
 
 export function usesNonLatinWritingSystem(language: LanguageCode) {
@@ -19,14 +17,12 @@ export function usesNonLatinWritingSystem(language: LanguageCode) {
 }
 
 interface MobileCustomCardLanguagePickerProps {
-  value: CustomCardTargetLanguage;
-  resolvedLanguage: LanguageCode;
-  onChange: (value: CustomCardTargetLanguage) => void;
+  value: LanguageCode;
+  onChange: (value: LanguageCode) => void;
 }
 
 export function MobileCustomCardLanguagePicker({
   value,
-  resolvedLanguage,
   onChange,
 }: MobileCustomCardLanguagePickerProps) {
   const { locale } = useLocale();
@@ -40,7 +36,7 @@ export function MobileCustomCardLanguagePicker({
   } | null>(null);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const showTransliterationHint = usesNonLatinWritingSystem(resolvedLanguage);
+  const showTransliterationHint = usesNonLatinWritingSystem(value);
 
   function updateAnchor() {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -82,12 +78,12 @@ export function MobileCustomCardLanguagePicker({
     };
   }, [open, showTransliterationHint]);
 
-  function selectLanguage(nextValue: CustomCardTargetLanguage) {
+  function selectLanguage(nextValue: LanguageCode) {
     onChange(nextValue);
     setOpen(false);
   }
 
-  const resolvedLanguageName = getLanguageDisplayName(resolvedLanguage, locale);
+  const languageName = getLanguageDisplayName(value, locale);
   const dropdown = open && anchor && typeof document !== "undefined"
     ? createPortal(
       <div
@@ -97,12 +93,6 @@ export function MobileCustomCardLanguagePicker({
         className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-[opacity,transform] duration-200 ease-out"
         style={{ bottom: anchor.bottom, left: anchor.left, maxHeight: anchor.maxMenuHeight, width: anchor.width }}
       >
-        <LanguageOption
-          language={resolvedLanguage}
-          selected={value === "auto"}
-          label={t("createCard.targetLanguage.autoWithLanguage", { language: resolvedLanguageName })}
-          onClick={() => selectLanguage("auto")}
-        />
         {LANGUAGES.map((language) => (
           <LanguageOption
             key={language.code}
@@ -127,7 +117,7 @@ export function MobileCustomCardLanguagePicker({
           width: anchor.width,
         }}
       >
-        {t("createCard.targetLanguage.transliterationHint", { language: resolvedLanguageName })}
+        {t("createCard.targetLanguage.transliterationHint", { language: languageName })}
       </p>,
       document.body,
     )
@@ -145,12 +135,8 @@ export function MobileCustomCardLanguagePicker({
         aria-haspopup="listbox"
         className="flex h-11 w-full items-center gap-2 rounded-md border border-brand bg-white px-3 text-left text-sm font-semibold text-black"
       >
-        <LanguageFlag code={resolvedLanguage} className="h-5 w-7 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">
-          {value === "auto"
-            ? t("createCard.targetLanguage.autoWithLanguage", { language: resolvedLanguageName })
-            : resolvedLanguageName}
-        </span>
+        <LanguageFlag code={value} className="h-5 w-7 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{languageName}</span>
         <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-180")} />
       </button>
       {dropdown}

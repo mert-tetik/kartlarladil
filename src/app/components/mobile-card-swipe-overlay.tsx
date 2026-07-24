@@ -7,7 +7,9 @@ import { localCardRepository } from "@/features/cards/card-repository";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { TIERS } from "@/data/tiers";
 import { useT } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
@@ -116,6 +118,10 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
     const currentPosition = dragPosition.current;
     const currentRotation = currentPosition.x / 18 + currentPosition.y / 90;
+
+    // Match the haptic and audio response to the committed swipe direction.
+    playSoundEffect(direction === "add" ? "correct" : "incorrect");
+    vibrate(direction === "add" ? "correct" : "incorrect");
 
     cancelPendingDragFrame();
     swipeInteractionActiveRef.current = false;

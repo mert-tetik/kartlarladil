@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import Image from "next/image";
-import { Check } from "lucide-react";
+import {
+  BookOpen,
+  Gamepad2,
+  Headset,
+  Layers,
+  MessageCircle,
+  MessagesSquare,
+  Palette,
+} from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
@@ -13,6 +21,8 @@ import {
   useGooglePlayPricing,
 } from "@/features/subscriptions/use-google-play-pricing";
 import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import {
   formatCurrency,
@@ -38,6 +48,7 @@ export function MobileSubscriptionOfferScreen({
 }: MobileSubscriptionOfferScreenProps) {
   const t = useT();
   const { locale } = useLocale();
+  const { presentPurchaseSuccess } = useSubscription();
   const isTwa = useTwaMode();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const localizedPricing = useLocalizedPricing(null, isTwa);
@@ -104,6 +115,7 @@ export function MobileSubscriptionOfferScreen({
     if (isTwa) {
       try {
         await purchase(getGooglePlaySku("basic", cycle));
+        presentPurchaseSuccess();
         onContinueFree();
       } catch (error) {
         setPurchaseError(
@@ -125,6 +137,7 @@ export function MobileSubscriptionOfferScreen({
       const result = await createCheckoutAction({ status: "idle", message: "" }, formData);
 
       if (result.status === "success" && result.checkoutUrl) {
+        markPendingWebSubscriptionCheckout();
         onContinueFree();
         window.location.href = result.checkoutUrl;
         return;
@@ -228,27 +241,18 @@ export function MobileSubscriptionOfferScreen({
           </p>
         ) : null}
 
-        <ul className="mt-6 space-y-2 text-left text-sm">
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>{t("pricing.featureCards")}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>{t("pricing.featureLearned")}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>{t("pricing.featureThemes")}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>{t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages })}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>{t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages })}</span>
-          </li>
+        <ul className="mt-5 divide-y divide-border/45 text-left">
+          <OfferPerk icon={Layers} colorClass="text-blue-500">{t("pricing.featureCards")}</OfferPerk>
+          <OfferPerk icon={BookOpen} colorClass="text-emerald-500">{t("pricing.featureLearned")}</OfferPerk>
+          <OfferPerk icon={Palette} colorClass="text-violet-500">{t("pricing.featureThemes")}</OfferPerk>
+          <OfferPerk icon={Gamepad2} colorClass="text-cyan-500">{t("pricing.featureGames")}</OfferPerk>
+          <OfferPerk icon={Headset} colorClass="text-fuchsia-500">{t("pricing.featurePrioritySupport")}</OfferPerk>
+          <OfferPerk icon={MessageCircle} colorClass="text-amber-500">
+            {t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages })}
+          </OfferPerk>
+          <OfferPerk icon={MessagesSquare} colorClass="text-rose-500">
+            {t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages })}
+          </OfferPerk>
         </ul>
 
         <Button
@@ -282,5 +286,22 @@ export function MobileSubscriptionOfferScreen({
         </button>
       </div>
     </div>
+  );
+}
+
+function OfferPerk({
+  icon: Icon,
+  colorClass,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  colorClass: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex items-start gap-4 py-3 text-[0.95rem] leading-6 text-foreground">
+      <Icon className={cn("mt-0.5 size-5 shrink-0", colorClass)} aria-hidden="true" />
+      <span>{children}</span>
+    </li>
   );
 }

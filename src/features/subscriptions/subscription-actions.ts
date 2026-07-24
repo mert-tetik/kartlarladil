@@ -134,7 +134,7 @@ export async function createCheckoutAction(
       userId: user.id,
       email: user.email,
       variantId,
-      returnUrl: `${origin}/pricing?checkout=success`,
+      returnUrl: `${origin}/?checkout=success`,
     });
 
     return {

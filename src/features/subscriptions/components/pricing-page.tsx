@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, Suspense } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   Check,
@@ -13,6 +12,7 @@ import {
   createCheckoutAction,
 } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
 import {
@@ -109,10 +109,6 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-80 w-screen -translate-x-1/2 overflow-hidden">
         <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
       </div>
-      <Suspense fallback={null}>
-        <CheckoutSuccessPoller />
-      </Suspense>
-
       <div className="h-full lg:hidden">
         <MobilePricingView
           user={user}
@@ -477,6 +473,7 @@ function CheckoutButton({
     }
 
     if (state.checkoutUrl) {
+      markPendingWebSubscriptionCheckout();
       if (typeof window !== "undefined" && window.LemonSqueezy?.Url?.Open) {
         window.createLemonSqueezy?.();
         window.LemonSqueezy.Url.Open(state.checkoutUrl);
@@ -583,6 +580,7 @@ function GooglePlayCheckoutButton({
   ctaContent?: React.ReactNode;
 }) {
   const t = useT();
+  const { presentPurchaseSuccess } = useSubscription();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
   const isCurrentPlan = currentPlan === plan;
@@ -602,6 +600,7 @@ function GooglePlayCheckoutButton({
 
     try {
       await purchase(getGooglePlaySku(plan, cycle));
+      presentPurchaseSuccess();
     } catch (error) {
       console.error("Google Play purchase failed:", error);
       setPurchaseError(
@@ -669,56 +668,6 @@ function PaymentProviderNotes() {
     <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-foreground-muted">
       <p>{isTwa ? "Google Play Billing" : t("pricing.paymentProvider")}</p>
       <p>{t("pricing.cancelAnytime")}</p>
-    </div>
-  );
-}
-
-function CheckoutSuccessPoller() {
-  const t = useT();
-  const searchParams = useSearchParams();
-  const { refreshEntitlements } = useSubscription();
-  const isCheckoutSuccess = searchParams.get("checkout") === "success";
-  const [visible, setVisible] = useState(isCheckoutSuccess);
-
-  useEffect(() => {
-    if (!isCheckoutSuccess) {
-      return;
-    }
-
-    let attempts = 0;
-    const maxAttempts = 5;
-
-    void refreshEntitlements();
-
-    const interval = setInterval(() => {
-      void refreshEntitlements();
-      attempts += 1;
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-      }
-    }, 3000);
-
-    const hideTimeout = setTimeout(() => setVisible(false), 8000);
-
-    if (typeof window !== "undefined" && window.history.replaceState) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("checkout");
-      window.history.replaceState({}, "", url.toString());
-    }
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(hideTimeout);
-    };
-  }, [isCheckoutSuccess, refreshEntitlements]);
-
-  if (!visible) {
-    return null;
-  }
-
-  return (
-    <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-800">
-      {t("pricing.checkoutSuccess")}
     </div>
   );
 }
