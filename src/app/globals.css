@@ -1545,15 +1545,15 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 
 .empty-deck-pointer-anchor {
   /* The fingertip is at 43.9% x / 21.7% y inside the source PNG. */
-  left: calc(50% - 28.1px);
-  top: 22px;
-  width: 64px;
-  height: 64px;
+  left: calc(50% - 24.6px);
+  top: 14px;
+  width: 56px;
+  height: 56px;
 }
 
 .empty-deck-pointer-image {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
   transform-origin: 43.9% 21.7%;
   animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
