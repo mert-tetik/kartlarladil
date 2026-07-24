@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
@@ -33,6 +33,8 @@ export function MobileRankInfoSheet({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
   const dragOffsetY = useRef(0);
+  const rankScrollRef = useRef<HTMLDivElement | null>(null);
+  const currentRankRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -46,6 +48,24 @@ export function MobileRankInfoSheet({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  useLayoutEffect(() => {
+    if (!isOpen || !mounted) return;
+
+    const scrollViewport = rankScrollRef.current;
+    const currentRank = currentRankRef.current;
+    if (!scrollViewport || !currentRank) return;
+
+    const viewportRect = scrollViewport.getBoundingClientRect();
+    const rankRect = currentRank.getBoundingClientRect();
+    const centeredScrollTop =
+      scrollViewport.scrollTop +
+      rankRect.top -
+      viewportRect.top -
+      (scrollViewport.clientHeight - rankRect.height) / 2;
+
+    scrollViewport.scrollTop = Math.max(0, centeredScrollTop);
+  }, [isOpen, mounted, rank.id]);
 
   const content = (
     <div
@@ -127,7 +147,11 @@ export function MobileRankInfoSheet({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-1 pb-8">
+        <div
+          ref={rankScrollRef}
+          className="flex-1 overflow-y-auto overscroll-contain px-1 pb-8"
+          data-mobile-rank-scroll
+        >
           <div className="flex flex-col items-center pt-2">
             {RANKS.map((item, index) => {
               const current = item.id === rank.id;
@@ -138,7 +162,11 @@ export function MobileRankInfoSheet({
 
               return (
                 <div key={item.id} className="flex w-full flex-col items-center">
-                  <div className="flex flex-col items-center">
+                  <div
+                    ref={current ? currentRankRef : undefined}
+                    className="flex flex-col items-center"
+                    data-current-rank={current ? "true" : undefined}
+                  >
                     <div className={cn("rounded-full p-1.5", current && "bg-gradient-to-b from-orange-500 via-amber-400 to-amber-300 shadow-sm")}>
                       <div className={cn("rounded-full p-2", current && "bg-background-card")}>
                         <RankIcon icon={item.icon} className="size-32" sizes="128px" />
