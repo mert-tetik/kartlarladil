@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { MousePointer2 } from "lucide-react";
 
 const BLOCKING_LAYER_SELECTOR = [
   "[data-landing-tutorial]",
@@ -41,9 +41,17 @@ export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
       aria-hidden="true"
       data-mobile-empty-deck-pointer
       data-testid="mobile-empty-deck-pointer"
-      className="pointer-events-none absolute left-1/2 top-[calc(100%-5px)] z-20 -translate-x-1/2"
+      className="empty-deck-pointer-anchor pointer-events-none absolute z-20"
     >
-      <MousePointer2 className="empty-deck-pointer text-black" />
+      <Image
+        alt=""
+        aria-hidden="true"
+        className="empty-deck-pointer-image"
+        height={64}
+        priority
+        src="/pointer-icon.png"
+        width={64}
+      />
     </span>
   );
 }

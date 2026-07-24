@@ -1543,10 +1543,19 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   transition: top 0.2s ease-out, left 0.2s ease-out;
 }
 
-.empty-deck-pointer {
-  width: 48px;
-  height: 48px;
+.empty-deck-pointer-anchor {
+  /* The fingertip is at 43.9% x / 21.7% y inside the source PNG. */
+  left: calc(50% - 28.1px);
+  top: 28px;
+  width: 64px;
+  height: 64px;
+}
+
+.empty-deck-pointer-image {
+  width: 64px;
+  height: 64px;
   filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
+  transform-origin: 43.9% 21.7%;
   animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
 }
 
