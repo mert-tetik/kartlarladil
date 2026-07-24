@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type StudioMode = "text" | "image" | "video";
-type GeneratorMode = "word-caption" | "fun-post" | "word-image";
+type GeneratorMode = "fun-post" | "word-of-the-day";
 
 const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: string; icon: typeof MessageSquareText }> = [
   { value: "text", label: "Text", description: "Captions and GPT posts", icon: MessageSquareText },
@@ -21,11 +21,10 @@ const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: strin
 
 const GENERATOR_OPTIONS: Record<Exclude<StudioMode, "video">, Array<{ value: GeneratorMode; label: string; description: string }>> = {
   text: [
-    { value: "word-caption", label: "Word of the Day", description: "A ready-to-post caption from a real card" },
     { value: "fun-post", label: "Fun FoxiesDeck Post", description: "A playful GPT post about the app" },
   ],
   image: [
-    { value: "word-image", label: "Word card visual", description: "A real card front and back as a PNG" },
+    { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
   ],
 };
 
@@ -43,7 +42,7 @@ function createWordCaption(card: VocabularyCard) {
 }
 
 function isCardGenerator(mode: GeneratorMode) {
-  return mode === "word-caption" || mode === "word-image";
+  return mode === "word-of-the-day";
 }
 
 export function SocialContentStudioPage() {
@@ -53,7 +52,7 @@ export function SocialContentStudioPage() {
   const [authError, setAuthError] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [studioMode, setStudioMode] = useState<StudioMode>("text");
-  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("word-caption");
+  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("fun-post");
   const [language, setLanguage] = useState<LanguageCode>("de");
   const [tier, setTier] = useState<Tier>("A1");
   const [card, setCard] = useState<VocabularyCard | null>(null);
@@ -77,18 +76,6 @@ export function SocialContentStudioPage() {
     void checkSession();
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (authenticated !== true || studioMode === "video") return;
-    if (generatorMode === "fun-post") {
-      void loadFunPost();
-      return;
-    }
-
-    void loadCard(language, tier);
-  // The user explicitly switches generator modes; language and tier changes use their own handlers.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticated, generatorMode, studioMode]);
 
   async function loadCard(nextLanguage: LanguageCode, nextTier: Tier) {
     setIsLoading(true);
@@ -150,16 +137,22 @@ export function SocialContentStudioPage() {
   function selectStudioMode(nextMode: StudioMode) {
     setStudioMode(nextMode);
     if (nextMode !== "video") setGeneratorMode(GENERATOR_OPTIONS[nextMode][0].value);
+    setCard(null);
+    setFunPost("");
   }
 
   function selectLanguage(nextLanguage: LanguageCode) {
     setLanguage(nextLanguage);
-    if (isCardGenerator(generatorMode)) void loadCard(nextLanguage, tier);
   }
 
   function selectTier(nextTier: Tier) {
     setTier(nextTier);
-    if (isCardGenerator(generatorMode)) void loadCard(language, nextTier);
+  }
+
+  function selectGeneratorMode(nextMode: GeneratorMode) {
+    setGeneratorMode(nextMode);
+    setCard(null);
+    setFunPost("");
   }
 
   function generateContent() {
@@ -288,7 +281,7 @@ export function SocialContentStudioPage() {
                       generatorMode === option.value ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]",
                     )}
                     key={option.value}
-                    onClick={() => setGeneratorMode(option.value)}
+                    onClick={() => selectGeneratorMode(option.value)}
                     type="button"
                   >
                     <span className="block text-sm font-semibold">{option.label}</span>
@@ -319,7 +312,7 @@ export function SocialContentStudioPage() {
 
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", isLoading && "animate-spin")} aria-hidden="true" />
-                {generatorMode === "fun-post" ? "Write another post" : generatorMode === "word-image" ? "Create another image" : "Write another caption"}
+                {generatorMode === "fun-post" ? "Write another post" : "Create another Word of the Day"}
               </Button>
             </aside>
 
@@ -337,22 +330,34 @@ export function SocialContentStudioPage() {
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
                 </div>
               ) : card ? (
-                <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                  <div ref={exportRef} className="social-card-export bg-black px-4 py-10 sm:px-12">
-                    <style>{`
-                      .social-card-export .social-card-front [data-card-face] > div,
-                      .social-card-export .social-card-back [data-card-face] > div,
-                      .social-card-export .social-card-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-                      .social-card-export .social-card-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-                      .social-card-export .social-card-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-                    `}</style>
-                    <div className="mx-auto flex max-w-4xl items-center justify-start gap-5 overflow-x-auto pb-2 sm:justify-center sm:gap-14">
-                      <div className="social-card-front w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "front")} /></div>
-                      <div className="social-card-back w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "back")} /></div>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#ffb355]">Post text</p>
+                        <h2 className="mt-1 font-display text-2xl font-semibold">Word of the Day</h2>
+                      </div>
+                      <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
                     </div>
+                    <textarea className="mt-4 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   </div>
-                  <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
-                    <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button>
+                  <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+                    <div ref={exportRef} className="social-card-export bg-black px-4 py-10 sm:px-12">
+                      <style>{`
+                        .social-card-export .social-card-front [data-card-face] > div,
+                        .social-card-export .social-card-back [data-card-face] > div,
+                        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
+                        .social-card-export .social-card-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
+                        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
+                      `}</style>
+                      <div className="mx-auto flex max-w-4xl items-center justify-start gap-5 overflow-x-auto pb-2 sm:justify-center sm:gap-14">
+                        <div className="social-card-front w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "front")} /></div>
+                        <div className="social-card-back w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "back")} /></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
+                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button>
+                    </div>
                   </div>
                 </div>
               ) : <div className="grid min-h-72 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Creating card visual..." : "No card was found for this selection."}</div>}
