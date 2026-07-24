@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   CheckCircle2,
+  ChartNoAxesColumnIncreasing,
   Loader2,
   Medal,
   Play,
@@ -1250,7 +1251,7 @@ export function QuizStation({
     return (
       <QuizViewportOverlay
         overlay="chest"
-        className="animate-screen-pop fixed inset-0 z-40 flex items-center justify-center bg-background p-0"
+        className="animate-screen-pop fixed inset-0 z-[100] flex items-center justify-center bg-background p-0"
       >
         <ChestCelebrationView
           onComplete={() => setPhase("chest")}
@@ -3346,7 +3347,7 @@ export function ResultView({
               }}
               aria-label={t("leaderboard.title")}
             >
-              <Medal className="size-7 fill-current" strokeWidth={2.4} aria-hidden="true" />
+              <ChartNoAxesColumnIncreasing className="size-7" strokeWidth={2.8} aria-hidden="true" />
             </button>
             <button
               type="button"

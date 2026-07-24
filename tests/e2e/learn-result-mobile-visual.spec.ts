@@ -271,31 +271,38 @@ test("chest celebration screen stays centered on mobile", async ({ page }) => {
 
   const celebrationView = page.locator("[data-chest-celebration-view]");
   await expect(celebrationView).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(600);
 
   const layout = await page.evaluate(() => {
+    const overlay = document.querySelector("[data-quiz-overlay='chest']") as HTMLElement | null;
     const view = document.querySelector("[data-chest-celebration-view]") as HTMLElement | null;
     const message = document.querySelector("[data-chest-celebration-message]") as HTMLElement | null;
 
-    if (!view || !message) {
+    if (!overlay || !view || !message) {
       return null;
     }
 
+    const overlayRect = overlay.getBoundingClientRect();
     const viewRect = view.getBoundingClientRect();
     const messageRect = message.getBoundingClientRect();
 
     return {
       viewportHeight: window.innerHeight,
       viewportCenterY: window.innerHeight / 2,
+      overlayTop: overlayRect.top,
+      overlayBottom: overlayRect.bottom,
       viewTop: viewRect.top,
       viewBottom: viewRect.bottom,
       viewCenterY: viewRect.top + viewRect.height / 2,
       messageCenterY: messageRect.top + messageRect.height / 2,
+      coversViewportTop: overlay.contains(document.elementFromPoint(window.innerWidth / 2, 1)),
     };
   });
 
   expect(layout).not.toBeNull();
-  expect(layout!.viewTop).toBeGreaterThanOrEqual(0);
-  expect(layout!.viewBottom).toBeLessThanOrEqual(layout!.viewportHeight);
+  expect(Math.abs(layout!.overlayTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout!.overlayBottom - layout!.viewportHeight)).toBeLessThanOrEqual(1);
+  expect(layout!.coversViewportTop).toBe(true);
   expect(Math.abs(layout!.viewportCenterY - layout!.viewCenterY)).toBeLessThanOrEqual(28);
   expect(Math.abs(layout!.viewportCenterY - layout!.messageCenterY)).toBeLessThanOrEqual(120);
 
