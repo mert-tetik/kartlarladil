@@ -1,0 +1,517 @@
+FOXIESDECK CONTENT AUTOMATION SISTEMI
+======================================
+
+Bu dokuman, FoxiesDeck icindeki gelistiriciye ozel content automation
+studiosunu ve otomasyon tablosunun mevcut gercek davranisini aciklar.
+Dokuman, planlanan ama henuz calismayan scheduler/paylasim katmanini,
+bugun calisan manuel uretim katmanindan bilerek ayirir.
+
+
+1. AMAC VE ERISIM
+-----------------
+
+Sistem, FoxiesDeck sosyal medya iceriklerini tek bir ozel studyoda
+uretmek, indirmek, caption kopyalamak ve gelecekte otomatik paylasim
+icin kuyruk plani hazirlamak amaciyla tasarlanmistir.
+
+Ana sayfalar:
+- /content-automation: Content Studio.
+- /content-automation/automations: Tam ekran Automation Table.
+
+Her iki sayfa robots tarafindan indexlenmez ve force-dynamic calisir.
+Studiya giris, sunucu tarafinda imzali bir oturum cookie'si ile korunur.
+Oturum 12 saat gecerlidir. Admin bilgileri kaynak kodunda/ortamda dogrulanan
+gizli verilerdir; bu dokuman kimlik bilgilerini icermez.
+
+Tum studio API endpointleri de ayni oturum cookie'sini kontrol eder.
+Yetkisiz istekler 401 ile reddedilir.
+
+
+2. STUDYO ARAYUZU VE ORTAK PARAMETRELER
+---------------------------------------
+
+Studiya ilk giriste Text, Image ve Video sekmeleri gorunur. Mod veya
+sekme secmek otomatik generation baslatmaz. Uretim yalnizca Generate
+butonuna basildiginda baslar.
+
+Ortak parametreler:
+- Learning language: Icerigin ogretilen/kelime dili.
+- Native language: Caption, aciklama ve seslendirmenin kullanici dili.
+- Tier: A1, A2, B1, B2 veya C1 (modun destekledigi yerlerde).
+
+Desteklenen diller: tr, en, de, ru, fr, es, it, pt, nl, pl, ar, ja, ko,
+zh-CN.
+
+Kart tabanli modlar, bundle icindeki VOCABULARY_CARDS katalogundan secili
+dil ve tier icin rastgele bir word karti secer. Ozel kartlar bu sosyal
+studio kart secimine dahil degildir.
+
+Uretilen sonuc turune gore studio su islemleri sunar:
+- Text/caption kopyalama.
+- PNG veya AI image indirme.
+- AI avatar videosunu indirme.
+- Tarayicida render edilen music video WebM dosyasini indirme.
+
+
+3. TEXT MODLARI
+---------------
+
+Text uretimi POST /api/twitter-automation/fun-post endpointi ile yapilir.
+Icerik plani ve metin uretimi SOCIAL_CONTENT_PROMPT_MODEL kullanir.
+Mevcut sabit model: gpt-5.6-terra.
+
+Mevcut text modlari:
+1. Fun FoxiesDeck Post
+   - Uygulama hakkinda eglenceli, Gen Z tonunda bir post uretir.
+   - Komiklik, sosyal medya dili ve yorum etkileisimi hedeflenir.
+
+2. Word Quiz
+   - Secilen ogrenme dilinden kelime odakli coktan secmeli soru uretir.
+   - A, B, C, D olmak uzere dort secenek kullanir.
+   - Tier A1 ile B2 arasindan secilebilir; C1 hedeflenmez.
+   - Takipciye soru soruluyorsa dogru cevap postta aciklanmaz.
+
+3. Language Tip
+   - Ogrenme diliyle ilgili kisa grammar, usage veya pronunciation ipucu.
+   - Ozellikle FoxiesDeck reklami yapmaya zorlanmaz.
+   - Hashtag kullanabilir.
+
+4. False Friends
+   - Kolay karistirilan kelimeleri aciklayan text post.
+
+5. Daily Challenge
+   - Gunluk kucuk kelime/ogrenme gorevi.
+
+6. Relatable Learner Post
+   - Dil ogrenenlerin tanidik bulacagi mizahi durum postu.
+
+Soru soran tum text modlari, cevap veya spoiler yazmama kuralina uyar.
+Amaç yorum ve etkileisim almaktir.
+
+
+4. IMAGE MODLARI
+----------------
+
+Image sekmesi iki uretim ailesine ayrilir.
+
+4.1. Uygulama icinde render edilen kart gorselleri
+
+A. Word of the Day
+   - Gercek VocabularyCardView kart gorunumu kullanilir.
+   - Secilen dil/tier karti render edilir.
+   - Caption otomatik uretilir; kelime, ornek cumle ve hashtag icerir.
+   - PNG olarak indirilebilir.
+
+B. Word of the Day Poster
+   - Kart bilgisi ile tek parca sosyal medya posteri render edilir.
+   - Tier paleti kullanilir.
+   - PNG olarak indirilebilir.
+
+Bu iki mod AI gorsel endpointine bagimli degildir. Kart API'si secili karti
+getirir, sonra html-to-image ile browser tarafinda PNG ciktisi alinir.
+
+4.2. AI ile uretilen gorseller
+
+AI image endpointi: POST /api/twitter-automation/ai-image
+
+Akis:
+1. gpt-5.6-terra, secili mod, dil, ana dil, tier ve katalog kartlariyla
+   detayli art direction + caption planini JSON olarak uretir.
+2. Bu plan gpt-image-2 images.edit modeline gider.
+3. Model; mascot1, splash wordmark ve logo referanslarini birlikte alir.
+4. 1024x1024, medium quality, opaque WebP image uretilir.
+5. Studio data URL, art direction ve hazir social caption dondurur.
+
+Marka kurallari:
+- mascot1 referansi korunur; gerekiyorsa ayni maskot 3D yorumlanir.
+- splash.png FoxiesDeck wordmark referansidir.
+- logo gerekiyorsa resmi FoxiesDeck logosu kullanilir.
+- Sparkle, grid texture, sahte UI, watermark, anlamsiz filler text ve
+  ilgisiz logo kullanilmamasi istenir.
+- Soru/challenge gorselleri cevabi veya cevaba ipucunu gostermez.
+- Caption, secilen native language ile olusur; ogrenilen dildeki kelimeler
+  ve ornekler korunur.
+
+AI image modlari:
+1. AI Word of the Day Campaign
+   - Bir kelimeyi ve fiziksel FoxiesDeck kartini merkeze alan hero visual.
+
+2. AI Mini Quiz
+   - Bir kelime, soru ve uc okunabilir secenekle sosyal medya mini quizi.
+   - Dogru cevap gorselde belirtilmez.
+   - Yorum daveti kalabilir; swipe/cursor yonlendirme ikonlari istenmez.
+
+3. AI False Friends
+   - Cross-language translation pair degildir.
+   - Secilen ogrenme dilinin icinden birbirine benzeyen/ses benzeyen ama
+     farkli anlama gelen iki gercek kelime secilir.
+   - Tam olarak iki esdeger panel/kart gorunur.
+   - "EASY TO CONFUSE" ve "LOOKS SIMILAR - MEANS DIFFERENT" anlatimi
+     kullanilir; tek kelimelik quiz veya CEFR rozeti kullanilmaz.
+
+4. AI Daily Challenge
+   - Uc kelimelik gunluk study challenge gorseli.
+
+5. AI Beginner to Advanced
+   - Solda beginner kelimeleri, sagda bunlarin daha ileri seviye dogal
+     alternatifleri gorunur.
+   - Kelime listesi once plan modelince belirlenir, sonra image modeline
+     exact kelime/meaning bilgileriyle gonderilir.
+   - Advanced tarafinda beginner tier rozeti kullanilmaz.
+
+AI gorsellerin yaninda caption da uretilir. Bu caption, post basligi/
+paylasim metnidir; gorsel uzerindeki yazi ile ayni sey olmak zorunda degildir.
+
+
+5. VIDEO MODLARI
+---------------
+
+Video sekmesinde iki farkli pipeline vardir.
+
+5.1. AI Word of the Day avatar videosu
+
+Endpointler:
+- POST /api/twitter-automation/ai-video: Job olusturur.
+- GET /api/twitter-automation/ai-video?taskId=...: Job durumunu okur.
+
+Pipeline:
+1. Katalogdan secili learning language/tier icin bir kart secilir.
+2. gpt-5.6-terra; framePrompt, spokenBefore, spokenAfter ve caption
+   alanlarini uretir.
+3. gpt-image-2, mascot1/splash/logo referanslariyla dikey avatar-ready
+   ilk kareyi uretir. Kaynak 1024x1536; daha ucuz avatar pipeline'i icin
+   Sharp ile 576x1024 WebP 9:16 formata donusturulur.
+4. Ilk kare PoYo'ya yuklenir.
+5. PoYo ElevenLabs TTS Turbo 2.5 ile uc ayri ses parcasi uretilir:
+   - Native language kisa giris (speed 1.15)
+   - Ogrenilen dilde kelimenin kendisi (speed 1.0)
+   - Native language aciklama (speed 1.15)
+6. MP3 segmentleri birlestirilir, Supabase Storage social-studio-audio
+   bucketina gecici dosya olarak yuklenir ve imzali URL uretilir.
+7. PoYo Kling Avatar 2.0 Standard'a ilk kare + birlesik ses gonderilir.
+8. Kling dogal lip sync, hafif bas/pati hareketi ve dikey kompozisyonu
+   koruyan video jobini olusturur.
+9. Client, job durumunu 3.5 saniyede bir poll eder; uc ardarda durum
+   okuma hatasinda job failed gorunur. PoYo 429 cevaplari gecici running
+   kabul edilir; hemen failed sayilmaz.
+
+Ses metni kurallari:
+- Aciklama native language ile konusulur.
+- Ogrenilen kelime kendi dilinde ayri TTS parcasi olarak okunur; ana dil
+  telaffuzunun kelimeyi bozmasi onlenir.
+- Aciklama yaklasik 16-26 kelimedir: sicak, hafif komik ve kullanislidir.
+- Caption native language ile, hook ve ilgili hashtaglerle gelir.
+
+5.2. Music video modlari
+
+Her image modu video sekmesinde "<Image mode> Music Video" seklinde
+sunulur. Kaynak image ya AI endpointinden uretilir ya da browserda render
+edilen kart/poster olur. Sonra browser, 30 saniyelik kare video olusturur.
+
+Render ozellikleri:
+- Sabit sure: 30 saniye.
+- Output: WebM.
+- Canvas: 1080x1080, 30 FPS captureStream.
+- Gorselde hafif zoom ve pan hareketi uygulanir.
+- Web Audio API ile lisans kaydi tutulan sosyal video muzigi eklenir.
+- Mevcut parcalar: Cat Walk, Dirty Thinkin', Techno Fest Vibes.
+- Parca icinde rastgele offset secilir; fade in/fade out uygulanir.
+- Ciktida video ve audio track ayni MediaRecorder streaminde birlesir.
+
+Bu pipeline browser yeteneklerine baglidir. Canvas captureStream, MediaRecorder
+ve AudioContext olmayan tarayicilarda hata verir; Chrome veya Android app
+onerilir.
+
+
+6. KART VE MEDYA API'LERI
+------------------------
+
+Mevcut studio endpoint ailesi:
+- /api/twitter-automation/auth
+  Admin oturum durumunu okur ve login istegini isler.
+- /api/twitter-automation/card
+  Belirtilen dil/tier/type icin rastgele katalog karti dondurur.
+- /api/twitter-automation/fun-post
+  Text modlari icin GPT postu uretir.
+- /api/twitter-automation/ai-image
+  AI image planini ve gorselini uretir.
+- /api/twitter-automation/ai-video
+  Avatar video jobini baslatir ve durumunu sorgular.
+- /api/twitter-automation/automations
+  Automation Table state'ini Supabase'e okur/yazar.
+- /api/twitter-automation/media
+  Studio medya akisinin ilgili route noktasi.
+
+AI image/video endpointlerinde OPENAI_API_KEY; avatar video pipeline'inda
+ayrica POYO_API_KEY gerekir. Anahtarlar sadece server tarafinda kullanilir.
+
+
+7. AUTOMATION TABLE - AMAC
+--------------------------
+
+Automation Table, /content-automation/automations sayfasinda acilan,
+Supabase dashboard esintili koyu temali tam ekran planlama arayuzudur.
+Overlay degildir. Her satir ileride otomatik calisacak bir icerik/paylasim
+tarifidir.
+
+BUGUNKI ONEMLI DURUM:
+Tablo config verisini kaydeder; otomatik generation, zamanlayici, queue,
+OAuth veya sosyal aglara gercek publish HENUZ UYGULANMAMISTIR.
+Arayuzde bu nedenle "Execution disabled" yazisi gorunur.
+
+
+8. TABLO GRUPLARI
+-----------------
+
+Satirlar campaign gruplari icinde tutulur.
+
+Grup ozellikleri:
+- Renk tonu: emerald, blue, amber veya rose.
+- Dekoratif sol renk seridi.
+- Tonla uyumlu header ve satir arkaplanlari.
+- Ac/kapa (collapsed) durumu.
+- Gruba satir ekleme.
+- Grup silme (son grup silinemez).
+- Grup adi duzenleme: Grup basligina veya kalem ikonuna basilir; Enter ya
+  da focus kaybi ile duzenleme tamamlanir.
+- Satirlar drag-and-drop ile gruplar arasinda tasinabilir.
+
+Yeni tablo iki ornek grupla baslar:
+- Word of the Day campaign
+- AI visual campaign
+
+Her grup en az bir satir tasir. Bir grup en fazla 100 satir, tum tablo en
+fazla 30 grup kabul eder.
+
+
+9. AUTOMATION ROW SEMASI VE KOLONLAR
+------------------------------------
+
+Gorunen kolonlar:
+1. Selection / drag handle
+2. content_type
+3. generator_mode
+4. parameters
+5. social_networks
+6. social_accounts
+7. schedule_window
+8. state
+9. Row aksiyonlari (save, delete)
+
+Her satirin kalici veri alani:
+- id: UUID.
+- contentType: random, text, image veya video.
+- generator: Secilen mod veya random mod.
+- language: Ogrenilen dil.
+- nativeLanguage: Ana dil.
+- tier: A1/A2/B1/B2/C1 veya random.
+- platforms: Birden fazla sosyal ag secilebilir.
+- accounts: Her secilen ag icin birden fazla hesap secilebilir.
+- scheduleStart: HH:mm baslangic saati.
+- scheduleEnd: HH:mm bitis saati.
+- saved: UI tarafindaki saved/draft isareti.
+
+Varsayilan yeni satir:
+- Text / Random text mode
+- learning language: en
+- native language: en
+- tier: random
+- platform: X
+- hesap: @foxiesdeck
+- schedule window: 09:00 - 18:00
+- state: draft
+
+
+10. CONTENT TYPE VE GENERATOR SECENEKLERI
+-----------------------------------------
+
+Content type = Random:
+- Random content mode.
+
+Content type = Text:
+- Random text mode.
+- Fun FoxiesDeck Post.
+- Word Quiz.
+- Language Tip.
+- False Friends.
+- Daily Challenge.
+- Relatable Learner Post.
+
+Content type = Image:
+- Random image mode.
+- Random AI-generated image.
+- Random no-AI image.
+- Word of the Day.
+- Word of the Day Poster.
+- AI Word of the Day.
+- AI Mini Quiz.
+- AI False Friends.
+- AI Daily Challenge.
+- AI Beginner to Advanced.
+
+Content type = Video:
+- Random video mode.
+- AI Word of the Day Video.
+
+Not: Content Studio video sekmesinde image modlarindan uretilen music video
+secenekleri de vardir. Bunlar calisan manuel studio secenekleridir; Automation
+Table video generator listesine henuz eklenmemistir.
+
+
+11. PARAMETRE VE RANDOM DAVRANISI
+---------------------------------
+
+Parameters hucreleri uc secim icerir:
+- Learning language.
+- Native language.
+- Tier.
+
+Tier "Random" olabilir. Planlanan executor calistiginda random mod, random
+tier ve kayitli schedule window icindeki rastgele bir saati sececektir.
+Bu secim mantigi footer metninde anlatilir, ancak executor henuz yoktur;
+bugun bu alanlar sadece kalici plan verisidir.
+
+Content type Random, tum content ailelerinden bir mod secmek icindir.
+Image altindaki "Random AI-generated image" ve "Random no-AI image" ayrimi,
+ileride image maliyeti ve format tercihini kontrol etmek icindir.
+
+
+12. SOSYAL AG VE HESAP SECIMI
+-----------------------------
+
+Desteklenen platform satirlari:
+- X
+- Instagram
+- Facebook
+- LinkedIn
+- TikTok
+
+Bir satirda birden fazla ag secilebilir. Beklenen execution davranisi,
+olusan tek medyayi yeniden uretmeden her secilen aga bir kez paylasmaktir.
+Her ag icin birden fazla hesap da secilebilir; ayni media o agdaki secili
+hesaplara da paylasilabilir.
+
+Bugun hesap registry'si local draft veridir:
+- X: @foxiesdeck
+- Instagram: @foxiesdeck
+- Facebook: FoxiesDeck
+- LinkedIn: FoxiesDeck
+- TikTok: @foxiesdeck
+
+Bu liste OAuth ile bagli gercek hesap envanteri degildir.
+
+
+13. SATIR VE GRUP VALIDASYONU
+-----------------------------
+
+API yazma sirasinda Zod ile su kontroller uygulanir:
+- Tum id'ler UUID olmalidir.
+- Grup adlari 1-120 karakterdir.
+- Generator 1-120 karakterdir.
+- Schedule HH:mm formatindadir.
+- scheduleStart, scheduleEnd'den once olmalidir.
+- Platform listesinde duplicate bulunamaz.
+- Her secilen platformun en az bir hesabi olmalidir.
+- Hesaplar secilen platforma ait olmalidir.
+- Ayni platformdaki hesap listesinde duplicate bulunamaz.
+- Bir grupta 1-100 satir bulunur.
+- En fazla 30 grup vardir.
+- Grup id'leri ve tum satir id'leri global olarak unique olmalidir.
+
+Arama cubugu; grup adi, content type, generator, platform, hesap, learning
+language, native language ve tier alanlarinda filtreleme yapar. Arama,
+useDeferredValue ile UI'yi bloke etmeden calisir.
+
+
+14. KAYIT VE SUPABASE PERSISTENCE
+---------------------------------
+
+Tablo ilk renderda GET /api/twitter-automation/automations cagirir.
+Geceli bir response varsa local ornek gruplarin yerine Supabase'deki groups
+JSON state'i yuklenir.
+
+Her groups degisikliginden sonra UI:
+1. Satiri draft olarak isaretler.
+2. 650 ms debounce bekler.
+3. PUT /api/twitter-automation/automations ile tum groups dizisini gonderir.
+4. Basariliysa satirlar saved; hatada error sync durumu olur.
+
+Save ikonu, UI state'ini saved yapar. Asil kalicilik mekanizmasi yukaridaki
+otomatik debounced PUT istegidir.
+
+Migration: supabase/migrations/20260726155503_social_content_automation.sql
+
+Tablo: public.social_content_automation_state
+- owner_key text primary key
+- groups jsonb not null, JSON array olmak zorunda
+- updated_at timestamptz not null
+
+Mevcut owner key sabittir: social-studio. Bu nedenle sistem bugun cok
+kullanicili automation alanı degil, tek admin studyosu olarak davranir.
+
+RLS aciktir. anon ve authenticated rollerinin tum izinleri kaldirilmistir.
+Yalniz service_role select/insert/update/delete yapabilir. Next.js API route
+bu is icin Supabase admin client kullanir ve kendi admin cookie kontrolunu
+uygular.
+
+
+15. HENUZ YOK / SONRAKI UYGULAMA ASAMALARI
+------------------------------------------
+
+Mevcut tablo kalici ve dogrulanmis bir automation tarifi saklar; fakat asagidaki
+parcalar henuz yapilmamistir:
+- Cron veya background scheduler.
+- Schedule window icinden rastgele zamani gercekten secen executor.
+- Job queue ve concurrency kontrolu.
+- Icerigi bir kez uretip birden fazla platform/hesaba dagitan worker.
+- X, Instagram, Facebook, LinkedIn ve TikTok OAuth baglantilari.
+- Token saklama/yenileme ve hesap registry'sinin gercek API verisinden gelmesi.
+- Platform API'leriyle post/media upload.
+- Publish durumlari, retry, backoff, hata loglari ve audit trail.
+- Uretilen medya/captionin satira bagli kalici asset kaydi.
+- Onay akisi, dry-run, preview veya "publish now".
+
+Guvenli sonraki mimari:
+1. Automation row'lardan planli execution joblari olustur.
+2. Joblari bir queue'ya yaz; idempotency key ile duplicate paylasimi engelle.
+3. Icerigi bir kere uret, media asset ve captioni kalici depola.
+4. Her platform + hesap icin ayri delivery job olustur.
+5. Provider basarisizsa retry/backoff uygula; kalici hata ve sonuclari logla.
+6. OAuth tokenlarini sifreli sakla, refresh ve revoke akislarini ekle.
+
+Bu asamalar tamamlanmadan tabloyu "planlama tablosu" olarak degerlendirmek
+gerekir; otomatik paylasim sistemi olarak degil.
+
+
+16. ILGILI KAYNAK DOSYALAR
+--------------------------
+
+- src/features/twitter-automation/components/twitter-automation-page.tsx
+  Studio UI, mod secimi, manual generation ve export akislari.
+- src/features/twitter-automation/components/automation-table.tsx
+  Gruplu tablo UI, satir duzenleme, filtre, drag/drop ve auto-save.
+- src/app/api/twitter-automation/fun-post/route.ts
+  Text generation endpointi.
+- src/app/api/twitter-automation/card/route.ts
+  Rastgele katalog karti endpointi.
+- src/app/api/twitter-automation/ai-image/route.ts
+  AI art direction + GPT Image generation endpointi.
+- src/app/api/twitter-automation/ai-video/route.ts
+  GPT first frame, TTS ve Kling avatar job pipeline'i.
+- src/features/twitter-automation/music-video-renderer.ts
+  Browser tabanli 30 saniye music video renderer'i.
+- src/app/api/twitter-automation/automations/route.ts
+  Automation state GET/PUT endpointi ve server-side validation.
+- src/features/twitter-automation/social-studio-auth.ts
+  Imzali admin oturumu kontrolu.
+- src/features/twitter-automation/social-studio-openai.ts
+  Social content prompt model sabiti.
+- supabase/migrations/20260726155503_social_content_automation.sql
+  Gruplu automation state persistence migration'i.
+- public/social-audio/
+  Browser-rendered video icin yerel sosyal video muzik dosyalari ve lisans
+  notlari.
+
+Son guncelleme amaci: Content Studio manuel olarak icerik uretebilsin;
+Automation Table ise bu uretimleri daha sonra scheduler ve sosyal medya
+provider entegrasyonlariyla calistiracak duzenli, kalici planlari tutsun.
