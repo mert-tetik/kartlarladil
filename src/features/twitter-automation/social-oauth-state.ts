@@ -70,16 +70,20 @@ export function readXOAuthState(cookieValue: string | undefined) {
 
   try {
     const parsed = JSON.parse(Buffer.from(encodedData, "base64url").toString("utf8")) as Partial<XOAuthState>;
+    const socialMediaId = parsed.socialMediaId;
+    const state = parsed.state;
+    const codeVerifier = parsed.codeVerifier;
+    const expiresAt = parsed.expiresAt;
     if (
-      !Number.isSafeInteger(parsed.socialMediaId) || parsed.socialMediaId < 1 ||
-      typeof parsed.state !== "string" || parsed.state.length < 32 ||
-      typeof parsed.codeVerifier !== "string" || parsed.codeVerifier.length < 43 ||
-      !Number.isSafeInteger(parsed.expiresAt) || parsed.expiresAt <= Math.floor(Date.now() / 1000)
+      typeof socialMediaId !== "number" || !Number.isSafeInteger(socialMediaId) || socialMediaId < 1 ||
+      typeof state !== "string" || state.length < 32 ||
+      typeof codeVerifier !== "string" || codeVerifier.length < 43 ||
+      typeof expiresAt !== "number" || !Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)
     ) {
       return null;
     }
 
-    return parsed as XOAuthState;
+    return { socialMediaId, state, codeVerifier, expiresAt };
   } catch {
     return null;
   }
