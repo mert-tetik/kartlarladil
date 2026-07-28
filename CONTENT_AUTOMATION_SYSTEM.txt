@@ -211,8 +211,9 @@ edilen kart/poster olur. Sonra browser, 30 saniyelik kare video olusturur.
 Render ozellikleri:
 - Sabit sure: 30 saniye.
 - Output: WebM.
-- Canvas: 1080x1080, 30 FPS captureStream.
-- Gorselde hafif zoom ve pan hareketi uygulanir.
+- Canvas, kaynak gorselin kendi width/height degerlerini ve ratio'sunu kullanir;
+  30 FPS captureStream ile sadece sabit goruntu yeniden cizilir.
+- Zoom, pan, crop, karartma veya baska bir gorsel animasyon uygulanmaz.
 - Web Audio API ile lisans kaydi tutulan sosyal video muzigi eklenir.
 - Mevcut parcalar: Cat Walk, Dirty Thinkin', Techno Fest Vibes.
 - Parca icinde rastgele offset secilir; fade in/fade out uygulanir.
@@ -306,7 +307,8 @@ Her satirin kalici veri alani:
 - nativeLanguage: Ana dil.
 - tier: A1/A2/B1/B2/C1 veya random.
 - platforms: Birden fazla sosyal ag secilebilir.
-- accounts: Her secilen ag icin birden fazla hesap secilebilir.
+- accounts: Her secilen ag icin social_medias.id degerleriyle birden fazla
+  hesap secilebilir.
 - scheduleStart: HH:mm baslangic saati.
 - scheduleEnd: HH:mm bitis saati.
 - saved: UI tarafindaki saved/draft isareti.
@@ -316,8 +318,7 @@ Varsayilan yeni satir:
 - learning language: en
 - native language: en
 - tier: random
-- platform: X
-- hesap: @foxiesdeck
+- platform/hesap: social_medias tablosundaki ilk e-posta disi kayit
 - schedule window: 09:00 - 18:00
 - state: draft
 
@@ -379,26 +380,33 @@ ileride image maliyeti ve format tercihini kontrol etmek icindir.
 12. SOSYAL AG VE HESAP SECIMI
 -----------------------------
 
-Desteklenen platform satirlari:
-- X
-- Instagram
-- Facebook
-- LinkedIn
-- TikTok
+Automation Table sosyal ag ve hesap seceneklerini Supabase'deki
+public.social_medias tablosundan alir. Endpoint sadece su alanlari okur:
+- id
+- Social Media
+- Account Name
+
+description alani sorgulanmaz ve response'a gonderilmez. Social Media degeri
+email olan satirlar server tarafinda filtrelenir. Bu sayede e-posta kayitlari
+ve aciklama icerikleri arayuzde gorunmez.
+
+Platform anahtari, Social Media alaninin lowercase ve bosluklari tireye
+cevirmis halidir. Her hesap secimi, gosterilen account name yerine kalici
+social_medias.id degeriyle Automation Table state'ine kaydedilir. Bu, hesap
+adi degisse bile secimin kimligini korur.
 
 Bir satirda birden fazla ag secilebilir. Beklenen execution davranisi,
 olusan tek medyayi yeniden uretmeden her secilen aga bir kez paylasmaktir.
 Her ag icin birden fazla hesap da secilebilir; ayni media o agdaki secili
 hesaplara da paylasilabilir.
 
-Bugun hesap registry'si local draft veridir:
-- X: @foxiesdeck
-- Instagram: @foxiesdeck
-- Facebook: FoxiesDeck
-- LinkedIn: FoxiesDeck
-- TikTok: @foxiesdeck
+Yeni satirda, social_medias listesindeki ilk e-posta disi hesap varsayilan
+olarak secilir. Eski sabit hesap kayitlari yukleme sirasinda mevcut Supabase
+hesap ID'leriyle uyarlanir. Kaynaktan silinmis platform veya hesaplar secili
+kalmaz.
 
-Bu liste OAuth ile bagli gercek hesap envanteri degildir.
+Bu tablo artik Supabase kaynakli bir hesap envanteri kullanir; ancak OAuth
+tokeni, provider API baglantisi ve gercek publish katmani henuz yoktur.
 
 
 13. SATIR VE GRUP VALIDASYONU
@@ -414,6 +422,8 @@ API yazma sirasinda Zod ile su kontroller uygulanir:
 - Her secilen platformun en az bir hesabi olmalidir.
 - Hesaplar secilen platforma ait olmalidir.
 - Ayni platformdaki hesap listesinde duplicate bulunamaz.
+- Secili platform ve hesap ID'leri, PUT sirasinda social_medias'tan yeniden
+  dogrulanir; silinmis veya e-posta satirina ait hesap kaydedilemez.
 - Bir grupta 1-100 satir bulunur.
 - En fazla 30 grup vardir.
 - Grup id'leri ve tum satir id'leri global olarak unique olmalidir.
@@ -515,3 +525,30 @@ gerekir; otomatik paylasim sistemi olarak degil.
 Son guncelleme amaci: Content Studio manuel olarak icerik uretebilsin;
 Automation Table ise bu uretimleri daha sonra scheduler ve sosyal medya
 provider entegrasyonlariyla calistiracak duzenli, kalici planlari tutsun.
+SOCIAL PROVIDER CONNECTIONS
+---------------------------
+The foundation migration keeps provider accounts, encrypted OAuth tokens, scheduled
+executions, generation jobs, assets, delivery jobs, and audit logs in Supabase.
+All rows are service-role only. X uses OAuth 2.0 Authorization Code with PKCE:
+the start route creates a signed 10-minute state cookie, the callback validates it,
+verifies /2/users/me against the selected social_medias account, then encrypts tokens
+with AES-256-GCM before storing them in social_media_connections.
+
+Required server variables for X are SOCIAL_AUTOMATION_TOKEN_ENCRYPTION_KEY,
+SOCIAL_AUTOMATION_OAUTH_STATE_SECRET, SOCIAL_AUTOMATION_OAUTH_BASE_URL,
+X_OAUTH_CLIENT_ID, and X_OAUTH_CLIENT_SECRET. The X callback URL is
+/api/twitter-automation/oauth/x/callback.
+
+MANUAL PUBLISHING
+-----------------
+Every generated text, image, and video result exposes icon-only social platform
+actions beside its download action. The publish panel lets the studio admin choose
+the account, edit a maximum-280-character caption, and send the content. The UI
+loads its platform/account list from social_medias without descriptions or email
+rows. Unconfigured providers deliberately remain visible: Send returns a setup
+required message instead of pretending the post was accepted.
+
+X is the first live provider. A connected X account can publish text and generated
+PNG/JPEG/WebP images through X API v2. Provider tokens stay server-only and media is
+sent only to the publish route. Video posting and every other provider remain explicit
+setup-required states until their provider-specific media/publish pipelines exist.

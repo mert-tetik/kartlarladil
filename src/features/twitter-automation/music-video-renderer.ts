@@ -67,8 +67,10 @@ export async function renderMusicVideo({ audioContext, durationSeconds = MUSIC_V
 
   const image = await waitForImage(imageUrl);
   const canvas = document.createElement("canvas");
-  canvas.width = 1080;
-  canvas.height = 1080;
+  // Preserve the exact source-image raster and aspect ratio. Music videos are
+  // intentionally a still image with an audio track, not a motion treatment.
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("canvas_not_supported");
 
@@ -87,31 +89,13 @@ export async function renderMusicVideo({ audioContext, durationSeconds = MUSIC_V
     recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
   });
 
-  const imageRatio = image.width / image.height;
   let startedAt = 0;
   let frameId = 0;
   let stopped = false;
 
   const drawFrame = (now: number) => {
     const progress = Math.min(1, (now - startedAt) / (durationSeconds * 1000));
-    const eased = progress * progress * (3 - 2 * progress);
-    const zoom = 1.03 + eased * 0.09;
-    const frameRatio = canvas.width / canvas.height;
-    const baseWidth = imageRatio > frameRatio ? image.height * frameRatio : image.width;
-    const baseHeight = imageRatio > frameRatio ? image.height : image.width / frameRatio;
-    const sourceWidth = baseWidth / zoom;
-    const sourceHeight = baseHeight / zoom;
-    const sourceX = (image.width - sourceWidth) * (0.5 + 0.09 * Math.sin(progress * Math.PI * 1.2));
-    const sourceY = (image.height - sourceHeight) * (0.5 - 0.07 * Math.cos(progress * Math.PI));
-
-    context.fillStyle = "#000";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-    const shade = context.createLinearGradient(0, 0, 0, canvas.height);
-    shade.addColorStop(0, "rgba(0,0,0,0.05)");
-    shade.addColorStop(1, "rgba(0,0,0,0.2)");
-    context.fillStyle = shade;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     if (progress < 1 && !stopped) frameId = window.requestAnimationFrame(drawFrame);
   };

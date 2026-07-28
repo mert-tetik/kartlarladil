@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
+import { SocialPublishActions, type SocialPublishAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
@@ -64,9 +65,13 @@ const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string;
 ];
 
 const SOCIAL_VIDEO_MUSIC_TRACKS = [
-  { label: "Cat Walk", url: "/social-audio/mixkit-cat-walk.mp3" },
-  { label: "Dirty Thinkin'", url: "/social-audio/mixkit-dirty-thinkin.mp3" },
-  { label: "Techno Fest Vibes", url: "/social-audio/mixkit-techno-fest-vibes.mp3" },
+  { label: "Music 1", url: "/social-audio/music1.mp3" },
+  { label: "Music 2", url: "/social-audio/music2.mp3" },
+  { label: "Music 3", url: "/social-audio/music3.mp3" },
+  { label: "Music 4", url: "/social-audio/music4.mp3" },
+  { label: "Music 5", url: "/social-audio/music5.mp3" },
+  { label: "Music 6", url: "/social-audio/music6.mp3" },
+  { label: "Music 7", url: "/social-audio/music7.mp3" },
 ] as const;
 
 const GENERATOR_OPTIONS = {
@@ -568,6 +573,27 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     await navigator.clipboard.writeText(caption);
   }
 
+  async function createSocialImageAsset(element: HTMLElement | null, backgroundColor: string): Promise<SocialPublishAsset | undefined> {
+    if (!element) return undefined;
+    const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 1, backgroundColor });
+    return { dataUrl, mimeType: "image/png" };
+  }
+
+  async function createAiImageAsset(): Promise<SocialPublishAsset | undefined> {
+    if (!aiImageUrl) return undefined;
+    if (aiImageUrl.startsWith("data:image/png;base64,")) return { dataUrl: aiImageUrl, mimeType: "image/png" };
+    const response = await fetch(aiImageUrl);
+    if (!response.ok) throw new Error("image_unavailable");
+    const blob = await response.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsDataURL(blob);
+    });
+    return { dataUrl, mimeType: blob.type === "image/jpeg" ? "image/jpeg" : blob.type === "image/webp" ? "image/webp" : "image/png" };
+  }
+
   async function downloadImage() {
     if (!exportRef.current || !card) return;
 
@@ -797,7 +823,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">Soundtrack: {musicVideoTrackLabel}. Exported as WebM.</p></div>
-                    <div className="flex flex-wrap gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />
                 </div>
@@ -805,14 +831,14 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div>
                   {musicVideoPending ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <Video className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
                   <h2 className="mt-4 font-display text-2xl font-semibold">{musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (musicVideoStatus === "idle" ? "Choose any image mode. Its visual becomes a square video with a subtle camera move and a licensed social-video soundtrack." : "The video keeps the generated image readable while the soundtrack and motion are rendered in the browser.")}</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
                 </div>
               </div>) : (aiVideoUrl ? <>
                 <video className="aspect-[9/16] max-h-[70dvh] w-full bg-[#100d0c] object-contain" controls playsInline src={aiVideoUrl} />
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">Native-language mascot line: {aiVideoSpokenLine}</p></div>
-                    <div className="flex flex-wrap gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button><SocialPublishActions caption={aiVideoCaption} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={aiVideoCaption} />
                 </div>
@@ -935,7 +961,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       <p className="text-sm font-semibold text-[#ffb355]">Generated text</p>
                       <h2 className="mt-1 font-display text-2xl font-semibold">Ready to publish</h2>
                     </div>
-                    <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
+                    <div className="flex items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><SocialPublishActions caption={caption} /></div>
                   </div>
                   <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
@@ -954,7 +980,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                         </div>
                         <div className="flex gap-2">
                           <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!aiImageCaption} onClick={copyAiImageCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button>
+                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={aiImageCaption} getAsset={createAiImageAsset} />
                         </div>
                       </div>
                       <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={aiImageCaption} />
@@ -1026,7 +1052,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                       <div className="flex gap-2">
                         <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button>
+                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={caption} getAsset={() => createSocialImageAsset(posterExportRef.current, POSTER_TIER_PALETTES[card.tier].base)} />
                       </div>
                     </div>
                     <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
@@ -1059,7 +1085,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                     </div>
                     <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
-                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button>
+                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={caption} getAsset={() => createSocialImageAsset(exportRef.current, "#000000")} />
                     </div>
                   </div>
                 </div>

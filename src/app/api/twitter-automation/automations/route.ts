@@ -9,9 +9,55 @@ export const dynamic = "force-dynamic";
 const AUTOMATION_OWNER_KEY = "social-studio";
 const TABLE_NAME = "social_content_automation_state";
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
-const PLATFORM_CODES = ["x", "instagram", "facebook", "linkedin", "tiktok"] as const;
 const TIER_CODES = ["A1", "A2", "B1", "B2", "C1"] as const;
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u);
+const platformSchema = z.string().trim().min(1).max(80);
+const accountIdSchema = z.string().trim().min(1).max(120);
+
+type SocialMediaDatabaseRow = {
+  id: number;
+  "Social Media": string;
+  "Account Name": string;
+};
+
+type SocialMediaAccount = {
+  id: string;
+  platform: string;
+  platformLabel: string;
+  accountName: string;
+};
+
+function toPlatformKey(value: string) {
+  return value.trim().toLocaleLowerCase().replace(/\s+/gu, "-");
+}
+
+async function loadSocialMediaAccounts() {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    // Deliberately do not select description: it can contain credentials/context
+    // that must never leave this server-only integration endpoint.
+    .from("social_medias")
+    .select('id,"Social Media","Account Name"')
+    .order("id", { ascending: true })
+    .returns<SocialMediaDatabaseRow[]>();
+
+  if (error) return { accounts: null, error };
+
+  const accounts = (data ?? []).flatMap((row): SocialMediaAccount[] => {
+    const platformLabel = row["Social Media"]?.trim();
+    const accountName = row["Account Name"]?.trim();
+    if (!platformLabel || !accountName || platformLabel.toLocaleLowerCase() === "email") return [];
+
+    return [{
+      id: String(row.id),
+      platform: toPlatformKey(platformLabel),
+      platformLabel,
+      accountName,
+    }];
+  });
+
+  return { accounts, error: null };
+}
 
 const automationRowSchema = z.object({
   id: z.string().uuid(),
@@ -20,8 +66,8 @@ const automationRowSchema = z.object({
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LANGUAGE_CODES),
   tier: z.enum(["random", ...TIER_CODES]),
-  platforms: z.array(z.enum(PLATFORM_CODES)).min(1).max(PLATFORM_CODES.length),
-  accounts: z.record(z.enum(PLATFORM_CODES), z.array(z.string().trim().min(1).max(120)).min(1).max(20)),
+  platforms: z.array(platformSchema).min(1).max(20),
+  accounts: z.record(platformSchema, z.array(accountIdSchema).min(1).max(20)),
   scheduleStart: timeSchema,
   scheduleEnd: timeSchema,
   saved: z.boolean(),
@@ -36,7 +82,7 @@ const automationRowSchema = z.object({
   }
 
   for (const [platform, accounts] of Object.entries(row.accounts)) {
-    if (!platformSet.has(platform as (typeof PLATFORM_CODES)[number])) {
+    if (!platformSet.has(platform)) {
       context.addIssue({ code: "custom", message: "Accounts must belong to a selected platform.", path: ["accounts", platform] });
     }
     if (new Set(accounts).size !== accounts.length) {
@@ -74,21 +120,42 @@ function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
 }
 
+function hasValidSocialSelections(groups: z.infer<typeof automationGroupsSchema>["groups"], accounts: SocialMediaAccount[]) {
+  const accountIdsByPlatform = new Map<string, Set<string>>();
+  for (const account of accounts) {
+    const ids = accountIdsByPlatform.get(account.platform) ?? new Set<string>();
+    ids.add(account.id);
+    accountIdsByPlatform.set(account.platform, ids);
+  }
+
+  return groups.every((group) => group.rows.every((row) => row.platforms.every((platform) => {
+    const allowedAccountIds = accountIdsByPlatform.get(platform);
+    if (!allowedAccountIds) return false;
+    return row.accounts[platform]?.every((accountId) => allowedAccountIds.has(accountId)) ?? false;
+  })));
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   try {
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
+    const [{ data, error }, socialMedia] = await Promise.all([
+      supabase
       .from(TABLE_NAME)
       .select("groups, updated_at")
       .eq("owner_key", AUTOMATION_OWNER_KEY)
-      .maybeSingle<{ groups: unknown; updated_at: string }>();
-    if (error) return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
+      .maybeSingle<{ groups: unknown; updated_at: string }>(),
+      loadSocialMediaAccounts(),
+    ]);
+    if (error || socialMedia.error || !socialMedia.accounts) {
+      return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
+    }
 
     const parsedGroups = automationGroupsSchema.safeParse({ groups: data?.groups ?? [] });
     return NextResponse.json({
       groups: parsedGroups.success ? parsedGroups.data.groups : [],
+      socialAccounts: socialMedia.accounts,
       updatedAt: data?.updated_at ?? null,
     });
   } catch {
@@ -103,6 +170,14 @@ export async function PUT(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 400 });
 
   try {
+    const socialMedia = await loadSocialMediaAccounts();
+    if (socialMedia.error || !socialMedia.accounts) {
+      return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
+    }
+    if (!hasValidSocialSelections(parsed.data.groups, socialMedia.accounts)) {
+      return NextResponse.json({ errorCode: "invalid_social_media_selection" }, { status: 400 });
+    }
+
     const supabase = createSupabaseAdminClient();
     const updatedAt = new Date().toISOString();
     const { error } = await supabase
