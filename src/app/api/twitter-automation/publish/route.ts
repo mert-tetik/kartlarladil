@@ -5,14 +5,23 @@ import { hasSocialStudioSession } from "@/features/twitter-automation/social-stu
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
+
+const imageAssetSchema = z.object({
+  dataUrl: z.string().max(7_000_000),
+  mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+}).strict();
+
+const videoAssetSchema = z.object({
+  sourceUrl: z.string().url().max(2_000),
+  mimeType: z.enum(["video/mp4", "video/webm"]),
+}).strict();
 
 const schema = z.object({
   socialMediaId: z.number().int().positive(),
   caption: z.string().trim().min(1).max(280),
-  asset: z.object({
-    dataUrl: z.string().max(7_000_000),
-    mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
-  }).optional(),
+  asset: z.union([imageAssetSchema, videoAssetSchema]).optional(),
+  pinterestBoardId: z.string().trim().min(1).max(120).optional(),
 }).strict();
 
 export async function POST(request: NextRequest) {
@@ -26,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : "provider_publish_failed";
-    const status = errorCode === "account_not_found" ? 404 : errorCode === "invalid_media" ? 400 : errorCode === "provider_not_configured" ? 409 : 502;
+    const status = errorCode === "account_not_found" ? 404 : errorCode === "invalid_media" || errorCode === "youtube_video_required" ? 400 : errorCode === "provider_not_configured" ? 409 : 502;
     return NextResponse.json({ errorCode }, { status });
   }
 }

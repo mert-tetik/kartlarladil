@@ -699,8 +699,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   if (authenticated !== true) {
     return (
-      <section className="relative grid min-h-[calc(100dvh-4rem)] place-items-center overflow-hidden bg-[#12100e] px-4 py-10 text-[#f9f2e9]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(245,172,39,0.28),transparent_28rem),radial-gradient(circle_at_90%_90%,rgba(247,104,8,0.22),transparent_24rem)]" />
+      <section className="content-automation-shell relative grid min-h-[calc(100dvh-4rem)] place-items-center overflow-hidden bg-[#12100e] px-4 py-10 text-[#f9f2e9]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(203,255,66,0.22),transparent_28rem),radial-gradient(circle_at_90%_90%,rgba(150,218,36,0.16),transparent_24rem)]" />
         <form className="relative w-full max-w-sm rounded-xl border border-white/15 bg-[#1b1714] p-6 shadow-sm" onSubmit={submitCredentials}>
           <div className="flex size-11 items-center justify-center rounded-lg bg-[#f5ac27] text-[#251106]">
             <LockKeyhole className="size-5" aria-hidden="true" />
@@ -741,7 +741,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   return (
-    <section className="min-h-[calc(100dvh-4rem)] bg-[#12100e] px-4 py-6 text-[#f9f2e9] sm:px-6 sm:py-10">
+    <section className="content-automation-shell min-h-[calc(100dvh-4rem)] bg-[#12100e] px-4 py-6 text-[#f9f2e9] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
@@ -838,7 +838,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">Native-language mascot line: {aiVideoSpokenLine}</p></div>
-                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button><SocialPublishActions caption={aiVideoCaption} /></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button><SocialPublishActions caption={aiVideoCaption} getAsset={async () => aiVideoUrl ? { sourceUrl: aiVideoUrl, mimeType: "video/mp4" } : undefined} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={aiVideoCaption} />
                 </div>

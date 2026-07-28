@@ -4,10 +4,17 @@ import { useEffect, useState } from "react";
 import { LoaderCircle, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type SocialPublishAsset = {
+export type SocialPublishImageAsset = {
   dataUrl: string;
   mimeType: "image/png" | "image/jpeg" | "image/webp";
 };
+
+export type SocialPublishVideoAsset = {
+  sourceUrl: string;
+  mimeType: "video/mp4" | "video/webm";
+};
+
+export type SocialPublishAsset = SocialPublishImageAsset | SocialPublishVideoAsset;
 
 type PublishTarget = {
   id: number;
@@ -16,10 +23,19 @@ type PublishTarget = {
   status: string;
 };
 
+type PinterestBoard = {
+  id: string;
+  name: string;
+};
+
 type PublishState = "idle" | "preparing" | "sending" | "sent" | "error";
 
 function platformKey(platform: string) {
   return platform.trim().toLocaleLowerCase();
+}
+
+function isVideoAsset(asset: SocialPublishAsset | undefined): asset is SocialPublishVideoAsset {
+  return Boolean(asset && "sourceUrl" in asset);
 }
 
 function PlatformIcon({ platform }: { platform: string }) {
@@ -45,6 +61,9 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null);
   const [draftCaption, setDraftCaption] = useState(caption);
   const [asset, setAsset] = useState<SocialPublishAsset>();
+  const [pinterestBoards, setPinterestBoards] = useState<PinterestBoard[]>([]);
+  const [pinterestBoardId, setPinterestBoardId] = useState("");
+  const [isLoadingPinterestBoards, setIsLoadingPinterestBoards] = useState(false);
   const [state, setState] = useState<PublishState>("idle");
   const [message, setMessage] = useState("");
 
@@ -58,7 +77,10 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const platforms = [...new Map(targets.map((target) => [platformKey(target.platform), target.platform])).entries()];
   const selectedTargets = targets.filter((target) => platformKey(target.platform) === selectedPlatform);
   const selectedTarget = selectedTargets.find((target) => target.id === selectedTargetId) ?? selectedTargets[0];
-  const requiresXConnection = selectedTarget?.platform.trim().toLocaleLowerCase() === "x" && selectedTarget.status !== "connected";
+  const connectionProvider = selectedTarget ? platformKey(selectedTarget.platform) : null;
+  const requiresConnection = (connectionProvider === "x" || connectionProvider === "pinterest" || connectionProvider === "youtube") && selectedTarget?.status !== "connected";
+  const connectionLabel = connectionProvider === "pinterest" ? "Pinterest" : connectionProvider === "youtube" ? "YouTube" : "X";
+  const requiresYouTubeVideo = connectionProvider === "youtube" && !isVideoAsset(asset);
 
   async function openPublisher(platform: string) {
     if (disabled || !caption) return;
@@ -67,6 +89,8 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     setSelectedTargetId(firstTarget?.id ?? null);
     setDraftCaption(caption);
     setAsset(undefined);
+    setPinterestBoards([]);
+    setPinterestBoardId("");
     setState(getAsset ? "preparing" : "idle");
     setMessage("");
     if (!getAsset) return;
@@ -80,6 +104,40 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     }
   }
 
+  useEffect(() => {
+    if (connectionProvider !== "pinterest" || selectedTarget?.status !== "connected") return;
+
+    let cancelled = false;
+    const loadingTimer = window.setTimeout(() => {
+      if (!cancelled) setIsLoadingPinterestBoards(true);
+    }, 0);
+    void fetch(`/api/twitter-automation/pinterest/boards?socialMediaId=${encodeURIComponent(selectedTarget.id)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null) as { boards?: PinterestBoard[]; errorCode?: string } | null;
+        if (!response.ok) throw new Error(payload?.errorCode ?? "pinterest_boards_unavailable");
+        return Array.isArray(payload?.boards) ? payload.boards : [];
+      })
+      .then((boards) => {
+        if (cancelled) return;
+        setPinterestBoards(boards);
+        setPinterestBoardId(boards[0]?.id ?? "");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setMessage(error instanceof Error && error.message === "token_expired"
+          ? "This Pinterest connection has expired. Connect it again before publishing."
+          : "Pinterest boards could not be loaded. Check the connection and its boards:read permission.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPinterestBoards(false);
+      });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(loadingTimer);
+    };
+  }, [connectionProvider, selectedTarget?.id, selectedTarget?.status]);
+
   async function publish() {
     if (!selectedTarget || !draftCaption || state === "sending") return;
     setState("sending");
@@ -88,7 +146,7 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
       const response = await fetch("/api/twitter-automation/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(asset ? { asset } : {}) }),
+        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(asset ? { asset } : {}), ...(connectionProvider === "pinterest" ? { pinterestBoardId } : {}) }),
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string; postUrl?: string } | null;
       if (!response.ok) {
@@ -96,6 +154,9 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
           provider_not_configured: "This social media account has not been set up yet.",
           token_expired: "This account connection has expired. Connect it again before publishing.",
           invalid_media: "This media cannot be uploaded. Use a PNG, JPEG, or WebP image under 5 MB.",
+          pinterest_board_required: "Choose a Pinterest board before publishing.",
+          pinterest_boards_unavailable: "Pinterest boards could not be loaded. Check the account connection.",
+          youtube_video_required: "YouTube publishing requires a generated video.",
         };
         throw new Error(errors[payload?.errorCode ?? ""] ?? "The post could not be published. Try again.");
       }
@@ -119,10 +180,12 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
         <label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Post text</label>
         <textarea className="mt-2 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none focus:border-[#f5ac27]" maxLength={280} onChange={(event) => setDraftCaption(event.target.value)} value={draftCaption} />
         <p className="mt-1 text-right text-xs text-[#8d8177]">{draftCaption.length}/280</p>
-        {getAsset ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : asset ? "Generated image will be attached." : "No image will be attached."}</p> : null}
-        {requiresXConnection ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Connect this X account once before publishing. The authorization screen will return here after it verifies the account.</p> : null}
+        {getAsset ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : asset ? isVideoAsset(asset) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
+        {requiresConnection ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Connect this {connectionLabel} account once before publishing. The authorization screen will return here after it verifies the account.</p> : null}
+        {connectionProvider === "youtube" && selectedTarget?.status === "connected" && requiresYouTubeVideo ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">YouTube accepts only generated video outputs in this publisher.</p> : null}
+        {connectionProvider === "pinterest" && selectedTarget?.status === "connected" ? <><label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Pinterest board</label><select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" disabled={isLoadingPinterestBoards || !pinterestBoards.length} onChange={(event) => setPinterestBoardId(event.target.value)} value={pinterestBoardId}><option value="">{isLoadingPinterestBoards ? "Loading boards..." : pinterestBoards.length ? "Choose a board" : "No boards available"}</option>{pinterestBoards.map((board) => <option key={board.id} value={board.id}>{board.name}</option>)}</select></> : null}
         {message ? <p className={state === "sent" ? "mt-4 text-sm text-[#9be0b9]" : "mt-4 text-sm text-[#ffb9c1]"}>{message}</p> : null}
-        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button>{requiresXConnection ? <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={() => { if (selectedTarget) window.location.assign(`/api/twitter-automation/oauth/x/start?socialMediaId=${encodeURIComponent(selectedTarget.id)}`); }} type="button">Connect X</Button> : <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || state === "preparing" || state === "sending"} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button>}</div>
+        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button>{requiresConnection ? <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={() => { if (selectedTarget && connectionProvider) window.location.assign(`/api/twitter-automation/oauth/${connectionProvider}/start?socialMediaId=${encodeURIComponent(selectedTarget.id)}`); }} type="button">Connect {connectionLabel}</Button> : <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || state === "preparing" || state === "sending" || (connectionProvider === "pinterest" && (!asset || !pinterestBoardId || isLoadingPinterestBoards)) || requiresYouTubeVideo} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button>}</div>
       </section>
     </div> : null}
   </>;

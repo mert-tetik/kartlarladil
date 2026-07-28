@@ -1797,3 +1797,41 @@ body:has([data-games-active]) {
 .animate-mission-claim-bubble-pulse {
   animation: mission-claim-bubble-pulse 1.1s ease-in-out infinite;
 }
+
+/* The private Content Automation workspace uses a lime accent without changing
+   the amber reward and rank palette used by the consumer app. */
+.content-automation-shell [class~="bg-[#f5ac27]"] {
+  background-color: #caff46 !important;
+}
+
+.content-automation-shell [class~="bg-[#f0b849]"] {
+  background-color: #caff46 !important;
+}
+
+.content-automation-shell [class~="hover:bg-[#ffbf40]"]:hover {
+  background-color: #b8ed35 !important;
+}
+
+.content-automation-shell [class~="text-[#251106]"] {
+  color: #142000 !important;
+}
+
+.content-automation-shell [class~="border-[#f5ac27]"],
+.content-automation-shell [class~="focus:border-[#f5ac27]"]:focus {
+  border-color: #caff46 !important;
+}
+
+.content-automation-shell [class~="bg-[#2b211d]"] {
+  background-color: #202b10 !important;
+}
+
+.content-automation-shell [class~="hover:bg-[#231d19]"]:hover {
+  background-color: #273515 !important;
+}
+
+.content-automation-shell [class~="text-[#ffb355]"],
+.content-automation-shell [class~="text-[#f5d6a7]"],
+.content-automation-shell [class~="text-[#ffcf82]"],
+.content-automation-shell [class~="text-[#e2bc64]"] {
+  color: #dcff80 !important;
+}

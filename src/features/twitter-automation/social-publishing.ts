@@ -1,11 +1,17 @@
 import "server-only";
 
+import crypto from "node:crypto";
+import { isIP } from "node:net";
 import { decryptSocialProviderToken } from "@/features/twitter-automation/social-token-crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const X_MEDIA_UPLOAD_URL = "https://api.x.com/2/media/upload";
 const X_CREATE_POST_URL = "https://api.x.com/2/tweets";
+const PINTEREST_BOARDS_URL = "https://api.pinterest.com/v5/boards?page_size=100";
+const PINTEREST_CREATE_PIN_URL = "https://api.pinterest.com/v5/pins";
+const YOUTUBE_UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_YOUTUBE_VIDEO_BYTES = 40 * 1024 * 1024;
 
 type SocialMediaRow = {
   id: number;
@@ -25,6 +31,23 @@ type DataUrlAsset = {
   mimeType: "image/png" | "image/jpeg" | "image/webp";
 };
 
+type RemoteVideoAsset = {
+  sourceUrl: string;
+  mimeType: "video/mp4" | "video/webm";
+};
+
+type PinterestBoardsResponse = {
+  items?: Array<{ id?: string; name?: string }>;
+};
+
+type PinterestCreatePinResponse = {
+  id?: string;
+};
+
+type YouTubeCreateVideoResponse = {
+  id?: string;
+};
+
 function providerForPlatform(platform: string) {
   const key = platform.trim().toLocaleLowerCase();
   if (key === "x") return "x";
@@ -42,6 +65,42 @@ function parseImageDataUrl(asset: DataUrlAsset) {
   const data = Buffer.from(match[2], "base64");
   if (!data.length || data.length > MAX_IMAGE_BYTES) throw new Error("invalid_media");
   return data;
+}
+
+function isRemoteVideoAsset(asset: DataUrlAsset | RemoteVideoAsset): asset is RemoteVideoAsset {
+  return "sourceUrl" in asset;
+}
+
+function isPrivateIpAddress(hostname: string) {
+  const normalized = hostname.toLocaleLowerCase();
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) return true;
+  if (isIP(normalized) === 4) {
+    const [first, second] = normalized.split(".").map(Number);
+    return first === 10 || first === 127 || first === 0 ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168);
+  }
+  return isIP(normalized) === 6 && (normalized === "::1" || normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd"));
+}
+
+async function downloadYouTubeVideo(asset: RemoteVideoAsset) {
+  let url: URL;
+  try {
+    url = new URL(asset.sourceUrl);
+  } catch {
+    throw new Error("invalid_media");
+  }
+  if (url.protocol !== "https:" || isPrivateIpAddress(url.hostname)) throw new Error("invalid_media");
+
+  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(90_000) });
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (!response.ok || !response.headers.get("content-type")?.toLocaleLowerCase().startsWith("video/") || (Number.isFinite(declaredLength) && declaredLength > MAX_YOUTUBE_VIDEO_BYTES)) {
+    throw new Error("invalid_media");
+  }
+  const video = Buffer.from(await response.arrayBuffer());
+  if (!video.length || video.length > MAX_YOUTUBE_VIDEO_BYTES) throw new Error("invalid_media");
+  return video;
 }
 
 async function getPublishTarget(socialMediaId: number) {
@@ -124,16 +183,145 @@ async function publishToX({ account, connection, caption, asset }: {
   };
 }
 
-export async function publishSocialContent({ socialMediaId, caption, asset }: {
-  socialMediaId: number;
+function getConnectedAccessToken(connection: ConnectionRow) {
+  if (connection.status !== "connected" || !connection.encrypted_access_token) {
+    throw new Error("provider_not_configured");
+  }
+  return decryptSocialProviderToken(connection.encrypted_access_token);
+}
+
+async function markConnectionExpired(connectionId: string) {
+  const supabase = createSupabaseAdminClient();
+  await supabase
+    .from("social_media_connections")
+    .update({ status: "expired", updated_at: new Date().toISOString() })
+    .eq("id", connectionId);
+}
+
+export type PinterestBoard = { id: string; name: string };
+
+export async function listPinterestBoards(socialMediaId: number): Promise<PinterestBoard[]> {
+  const { account, connection } = await getPublishTarget(socialMediaId);
+  if (providerForPlatform(account["Social Media"]) !== "pinterest" || connection.provider !== "pinterest") {
+    throw new Error("provider_not_configured");
+  }
+
+  const accessToken = getConnectedAccessToken(connection);
+  const response = await fetch(PINTEREST_BOARDS_URL, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => null) as PinterestBoardsResponse | null;
+  if (response.status === 401) {
+    await markConnectionExpired(connection.id);
+    throw new Error("token_expired");
+  }
+  if (!response.ok) throw new Error("pinterest_boards_unavailable");
+
+  return (payload?.items ?? []).flatMap((board) => {
+    if (!board.id || !board.name) return [];
+    return [{ id: board.id, name: board.name }];
+  });
+}
+
+async function publishToPinterest({ connection, caption, asset, boardId }: {
+  connection: ConnectionRow;
   caption: string;
   asset?: DataUrlAsset;
+  boardId?: string;
+}) {
+  if (!asset) throw new Error("invalid_media");
+  if (!boardId) throw new Error("pinterest_board_required");
+
+  const image = parseImageDataUrl(asset);
+  const accessToken = getConnectedAccessToken(connection);
+  const response = await fetch(PINTEREST_CREATE_PIN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: caption.slice(0, 100),
+      description: caption,
+      board_id: boardId,
+      media_source: {
+        source_type: "image_base64",
+        content_type: asset.mimeType,
+        data: image.toString("base64"),
+      },
+    }),
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => null) as PinterestCreatePinResponse | null;
+  if (response.status === 401) {
+    await markConnectionExpired(connection.id);
+    throw new Error("token_expired");
+  }
+  if (!response.ok || !payload?.id) throw new Error("provider_publish_failed");
+
+  return { postId: payload.id, postUrl: `https://www.pinterest.com/pin/${payload.id}/` };
+}
+
+function createMultipartVideoBody({ caption, video, mimeType }: { caption: string; video: Buffer; mimeType: RemoteVideoAsset["mimeType"] }) {
+  const boundary = `foxiesdeck-${crypto.randomUUID()}`;
+  const metadata = JSON.stringify({
+    snippet: {
+      title: caption.replace(/\s+/gu, " ").trim().slice(0, 100),
+      description: caption.slice(0, 5000),
+      categoryId: "27",
+    },
+    // New unverified API projects must upload privately until Google audits the project.
+    status: { privacyStatus: "private", selfDeclaredMadeForKids: false },
+  });
+  const start = Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
+  const end = Buffer.from(`\r\n--${boundary}--\r\n`);
+  return { boundary, body: Buffer.concat([start, video, end]) };
+}
+
+async function publishToYouTube({ connection, caption, asset }: {
+  connection: ConnectionRow;
+  caption: string;
+  asset?: DataUrlAsset | RemoteVideoAsset;
+}) {
+  if (!asset || !isRemoteVideoAsset(asset)) throw new Error("youtube_video_required");
+
+  const [accessToken, video] = await Promise.all([
+    Promise.resolve(getConnectedAccessToken(connection)),
+    downloadYouTubeVideo(asset),
+  ]);
+  const multipart = createMultipartVideoBody({ caption, video, mimeType: asset.mimeType });
+  const response = await fetch(YOUTUBE_UPLOAD_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary=${multipart.boundary}`,
+    },
+    body: multipart.body,
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => null) as YouTubeCreateVideoResponse | null;
+  if (response.status === 401) {
+    await markConnectionExpired(connection.id);
+    throw new Error("token_expired");
+  }
+  if (!response.ok || !payload?.id) throw new Error("provider_publish_failed");
+  return { postId: payload.id, postUrl: `https://www.youtube.com/watch?v=${payload.id}` };
+}
+
+export async function publishSocialContent({ socialMediaId, caption, asset, pinterestBoardId }: {
+  socialMediaId: number;
+  caption: string;
+  asset?: DataUrlAsset | RemoteVideoAsset;
+  pinterestBoardId?: string;
 }) {
   const { account, connection } = await getPublishTarget(socialMediaId);
   const provider = providerForPlatform(account["Social Media"]);
   if (!provider || provider !== connection.provider) throw new Error("provider_not_configured");
-  if (provider !== "x") throw new Error("provider_not_configured");
-  return publishToX({ account, connection, caption, asset });
+  if (provider === "x") return publishToX({ account, connection, caption, asset: asset && !isRemoteVideoAsset(asset) ? asset : undefined });
+  if (provider === "pinterest") return publishToPinterest({ connection, caption, asset: asset && !isRemoteVideoAsset(asset) ? asset : undefined, boardId: pinterestBoardId });
+  if (provider === "youtube") return publishToYouTube({ connection, caption, asset });
+  throw new Error("provider_not_configured");
 }
 
-export type { DataUrlAsset };
+export type { DataUrlAsset, RemoteVideoAsset };

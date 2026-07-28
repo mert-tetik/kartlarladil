@@ -539,6 +539,19 @@ SOCIAL_AUTOMATION_OAUTH_STATE_SECRET, SOCIAL_AUTOMATION_OAUTH_BASE_URL,
 X_OAUTH_CLIENT_ID, and X_OAUTH_CLIENT_SECRET. The X callback URL is
 /api/twitter-automation/oauth/x/callback.
 
+Pinterest OAuth uses PINTEREST_OAUTH_CLIENT_ID and PINTEREST_OAUTH_CLIENT_SECRET.
+Its callback URL is /api/twitter-automation/oauth/pinterest/callback. The
+connection requests user_accounts:read, boards:read, and pins:write so the
+authorized account can be verified and later publish Pins to a selected board.
+Pinterest tokens are encrypted with the same server-only
+SOCIAL_AUTOMATION_TOKEN_ENCRYPTION_KEY used for X.
+
+YouTube OAuth uses YOUTUBE_OAUTH_CLIENT_ID and YOUTUBE_OAUTH_CLIENT_SECRET.
+Its callback URL is /api/twitter-automation/oauth/youtube/callback. It requests
+the minimum upload and channel-read scopes needed to verify the configured
+channel and upload a generated AI video. YouTube uploads start as private until
+the Google API project passes YouTube's required audit for public publishing.
+
 MANUAL PUBLISHING
 -----------------
 Every generated text, image, and video result exposes icon-only social platform
