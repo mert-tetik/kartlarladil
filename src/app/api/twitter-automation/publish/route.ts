@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : "provider_publish_failed";
-    const status = errorCode === "account_not_found" ? 404 : errorCode === "invalid_media" || errorCode === "youtube_video_required" ? 400 : errorCode === "provider_not_configured" ? 409 : 502;
+    const status = errorCode === "account_not_found" ? 404 : errorCode === "invalid_media" || errorCode === "instagram_image_required" || errorCode === "youtube_video_required" ? 400 : errorCode === "provider_not_configured" ? 409 : 502;
     return NextResponse.json({ errorCode }, { status });
   }
 }

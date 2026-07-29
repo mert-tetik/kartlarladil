@@ -9,6 +9,8 @@ const X_MEDIA_UPLOAD_URL = "https://api.x.com/2/media/upload";
 const X_CREATE_POST_URL = "https://api.x.com/2/tweets";
 const PINTEREST_BOARDS_URL = "https://api.pinterest.com/v5/boards?page_size=100";
 const PINTEREST_CREATE_PIN_URL = "https://api.pinterest.com/v5/pins";
+const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
+const INSTAGRAM_ASSET_BUCKET = "social-publishing";
 const YOUTUBE_UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_YOUTUBE_VIDEO_BYTES = 40 * 1024 * 1024;
@@ -22,6 +24,7 @@ type SocialMediaRow = {
 type ConnectionRow = {
   id: string;
   provider: string;
+  provider_account_id: string | null;
   encrypted_access_token: string | null;
   status: string;
 };
@@ -45,6 +48,18 @@ type PinterestCreatePinResponse = {
 };
 
 type YouTubeCreateVideoResponse = {
+  id?: string;
+};
+
+type InstagramCreateContainerResponse = {
+  id?: string;
+};
+
+type InstagramContainerStatusResponse = {
+  status_code?: "EXPIRED" | "ERROR" | "FINISHED" | "IN_PROGRESS" | "PUBLISHED";
+};
+
+type InstagramPublishResponse = {
   id?: string;
 };
 
@@ -116,7 +131,7 @@ async function getPublishTarget(socialMediaId: number) {
 
   const { data: connection, error: connectionError } = await supabase
     .from("social_media_connections")
-    .select("id,provider,encrypted_access_token,status")
+    .select("id,provider,provider_account_id,encrypted_access_token,status")
     .eq("social_media_id", account.id)
     .maybeSingle<ConnectionRow>();
   if (connectionError || !connection) throw new Error("provider_not_configured");
@@ -263,6 +278,101 @@ async function publishToPinterest({ connection, caption, asset, boardId }: {
   return { postId: payload.id, postUrl: `https://www.pinterest.com/pin/${payload.id}/` };
 }
 
+function extensionForImage(mimeType: DataUrlAsset["mimeType"]) {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/webp") return "webp";
+  return "jpg";
+}
+
+async function uploadInstagramImage(asset: DataUrlAsset) {
+  const image = parseImageDataUrl(asset);
+  const path = `instagram/${crypto.randomUUID()}.${extensionForImage(asset.mimeType)}`;
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.storage
+    .from(INSTAGRAM_ASSET_BUCKET)
+    .upload(path, image, { contentType: asset.mimeType, cacheControl: "3600", upsert: false });
+  if (error) throw new Error("instagram_media_upload_failed");
+
+  const { data } = supabase.storage.from(INSTAGRAM_ASSET_BUCKET).getPublicUrl(path);
+  if (!data.publicUrl) {
+    await supabase.storage.from(INSTAGRAM_ASSET_BUCKET).remove([path]);
+    throw new Error("instagram_media_upload_failed");
+  }
+  return { path, publicUrl: data.publicUrl };
+}
+
+async function removeInstagramImage(path: string) {
+  const supabase = createSupabaseAdminClient();
+  await supabase.storage.from(INSTAGRAM_ASSET_BUCKET).remove([path]);
+}
+
+async function waitForInstagramContainer(containerId: string, accessToken: string) {
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    const url = new URL(`${INSTAGRAM_GRAPH_URL}/${containerId}`);
+    url.searchParams.set("fields", "status_code");
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => null) as InstagramContainerStatusResponse | null;
+    if (response.status === 401) throw new Error("token_expired");
+    if (!response.ok || payload?.status_code === "ERROR" || payload?.status_code === "EXPIRED") {
+      throw new Error("instagram_container_failed");
+    }
+    if (payload?.status_code === "FINISHED" || payload?.status_code === "PUBLISHED") return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 1_500));
+  }
+  throw new Error("instagram_container_timeout");
+}
+
+async function publishToInstagram({ connection, caption, asset }: {
+  connection: ConnectionRow;
+  caption: string;
+  asset?: DataUrlAsset;
+}) {
+  if (!asset) throw new Error("instagram_image_required");
+  if (!connection.provider_account_id) throw new Error("provider_not_configured");
+
+  const accessToken = getConnectedAccessToken(connection);
+  const uploadedAsset = await uploadInstagramImage(asset);
+  try {
+    const createResponse = await fetch(`${INSTAGRAM_GRAPH_URL}/${connection.provider_account_id}/media`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ image_url: uploadedAsset.publicUrl, caption }),
+      cache: "no-store",
+    });
+    const createPayload = await createResponse.json().catch(() => null) as InstagramCreateContainerResponse | null;
+    if (createResponse.status === 401) throw new Error("token_expired");
+    if (!createResponse.ok || !createPayload?.id) throw new Error("instagram_container_failed");
+
+    await waitForInstagramContainer(createPayload.id, accessToken);
+    const publishResponse = await fetch(`${INSTAGRAM_GRAPH_URL}/${connection.provider_account_id}/media_publish`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ creation_id: createPayload.id }),
+      cache: "no-store",
+    });
+    const publishPayload = await publishResponse.json().catch(() => null) as InstagramPublishResponse | null;
+    if (publishResponse.status === 401) throw new Error("token_expired");
+    if (!publishResponse.ok || !publishPayload?.id) throw new Error("provider_publish_failed");
+    return { postId: publishPayload.id, postUrl: `https://www.instagram.com/p/${publishPayload.id}/` };
+  } catch (error) {
+    if (error instanceof Error && error.message === "token_expired") {
+      await markConnectionExpired(connection.id);
+    }
+    throw error;
+  } finally {
+    await removeInstagramImage(uploadedAsset.path);
+  }
+}
+
 function createMultipartVideoBody({ caption, video, mimeType }: { caption: string; video: Buffer; mimeType: RemoteVideoAsset["mimeType"] }) {
   const boundary = `foxiesdeck-${crypto.randomUUID()}`;
   const metadata = JSON.stringify({
@@ -319,6 +429,9 @@ export async function publishSocialContent({ socialMediaId, caption, asset, pint
   const provider = providerForPlatform(account["Social Media"]);
   if (!provider || provider !== connection.provider) throw new Error("provider_not_configured");
   if (provider === "x") return publishToX({ account, connection, caption, asset: asset && !isRemoteVideoAsset(asset) ? asset : undefined });
+  if (account["Social Media"].trim().toLocaleLowerCase() === "instagram") {
+    return publishToInstagram({ connection, caption, asset: asset && !isRemoteVideoAsset(asset) ? asset : undefined });
+  }
   if (provider === "pinterest") return publishToPinterest({ connection, caption, asset: asset && !isRemoteVideoAsset(asset) ? asset : undefined, boardId: pinterestBoardId });
   if (provider === "youtube") return publishToYouTube({ connection, caption, asset });
   throw new Error("provider_not_configured");

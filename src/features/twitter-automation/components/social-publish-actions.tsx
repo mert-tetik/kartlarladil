@@ -78,8 +78,9 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const selectedTargets = targets.filter((target) => platformKey(target.platform) === selectedPlatform);
   const selectedTarget = selectedTargets.find((target) => target.id === selectedTargetId) ?? selectedTargets[0];
   const connectionProvider = selectedTarget ? platformKey(selectedTarget.platform) : null;
-  const requiresConnection = (connectionProvider === "x" || connectionProvider === "pinterest" || connectionProvider === "youtube") && selectedTarget?.status !== "connected";
-  const connectionLabel = connectionProvider === "pinterest" ? "Pinterest" : connectionProvider === "youtube" ? "YouTube" : "X";
+  const requiresConnection = (connectionProvider === "x" || connectionProvider === "instagram" || connectionProvider === "pinterest" || connectionProvider === "youtube") && selectedTarget?.status !== "connected";
+  const connectionLabel = connectionProvider === "instagram" ? "Instagram" : connectionProvider === "pinterest" ? "Pinterest" : connectionProvider === "youtube" ? "YouTube" : "X";
+  const requiresInstagramImage = connectionProvider === "instagram" && (!asset || isVideoAsset(asset));
   const requiresYouTubeVideo = connectionProvider === "youtube" && !isVideoAsset(asset);
 
   async function openPublisher(platform: string) {
@@ -156,6 +157,10 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
           invalid_media: "This media cannot be uploaded. Use a PNG, JPEG, or WebP image under 5 MB.",
           pinterest_board_required: "Choose a Pinterest board before publishing.",
           pinterest_boards_unavailable: "Pinterest boards could not be loaded. Check the account connection.",
+          instagram_image_required: "Instagram publishing requires a generated image.",
+          instagram_media_upload_failed: "The image could not be prepared for Instagram publishing.",
+          instagram_container_failed: "Instagram could not process this image. Try another generated image.",
+          instagram_container_timeout: "Instagram is taking too long to prepare this image. Try again.",
           youtube_video_required: "YouTube publishing requires a generated video.",
         };
         throw new Error(errors[payload?.errorCode ?? ""] ?? "The post could not be published. Try again.");
@@ -182,10 +187,11 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
         <p className="mt-1 text-right text-xs text-[#8d8177]">{draftCaption.length}/280</p>
         {getAsset ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : asset ? isVideoAsset(asset) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
         {requiresConnection ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Connect this {connectionLabel} account once before publishing. The authorization screen will return here after it verifies the account.</p> : null}
+        {connectionProvider === "instagram" && selectedTarget?.status === "connected" && requiresInstagramImage ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Instagram accepts only generated image outputs in this publisher.</p> : null}
         {connectionProvider === "youtube" && selectedTarget?.status === "connected" && requiresYouTubeVideo ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">YouTube accepts only generated video outputs in this publisher.</p> : null}
         {connectionProvider === "pinterest" && selectedTarget?.status === "connected" ? <><label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Pinterest board</label><select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" disabled={isLoadingPinterestBoards || !pinterestBoards.length} onChange={(event) => setPinterestBoardId(event.target.value)} value={pinterestBoardId}><option value="">{isLoadingPinterestBoards ? "Loading boards..." : pinterestBoards.length ? "Choose a board" : "No boards available"}</option>{pinterestBoards.map((board) => <option key={board.id} value={board.id}>{board.name}</option>)}</select></> : null}
         {message ? <p className={state === "sent" ? "mt-4 text-sm text-[#9be0b9]" : "mt-4 text-sm text-[#ffb9c1]"}>{message}</p> : null}
-        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button>{requiresConnection ? <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={() => { if (selectedTarget && connectionProvider) window.location.assign(`/api/twitter-automation/oauth/${connectionProvider}/start?socialMediaId=${encodeURIComponent(selectedTarget.id)}`); }} type="button">Connect {connectionLabel}</Button> : <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || state === "preparing" || state === "sending" || (connectionProvider === "pinterest" && (!asset || !pinterestBoardId || isLoadingPinterestBoards)) || requiresYouTubeVideo} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button>}</div>
+        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button>{requiresConnection ? <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={() => { if (selectedTarget && connectionProvider) window.location.assign(`/api/twitter-automation/oauth/${connectionProvider}/start?socialMediaId=${encodeURIComponent(selectedTarget.id)}`); }} type="button">Connect {connectionLabel}</Button> : <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || state === "preparing" || state === "sending" || (connectionProvider === "pinterest" && (!asset || !pinterestBoardId || isLoadingPinterestBoards)) || requiresInstagramImage || requiresYouTubeVideo} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button>}</div>
       </section>
     </div> : null}
   </>;

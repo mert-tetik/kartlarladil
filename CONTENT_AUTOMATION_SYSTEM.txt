@@ -552,6 +552,13 @@ the minimum upload and channel-read scopes needed to verify the configured
 channel and upload a generated AI video. YouTube uploads start as private until
 the Google API project passes YouTube's required audit for public publishing.
 
+Instagram OAuth uses INSTAGRAM_OAUTH_APP_ID and INSTAGRAM_OAUTH_APP_SECRET.
+Its callback URL is /api/twitter-automation/oauth/instagram/callback. It requests
+Instagram Login's professional-account basic and content-publishing permissions,
+verifies the configured Instagram username, and encrypts the long-lived token.
+Image posts use a temporary public Storage object only while Meta ingests the
+image container; the object is deleted immediately after publishing completes.
+
 MANUAL PUBLISHING
 -----------------
 Every generated text, image, and video result exposes icon-only social platform
