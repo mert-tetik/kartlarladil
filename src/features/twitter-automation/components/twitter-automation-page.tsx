@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Copy, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Video } from "lucide-react";
+import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Video } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
+import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
+import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
@@ -135,7 +137,7 @@ function aiImageUsesTier(mode: AiImageGeneratorMode) {
   return mode === "ai-word-of-the-day" || mode === "ai-mini-quiz" || mode === "ai-daily-challenge";
 }
 
-export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" }) {
+export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [username, setUsername] = useState("");
@@ -737,7 +739,15 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   if (view === "automations") {
-    return <AutomationTable onBack={() => router.push("/content-automation")} />;
+    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} />;
+  }
+
+  if (view === "social-medias") {
+    return <SocialMediasTable onBack={() => router.push("/content-automation")} onOpenAutomations={() => router.push("/content-automation/automations")} />;
+  }
+
+  if (view === "scheduled-posts") {
+    return <ScheduledPostsTable onBack={() => router.push("/content-automation")} />;
   }
 
   return (
@@ -749,9 +759,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
             <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Social content studio</h1>
             <p className="mt-2 text-sm leading-6 text-[#cdbfb3]">Choose a format first, then create an export-ready post for the right channel.</p>
           </div>
-          <Button className="h-11 shrink-0 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/content-automation/automations")} type="button">
-            <ListChecks className="size-4" aria-hidden="true" />Automation table
-          </Button>
+          <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap"><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/social-medias")} type="button"><Database className="size-4" aria-hidden="true" />Social medias</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Automation table</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/scheduled-posts")} type="button"><CalendarClock className="size-4" aria-hidden="true" />Scheduled Posts</Button></div>
         </header>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -762,18 +770,18 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
               <button
                 className={cn(
                   "flex min-h-24 items-start gap-3 rounded-lg border p-4 text-left transition-colors",
-                  selected ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 bg-[#1b1714] hover:bg-[#231d19]",
+                  selected ? "border-[#f5ac27] bg-[#f5ac27] text-black" : "border-white/10 bg-[#1b1714] hover:bg-[#231d19]",
                 )}
                 key={option.value}
                 onClick={() => selectStudioMode(option.value)}
                 type="button"
               >
-                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", selected ? "bg-[#f5ac27] text-[#251106]" : "bg-white/10 text-[#f5d6a7]")}>
+                <span className={cn("flex size-9 shrink-0 items-center justify-center", selected ? "text-black" : "text-[#f5d6a7]")}>
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
                 <span>
                   <span className="block text-base font-semibold">{option.label}</span>
-                  <span className="mt-1 block text-sm leading-5 text-[#cdbfb3]">{option.description}</span>
+                  <span className={cn("mt-1 block text-sm leading-5", selected ? "text-black/75" : "text-[#cdbfb3]")}>{option.description}</span>
                 </span>
               </button>
             );

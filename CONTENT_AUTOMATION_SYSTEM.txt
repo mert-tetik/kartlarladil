@@ -227,6 +227,46 @@ onerilir.
 6. KART VE MEDYA API'LERI
 ------------------------
 
+6.1. Upload-Post ile manuel publish
+
+Studio icindeki tum aktif manuel publish istekleri Upload-Post uzerinden gider.
+FoxiesDeck platform OAuth tokeni saklamaz veya sosyal ag API'lerine dogrudan
+publish yapmaz. social_medias tablosu Studio'da gorunen publish hedeflerini
+tutar; Social Media alani Upload-Post platform anahtarina eslenir, Account Name
+ise admin arayuzunde hedefi tanimlamak icindir.
+
+Gerekli server environment degiskeni:
+- UPLOAD_POST_API_KEY
+
+Her social_medias satirindaki "upload-post profile username" alani o hedef
+icin Upload-Post profile adini tasir; sosyal medya handle'i olmak zorunda degildir.
+
+Pinterest image/video publish icin UPLOAD_POST_PINTEREST_BOARD_ID gerekir.
+Birden cok Facebook Page bagliysa UPLOAD_POST_FACEBOOK_PAGE_ID de verilmelidir.
+Anahtar sadece server tarafinda tutulur. Her istek Upload-Post'a idempotency
+anahtariyla gonderilir. Upload-Post asenkron isleme donerse Studio request id'yi
+gosterir; nihai durum Upload-Post dashboardundan takip edilir.
+
+Aktif Studio akisi text, PNG/JPEG/WebP image ve HTTPS URL'li video sonucunu
+Upload-Post'un ilgili endpointine gonderir. Tarayicida uretilen local WebM music
+video blob'u public bir video URL'si olmadigi icin bu akista henuz publish edilmez;
+indirilebilir export olarak kalir.
+
+15.1. Gecici medya staging ve temizlik
+
+Automation tarafinda uretilen AI image ve AI avatar video, Upload-Post'a
+gonderilmeden once private social-studio-automation bucket'ina kopyalanir.
+Video tesliminde Upload-Post'a bu kopyanin 24 saat gecerliligi olan signed URL'i
+verilir; image teslimi ise ayni private kopyadan okunarak yapilir. Basarili
+schedule'dan 48 saat sonra dosya ve output'un medya referansi silinir. Bu grace
+period, Upload-Post'un medyayi tekrar okumasina/retry etmesine pay birakir ancak
+Storage'in kalici arsiv olarak buyumesini engeller.
+
+Vercel Cron her gun 03:15 UTC'de /api/twitter-automation/maintenance endpointini
+calistirir. Bu endpoint CRON_SECRET ile Bearer auth ister ve sadece automation/
+prefixli, 48 saatten eski, basariyla schedule edilmis medya dosyalarini temizler.
+Migration: supabase/migrations/20260801000000_expand_social_automation_staging_storage.sql
+
 Mevcut studio endpoint ailesi:
 - /api/twitter-automation/auth
   Admin oturum durumunu okur ve login istegini isler.
@@ -240,8 +280,10 @@ Mevcut studio endpoint ailesi:
   Avatar video jobini baslatir ve durumunu sorgular.
 - /api/twitter-automation/automations
   Automation Table state'ini Supabase'e okur/yazar.
-- /api/twitter-automation/media
-  Studio medya akisinin ilgili route noktasi.
+- /api/twitter-automation/publish
+  Studio sonucunu Upload-Post'a gonderir.
+- /api/twitter-automation/scheduled-posts
+  Upload-Post zamanlanmis postlarini listeler ve bir job_id ile iptal eder.
 
 AI image/video endpointlerinde OPENAI_API_KEY; avatar video pipeline'inda
 ayrica POYO_API_KEY gerekir. Anahtarlar sadece server tarafinda kullanilir.
@@ -284,6 +326,11 @@ Yeni tablo iki ornek grupla baslar:
 Her grup en az bir satir tasir. Bir grup en fazla 100 satir, tum tablo en
 fazla 30 grup kabul eder.
 
+Grup basligindaki renk seciciyle her grubun vurgusu manuel olarak ayarlanir.
+Secilen hex renk, grup verisiyle Supabase'e kaydedilir. Grup basligi dogrudan
+bu rengi alir; satirlar ayni hue'da daha dusuk saturation ve value ile uretilen
+koyu tonu kullanir.
+
 
 9. AUTOMATION ROW SEMASI VE KOLONLAR
 ------------------------------------
@@ -301,8 +348,10 @@ Gorunen kolonlar:
 
 Her satirin kalici veri alani:
 - id: UUID.
-- contentType: random, text, image veya video.
-- generator: Secilen mod veya random mod.
+- contentTypes: Bir veya daha fazla secimli Text/Image/Video listesi.
+- generators: Her secili content type icin ayri generator modu.
+- contentType ve generator: Eski kayitlarla uyumluluk icin tutulan, tek secimde
+  ilgili degeri; iki secimde random degerini tasiyan alanlar.
 - language: Ogrenilen dil.
 - nativeLanguage: Ana dil.
 - tier: A1/A2/B1/B2/C1 veya random.
@@ -326,10 +375,12 @@ Varsayilan yeni satir:
 10. CONTENT TYPE VE GENERATOR SECENEKLERI
 -----------------------------------------
 
-Content type = Random:
-- Random content mode.
+Content type hucresinde Text, Image ve Video ayri checkbox'lardir. En az biri
+secili kalir. Birden fazla tur secildiginde generator hucrelerinde her biri icin
+ayri dropdown gorunur ve her planlanan output olusturulurken secili turler
+arasindan rastgele secim yapilir.
 
-Content type = Text:
+Text generator:
 - Random text mode.
 - Fun FoxiesDeck Post.
 - Word Quiz.
@@ -338,7 +389,7 @@ Content type = Text:
 - Daily Challenge.
 - Relatable Learner Post.
 
-Content type = Image:
+Image generator:
 - Random image mode.
 - Random AI-generated image.
 - Random no-AI image.
@@ -350,31 +401,31 @@ Content type = Image:
 - AI Daily Challenge.
 - AI Beginner to Advanced.
 
-Content type = Video:
+Video generator:
 - Random video mode.
 - AI Word of the Day Video.
 
-Not: Content Studio video sekmesinde image modlarindan uretilen music video
-secenekleri de vardir. Bunlar calisan manuel studio secenekleridir; Automation
-Table video generator listesine henuz eklenmemistir.
+Browser'a bagli music video secenekleri manuel Content Studio'da kalir;
+Automation Table'da secilemez.
 
 
 11. PARAMETRE VE RANDOM DAVRANISI
 ---------------------------------
 
-Parameters hucreleri uc secim icerir:
+Parameters hucreleri, her dropdown'un ustunde adi gorunecek sekilde uc secim
+icerir:
 - Learning language.
 - Native language.
 - Tier.
 
-Tier "Random" olabilir. Planlanan executor calistiginda random mod, random
-tier ve kayitli schedule window icindeki rastgele bir saati sececektir.
-Bu secim mantigi footer metninde anlatilir, ancak executor henuz yoktur;
-bugun bu alanlar sadece kalici plan verisidir.
+Tier "Random" olabilir. Planlanan executor calistiginda random tier ve kayitli
+schedule window icindeki rastgele bir saat secilir. Birden fazla content type
+seciliyse, output bazinda content type da rastgele secilir.
 
-Content type Random, tum content ailelerinden bir mod secmek icindir.
 Image altindaki "Random AI-generated image" ve "Random no-AI image" ayrimi,
-ileride image maliyeti ve format tercihini kontrol etmek icindir.
+image maliyeti ve format tercihini kontrol eder. Grup basligindaki Save group
+butonu o gruptaki tum satirlari saved durumuna getirir ve mevcut otomatik
+Supabase kaydini tetikler.
 
 
 12. SOSYAL AG VE HESAP SECIMI
@@ -465,32 +516,44 @@ bu is icin Supabase admin client kullanir ve kendi admin cookie kontrolunu
 uygular.
 
 
-15. HENUZ YOK / SONRAKI UYGULAMA ASAMALARI
+15. OTOMASYON RUN VE URETILEN POST KUYRUGU
 ------------------------------------------
 
-Mevcut tablo kalici ve dogrulanmis bir automation tarifi saklar; fakat asagidaki
-parcalar henuz yapilmamistir:
-- Cron veya background scheduler.
-- Schedule window icinden rastgele zamani gercekten secen executor.
-- Job queue ve concurrency kontrolu.
-- Icerigi bir kez uretip birden fazla platform/hesaba dagitan worker.
-- X, Instagram, Facebook, LinkedIn ve TikTok OAuth baglantilari.
-- Token saklama/yenileme ve hesap registry'sinin gercek API verisinden gelmesi.
-- Platform API'leriyle post/media upload.
-- Publish durumlari, retry, backoff, hata loglari ve audit trail.
-- Uretilen medya/captionin satira bagli kalici asset kaydi.
-- Onay akisi, dry-run, preview veya "publish now".
+Automation Table ustundeki Schedule for 1 day, Schedule for 3 days ve
+Schedule for 1 week butonlari calisan bir run olusturur. Baslangic gunu dahil
+edilmez: 3 gun secildiginde her aktif satir icin Day 1, Day 2 ve Day 3 olmak
+uzere uc ayri output kaydi olusur. Her kayit kendi schedule window araligindan
+rastgele bir Europe/Istanbul saati alir.
 
-Guvenli sonraki mimari:
-1. Automation row'lardan planli execution joblari olustur.
-2. Joblari bir queue'ya yaz; idempotency key ile duplicate paylasimi engelle.
-3. Icerigi bir kere uret, media asset ve captioni kalici depola.
-4. Her platform + hesap icin ayri delivery job olustur.
-5. Provider basarisizsa retry/backoff uygula; kalici hata ve sonuclari logla.
-6. OAuth tokenlarini sifreli sakla, refresh ve revoke akislarini ekle.
+Her output, bir satir ve bir gun icin sadece bir kez uretim yapar. Ayni satirda
+birden fazla secili hesap varsa uretilen caption/medya tekrar uretilmez;
+Upload-Post'a secili hesaplar icin ayri, idempotent schedule istegi gonderilir.
+Text, AI image ve AI avatar video modlari desteklenir. Browser'a bagli music
+video modlari automation tablosunda sunulmadigi icin kuyruk tarafindan islenmez.
 
-Bu asamalar tamamlanmadan tabloyu "planlama tablosu" olarak degerlendirmek
-gerekir; otomatik paylasim sistemi olarak degil.
+Automation Table ustundeki Generated Posts butonu, kuyrugu ayni ekranda tam
+sayfa overlay olarak acar. Kapat butonu veya Escape ile tabloya geri donulur.
+Overlay acik oldugunda kuyruk birer kayit halinde devam eder; overlay kapansa
+bile Supabase kayitlari korunur ve tekrar acildiginda devam eder. AI avatar video
+tamamlanana kadar generating_video durumunda kalir, sonra ayni kayit Upload-Post
+ile schedule edilir. Medya thumbnail'ina tiklamak buyuk gorunumu acar; X veya
+Escape ile kapanir.
+
+Kalici tablolar:
+- public.social_content_automation_runs: bir buton tiklamasinin horizon ve genel
+  durum kaydi.
+- public.social_content_automation_outputs: gun/satir bazli caption, medya,
+  provider task, Upload-Post job ve hata kaydi.
+- private social-studio-automation Storage bucket: uretilen image ve video
+  previewleri. Sayfa bu dosyalari yalniz imzali, kisa omurlu URL ile gorur.
+
+Bu nesnelerde RLS aciktir; anon ve authenticated erisimleri kaldirilir. Yalniz
+server-side service_role client, imzali studio oturumu kontrolunden sonra erisir.
+Migration: supabase/migrations/20260731122229_add_social_content_automation_runs.sql
+
+Cron veya ayri bir background worker henuz eklenmemistir. Bu nedenle pending
+isleri calistirmak icin Generated Posts overlay'inin acik kalmasi gerekir. Failed
+durumlari hata koduyla saklanir; tekrar deneme/backoff yonetimi sonraki asamadir.
 
 
 16. ILGILI KAYNAK DOSYALAR
@@ -512,19 +575,33 @@ gerekir; otomatik paylasim sistemi olarak degil.
   Browser tabanli 30 saniye music video renderer'i.
 - src/app/api/twitter-automation/automations/route.ts
   Automation state GET/PUT endpointi ve server-side validation.
+- src/app/api/twitter-automation/automation-runs/route.ts
+  Gun bazli output run olusturma ve takip listesi endpointi.
+- src/app/api/twitter-automation/automation-runs/process/route.ts
+  Bir sonraki kuyruğu ureten, video durumunu kontrol eden ve Upload-Post'a
+  schedule eden worker endpointi.
+- src/app/api/twitter-automation/maintenance/route.ts
+  48 saatlik staging grace period'u dolan medya dosyalarini temizleyen Cron endpointi.
+- src/features/twitter-automation/automation-run-service.ts
+  Mevcut text/image/video generatorlarini tekrar kullanan server-side run
+  orkestrasyonu, medya Storage ve idempotent Upload-Post teslimi.
+- src/features/twitter-automation/components/generated-posts-table.tsx
+  Kuyruk, durum, medya preview ve auto-resume arayuzu.
 - src/features/twitter-automation/social-studio-auth.ts
   Imzali admin oturumu kontrolu.
 - src/features/twitter-automation/social-studio-openai.ts
   Social content prompt model sabiti.
 - supabase/migrations/20260726155503_social_content_automation.sql
   Gruplu automation state persistence migration'i.
+- supabase/migrations/20260731122229_add_social_content_automation_runs.sql
+  Run/output tablolari ve otomasyon medyasi Storage bucket'i.
 - public/social-audio/
   Browser-rendered video icin yerel sosyal video muzik dosyalari ve lisans
   notlari.
 
-Son guncelleme amaci: Content Studio manuel olarak icerik uretebilsin;
-Automation Table ise bu uretimleri daha sonra scheduler ve sosyal medya
-provider entegrasyonlariyla calistiracak duzenli, kalici planlari tutsun.
+Son guncelleme amaci: Content Studio manuel uretimin yaninda, Automation Table
+tariflerinden gun bazli yeni icerik uretebilsin ve bunlari Upload-Post uzerinden
+gelecek gunlere schedule edebilsin.
 SOCIAL PROVIDER CONNECTIONS
 ---------------------------
 The foundation migration keeps provider accounts, encrypted OAuth tokens, scheduled

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { publishSocialContent } from "@/features/twitter-automation/social-publishing";
+import { publishWithUploadPost } from "@/features/twitter-automation/upload-post-publishing";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 
 export const runtime = "nodejs";
@@ -21,7 +21,6 @@ const schema = z.object({
   socialMediaId: z.number().int().positive(),
   caption: z.string().trim().min(1).max(280),
   asset: z.union([imageAssetSchema, videoAssetSchema]).optional(),
-  pinterestBoardId: z.string().trim().min(1).max(120).optional(),
 }).strict();
 
 export async function POST(request: NextRequest) {
@@ -31,11 +30,14 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_request" }, { status: 400 });
 
   try {
-    const result = await publishSocialContent(parsed.data);
+    const result = await publishWithUploadPost(parsed.data);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    const errorCode = error instanceof Error ? error.message : "provider_publish_failed";
-    const status = errorCode === "account_not_found" ? 404 : errorCode === "invalid_media" || errorCode === "instagram_image_required" || errorCode === "youtube_video_required" ? 400 : errorCode === "provider_not_configured" ? 409 : 502;
+    const errorCode = error instanceof Error ? error.message : "upload_post_unavailable";
+    const status = errorCode === "account_not_found" ? 404
+      : errorCode === "invalid_media" || errorCode === "upload_post_unsupported_content" ? 400
+        : errorCode === "upload_post_not_configured" || errorCode === "upload_post_pinterest_board_not_configured" ? 409
+          : errorCode === "upload_post_rejected" ? 502 : 503;
     return NextResponse.json({ errorCode }, { status });
   }
 }

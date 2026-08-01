@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/twitter-automation/maintenance",
+      "schedule": "15 3 * * *"
+    }
+  ]
+}

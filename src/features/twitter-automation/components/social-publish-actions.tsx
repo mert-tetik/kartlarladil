@@ -23,11 +23,6 @@ type PublishTarget = {
   status: string;
 };
 
-type PinterestBoard = {
-  id: string;
-  name: string;
-};
-
 type PublishState = "idle" | "preparing" | "sending" | "sent" | "error";
 
 function platformKey(platform: string) {
@@ -61,9 +56,6 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null);
   const [draftCaption, setDraftCaption] = useState(caption);
   const [asset, setAsset] = useState<SocialPublishAsset>();
-  const [pinterestBoards, setPinterestBoards] = useState<PinterestBoard[]>([]);
-  const [pinterestBoardId, setPinterestBoardId] = useState("");
-  const [isLoadingPinterestBoards, setIsLoadingPinterestBoards] = useState(false);
   const [state, setState] = useState<PublishState>("idle");
   const [message, setMessage] = useState("");
 
@@ -77,11 +69,10 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const platforms = [...new Map(targets.map((target) => [platformKey(target.platform), target.platform])).entries()];
   const selectedTargets = targets.filter((target) => platformKey(target.platform) === selectedPlatform);
   const selectedTarget = selectedTargets.find((target) => target.id === selectedTargetId) ?? selectedTargets[0];
-  const connectionProvider = selectedTarget ? platformKey(selectedTarget.platform) : null;
-  const requiresConnection = (connectionProvider === "x" || connectionProvider === "instagram" || connectionProvider === "pinterest" || connectionProvider === "youtube") && selectedTarget?.status !== "connected";
-  const connectionLabel = connectionProvider === "instagram" ? "Instagram" : connectionProvider === "pinterest" ? "Pinterest" : connectionProvider === "youtube" ? "YouTube" : "X";
-  const requiresInstagramImage = connectionProvider === "instagram" && (!asset || isVideoAsset(asset));
-  const requiresYouTubeVideo = connectionProvider === "youtube" && !isVideoAsset(asset);
+  const selectedPlatformKey = selectedTarget ? platformKey(selectedTarget.platform) : null;
+  const uploadPostReady = selectedTarget?.status === "ready";
+  const textOnly = !getAsset;
+  const textOnlySupported = selectedPlatformKey ? ["x", "linkedin", "facebook", "threads", "reddit", "bluesky", "discord", "telegram", "google_business", "slack", "mastodon", "nostr", "lemmy", "devto", "hashnode", "wordpress", "whop", "listmonk"].includes(selectedPlatformKey) : false;
 
   async function openPublisher(platform: string) {
     if (disabled || !caption) return;
@@ -90,8 +81,6 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     setSelectedTargetId(firstTarget?.id ?? null);
     setDraftCaption(caption);
     setAsset(undefined);
-    setPinterestBoards([]);
-    setPinterestBoardId("");
     setState(getAsset ? "preparing" : "idle");
     setMessage("");
     if (!getAsset) return;
@@ -105,40 +94,6 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     }
   }
 
-  useEffect(() => {
-    if (connectionProvider !== "pinterest" || selectedTarget?.status !== "connected") return;
-
-    let cancelled = false;
-    const loadingTimer = window.setTimeout(() => {
-      if (!cancelled) setIsLoadingPinterestBoards(true);
-    }, 0);
-    void fetch(`/api/twitter-automation/pinterest/boards?socialMediaId=${encodeURIComponent(selectedTarget.id)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => null) as { boards?: PinterestBoard[]; errorCode?: string } | null;
-        if (!response.ok) throw new Error(payload?.errorCode ?? "pinterest_boards_unavailable");
-        return Array.isArray(payload?.boards) ? payload.boards : [];
-      })
-      .then((boards) => {
-        if (cancelled) return;
-        setPinterestBoards(boards);
-        setPinterestBoardId(boards[0]?.id ?? "");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setMessage(error instanceof Error && error.message === "token_expired"
-          ? "This Pinterest connection has expired. Connect it again before publishing."
-          : "Pinterest boards could not be loaded. Check the connection and its boards:read permission.");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPinterestBoards(false);
-      });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(loadingTimer);
-    };
-  }, [connectionProvider, selectedTarget?.id, selectedTarget?.status]);
-
   async function publish() {
     if (!selectedTarget || !draftCaption || state === "sending") return;
     setState("sending");
@@ -147,26 +102,23 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
       const response = await fetch("/api/twitter-automation/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(asset ? { asset } : {}), ...(connectionProvider === "pinterest" ? { pinterestBoardId } : {}) }),
+        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(asset ? { asset } : {}) }),
       });
-      const payload = await response.json().catch(() => null) as { errorCode?: string; postUrl?: string } | null;
+      const payload = await response.json().catch(() => null) as { errorCode?: string; postUrl?: string | null; requestId?: string | null; jobId?: string | null } | null;
       if (!response.ok) {
         const errors: Record<string, string> = {
-          provider_not_configured: "This social media account has not been set up yet.",
-          token_expired: "This account connection has expired. Connect it again before publishing.",
-          invalid_media: "This media cannot be uploaded. Use a PNG, JPEG, or WebP image under 5 MB.",
-          pinterest_board_required: "Choose a Pinterest board before publishing.",
-          pinterest_boards_unavailable: "Pinterest boards could not be loaded. Check the account connection.",
-          instagram_image_required: "Instagram publishing requires a generated image.",
-          instagram_media_upload_failed: "The image could not be prepared for Instagram publishing.",
-          instagram_container_failed: "Instagram could not process this image. Try another generated image.",
-          instagram_container_timeout: "Instagram is taking too long to prepare this image. Try again.",
-          youtube_video_required: "YouTube publishing requires a generated video.",
+          account_not_found: "This social media account no longer exists. Refresh the publishing targets and try again.",
+          invalid_media: "This media cannot be uploaded. Use a PNG, JPEG, or WebP image under 5 MB, or a secure video URL.",
+          upload_post_not_configured: "Upload-Post API key is not configured on this deployment.",
+          upload_post_profile_not_configured: "Set this account's Upload-Post profile username in Social medias before publishing.",
+          upload_post_pinterest_board_not_configured: "Set UPLOAD_POST_PINTEREST_BOARD_ID before publishing to Pinterest.",
+          upload_post_unsupported_content: "Upload-Post does not support this content format for the selected platform.",
+          upload_post_rejected: "Upload-Post rejected this upload. Check its dashboard for account permissions, limits, and platform requirements.",
         };
-        throw new Error(errors[payload?.errorCode ?? ""] ?? "The post could not be published. Try again.");
+        throw new Error(errors[payload?.errorCode ?? ""] ?? "Upload-Post could not publish this post. Try again.");
       }
       setState("sent");
-      setMessage(payload?.postUrl ? `Published successfully: ${payload.postUrl}` : "Published successfully.");
+      setMessage(payload?.postUrl ? `Published successfully: ${payload.postUrl}` : payload?.requestId ? `Upload accepted by Upload-Post. Request: ${payload.requestId}` : payload?.jobId ? `Scheduled in Upload-Post. Job: ${payload.jobId}` : "Upload accepted by Upload-Post.");
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "The post could not be published.");
@@ -179,19 +131,18 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     </div>
     {selectedPlatform ? <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="dialog" aria-modal="true" aria-label="Publish social content">
       <section className="w-full max-w-md rounded-xl border border-white/15 bg-[#1b1714] p-5 text-[#f9f2e9] shadow-sm">
-        <header className="flex items-center justify-between gap-4"><div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-lg bg-white/10"><PlatformIcon platform={selectedPlatform} /></span><div><h2 className="text-base font-semibold">Publish to {selectedPlatform}</h2><p className="text-xs text-[#cdbfb3]">Review the content before sending.</p></div></div><Button aria-label="Close publisher" className="size-8 rounded border-transparent bg-transparent p-0 text-[#cdbfb3] hover:bg-white/10 hover:text-white" onClick={() => setSelectedPlatform(null)} type="button"><X className="size-4" /></Button></header>
+        <header className="flex items-center justify-between gap-4"><div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-lg bg-white/10"><PlatformIcon platform={selectedPlatform} /></span><div><h2 className="text-base font-semibold">Publish to {selectedPlatform}</h2><p className="text-xs text-[#cdbfb3]">Sent through Upload-Post. Review before sending.</p></div></div><Button aria-label="Close publisher" className="size-8 rounded border-transparent bg-transparent p-0 text-[#cdbfb3] hover:bg-white/10 hover:text-white" onClick={() => setSelectedPlatform(null)} type="button"><X className="size-4" /></Button></header>
         <label className="mt-5 block text-xs font-semibold text-[#d7c9bc]">Social account</label>
-        <select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" onChange={(event) => setSelectedTargetId(Number(event.target.value))} value={selectedTarget?.id ?? ""}>{selectedTargets.map((target) => <option key={target.id} value={target.id}>{target.accountName}{target.status === "connected" ? " - connected" : " - setup required"}</option>)}</select>
+        <select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" onChange={(event) => setSelectedTargetId(Number(event.target.value))} value={selectedTarget?.id ?? ""}>{selectedTargets.map((target) => <option key={target.id} value={target.id}>{target.accountName}{target.status === "ready" ? " - Upload-Post ready" : " - Upload-Post setup required"}</option>)}</select>
         <label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Post text</label>
         <textarea className="mt-2 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none focus:border-[#f5ac27]" maxLength={280} onChange={(event) => setDraftCaption(event.target.value)} value={draftCaption} />
         <p className="mt-1 text-right text-xs text-[#8d8177]">{draftCaption.length}/280</p>
         {getAsset ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : asset ? isVideoAsset(asset) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
-        {requiresConnection ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Connect this {connectionLabel} account once before publishing. The authorization screen will return here after it verifies the account.</p> : null}
-        {connectionProvider === "instagram" && selectedTarget?.status === "connected" && requiresInstagramImage ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Instagram accepts only generated image outputs in this publisher.</p> : null}
-        {connectionProvider === "youtube" && selectedTarget?.status === "connected" && requiresYouTubeVideo ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">YouTube accepts only generated video outputs in this publisher.</p> : null}
-        {connectionProvider === "pinterest" && selectedTarget?.status === "connected" ? <><label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Pinterest board</label><select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" disabled={isLoadingPinterestBoards || !pinterestBoards.length} onChange={(event) => setPinterestBoardId(event.target.value)} value={pinterestBoardId}><option value="">{isLoadingPinterestBoards ? "Loading boards..." : pinterestBoards.length ? "Choose a board" : "No boards available"}</option>{pinterestBoards.map((board) => <option key={board.id} value={board.id}>{board.name}</option>)}</select></> : null}
+        {selectedTarget?.status === "not_configured" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set the server-only Upload-Post API key before publishing.</p> : null}
+        {selectedTarget?.status === "profile_required" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set this account&apos;s Upload-Post profile username in Social medias before publishing.</p> : null}
+        {textOnly && !textOnlySupported ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Upload-Post needs an image or video for {selectedPlatform}. Choose a generated visual instead.</p> : null}
         {message ? <p className={state === "sent" ? "mt-4 text-sm text-[#9be0b9]" : "mt-4 text-sm text-[#ffb9c1]"}>{message}</p> : null}
-        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button>{requiresConnection ? <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={() => { if (selectedTarget && connectionProvider) window.location.assign(`/api/twitter-automation/oauth/${connectionProvider}/start?socialMediaId=${encodeURIComponent(selectedTarget.id)}`); }} type="button">Connect {connectionLabel}</Button> : <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || state === "preparing" || state === "sending" || (connectionProvider === "pinterest" && (!asset || !pinterestBoardId || isLoadingPinterestBoards)) || requiresInstagramImage || requiresYouTubeVideo} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button>}</div>
+        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || !uploadPostReady || !textOnlySupported && textOnly || state === "preparing" || state === "sending"} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button></div>
       </section>
     </div> : null}
   </>;

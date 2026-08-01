@@ -13,6 +13,12 @@ const TIER_CODES = ["A1", "A2", "B1", "B2", "C1"] as const;
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u);
 const platformSchema = z.string().trim().min(1).max(80);
 const accountIdSchema = z.string().trim().min(1).max(120);
+const selectableContentTypeSchema = z.enum(["text", "image", "video"]);
+const generatorModesSchema = z.object({
+  text: z.string().trim().min(1).max(120).optional(),
+  image: z.string().trim().min(1).max(120).optional(),
+  video: z.string().trim().min(1).max(120).optional(),
+}).strict();
 
 type SocialMediaDatabaseRow = {
   id: number;
@@ -63,6 +69,8 @@ const automationRowSchema = z.object({
   id: z.string().uuid(),
   contentType: z.enum(["random", "text", "image", "video"]),
   generator: z.string().trim().min(1).max(120),
+  contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
+  generators: generatorModesSchema.optional(),
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LANGUAGE_CODES),
   tier: z.enum(["random", ...TIER_CODES]),
@@ -74,6 +82,17 @@ const automationRowSchema = z.object({
 }).strict().superRefine((row, context) => {
   if (row.scheduleStart >= row.scheduleEnd) {
     context.addIssue({ code: "custom", message: "Schedule start must be before schedule end.", path: ["scheduleEnd"] });
+  }
+
+  if (row.contentTypes) {
+    if (new Set(row.contentTypes).size !== row.contentTypes.length) {
+      context.addIssue({ code: "custom", message: "Content types must be unique.", path: ["contentTypes"] });
+    }
+    for (const contentType of row.contentTypes) {
+      if (!row.generators?.[contentType]) {
+        context.addIssue({ code: "custom", message: "Each selected content type needs a generator.", path: ["generators", contentType] });
+      }
+    }
   }
 
   const platformSet = new Set(row.platforms);
@@ -102,6 +121,7 @@ const automationGroupsSchema = z.object({
     id: z.string().uuid(),
     name: z.string().trim().min(1).max(120),
     tone: z.enum(["emerald", "blue", "amber", "rose"]),
+    color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
     collapsed: z.boolean(),
     rows: z.array(automationRowSchema).min(1).max(100),
   }).strict()).max(30),
