@@ -12,6 +12,7 @@ import { AutomationTable } from "@/features/twitter-automation/components/automa
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset } from "@/features/twitter-automation/components/social-publish-actions";
+import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
@@ -167,6 +168,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [aiVideoError, setAiVideoError] = useState("");
   const [musicVideoStatus, setMusicVideoStatus] = useState<MusicVideoTaskStatus>("idle");
   const [musicVideoUrl, setMusicVideoUrl] = useState("");
+  const [musicVideoBlob, setMusicVideoBlob] = useState<Blob | null>(null);
   const [musicVideoCaption, setMusicVideoCaption] = useState("");
   const [musicVideoError, setMusicVideoError] = useState("");
   const [musicVideoTrackLabel, setMusicVideoTrackLabel] = useState("");
@@ -340,6 +342,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setAiVideoError("");
     setMusicVideoStatus("idle");
     setMusicVideoUrl("");
+    setMusicVideoBlob(null);
     setMusicVideoCaption("");
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
@@ -385,6 +388,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
     setMusicVideoUrl("");
+    setMusicVideoBlob(null);
 
     try {
       // This is intentionally created directly from the button interaction so browsers permit audio capture.
@@ -449,6 +453,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       const videoBlob = await renderMusicVideo({ audioContext, imageUrl, musicUrl: musicTrack.url });
       audioContext = null;
       setMusicVideoUrl(URL.createObjectURL(videoBlob));
+      setMusicVideoBlob(videoBlob);
       setMusicVideoCaption(nextCaption);
       setMusicVideoTrackLabel(musicTrack.label);
       setMusicVideoStatus("finished");
@@ -506,6 +511,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setAiVideoError("");
     setMusicVideoStatus("idle");
     setMusicVideoUrl("");
+    setMusicVideoBlob(null);
     setMusicVideoCaption("");
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
@@ -543,6 +549,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setAiVideoError("");
     setMusicVideoStatus("idle");
     setMusicVideoUrl("");
+    setMusicVideoBlob(null);
     setMusicVideoCaption("");
     setMusicVideoError("");
   }
@@ -699,6 +706,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     link.click();
   }
 
+  async function createMusicVideoAsset(): Promise<SocialPublishAsset | undefined> {
+    if (!musicVideoBlob) return undefined;
+    const staged = await stageBrowserVideo(musicVideoBlob, "manual-video");
+    return { sourceUrl: staged.sourceUrl, mimeType: staged.mimeType };
+  }
+
   if (authenticated !== true) {
     return (
       <section className="content-automation-shell relative grid min-h-[calc(100dvh-4rem)] place-items-center overflow-hidden bg-[#12100e] px-4 py-10 text-[#f9f2e9]">
@@ -831,7 +844,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">Soundtrack: {musicVideoTrackLabel}. Exported as WebM.</p></div>
-                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} /></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} getAsset={createMusicVideoAsset} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />
                 </div>

@@ -528,8 +528,12 @@ rastgele bir Europe/Istanbul saati alir.
 Her output, bir satir ve bir gun icin sadece bir kez uretim yapar. Ayni satirda
 birden fazla secili hesap varsa uretilen caption/medya tekrar uretilmez;
 Upload-Post'a secili hesaplar icin ayri, idempotent schedule istegi gonderilir.
-Text, AI image ve AI avatar video modlari desteklenir. Browser'a bagli music
-video modlari automation tablosunda sunulmadigi icin kuyruk tarafindan islenmez.
+Text, AI image, non-AI Word of the Day/Poster image ve AI avatar video modlari
+desteklenir. Tum image modlarinin music-video varyantlari da secilebilir.
+Music video kaynak gorseli server-side hazirlanir; Generated Posts panelindeki
+Render music video butonu, tarayicinin MediaRecorder yetkisiyle WebM Blob'unu
+uretmek ve private Storage'a signed upload ile yuklemek icin kullanilir. Upload
+tamamlaninca ayni output Upload-Post'a schedule edilir.
 
 Automation Table ustundeki Generated Posts butonu, kuyrugu ayni ekranda tam
 sayfa overlay olarak acar. Kapat butonu veya Escape ile tabloya geri donulur.
@@ -582,6 +586,12 @@ durumlari hata koduyla saklanir; tekrar deneme/backoff yonetimi sonraki asamadir
   schedule eden worker endpointi.
 - src/app/api/twitter-automation/maintenance/route.ts
   48 saatlik staging grace period'u dolan medya dosyalarini temizleyen Cron endpointi.
+- src/app/api/twitter-automation/media-stage/route.ts
+  Browser WebM Blob'lari icin signed upload token'i ve Upload-Post teslim signed URL'ini verir.
+- src/features/twitter-automation/browser-media-stage.ts
+  Browser Blob'unu private Supabase Storage'a dogrudan signed-upload ile yukler.
+- src/features/twitter-automation/non-ai-social-image.ts
+  Automation icin Word of the Day ve Poster PNG'lerini server-side uretir.
 - src/features/twitter-automation/automation-run-service.ts
   Mevcut text/image/video generatorlarini tekrar kullanan server-side run
   orkestrasyonu, medya Storage ve idempotent Upload-Post teslimi.

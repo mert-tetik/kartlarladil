@@ -3,6 +3,8 @@
 import { Check, CircleAlert, ImageIcon, LoaderCircle, MessageSquareText, RefreshCw, Video, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
+import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { cn } from "@/lib/utils";
 
 type AutomationOutput = {
@@ -12,7 +14,7 @@ type AutomationOutput = {
   content_type: string;
   generator: string;
   scheduled_at: string;
-  status: "queued" | "processing" | "generating_video" | "scheduled" | "failed";
+  status: "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "scheduled" | "failed";
   caption: string | null;
   mediaUrl: string | null;
   media_type: "image" | "video" | null;
@@ -30,6 +32,7 @@ function formatScheduledAt(value: string) {
 function generationLabel(output: AutomationOutput, isProcessing: boolean) {
   if (isProcessing || output.status === "processing") return "Generating content…";
   if (output.status === "generating_video") return "Rendering video…";
+  if (output.status === "awaiting_browser_video") return "Source image is ready — render the music video";
   if (output.status === "scheduled") return "Generated and scheduled";
   if (output.status === "failed") return "Generation failed";
   return "Waiting to generate";
@@ -82,6 +85,34 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
     }
   }, [load, nextOutput, processingOutputId]);
 
+  const renderBrowserVideo = useCallback(async (output: AutomationOutput) => {
+    if (!output.mediaUrl || processingOutputId) return;
+    setProcessingOutputId(output.id);
+    setMessage("");
+    let audioContext: AudioContext | null = null;
+    try {
+      audioContext = prepareMusicVideoAudio();
+      const tracks = ["/social-audio/music1.mp3", "/social-audio/music2.mp3", "/social-audio/music3.mp3", "/social-audio/music4.mp3", "/social-audio/music5.mp3", "/social-audio/music6.mp3", "/social-audio/music7.mp3"];
+      const musicUrl = tracks[Math.floor(Math.random() * tracks.length)]!;
+      const blob = await renderMusicVideo({ audioContext, imageUrl: output.mediaUrl, musicUrl });
+      audioContext = null;
+      const staged = await stageBrowserVideo(blob, "automation-video", output.id);
+      const response = await fetch("/api/twitter-automation/automation-runs/process", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path }),
+      });
+      const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
+    } catch {
+      setMessage("The music video could not be rendered or uploaded. Try again in Chrome.");
+    } finally {
+      if (audioContext && audioContext.state !== "closed") await audioContext.close();
+      await load();
+      setProcessingOutputId(null);
+    }
+  }, [load, processingOutputId]);
+
   useEffect(() => { void load(true); }, [load]);
 
   useEffect(() => {
@@ -106,18 +137,19 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       <div className="grid gap-2 sm:grid-cols-2">{outputs.map((output) => {
         const active = processingOutputId === output.id || output.status === "processing" || output.status === "generating_video";
         const complete = isGenerated(output);
-        const showMedia = complete && Boolean(output.mediaUrl);
+        const showMedia = (complete || output.status === "awaiting_browser_video") && Boolean(output.mediaUrl);
         return <article className={cn("overflow-hidden rounded border p-3", complete ? "border-[#2b634a] bg-[#11251c]" : output.status === "failed" ? "border-[#61352e] bg-[#2c1917]" : "border-white/10 bg-[#101212]")} key={output.id}>
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-[#8d9b92]">Day {output.day_offset} · {output.generator}</p></div>{complete ? <span aria-label="Media generated" className="grid size-6 shrink-0 place-items-center rounded-full bg-[#55c39a] text-[#07130d]"><Check className="size-4" /></span> : active ? <LoaderCircle aria-label="Generating media" className="mt-0.5 size-5 shrink-0 animate-spin text-[#c7f05d]" /> : output.status === "failed" ? <CircleAlert className="mt-0.5 size-5 shrink-0 text-[#ff9c8b]" /> : <span className="size-5 shrink-0 rounded-full border border-[#718077]" />}</div>
           <p className={cn("mt-3 text-xs", complete ? "text-[#a9ecc8]" : output.status === "failed" ? "text-[#ffb9c1]" : "text-[#a9b8ae]")}>{generationLabel(output, processingOutputId === output.id)}</p>
           <p className="mt-1 text-[11px] text-[#718077]">{formatScheduledAt(output.scheduled_at)}</p>
           {showMedia ? <div className="mt-3 overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-square w-full object-cover" controls src={output.mediaUrl!} /> : <img alt={`${output.group_name} generated media`} className="aspect-square w-full object-cover" src={output.mediaUrl!} />}</div> : complete && output.content_type === "text" ? <div className="mt-3 flex min-h-24 items-center gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="size-4 shrink-0 text-[#c7f05d]" />{output.caption ?? "Text post generated."}</div> : !complete ? <div className="mt-3 grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div> : null}
           {output.error_code ? <p className="mt-3 break-words text-[11px] text-[#ff9c8b]">{output.error_code}</p> : null}
+          {output.status === "awaiting_browser_video" ? <Button className="mt-3 h-8 w-full bg-[#c7f05d] text-xs text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(processingOutputId) || !output.mediaUrl} onClick={() => void renderBrowserVideo(output)} type="button">{processingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <Video className="size-3.5" />}Render music video</Button> : null}
         </article>;
       })}</div>
       {state === "loading" && !outputs.length ? <div className="grid min-h-36 place-items-center text-sm text-[#8d9b92]"><LoaderCircle className="mr-2 inline size-4 animate-spin" />Preparing media blocks…</div> : null}
       {state === "ready" && !outputs.length ? <div className="grid min-h-36 place-items-center text-sm text-[#8d9b92]">No media blocks were created for this schedule.</div> : null}
     </div>
-    <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || (nextOutput ? "Media blocks update as each item is generated." : "All media blocks have finished.")}</footer>
+    <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || (nextOutput ? "Media blocks update as each item is generated." : outputs.some((output) => output.status === "awaiting_browser_video") ? "Render the prepared music videos to complete their schedules." : "All media blocks have finished.")}</footer>
   </section>;
 }

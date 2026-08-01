@@ -90,6 +90,13 @@ const GENERATORS: Record<SelectableContentType, Array<{ value: string; label: st
   video: [
     { value: "random-video", label: "Random video mode" },
     { value: "ai-word-of-the-day-video", label: "AI Word of the Day Video" },
+    { value: "music-word-of-the-day", label: "Word of the Day Music Video" },
+    { value: "music-word-of-the-day-poster", label: "Word of the Day Poster Music Video" },
+    { value: "music-ai-word-of-the-day", label: "AI Word of the Day Music Video" },
+    { value: "music-ai-mini-quiz", label: "AI Mini Quiz Music Video" },
+    { value: "music-ai-false-friends", label: "AI False Friends Music Video" },
+    { value: "music-ai-daily-challenge", label: "AI Daily Challenge Music Video" },
+    { value: "music-ai-vocabulary-progression", label: "AI Beginner to Advanced Music Video" },
   ],
 };
 

@@ -8,7 +8,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const requestSchema = z.object({ outputId: z.string().uuid().optional() }).strict();
+const requestSchema = z.object({
+  outputId: z.string().uuid().optional(),
+  stagedMediaPath: z.string().regex(/^automation\/[\da-f-]+\.webm$/iu).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.stagedMediaPath && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
+});
 
 function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
@@ -24,7 +29,7 @@ export async function POST(request: NextRequest) {
     let query = supabase
       .from("social_content_automation_outputs")
       .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs")
-      .in("status", ["queued", "generating_video"])
+      .in("status", parsed.data.stagedMediaPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .order("scheduled_at", { ascending: true })
       .limit(1);
     if (parsed.data.outputId) query = query.eq("id", parsed.data.outputId);
@@ -32,9 +37,12 @@ export async function POST(request: NextRequest) {
     if (candidateError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!candidate) return NextResponse.json({ processed: false, state: "idle" });
 
+    const update = parsed.data.stagedMediaPath
+      ? { status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", updated_at: new Date().toISOString() }
+      : { status: "processing", updated_at: new Date().toISOString() };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")
-      .update({ status: "processing", updated_at: new Date().toISOString() })
+      .update(update)
       .eq("id", candidate.id)
       .eq("status", candidate.status)
       .select("id")
@@ -42,7 +50,14 @@ export async function POST(request: NextRequest) {
     if (lockError) return NextResponse.json({ errorCode: "automation_output_lock_failed" }, { status: 503 });
     if (!locked) return NextResponse.json({ processed: false, state: "busy" }, { status: 409 });
 
-    const result = await processAutomationOutput(candidate);
+    if (parsed.data.stagedMediaPath && candidate.media_path?.startsWith("automation/")) {
+      const { error: removeError } = await supabase.storage.from("social-studio-automation").remove([candidate.media_path]);
+      if (removeError) throw new Error("automation_media_cleanup_failed");
+    }
+
+    const result = await processAutomationOutput(parsed.data.stagedMediaPath
+      ? { ...candidate, status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video" }
+      : candidate);
     if (result.outcome === "video_pending") {
       await supabase.from("social_content_automation_outputs").update({ status: "generating_video", updated_at: new Date().toISOString() }).eq("id", candidate.id);
     }
