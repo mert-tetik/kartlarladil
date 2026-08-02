@@ -14,6 +14,7 @@ import { SocialMediasTable } from "@/features/twitter-automation/components/soci
 import { SocialPublishActions, type SocialPublishAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
+import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,8 @@ type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-fr
 type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | AiImageGeneratorMode;
 type MusicVideoGeneratorMode = `music-${ImageGeneratorMode}`;
 type ConfusedWordsVideoGeneratorMode = "confused-words-video";
-type VideoGeneratorMode = "ai-word-of-the-day-video" | ConfusedWordsVideoGeneratorMode | MusicVideoGeneratorMode;
+type DialogueVideoGeneratorMode = "marketing-dialogue-video" | "learning-dialogue-video";
+type VideoGeneratorMode = "ai-word-of-the-day-video" | ConfusedWordsVideoGeneratorMode | DialogueVideoGeneratorMode | MusicVideoGeneratorMode;
 type GeneratorMode = TextGeneratorMode | ImageGeneratorMode | VideoGeneratorMode;
 type AiImageTaskStatus = "idle" | "running" | "finished" | "failed";
 type AiVideoTaskStatus = "idle" | "preparing" | "queued" | "running" | "finished" | "failed";
@@ -63,6 +65,8 @@ const IMAGE_GENERATOR_OPTIONS: Array<{ value: ImageGeneratorMode; label: string;
 const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string; description: string }> = [
   { value: "ai-word-of-the-day-video", label: "Word of the Day", description: "A lip-synced FoxiesDeck mascot explainer" },
   { value: "confused-words-video", label: "Confused Words", description: "An eight-scene vertical mascot explainer for similar words" },
+  { value: "marketing-dialogue-video", label: "FoxiesDeck Dialogue", description: "A two-character marketing conversation in the native language" },
+  { value: "learning-dialogue-video", label: "Everyday Dialogue", description: "A two-character conversation in the learning language with translations" },
   ...IMAGE_GENERATOR_OPTIONS.map((option) => ({
     value: `music-${option.value}` as MusicVideoGeneratorMode,
     label: `${option.label} Music Video`,
@@ -137,6 +141,10 @@ function isConfusedWordsVideoGenerator(mode: GeneratorMode): mode is ConfusedWor
   return mode === "confused-words-video";
 }
 
+function isDialogueVideoGenerator(mode: GeneratorMode): mode is DialogueVideoGeneratorMode {
+  return mode === "marketing-dialogue-video" || mode === "learning-dialogue-video";
+}
+
 function getMusicVideoImageMode(mode: MusicVideoGeneratorMode): ImageGeneratorMode {
   return mode.slice("music-".length) as ImageGeneratorMode;
 }
@@ -194,7 +202,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const musicVideoPending = musicVideoStatus === "creating-image" || musicVideoStatus === "rendering";
   const isMusicVideoMode = isMusicVideoGenerator(generatorMode);
   const isConfusedWordsVideoMode = isConfusedWordsVideoGenerator(generatorMode);
-  const isBrowserVideoMode = isMusicVideoMode || isConfusedWordsVideoMode;
+  const isDialogueVideoMode = isDialogueVideoGenerator(generatorMode);
+  const isBrowserVideoMode = isMusicVideoMode || isConfusedWordsVideoMode || isDialogueVideoMode;
 
   useEffect(() => {
     let cancelled = false;
@@ -536,6 +545,67 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     }
   }
 
+  async function generateDialogueVideo(mode: DialogueVideoGeneratorMode) {
+    let audioContext: AudioContext | null = null;
+
+    setIsLoading(true);
+    setCard(null);
+    setMusicVideoStatus("creating-image");
+    setMusicVideoCaption("");
+    setMusicVideoError("");
+    setMusicVideoTrackLabel("");
+    setMusicVideoUrl("");
+    setMusicVideoBlob(null);
+
+    try {
+      // Create this during the button interaction so Chrome permits audio capture later.
+      audioContext = prepareMusicVideoAudio();
+      const response = await fetch("/api/twitter-automation/dialogue-video", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode, language, nativeLanguage }),
+      });
+
+      if (response.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      const payload = await response.json().catch(() => null) as {
+        caption?: string;
+        firstCharacter?: string;
+        secondCharacter?: string;
+        scenes?: DialogueVideoScene[];
+        errorCode?: string;
+      } | null;
+      if (!response.ok || !payload?.firstCharacter || !payload.secondCharacter || !payload.scenes?.length) {
+        setMusicVideoStatus("failed");
+        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The dialogue or voices could not be prepared. Try again.");
+        return;
+      }
+
+      setMusicVideoStatus("rendering");
+      const videoBlob = await renderDialogueVideo({
+        audioContext,
+        firstCharacter: payload.firstCharacter,
+        secondCharacter: payload.secondCharacter,
+        scenes: payload.scenes,
+      });
+      audioContext = null;
+      setMusicVideoUrl(URL.createObjectURL(videoBlob));
+      setMusicVideoBlob(videoBlob);
+      setMusicVideoCaption(payload.caption ?? "");
+      setMusicVideoTrackLabel(mode === "marketing-dialogue-video" ? "FoxiesDeck dialogue" : "Everyday dialogue");
+      setMusicVideoStatus("finished");
+    } catch {
+      setMusicVideoStatus("failed");
+      setMusicVideoError("This browser could not render the dialogue video. Try Chrome or the Android app.");
+    } finally {
+      if (audioContext && audioContext.state !== "closed") await audioContext.close();
+      setIsLoading(false);
+    }
+  }
+
   async function submitCredentials(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthError("");
@@ -642,6 +712,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     if (isConfusedWordsVideoGenerator(generatorMode)) {
       void generateConfusedWordsVideo();
+      return;
+    }
+
+    if (isDialogueVideoGenerator(generatorMode)) {
+      void generateDialogueVideo(generatorMode);
       return;
     }
 
@@ -776,7 +851,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     if (!musicVideoUrl) return;
 
     const link = document.createElement("a");
-    link.download = isConfusedWordsVideoMode ? "foxiesdeck-confused-words.webm" : "foxiesdeck-music-video-30s.webm";
+    link.download = isConfusedWordsVideoMode ? "foxiesdeck-confused-words.webm" : isDialogueVideoMode ? `foxiesdeck-${generatorMode}.webm` : "foxiesdeck-music-video-30s.webm";
     link.href = musicVideoUrl;
     link.click();
   }
@@ -906,19 +981,19 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
               <div className="mt-2 grid grid-cols-5 gap-1.5">
                 {TIERS.map((item) => <Button className={tier === item ? "bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" : "border-white/15 bg-[#100d0c] text-[#f9f2e9] hover:bg-[#231d19]"} key={item} onClick={() => selectTier(item)} size="sm" type="button">{item}</Button>)}
               </div>
-              <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{isMusicVideoMode ? `Uses the selected image format as the source, then renders a ${MUSIC_VIDEO_DURATION_SECONDS}-second square video with a randomly selected licensed social-video track.` : isConfusedWordsVideoMode ? "Creates a 9:16, eight-scene explainer with two easily confused words, their native-language difference, and synchronized mascot voices." : "Creates a vertical avatar video. The mascot explains the word in the selected native language with synchronized speech."}</p>
+              <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{isMusicVideoMode ? `Uses the selected image format as the source, then renders a ${MUSIC_VIDEO_DURATION_SECONDS}-second square video with a randomly selected licensed social-video track.` : isConfusedWordsVideoMode ? "Creates a 9:16, eight-scene explainer with two easily confused words, their native-language difference, and synchronized mascot voices." : generatorMode === "marketing-dialogue-video" ? "A site-supported learning language is chosen at random. Two mascot variations discuss FoxiesDeck in the selected native language." : generatorMode === "learning-dialogue-video" ? "Two mascot variations have an everyday conversation in the learning language. Native-language subtitles appear underneath." : "Creates a vertical avatar video. The mascot explains the word in the selected native language with synchronized speech."}</p>
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || musicVideoPending || aiVideoStatus === "preparing" || aiVideoStatus === "queued" || aiVideoStatus === "running"} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", (isLoading || musicVideoPending || aiVideoStatus === "preparing" || aiVideoStatus === "queued" || aiVideoStatus === "running") && "animate-spin")} aria-hidden="true" />
-                {isMusicVideoMode ? musicVideoStatus === "creating-image" ? "Creating the source image..." : musicVideoStatus === "rendering" ? `Rendering ${MUSIC_VIDEO_DURATION_SECONDS}-second music video...` : "Generate music video" : isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing script and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering confused-words video..." : "Generate confused-words video" : aiVideoStatus === "preparing" ? "Creating first frame and native voice..." : aiVideoStatus === "queued" || aiVideoStatus === "running" ? `Rendering lip-synced video, ${aiVideoProgress}%` : "Generate Word of the Day video"}
+                {isMusicVideoMode ? musicVideoStatus === "creating-image" ? "Creating the source image..." : musicVideoStatus === "rendering" ? `Rendering ${MUSIC_VIDEO_DURATION_SECONDS}-second music video...` : "Generate music video" : isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing script and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering confused-words video..." : "Generate confused-words video" : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering dialogue video..." : "Generate dialogue video" : aiVideoStatus === "preparing" ? "Creating first frame and native voice..." : aiVideoStatus === "queued" || aiVideoStatus === "running" ? `Rendering lip-synced video, ${aiVideoProgress}%` : "Generate Word of the Day video"}
               </Button>
             </aside>
 
             <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1b1714]">
               {isBrowserVideoMode ? (musicVideoUrl ? <>
-                <video className={cn("max-h-[70dvh] w-full bg-[#100d0c] object-contain", isConfusedWordsVideoMode ? "aspect-[9/16]" : "aspect-square")} controls playsInline src={musicVideoUrl} />
+                <video className={cn("max-h-[70dvh] w-full bg-[#100d0c] object-contain", isConfusedWordsVideoMode || isDialogueVideoMode ? "aspect-[9/16]" : "aspect-square")} controls playsInline src={musicVideoUrl} />
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p></div>
+                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p></div>
                     <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} getAsset={createMusicVideoAsset} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />
@@ -926,8 +1001,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
               </> : <div className="grid min-h-[36rem] place-items-center p-6 text-center">
                 <div>
                   {musicVideoPending ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <Video className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
-                  <h2 className="mt-4 font-display text-2xl font-semibold">{isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing the script and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical explainer" : musicVideoStatus === "failed" ? "Confused-words video generation failed" : "Create a confused-words video" : musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects two commonly confused words, then renders their eight spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
+                  <h2 className="mt-4 font-display text-2xl font-semibold">{isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing the script and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical explainer" : musicVideoStatus === "failed" ? "Confused-words video generation failed" : "Create a confused-words video" : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical dialogue" : musicVideoStatus === "failed" ? "Dialogue video generation failed" : generatorMode === "marketing-dialogue-video" ? "Create a FoxiesDeck dialogue" : "Create an everyday dialogue" : musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects two commonly confused words, then renders their eight spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : isDialogueVideoMode ? musicVideoStatus === "idle" ? "Each turn rises smoothly from the bottom of the frame, while its subtitle remains at the top." : "The dialogue, subtitles, and two mascot variations are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
                 </div>
               </div>) : (aiVideoUrl ? <>
                 <video className="aspect-[9/16] max-h-[70dvh] w-full bg-[#100d0c] object-contain" controls playsInline src={aiVideoUrl} />
