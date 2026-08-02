@@ -207,7 +207,7 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
     rows: group.rows.map((row) => {
       const legacyRow = row as Partial<AutomationRow>;
       const contentTypes = (legacyRow.contentTypes ?? []).filter((type): type is SelectableContentType => type === "text" || type === "image" || type === "video");
-      const resolvedContentTypes = contentTypes.length ? [...new Set(contentTypes)] : row.contentType === "image" ? ["image"] : row.contentType === "text" ? ["text"] : row.contentType === "video" ? ["video"] : ["text", "image", "video"];
+      const resolvedContentTypes: SelectableContentType[] = contentTypes.length ? [...new Set(contentTypes)] : row.contentType === "image" ? ["image"] : row.contentType === "text" ? ["text"] : row.contentType === "video" ? ["video"] : ["text", "image", "video"];
       const generators: Partial<Record<SelectableContentType, string>> = {
         text: legacyRow.generators?.text ?? (row.contentType === "text" ? row.generator : "random-text"),
         image: legacyRow.generators?.image ?? (row.contentType === "image" ? row.generator : "random-ai-image"),
@@ -221,12 +221,13 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
         const selectedIds = (row.accounts[platform] ?? []).filter((accountId) => validIds.has(accountId));
         return [platform, selectedIds.length ? selectedIds : validAccounts.slice(0, 1).map((account) => account.id)];
       }));
+      const normalizedContentType: ContentType = resolvedContentTypes.length === 1 ? resolvedContentTypes[0]! : "random";
 
       return {
         ...row,
         contentTypes: resolvedContentTypes,
         generators,
-        contentType: resolvedContentTypes.length === 1 ? resolvedContentTypes[0] : "random",
+        contentType: normalizedContentType,
         generator: resolvedContentTypes.length === 1 ? generators[resolvedContentTypes[0]] ?? "random-text" : "random-content",
         platforms,
         accounts,
