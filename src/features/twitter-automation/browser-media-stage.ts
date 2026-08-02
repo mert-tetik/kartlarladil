@@ -3,9 +3,14 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type StagedVideoPurpose = "manual-video" | "automation-video";
+type StagedVideo = {
+  path: string;
+  sourceUrl: string;
+  mimeType: "video/mp4" | "video/webm";
+};
 
-export async function stageBrowserVideo(blob: Blob, purpose: StagedVideoPurpose, outputId?: string) {
-  const mimeType = blob.type === "video/mp4" ? "video/mp4" : "video/webm" as const;
+export async function stageBrowserVideo(blob: Blob, purpose: StagedVideoPurpose, outputId?: string): Promise<StagedVideo> {
+  const mimeType: "video/mp4" | "video/webm" = blob.type === "video/mp4" ? "video/mp4" : "video/webm";
   if (!blob.size || blob.size > 100 * 1024 * 1024) throw new Error("video_too_large");
 
   const createResponse = await fetch("/api/twitter-automation/media-stage", {
