@@ -1,13 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import OpenAI, { toFile } from "openai";
 import sharp from "sharp";
 import { z } from "zod";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { SOCIAL_CONTENT_PROMPT_MODEL } from "@/features/twitter-automation/social-studio-openai";
+import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
+import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -15,7 +13,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const GPT_IMAGE_MODEL = "gpt-image-2";
 const POYO_API_URL = "https://api.poyo.ai";
 const VIDEO_MODEL = "kling-avatar-2.0/standard";
 const SPEECH_MODEL = "elevenlabs-tts-turbo-2-5";
@@ -51,24 +48,10 @@ interface PoyoTask {
   errorMessage: string | null;
 }
 
-async function getBrandReferenceFiles() {
-  const assets = [
-    { path: "mascots/mascot1.webp", name: "foxiesdeck-mascot.webp", type: "image/webp" },
-    { path: "splash.png", name: "foxiesdeck-wordmark.png", type: "image/png" },
-    { path: "logo.webp", name: "foxiesdeck-logo.webp", type: "image/webp" },
-  ];
-
-  return Promise.all(assets.map(async (asset) => toFile(
-    await readFile(join(process.cwd(), "public", asset.path)),
-    asset.name,
-    { type: asset.type },
-  )));
-}
-
-async function formatAvatarFrame(imageBase64: string) {
-  // GPT Image supports 2:3 vertically. Convert its centered composition to the
-  // cheaper 9:16 asset expected by the avatar pipeline before uploading it.
-  const formattedFrame = await sharp(Buffer.from(imageBase64, "base64"))
+async function formatAvatarFrame(image: Buffer) {
+  // PoYo GPT Image 2 produces a low-quality 2:3 source. Convert its centered
+  // composition to the 9:16 asset expected by the avatar pipeline.
+  const formattedFrame = await sharp(image)
     .resize(AVATAR_FRAME_WIDTH, AVATAR_FRAME_HEIGHT, { fit: "cover", position: "centre" })
     .webp({ quality: 80 })
     .toBuffer();
@@ -109,8 +92,7 @@ function parseVideoPlan(value: string): VideoPlan | null {
 }
 
 async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nativeLanguage: LanguageCode) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.POYO_API_KEY?.trim()) return null;
 
   const instructions = [
     "You are the senior creative director for FoxiesDeck, a playful vocabulary-card app.",
@@ -133,10 +115,10 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
       example: card.examples[0]?.sentence ?? card.example,
     },
   };
-  const openai = new OpenAI({ apiKey });
+  const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
-    const response = await openai.responses.create({
-      model: SOCIAL_CONTENT_PROMPT_MODEL,
+    const response = await poyo.responses.create({
+      model: SOCIAL_CONTENT_CREATIVE_MODEL,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return only valid JSON with all four required string fields.` : instructions,
       input: JSON.stringify(input),
       max_output_tokens: 1000,
@@ -295,10 +277,8 @@ export async function POST(request: Request) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ errorCode: "invalid_request" }, { status: 400 });
 
-  const openAiKey = process.env.OPENAI_API_KEY;
   const poyoApiKey = process.env.POYO_API_KEY;
-  if (!openAiKey) return Response.json({ errorCode: "openai_not_configured" }, { status: 503 });
-  if (!poyoApiKey) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
+  if (!poyoApiKey?.trim()) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
 
   const card = selectCard(parsed.data.language, parsed.data.tier);
   if (!card) return Response.json({ errorCode: "card_not_found" }, { status: 404 });
@@ -313,21 +293,15 @@ export async function POST(request: Request) {
 
   let frameDataUrl: string;
   try {
-    const imageResponse = await new OpenAI({ apiKey: openAiKey, maxRetries: 0 }).images.edit({
-      model: GPT_IMAGE_MODEL,
-      image: await getBrandReferenceFiles(),
+    const image = await generatePoyoImageEdit({
       prompt: plan.framePrompt,
-      n: 1,
-      size: "1024x1536",
-      quality: "medium",
-      background: "opaque",
-      output_format: "webp",
-      output_compression: 82,
+      size: "2:3",
     });
-    const imageBase64 = imageResponse.data?.[0]?.b64_json;
-    if (!imageBase64) return Response.json({ errorCode: "empty_first_frame" }, { status: 502 });
-    frameDataUrl = await formatAvatarFrame(imageBase64);
-  } catch {
+    frameDataUrl = await formatAvatarFrame(image.data);
+  } catch (error) {
+    if (error instanceof PoyoImageError) {
+      return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+    }
     return Response.json({ errorCode: "first_frame_failed" }, { status: 502 });
   }
 

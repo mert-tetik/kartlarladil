@@ -315,7 +315,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       const payload = await response.json() as { imageUrl?: string; artDirection?: string; caption?: string; errorCode?: string };
       if (!response.ok || !payload.imageUrl) {
         setAiImageStatus("failed");
-        setAiImageError(payload.errorCode === "not_configured" ? "OPENAI_API_KEY is not configured." : "The image could not be generated. Try again.");
+        setAiImageError(payload.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The image could not be generated. Try again.");
         return;
       }
 
@@ -411,7 +411,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         const payload = await response.json() as { imageUrl?: string; caption?: string; errorCode?: string };
         if (!response.ok || !payload.imageUrl) {
           setMusicVideoStatus("failed");
-          setMusicVideoError(payload.errorCode === "not_configured" ? "OPENAI_API_KEY is not configured." : "The source image could not be generated. Try again.");
+          setMusicVideoError(payload.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The source image could not be generated. Try again.");
           return;
         }
 

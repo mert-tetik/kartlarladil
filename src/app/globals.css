@@ -1800,6 +1800,40 @@ body:has([data-games-active]) {
 
 /* The private Content Automation workspace uses a lime accent without changing
    the amber reward and rank palette used by the consumer app. */
+.content-automation-shell {
+  background-color: #060707 !important;
+}
+
+.content-automation-shell[class~="bg-[#12100e]"],
+.content-automation-shell [class~="bg-[#12100e]"] {
+  background-color: #060707 !important;
+}
+
+.content-automation-shell [class~="bg-[#1b1714]"] {
+  background-color: #0d0f0e !important;
+}
+
+.content-automation-shell [class~="bg-[#171a19]"] {
+  background-color: #101211 !important;
+}
+
+.content-automation-shell [class~="bg-[#141716]"] {
+  background-color: #0b0d0c !important;
+}
+
+.content-automation-shell[class~="bg-[#101212]"],
+.content-automation-shell [class~="bg-[#101212]"] {
+  background-color: #080a09 !important;
+}
+
+.content-automation-shell [class~="bg-[#100d0c]"] {
+  background-color: #080908 !important;
+}
+
+.content-automation-shell [class~="bg-[#162017]"] {
+  background-color: #0b120d !important;
+}
+
 .content-automation-shell [class~="bg-[#f5ac27]"] {
   background-color: #caff46 !important;
 }
@@ -1822,11 +1856,11 @@ body:has([data-games-active]) {
 }
 
 .content-automation-shell [class~="bg-[#2b211d]"] {
-  background-color: #202b10 !important;
+  background-color: #13190e !important;
 }
 
 .content-automation-shell [class~="hover:bg-[#231d19]"]:hover {
-  background-color: #273515 !important;
+  background-color: #1b240f !important;
 }
 
 .content-automation-shell [class~="text-[#ffb355]"],

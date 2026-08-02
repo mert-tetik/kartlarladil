@@ -39,6 +39,7 @@ const requestSchema = z.object({ horizonDays: z.union([z.literal(1), z.literal(3
 
 type AutomationRow = z.infer<typeof rowSchema>;
 type AutomationGroup = z.infer<typeof groupsSchema>[number];
+type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
 
 function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
@@ -74,7 +75,7 @@ function targetAccountIds(row: AutomationRow) {
 }
 
 function resolveContentMode(row: AutomationRow) {
-  const selectedTypes = row.contentTypes?.length
+  const selectedTypes: SelectableContentType[] = row.contentTypes?.length
     ? [...new Set(row.contentTypes)]
     : row.contentType === "image"
       ? ["image"]

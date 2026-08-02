@@ -33,6 +33,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     pathname === "/learned" ||
     pathname === "/leaderboard" ||
     pathname.startsWith("/games/");
+  const isAutomationTable = pathname === "/content-automation/automations";
   const [transitionPhase, setTransitionPhase] = useState<RouteTransitionPhase>("idle");
   const transitionStartedAtRef = useRef<number | null>(null);
   const coverTimerRef = useRef<number | null>(null);
@@ -209,7 +210,8 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         key={pathname}
         className={cn(
           "page-transition-shell lg:pb-0",
-          !isFullScreenRoute && "pb-24",
+          isAutomationTable && "h-full overflow-hidden pb-0",
+          !isFullScreenRoute && !isAutomationTable && "pb-24",
         )}
       >
         {children}

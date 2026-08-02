@@ -402,6 +402,11 @@ Image generator:
 - AI Beginner to Advanced.
 
 Video generator:
+
+- Random Image to Video: rastgele bir image generator secilir, gorsel
+  tarayicida muzikli videoya render edilir.
+- Random AI Video: AI avatar videosu veya AI image kaynakli muzikli video
+  generatorlerinden biri rastgele secilir.
 - Random video mode.
 - AI Word of the Day Video.
 

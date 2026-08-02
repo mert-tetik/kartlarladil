@@ -15,10 +15,20 @@ const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression"] as const;
 const NON_AI_IMAGE_GENERATORS = ["word-of-the-day", "word-of-the-day-poster"] as const;
 const TEXT_GENERATORS = ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner"] as const;
-const VIDEO_GENERATORS = ["ai-word-of-the-day-video"] as const;
+const VIDEO_GENERATORS = ["ai-word-of-the-day-video", "confused-words-video"] as const;
 const MUSIC_VIDEO_GENERATORS = [
   "music-word-of-the-day",
   "music-word-of-the-day-poster",
+  "music-ai-word-of-the-day",
+  "music-ai-mini-quiz",
+  "music-ai-false-friends",
+  "music-ai-daily-challenge",
+  "music-ai-vocabulary-progression",
+] as const;
+const IMAGE_TO_VIDEO_GENERATORS = MUSIC_VIDEO_GENERATORS;
+const AI_VIDEO_GENERATORS = [
+  "ai-word-of-the-day-video",
+  "confused-words-video",
   "music-ai-word-of-the-day",
   "music-ai-mini-quiz",
   "music-ai-false-friends",
@@ -66,6 +76,8 @@ function resolveGenerator(output: AutomationOutputRecord) {
   if (output.generator === "random-ai-image") return pick(IMAGE_GENERATORS);
   if (output.generator === "random-no-ai-image") return pick(NON_AI_IMAGE_GENERATORS);
   if (output.generator === "random-video") return pick([...VIDEO_GENERATORS, ...MUSIC_VIDEO_GENERATORS]);
+  if (output.generator === "random-image-to-video") return pick(IMAGE_TO_VIDEO_GENERATORS);
+  if (output.generator === "random-ai-video") return pick(AI_VIDEO_GENERATORS);
   return output.generator;
 }
 
@@ -221,6 +233,19 @@ async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typ
   return "browser_video_required";
 }
 
+async function prepareConfusedWordsVideo(output: AutomationOutputRecord, tier: Tier) {
+  await updateOutput(output.id, {
+    status: "awaiting_browser_video",
+    tier,
+    caption: null,
+    media_path: null,
+    media_type: null,
+    generated_at: new Date().toISOString(),
+    error_code: null,
+  });
+  return "browser_video_required";
+}
+
 async function startVideo(output: AutomationOutputRecord, tier: Tier) {
   const { POST: createAiVideo } = await import("@/app/api/twitter-automation/ai-video/route");
   const response = await createAiVideo(createInternalRequest("/api/twitter-automation/ai-video", {
@@ -332,6 +357,7 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
       return { outcome: await scheduleOutput(readyOutput) };
     }
     if (generator === "ai-word-of-the-day-video") return { outcome: await startVideo(output, tier) };
+    if (generator === "confused-words-video") return { outcome: await prepareConfusedWordsVideo(output, tier) };
     if ((MUSIC_VIDEO_GENERATORS as readonly string[]).includes(generator)) return { outcome: await prepareMusicVideo(output, generator as (typeof MUSIC_VIDEO_GENERATORS)[number], tier) };
     throw new Error("unsupported_automation_generator");
   } catch (error) {

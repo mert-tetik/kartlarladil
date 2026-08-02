@@ -1,20 +1,15 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import OpenAI, { toFile } from "openai";
 import { z } from "zod";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { SOCIAL_CONTENT_PROMPT_MODEL } from "@/features/twitter-automation/social-studio-openai";
+import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
+import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
-
-const GPT_IMAGE_MODEL = "gpt-image-2";
-const IMAGE_REQUEST_TIMEOUT_MS = 120_000;
 
 const IMAGE_MODES = [
   "ai-word-of-the-day",
@@ -67,20 +62,6 @@ const CAPTION_BRIEFS: Record<ImageMode, string> = {
   "ai-vocabulary-progression": "Start with a clear Beginner to Advanced-style headline, then frame the word pairs as a vocabulary upgrade.",
 };
 
-async function getBrandReferenceFiles() {
-  const assets = [
-    { path: "mascots/mascot1.webp", name: "foxiesdeck-mascot.webp", type: "image/webp" },
-    { path: "splash.png", name: "foxiesdeck-wordmark.png", type: "image/png" },
-    { path: "logo.webp", name: "foxiesdeck-logo.webp", type: "image/webp" },
-  ];
-
-  return Promise.all(assets.map(async (asset) => toFile(
-    await readFile(join(process.cwd(), "public", asset.path)),
-    asset.name,
-    { type: asset.type },
-  )));
-}
-
 function getCardsForMode(mode: ImageMode, language: LanguageCode, tier: Tier) {
   const tiers: Tier[] = mode === "ai-vocabulary-progression"
     ? ["A1", "A2"]
@@ -122,8 +103,7 @@ function parseAiImagePlan(rawPlan: string, mode: ImageMode): AiImagePlan | null 
 }
 
 async function createArtDirection(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, cards: VocabularyCard[]) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.POYO_API_KEY?.trim()) return null;
 
   const instructions = [
       "You are the senior visual art director for FoxiesDeck, a playful multilingual vocabulary-card app.",
@@ -153,10 +133,10 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       selectedTier: tier,
       cards: serializeCards(cards, nativeLanguage),
     };
-  const openai = new OpenAI({ apiKey });
+  const poyo = createSocialStudioPoyoClient();
   const generatePlan = async (repair: boolean) => {
-    const response = await openai.responses.create({
-      model: SOCIAL_CONTENT_PROMPT_MODEL,
+    const response = await poyo.responses.create({
+      model: SOCIAL_CONTENT_CREATIVE_MODEL,
       instructions: repair
         ? `${instructions}\nYour previous response was invalid. Return only valid JSON matching the required fields. For False Friends, include two commonly confused words from the selected learning language with different meanings. Never use a cross-language translation pair.`
         : instructions,
@@ -221,8 +201,8 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return Response.json({ errorCode: "not_configured" }, { status: 503 });
+  if (!process.env.POYO_API_KEY?.trim()) {
+    return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
   }
 
   const cards = getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.tier);
@@ -242,32 +222,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const imageResponse = await new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: IMAGE_REQUEST_TIMEOUT_MS,
-      maxRetries: 0,
-    }).images.edit({
-      model: GPT_IMAGE_MODEL,
-      image: await getBrandReferenceFiles(),
+    const image = await generatePoyoImageEdit({
       prompt: createImagePrompt(parsed.data.mode, imagePlan),
-      n: 1,
-      size: "1024x1024",
-      quality: "medium",
-      background: "opaque",
-      output_format: "webp",
-      output_compression: 82,
+      size: "1:1",
     });
-    const imageBase64 = imageResponse.data?.[0]?.b64_json;
-    if (!imageBase64) {
-      return Response.json({ errorCode: "empty_image_response" }, { status: 502 });
-    }
 
     return Response.json({
-      imageUrl: `data:image/webp;base64,${imageBase64}`,
+      imageUrl: image.dataUrl,
       artDirection: imagePlan.artDirection,
       caption: imagePlan.caption,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof PoyoImageError) {
+      return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+    }
     return Response.json({ errorCode: "image_generation_failed" }, { status: 502 });
   }
 }

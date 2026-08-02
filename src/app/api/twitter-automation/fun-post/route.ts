@@ -1,8 +1,7 @@
-import OpenAI from "openai";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { isLanguageCode } from "@/data/languages";
-import { SOCIAL_CONTENT_PROMPT_MODEL } from "@/features/twitter-automation/social-studio-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { createSocialStudioPoyoClient, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -50,16 +49,13 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    return Response.json({ errorCode: "not_configured" }, { status: 503 });
+  if (!process.env.POYO_API_KEY?.trim()) {
+    return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
   }
 
   try {
-    const openai = new OpenAI({ apiKey });
-    const response = await openai.responses.create({
-      model: SOCIAL_CONTENT_PROMPT_MODEL,
+    const response = await createSocialStudioPoyoClient().responses.create({
+      model: SOCIAL_CONTENT_TEXT_MODEL,
       instructions: [...BASE_INSTRUCTIONS, CONTENT_RULES[mode]].join("\n"),
       input: JSON.stringify({
         mode,

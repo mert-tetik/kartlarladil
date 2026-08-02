@@ -11,8 +11,10 @@ export const maxDuration = 120;
 const requestSchema = z.object({
   outputId: z.string().uuid().optional(),
   stagedMediaPath: z.string().regex(/^automation\/[\da-f-]+\.webm$/iu).optional(),
+  caption: z.string().trim().min(1).max(400).optional(),
 }).strict().superRefine((value, context) => {
   if (value.stagedMediaPath && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
+  if (value.caption && !value.stagedMediaPath) context.addIssue({ code: "custom", path: ["caption"], message: "A staged video is required." });
 });
 
 function isAuthorized(request: NextRequest) {
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (!candidate) return NextResponse.json({ processed: false, state: "idle" });
 
     const update = parsed.data.stagedMediaPath
-      ? { status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", updated_at: new Date().toISOString() }
+      ? { status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
       : { status: "processing", updated_at: new Date().toISOString() };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await processAutomationOutput(parsed.data.stagedMediaPath
-      ? { ...candidate, status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video" }
+      ? { ...candidate, status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", caption: parsed.data.caption ?? candidate.caption }
       : candidate);
     if (result.outcome === "video_pending") {
       await supabase.from("social_content_automation_outputs").update({ status: "generating_video", updated_at: new Date().toISOString() }).eq("id", candidate.id);

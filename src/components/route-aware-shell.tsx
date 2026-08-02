@@ -9,6 +9,7 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAccountPage = pathname === "/profile" || pathname.startsWith("/account/");
   const hidesMobileBottomNav = pathname === "/pricing" || pathname === "/content-automation" || pathname.startsWith("/content-automation/");
+  const isAutomationTable = pathname === "/content-automation/automations";
   const isFullScreenStudy =
     pathname === "/learn" ||
     pathname === "/learned" ||
@@ -21,6 +22,7 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
       data-mobile-hide-bottom-nav={isFullScreenStudy || hidesMobileBottomNav || undefined}
       className={cn(
         "flex-1 outline-none",
+        isAutomationTable && "fixed inset-x-0 bottom-0 top-[var(--app-header-height)] z-30 overflow-hidden",
         !isAccountPage && !isFullScreenStudy && !hidesMobileBottomNav && "max-lg:pb-[var(--mobile-nav-bar-height)]",
         (pathname === "/games" ||
           pathname.startsWith("/games/") ||
