@@ -85,7 +85,7 @@ function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageEl
   const width = 720;
   const height = bounds.width ? width * bounds.height / bounds.width : 150;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = 0;
+  const y = 20;
   const mask = document.createElement("canvas");
   mask.width = Math.ceil(width);
   mask.height = Math.ceil(height);
@@ -164,7 +164,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (!scenes.length || scenes.length % 8 !== 0) throw new Error("invalid_video_scene_count");
   const phasePairs = resolvePhasePairs(options);
-  const phaseCount = Math.max(...scenes.map((scene) => scene.phaseIndex ?? 0)) + 1;
+  const phaseCount = scenes.length / MASCOT_BY_PHASE_SCENE.length;
   if (phasePairs.length < phaseCount && !cardImageUrls?.length && !firstCardImageUrl && !secondCardImageUrl) throw new Error("confused_words_cards_unavailable");
 
   const normalizedCardUrls = cardImageUrls?.length ? cardImageUrls : [firstCardImageUrl, secondCardImageUrl].filter((url): url is string => Boolean(url));
@@ -239,8 +239,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   const drawFrame = (now: number) => {
     const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
     const sceneIndex = starts.reduce((activeIndex, start, index) => start <= elapsed ? index : activeIndex, 0);
-    const scene = scenes[sceneIndex]!;
-    const phaseIndex = scene.phaseIndex ?? Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
+    const phaseIndex = Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
     const phaseSceneIndex = sceneIndex % MASCOT_BY_PHASE_SCENE.length;
     const visibleMascot = MASCOT_BY_PHASE_SCENE[phaseSceneIndex]!;
     const visibleMirrored = MIRRORED_BY_PHASE_SCENE[phaseSceneIndex]!;
