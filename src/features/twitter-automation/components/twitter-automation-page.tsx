@@ -1307,8 +1307,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     <section className="content-automation-shell min-h-[calc(100dvh-4rem)] bg-[#12100e] px-4 py-6 text-[#f9f2e9] sm:px-6 sm:py-10">
       {confusedWordsCards ? <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 flex gap-8">
         {confusedWordsCards.flatMap((pair) => [pair.first, pair.second]).map((confusedCard, index) => (
-          <div className="w-[430px]" key={confusedCard.sourceKey} ref={(element) => { confusedWordsCardRefs.current[index] = element; }}>
-            <VocabularyCardView card={confusedCard} frontFit frontContentScale={1.42} showActions={false} staticFace translationLocale={nativeLanguage} />
+          <div className="w-[430px] [&_[data-card-example-preview]]:origin-center [&_[data-card-example-preview]]:scale-[1.42]" key={confusedCard.sourceKey} ref={(element) => { confusedWordsCardRefs.current[index] = element; }}>
+            <VocabularyCardView card={confusedCard} frontFit frontContentScale={1.55} showActions={false} staticFace translationLocale={nativeLanguage} />
           </div>
         ))}
       </div> : null}

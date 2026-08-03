@@ -28,7 +28,7 @@ type ConfusedWordsVideoRenderOptions = {
 
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
-const SCENE_GAP_SECONDS = 0.18;
+const AUDIO_CROSSFADE_SECONDS = 0.09;
 const CARD_WIDTH = 430;
 const CARD_Y = 360;
 const CARD_HIGHLIGHT_SCALE = 1.075;
@@ -54,10 +54,10 @@ function easeOutQuint(value: number) {
 }
 
 function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement) {
-  const width = 660;
+  const width = 720;
   const height = splash.naturalHeight ? width * splash.naturalHeight / splash.naturalWidth : 150;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = 8;
+  const y = -18;
   const mask = document.createElement("canvas");
   mask.width = Math.ceil(width);
   mask.height = Math.ceil(height);
@@ -105,23 +105,17 @@ function drawMascot(
   context: CanvasRenderingContext2D,
   image: HTMLImageElement,
   mirrored: boolean,
-  entranceProgress: number,
-  isPhaseEntrance: boolean,
+  opacity = 1,
 ) {
   const maxWidth = 820;
   const maxHeight = 800;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const settledX = (CANVAS_WIDTH - width) / 2;
-  const settledY = 1030 + Math.max(0, (maxHeight - height) / 2);
-  // Every scene gets a small movement; the start of each new phase restarts
-  // the mascot from further below, so phases never look frozen copies.
-  const riseDistance = isPhaseEntrance ? 250 : 44;
-  const horizontalDistance = isPhaseEntrance ? 58 : 16;
-  const x = settledX + (mirrored ? 1 : -1) * (1 - entranceProgress) * horizontalDistance;
-  const y = settledY + (1 - entranceProgress) * riseDistance;
+  const x = (CANVAS_WIDTH - width) / 2;
+  const y = 1030 + Math.max(0, (maxHeight - height) / 2);
   context.save();
+  context.globalAlpha = opacity;
   if (mirrored) {
     // Draw in a mirrored canvas coordinate space; using the original x keeps
     // the bitmap visibly flipped instead of canceling the transform out.
@@ -163,10 +157,11 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   let elapsedSeconds = 0;
   const starts = audioBuffers.map((buffer, index) => {
     const start = elapsedSeconds;
-    elapsedSeconds += buffer.duration / playbackRates[index]! + SCENE_GAP_SECONDS;
+    const duration = buffer.duration / playbackRates[index]!;
+    elapsedSeconds += index === audioBuffers.length - 1 ? duration : Math.max(0.04, duration - AUDIO_CROSSFADE_SECONDS);
     return start;
   });
-  const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.28;
+  const durationSeconds = elapsedSeconds + 0.28;
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
@@ -188,10 +183,25 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   const startTime = audioContext.currentTime + 0.08;
   audioBuffers.forEach((buffer, index) => {
     const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
     source.buffer = buffer;
     source.playbackRate.value = playbackRates[index]!;
-    source.connect(destination);
-    source.start(startTime + starts[index]!);
+    source.connect(gain);
+    gain.connect(destination);
+    const sourceStart = startTime + starts[index]!;
+    const sourceDuration = buffer.duration / playbackRates[index]!;
+    const fadeDuration = Math.min(AUDIO_CROSSFADE_SECONDS, sourceDuration / 3);
+    if (index > 0) {
+      gain.gain.setValueAtTime(0, sourceStart);
+      gain.gain.linearRampToValueAtTime(1, sourceStart + fadeDuration);
+    } else {
+      gain.gain.setValueAtTime(1, sourceStart);
+    }
+    if (index < audioBuffers.length - 1) {
+      gain.gain.setValueAtTime(1, sourceStart + Math.max(fadeDuration, sourceDuration - fadeDuration));
+      gain.gain.linearRampToValueAtTime(0, sourceStart + sourceDuration);
+    }
+    source.start(sourceStart);
   });
 
   let animationId = 0;
@@ -231,9 +241,9 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     };
     drawCard(highlightedSide === "left" ? "right" : "left");
     drawCard(highlightedSide);
-    const isPhaseEntrance = !previousScene || (previousScene.phaseIndex ?? 0) !== phaseIndex;
-    const mascotEntrance = easeOutQuint(localSceneElapsed / (isPhaseEntrance ? 0.62 : 0.26));
-    drawMascot(context, mascots[scene.mascot], scene.mirrored, mascotEntrance, isPhaseEntrance);
+    const mascotTransition = easeOutQuint(localSceneElapsed / 0.16);
+    if (previousScene) drawMascot(context, mascots[previousScene.mascot], previousScene.mirrored, 1 - mascotTransition);
+    drawMascot(context, mascots[scene.mascot], scene.mirrored, previousScene ? mascotTransition : 1);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 
