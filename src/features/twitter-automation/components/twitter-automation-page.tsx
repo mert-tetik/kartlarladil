@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Video } from "lucide-react";
+import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
@@ -39,6 +39,8 @@ type GeneratorMode = TextGeneratorMode | ImageGeneratorMode | VideoGeneratorMode
 type AiImageTaskStatus = "idle" | "running" | "finished" | "failed";
 type AiVideoTaskStatus = "idle" | "preparing" | "queued" | "running" | "finished" | "failed";
 type MusicVideoTaskStatus = "idle" | "creating-image" | "rendering" | "finished" | "failed";
+
+type GeneratorOption = { value: GeneratorMode; label: string; description: string };
 
 const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: string; icon: typeof MessageSquareText }> = [
   { value: "text", label: "Text", description: "Captions and GPT posts", icon: MessageSquareText },
@@ -113,6 +115,17 @@ const GENERATOR_OPTIONS = {
     ...VIDEO_GENERATOR_OPTIONS,
   ],
 };
+
+const DEFAULT_HIGHLIGHTED_GENERATOR_MODES: readonly GeneratorMode[] = [
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+  "confused-words-video",
+  "marketing-dialogue-video",
+  "learning-dialogue-video",
+  "tier-progression-video",
+  "vocabulary-quiz-video",
+  "sentence-check-video",
+];
 
 const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
 const ENGLISH_LANGUAGE_NAMES: Record<LanguageCode, string> = {
@@ -204,6 +217,49 @@ function randomCarouselTiers(): Tier[] {
   return [...shuffled, TIERS[Math.floor(Math.random() * TIERS.length)]!];
 }
 
+function GeneratorModeOption({
+  highlighted,
+  onSelect,
+  onToggleHighlight,
+  option,
+  selected,
+}: {
+  highlighted: boolean;
+  onSelect: () => void;
+  onToggleHighlight: () => void;
+  option: GeneratorOption;
+  selected: boolean;
+}) {
+  return (
+    <div className="relative">
+      <button
+        className={cn(
+          "w-full rounded-lg border p-3 pr-12 text-left transition-colors",
+          highlighted
+            ? selected ? "border-[#ffd36b] bg-[#f5ac27] text-[#251106]" : "border-[#cf8f17] bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]"
+            : selected ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]",
+        )}
+        onClick={onSelect}
+        type="button"
+      >
+        <span className="block text-sm font-semibold">{option.label}</span>
+        <span className={cn("mt-1 block text-xs leading-5", highlighted ? "text-black/70" : "text-[#cdbfb3]")}>{option.description}</span>
+      </button>
+      <button
+        aria-label={highlighted ? `Remove highlight from ${option.label}` : `Highlight ${option.label}`}
+        className={cn(
+          "absolute right-2 top-2 flex size-8 items-center justify-center rounded-md transition-colors",
+          highlighted ? "text-[#251106] hover:bg-black/10" : "text-[#a8a29e] hover:bg-white/10 hover:text-[#f5ac27]",
+        )}
+        onClick={onToggleHighlight}
+        type="button"
+      >
+        <Star className="size-4" fill={highlighted ? "currentColor" : "none"} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -213,6 +269,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [studioMode, setStudioMode] = useState<StudioMode>("text");
   const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("fun-post");
+  const [highlightedGeneratorModes, setHighlightedGeneratorModes] = useState<Set<GeneratorMode>>(() => new Set(DEFAULT_HIGHLIGHTED_GENERATOR_MODES));
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>("en");
   const [tier, setTier] = useState<Tier>("A1");
@@ -877,6 +934,15 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     carouselSlideRefs.current = [];
   }
 
+  function toggleGeneratorHighlight(mode: GeneratorMode) {
+    setHighlightedGeneratorModes((current) => {
+      const next = new Set(current);
+      if (next.has(mode)) next.delete(mode);
+      else next.add(mode);
+      return next;
+    });
+  }
+
   function generateContent() {
     if (isTextGenerator(generatorMode)) {
       void loadFunPost(generatorMode);
@@ -1181,17 +1247,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
             <aside className="h-fit rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
               <p className="text-sm font-semibold text-[#ffb355]">Video generators</p>
               <div className="mt-3 space-y-2">
-                {generatorOptions.map((option) => (
-                  <button
-                    className={cn("w-full rounded-lg border p-3 text-left transition-colors", generatorMode === option.value ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]")}
-                    key={option.value}
-                    onClick={() => selectGeneratorMode(option.value)}
-                    type="button"
-                  >
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#cdbfb3]">{option.description}</span>
-                  </button>
-                ))}
+                {generatorOptions.map((option) => <GeneratorModeOption highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
               </div>
 
               <label className="mt-6 block text-sm font-semibold" htmlFor="social-studio-video-language">Learning language</label>
@@ -1295,20 +1351,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
             <aside className="h-fit rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
               <p className="text-sm font-semibold text-[#ffb355]">{studioMode === "text" ? "Text generators" : "Image generators"}</p>
               <div className="mt-3 space-y-2">
-                {generatorOptions.map((option) => (
-                  <button
-                    className={cn(
-                      "w-full rounded-lg border p-3 text-left transition-colors",
-                      generatorMode === option.value ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]",
-                    )}
-                    key={option.value}
-                    onClick={() => selectGeneratorMode(option.value)}
-                    type="button"
-                  >
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#cdbfb3]">{option.description}</span>
-                  </button>
-                ))}
+                {generatorOptions.map((option) => <GeneratorModeOption highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
               </div>
 
               <>
