@@ -1,3 +1,5 @@
+import type { VocabularyCard } from "@/types/domain";
+
 export type ConfusedWordsVideoScene = {
   text: string;
   mascot: 3 | 4 | 18;
@@ -7,8 +9,10 @@ export type ConfusedWordsVideoScene = {
 
 type ConfusedWordsVideoRenderOptions = {
   audioContext: AudioContext;
-  firstCardImageUrl: string;
-  secondCardImageUrl: string;
+  firstCardImageUrl?: string;
+  secondCardImageUrl?: string;
+  firstCard?: Pick<VocabularyCard, "term" | "tier">;
+  secondCard?: Pick<VocabularyCard, "term" | "tier">;
   scenes: readonly ConfusedWordsVideoScene[];
 };
 
@@ -55,6 +59,23 @@ function drawAppCard(context: CanvasRenderingContext2D, cardImage: HTMLImageElem
   context.drawImage(cardImage, x, 360, width, height);
 }
 
+function drawFallbackCard(context: CanvasRenderingContext2D, card: Pick<VocabularyCard, "term" | "tier">, x: number) {
+  const width = 430;
+  const height = 574;
+  context.fillStyle = "#fffdf9";
+  context.fillRect(x, 360, width, height);
+  context.fillStyle = "#f5ac27";
+  context.fillRect(x, 360, width, 84);
+  context.fillStyle = "#ffffff";
+  context.font = "600 32px Manrope, Arial, sans-serif";
+  context.textAlign = "left";
+  context.fillText(card.tier, x + 34, 414);
+  context.fillStyle = "#211b16";
+  context.font = "600 58px Manrope, Arial, sans-serif";
+  context.textAlign = "center";
+  context.fillText(card.term, x + width / 2, 650, width - 56);
+}
+
 function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, mirrored: boolean) {
   const maxWidth = 820;
   const maxHeight = 800;
@@ -72,17 +93,18 @@ function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, 
   context.restore();
 }
 
-export async function renderConfusedWordsVideo({ audioContext, firstCardImageUrl, secondCardImageUrl, scenes }: ConfusedWordsVideoRenderOptions) {
+export async function renderConfusedWordsVideo({ audioContext, firstCardImageUrl, secondCardImageUrl, firstCard, secondCard, scenes }: ConfusedWordsVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length !== 8) throw new Error("invalid_video_scene_count");
+  if ((!firstCardImageUrl && !firstCard) || (!secondCardImageUrl && !secondCard)) throw new Error("confused_words_cards_unavailable");
 
-  const [splash, mascot3, mascot4, mascot18, firstCard, secondCard] = await Promise.all([
+  const [splash, mascot3, mascot4, mascot18, firstCardImage, secondCardImage] = await Promise.all([
     loadImage("/splash.png"),
     loadImage("/mascots/mascot3.webp"),
     loadImage("/mascots/mascot4.webp"),
     loadImage("/mascots/mascot18.png"),
-    loadImage(firstCardImageUrl),
-    loadImage(secondCardImageUrl),
+    firstCardImageUrl ? loadImage(firstCardImageUrl) : Promise.resolve(null),
+    secondCardImageUrl ? loadImage(secondCardImageUrl) : Promise.resolve(null),
   ]);
   const audioBuffers = await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
@@ -134,8 +156,10 @@ export async function renderConfusedWordsVideo({ audioContext, firstCardImageUrl
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     drawTintedSplash(context, splash);
-    drawAppCard(context, firstCard, 80);
-    drawAppCard(context, secondCard, 570);
+    if (firstCardImage) drawAppCard(context, firstCardImage, 80);
+    else if (firstCard) drawFallbackCard(context, firstCard, 80);
+    if (secondCardImage) drawAppCard(context, secondCardImage, 570);
+    else if (secondCard) drawFallbackCard(context, secondCard, 570);
     drawMascot(context, mascots[scene.mascot], scene.mirrored);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
