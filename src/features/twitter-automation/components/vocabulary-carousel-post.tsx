@@ -5,19 +5,17 @@ import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 type VocabularyCarouselPostProps = {
   card: VocabularyCard;
-  index: number;
   nativeLanguage: LanguageCode;
   presentation?: "meaning" | "tier";
-  slideCount?: number;
   onSlideRef?: (element: HTMLDivElement | null) => void;
 };
 
-const TIER_SURFACES = {
-  A1: "#174c3f",
-  A2: "#173d59",
-  B1: "#392969",
-  B2: "#633d12",
-  C1: "#651c35",
+const TIER_BACKGROUND_IMAGES = {
+  A1: "/colored-backgrounds/green.png",
+  A2: "/colored-backgrounds/blue.png",
+  B1: "/colored-backgrounds/purple.png",
+  B2: "/colored-backgrounds/yellow.png",
+  C1: "/colored-backgrounds/red.png",
 } as const;
 
 const TIER_ACCENTS = {
@@ -28,29 +26,47 @@ const TIER_ACCENTS = {
   C1: "#fda4af",
 } as const;
 
-export function VocabularyCarouselPost({ card, index, nativeLanguage, presentation = "meaning", slideCount = 6, onSlideRef }: VocabularyCarouselPostProps) {
+function StaticCarouselCardFace({ card, nativeLanguage }: Pick<VocabularyCarouselPostProps, "card" | "nativeLanguage">) {
+  const translation = card.translations[nativeLanguage] || card.translation;
+  const example = card.examples[0]?.sentence ?? card.example;
+
+  return (
+    <div className="aspect-[3/4] w-full rounded-lg border-[3px] border-white/85 bg-[#fffaf4] p-2.5 text-white">
+      <div className="flex h-full flex-col rounded-md border-2 border-[#df8700] bg-gradient-to-b from-[#ffb600] to-[#d46e00] p-4 text-center sm:p-5">
+        <div className="flex items-center justify-between text-[10px] font-semibold text-white/85 sm:text-xs">
+          <span>{card.language.toUpperCase()}</span>
+          <span>{card.tier}</span>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <p className="text-xs font-medium text-white/80 sm:text-sm">{card.pronunciation}</p>
+          <h3 className="mt-3 break-words font-display text-3xl font-semibold leading-none sm:text-4xl">{card.term}</h3>
+          <p className="mt-4 text-base font-semibold leading-5 sm:text-lg">{translation}</p>
+        </div>
+        <p className="line-clamp-2 min-h-10 text-xs font-medium leading-4 text-white/90 sm:text-sm sm:leading-5">{example}</p>
+      </div>
+    </div>
+  );
+}
+
+export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "meaning", onSlideRef }: VocabularyCarouselPostProps) {
   const meaning = card.translations[nativeLanguage] || card.translation;
   const usesSuperWater = canUseSuperWater(nativeLanguage);
   const headline = presentation === "tier" ? card.tier : usesSuperWater ? formatSuperWaterText(nativeLanguage, meaning) : meaning;
+  const displayHeadline = headline.toLocaleUpperCase(nativeLanguage);
 
   return (
     <article
       className="relative aspect-[3/4] w-[360px] shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#16120f] p-5 text-[#fffaf4] sm:w-[440px] sm:p-6"
       data-social-vocabulary-carousel-slide
       ref={onSlideRef}
-      style={{ background: `linear-gradient(155deg, ${TIER_SURFACES[card.tier]} 0%, #16120f 48%, #16120f 100%)` }}
+      style={{ backgroundImage: `url(${TIER_BACKGROUND_IMAGES[card.tier]})`, backgroundPosition: "center", backgroundSize: "cover" }}
     >
-      {presentation === "tier" ? <div className="flex items-center justify-between text-xs font-semibold text-white/70">
-        <span>FoxiesDeck</span>
-        <span>{index + 1}/{slideCount}</span>
-      </div> : null}
-      <h2 className={cn(presentation === "meaning" ? "mt-5" : "mt-8", "break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:text-5xl", presentation === "meaning" && usesSuperWater && "font-super-water")} style={presentation === "tier" ? { color: TIER_ACCENTS[card.tier] } : undefined}>
-        {headline}
+      <h2 className={cn(presentation === "meaning" ? "mt-5" : "mt-8", "break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:text-5xl", presentation === "meaning" && usesSuperWater && "font-super-water")} style={{ color: presentation === "tier" ? TIER_ACCENTS[card.tier] : "#17120e" }}>
+        {displayHeadline}
       </h2>
-      {presentation === "tier" ? <p className="mt-3 text-center text-xs leading-5 text-white/65">{card.language.toUpperCase()} · {card.tier} vocabulary</p> : null}
-      <div className="absolute bottom-0 left-1/2 w-full -translate-x-1/2 px-8 pb-9 sm:px-10 sm:pb-11">
-        <div className={cn("mx-auto w-full", presentation === "meaning" ? "max-w-[172px] sm:max-w-[192px]" : "max-w-[224px] sm:max-w-[252px]")}>
-          <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} translationLocale={nativeLanguage} />
+      <div className="absolute inset-x-0 bottom-0 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">
+        <div className={cn("w-full", presentation === "meaning" ? "max-w-[224px] sm:max-w-[252px]" : "max-w-[260px] sm:max-w-[296px]")} data-carousel-card-face="front">
+          {presentation === "meaning" ? <StaticCarouselCardFace card={card} nativeLanguage={nativeLanguage} /> : <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} translationLocale={nativeLanguage} />}
         </div>
       </div>
     </article>

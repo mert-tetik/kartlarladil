@@ -11,7 +11,7 @@ import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
-import { SocialPublishActions, type SocialPublishAsset, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
+import { SocialPublishActions, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
@@ -192,6 +192,12 @@ function isOriginalMascotLearningVideoGenerator(mode: GeneratorMode): mode is Or
   return mode === "tier-progression-video" || mode === "vocabulary-quiz-video" || mode === "sentence-check-video";
 }
 
+function generatorContentSource(mode: GeneratorMode): "AI" | "SELF" | "IMG" {
+  if (isTextGenerator(mode) || isAiImageGenerator(mode) || isAiVideoGenerator(mode)) return "AI";
+  if (isMusicVideoGenerator(mode)) return "IMG";
+  return "SELF";
+}
+
 function originalMascotLearningVideoLabel(mode: OriginalMascotLearningVideoGeneratorMode) {
   return mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check";
 }
@@ -230,11 +236,12 @@ function GeneratorModeOption({
   option: GeneratorOption;
   selected: boolean;
 }) {
+  const contentSource = generatorContentSource(option.value);
   return (
     <div className="relative">
       <button
         className={cn(
-          "w-full rounded-lg border p-3 pr-12 text-left transition-colors",
+          "w-full rounded-lg border p-3 pr-24 text-left transition-colors",
           highlighted
             ? selected ? "border-[#ffd36b] bg-[#f5ac27] text-[#251106]" : "border-[#cf8f17] bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]"
             : selected ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]",
@@ -245,6 +252,7 @@ function GeneratorModeOption({
         <span className="block text-sm font-semibold">{option.label}</span>
         <span className={cn("mt-1 block text-xs leading-5", highlighted ? "text-black/70" : "text-[#cdbfb3]")}>{option.description}</span>
       </button>
+      <span className={cn("pointer-events-none absolute right-10 top-3 text-[10px] font-semibold", highlighted ? "text-black/70" : "text-[#a8a29e]")}>{contentSource}</span>
       <button
         aria-label={highlighted ? `Remove highlight from ${option.label}` : `Highlight ${option.label}`}
         className={cn(
@@ -274,6 +282,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>("en");
   const [tier, setTier] = useState<Tier>("A1");
   const [card, setCard] = useState<VocabularyCard | null>(null);
+  const [cardImageUrl, setCardImageUrl] = useState("");
+  const [posterImageUrl, setPosterImageUrl] = useState("");
+  const [localImageRenderError, setLocalImageRenderError] = useState("");
+  const [isRenderingLocalImage, setIsRenderingLocalImage] = useState(false);
   const [funPost, setFunPost] = useState("");
   const [aiImageStatus, setAiImageStatus] = useState<AiImageTaskStatus>("idle");
   const [aiImageProgress, setAiImageProgress] = useState(0);
@@ -296,8 +308,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [musicVideoError, setMusicVideoError] = useState("");
   const [musicVideoTrackLabel, setMusicVideoTrackLabel] = useState("");
   const [carouselCards, setCarouselCards] = useState<VocabularyCard[]>([]);
+  const [carouselImageUrls, setCarouselImageUrls] = useState<string[]>([]);
   const [carouselCaption, setCarouselCaption] = useState("");
   const [carouselError, setCarouselError] = useState("");
+  const [isRenderingCarousel, setIsRenderingCarousel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const aiVideoStatusFailuresRef = useRef(0);
@@ -331,6 +345,75 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     void checkSession();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!isCarouselImageGenerator(generatorMode) || carouselCards.length !== carouselSlideCount) return;
+
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      void (async () => {
+        setIsRenderingCarousel(true);
+        setCarouselImageUrls([]);
+        setCarouselError("");
+
+        try {
+          await document.fonts?.ready;
+          const slides = carouselSlideRefs.current;
+          if (slides.length !== carouselCards.length || slides.some((slide) => !slide)) throw new Error("carousel_render_unavailable");
+          const rendered = await Promise.all(slides.map((slide) => toPng(slide!, { cacheBust: true, pixelRatio: 3, backgroundColor: "#16120f" })));
+          if (!cancelled) setCarouselImageUrls(rendered);
+        } catch {
+          if (!cancelled) setCarouselError("The carousel images could not be rendered. Try again.");
+        } finally {
+          if (!cancelled) setIsRenderingCarousel(false);
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [carouselCards, carouselSlideCount, generatorMode]);
+
+  useEffect(() => {
+    if (!card || (generatorMode !== "word-of-the-day" && generatorMode !== "word-of-the-day-poster")) return;
+
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      void (async () => {
+        const isPoster = generatorMode === "word-of-the-day-poster";
+        const source = isPoster ? posterExportRef.current : exportRef.current;
+        if (!source) return;
+        setIsRenderingLocalImage(true);
+        setLocalImageRenderError("");
+        if (isPoster) setPosterImageUrl("");
+        else setCardImageUrl("");
+
+        try {
+          await document.fonts?.ready;
+          const dataUrl = await toPng(source, {
+            cacheBust: true,
+            pixelRatio: 2,
+            backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#000000",
+          });
+          if (!cancelled) {
+            if (isPoster) setPosterImageUrl(dataUrl);
+            else setCardImageUrl(dataUrl);
+          }
+        } catch {
+          if (!cancelled) setLocalImageRenderError("The image could not be rendered. Try again.");
+        } finally {
+          if (!cancelled) setIsRenderingLocalImage(false);
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [card, generatorMode, nativeLanguage]);
 
   useEffect(() => {
     if (!aiVideoTaskId || (aiVideoStatus !== "queued" && aiVideoStatus !== "running")) return;
@@ -385,6 +468,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   async function loadCard(nextLanguage: LanguageCode, nextTier: Tier, showLoading = true) {
     if (showLoading) setIsLoading(true);
+    setCardImageUrl("");
+    setPosterImageUrl("");
+    setLocalImageRenderError("");
     try {
       const response = await fetch(`/api/twitter-automation/card?language=${nextLanguage}&tier=${nextTier}&type=word`);
       if (response.status === 401) {
@@ -426,6 +512,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setIsLoading(true);
     setCard(null);
     setCarouselCards([]);
+    setCarouselImageUrls([]);
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
@@ -461,6 +548,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setIsLoading(true);
     setCard(null);
     setCarouselCards([]);
+    setCarouselImageUrls([]);
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
@@ -888,6 +976,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
     setCarouselCards([]);
+    setCarouselImageUrls([]);
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
@@ -929,6 +1018,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoCaption("");
     setMusicVideoError("");
     setCarouselCards([]);
+    setCarouselImageUrls([]);
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
@@ -996,21 +1086,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     await navigator.clipboard.writeText(caption);
   }
 
-  async function createSocialImageAsset(element: HTMLElement | null, backgroundColor: string): Promise<SocialPublishAsset | undefined> {
-    if (!element) return undefined;
-    const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 1, backgroundColor });
-    return { dataUrl, mimeType: "image/png" };
-  }
-
   async function createCarouselAssets(): Promise<SocialPublishImageAsset[] | undefined> {
-    if (!carouselCards.length || carouselSlideRefs.current.length !== carouselCards.length) return undefined;
-    await document.fonts?.ready;
-    const slides = carouselSlideRefs.current;
-    if (slides.some((slide) => !slide)) return undefined;
-    return await Promise.all(slides.map(async (slide) => ({
-      dataUrl: await toPng(slide!, { cacheBust: true, pixelRatio: 3, backgroundColor: "#16120f" }),
-      mimeType: "image/png" as const,
-    })));
+    if (carouselImageUrls.length !== carouselCards.length) return undefined;
+    return carouselImageUrls.map((dataUrl) => ({ dataUrl, mimeType: "image/png" as const }));
   }
 
   async function downloadCarousel() {
@@ -1045,18 +1123,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   async function downloadImage() {
-    if (!exportRef.current || !card) return;
+    if (!cardImageUrl || !card) return;
 
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(exportRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: "#000000",
-      });
       const link = document.createElement("a");
       link.download = `foxiesdeck-${card.language}-${card.tier}-${card.term.toLowerCase().replaceAll(/[^a-z0-9]+/giu, "-")}.png`;
-      link.href = dataUrl;
+      link.href = cardImageUrl;
       link.click();
     } finally {
       setIsExporting(false);
@@ -1064,18 +1137,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   async function downloadPoster() {
-    if (!posterExportRef.current || !card) return;
+    if (!posterImageUrl || !card) return;
 
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(posterExportRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: POSTER_TIER_PALETTES[card.tier].base,
-      });
       const link = document.createElement("a");
       link.download = `foxiesdeck-word-of-the-day-${card.language}-${card.tier}-${card.term.toLowerCase().replaceAll(/[^a-z0-9]+/giu, "-")}.png`;
-      link.href = dataUrl;
+      link.href = posterImageUrl;
       link.click();
     } finally {
       setIsExporting(false);
@@ -1416,15 +1484,24 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={() => void downloadCarousel()} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing PNGs" : `Download ${carouselSlideCount} PNGs`}</Button>
-                          <SocialPublishActions caption={carouselCaption} getAssets={createCarouselAssets} />
+                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || isRenderingCarousel || carouselImageUrls.length !== carouselSlideCount} onClick={() => void downloadCarousel()} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing PNGs" : isRenderingCarousel ? "Rendering PNGs" : `Download ${carouselSlideCount} PNGs`}</Button>
+                          {carouselImageUrls.length === carouselSlideCount ? <SocialPublishActions caption={carouselCaption} getAssets={createCarouselAssets} /> : null}
                         </div>
                       </div>
                       <textarea className="mt-4 min-h-24 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={carouselCaption} />
                     </div>
-                    <div className="flex gap-4 overflow-x-auto p-4 sm:p-5">
-                      {carouselCards.map((carouselCard, index) => <VocabularyCarouselPost card={carouselCard} index={index} key={carouselCard.sourceKey} nativeLanguage={nativeLanguage} presentation={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "meaning"} slideCount={carouselSlideCount} onSlideRef={(element) => { carouselSlideRefs.current[index] = element; }} />)}
+                    <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[440px]">
+                      {carouselCards.map((carouselCard, index) => <VocabularyCarouselPost card={carouselCard} key={carouselCard.sourceKey} nativeLanguage={nativeLanguage} presentation={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "meaning"} onSlideRef={(element) => { carouselSlideRefs.current[index] = element; }} />)}
                     </div>
+                    {carouselImageUrls.length === carouselSlideCount ? <div className="flex gap-4 overflow-x-auto p-4 sm:p-5">
+                      {carouselImageUrls.map((imageUrl, index) => <div className="shrink-0" key={imageUrl}><Image alt={`Generated vocabulary carousel slide ${index + 1}`} className="aspect-[3/4] w-[360px] rounded-lg bg-[#16120f] object-cover sm:w-[440px]" height={587} src={imageUrl} unoptimized width={440} /></div>)}
+                    </div> : <div className="grid min-h-80 place-items-center p-6 text-center">
+                      <div>
+                        <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" />
+                        <h2 className="mt-4 font-display text-2xl font-semibold">Rendering carousel images</h2>
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">The finished PNG slides will appear here instead of editable UI components.</p>
+                      </div>
+                    </div>}
                   </> : <div className="grid min-h-80 place-items-center p-6 text-center">
                     <div>
                       {isLoading ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
@@ -1464,10 +1541,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 </div>
               ) : generatorMode === "word-of-the-day-poster" ? card ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+                  {posterImageUrl ? <Image alt="Rendered Word of the Day poster" className="aspect-[4/3] w-full bg-black object-cover" height={768} src={posterImageUrl} unoptimized width={1024} /> : <div className="grid aspect-[4/3] place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering poster image..."}</p></div></div>}
                   <div
                     ref={posterExportRef}
                     data-social-word-poster
-                    className="relative aspect-[4/3] w-full overflow-hidden px-5 py-4 text-white sm:px-10 sm:py-7"
+                    className="pointer-events-none fixed left-[-10000px] top-0 aspect-[4/3] w-[1024px] overflow-hidden px-10 py-7 text-white"
                     style={{ backgroundColor: posterTierPalette?.base }}
                   >
                     <div className="absolute inset-0" style={{ background: `linear-gradient(142deg, ${posterTierPalette?.base ?? "#059669"} 0%, ${posterTierPalette?.deep ?? "#064e3b"} 100%)` }} />
@@ -1519,7 +1597,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                       <div className="flex gap-2">
                         <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={caption} getAsset={() => createSocialImageAsset(posterExportRef.current, POSTER_TIER_PALETTES[card.tier].base)} />
+                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !posterImageUrl} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{posterImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: posterImageUrl, mimeType: "image/png" })} /> : null}
                       </div>
                     </div>
                     <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
@@ -1538,7 +1616,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <textarea className="mt-4 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   </div>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                    <div ref={exportRef} className="social-card-export bg-black px-4 py-10 sm:px-12">
+                    {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering card image..."}</p></div></div>}
+                    <div ref={exportRef} className="social-card-export pointer-events-none fixed left-[-10000px] top-0 w-[1024px] bg-black px-12 py-10">
                       <style>{`
                         .social-card-export .social-card-front [data-card-face] > div,
                         .social-card-export .social-card-back [data-card-face] > div,
@@ -1552,7 +1631,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                     </div>
                     <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
-                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={caption} getAsset={() => createSocialImageAsset(exportRef.current, "#000000")} />
+                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !cardImageUrl} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{cardImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: cardImageUrl, mimeType: "image/png" })} /> : null}
                     </div>
                   </div>
                 </div>
