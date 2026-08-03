@@ -33,6 +33,10 @@ const CARD_WIDTH = 430;
 const CARD_Y = 360;
 const CARD_HIGHLIGHT_SCALE = 1.075;
 const CARD_TRANSITION_SECONDS = 0.32;
+const MASCOT_BY_PHASE_SCENE = [18, 18, 18, 3, 4, 4, 4, 4] as const;
+const MIRRORED_BY_PHASE_SCENE = [true, true, false, false, true, true, false, false] as const;
+
+type VisibleImageBounds = { x: number; y: number; width: number; height: number };
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -53,17 +57,41 @@ function easeOutQuint(value: number) {
   return 1 - Math.pow(1 - Math.max(0, Math.min(1, value)), 5);
 }
 
-function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement) {
+function findVisibleImageBounds(image: HTMLImageElement): VisibleImageBounds {
+  const source = document.createElement("canvas");
+  source.width = image.naturalWidth;
+  source.height = image.naturalHeight;
+  const sourceContext = source.getContext("2d", { willReadFrequently: true });
+  if (!sourceContext) return { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
+  sourceContext.drawImage(image, 0, 0);
+  const { data, width, height } = sourceContext.getImageData(0, 0, source.width, source.height);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3]! < 12) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  return maxX < 0 ? { x: 0, y: 0, width, height } : { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+}
+
+function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement, bounds: VisibleImageBounds) {
   const width = 720;
-  const height = splash.naturalHeight ? width * splash.naturalHeight / splash.naturalWidth : 150;
+  const height = bounds.width ? width * bounds.height / bounds.width : 150;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = -18;
+  const y = 0;
   const mask = document.createElement("canvas");
   mask.width = Math.ceil(width);
   mask.height = Math.ceil(height);
   const maskContext = mask.getContext("2d");
   if (!maskContext) throw new Error("canvas_not_supported");
-  maskContext.drawImage(splash, 0, 0, mask.width, mask.height);
+  maskContext.drawImage(splash, bounds.x, bounds.y, bounds.width, bounds.height, 0, 0, mask.width, mask.height);
   maskContext.globalCompositeOperation = "source-in";
   maskContext.fillStyle = "#f97316";
   maskContext.fillRect(0, 0, mask.width, mask.height);
@@ -147,6 +175,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     loadImage("/mascots/mascot18.png"),
     ...normalizedCardUrls.map((url) => loadImage(url)),
   ]);
+  const splashBounds = findVisibleImageBounds(splash);
   const audioBuffers = await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
     if (!response.ok) throw new Error("speech_load_failed");
@@ -211,14 +240,15 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
     const sceneIndex = starts.reduce((activeIndex, start, index) => start <= elapsed ? index : activeIndex, 0);
     const scene = scenes[sceneIndex]!;
-    const phaseIndex = scene.phaseIndex ?? 0;
-    const previousScene = sceneIndex > 0 ? scenes[sceneIndex - 1] : null;
+    const phaseIndex = scene.phaseIndex ?? Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
+    const phaseSceneIndex = sceneIndex % MASCOT_BY_PHASE_SCENE.length;
+    const visibleMascot = MASCOT_BY_PHASE_SCENE[phaseSceneIndex]!;
+    const visibleMirrored = MIRRORED_BY_PHASE_SCENE[phaseSceneIndex]!;
+    const previousPhaseSceneIndex = (sceneIndex - 1 + MASCOT_BY_PHASE_SCENE.length) % MASCOT_BY_PHASE_SCENE.length;
     const localSceneElapsed = elapsed - starts[sceneIndex]!;
     const transitionProgress = easeOutQuint(localSceneElapsed / CARD_TRANSITION_SECONDS);
-    const highlightedSide = scene.mirrored ? "left" : "right";
-    const previousHighlightedSide = previousScene && (previousScene.phaseIndex ?? 0) === phaseIndex
-      ? previousScene.mirrored ? "left" : "right"
-      : null;
+    const highlightedSide = visibleMirrored ? "left" : "right";
+    const previousHighlightedSide = sceneIndex > 0 ? MIRRORED_BY_PHASE_SCENE[previousPhaseSceneIndex]! ? "left" : "right" : null;
     const cardScale = (side: "left" | "right") => {
       const from = previousHighlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
       const to = highlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
@@ -230,7 +260,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
 
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    drawTintedSplash(context, splash);
+    drawTintedSplash(context, splash, splashBounds);
     // Draw the non-active card first so the highlighted card sits cleanly on top.
     const drawCard = (side: "left" | "right") => {
       const x = side === "left" ? 80 : 570;
@@ -241,9 +271,10 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     };
     drawCard(highlightedSide === "left" ? "right" : "left");
     drawCard(highlightedSide);
-    const mascotTransition = easeOutQuint(localSceneElapsed / 0.16);
-    if (previousScene) drawMascot(context, mascots[previousScene.mascot], previousScene.mirrored, 1 - mascotTransition);
-    drawMascot(context, mascots[scene.mascot], scene.mirrored, previousScene ? mascotTransition : 1);
+    // Use the same scene-to-mascot mapping for every 8-scene phase. A single,
+    // fully opaque draw avoids the flicker caused by alpha-compositing two
+    // transparent mascot PNGs over one another.
+    drawMascot(context, mascots[visibleMascot], visibleMirrored);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 
