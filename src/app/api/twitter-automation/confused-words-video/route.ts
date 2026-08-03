@@ -11,7 +11,7 @@ import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/dom
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const PHASE_COUNT = 3;
 
@@ -192,6 +192,19 @@ async function resolveCards(plan: ConfusedWordsPlan, language: LanguageCode, nat
   }));
 }
 
+async function generateSceneSpeechInBatches(
+  scenes: ReadonlyArray<{ text: string; language: LanguageCode; speechSpeed: number }>,
+) {
+  const audioDataUrls: string[] = [];
+  // Eight concurrent jobs is the already-proven size of the original video.
+  // Sending all 24 to PoYo at once can cause an upstream 502/rate-limit.
+  for (let index = 0; index < scenes.length; index += 8) {
+    const batch = scenes.slice(index, index + 8);
+    audioDataUrls.push(...await generatePoyoSpeechDataUrls(batch.map(({ text, language, speechSpeed }) => ({ text, language, speed: speechSpeed }))));
+  }
+  return audioDataUrls;
+}
+
 export async function POST(request: Request) {
   if (!hasSocialStudioSession(request.headers.get("cookie"))) return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
@@ -225,7 +238,7 @@ export async function POST(request: Request) {
   ]);
 
   try {
-    const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language, speechSpeed }) => ({ text, language, speed: speechSpeed })));
+    const audioDataUrls = await generateSceneSpeechInBatches(sceneDefinitions);
     return Response.json({
       caption: plan.caption,
       phases: cards,

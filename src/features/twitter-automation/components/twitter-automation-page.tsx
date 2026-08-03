@@ -815,7 +815,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       } | null;
       if (!response.ok || !payload?.phases || payload.phases.length !== 3 || payload.phases.some((phase) => !phase.first || !phase.second) || !payload.scenes) {
         setMusicVideoStatus("failed");
-        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The confused-word script or voices could not be prepared. Try again.");
+        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : payload?.errorCode ? `The confused-word video could not be prepared (${payload.errorCode}).` : "The confused-word script or voices could not be prepared. Try again.");
         return;
       }
 
