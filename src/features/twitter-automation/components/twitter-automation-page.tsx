@@ -764,7 +764,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   async function renderConfusedWordsCardFaces(cards: readonly ConfusedWordsCardPair[]) {
     confusedWordsCardRefs.current = [];
-    setConfusedWordsCards(cards);
+    setConfusedWordsCards([...cards]);
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
     await document.fonts?.ready;
 
