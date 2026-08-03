@@ -54,10 +54,10 @@ function easeOutQuint(value: number) {
 }
 
 function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement) {
-  const width = 520;
+  const width = 660;
   const height = splash.naturalHeight ? width * splash.naturalHeight / splash.naturalWidth : 150;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = 42;
+  const y = 8;
   const mask = document.createElement("canvas");
   mask.width = Math.ceil(width);
   mask.height = Math.ceil(height);
@@ -101,14 +101,26 @@ function drawFallbackCard(context: CanvasRenderingContext2D, card: Pick<Vocabula
   context.restore();
 }
 
-function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, mirrored: boolean) {
+function drawMascot(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  mirrored: boolean,
+  entranceProgress: number,
+  isPhaseEntrance: boolean,
+) {
   const maxWidth = 820;
   const maxHeight = 800;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const x = (CANVAS_WIDTH - width) / 2;
-  const y = 1030 + Math.max(0, (maxHeight - height) / 2);
+  const settledX = (CANVAS_WIDTH - width) / 2;
+  const settledY = 1030 + Math.max(0, (maxHeight - height) / 2);
+  // Every scene gets a small movement; the start of each new phase restarts
+  // the mascot from further below, so phases never look frozen copies.
+  const riseDistance = isPhaseEntrance ? 250 : 44;
+  const horizontalDistance = isPhaseEntrance ? 58 : 16;
+  const x = settledX + (mirrored ? 1 : -1) * (1 - entranceProgress) * horizontalDistance;
+  const y = settledY + (1 - entranceProgress) * riseDistance;
   context.save();
   if (mirrored) {
     // Draw in a mirrored canvas coordinate space; using the original x keeps
@@ -191,7 +203,8 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     const scene = scenes[sceneIndex]!;
     const phaseIndex = scene.phaseIndex ?? 0;
     const previousScene = sceneIndex > 0 ? scenes[sceneIndex - 1] : null;
-    const transitionProgress = easeOutQuint((elapsed - starts[sceneIndex]!) / CARD_TRANSITION_SECONDS);
+    const localSceneElapsed = elapsed - starts[sceneIndex]!;
+    const transitionProgress = easeOutQuint(localSceneElapsed / CARD_TRANSITION_SECONDS);
     const highlightedSide = scene.mirrored ? "left" : "right";
     const previousHighlightedSide = previousScene && (previousScene.phaseIndex ?? 0) === phaseIndex
       ? previousScene.mirrored ? "left" : "right"
@@ -218,7 +231,9 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     };
     drawCard(highlightedSide === "left" ? "right" : "left");
     drawCard(highlightedSide);
-    drawMascot(context, mascots[scene.mascot], scene.mirrored);
+    const isPhaseEntrance = !previousScene || (previousScene.phaseIndex ?? 0) !== phaseIndex;
+    const mascotEntrance = easeOutQuint(localSceneElapsed / (isPhaseEntrance ? 0.62 : 0.26));
+    drawMascot(context, mascots[scene.mascot], scene.mirrored, mascotEntrance, isPhaseEntrance);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 
