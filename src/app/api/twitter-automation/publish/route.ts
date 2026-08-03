@@ -21,7 +21,12 @@ const schema = z.object({
   socialMediaId: z.number().int().positive(),
   caption: z.string().trim().min(1).max(280),
   asset: z.union([imageAssetSchema, videoAssetSchema]).optional(),
-}).strict();
+  assets: z.array(imageAssetSchema).min(2).max(10).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.asset && value.assets) {
+    context.addIssue({ code: "custom", message: "Use asset or assets, not both.", path: ["assets"] });
+  }
+});
 
 export async function POST(request: NextRequest) {
   if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
@@ -35,7 +40,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : "upload_post_unavailable";
     const status = errorCode === "account_not_found" ? 404
-      : errorCode === "invalid_media" || errorCode === "upload_post_unsupported_content" ? 400
+      : errorCode === "invalid_media" || errorCode === "upload_post_unsupported_content" || errorCode === "upload_post_carousel_limit" ? 400
         : errorCode === "upload_post_not_configured" || errorCode === "upload_post_pinterest_board_not_configured" ? 409
           : errorCode === "upload_post_rejected" ? 502 : 503;
     return NextResponse.json({ errorCode }, { status });

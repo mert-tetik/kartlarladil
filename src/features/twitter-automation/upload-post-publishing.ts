@@ -241,15 +241,17 @@ async function submitUpload(endpoint: string, form: FormData, requestId: string)
   };
 }
 
-export async function publishWithUploadPost({ socialMediaId, caption, asset, scheduledFor, requestId }: {
+export async function publishWithUploadPost({ socialMediaId, caption, asset, assets, scheduledFor, requestId }: {
   socialMediaId: number;
   caption: string;
   asset?: DataUrlAsset | RemoteVideoAsset;
+  assets?: DataUrlAsset[];
   scheduledFor?: string;
   requestId?: string;
 }) {
   const target = await getTarget(socialMediaId);
-  const supportedPlatforms = !asset ? TEXT_PLATFORMS : isRemoteVideoAsset(asset) ? VIDEO_PLATFORMS : IMAGE_PLATFORMS;
+  if (assets?.length && target.platform === "pinterest" && assets.length > 5) throw new Error("upload_post_carousel_limit");
+  const supportedPlatforms = assets?.length ? IMAGE_PLATFORMS : !asset ? TEXT_PLATFORMS : isRemoteVideoAsset(asset) ? VIDEO_PLATFORMS : IMAGE_PLATFORMS;
   if (!supportedPlatforms.has(target.platform)) throw new Error("upload_post_unsupported_content");
 
   const form = new FormData();
@@ -266,6 +268,14 @@ export async function publishWithUploadPost({ socialMediaId, caption, asset, sch
     form.append("timezone", "Europe/Istanbul");
   }
   appendPlatformSettings(form, target.platform);
+
+  if (assets?.length) {
+    assets.forEach((carouselAsset, index) => {
+      const image = parseImageDataUrl(carouselAsset);
+      form.append("photos[]", new Blob([image], { type: carouselAsset.mimeType }), `foxiesdeck-carousel-${index + 1}.${getExtension(carouselAsset.mimeType)}`);
+    });
+    return submitUpload("/upload_photos", form, uploadRequestId);
+  }
 
   if (!asset) return submitUpload("/upload_text", form, uploadRequestId);
 

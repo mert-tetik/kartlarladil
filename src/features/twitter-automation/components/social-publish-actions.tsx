@@ -46,16 +46,17 @@ function PlatformIcon({ platform }: { platform: string }) {
   return <svg {...common}><path d="M12 2a10 10 0 1 0 .01 20.01A10 10 0 0 0 12 2Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v5.4l4.25 2.55 1-1.7-3.25-1.95V7H11Z" /></svg>;
 }
 
-export function SocialPublishActions({ caption, getAsset, disabled = false }: {
+export function SocialPublishActions({ caption, getAsset, getAssets, disabled = false }: {
   caption: string;
   getAsset?: () => Promise<SocialPublishAsset | undefined>;
+  getAssets?: () => Promise<SocialPublishAsset[] | undefined>;
   disabled?: boolean;
 }) {
   const [targets, setTargets] = useState<PublishTarget[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null);
   const [draftCaption, setDraftCaption] = useState(caption);
-  const [asset, setAsset] = useState<SocialPublishAsset>();
+  const [assets, setAssets] = useState<SocialPublishAsset[]>();
   const [state, setState] = useState<PublishState>("idle");
   const [message, setMessage] = useState("");
 
@@ -71,7 +72,8 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
   const selectedTarget = selectedTargets.find((target) => target.id === selectedTargetId) ?? selectedTargets[0];
   const selectedPlatformKey = selectedTarget ? platformKey(selectedTarget.platform) : null;
   const uploadPostReady = selectedTarget?.status === "ready";
-  const textOnly = !getAsset;
+  const hasMediaGenerator = Boolean(getAsset || getAssets);
+  const textOnly = !hasMediaGenerator;
   const textOnlySupported = selectedPlatformKey ? ["x", "linkedin", "facebook", "threads", "reddit", "bluesky", "discord", "telegram", "google_business", "slack", "mastodon", "nostr", "lemmy", "devto", "hashnode", "wordpress", "whop", "listmonk"].includes(selectedPlatformKey) : false;
 
   async function openPublisher(platform: string) {
@@ -80,13 +82,16 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
     const firstTarget = targets.find((target) => platformKey(target.platform) === platformKey(platform));
     setSelectedTargetId(firstTarget?.id ?? null);
     setDraftCaption(caption);
-    setAsset(undefined);
-    setState(getAsset ? "preparing" : "idle");
+    setAssets(undefined);
+    setState(hasMediaGenerator ? "preparing" : "idle");
     setMessage("");
-    if (!getAsset) return;
+    if (!hasMediaGenerator) return;
 
     try {
-      setAsset(await getAsset());
+      const prepared = getAssets ? await getAssets() : await getAsset?.();
+      const nextAssets = Array.isArray(prepared) ? prepared : prepared ? [prepared] : [];
+      if (!nextAssets.length) throw new Error("media_unavailable");
+      setAssets(nextAssets);
       setState("idle");
     } catch {
       setState("error");
@@ -102,7 +107,7 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
       const response = await fetch("/api/twitter-automation/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(asset ? { asset } : {}) }),
+        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(assets?.length === 1 ? { asset: assets[0] } : assets?.length ? { assets } : {}) }),
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string; postUrl?: string | null; requestId?: string | null; jobId?: string | null } | null;
       if (!response.ok) {
@@ -112,6 +117,7 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
           upload_post_not_configured: "Upload-Post API key is not configured on this deployment.",
           upload_post_profile_not_configured: "Set this account's Upload-Post profile username in Social medias before publishing.",
           upload_post_pinterest_board_not_configured: "Set UPLOAD_POST_PINTEREST_BOARD_ID before publishing to Pinterest.",
+          upload_post_carousel_limit: "Pinterest allows at most 5 images in one carousel. This 6-image carousel can be published to Instagram, Threads, TikTok, or Facebook instead.",
           upload_post_unsupported_content: "Upload-Post does not support this content format for the selected platform.",
           upload_post_rejected: "Upload-Post rejected this upload. Check its dashboard for account permissions, limits, and platform requirements.",
         };
@@ -137,12 +143,12 @@ export function SocialPublishActions({ caption, getAsset, disabled = false }: {
         <label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Post text</label>
         <textarea className="mt-2 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none focus:border-[#f5ac27]" maxLength={280} onChange={(event) => setDraftCaption(event.target.value)} value={draftCaption} />
         <p className="mt-1 text-right text-xs text-[#8d8177]">{draftCaption.length}/280</p>
-        {getAsset ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : asset ? isVideoAsset(asset) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
+        {hasMediaGenerator ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : assets?.length ? assets.length > 1 ? `${assets.length} images will be uploaded as one carousel post.` : isVideoAsset(assets[0]) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
         {selectedTarget?.status === "not_configured" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set the server-only Upload-Post API key before publishing.</p> : null}
         {selectedTarget?.status === "profile_required" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set this account&apos;s Upload-Post profile username in Social medias before publishing.</p> : null}
         {textOnly && !textOnlySupported ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Upload-Post needs an image or video for {selectedPlatform}. Choose a generated visual instead.</p> : null}
         {message ? <p className={state === "sent" ? "mt-4 text-sm text-[#9be0b9]" : "mt-4 text-sm text-[#ffb9c1]"}>{message}</p> : null}
-        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || !uploadPostReady || !textOnlySupported && textOnly || state === "preparing" || state === "sending"} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button></div>
+        <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || !uploadPostReady || !textOnlySupported && textOnly || hasMediaGenerator && !assets?.length || state === "preparing" || state === "sending"} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button></div>
       </section>
     </div> : null}
   </>;

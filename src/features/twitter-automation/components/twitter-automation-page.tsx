@@ -12,10 +12,13 @@ import { AutomationTable } from "@/features/twitter-automation/components/automa
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset } from "@/features/twitter-automation/components/social-publish-actions";
+import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
+import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -23,11 +26,15 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 type StudioMode = "text" | "image" | "video";
 type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner";
 type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression";
-type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | AiImageGeneratorMode;
-type MusicVideoGeneratorMode = `music-${ImageGeneratorMode}`;
+type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
+type TierProgressionCarouselGeneratorMode = "tier-progression-carousel";
+type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | AiImageGeneratorMode;
+type MusicVideoImageGeneratorMode = Exclude<ImageGeneratorMode, VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode>;
+type MusicVideoGeneratorMode = `music-${MusicVideoImageGeneratorMode}`;
 type ConfusedWordsVideoGeneratorMode = "confused-words-video";
 type DialogueVideoGeneratorMode = "marketing-dialogue-video" | "learning-dialogue-video";
-type VideoGeneratorMode = "ai-word-of-the-day-video" | ConfusedWordsVideoGeneratorMode | DialogueVideoGeneratorMode | MusicVideoGeneratorMode;
+type OriginalMascotLearningVideoGeneratorMode = OriginalMascotLearningVideoMode;
+type VideoGeneratorMode = "ai-word-of-the-day-video" | ConfusedWordsVideoGeneratorMode | DialogueVideoGeneratorMode | OriginalMascotLearningVideoGeneratorMode | MusicVideoGeneratorMode;
 type GeneratorMode = TextGeneratorMode | ImageGeneratorMode | VideoGeneratorMode;
 type AiImageTaskStatus = "idle" | "running" | "finished" | "failed";
 type AiVideoTaskStatus = "idle" | "preparing" | "queued" | "running" | "finished" | "failed";
@@ -59,6 +66,14 @@ const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: st
 const IMAGE_GENERATOR_OPTIONS: Array<{ value: ImageGeneratorMode; label: string; description: string }> = [
   { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
   { value: "word-of-the-day-poster", label: "Word of the Day poster", description: "A single social image with the post copy built in" },
+  { value: "vocabulary-carousel", label: "Vocabulary Carousel", description: "Six non-AI 3:4 card visuals for one carousel post" },
+  { value: "tier-progression-carousel", label: "A1 to C1 Carousel", description: "Three non-AI 3:4 cards at A1, B2, and C1" },
+  ...AI_IMAGE_GENERATOR_OPTIONS,
+];
+
+const MUSIC_VIDEO_IMAGE_GENERATOR_OPTIONS: Array<{ value: MusicVideoImageGeneratorMode; label: string; description: string }> = [
+  { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
+  { value: "word-of-the-day-poster", label: "Word of the Day poster", description: "A single social image with the post copy built in" },
   ...AI_IMAGE_GENERATOR_OPTIONS,
 ];
 
@@ -67,7 +82,10 @@ const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string;
   { value: "confused-words-video", label: "Confused Words", description: "An eight-scene vertical mascot explainer for similar words" },
   { value: "marketing-dialogue-video", label: "FoxiesDeck Dialogue", description: "A two-character marketing conversation in the native language" },
   { value: "learning-dialogue-video", label: "Everyday Dialogue", description: "A two-character conversation in the learning language with translations" },
-  ...IMAGE_GENERATOR_OPTIONS.map((option) => ({
+  { value: "tier-progression-video", label: "A1 to C1 Video", description: "Original mascot explains an A1, B1, and C1 word progression" },
+  { value: "vocabulary-quiz-video", label: "Vocabulary Quiz Video", description: "Original mascot asks a timed four-choice meaning quiz" },
+  { value: "sentence-check-video", label: "Sentence Check Video", description: "Original mascot runs a timed correct-or-incorrect sentence challenge" },
+  ...MUSIC_VIDEO_IMAGE_GENERATOR_OPTIONS.map((option) => ({
     value: `music-${option.value}` as MusicVideoGeneratorMode,
     label: `${option.label} Music Video`,
     description: `A ${MUSIC_VIDEO_DURATION_SECONDS}-second visual loop with a licensed social-video soundtrack`,
@@ -129,6 +147,18 @@ function isAiImageGenerator(mode: GeneratorMode): mode is AiImageGeneratorMode {
   return AI_IMAGE_GENERATOR_OPTIONS.some((option) => option.value === mode);
 }
 
+function isVocabularyCarouselGenerator(mode: GeneratorMode): mode is VocabularyCarouselGeneratorMode {
+  return mode === "vocabulary-carousel";
+}
+
+function isTierProgressionCarouselGenerator(mode: GeneratorMode): mode is TierProgressionCarouselGeneratorMode {
+  return mode === "tier-progression-carousel";
+}
+
+function isCarouselImageGenerator(mode: GeneratorMode): mode is VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode {
+  return isVocabularyCarouselGenerator(mode) || isTierProgressionCarouselGenerator(mode);
+}
+
 function isAiVideoGenerator(mode: GeneratorMode): mode is "ai-word-of-the-day-video" {
   return mode === "ai-word-of-the-day-video";
 }
@@ -145,12 +175,33 @@ function isDialogueVideoGenerator(mode: GeneratorMode): mode is DialogueVideoGen
   return mode === "marketing-dialogue-video" || mode === "learning-dialogue-video";
 }
 
-function getMusicVideoImageMode(mode: MusicVideoGeneratorMode): ImageGeneratorMode {
-  return mode.slice("music-".length) as ImageGeneratorMode;
+function isOriginalMascotLearningVideoGenerator(mode: GeneratorMode): mode is OriginalMascotLearningVideoGeneratorMode {
+  return mode === "tier-progression-video" || mode === "vocabulary-quiz-video" || mode === "sentence-check-video";
+}
+
+function originalMascotLearningVideoLabel(mode: OriginalMascotLearningVideoGeneratorMode) {
+  return mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check";
+}
+
+function originalMascotLearningVideoDescription(mode: OriginalMascotLearningVideoGeneratorMode) {
+  return mode === "tier-progression-video"
+    ? "Original mascot explains three semantically connected A1, B1, and C1 words with tier-color highlights."
+    : mode === "vocabulary-quiz-video"
+      ? "Original mascot presents a four-choice vocabulary quiz, then reveals and explains the answer."
+      : "Original mascot asks whether a sentence is correct, gives four seconds with a ticking clock, then explains the answer.";
+}
+
+function getMusicVideoImageMode(mode: MusicVideoGeneratorMode): MusicVideoImageGeneratorMode {
+  return mode.slice("music-".length) as MusicVideoImageGeneratorMode;
 }
 
 function aiImageUsesTier(mode: AiImageGeneratorMode) {
   return mode === "ai-word-of-the-day" || mode === "ai-mini-quiz" || mode === "ai-daily-challenge";
+}
+
+function randomCarouselTiers(): Tier[] {
+  const shuffled = [...TIERS].sort(() => Math.random() - 0.5);
+  return [...shuffled, TIERS[Math.floor(Math.random() * TIERS.length)]!];
 }
 
 export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "social-medias" | "scheduled-posts" }) {
@@ -187,6 +238,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [musicVideoCaption, setMusicVideoCaption] = useState("");
   const [musicVideoError, setMusicVideoError] = useState("");
   const [musicVideoTrackLabel, setMusicVideoTrackLabel] = useState("");
+  const [carouselCards, setCarouselCards] = useState<VocabularyCard[]>([]);
+  const [carouselCaption, setCarouselCaption] = useState("");
+  const [carouselError, setCarouselError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const aiVideoStatusFailuresRef = useRef(0);
@@ -194,8 +248,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const posterExportRef = useRef<HTMLDivElement>(null);
   const musicCardExportRef = useRef<HTMLDivElement>(null);
   const musicPosterExportRef = useRef<HTMLDivElement>(null);
+  const carouselSlideRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const caption = isTextGenerator(generatorMode) ? funPost : card ? createWordCaption(card) : "";
+  const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : card ? createWordCaption(card) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
   const posterTierPalette = card ? POSTER_TIER_PALETTES[card.tier] : null;
   const aiImagePending = aiImageStatus === "running";
@@ -203,7 +258,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const isMusicVideoMode = isMusicVideoGenerator(generatorMode);
   const isConfusedWordsVideoMode = isConfusedWordsVideoGenerator(generatorMode);
   const isDialogueVideoMode = isDialogueVideoGenerator(generatorMode);
-  const isBrowserVideoMode = isMusicVideoMode || isConfusedWordsVideoMode || isDialogueVideoMode;
+  const isOriginalMascotLearningVideoMode = isOriginalMascotLearningVideoGenerator(generatorMode);
+  const isBrowserVideoMode = isMusicVideoMode || isConfusedWordsVideoMode || isDialogueVideoMode || isOriginalMascotLearningVideoMode;
+  const carouselSlideCount = isTierProgressionCarouselGenerator(generatorMode) ? 3 : 6;
 
   useEffect(() => {
     let cancelled = false;
@@ -303,6 +360,75 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
       const payload = await response.json() as { post?: string };
       setFunPost(payload.post ?? "");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function generateVocabularyCarousel() {
+    setIsLoading(true);
+    setCard(null);
+    setCarouselCards([]);
+    setCarouselCaption("");
+    setCarouselError("");
+    carouselSlideRefs.current = [];
+
+    try {
+      const responses = await Promise.all(randomCarouselTiers().map(async (randomTier) => {
+        const response = await fetch(`/api/twitter-automation/card?language=${encodeURIComponent(language)}&tier=${randomTier}&type=word`);
+        if (response.status === 401) {
+          setAuthenticated(false);
+          return null;
+        }
+        if (!response.ok) return null;
+        const payload = await response.json() as { card?: VocabularyCard };
+        return payload.card ?? null;
+      }));
+      const cards = responses.filter((candidate): candidate is VocabularyCard => candidate !== null);
+      if (cards.length !== 6 || new Set(cards.map((candidate) => candidate.sourceKey)).size !== 6) {
+        setCarouselError("Six different vocabulary cards could not be prepared. Try again.");
+        return;
+      }
+      const tag = ENGLISH_LANGUAGE_NAMES[language].toLowerCase().replaceAll(" ", "");
+      setCarouselCards(cards);
+      setCarouselCaption(`Six ${ENGLISH_LANGUAGE_NAMES[language]} words to keep in your vocabulary today. Which one will you use first?\n\n#${tag} #languagelearning #vocabulary`);
+    } catch {
+      setCarouselError("The vocabulary carousel could not be created. Try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function generateTierProgressionCarousel() {
+    const progressionTiers: Tier[] = ["A1", "B2", "C1"];
+    setIsLoading(true);
+    setCard(null);
+    setCarouselCards([]);
+    setCarouselCaption("");
+    setCarouselError("");
+    carouselSlideRefs.current = [];
+
+    try {
+      const responses = await Promise.all(progressionTiers.map(async (progressionTier) => {
+        const response = await fetch(`/api/twitter-automation/card?language=${encodeURIComponent(language)}&tier=${progressionTier}&type=word`);
+        if (response.status === 401) {
+          setAuthenticated(false);
+          return null;
+        }
+        if (!response.ok) return null;
+        const payload = await response.json() as { card?: VocabularyCard };
+        return payload.card ?? null;
+      }));
+      const cards = responses.filter((candidate): candidate is VocabularyCard => candidate !== null);
+      if (cards.length !== 3 || new Set(cards.map((candidate) => candidate.sourceKey)).size !== 3) {
+        setCarouselError("The A1, B2, and C1 cards could not be prepared. Try again.");
+        return;
+      }
+      const tag = ENGLISH_LANGUAGE_NAMES[language].toLowerCase().replaceAll(" ", "");
+      setCarouselCards(cards);
+      setCarouselCaption(`From A1 to C1: three ${ENGLISH_LANGUAGE_NAMES[language]} words for your next level.\n\n#${tag} #languagelearning #vocabulary`);
+    } catch {
+      setCarouselError("The A1 to C1 carousel could not be created. Try again.");
     } finally {
       setIsLoading(false);
     }
@@ -606,6 +732,55 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     }
   }
 
+  async function generateOriginalMascotLearningVideo(mode: OriginalMascotLearningVideoGeneratorMode) {
+    let audioContext: AudioContext | null = null;
+
+    setIsLoading(true);
+    setCard(null);
+    setMusicVideoStatus("creating-image");
+    setMusicVideoCaption("");
+    setMusicVideoError("");
+    setMusicVideoTrackLabel("");
+    setMusicVideoUrl("");
+    setMusicVideoBlob(null);
+
+    try {
+      // Construct the context in the button gesture so browser audio capture remains allowed.
+      audioContext = prepareMusicVideoAudio();
+      const response = await fetch("/api/twitter-automation/original-mascot-learning-video", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode, language, nativeLanguage }),
+      });
+      if (response.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      const payload = await response.json().catch(() => null) as (OriginalMascotLearningVideoPayload & { errorCode?: string }) | null;
+      if (!response.ok || !payload?.caption || !payload.scenes?.length || payload.mode !== mode) {
+        setMusicVideoStatus("failed");
+        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The learning-video script or voices could not be prepared. Try again.");
+        return;
+      }
+
+      setMusicVideoStatus("rendering");
+      const videoBlob = await renderOriginalMascotLearningVideo({ audioContext, scenes: payload.scenes });
+      audioContext = null;
+      setMusicVideoUrl(URL.createObjectURL(videoBlob));
+      setMusicVideoBlob(videoBlob);
+      setMusicVideoCaption(payload.caption);
+      setMusicVideoTrackLabel(mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check");
+      setMusicVideoStatus("finished");
+    } catch {
+      setMusicVideoStatus("failed");
+      setMusicVideoError("This browser could not render the learning video. Try Chrome or the Android app.");
+    } finally {
+      if (audioContext && audioContext.state !== "closed") await audioContext.close();
+      setIsLoading(false);
+    }
+  }
+
   async function submitCredentials(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthError("");
@@ -655,6 +830,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoCaption("");
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
+    setCarouselCards([]);
+    setCarouselCaption("");
+    setCarouselError("");
+    carouselSlideRefs.current = [];
   }
 
   function selectLanguage(nextLanguage: LanguageCode) {
@@ -692,6 +871,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoBlob(null);
     setMusicVideoCaption("");
     setMusicVideoError("");
+    setCarouselCards([]);
+    setCarouselCaption("");
+    setCarouselError("");
+    carouselSlideRefs.current = [];
   }
 
   function generateContent() {
@@ -702,6 +885,16 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     if (isAiImageGenerator(generatorMode)) {
       void generateAiImage(generatorMode);
+      return;
+    }
+
+    if (isVocabularyCarouselGenerator(generatorMode)) {
+      void generateVocabularyCarousel();
+      return;
+    }
+
+    if (isTierProgressionCarouselGenerator(generatorMode)) {
+      void generateTierProgressionCarousel();
       return;
     }
 
@@ -717,6 +910,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     if (isDialogueVideoGenerator(generatorMode)) {
       void generateDialogueVideo(generatorMode);
+      return;
+    }
+
+    if (isOriginalMascotLearningVideoGenerator(generatorMode)) {
+      void generateOriginalMascotLearningVideo(generatorMode);
       return;
     }
 
@@ -736,6 +934,33 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     if (!element) return undefined;
     const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 1, backgroundColor });
     return { dataUrl, mimeType: "image/png" };
+  }
+
+  async function createCarouselAssets(): Promise<SocialPublishAsset[] | undefined> {
+    if (!carouselCards.length || carouselSlideRefs.current.length !== carouselCards.length) return undefined;
+    await document.fonts?.ready;
+    const slides = carouselSlideRefs.current;
+    if (slides.some((slide) => !slide)) return undefined;
+    return await Promise.all(slides.map(async (slide) => ({
+      dataUrl: await toPng(slide!, { cacheBust: true, pixelRatio: 3, backgroundColor: "#16120f" }),
+      mimeType: "image/png" as const,
+    })));
+  }
+
+  async function downloadCarousel() {
+    setIsExporting(true);
+    try {
+      const assets = await createCarouselAssets();
+      if (!assets) return;
+      assets.forEach((asset, index) => {
+        const link = document.createElement("a");
+        link.download = `foxiesdeck-vocabulary-${index + 1}.png`;
+        link.href = asset.dataUrl;
+        link.click();
+      });
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   async function createAiImageAsset(): Promise<SocialPublishAsset | undefined> {
@@ -851,7 +1076,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     if (!musicVideoUrl) return;
 
     const link = document.createElement("a");
-    link.download = isConfusedWordsVideoMode ? "foxiesdeck-confused-words.webm" : isDialogueVideoMode ? `foxiesdeck-${generatorMode}.webm` : "foxiesdeck-music-video-30s.webm";
+    link.download = isConfusedWordsVideoMode ? "foxiesdeck-confused-words.webm" : isDialogueVideoMode || isOriginalMascotLearningVideoMode ? `foxiesdeck-${generatorMode}.webm` : "foxiesdeck-music-video-30s.webm";
     link.href = musicVideoUrl;
     link.click();
   }
@@ -981,19 +1206,19 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
               <div className="mt-2 grid grid-cols-5 gap-1.5">
                 {TIERS.map((item) => <Button className={tier === item ? "bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" : "border-white/15 bg-[#100d0c] text-[#f9f2e9] hover:bg-[#231d19]"} key={item} onClick={() => selectTier(item)} size="sm" type="button">{item}</Button>)}
               </div>
-              <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{isMusicVideoMode ? `Uses the selected image format as the source, then renders a ${MUSIC_VIDEO_DURATION_SECONDS}-second square video with a randomly selected licensed social-video track.` : isConfusedWordsVideoMode ? "Creates a 9:16, eight-scene explainer with two easily confused words, their native-language difference, and synchronized mascot voices." : generatorMode === "marketing-dialogue-video" ? "A site-supported learning language is chosen at random. Two mascot variations discuss FoxiesDeck in the selected native language." : generatorMode === "learning-dialogue-video" ? "Two mascot variations have an everyday conversation in the learning language. Native-language subtitles appear underneath." : "Creates a vertical avatar video. The mascot explains the word in the selected native language with synchronized speech."}</p>
+              <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{isMusicVideoMode ? `Uses the selected image format as the source, then renders a ${MUSIC_VIDEO_DURATION_SECONDS}-second square video with a randomly selected licensed social-video track.` : isConfusedWordsVideoMode ? "Creates a 9:16, eight-scene explainer with two easily confused words, their native-language difference, and synchronized mascot voices." : isOriginalMascotLearningVideoMode ? originalMascotLearningVideoDescription(generatorMode) : generatorMode === "marketing-dialogue-video" ? "A site-supported learning language is chosen at random. Two mascot variations discuss FoxiesDeck in the selected native language." : generatorMode === "learning-dialogue-video" ? "Two mascot variations have an everyday conversation in the learning language. Native-language subtitles appear underneath." : "Creates a vertical avatar video. The mascot explains the word in the selected native language with synchronized speech."}</p>
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || musicVideoPending || aiVideoStatus === "preparing" || aiVideoStatus === "queued" || aiVideoStatus === "running"} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", (isLoading || musicVideoPending || aiVideoStatus === "preparing" || aiVideoStatus === "queued" || aiVideoStatus === "running") && "animate-spin")} aria-hidden="true" />
-                {isMusicVideoMode ? musicVideoStatus === "creating-image" ? "Creating the source image..." : musicVideoStatus === "rendering" ? `Rendering ${MUSIC_VIDEO_DURATION_SECONDS}-second music video...` : "Generate music video" : isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing script and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering confused-words video..." : "Generate confused-words video" : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering dialogue video..." : "Generate dialogue video" : aiVideoStatus === "preparing" ? "Creating first frame and native voice..." : aiVideoStatus === "queued" || aiVideoStatus === "running" ? `Rendering lip-synced video, ${aiVideoProgress}%` : "Generate Word of the Day video"}
+                {isMusicVideoMode ? musicVideoStatus === "creating-image" ? "Creating the source image..." : musicVideoStatus === "rendering" ? `Rendering ${MUSIC_VIDEO_DURATION_SECONDS}-second music video...` : "Generate music video" : isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing script and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering confused-words video..." : "Generate confused-words video" : isOriginalMascotLearningVideoMode ? musicVideoStatus === "creating-image" ? "Writing plan and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering learning video..." : `Generate ${originalMascotLearningVideoLabel(generatorMode).toLocaleLowerCase()} video` : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices..." : musicVideoStatus === "rendering" ? "Rendering dialogue video..." : "Generate dialogue video" : aiVideoStatus === "preparing" ? "Creating first frame and native voice..." : aiVideoStatus === "queued" || aiVideoStatus === "running" ? `Rendering lip-synced video, ${aiVideoProgress}%` : "Generate Word of the Day video"}
               </Button>
             </aside>
 
             <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1b1714]">
               {isBrowserVideoMode ? (musicVideoUrl ? <>
-                <video className={cn("max-h-[70dvh] w-full bg-[#100d0c] object-contain", isConfusedWordsVideoMode || isDialogueVideoMode ? "aspect-[9/16]" : "aspect-square")} controls playsInline src={musicVideoUrl} />
+                <video className={cn("max-h-[70dvh] w-full bg-[#100d0c] object-contain", isConfusedWordsVideoMode || isDialogueVideoMode || isOriginalMascotLearningVideoMode ? "aspect-[9/16]" : "aspect-square")} controls playsInline src={musicVideoUrl} />
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p></div>
+                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isOriginalMascotLearningVideoMode ? "Original mascot, AI voice, subtitles, and interactive learning sequence. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p></div>
                     <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} getAsset={createMusicVideoAsset} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />
@@ -1001,8 +1226,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
               </> : <div className="grid min-h-[36rem] place-items-center p-6 text-center">
                 <div>
                   {musicVideoPending ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <Video className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
-                  <h2 className="mt-4 font-display text-2xl font-semibold">{isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing the script and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical explainer" : musicVideoStatus === "failed" ? "Confused-words video generation failed" : "Create a confused-words video" : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical dialogue" : musicVideoStatus === "failed" ? "Dialogue video generation failed" : generatorMode === "marketing-dialogue-video" ? "Create a FoxiesDeck dialogue" : "Create an everyday dialogue" : musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects two commonly confused words, then renders their eight spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : isDialogueVideoMode ? musicVideoStatus === "idle" ? "Each turn rises smoothly from the bottom of the frame, while its subtitle remains at the top." : "The dialogue, subtitles, and two mascot variations are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
+                  <h2 className="mt-4 font-display text-2xl font-semibold">{isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing the script and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical explainer" : musicVideoStatus === "failed" ? "Confused-words video generation failed" : "Create a confused-words video" : isOriginalMascotLearningVideoMode ? musicVideoStatus === "creating-image" ? "Writing the learning plan and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the Original mascot video" : musicVideoStatus === "failed" ? "Learning video generation failed" : `Create a ${originalMascotLearningVideoLabel(generatorMode).toLocaleLowerCase()} video` : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical dialogue" : musicVideoStatus === "failed" ? "Dialogue video generation failed" : generatorMode === "marketing-dialogue-video" ? "Create a FoxiesDeck dialogue" : "Create an everyday dialogue" : musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects two commonly confused words, then renders their eight spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : isOriginalMascotLearningVideoMode ? musicVideoStatus === "idle" ? "Original mascot rises smoothly into a dark 9:16 scene and explains the learning activity with AI voice." : "The learning plan, spoken scenes, and animation are being composed into a 9:16 video in the browser." : isDialogueVideoMode ? musicVideoStatus === "idle" ? "Each turn rises smoothly from the bottom of the frame, while its subtitle remains at the top." : "The dialogue, subtitles, and two mascot variations are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
                 </div>
               </div>) : (aiVideoUrl ? <>
                 <video className="aspect-[9/16] max-h-[70dvh] w-full bg-[#100d0c] object-contain" controls playsInline src={aiVideoUrl} />
@@ -1105,7 +1330,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 >
                   {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{ENGLISH_LANGUAGE_NAMES[item.code]}</option>)}
                 </select>
-                {isCardGenerator(generatorMode) || isAiImageGenerator(generatorMode) ? <>{!isAiImageGenerator(generatorMode) || aiImageUsesTier(generatorMode) ? <>
+                {isCarouselImageGenerator(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? "Every run creates one A1, one B2, and one C1 card. The selected level is intentionally ignored." : "Every run uses six different cards from random levels. The selected level is intentionally ignored."}</p> : isCardGenerator(generatorMode) || isAiImageGenerator(generatorMode) ? <>{!isAiImageGenerator(generatorMode) || aiImageUsesTier(generatorMode) ? <>
                   <p className="mt-5 text-sm font-semibold">Level</p>
                   <div className="mt-2 grid grid-cols-5 gap-1.5">
                     {TIERS.map((item) => (
@@ -1120,7 +1345,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || (isAiImageGenerator(generatorMode) && aiImagePending)} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", (isLoading || aiImagePending) && "animate-spin")} aria-hidden="true" />
-                {isAiImageGenerator(generatorMode) ? aiImagePending ? `Generating image, ${aiImageProgress}%` : "Generate AI image" : isTextGenerator(generatorMode) ? "Generate post" : "Create another Word of the Day"}
+                {isAiImageGenerator(generatorMode) ? aiImagePending ? `Generating image, ${aiImageProgress}%` : "Generate AI image" : isCarouselImageGenerator(generatorMode) ? isLoading ? `Creating ${carouselSlideCount} carousel images...` : `Generate ${carouselSlideCount}-image carousel` : isTextGenerator(generatorMode) ? "Generate post" : "Create another Word of the Day"}
               </Button>
             </aside>
 
@@ -1136,6 +1361,34 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   </div>
                   <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
+                </div>
+              ) : isCarouselImageGenerator(generatorMode) ? (
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1b1714]">
+                  {carouselCards.length === carouselSlideCount ? <>
+                    <div className="border-b border-white/15 p-4 sm:p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#ffb355]">{isTierProgressionCarouselGenerator(generatorMode) ? "A1 to C1 vocabulary carousel" : "6-image vocabulary carousel"}</p>
+                          <p className="mt-1 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? `A1, B2, and C1 cards in ${ENGLISH_LANGUAGE_NAMES[language]}, with each tier shown in its own color.` : `Each slide has a random CEFR level and a different ${ENGLISH_LANGUAGE_NAMES[language]} word.`}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
+                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={() => void downloadCarousel()} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing PNGs" : `Download ${carouselSlideCount} PNGs`}</Button>
+                          <SocialPublishActions caption={carouselCaption} getAssets={createCarouselAssets} />
+                        </div>
+                      </div>
+                      <textarea className="mt-4 min-h-24 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={carouselCaption} />
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto p-4 sm:p-5">
+                      {carouselCards.map((carouselCard, index) => <VocabularyCarouselPost card={carouselCard} index={index} key={carouselCard.sourceKey} nativeLanguage={nativeLanguage} presentation={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "meaning"} slideCount={carouselSlideCount} onSlideRef={(element) => { carouselSlideRefs.current[index] = element; }} />)}
+                    </div>
+                  </> : <div className="grid min-h-80 place-items-center p-6 text-center">
+                    <div>
+                      {isLoading ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
+                      <h2 className="mt-4 font-display text-2xl font-semibold">{isLoading ? `Creating ${carouselSlideCount} carousel images` : isTierProgressionCarouselGenerator(generatorMode) ? "Create an A1 to C1 carousel" : "Create a vocabulary carousel"}</h2>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{carouselError || (isLoading ? "Vocabulary cards are being prepared." : isTierProgressionCarouselGenerator(generatorMode) ? "Choose the learning and native languages. Each run creates A1, B2, and C1 3:4 card visuals without AI generation." : "Choose the learning and native languages. Each run creates six different 3:4 card visuals without AI generation.")}</p>
+                    </div>
+                  </div>}
                 </div>
               ) : isAiImageGenerator(generatorMode) ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1b1714]">
