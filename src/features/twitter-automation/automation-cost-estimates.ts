@@ -99,9 +99,9 @@ const MUSIC_NON_AI_IMAGE_GENERATORS = new Set([
 ]);
 
 const CONFUSED_WORDS_VIDEO_GENERATOR = "confused-words-video";
-// Terra writes the pair/explanation plan; eight short TTS fragments average
-// roughly 160 characters in total. Canvas rendering itself has no AI charge.
-const CONFUSED_WORDS_VIDEO_POYO_USD = VIDEO_PLAN_POYO_USD + (160 / 1_000) * 0.04;
+// Terra writes three pair/explanation phases; their 24 short TTS fragments
+// average roughly 480 characters in total. Canvas rendering itself has no AI charge.
+const CONFUSED_WORDS_VIDEO_POYO_USD = VIDEO_PLAN_POYO_USD * 2 + (480 / 1_000) * 0.04;
 
 function textCost({
   inputTokens,

@@ -85,7 +85,10 @@ async function downloadSpeech(audioUrl: string) {
 
 /** Generate short spoken segments with the same PoYo ElevenLabs model as avatar video. */
 export async function generatePoyoSpeechDataUrls(segments: readonly PoyoSpeechSegment[]) {
-  if (!segments.length || segments.length > 12 || segments.some((segment) => !segment.text.trim() || segment.text.length > 400)) {
+  // Longer browser-rendered explainers can contain several short scenes. Keep
+  // this bounded so one request cannot fan out without limit, while allowing
+  // the three-phase Confused Words format (24 fragments).
+  if (!segments.length || segments.length > 30 || segments.some((segment) => !segment.text.trim() || segment.text.length > 400)) {
     throw new PoyoSpeechError("invalid_speech_segments");
   }
   const apiKey = getPoyoApiKey();

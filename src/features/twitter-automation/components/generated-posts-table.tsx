@@ -111,17 +111,19 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
         });
         const plan = await planResponse.json().catch(() => null) as {
           caption?: string;
-          cards?: { first?: { term: string; tier: Exclude<AutomationOutput["tier"], "random"> }; second?: { term: string; tier: Exclude<AutomationOutput["tier"], "random"> } };
+          phases?: Array<{
+            first?: { term: string; tier: Exclude<AutomationOutput["tier"], "random"> };
+            second?: { term: string; tier: Exclude<AutomationOutput["tier"], "random"> };
+          }>;
           scenes?: ConfusedWordsVideoScene[];
           errorCode?: string;
         } | null;
-        if (!planResponse.ok || !plan?.caption || !plan.cards?.first || !plan.cards.second || !Array.isArray(plan.scenes)) {
+        if (!planResponse.ok || !plan?.caption || !Array.isArray(plan.phases) || plan.phases.length !== 3 || plan.phases.some((phase) => !phase.first || !phase.second) || !Array.isArray(plan.scenes)) {
           throw new Error(plan?.errorCode ?? "confused_words_video_prepare_failed");
         }
         blob = await renderConfusedWordsVideo({
           audioContext,
-          firstCard: plan.cards.first,
-          secondCard: plan.cards.second,
+          phases: plan.phases.map((phase) => ({ first: phase.first!, second: phase.second! })),
           scenes: plan.scenes,
         });
         caption = plan.caption;

@@ -43,14 +43,14 @@ describe("automation cost estimates", () => {
     expect(estimate.totalUsd).toBeCloseTo(0.44289, 8);
   });
 
-  it("prices the Canvas confused-words video from its Terra plan and eight TTS segments", () => {
+  it("prices the Canvas confused-words video from its three-phase Terra plan and 24 TTS segments", () => {
     const estimate = estimateAutomationGroupCost([{
       contentType: "video",
       generator: "confused-words-video",
     }]);
 
-    expect(estimate.totalUsd).toBeCloseTo(0.00969, 8);
-    expect(estimate.oneOffTry).toBeCloseTo(0.46051725, 8);
+    expect(estimate.totalUsd).toBeCloseTo(0.02578, 8);
+    expect(estimate.oneOffTry).toBeCloseTo(1.2251945, 8);
   });
 
   it("keeps random image modes as their weighted expected cost", () => {
