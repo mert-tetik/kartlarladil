@@ -387,6 +387,11 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 - `cloudEnabled` true olduğunda store add/record/reset işlemlerini Server Actions'a devreder ve yanıttan local state'i günceller.
 - Hydration tamamlanmadan envantere bağımlı UI render edilmez.
 
+## Social Content Studio Versiyonu
+
+- `src/features/twitter-automation/social-studio-version.ts` içindeki `SOCIAL_CONTENT_STUDIO_VERSION`, Social Content Studio arayüzünde görünür.
+- Her kullanıcı talebiyle yapılan uygulama güncellemesinde bu long integer değerini tam olarak `1` artır. Sadece inceleme, açıklama, durum raporu veya salt commit/push taleplerinde artırma.
+
 ## Kullanışlı Referanslar
 
 - `README.md` — yüksek seviye açıklama, tech stack, komutlar, ürün kuralları.

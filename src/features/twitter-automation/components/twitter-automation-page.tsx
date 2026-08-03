@@ -19,6 +19,7 @@ import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
+import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -1315,7 +1316,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-[#ffb355]">FoxiesDeck developer tool</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-[#ffb355]">FoxiesDeck developer tool</p>
+              <span className="text-xs font-medium text-[#9c8f84]">v{SOCIAL_CONTENT_STUDIO_VERSION}</span>
+            </div>
             <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Social content studio</h1>
             <p className="mt-2 text-sm leading-6 text-[#cdbfb3]">Choose a format first, then create an export-ready post for the right channel.</p>
           </div>
