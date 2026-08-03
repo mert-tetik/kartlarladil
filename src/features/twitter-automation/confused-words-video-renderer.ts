@@ -37,6 +37,16 @@ const MASCOT_BY_PHASE_SCENE = [18, 18, 18, 3, 4, 4, 4, 4] as const;
 const MIRRORED_BY_PHASE_SCENE = [true, true, false, false, true, true, false, false] as const;
 
 type VisibleImageBounds = { x: number; y: number; width: number; height: number };
+type PreparedSplash = { image: HTMLCanvasElement; x: number; y: number };
+type CanvasCaptureTrack = MediaStreamTrack & { requestFrame?: () => void };
+
+export function getConfusedWordsSceneIndex(starts: readonly number[], elapsed: number) {
+  return starts.reduce((activeIndex, start, index) => start <= elapsed ? index : activeIndex, 0);
+}
+
+export function getConfusedWordsPhaseIndex(sceneIndex: number) {
+  return Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
+}
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -81,21 +91,25 @@ function findVisibleImageBounds(image: HTMLImageElement): VisibleImageBounds {
   return maxX < 0 ? { x: 0, y: 0, width, height } : { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
 }
 
-function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement, bounds: VisibleImageBounds) {
+function prepareTintedSplash(splash: HTMLImageElement, bounds: VisibleImageBounds): PreparedSplash {
   const width = 720;
   const height = bounds.width ? width * bounds.height / bounds.width : 150;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = 20;
-  const mask = document.createElement("canvas");
-  mask.width = Math.ceil(width);
-  mask.height = Math.ceil(height);
-  const maskContext = mask.getContext("2d");
-  if (!maskContext) throw new Error("canvas_not_supported");
-  maskContext.drawImage(splash, bounds.x, bounds.y, bounds.width, bounds.height, 0, 0, mask.width, mask.height);
-  maskContext.globalCompositeOperation = "source-in";
-  maskContext.fillStyle = "#f97316";
-  maskContext.fillRect(0, 0, mask.width, mask.height);
-  context.drawImage(mask, x, y, width, height);
+  const y = 120;
+  const image = document.createElement("canvas");
+  image.width = Math.ceil(width);
+  image.height = Math.ceil(height);
+  const imageContext = image.getContext("2d");
+  if (!imageContext) throw new Error("canvas_not_supported");
+  imageContext.drawImage(splash, bounds.x, bounds.y, bounds.width, bounds.height, 0, 0, image.width, image.height);
+  imageContext.globalCompositeOperation = "source-in";
+  imageContext.fillStyle = "#f97316";
+  imageContext.fillRect(0, 0, image.width, image.height);
+  return { image, x, y };
+}
+
+function drawTintedSplash(context: CanvasRenderingContext2D, splash: PreparedSplash) {
+  context.drawImage(splash.image, splash.x, splash.y);
 }
 
 function drawAppCard(context: CanvasRenderingContext2D, cardImage: HTMLImageElement, x: number, scale = 1) {
@@ -175,7 +189,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     loadImage("/mascots/mascot18.png"),
     ...normalizedCardUrls.map((url) => loadImage(url)),
   ]);
-  const splashBounds = findVisibleImageBounds(splash);
+  const tintedSplash = prepareTintedSplash(splash, findVisibleImageBounds(splash));
   const audioBuffers = await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
     if (!response.ok) throw new Error("speech_load_failed");
@@ -198,7 +212,15 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   if (!context) throw new Error("canvas_not_supported");
 
   const destination = audioContext.createMediaStreamDestination();
-  const videoStream = canvas.captureStream(30);
+  let videoStream = canvas.captureStream(0);
+  let canvasTrack = videoStream.getVideoTracks()[0] as CanvasCaptureTrack | undefined;
+  // Chrome/Android can otherwise stop emitting canvas frames during a long
+  // render even while Web Audio keeps playing. Request each frame explicitly.
+  if (!canvasTrack?.requestFrame) {
+    videoStream.getTracks().forEach((track) => track.stop());
+    videoStream = canvas.captureStream(30);
+    canvasTrack = undefined;
+  }
   const stream = new MediaStream([...videoStream.getVideoTracks(), ...destination.stream.getAudioTracks()]);
   const mimeType = recorderMimeType();
   const recorder = mimeType ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_500_000 }) : new MediaRecorder(stream);
@@ -233,13 +255,11 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     source.start(sourceStart);
   });
 
-  let animationId = 0;
-  let stopped = false;
-  const startedAt = performance.now();
-  const drawFrame = (now: number) => {
-    const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
-    const sceneIndex = starts.reduce((activeIndex, start, index) => start <= elapsed ? index : activeIndex, 0);
-    const phaseIndex = Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
+  let renderTimer: number | null = null;
+  const drawFrame = () => {
+    const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
+    const sceneIndex = getConfusedWordsSceneIndex(starts, elapsed);
+    const phaseIndex = getConfusedWordsPhaseIndex(sceneIndex);
     const phaseSceneIndex = sceneIndex % MASCOT_BY_PHASE_SCENE.length;
     const visibleMascot = MASCOT_BY_PHASE_SCENE[phaseSceneIndex]!;
     const visibleMirrored = MIRRORED_BY_PHASE_SCENE[phaseSceneIndex]!;
@@ -259,7 +279,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
 
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    drawTintedSplash(context, splash, splashBounds);
+    drawTintedSplash(context, tintedSplash);
     // Draw the non-active card first so the highlighted card sits cleanly on top.
     const drawCard = (side: "left" | "right") => {
       const x = side === "left" ? 80 : 570;
@@ -274,21 +294,23 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     // fully opaque draw avoids the flicker caused by alpha-compositing two
     // transparent mascot PNGs over one another.
     drawMascot(context, mascots[visibleMascot], visibleMirrored);
-    if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
+    canvasTrack?.requestFrame?.();
   };
 
-  drawFrame(startedAt);
   recorder.start(250);
+  drawFrame();
+  renderTimer = window.setInterval(drawFrame, 1000 / 30);
   window.setTimeout(() => {
-    stopped = true;
-    window.cancelAnimationFrame(animationId);
+    if (renderTimer !== null) window.clearInterval(renderTimer);
+    drawFrame();
     videoStream.getTracks().forEach((track) => track.stop());
     if (recorder.state !== "inactive") recorder.stop();
-  }, durationSeconds * 1000);
+  }, (durationSeconds + 0.12) * 1000);
 
   try {
     return await complete;
   } finally {
+    if (renderTimer !== null) window.clearInterval(renderTimer);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     await audioContext.close();
