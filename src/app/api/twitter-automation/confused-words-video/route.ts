@@ -99,18 +99,18 @@ export async function POST(request: Request) {
   if (!plan) return Response.json({ errorCode: "invalid_confused_words_plan" }, { status: 502 });
 
   const sceneDefinitions = [
-    { text: plan.firstTerm, language: parsed.data.language, mascot: 4, mirrored: true },
-    { text: plan.connector, language: parsed.data.nativeLanguage, mascot: 4, mirrored: true },
-    { text: plan.secondTerm, language: parsed.data.language, mascot: 4, mirrored: false },
-    { text: plan.question, language: parsed.data.nativeLanguage, mascot: 3, mirrored: false },
     { text: plan.firstTerm, language: parsed.data.language, mascot: 18, mirrored: true },
-    { text: plan.firstMeaningTail, language: parsed.data.nativeLanguage, mascot: 18, mirrored: true },
+    { text: plan.connector, language: parsed.data.nativeLanguage, mascot: 18, mirrored: true },
     { text: plan.secondTerm, language: parsed.data.language, mascot: 18, mirrored: false },
-    { text: plan.secondMeaningTail, language: parsed.data.nativeLanguage, mascot: 18, mirrored: false },
+    { text: plan.question, language: parsed.data.nativeLanguage, mascot: 3, mirrored: false },
+    { text: plan.firstTerm, language: parsed.data.language, mascot: 4, mirrored: true },
+    { text: plan.firstMeaningTail, language: parsed.data.nativeLanguage, mascot: 4, mirrored: true },
+    { text: plan.secondTerm, language: parsed.data.language, mascot: 4, mirrored: false },
+    { text: plan.secondMeaningTail, language: parsed.data.nativeLanguage, mascot: 4, mirrored: false },
   ] as const;
 
   try {
-    const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language }) => ({ text, language, speed: 1 })));
+    const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language }) => ({ text, language, speed: 1.25 })));
     return Response.json({
       caption: plan.caption,
       cards: { firstTerm: plan.firstTerm, secondTerm: plan.secondTerm, tier: parsed.data.tier },

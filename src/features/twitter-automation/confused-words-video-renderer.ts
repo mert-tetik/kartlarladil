@@ -16,6 +16,13 @@ type ConfusedWordsVideoRenderOptions = {
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const SCENE_GAP_SECONDS = 0.18;
+const TIER_CARD_COLORS: Record<string, { accent: string; ink: string; border: string }> = {
+  A1: { accent: "#16a34a", ink: "#14532d", border: "#86efac" },
+  A2: { accent: "#0284c7", ink: "#0c4a6e", border: "#7dd3fc" },
+  B1: { accent: "#7c3aed", ink: "#4c1d95", border: "#c4b5fd" },
+  B2: { accent: "#d97706", ink: "#78350f", border: "#fcd34d" },
+  C1: { accent: "#e11d48", ink: "#881337", border: "#fda4af" },
+};
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -63,20 +70,22 @@ function drawTerm(context: CanvasRenderingContext2D, term: string, x: number, y:
 }
 
 function drawCard(context: CanvasRenderingContext2D, term: string, x: number, tier: string) {
+  const palette = TIER_CARD_COLORS[tier] ?? TIER_CARD_COLORS.A1;
   const width = 430;
   const height = 560;
-  drawRoundedRect(context, x, 360, width, height, 40, "#fffaf4", "#f2d6bf");
-  drawRoundedRect(context, x + 26, 388, width - 52, 70, 22, "#f97316");
-  context.fillStyle = "#351308";
+  drawRoundedRect(context, x, 360, width, height, 28, "#fffaf4", palette.border);
+  drawRoundedRect(context, x + 18, 378, width - 36, 74, 16, palette.accent);
+  context.fillStyle = "#ffffff";
   context.font = "600 30px Manrope, Arial, sans-serif";
-  context.textAlign = "center";
-  context.fillText(`FoxiesDeck · ${tier}`, x + width / 2, 434);
-  context.fillStyle = "#24140d";
+  context.textAlign = "left";
+  context.fillText(`${tier} · FoxiesDeck`, x + 42, 425);
+  context.fillStyle = palette.ink;
   context.font = "600 70px Manrope, Arial, sans-serif";
+  context.textAlign = "center";
   drawTerm(context, term, x + width / 2, 640, width - 80);
-  context.fillStyle = "#9e4a1b";
+  context.fillStyle = "#57534e";
   context.font = "500 28px Manrope, Arial, sans-serif";
-  context.fillText("Easily confused words", x + width / 2, 842);
+  context.fillText("Vocabulary card", x + width / 2, 842);
 }
 
 function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement) {
@@ -86,7 +95,7 @@ function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageEl
   const y = 105;
   context.save();
   context.drawImage(splash, x, y, width, height);
-  context.globalCompositeOperation = "source-in";
+  context.globalCompositeOperation = "source-atop";
   context.fillStyle = "#f97316";
   context.fillRect(x, y, width, height);
   context.restore();
