@@ -820,7 +820,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       }
 
       setMusicVideoStatus("rendering");
-      const [firstCardImageUrl, secondCardImageUrl] = await renderConfusedWordsCardFaces(payload.cards);
+      const confusedWordsCards: ConfusedWordsCardPair = { first: payload.cards.first, second: payload.cards.second };
+      const [firstCardImageUrl, secondCardImageUrl] = await renderConfusedWordsCardFaces(confusedWordsCards);
       const videoBlob = await renderConfusedWordsVideo({
         audioContext,
         firstCardImageUrl,
