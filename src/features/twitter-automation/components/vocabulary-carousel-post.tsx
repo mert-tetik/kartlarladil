@@ -48,9 +48,9 @@ export function VocabularyCarouselPost({ card, index, nativeLanguage, presentati
         {headline}
       </h2>
       {presentation === "tier" ? <p className="mt-3 text-center text-xs leading-5 text-white/65">{card.language.toUpperCase()} · {card.tier} vocabulary</p> : null}
-      <div className="absolute inset-x-0 bottom-0 flex justify-center px-8 pb-9 sm:px-10 sm:pb-11">
-        <div className={cn("w-full", presentation === "meaning" ? "max-w-[172px] sm:max-w-[192px]" : "max-w-[224px] sm:max-w-[252px]")}>
-          <VocabularyCardView card={card} face="front" flippable={false} frontFit showActions={false} translationLocale={nativeLanguage} />
+      <div className="absolute bottom-0 left-1/2 w-full -translate-x-1/2 px-8 pb-9 sm:px-10 sm:pb-11">
+        <div className={cn("mx-auto w-full", presentation === "meaning" ? "max-w-[172px] sm:max-w-[192px]" : "max-w-[224px] sm:max-w-[252px]")}>
+          <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} translationLocale={nativeLanguage} />
         </div>
       </div>
     </article>
