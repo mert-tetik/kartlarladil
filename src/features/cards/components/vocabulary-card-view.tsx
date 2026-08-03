@@ -44,6 +44,7 @@ interface VocabularyCardViewProps {
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
   onClick?: () => void;
+  staticFace?: boolean;
 }
 
 interface CardFaceState {
@@ -82,6 +83,7 @@ export function VocabularyCardView({
   footerMode = "auto",
   footerProgressCount,
   onClick,
+  staticFace = false,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
@@ -153,6 +155,14 @@ export function VocabularyCardView({
           onKeyDown: handleCardKeyDown,
         }
       : {};
+
+  if (staticFace) {
+    return (
+      <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
+        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+      </article>
+    );
+  }
 
   return (
     <article
