@@ -30,7 +30,9 @@ export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "m
   const meaning = card.translations[nativeLanguage] || card.translation;
   const usesSuperWater = canUseSuperWater(nativeLanguage);
   const headline = presentation === "tier" ? card.tier : meaning;
-  const displayHeadline = (usesSuperWater ? formatSuperWaterText(nativeLanguage, headline) : headline).toLocaleUpperCase(nativeLanguage);
+  // Super Water only has the ASCII Latin alphabet. Uppercase after the shared
+  // normalization with the English locale so Turkish "i" cannot become "İ".
+  const displayHeadline = (usesSuperWater ? formatSuperWaterText(nativeLanguage, headline) : headline).toLocaleUpperCase("en-US");
 
   return (
     <article
@@ -43,7 +45,7 @@ export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "m
         {displayHeadline}
       </h2>
       <div className="absolute inset-x-0 bottom-0 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">
-        <div className={cn("w-full", presentation === "meaning" ? "max-w-[224px] sm:max-w-[252px]" : "max-w-[260px] sm:max-w-[296px]")} data-carousel-card-face="front">
+        <div className={cn("w-full", presentation === "meaning" ? "max-w-[270px] sm:max-w-[306px]" : "max-w-[292px] sm:max-w-[328px]")} data-carousel-card-face="front">
           <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} staticFace translationLocale={nativeLanguage} />
         </div>
       </div>

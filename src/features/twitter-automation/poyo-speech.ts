@@ -12,6 +12,7 @@ export type PoyoSpeechSegment = {
   text: string;
   language: LanguageCode;
   speed?: number;
+  voice?: string;
 };
 
 export class PoyoSpeechError extends Error {
@@ -38,7 +39,7 @@ async function submitSpeechTask(segment: PoyoSpeechSegment, apiKey: string) {
       model: POYO_SPEECH_MODEL,
       input: {
         text: segment.text,
-        voice: "Aria",
+        voice: segment.voice ?? "Aria",
         language_code: speechLanguageCode(segment.language),
         stability: 0.7,
         similarity_boost: 0.78,

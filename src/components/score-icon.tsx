@@ -16,6 +16,7 @@ export function ScoreIcon({
       alt={alt}
       width={size}
       height={size}
+      unoptimized
       className={cn("shrink-0 object-contain", className)}
       aria-hidden={alt === ""}
     />

@@ -39,6 +39,8 @@ type GeneratorMode = TextGeneratorMode | ImageGeneratorMode | VideoGeneratorMode
 type AiImageTaskStatus = "idle" | "running" | "finished" | "failed";
 type AiVideoTaskStatus = "idle" | "preparing" | "queued" | "running" | "finished" | "failed";
 type MusicVideoTaskStatus = "idle" | "creating-image" | "rendering" | "finished" | "failed";
+type ConfusedWordsCardPair = { first: VocabularyCard; second: VocabularyCard };
+type DialogueVoiceCast = Array<{ mascot: string; voice: string }>;
 
 type GeneratorOption = { value: GeneratorMode; label: string; description: string };
 
@@ -307,6 +309,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [musicVideoCaption, setMusicVideoCaption] = useState("");
   const [musicVideoError, setMusicVideoError] = useState("");
   const [musicVideoTrackLabel, setMusicVideoTrackLabel] = useState("");
+  const [dialogueVoiceCast, setDialogueVoiceCast] = useState<DialogueVoiceCast>([]);
+  const [confusedWordsCards, setConfusedWordsCards] = useState<ConfusedWordsCardPair | null>(null);
   const [carouselCards, setCarouselCards] = useState<VocabularyCard[]>([]);
   const [carouselImageUrls, setCarouselImageUrls] = useState<string[]>([]);
   const [carouselCaption, setCarouselCaption] = useState("");
@@ -320,6 +324,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const musicCardExportRef = useRef<HTMLDivElement>(null);
   const musicPosterExportRef = useRef<HTMLDivElement>(null);
   const carouselSlideRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const confusedWordsCardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : card ? createWordCaption(card) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
@@ -635,6 +640,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoCaption("");
     setMusicVideoError("");
     setMusicVideoTrackLabel("");
+    setDialogueVoiceCast([]);
     aiVideoStatusFailuresRef.current = 0;
 
     try {
@@ -678,6 +684,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoTrackLabel("");
     setMusicVideoUrl("");
     setMusicVideoBlob(null);
+    setDialogueVoiceCast([]);
 
     try {
       // This is intentionally created directly from the button interaction so browsers permit audio capture.
@@ -755,6 +762,25 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     }
   }
 
+  async function renderConfusedWordsCardFaces(cards: ConfusedWordsCardPair) {
+    confusedWordsCardRefs.current = [];
+    setConfusedWordsCards(cards);
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+    await document.fonts?.ready;
+
+    const faces = confusedWordsCardRefs.current;
+    if (faces.length !== 2 || faces.some((face) => !face)) throw new Error("confused_words_card_render_unavailable");
+    const loadedImages = Promise.all(faces.flatMap((face) => Array.from(face!.querySelectorAll("img")).map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    })));
+    await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
+    return await Promise.all(faces.map((face) => toPng(face!, { cacheBust: true, pixelRatio: 1, backgroundColor: "#fffdf9" })));
+  }
+
   async function generateConfusedWordsVideo() {
     let audioContext: AudioContext | null = null;
 
@@ -783,22 +809,22 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
       const payload = await response.json().catch(() => null) as {
         caption?: string;
-        cards?: { firstTerm?: string; secondTerm?: string; tier?: string };
+        cards?: { first?: VocabularyCard; second?: VocabularyCard };
         scenes?: ConfusedWordsVideoScene[];
         errorCode?: string;
       } | null;
-      if (!response.ok || !payload?.cards?.firstTerm || !payload.cards.secondTerm || !payload.cards.tier || !payload.scenes) {
+      if (!response.ok || !payload?.cards?.first || !payload.cards.second || !payload.scenes) {
         setMusicVideoStatus("failed");
         setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The confused-word script or voices could not be prepared. Try again.");
         return;
       }
 
       setMusicVideoStatus("rendering");
+      const [firstCardImageUrl, secondCardImageUrl] = await renderConfusedWordsCardFaces(payload.cards);
       const videoBlob = await renderConfusedWordsVideo({
         audioContext,
-        firstTerm: payload.cards.firstTerm,
-        secondTerm: payload.cards.secondTerm,
-        tier: payload.cards.tier,
+        firstCardImageUrl,
+        secondCardImageUrl,
         scenes: payload.scenes,
       });
       audioContext = null;
@@ -811,6 +837,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoStatus("failed");
       setMusicVideoError("This browser could not render the confused-words video. Try Chrome or the Android app.");
     } finally {
+      setConfusedWordsCards(null);
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       setIsLoading(false);
     }
@@ -827,6 +854,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoTrackLabel("");
     setMusicVideoUrl("");
     setMusicVideoBlob(null);
+    setDialogueVoiceCast([]);
 
     try {
       // Create this during the button interaction so Chrome permits audio capture later.
@@ -846,6 +874,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         caption?: string;
         firstCharacter?: string;
         secondCharacter?: string;
+        voices?: Record<string, string>;
         scenes?: DialogueVideoScene[];
         errorCode?: string;
       } | null;
@@ -867,6 +896,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoBlob(videoBlob);
       setMusicVideoCaption(payload.caption ?? "");
       setMusicVideoTrackLabel(mode === "marketing-dialogue-video" ? "FoxiesDeck dialogue" : "Everyday dialogue");
+      setDialogueVoiceCast(Object.entries(payload.voices ?? {}).map(([mascot, voice]) => ({ mascot, voice })));
       setMusicVideoStatus("finished");
     } catch {
       setMusicVideoStatus("failed");
@@ -1274,6 +1304,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   return (
     <section className="content-automation-shell min-h-[calc(100dvh-4rem)] bg-[#12100e] px-4 py-6 text-[#f9f2e9] sm:px-6 sm:py-10">
+      {confusedWordsCards ? <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 flex gap-8">
+        {[confusedWordsCards.first, confusedWordsCards.second].map((confusedCard, index) => (
+          <div className="w-[430px]" key={confusedCard.sourceKey} ref={(element) => { confusedWordsCardRefs.current[index] = element; }}>
+            <VocabularyCardView card={confusedCard} frontFit showActions={false} staticFace translationLocale={nativeLanguage} />
+          </div>
+        ))}
+      </div> : null}
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
@@ -1342,7 +1379,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <video className={cn("max-h-[70dvh] w-full bg-[#100d0c] object-contain", isConfusedWordsVideoMode || isDialogueVideoMode || isOriginalMascotLearningVideoMode ? "aspect-[9/16]" : "aspect-square")} controls playsInline src={musicVideoUrl} />
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isOriginalMascotLearningVideoMode ? "Original mascot, AI voice, subtitles, and interactive learning sequence. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p></div>
+                    <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isOriginalMascotLearningVideoMode ? "Original mascot, AI voice, subtitles, and interactive learning sequence. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p>{isDialogueVideoMode && dialogueVoiceCast.length ? <p className="mt-2 text-xs text-[#cdbfb3]">Voice cast: {dialogueVoiceCast.map(({ mascot, voice }, index) => <span key={mascot}>{index ? " · " : ""}{mascot.replace(/\.png$/iu, "")} — {voice}</span>)}</p> : null}</div>
                     <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} getAsset={createMusicVideoAsset} /></div>
                   </div>
                   <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />

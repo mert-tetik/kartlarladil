@@ -3,7 +3,8 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
-import type { LanguageCode, Tier } from "@/types/domain";
+import { VOCABULARY_CARDS } from "@/data/cards";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,17 +58,33 @@ function parsePlan(value: string): ConfusedWordsPlan | null {
   }
 }
 
-async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
+function normalizeTerm(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en").trim();
+}
+
+function getCandidateCards(language: LanguageCode, tier: Tier) {
+  const candidates = VOCABULARY_CARDS
+    .filter((card) => card.language === language && card.tier === tier && card.termKind === "word" && !/\s/u.test(card.term))
+    .sort(() => Math.random() - 0.5);
+  return candidates.slice(0, 48);
+}
+
+function findCandidateCard(candidates: readonly VocabularyCard[], term: string) {
+  const normalizedTerm = normalizeTerm(term);
+  return candidates.find((candidate) => normalizeTerm(candidate.term) === normalizedTerm) ?? null;
+}
+
+async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, candidateCards: readonly VocabularyCard[]) {
   const instructions = [
     "Create a FoxiesDeck vertical short-video plan about two easily confused or very-close-in-meaning vocabulary words.",
     "Return one JSON object only, with exactly: firstTerm, secondTerm, connector, question, firstMeaningTail, secondMeaningTail, caption.",
-    "firstTerm and secondTerm must be two real, distinct words in the selected learning language. Pick a genuinely useful pair learners commonly mix up because their meanings are close, then make their difference precise. Do not use translations, inflections of the same word, invented words, or an unrelated pair.",
+    "firstTerm and secondTerm must be two real, distinct words selected verbatim from the provided candidateTerms list. Pick a genuinely useful pair learners commonly mix up because their meanings are close, then make their difference precise. Do not use translations, inflections of the same word, invented words, or an unrelated pair.",
     "connector is only the native-language equivalent of 'and'. question is the native-language equivalent of 'what is the difference between them?'.",
     "firstMeaningTail is a native-language phrase that follows the first term and means '[its meaning] while,'; do not repeat the first term. secondMeaningTail is a native-language phrase that follows the second term and means '[its meaning].'; do not repeat the second term.",
     "caption is a ready-to-post native-language caption under 260 characters, with an inviting hook and 2 or 3 relevant hashtags including #languagelearning.",
     "Use natural punctuation for speech. Keep every spoken fragment brief and easy to understand.",
   ].join("\n");
-  const input = { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage], tier };
+  const input = { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage], tier, candidateTerms: candidateCards.map((card) => card.term) };
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
     const response = await poyo.responses.create({
@@ -90,13 +107,21 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   if (!process.env.POYO_API_KEY?.trim()) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
 
+  const candidateCards = getCandidateCards(parsed.data.language, parsed.data.tier);
+  if (candidateCards.length < 2) return Response.json({ errorCode: "confused_words_cards_unavailable" }, { status: 502 });
+
   let plan: ConfusedWordsPlan | null;
   try {
-    plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
+    plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, candidateCards);
   } catch {
     return Response.json({ errorCode: "confused_words_plan_failed" }, { status: 502 });
   }
   if (!plan) return Response.json({ errorCode: "invalid_confused_words_plan" }, { status: 502 });
+  const firstCard = findCandidateCard(candidateCards, plan.firstTerm);
+  const secondCard = findCandidateCard(candidateCards, plan.secondTerm);
+  if (!firstCard || !secondCard || firstCard.sourceKey === secondCard.sourceKey) {
+    return Response.json({ errorCode: "confused_words_cards_unavailable" }, { status: 502 });
+  }
 
   const sceneDefinitions = [
     { text: plan.firstTerm, language: parsed.data.language, mascot: 18, mirrored: true },
@@ -115,7 +140,7 @@ export async function POST(request: Request) {
     const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language }) => ({ text, language, speed: 1.2 })));
     return Response.json({
       caption: plan.caption,
-      cards: { firstTerm: plan.firstTerm, secondTerm: plan.secondTerm, tier: parsed.data.tier },
+      cards: { first: firstCard, second: secondCard },
       scenes: sceneDefinitions.map((scene, index) => ({ ...scene, audioDataUrl: audioDataUrls[index]! })),
     });
   } catch (error) {

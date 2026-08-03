@@ -15,7 +15,7 @@ describe("PoYo speech segments", () => {
 
   it("submits each fragment to the avatar TTS model in its requested language and returns audio data URLs", async () => {
     let taskIndex = 0;
-    const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: string) => {
       if (input.endsWith("/api/generate/submit")) {
         taskIndex += 1;
         return Response.json({ data: { task_id: `speech-${taskIndex}` } });
@@ -29,15 +29,17 @@ describe("PoYo speech segments", () => {
     global.fetch = fetchMock as typeof fetch;
 
     const result = await generatePoyoSpeechDataUrls([
-      { text: "angry", language: "en" },
-      { text: "ve", language: "tr" },
+      { text: "angry", language: "en", voice: "Roger" },
+      { text: "ve", language: "tr", voice: "Aria" },
     ]);
 
     const firstRequest = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     const secondRequest = JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string);
     expect(firstRequest.model).toBe("elevenlabs-tts-turbo-2-5");
     expect(firstRequest.input.language_code).toBe("en");
+    expect(firstRequest.input.voice).toBe("Roger");
     expect(secondRequest.input.language_code).toBe("tr");
+    expect(secondRequest.input.voice).toBe("Aria");
     expect(result).toEqual(["data:audio/mpeg;base64,AQID", "data:audio/mpeg;base64,AQID"]);
   });
 });

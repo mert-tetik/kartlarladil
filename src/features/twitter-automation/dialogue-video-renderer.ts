@@ -77,26 +77,35 @@ function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoSc
   }
 }
 
-function drawCharacter(context: CanvasRenderingContext2D, image: HTMLImageElement, progress: number) {
-  const maxWidth = 860;
-  const maxHeight = 980;
+function drawCharacter(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  revealProgress: number,
+  activeProgress: number,
+  side: "left" | "right",
+  isActive: boolean,
+) {
+  const maxWidth = 480;
+  const maxHeight = 800;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const targetY = 850 + Math.max(0, (maxHeight - height) / 2);
+  const targetX = side === "left" ? 42 : CANVAS_WIDTH - width - 42;
+  const targetY = 980 + Math.max(0, (maxHeight - height) / 2);
   const startY = CANVAS_HEIGHT + 90;
-  const eased = easeOutQuint(progress);
-  const y = startY + (targetY - startY) * eased;
+  const eased = easeOutQuint(revealProgress);
+  const talkingLift = isActive ? Math.sin(Math.min(1, activeProgress / 0.44) * Math.PI) * 18 : 0;
+  const y = startY + (targetY - startY) * eased - talkingLift;
   context.save();
-  context.globalAlpha = Math.min(1, 0.2 + eased * 0.8);
-  context.drawImage(image, (CANVAS_WIDTH - width) / 2, y, width, height);
+  context.globalAlpha = isActive ? Math.min(1, 0.3 + eased * 0.7) : Math.min(0.68, eased * 0.68);
+  context.drawImage(image, targetX, y, width, height);
   context.restore();
 }
 
 /** Browser-only 9:16 dialogue renderer. Each speaker rises from below the frame on their turn. */
 export async function renderDialogueVideo({ audioContext, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (scenes.length < 2 || scenes.length > 10) throw new Error("invalid_dialogue_scene_count");
+  if (!scenes.length || scenes.length > 10) throw new Error("invalid_dialogue_scene_count");
 
   const [firstImage, secondImage] = await Promise.all([
     loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
@@ -114,6 +123,10 @@ export async function renderDialogueVideo({ audioContext, firstCharacter, second
     elapsedSeconds += buffer.duration + SCENE_GAP_SECONDS;
   });
   const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.3;
+  const firstTurnStarts = {
+    1: starts.find((_, index) => scenes[index]?.character === 1) ?? Number.POSITIVE_INFINITY,
+    2: starts.find((_, index) => scenes[index]?.character === 2) ?? Number.POSITIVE_INFINITY,
+  } as const;
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
@@ -148,12 +161,11 @@ export async function renderDialogueVideo({ audioContext, firstCharacter, second
     const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
     const scene = scenes[sceneIndex]!;
     const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
-    context.fillStyle = "#050505";
+    context.fillStyle = "#000000";
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    context.fillStyle = "#11100f";
-    context.fillRect(0, 1440, CANVAS_WIDTH, CANVAS_HEIGHT - 1440);
     drawSubtitles(context, scene);
-    drawCharacter(context, scene.character === 1 ? firstImage : secondImage, localElapsed / 0.82);
+    drawCharacter(context, firstImage, Math.max(0, elapsed - firstTurnStarts[1]) / 0.82, localElapsed, "left", scene.character === 1);
+    drawCharacter(context, secondImage, Math.max(0, elapsed - firstTurnStarts[2]) / 0.82, localElapsed, "right", scene.character === 2);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 

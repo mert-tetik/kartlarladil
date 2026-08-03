@@ -7,9 +7,8 @@ export type ConfusedWordsVideoScene = {
 
 type ConfusedWordsVideoRenderOptions = {
   audioContext: AudioContext;
-  firstTerm: string;
-  secondTerm: string;
-  tier: string;
+  firstCardImageUrl: string;
+  secondCardImageUrl: string;
   scenes: readonly ConfusedWordsVideoScene[];
 };
 
@@ -17,13 +16,6 @@ const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const SCENE_GAP_SECONDS = 0.18;
 const TTS_PLAYBACK_RATE = 1.25 / 1.2;
-const TIER_CARD_COLORS: Record<string, { accent: string; ink: string; border: string }> = {
-  A1: { accent: "#16a34a", ink: "#14532d", border: "#86efac" },
-  A2: { accent: "#0284c7", ink: "#0c4a6e", border: "#7dd3fc" },
-  B1: { accent: "#7c3aed", ink: "#4c1d95", border: "#c4b5fd" },
-  B2: { accent: "#d97706", ink: "#78350f", border: "#fcd34d" },
-  C1: { accent: "#e11d48", ink: "#881337", border: "#fda4af" },
-};
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -40,66 +32,27 @@ function recorderMimeType() {
   return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) ?? "";
 }
 
-function drawRoundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, fill: string, stroke?: string) {
-  context.beginPath();
-  context.roundRect(x, y, width, height, radius);
-  context.fillStyle = fill;
-  context.fill();
-  if (stroke) {
-    context.strokeStyle = stroke;
-    context.lineWidth = 4;
-    context.stroke();
-  }
-}
-
-function drawTerm(context: CanvasRenderingContext2D, term: string, x: number, y: number, maxWidth: number) {
-  const words = term.split(/\s+/u).filter(Boolean);
-  const lines: string[] = [];
-  let line = "";
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (line && context.measureText(candidate).width > maxWidth) {
-      lines.push(line);
-      line = word;
-    } else line = candidate;
-  }
-  if (line) lines.push(line);
-  const visibleLines = lines.slice(0, 3);
-  const lineHeight = 82;
-  const firstY = y - ((visibleLines.length - 1) * lineHeight) / 2;
-  visibleLines.forEach((entry, index) => context.fillText(entry, x, firstY + index * lineHeight));
-}
-
-function drawCard(context: CanvasRenderingContext2D, term: string, x: number, tier: string) {
-  const palette = TIER_CARD_COLORS[tier] ?? TIER_CARD_COLORS.A1;
-  const width = 430;
-  const height = 560;
-  drawRoundedRect(context, x, 360, width, height, 28, "#fffaf4", palette.border);
-  drawRoundedRect(context, x + 18, 378, width - 36, 74, 16, palette.accent);
-  context.fillStyle = "#ffffff";
-  context.font = "600 30px Manrope, Arial, sans-serif";
-  context.textAlign = "left";
-  context.fillText(`${tier} · FoxiesDeck`, x + 42, 425);
-  context.fillStyle = palette.ink;
-  context.font = "600 70px Manrope, Arial, sans-serif";
-  context.textAlign = "center";
-  drawTerm(context, term, x + width / 2, 640, width - 80);
-  context.fillStyle = "#57534e";
-  context.font = "500 28px Manrope, Arial, sans-serif";
-  context.fillText("Vocabulary card", x + width / 2, 842);
-}
-
 function drawTintedSplash(context: CanvasRenderingContext2D, splash: HTMLImageElement) {
   const width = 520;
   const height = splash.naturalHeight ? width * splash.naturalHeight / splash.naturalWidth : 150;
   const x = (CANVAS_WIDTH - width) / 2;
   const y = 105;
-  context.save();
-  context.drawImage(splash, x, y, width, height);
-  context.globalCompositeOperation = "source-atop";
-  context.fillStyle = "#f97316";
-  context.fillRect(x, y, width, height);
-  context.restore();
+  const mask = document.createElement("canvas");
+  mask.width = Math.ceil(width);
+  mask.height = Math.ceil(height);
+  const maskContext = mask.getContext("2d");
+  if (!maskContext) throw new Error("canvas_not_supported");
+  maskContext.drawImage(splash, 0, 0, mask.width, mask.height);
+  maskContext.globalCompositeOperation = "source-in";
+  maskContext.fillStyle = "#f97316";
+  maskContext.fillRect(0, 0, mask.width, mask.height);
+  context.drawImage(mask, x, y, width, height);
+}
+
+function drawAppCard(context: CanvasRenderingContext2D, cardImage: HTMLImageElement, x: number) {
+  const width = 430;
+  const height = width * cardImage.naturalHeight / cardImage.naturalWidth;
+  context.drawImage(cardImage, x, 360, width, height);
 }
 
 function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, mirrored: boolean) {
@@ -119,15 +72,17 @@ function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, 
   context.restore();
 }
 
-export async function renderConfusedWordsVideo({ audioContext, firstTerm, secondTerm, tier, scenes }: ConfusedWordsVideoRenderOptions) {
+export async function renderConfusedWordsVideo({ audioContext, firstCardImageUrl, secondCardImageUrl, scenes }: ConfusedWordsVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length !== 8) throw new Error("invalid_video_scene_count");
 
-  const [splash, mascot3, mascot4, mascot18] = await Promise.all([
+  const [splash, mascot3, mascot4, mascot18, firstCard, secondCard] = await Promise.all([
     loadImage("/splash.png"),
     loadImage("/mascots/mascot3.webp"),
     loadImage("/mascots/mascot4.webp"),
     loadImage("/mascots/mascot18.png"),
+    loadImage(firstCardImageUrl),
+    loadImage(secondCardImageUrl),
   ]);
   const audioBuffers = await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
@@ -179,8 +134,8 @@ export async function renderConfusedWordsVideo({ audioContext, firstTerm, second
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     drawTintedSplash(context, splash);
-    drawCard(context, firstTerm, 80, tier);
-    drawCard(context, secondTerm, 570, tier);
+    drawAppCard(context, firstCard, 80);
+    drawAppCard(context, secondCard, 570);
     drawMascot(context, mascots[scene.mascot], scene.mirrored);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
