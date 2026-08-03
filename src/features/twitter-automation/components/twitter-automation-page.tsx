@@ -11,7 +11,7 @@ import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
-import { SocialPublishActions, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
+import { SocialPublishActions, type SocialPublishAsset, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
