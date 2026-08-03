@@ -138,7 +138,7 @@ function toStudioCustomCard(generated: GeneratedCardResponse): VocabularyCard {
   const sourceKey = `social-studio:${generated.language}:${encodeURIComponent(generated.term).replace(/%/gu, "-")}`;
   const translations = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, generated.translations[locale]!])) as VocabularyCard["translations"];
   const grammar = { summary: "", rules: generated.grammar, details: [] };
-  const grammarByLocale = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, grammar])) as VocabularyCard["grammarByLocale"];
+  const grammarByLocale = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, grammar])) as unknown as VocabularyCard["grammarByLocale"];
   return {
     id: sourceKey,
     sourceKey,
