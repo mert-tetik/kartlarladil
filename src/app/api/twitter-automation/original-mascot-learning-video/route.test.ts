@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/app/api/twitter-automation/original-mascot-learning-video/route";
+import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 
 describe("Original mascot learning video plans", () => {
   it("accepts a complete A1, B1, C1 progression and requires every active tier", () => {
