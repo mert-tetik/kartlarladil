@@ -110,7 +110,9 @@ export async function POST(request: Request) {
   ] as const;
 
   try {
-    const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language }) => ({ text, language, speed: 1.25 })));
+    // PoYo's ElevenLabs Turbo endpoint accepts speeds up to 1.2. The renderer
+    // applies the final small playback adjustment so this video still plays at 1.25×.
+    const audioDataUrls = await generatePoyoSpeechDataUrls(sceneDefinitions.map(({ text, language }) => ({ text, language, speed: 1.2 })));
     return Response.json({
       caption: plan.caption,
       cards: { firstTerm: plan.firstTerm, secondTerm: plan.secondTerm, tier: parsed.data.tier },

@@ -29,8 +29,8 @@ const TIER_ACCENTS = {
 export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "meaning", onSlideRef }: VocabularyCarouselPostProps) {
   const meaning = card.translations[nativeLanguage] || card.translation;
   const usesSuperWater = canUseSuperWater(nativeLanguage);
-  const headline = presentation === "tier" ? card.tier : usesSuperWater ? formatSuperWaterText(nativeLanguage, meaning) : meaning;
-  const displayHeadline = headline.toLocaleUpperCase(nativeLanguage);
+  const headline = presentation === "tier" ? card.tier : meaning;
+  const displayHeadline = (usesSuperWater ? formatSuperWaterText(nativeLanguage, headline) : headline).toLocaleUpperCase(nativeLanguage);
 
   return (
     <article
@@ -39,7 +39,7 @@ export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "m
       ref={onSlideRef}
       style={{ backgroundImage: `url(${TIER_BACKGROUND_IMAGES[card.tier]})`, backgroundPosition: "center", backgroundSize: "cover" }}
     >
-      <h2 className={cn(presentation === "meaning" ? "mt-5" : "mt-8", "break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:text-5xl", presentation === "meaning" && usesSuperWater && "font-super-water")} style={{ color: presentation === "tier" ? TIER_ACCENTS[card.tier] : "#17120e" }}>
+      <h2 className={cn(presentation === "meaning" ? "mt-5" : "mt-8", "break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:text-5xl", usesSuperWater && "font-super-water")} style={{ color: presentation === "tier" ? TIER_ACCENTS[card.tier] : "#17120e" }}>
         {displayHeadline}
       </h2>
       <div className="absolute inset-x-0 bottom-0 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">

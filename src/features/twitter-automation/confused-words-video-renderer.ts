@@ -16,6 +16,7 @@ type ConfusedWordsVideoRenderOptions = {
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const SCENE_GAP_SECONDS = 0.18;
+const TTS_PLAYBACK_RATE = 1.25 / 1.2;
 const TIER_CARD_COLORS: Record<string, { accent: string; ink: string; border: string }> = {
   A1: { accent: "#16a34a", ink: "#14532d", border: "#86efac" },
   A2: { accent: "#0284c7", ink: "#0c4a6e", border: "#7dd3fc" },
@@ -137,7 +138,7 @@ export async function renderConfusedWordsVideo({ audioContext, firstTerm, second
   let elapsedSeconds = 0;
   const starts = audioBuffers.map((buffer) => {
     const start = elapsedSeconds;
-    elapsedSeconds += buffer.duration + SCENE_GAP_SECONDS;
+    elapsedSeconds += buffer.duration / TTS_PLAYBACK_RATE + SCENE_GAP_SECONDS;
     return start;
   });
   const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.28;
@@ -163,6 +164,7 @@ export async function renderConfusedWordsVideo({ audioContext, firstTerm, second
   audioBuffers.forEach((buffer, index) => {
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
+    source.playbackRate.value = TTS_PLAYBACK_RATE;
     source.connect(destination);
     source.start(startTime + starts[index]!);
   });
