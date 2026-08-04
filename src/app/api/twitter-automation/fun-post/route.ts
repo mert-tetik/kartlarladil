@@ -68,8 +68,8 @@ export async function POST(request: Request) {
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response).trim();
-    assertPoyoResponsesOutput(output);
     const post = output;
 
     if (!post) {

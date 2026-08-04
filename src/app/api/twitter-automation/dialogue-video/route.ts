@@ -111,8 +111,8 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response);
-    assertPoyoResponsesOutput(output);
     return parsePlan(
       output,
       mode === "learning-dialogue-video",

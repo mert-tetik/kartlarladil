@@ -147,8 +147,8 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response).trim();
-    assertPoyoResponsesOutput(output);
     return parseAiImagePlan(output, mode);
   };
 

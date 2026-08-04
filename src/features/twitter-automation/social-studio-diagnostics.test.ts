@@ -5,6 +5,7 @@ import { createSocialStudioDiagnostic, formatSocialStudioFailure } from "@/featu
 describe("Social Content Studio diagnostics", () => {
   it("recognizes a PoYo business error embedded in an HTTP-success response", () => {
     expect(() => assertPoyoResponsesOutput('{"code":500,"msg":"Server exception, please try again later"}')).toThrow(PoyoResponsesProviderError);
+    expect(() => assertPoyoResponsesOutput({ code: 500, msg: "Server exception, please try again later" })).toThrow(PoyoResponsesProviderError);
   });
 
   it("shows the actionable provider stage and detail without exposing secrets", () => {

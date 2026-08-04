@@ -128,8 +128,8 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response).trim();
-    assertPoyoResponsesOutput(output);
     return parseVideoPlan(output);
   };
 

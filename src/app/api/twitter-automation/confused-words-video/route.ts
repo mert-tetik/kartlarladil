@@ -130,8 +130,8 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response);
-    assertPoyoResponsesOutput(output);
     return parsePlan(output);
   };
   return await generate(false) ?? await generate(true);
@@ -177,8 +177,8 @@ async function createStudioCustomCard(term: string, language: LanguageCode, nati
     store: false,
     text: { format: { type: "text" }, verbosity: "low" },
   });
+  assertPoyoResponsesOutput(response);
   const output = extractResponseOutputText(response);
-  assertPoyoResponsesOutput(output);
   const generated = generatedCardSchema.safeParse(JSON.parse(extractJsonObject(output)));
   if (!generated.success || !matchesRequestedTargetLanguage(generated.data, language)) throw new Error("custom_card_generation_failed");
   return toStudioCustomCard(generated.data);

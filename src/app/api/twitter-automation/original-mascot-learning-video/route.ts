@@ -45,8 +45,8 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
+    assertPoyoResponsesOutput(response);
     const output = extractResponseOutputText(response);
-    assertPoyoResponsesOutput(output);
     return parse(output);
   };
   let lastError: unknown;

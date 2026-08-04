@@ -8,7 +8,11 @@ export function createAiPracticeSafetyIdentifier(userId: string) {
 }
 
 export function extractResponseOutputText(response: OpenAIResponse) {
-  return response.output
+  // OpenAI-compatible providers can return an error-shaped JSON body with
+  // HTTP 200. Do not crash while attempting to read a missing output array;
+  // callers can inspect that provider response and return a precise error.
+  const output = Array.isArray(response.output) ? response.output : [];
+  return output
     .flatMap((item) => (item.type === "message" ? item.content : []))
     .filter((content) => content.type === "output_text")
     .map((content) => content.text)

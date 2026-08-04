@@ -25,9 +25,9 @@ export class PoyoResponsesProviderError extends Error {
   }
 }
 
-export function assertPoyoResponsesOutput(rawOutput: string) {
+export function assertPoyoResponsesOutput(source: string | unknown) {
   try {
-    const payload = JSON.parse(rawOutput) as { code?: unknown; msg?: unknown; error?: { message?: unknown } };
+    const payload = (typeof source === "string" ? JSON.parse(source) : source) as { code?: unknown; msg?: unknown; error?: { message?: unknown } };
     if (typeof payload.code === "number" && payload.code >= 400) {
       const message = typeof payload.error?.message === "string"
         ? payload.error.message
