@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
+import { getDialogueBackgroundPublicUrl } from "@/features/twitter-automation/dialogue-backgrounds";
 import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
@@ -144,6 +145,7 @@ export async function POST(request: Request) {
       caption: plan.caption,
       firstCharacter,
       secondCharacter,
+      backgroundVideoUrl: getDialogueBackgroundPublicUrl(),
       voices: {
         [firstCharacter]: DIALOGUE_MASCOT_VOICES[firstCharacter],
         [secondCharacter]: DIALOGUE_MASCOT_VOICES[secondCharacter],

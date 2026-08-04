@@ -874,13 +874,14 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
       const payload = await response.json().catch(() => null) as {
         caption?: string;
+        backgroundVideoUrl?: string;
         firstCharacter?: string;
         secondCharacter?: string;
         voices?: Record<string, string>;
         scenes?: DialogueVideoScene[];
         errorCode?: string;
       } | null;
-      if (!response.ok || !payload?.firstCharacter || !payload.secondCharacter || !payload.scenes?.length) {
+      if (!response.ok || !payload?.backgroundVideoUrl || !payload.firstCharacter || !payload.secondCharacter || !payload.scenes?.length) {
         setMusicVideoStatus("failed");
         setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The dialogue or voices could not be prepared. Try again.");
         return;
@@ -889,6 +890,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoStatus("rendering");
       const videoBlob = await renderDialogueVideo({
         audioContext,
+        backgroundVideoUrl: payload.backgroundVideoUrl,
         firstCharacter: payload.firstCharacter,
         secondCharacter: payload.secondCharacter,
         scenes: payload.scenes,
