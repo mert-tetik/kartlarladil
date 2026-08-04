@@ -19,7 +19,7 @@ import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
-import { formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
+import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
@@ -762,9 +762,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoCaption(nextCaption);
       setMusicVideoTrackLabel(musicTrack.label);
       setMusicVideoStatus("finished");
-    } catch {
+    } catch (error) {
       setMusicVideoStatus("failed");
-      setMusicVideoError("This browser could not render the music video. Try Chrome or the Android app.");
+      setMusicVideoError(formatSocialStudioClientFailure("Music video browser renderer", error, "This browser could not render the music video."));
     } finally {
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       setIsLoading(false);
@@ -842,9 +842,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoCaption(payload.caption ?? "");
       setMusicVideoTrackLabel("Confused words explainer");
       setMusicVideoStatus("finished");
-    } catch {
+    } catch (error) {
       setMusicVideoStatus("failed");
-      setMusicVideoError("This browser could not render the confused-words video. Try Chrome or the Android app.");
+      setMusicVideoError(formatSocialStudioClientFailure("Confused Words browser renderer", error, "This browser could not render the Confused Words video."));
     } finally {
       setConfusedWordsCards(null);
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
@@ -908,9 +908,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoTrackLabel(mode === "marketing-dialogue-video" ? "FoxiesDeck dialogue" : "Everyday dialogue");
       setDialogueVoiceCast(Object.entries(payload.voices ?? {}).map(([mascot, voice]) => ({ mascot, voice })));
       setMusicVideoStatus("finished");
-    } catch {
+    } catch (error) {
       setMusicVideoStatus("failed");
-      setMusicVideoError("This browser could not render the dialogue video. Try Chrome or the Android app.");
+      setMusicVideoError(formatSocialStudioClientFailure("Dialogue browser renderer", error, "This browser could not render the dialogue video."));
     } finally {
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       setIsLoading(false);
@@ -957,9 +957,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       setMusicVideoCaption(payload.caption);
       setMusicVideoTrackLabel(mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check");
       setMusicVideoStatus("finished");
-    } catch {
+    } catch (error) {
       setMusicVideoStatus("failed");
-      setMusicVideoError("This browser could not render the learning video. Try Chrome or the Android app.");
+      setMusicVideoError(formatSocialStudioClientFailure("Learning video browser renderer", error, "This browser could not render the learning video."));
     } finally {
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       setIsLoading(false);

@@ -64,3 +64,8 @@ export function formatSocialStudioFailure(
   }
   return lines.join("\n");
 }
+
+export function formatSocialStudioClientFailure(stage: string, error: unknown, fallback: string) {
+  const diagnostic = createSocialStudioDiagnostic({ stage, provider: "This browser", error, fallbackDetail: fallback });
+  return [fallback, `Stage: ${diagnostic.stage} · Provider: ${diagnostic.provider}`, `Detail: ${diagnostic.detail}`].join("\n");
+}
