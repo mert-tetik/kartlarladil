@@ -286,15 +286,19 @@ async function renderOfflineDialogueAudio(audioBuffers: readonly AudioBuffer[], 
 
 async function canRenderDialogueDeterministically() {
   if (typeof OfflineAudioContext === "undefined") return false;
-  return await canEncodeVideo("vp8", {
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
-    bitrate: DETERMINISTIC_VIDEO_BITRATE,
-  }) && await canEncodeAudio("opus", {
-    numberOfChannels: 2,
-    sampleRate: 48_000,
-    bitrate: DETERMINISTIC_AUDIO_BITRATE,
-  });
+  try {
+    return await canEncodeVideo("vp8", {
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      bitrate: DETERMINISTIC_VIDEO_BITRATE,
+    }) && await canEncodeAudio("opus", {
+      numberOfChannels: 2,
+      sampleRate: 48_000,
+      bitrate: DETERMINISTIC_AUDIO_BITRATE,
+    });
+  } catch {
+    return false;
+  }
 }
 
 async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
@@ -370,7 +374,6 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
     return new Blob([target.buffer], { type: await output.getMimeType() });
   } finally {
     backgroundInput.dispose();
-    await audioContext.close();
   }
 }
 
@@ -380,9 +383,21 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
  * not skip dialogue animation frames. Older browsers retain MediaRecorder.
  */
 export async function renderDialogueVideo(options: DialogueVideoRenderOptions) {
-  if (await canRenderDialogueDeterministically()) {
-    return await renderDeterministicDialogueVideo(options);
+  try {
+    if (await canRenderDialogueDeterministically()) {
+      try {
+        return await renderDeterministicDialogueVideo(options);
+      } catch (error) {
+        // Some Chrome/Android builds can encode VP8 but cannot WebCodecs-decode
+        // the selected MP4 background. Keep the deterministic route as the
+        // default, then use Chrome's proven HTML video decoder when that exact
+        // device cannot complete it.
+        console.warn("Frame-exact dialogue export was unavailable; using the compatibility renderer.", error);
+      }
+    }
+    return await renderRealtimeDialogueVideo(options);
+  } finally {
+    if (options.audioContext.state !== "closed") await options.audioContext.close();
   }
-  return await renderRealtimeDialogueVideo(options);
 }
 import { ALL_FORMATS, AudioBufferSource, BlobSource, BufferTarget, CanvasSink, CanvasSource, canEncodeAudio, canEncodeVideo, Input, Output, WebMOutputFormat } from "mediabunny";
