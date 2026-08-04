@@ -28,6 +28,10 @@ function shuffle<T>(items: readonly T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function pick<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)]!;
+}
+
 async function createPlan<T>(instructions: string, input: Record<string, unknown>, parse: (value: string) => T | null) {
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
