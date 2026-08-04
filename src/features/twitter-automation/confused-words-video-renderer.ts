@@ -38,7 +38,6 @@ const MIRRORED_BY_PHASE_SCENE = [true, true, false, false, true, true, false, fa
 
 type VisibleImageBounds = { x: number; y: number; width: number; height: number };
 type PreparedSplash = { image: HTMLCanvasElement; x: number; y: number };
-type CanvasCaptureTrack = MediaStreamTrack & { requestFrame?: () => void };
 
 export function getConfusedWordsSceneIndex(starts: readonly number[], elapsed: number) {
   return starts.reduce((activeIndex, start, index) => start <= elapsed ? index : activeIndex, 0);
@@ -208,19 +207,20 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
+  // Chrome can retain only the first frame from a detached canvas stream on a
+  // longer recording. Keep this implementation canvas off-screen but attached
+  // for the full capture lifetime, then remove it during cleanup.
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;pointer-events:none;opacity:0";
+  document.body.append(canvas);
   const context = canvas.getContext("2d");
   if (!context) throw new Error("canvas_not_supported");
 
   const destination = audioContext.createMediaStreamDestination();
-  let videoStream = canvas.captureStream(0);
-  let canvasTrack = videoStream.getVideoTracks()[0] as CanvasCaptureTrack | undefined;
-  // Chrome/Android can otherwise stop emitting canvas frames during a long
-  // render even while Web Audio keeps playing. Request each frame explicitly.
-  if (!canvasTrack?.requestFrame) {
-    videoStream.getTracks().forEach((track) => track.stop());
-    videoStream = canvas.captureStream(30);
-    canvasTrack = undefined;
-  }
+  // The fixed capture rate gives MediaRecorder monotonically timed frames.
+  // Manual requestFrame() frames caused later phases to reuse stale video
+  // timestamps even though the canvas itself had advanced correctly.
+  const videoStream = canvas.captureStream(30);
   const stream = new MediaStream([...videoStream.getVideoTracks(), ...destination.stream.getAudioTracks()]);
   const mimeType = recorderMimeType();
   const recorder = mimeType ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_500_000 }) : new MediaRecorder(stream);
@@ -294,7 +294,6 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     // fully opaque draw avoids the flicker caused by alpha-compositing two
     // transparent mascot PNGs over one another.
     drawMascot(context, mascots[visibleMascot], visibleMirrored);
-    canvasTrack?.requestFrame?.();
   };
 
   recorder.start(250);
@@ -303,7 +302,6 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   window.setTimeout(() => {
     if (renderTimer !== null) window.clearInterval(renderTimer);
     drawFrame();
-    videoStream.getTracks().forEach((track) => track.stop());
     if (recorder.state !== "inactive") recorder.stop();
   }, (durationSeconds + 0.12) * 1000);
 
@@ -313,6 +311,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     if (renderTimer !== null) window.clearInterval(renderTimer);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
+    canvas.remove();
     await audioContext.close();
   }
 }
