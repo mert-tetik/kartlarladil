@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generatePoyoSpeechDataUrls } from "@/features/twitter-automation/poyo-speech";
+import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls } from "@/features/twitter-automation/poyo-speech";
 
 const originalFetch = global.fetch;
 
@@ -30,7 +30,7 @@ describe("PoYo speech segments", () => {
 
     const result = await generatePoyoSpeechDataUrls([
       { text: "angry", language: "en", voice: "Roger" },
-      { text: "ve", language: "tr", voice: "Aria" },
+      { text: "ve", language: "tr" },
     ]);
 
     const firstRequest = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
@@ -39,7 +39,7 @@ describe("PoYo speech segments", () => {
     expect(firstRequest.input.language_code).toBe("en");
     expect(firstRequest.input.voice).toBe("Roger");
     expect(secondRequest.input.language_code).toBe("tr");
-    expect(secondRequest.input.voice).toBe("Aria");
+    expect(secondRequest.input.voice).toBe(FOXIESDECK_MASCOT_VOICE);
     expect(result).toEqual(["data:audio/mpeg;base64,AQID", "data:audio/mpeg;base64,AQID"]);
   });
 });

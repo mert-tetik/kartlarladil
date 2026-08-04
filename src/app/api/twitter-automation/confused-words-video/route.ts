@@ -228,13 +228,13 @@ export async function POST(request: Request) {
 
   const sceneDefinitions = plan.phases.flatMap((phase, phaseIndex) => [
     { phaseIndex, text: phase.firstTerm, language: parsed.data.language, mascot: 18 as const, mirrored: true, speechSpeed: 1, playbackRate: 1 },
-    { phaseIndex, text: phase.connector, language: parsed.data.nativeLanguage, mascot: 18 as const, mirrored: true, speechSpeed: 1.2, playbackRate: 1.25 / 1.2 },
+    { phaseIndex, text: phase.connector, language: parsed.data.nativeLanguage, mascot: 18 as const, mirrored: true, speechSpeed: 1.1, playbackRate: 1.25 / 1.1 },
     { phaseIndex, text: phase.secondTerm, language: parsed.data.language, mascot: 18 as const, mirrored: false, speechSpeed: 1, playbackRate: 1 },
-    { phaseIndex, text: phase.question, language: parsed.data.nativeLanguage, mascot: 3 as const, mirrored: false, speechSpeed: 1.2, playbackRate: 1.25 / 1.2 },
+    { phaseIndex, text: phase.question, language: parsed.data.nativeLanguage, mascot: 3 as const, mirrored: false, speechSpeed: 1.1, playbackRate: 1.25 / 1.1 },
     { phaseIndex, text: phase.firstTerm, language: parsed.data.language, mascot: 4 as const, mirrored: true, speechSpeed: 1, playbackRate: 1 },
-    { phaseIndex, text: phase.firstMeaningTail, language: parsed.data.nativeLanguage, mascot: 4 as const, mirrored: true, speechSpeed: 1.2, playbackRate: 1.25 / 1.2 },
+    { phaseIndex, text: phase.firstMeaningTail, language: parsed.data.nativeLanguage, mascot: 4 as const, mirrored: true, speechSpeed: 1.1, playbackRate: 1.25 / 1.1 },
     { phaseIndex, text: phase.secondTerm, language: parsed.data.language, mascot: 4 as const, mirrored: false, speechSpeed: 1, playbackRate: 1 },
-    { phaseIndex, text: phase.secondMeaningTail, language: parsed.data.nativeLanguage, mascot: 4 as const, mirrored: false, speechSpeed: 1.2, playbackRate: 1.25 / 1.2 },
+    { phaseIndex, text: phase.secondMeaningTail, language: parsed.data.nativeLanguage, mascot: 4 as const, mirrored: false, speechSpeed: 1.1, playbackRate: 1.25 / 1.1 },
   ]);
 
   try {

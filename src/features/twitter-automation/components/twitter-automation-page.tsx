@@ -1309,7 +1309,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       {confusedWordsCards ? <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 flex gap-8">
         {confusedWordsCards.flatMap((pair) => [pair.first, pair.second]).map((confusedCard, index) => (
           <div className="w-[430px] [&_[data-card-example-preview]]:origin-center [&_[data-card-example-preview]]:scale-[1.42]" key={confusedCard.sourceKey} ref={(element) => { confusedWordsCardRefs.current[index] = element; }}>
-            <VocabularyCardView card={confusedCard} frontFit frontContentScale={1.55} showActions={false} staticFace translationLocale={nativeLanguage} />
+            <VocabularyCardView card={confusedCard} frontFit frontContentScale={1.7} showActions={false} staticFace translationLocale={nativeLanguage} />
           </div>
         ))}
       </div> : null}

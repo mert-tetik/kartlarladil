@@ -4,6 +4,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-speech";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -212,7 +213,7 @@ async function submitSpeechTask(text: string, language: LanguageCode, speed: num
       model: SPEECH_MODEL,
       input: {
         text,
-        voice: "Aria",
+        voice: FOXIESDECK_MASCOT_VOICE,
         language_code: getSpeechLanguageCode(language),
         stability: 0.7,
         similarity_boost: 0.78,

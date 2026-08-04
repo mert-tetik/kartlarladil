@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
-import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
+import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import type { LanguageCode } from "@/types/domain";
@@ -20,7 +20,7 @@ const DIALOGUE_MASCOT_VOICES = {
   "Racoon.png": "Charlie",
   "Tiger.png": "Laura",
   "Wolf.png": "Callum",
-  "Original.png": "Aria",
+  "Original.png": FOXIESDECK_MASCOT_VOICE,
 } as const;
 
 const requestSchema = z.object({
