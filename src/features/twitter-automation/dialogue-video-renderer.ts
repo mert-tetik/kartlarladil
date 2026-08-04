@@ -20,6 +20,10 @@ const DETERMINISTIC_VIDEO_BITRATE = 4_500_000;
 const DETERMINISTIC_AUDIO_BITRATE = 128_000;
 const SCENE_GAP_SECONDS = 0.22;
 const SUBTITLE_MAX_WIDTH = 900;
+const CHARACTER_ENTER_SECONDS = 0.82;
+const CHARACTER_EXIT_SECONDS = 0.62;
+const CHARACTER_SCALE = 1.65;
+const CHARACTER_STAGE_CENTER_Y = 1380;
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -121,27 +125,59 @@ function drawDecodedBackground(context: CanvasRenderingContext2D, canvas: HTMLCa
   drawBackgroundOverlay(context);
 }
 
+type CharacterMotion = {
+  active: boolean;
+  entering: number;
+  exiting: number;
+};
+
+function getCharacterMotion(
+  character: 1 | 2,
+  scenes: readonly DialogueVideoScene[],
+  starts: readonly number[],
+  durationSeconds: number,
+  sceneIndex: number,
+  elapsed: number,
+): CharacterMotion | null {
+  const activeScene = scenes[sceneIndex];
+  if (!activeScene) return null;
+  const activeTurnEnd = (starts[sceneIndex + 1] ?? durationSeconds - 0.3) - SCENE_GAP_SECONDS;
+  if (activeScene.character === character) {
+    if (elapsed <= activeTurnEnd) {
+      return { active: true, entering: (elapsed - starts[sceneIndex]!) / CHARACTER_ENTER_SECONDS, exiting: 0 };
+    }
+    return { active: false, entering: 1, exiting: (elapsed - activeTurnEnd) / CHARACTER_EXIT_SECONDS };
+  }
+
+  const previousSceneIndex = sceneIndex - 1;
+  if (previousSceneIndex < 0 || scenes[previousSceneIndex]?.character !== character) return null;
+  const previousTurnEnd = starts[sceneIndex]! - SCENE_GAP_SECONDS;
+  const exiting = (elapsed - previousTurnEnd) / CHARACTER_EXIT_SECONDS;
+  return exiting < 1 ? { active: false, entering: 1, exiting } : null;
+}
+
 function drawCharacter(
   context: CanvasRenderingContext2D,
   image: HTMLImageElement,
-  revealProgress: number,
+  motion: CharacterMotion,
   activeProgress: number,
   side: "left" | "right",
-  isActive: boolean,
 ) {
-  const maxWidth = 480;
-  const maxHeight = 800;
+  const maxWidth = 480 * CHARACTER_SCALE;
+  const maxHeight = 800 * CHARACTER_SCALE;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
   const targetX = side === "left" ? 42 : CANVAS_WIDTH - width - 42;
-  const targetY = 980 + Math.max(0, (maxHeight - height) / 2);
+  const targetY = CHARACTER_STAGE_CENTER_Y - height / 2;
   const startY = CANVAS_HEIGHT + 90;
-  const eased = easeOutQuint(revealProgress);
-  const talkingLift = isActive ? Math.sin(Math.min(1, activeProgress / 0.44) * Math.PI) * 18 : 0;
-  const y = startY + (targetY - startY) * eased - talkingLift;
+  const entering = easeOutQuint(motion.entering);
+  const visible = motion.exiting > 0 ? 1 - easeOutQuint(motion.exiting) : entering;
+  if (visible <= 0) return;
+  const talkingLift = motion.active ? Math.sin(Math.min(1, activeProgress / 0.44) * Math.PI) * 18 : 0;
+  const y = startY + (targetY - startY) * visible - talkingLift;
   context.save();
-  context.globalAlpha = isActive ? Math.min(1, 0.3 + eased * 0.7) : Math.min(0.68, eased * 0.68);
+  context.globalAlpha = motion.active ? Math.min(1, 0.3 + visible * 0.7) : Math.min(0.96, visible * 0.96);
   context.drawImage(image, targetX, y, width, height);
   context.restore();
 }
@@ -168,10 +204,6 @@ async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, f
     elapsedSeconds += buffer.duration + SCENE_GAP_SECONDS;
   });
   const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.3;
-  const firstTurnStarts = {
-    1: starts.find((_, index) => scenes[index]?.character === 1) ?? Number.POSITIVE_INFINITY,
-    2: starts.find((_, index) => scenes[index]?.character === 2) ?? Number.POSITIVE_INFINITY,
-  } as const;
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
@@ -218,8 +250,10 @@ async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, f
     const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
     drawBackground(context, backgroundVideo);
     drawSubtitles(context, scene);
-    drawCharacter(context, firstImage, Math.max(0, elapsed - firstTurnStarts[1]) / 0.82, localElapsed, "left", scene.character === 1);
-    drawCharacter(context, secondImage, Math.max(0, elapsed - firstTurnStarts[2]) / 0.82, localElapsed, "right", scene.character === 2);
+    const firstMotion = getCharacterMotion(1, scenes, starts, durationSeconds, sceneIndex, elapsed);
+    const secondMotion = getCharacterMotion(2, scenes, starts, durationSeconds, sceneIndex, elapsed);
+    if (firstMotion) drawCharacter(context, firstImage, firstMotion, localElapsed, "left");
+    if (secondMotion) drawCharacter(context, secondImage, secondMotion, localElapsed, "right");
   };
 
   await backgroundVideo.play().catch(() => { throw new Error("dialogue_background_playback_failed"); });
@@ -257,11 +291,7 @@ function getDialogueTiming(audioBuffers: readonly AudioBuffer[], scenes: readonl
     elapsedSeconds += buffer.duration + SCENE_GAP_SECONDS;
   });
   const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.3;
-  const firstTurnStarts = {
-    1: starts.find((_, index) => scenes[index]?.character === 1) ?? Number.POSITIVE_INFINITY,
-    2: starts.find((_, index) => scenes[index]?.character === 2) ?? Number.POSITIVE_INFINITY,
-  } as const;
-  return { starts, durationSeconds, firstTurnStarts };
+  return { starts, durationSeconds };
 }
 
 async function decodeDialogueAudio(audioContext: AudioContext, scenes: readonly DialogueVideoScene[]) {
@@ -322,7 +352,7 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
       throw new Error("dialogue_background_load_failed");
     }
 
-    const { starts, durationSeconds, firstTurnStarts } = getDialogueTiming(audioBuffers, scenes);
+    const { starts, durationSeconds } = getDialogueTiming(audioBuffers, scenes);
     const frameCount = Math.ceil(durationSeconds * DETERMINISTIC_FRAME_RATE);
     const frameDuration = 1 / DETERMINISTIC_FRAME_RATE;
     const canvas = document.createElement("canvas");
@@ -364,8 +394,10 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
       const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
       drawDecodedBackground(context, backgroundFrame.canvas);
       drawSubtitles(context, scene);
-      drawCharacter(context, firstImage, Math.max(0, elapsed - firstTurnStarts[1]) / 0.82, localElapsed, "left", scene.character === 1);
-      drawCharacter(context, secondImage, Math.max(0, elapsed - firstTurnStarts[2]) / 0.82, localElapsed, "right", scene.character === 2);
+      const firstMotion = getCharacterMotion(1, scenes, starts, durationSeconds, sceneIndex, elapsed);
+      const secondMotion = getCharacterMotion(2, scenes, starts, durationSeconds, sceneIndex, elapsed);
+      if (firstMotion) drawCharacter(context, firstImage, firstMotion, localElapsed, "left");
+      if (secondMotion) drawCharacter(context, secondImage, secondMotion, localElapsed, "right");
       await videoSource.add(elapsed, frameDuration, { keyFrame: frameIndex % (DETERMINISTIC_FRAME_RATE * 2) === 0 });
     }
 

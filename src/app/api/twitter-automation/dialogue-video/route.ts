@@ -12,16 +12,18 @@ export const maxDuration = 120;
 
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png", "Panda.png", "Racoon.png", "Tiger.png", "Wolf.png"] as const;
+// Shared ElevenLabs Voice Library voices, verified with a completed PoYo Turbo
+// generation. The cast stays stable per mascot across languages and videos.
 const DIALOGUE_MASCOT_VOICES = {
-  "Animal.png": "Daniel",
-  "Bear.png": "George",
-  "Bunny.png": "Lily",
-  "Lion.png": "Roger",
-  "Panda.png": "Sarah",
-  "Racoon.png": "Charlie",
-  "Tiger.png": "Laura",
-  "Wolf.png": "Callum",
-  "Original.png": FOXIESDECK_MASCOT_VOICE,
+  "Animal.png": { id: "yl2ZDV1MzN4HbQJbMihG", label: "Alex — upbeat young male" },
+  "Bear.png": { id: "9XfYMbJVZqPHaQtYnTAO", label: "Cody — upbeat educator" },
+  "Bunny.png": { id: "mUfWEBhcigm8YlCDbmGP", label: "Joey — upbeat host" },
+  "Lion.png": { id: "x8xv0H8Ako6Iw3cKXLoC", label: "Haven — energetic tenor" },
+  "Panda.png": { id: "xctasy8XvGp2cVO9HL9k", label: "Allison — energetic female" },
+  "Racoon.png": { id: "HDA9tsk27wYi3uq0fPcK", label: "Stuart — energetic male" },
+  "Tiger.png": { id: "xctasy8XvGp2cVO9HL9k", label: "Allison — energetic female" },
+  "Wolf.png": { id: "rU18Fk3uSDhmg5Xh41o4", label: "Ryan — warm young male" },
+  "Original.png": { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy — custom mascot voice" },
 } as const;
 
 const requestSchema = z.object({
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
       text: scene.text,
       language: mode === "marketing-dialogue-video" ? nativeLanguage : spokenLanguage,
       speed: 1,
-      voice: scene.character === 1 ? DIALOGUE_MASCOT_VOICES[firstCharacter] : DIALOGUE_MASCOT_VOICES[secondCharacter],
+      voice: (scene.character === 1 ? DIALOGUE_MASCOT_VOICES[firstCharacter] : DIALOGUE_MASCOT_VOICES[secondCharacter]).id,
     })));
     return Response.json({
       caption: plan.caption,
@@ -147,8 +149,8 @@ export async function POST(request: Request) {
       secondCharacter,
       backgroundVideoUrl: getDialogueBackgroundPublicUrl(),
       voices: {
-        [firstCharacter]: DIALOGUE_MASCOT_VOICES[firstCharacter],
-        [secondCharacter]: DIALOGUE_MASCOT_VOICES[secondCharacter],
+        [firstCharacter]: DIALOGUE_MASCOT_VOICES[firstCharacter].label,
+        [secondCharacter]: DIALOGUE_MASCOT_VOICES[secondCharacter].label,
       },
       scenes: renderedScenes.map((scene, index) => ({
         ...scene,
