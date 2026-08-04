@@ -6,7 +6,8 @@ import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/ca
 import { generatedCardSchema, matchesRequestedTargetLanguage, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -129,7 +130,9 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
-    return parsePlan(extractResponseOutputText(response));
+    const output = extractResponseOutputText(response);
+    assertPoyoResponsesOutput(output);
+    return parsePlan(output);
   };
   return await generate(false) ?? await generate(true);
 }
@@ -174,7 +177,9 @@ async function createStudioCustomCard(term: string, language: LanguageCode, nati
     store: false,
     text: { format: { type: "text" }, verbosity: "low" },
   });
-  const generated = generatedCardSchema.safeParse(JSON.parse(extractJsonObject(extractResponseOutputText(response))));
+  const output = extractResponseOutputText(response);
+  assertPoyoResponsesOutput(output);
+  const generated = generatedCardSchema.safeParse(JSON.parse(extractJsonObject(output)));
   if (!generated.success || !matchesRequestedTargetLanguage(generated.data, language)) throw new Error("custom_card_generation_failed");
   return toStudioCustomCard(generated.data);
 }
@@ -214,16 +219,25 @@ export async function POST(request: Request) {
   let plan: ConfusedWordsPlan | null;
   try {
     plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, getCandidateCards(parsed.data.language));
-  } catch {
-    return Response.json({ errorCode: "confused_words_plan_failed" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "confused_words_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words script plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The three-phase script request failed." }),
+    }, { status: 502 });
   }
-  if (!plan) return Response.json({ errorCode: "invalid_confused_words_plan" }, { status: 502 });
+  if (!plan) return Response.json({
+    errorCode: "invalid_confused_words_plan",
+    diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words plan validation", provider: "PoYo Responses / Terra", fallbackDetail: "The provider response did not meet the required three-phase format." }),
+  }, { status: 502 });
 
   let cards: Array<{ first: VocabularyCard; second: VocabularyCard }>;
   try {
     cards = await resolveCards(plan, parsed.data.language, parsed.data.nativeLanguage);
-  } catch {
-    return Response.json({ errorCode: "custom_card_generation_failed" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "custom_card_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Custom vocabulary card generation", provider: "PoYo Responses / Terra", error, fallbackDetail: "A required card was not present in the catalogue and its custom-card request failed." }),
+    }, { status: 502 });
   }
 
   const sceneDefinitions = plan.phases.flatMap((phase, phaseIndex) => [
@@ -245,7 +259,13 @@ export async function POST(request: Request) {
       scenes: sceneDefinitions.map(({ speechSpeed: _speechSpeed, ...scene }, index) => ({ ...scene, audioDataUrl: audioDataUrls[index]! })),
     });
   } catch (error) {
-    if (error instanceof PoyoSpeechError) return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
-    return Response.json({ errorCode: "speech_generation_failed" }, { status: 502 });
+    if (error instanceof PoyoSpeechError) return Response.json({
+      errorCode: error.code,
+      diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words voice generation", provider: "PoYo Generate / ElevenLabs", error, fallbackDetail: "One of the voice batches could not be completed." }),
+    }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+    return Response.json({
+      errorCode: "speech_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words voice generation", provider: "PoYo Generate / ElevenLabs", error, fallbackDetail: "The voice generation step failed unexpectedly." }),
+    }, { status: 502 });
   }
 }

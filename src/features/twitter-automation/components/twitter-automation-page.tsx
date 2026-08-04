@@ -19,6 +19,7 @@ import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
+import { formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
@@ -290,6 +291,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [localImageRenderError, setLocalImageRenderError] = useState("");
   const [isRenderingLocalImage, setIsRenderingLocalImage] = useState(false);
   const [funPost, setFunPost] = useState("");
+  const [funPostError, setFunPostError] = useState("");
   const [aiImageStatus, setAiImageStatus] = useState<AiImageTaskStatus>("idle");
   const [aiImageProgress, setAiImageProgress] = useState(0);
   const [aiImageUrl, setAiImageUrl] = useState("");
@@ -433,12 +435,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const videoPayload = await videoResponse.json().catch(() => null) as { status?: string; progress?: number; videoUrl?: string | null; errorMessage?: string | null } | null;
+      const videoPayload = await videoResponse.json().catch(() => null) as ({ status?: string; progress?: number; videoUrl?: string | null; errorMessage?: string | null } & SocialStudioFailurePayload) | null;
       if (!videoResponse.ok || !videoPayload?.status) {
         aiVideoStatusFailuresRef.current += 1;
         if (aiVideoStatusFailuresRef.current >= 3) {
           setAiVideoStatus("failed");
-          setAiVideoError("The avatar video status could not be checked. Try again.");
+          setAiVideoError(formatSocialStudioFailure(videoResponse, videoPayload, "Avatar video status could not be checked."));
         }
         return;
       }
@@ -496,6 +498,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   async function loadFunPost(mode: TextGeneratorMode) {
     setIsLoading(true);
     setCard(null);
+    setFunPostError("");
     try {
       const response = await fetch("/api/twitter-automation/fun-post", {
         method: "POST",
@@ -507,8 +510,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json() as { post?: string };
-      setFunPost(payload.post ?? "");
+      const payload = await response.json().catch(() => null) as ({ post?: string } & SocialStudioFailurePayload) | null;
+      if (!response.ok || !payload?.post) {
+        setFunPost("");
+        setFunPostError(formatSocialStudioFailure(response, payload, "Text post generation failed."));
+        return;
+      }
+      setFunPost(payload.post);
     } finally {
       setIsLoading(false);
     }
@@ -607,10 +615,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json() as { imageUrl?: string; artDirection?: string; caption?: string; errorCode?: string };
-      if (!response.ok || !payload.imageUrl) {
+      const payload = await response.json().catch(() => null) as ({ imageUrl?: string; artDirection?: string; caption?: string } & SocialStudioFailurePayload) | null;
+      if (!response.ok || !payload?.imageUrl) {
         setAiImageStatus("failed");
-        setAiImageError(payload.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The image could not be generated. Try again.");
+        setAiImageError(formatSocialStudioFailure(response, payload, "AI image generation failed."));
         return;
       }
 
@@ -655,10 +663,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json().catch(() => null) as { taskId?: string; firstFrameUrl?: string; caption?: string; spokenLine?: string; errorCode?: string } | null;
+      const payload = await response.json().catch(() => null) as ({ taskId?: string; firstFrameUrl?: string; caption?: string; spokenLine?: string } & SocialStudioFailurePayload) | null;
       if (!response.ok || !payload?.taskId || !payload.firstFrameUrl) {
         setAiVideoStatus("failed");
-        setAiVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : payload?.errorCode?.startsWith("speech_") ? "The native-language voice could not be prepared. Try again." : "The lip-synced video could not be started. Try again.");
+        setAiVideoError(formatSocialStudioFailure(response, payload, "Avatar video generation failed."));
         return;
       }
 
@@ -705,10 +713,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           return;
         }
 
-        const payload = await response.json() as { imageUrl?: string; caption?: string; errorCode?: string };
-        if (!response.ok || !payload.imageUrl) {
+        const payload = await response.json().catch(() => null) as ({ imageUrl?: string; caption?: string } & SocialStudioFailurePayload) | null;
+      if (!response.ok || !payload?.imageUrl) {
           setMusicVideoStatus("failed");
-          setMusicVideoError(payload.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The source image could not be generated. Try again.");
+          setMusicVideoError(formatSocialStudioFailure(response, payload, "Music video source-image generation failed."));
           return;
         }
 
@@ -808,15 +816,14 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch(() => null) as ({
         caption?: string;
         phases?: Array<{ first?: VocabularyCard; second?: VocabularyCard }>;
         scenes?: ConfusedWordsVideoScene[];
-        errorCode?: string;
-      } | null;
+      } & SocialStudioFailurePayload) | null;
       if (!response.ok || !payload?.phases || payload.phases.length !== 3 || payload.phases.some((phase) => !phase.first || !phase.second) || !payload.scenes) {
         setMusicVideoStatus("failed");
-        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : payload?.errorCode ? `The confused-word video could not be prepared (${payload.errorCode}).` : "The confused-word script or voices could not be prepared. Try again.");
+        setMusicVideoError(formatSocialStudioFailure(response, payload, "Confused Words video generation failed."));
         return;
       }
 
@@ -872,18 +879,17 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch(() => null) as ({
         caption?: string;
         backgroundVideoUrl?: string;
         firstCharacter?: string;
         secondCharacter?: string;
         voices?: Record<string, string>;
         scenes?: DialogueVideoScene[];
-        errorCode?: string;
-      } | null;
+      } & SocialStudioFailurePayload) | null;
       if (!response.ok || !payload?.backgroundVideoUrl || !payload.firstCharacter || !payload.secondCharacter || !payload.scenes?.length) {
         setMusicVideoStatus("failed");
-        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The dialogue or voices could not be prepared. Try again.");
+        setMusicVideoError(formatSocialStudioFailure(response, payload, "Dialogue video generation failed."));
         return;
       }
 
@@ -936,10 +942,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
 
-      const payload = await response.json().catch(() => null) as (OriginalMascotLearningVideoPayload & { errorCode?: string }) | null;
+      const payload = await response.json().catch(() => null) as (OriginalMascotLearningVideoPayload & SocialStudioFailurePayload) | null;
       if (!response.ok || !payload?.caption || !payload.scenes?.length || payload.mode !== mode) {
         setMusicVideoStatus("failed");
-        setMusicVideoError(payload?.errorCode === "poyo_not_configured" ? "POYO_API_KEY is not configured." : "The learning-video script or voices could not be prepared. Try again.");
+        setMusicVideoError(formatSocialStudioFailure(response, payload, "Learning video generation failed."));
         return;
       }
 
@@ -1515,6 +1521,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <div className="flex items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><SocialPublishActions caption={caption} /></div>
                   </div>
                   <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                  {funPostError ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#ffb355]">{funPostError}</p> : null}
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
                 </div>
               ) : isCarouselImageGenerator(generatorMode) ? (

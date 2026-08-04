@@ -3,7 +3,8 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { getDialogueBackgroundPublicUrl } from "@/features/twitter-automation/dialogue-backgrounds";
 import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -110,8 +111,10 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
+    const output = extractResponseOutputText(response);
+    assertPoyoResponsesOutput(output);
     return parsePlan(
-      extractResponseOutputText(response),
+      output,
       mode === "learning-dialogue-video",
       mode === "marketing-dialogue-video" ? 9 : 10,
       mode === "marketing-dialogue-video",
@@ -131,10 +134,16 @@ export async function POST(request: Request) {
   let plan: DialoguePlan | null;
   try {
     plan = await createPlan(mode, spokenLanguage, nativeLanguage);
-  } catch {
-    return Response.json({ errorCode: "dialogue_plan_failed" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "dialogue_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue script plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The dialogue script request failed." }),
+    }, { status: 502 });
   }
-  if (!plan) return Response.json({ errorCode: "invalid_dialogue_plan" }, { status: 502 });
+  if (!plan) return Response.json({
+    errorCode: "invalid_dialogue_plan",
+    diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue plan validation", provider: "PoYo Responses / Terra", fallbackDetail: "The returned dialogue did not meet the required scene and language format." }),
+  }, { status: 502 });
 
   try {
     const scenes = mode === "marketing-dialogue-video"
@@ -169,7 +178,13 @@ export async function POST(request: Request) {
       })),
     });
   } catch (error) {
-    if (error instanceof PoyoSpeechError) return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
-    return Response.json({ errorCode: "speech_generation_failed" }, { status: 502 });
+    if (error instanceof PoyoSpeechError) return Response.json({
+      errorCode: error.code,
+      diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue voice generation", provider: "PoYo Generate / ElevenLabs", error, fallbackDetail: "The voice task could not be completed." }),
+    }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+    return Response.json({
+      errorCode: "speech_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue voice generation", provider: "PoYo Generate / ElevenLabs", error, fallbackDetail: "The voice task failed unexpectedly." }),
+    }, { status: 502 });
   }
 }

@@ -13,6 +13,36 @@ export class PoyoResponsesError extends Error {
   }
 }
 
+/** A PoYo Responses request can return HTTP 200 with an error object in its
+ * generated text payload. Surface that provider failure instead of treating it
+ * as malformed model output. */
+export class PoyoResponsesProviderError extends Error {
+  constructor(
+    public readonly providerStatus: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export function assertPoyoResponsesOutput(rawOutput: string) {
+  try {
+    const payload = JSON.parse(rawOutput) as { code?: unknown; msg?: unknown; error?: { message?: unknown } };
+    if (typeof payload.code === "number" && payload.code >= 400) {
+      const message = typeof payload.error?.message === "string"
+        ? payload.error.message
+        : typeof payload.msg === "string"
+          ? payload.msg
+          : "PoYo Responses returned an unspecified provider error.";
+      throw new PoyoResponsesProviderError(payload.code, message);
+    }
+  } catch (error) {
+    if (error instanceof PoyoResponsesProviderError) throw error;
+    // Normal model output is often JSON too. A parsing failure simply means it
+    // is regular text and should be handled by each route's plan parser.
+  }
+}
+
 /** OpenAI-compatible client for Content Automation text and creative plans. */
 export function createSocialStudioPoyoClient() {
   const apiKey = process.env.POYO_API_KEY?.trim();

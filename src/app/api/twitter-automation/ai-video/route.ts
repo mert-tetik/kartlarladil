@@ -6,7 +6,8 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-speech";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -127,7 +128,9 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
     });
-    return parseVideoPlan(extractResponseOutputText(response).trim());
+    const output = extractResponseOutputText(response).trim();
+    assertPoyoResponsesOutput(output);
+    return parseVideoPlan(output);
   };
 
   return await generate(false) ?? await generate(true);
@@ -287,10 +290,16 @@ export async function POST(request: Request) {
   let plan: VideoPlan | null;
   try {
     plan = await createVideoPlan(card, parsed.data.language, parsed.data.nativeLanguage);
-  } catch {
-    return Response.json({ errorCode: "video_plan_failed" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "video_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar video plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The avatar script and first-frame plan request failed." }),
+    }, { status: 502 });
   }
-  if (!plan) return Response.json({ errorCode: "invalid_video_plan" }, { status: 502 });
+  if (!plan) return Response.json({
+    errorCode: "invalid_video_plan",
+    diagnostic: createSocialStudioDiagnostic({ stage: "Avatar video plan validation", provider: "PoYo Responses / Terra", fallbackDetail: "The returned plan was missing a usable frame prompt, narration, or caption." }),
+  }, { status: 502 });
 
   let frameDataUrl: string;
   try {
@@ -301,9 +310,15 @@ export async function POST(request: Request) {
     frameDataUrl = await formatAvatarFrame(image.data);
   } catch (error) {
     if (error instanceof PoyoImageError) {
-      return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+      return Response.json({
+        errorCode: error.code,
+        diagnostic: createSocialStudioDiagnostic({ stage: "Avatar first-frame render", provider: "PoYo Generate / GPT Image", error, fallbackDetail: "The first-frame image task could not be completed." }),
+      }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
     }
-    return Response.json({ errorCode: "first_frame_failed" }, { status: 502 });
+    return Response.json({
+      errorCode: "first_frame_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar first-frame render", provider: "PoYo Generate / GPT Image", error, fallbackDetail: "The first-frame image task failed unexpectedly." }),
+    }, { status: 502 });
   }
 
   const frameUrl = await uploadBase64Asset(
@@ -311,7 +326,7 @@ export async function POST(request: Request) {
     `foxiesdeck-word-of-the-day-${Date.now()}.webp`,
     poyoApiKey,
   );
-  if (!frameUrl) return Response.json({ errorCode: "frame_upload_failed" }, { status: 502 });
+  if (!frameUrl) return Response.json({ errorCode: "frame_upload_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Avatar frame upload", provider: "PoYo Storage", fallbackDetail: "PoYo did not return a public URL for the generated first frame." }) }, { status: 502 });
 
   const [introTaskId, termTaskId, explanationTaskId] = await Promise.all([
     submitSpeechTask(plan.spokenBefore, parsed.data.nativeLanguage, 1.15, poyoApiKey),
@@ -319,17 +334,17 @@ export async function POST(request: Request) {
     submitSpeechTask(plan.spokenAfter, parsed.data.nativeLanguage, 1.15, poyoApiKey),
   ]);
   if (!introTaskId || !termTaskId || !explanationTaskId) {
-    return Response.json({ errorCode: "speech_submission_failed" }, { status: 502 });
+    return Response.json({ errorCode: "speech_submission_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Avatar voice submission", provider: "PoYo Generate / ElevenLabs", fallbackDetail: "PoYo did not accept one or more voice tasks." }) }, { status: 502 });
   }
 
   const speech = await waitForSpeechAudios([introTaskId, termTaskId, explanationTaskId], poyoApiKey);
-  if (!speech.audioUrls) return Response.json({ errorCode: speech.error }, { status: 502 });
+  if (!speech.audioUrls) return Response.json({ errorCode: speech.error, diagnostic: createSocialStudioDiagnostic({ stage: "Avatar voice generation", provider: "PoYo Generate / ElevenLabs", fallbackDetail: `Voice task failed: ${speech.error}.` }) }, { status: 502 });
 
   const combinedSpeech = await combineMp3Segments(speech.audioUrls);
-  if (!combinedSpeech) return Response.json({ errorCode: "speech_merge_failed" }, { status: 502 });
+  if (!combinedSpeech) return Response.json({ errorCode: "speech_merge_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Avatar voice merge", fallbackDetail: "Generated voice files could not be downloaded or combined into a valid MP3." }) }, { status: 502 });
 
   const speechUrl = await uploadAudioForAvatar(combinedSpeech);
-  if (!speechUrl) return Response.json({ errorCode: "speech_upload_failed" }, { status: 502 });
+  if (!speechUrl) return Response.json({ errorCode: "speech_upload_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Avatar voice staging", provider: "Supabase Storage", fallbackDetail: "The combined narration could not be staged for Kling." }) }, { status: 502 });
 
   const videoResponse = await fetch(`${POYO_API_URL}/api/generate/submit`, {
     method: "POST",
@@ -345,7 +360,7 @@ export async function POST(request: Request) {
   });
   const videoPayload = await videoResponse.json().catch(() => null) as { data?: { task_id?: unknown } } | null;
   const taskId = videoPayload?.data?.task_id;
-  if (!videoResponse.ok || typeof taskId !== "string") return Response.json({ errorCode: "avatar_submission_failed" }, { status: 502 });
+  if (!videoResponse.ok || typeof taskId !== "string") return Response.json({ errorCode: "avatar_submission_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Kling Avatar submission", provider: "PoYo Generate / Kling", fallbackDetail: `Kling did not accept the avatar task (HTTP ${videoResponse.status}).` }) }, { status: 502 });
 
   return Response.json({
     taskId,
@@ -369,6 +384,9 @@ export async function GET(request: Request) {
   if (!poyoApiKey) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
 
   const task = await getPoyoTask(taskId, poyoApiKey);
-  if (!task) return Response.json({ errorCode: "video_status_failed" }, { status: 502 });
+  if (!task) return Response.json({
+    errorCode: "video_status_failed",
+    diagnostic: createSocialStudioDiagnostic({ stage: "Kling Avatar status check", provider: "PoYo Generate / Kling", fallbackDetail: "PoYo did not return a readable status for the submitted avatar task." }),
+  }, { status: 502 });
   return Response.json(task);
 }

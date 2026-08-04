@@ -5,7 +5,8 @@ import type { OriginalMascotLearningVideoPayload } from "@/features/twitter-auto
 import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -44,7 +45,9 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
-    return parse(extractResponseOutputText(response));
+    const output = extractResponseOutputText(response);
+    assertPoyoResponsesOutput(output);
+    return parse(output);
   };
   let lastError: unknown;
   // A temporary upstream failure should not turn a whole browser-rendered
@@ -190,10 +193,28 @@ export async function POST(request: Request) {
       : mode === "vocabulary-quiz-video"
         ? await createQuizPayload(language, nativeLanguage)
         : await createSentencePayload(language, nativeLanguage);
-    if (!payload) return Response.json({ errorCode: "invalid_learning_video_plan" }, { status: 502 });
+    if (!payload) return Response.json({
+      errorCode: "invalid_learning_video_plan",
+      diagnostic: createSocialStudioDiagnostic({
+        stage: "A1 to C1 plan validation",
+        provider: "PoYo Responses / Terra",
+        fallbackDetail: "The provider returned a response, but it did not contain the required A1, B1, C1 plan fields after repair.",
+      }),
+    }, { status: 502 });
     return Response.json(payload);
   } catch (error) {
-    if (error instanceof PoyoSpeechError) return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
-    return Response.json({ errorCode: "learning_video_generation_failed" }, { status: 502 });
+    if (error instanceof PoyoSpeechError) return Response.json({
+      errorCode: error.code,
+      diagnostic: createSocialStudioDiagnostic({ stage: "PoYo ElevenLabs TTS", provider: "PoYo Generate", error, fallbackDetail: "The voice task could not be completed." }),
+    }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "learning_video_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({
+        stage: "A1 to C1 script plan",
+        provider: "PoYo Responses / Terra",
+        error,
+        fallbackDetail: "The script-planning request failed before voices could be created.",
+      }),
+    }, { status: 502 });
   }
 }

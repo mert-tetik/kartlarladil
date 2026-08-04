@@ -4,7 +4,8 @@ import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -146,7 +147,9 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
     });
-    return parseAiImagePlan(extractResponseOutputText(response).trim(), mode);
+    const output = extractResponseOutputText(response).trim();
+    assertPoyoResponsesOutput(output);
+    return parseAiImagePlan(output, mode);
   };
 
   return await generatePlan(false) ?? await generatePlan(true);
@@ -213,12 +216,18 @@ export async function POST(request: Request) {
   let imagePlan: AiImagePlan | null;
   try {
     imagePlan = await createArtDirection(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, cards);
-  } catch {
-    return Response.json({ errorCode: "art_direction_failed" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "art_direction_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The creative plan request failed." }),
+    }, { status: 502 });
   }
 
   if (!imagePlan) {
-    return Response.json({ errorCode: "invalid_ai_plan" }, { status: 502 });
+    return Response.json({
+      errorCode: "invalid_ai_plan",
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image plan validation", provider: "PoYo Responses / Terra", fallbackDetail: "The creative plan was missing required art direction or caption fields after repair." }),
+    }, { status: 502 });
   }
 
   try {
@@ -234,8 +243,14 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof PoyoImageError) {
-      return Response.json({ errorCode: error.code }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
+      return Response.json({
+        errorCode: error.code,
+        diagnostic: createSocialStudioDiagnostic({ stage: "AI image render", provider: "PoYo Generate / GPT Image", error, fallbackDetail: "The image task could not be completed." }),
+      }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
     }
-    return Response.json({ errorCode: "image_generation_failed" }, { status: 502 });
+    return Response.json({
+      errorCode: "image_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image render", provider: "PoYo Generate / GPT Image", error, fallbackDetail: "The image task failed unexpectedly." }),
+    }, { status: 502 });
   }
 }

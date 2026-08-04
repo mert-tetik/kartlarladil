@@ -1,7 +1,8 @@
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { isLanguageCode } from "@/data/languages";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -67,14 +68,22 @@ export async function POST(request: Request) {
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
-    const post = extractResponseOutputText(response).trim();
+    const output = extractResponseOutputText(response).trim();
+    assertPoyoResponsesOutput(output);
+    const post = output;
 
     if (!post) {
-      return Response.json({ errorCode: "empty_response" }, { status: 502 });
+      return Response.json({
+        errorCode: "empty_response",
+        diagnostic: createSocialStudioDiagnostic({ stage: "Text post response validation", provider: "PoYo Responses / Luna", fallbackDetail: "The provider returned an empty post." }),
+      }, { status: 502 });
     }
 
     return Response.json({ post });
-  } catch {
-    return Response.json({ errorCode: "upstream_error" }, { status: 502 });
+  } catch (error) {
+    return Response.json({
+      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "upstream_error",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Text post generation", provider: "PoYo Responses / Luna", error, fallbackDetail: "The text-generation request failed." }),
+    }, { status: 502 });
   }
 }
