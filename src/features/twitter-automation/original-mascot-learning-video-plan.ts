@@ -18,37 +18,83 @@ function extractJsonObject(value: string) {
   return firstBrace >= 0 && lastBrace > firstBrace ? trimmed.slice(firstBrace, lastBrace + 1) : trimmed;
 }
 
+function normalizeTier(value: unknown): "A1" | "B1" | "C1" | null {
+  const tier = typeof value === "string" ? value.trim().toUpperCase() : value;
+  return tier === "A1" || tier === "B1" || tier === "C1" ? tier : null;
+}
+
+function normalizeProgressionPhase(value: unknown): "term" | "explanation" | "outro" | null {
+  const phase = typeof value === "string" ? value.trim().toLowerCase().replaceAll(/[\s_-]+/g, " ") : "";
+  if (["term", "word", "say word", "say term"].includes(phase)) return "term";
+  if (["explanation", "explain", "meaning", "definition"].includes(phase)) return "explanation";
+  if (["outro", "summary", "closing", "conclusion"].includes(phase)) return "outro";
+  return null;
+}
+
 export function parseProgressionPlan(value: string): ProgressionPlan | null {
   try {
-    const parsed = JSON.parse(extractJsonObject(value)) as { caption?: unknown; terms?: unknown; narration?: unknown };
+    const parsed = JSON.parse(extractJsonObject(value)) as {
+      caption?: unknown;
+      terms?: unknown;
+      narration?: unknown;
+      scenes?: unknown;
+      script?: unknown;
+      outro?: unknown;
+    };
     const caption = cleanText(parsed.caption, 400);
-    if (!caption || !Array.isArray(parsed.terms) || !Array.isArray(parsed.narration) || parsed.terms.length !== 3 || parsed.narration.length !== 7) return null;
+    if (!caption || !Array.isArray(parsed.terms) || parsed.terms.length !== 3) return null;
     const terms = parsed.terms.map((entry) => {
       // Terra naturally returns `word` for vocabulary entries even when the
       // UI calls the collection `terms`. Accept both equivalent schemas so a
       // valid progression is not discarded and retried as a 502.
-      const item = entry as { tier?: unknown; term?: unknown; word?: unknown };
+      const item = entry as { tier?: unknown; level?: unknown; term?: unknown; word?: unknown };
       const term = cleanText(item?.term ?? item?.word, 80);
-      return term && (item?.tier === "A1" || item?.tier === "B1" || item?.tier === "C1") ? { tier: item.tier, term } : null;
+      const tier = normalizeTier(item?.tier ?? item?.level);
+      return term && tier ? { tier, term } : null;
     });
-    const narration = parsed.narration.map((entry) => {
-      const item = entry as { text?: unknown; phase?: unknown; activeTier?: unknown };
-      const text = cleanText(item?.text, 220);
-      const activeTier = item?.activeTier === "A1" || item?.activeTier === "B1" || item?.activeTier === "C1" ? item.activeTier : item?.activeTier === null ? null : undefined;
-      return text && (item?.phase === "term" || item?.phase === "explanation" || item?.phase === "outro") && activeTier !== undefined ? { text, phase: item.phase, activeTier } : null;
-    });
-    if (terms.some((term) => !term) || narration.some((scene) => !scene)) return null;
+    if (terms.some((term) => !term)) return null;
     const resolvedTerms = terms as Array<{ tier: "A1" | "B1" | "C1"; term: string }>;
-    const resolvedNarration = narration as ProgressionPlan["narration"];
     if (new Set(resolvedTerms.map((term) => term.tier)).size !== 3 || new Set(resolvedTerms.map((term) => term.term.toLocaleLowerCase())).size !== 3) return null;
-    const expectedNarration = [
-      { phase: "term", activeTier: "A1" }, { phase: "explanation", activeTier: "A1" },
-      { phase: "term", activeTier: "B1" }, { phase: "explanation", activeTier: "B1" },
-      { phase: "term", activeTier: "C1" }, { phase: "explanation", activeTier: "C1" },
-      { phase: "outro", activeTier: null },
-    ] as const;
-    if (resolvedNarration.some((scene, index) => scene.phase !== expectedNarration[index]?.phase || scene.activeTier !== expectedNarration[index]?.activeTier)) return null;
-    return { caption, terms: resolvedTerms, narration: resolvedNarration };
+
+    // Terra occasionally calls this collection `scenes` or `script`, and can
+    // return the seven valid scenes in a different order. The renderer owns
+    // the pedagogical sequence, so normalize those harmless variants rather
+    // than treating them as a failed generation.
+    const rawNarration = Array.isArray(parsed.narration)
+      ? parsed.narration
+      : Array.isArray(parsed.scenes)
+        ? parsed.scenes
+        : Array.isArray(parsed.script)
+          ? parsed.script
+          : null;
+    if (!rawNarration) return null;
+    const narration = rawNarration.map((entry) => {
+      const item = entry as { text?: unknown; narration?: unknown; phase?: unknown; type?: unknown; activeTier?: unknown; active_tier?: unknown; tier?: unknown };
+      const text = cleanText(item?.text, 220);
+      const phase = normalizeProgressionPhase(item?.phase ?? item?.type);
+      const rawTier = item?.activeTier ?? item?.active_tier ?? item?.tier;
+      const activeTier = rawTier === null || rawTier === undefined || rawTier === "" ? null : normalizeTier(rawTier);
+      return text && phase && activeTier !== null || (text && phase === "outro" && activeTier === null)
+        ? { text, phase, activeTier }
+        : null;
+    });
+    const resolvedNarration = narration.filter((scene): scene is NonNullable<typeof scene> => scene !== null);
+    const narrationByKind = (phase: "term" | "explanation", tier: "A1" | "B1" | "C1") =>
+      resolvedNarration.find((scene) => scene.phase === phase && scene.activeTier === tier)?.text;
+    const outro = resolvedNarration.find((scene) => scene.phase === "outro")?.text ?? cleanText(parsed.outro, 220);
+    if (!outro) return null;
+
+    const normalizedNarration = resolvedTerms.flatMap((term) => {
+      const explanation = narrationByKind("explanation", term.tier);
+      return explanation
+        ? [
+            { text: narrationByKind("term", term.tier) ?? term.term, phase: "term" as const, activeTier: term.tier },
+            { text: explanation, phase: "explanation" as const, activeTier: term.tier },
+          ]
+        : [];
+    });
+    if (normalizedNarration.length !== 6) return null;
+    return { caption, terms: resolvedTerms, narration: [...normalizedNarration, { text: outro, phase: "outro", activeTier: null }] };
   } catch {
     return null;
   }

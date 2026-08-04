@@ -22,7 +22,9 @@ describe("Original mascot learning video plans", () => {
     }));
 
     expect(plan?.terms.map((term) => term.tier)).toEqual(["A1", "B1", "C1"]);
-    expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: [...(plan?.narration ?? [])].reverse() }))).toBeNull();
+    expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: [...(plan?.narration ?? [])].reverse() }))?.narration.map((scene) => `${scene.phase}:${scene.activeTier}`)).toEqual([
+      "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
+    ]);
   });
 
   it("accepts Terra's word field for progression terms", () => {
@@ -45,6 +47,30 @@ describe("Original mascot learning video plans", () => {
     }));
 
     expect(plan?.terms.map((term) => term.term)).toEqual(["look", "observe", "scrutinize"]);
+  });
+
+  it("normalizes reordered scene aliases from Terra", () => {
+    const plan = parseProgressionPlan(JSON.stringify({
+      caption: "Build precise vocabulary. #languagelearning #vocabulary",
+      terms: [
+        { level: "a1", word: "look" },
+        { level: "b1", word: "observe" },
+        { level: "c1", word: "scrutinize" },
+      ],
+      scenes: [
+        { text: "Use the most precise word when it fits.", type: "summary" },
+        { text: "To look is to direct your eyes at something.", type: "definition", active_tier: "A1" },
+        { text: "observe", type: "word", tier: "B1" },
+        { text: "To scrutinize is to examine very carefully.", type: "explain", tier: "C1" },
+        { text: "look", type: "word", tier: "A1" },
+        { text: "To observe is to watch carefully.", type: "meaning", tier: "B1" },
+        { text: "scrutinize", type: "word", tier: "C1" },
+      ],
+    }));
+
+    expect(plan?.narration.map((scene) => `${scene.phase}:${scene.activeTier}`)).toEqual([
+      "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
+    ]);
   });
 
   it("rejects incomplete quiz and sentence scripts", () => {

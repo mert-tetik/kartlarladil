@@ -46,7 +46,19 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
     });
     return parse(extractResponseOutputText(response));
   };
-  return await generate(false) ?? await generate(true);
+  let lastError: unknown;
+  // A temporary upstream failure should not turn a whole browser-rendered
+  // video into a 502. Keep the repair prompt, then make one clean retry.
+  for (const repair of [false, true, true]) {
+    try {
+      const plan = await generate(repair);
+      if (plan) return plan;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) throw lastError;
+  return null;
 }
 
 async function createProgressionPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
