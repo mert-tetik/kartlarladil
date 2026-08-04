@@ -15,6 +15,14 @@ const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_500_000;
 const AUDIO_BITRATE = 128_000;
 
+type PreparedSplash = { image: HTMLCanvasElement; width: number; height: number };
+type OriginalMascotVideoAssets = {
+  original: HTMLImageElement;
+  mascot4: HTMLImageElement;
+  mascot18: HTMLImageElement;
+  splash: PreparedSplash;
+};
+
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -32,6 +40,39 @@ function recorderMimeType() {
 
 function easeOutQuint(value: number) {
   return 1 - (1 - Math.max(0, Math.min(1, value))) ** 5;
+}
+
+function prepareSplash(splash: HTMLImageElement): PreparedSplash {
+  const source = document.createElement("canvas");
+  source.width = splash.naturalWidth;
+  source.height = splash.naturalHeight;
+  const sourceContext = source.getContext("2d", { willReadFrequently: true });
+  if (!sourceContext) throw new Error("canvas_not_supported");
+  sourceContext.drawImage(splash, 0, 0);
+  const { data, width, height } = sourceContext.getImageData(0, 0, source.width, source.height);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3]! < 12) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  if (maxX < 0) throw new Error("video_asset_load_failed");
+  const croppedWidth = maxX - minX + 1;
+  const croppedHeight = maxY - minY + 1;
+  const image = document.createElement("canvas");
+  image.width = croppedWidth;
+  image.height = croppedHeight;
+  const imageContext = image.getContext("2d");
+  if (!imageContext) throw new Error("canvas_not_supported");
+  imageContext.drawImage(splash, minX, minY, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+  return { image, width: croppedWidth, height: croppedHeight };
 }
 
 function drawRoundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, fill: string, stroke?: string) {
@@ -66,18 +107,19 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
   lines.forEach((line, index) => context.fillText(line, x, firstY + lineHeight * index));
 }
 
-function drawHeader(context: CanvasRenderingContext2D, subtitle: string) {
+function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string) {
+  const splashWidth = 320;
+  const splashHeight = splashWidth * splash.height / splash.width;
+  context.drawImage(splash.image, (CANVAS_WIDTH - splashWidth) / 2, 44, splashWidth, splashHeight);
+  if (!subtitle) return;
   context.fillStyle = "#f5f5f4";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.font = "600 48px Manrope, Arial, sans-serif";
   drawCenteredLines(context, wrapText(context, subtitle, 860), CANVAS_WIDTH / 2, 198, 62);
-  context.fillStyle = "#78716c";
-  context.font = "600 24px Manrope, Arial, sans-serif";
-  context.fillText("FOXIESDECK", CANVAS_WIDTH / 2, 82);
 }
 
-function drawOriginalMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean) {
+function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean) {
   const maxWidth = 780;
   const maxHeight = 880;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
@@ -115,6 +157,14 @@ function drawProgression(context: CanvasRenderingContext2D, scene: Extract<Origi
     context.font = "600 52px Manrope, Arial, sans-serif";
     context.fillText(entry.term, 276, y + rowHeight / 2);
   });
+}
+
+function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: string) {
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "#f76808";
+  context.font = "600 44px Manrope, Arial, sans-serif";
+  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 900, 54);
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
@@ -217,7 +267,7 @@ function getOriginalMascotTiming(buffers: readonly (AudioBuffer | null)[], scene
 
 function drawOriginalMascotFrame(
   context: CanvasRenderingContext2D,
-  mascot: HTMLImageElement,
+  assets: OriginalMascotVideoAssets,
   scenes: readonly OriginalMascotLearningVideoScene[],
   starts: readonly number[],
   durationSeconds: number,
@@ -233,11 +283,25 @@ function drawOriginalMascotFrame(
   context.beginPath();
   context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
   context.fill();
-  drawHeader(context, scene.subtitle);
-  if (scene.kind === "progression") drawProgression(context, scene);
+  drawHeader(context, assets.splash, scene.kind === "progression" ? "" : scene.subtitle);
+  if (scene.kind === "progression") {
+    drawProgression(context, scene);
+    drawProgressionSubtitle(context, scene.subtitle);
+  }
   if (scene.kind === "quiz") drawQuiz(context, scene, localElapsed);
   if (scene.kind === "sentence") drawSentence(context, scene, localElapsed);
-  drawOriginalMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl));
+  const mascot = scene.kind === "progression" ? assets[scene.mascot] : assets.original;
+  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl));
+}
+
+async function loadOriginalMascotVideoAssets(): Promise<OriginalMascotVideoAssets> {
+  const [original, mascot4, mascot18, splash] = await Promise.all([
+    loadImage("/mascot-variations/Original.png"),
+    loadImage("/mascots/mascot4.webp"),
+    loadImage("/mascots/mascot18.png"),
+    loadImage("/splash.png"),
+  ]);
+  return { original, mascot4, mascot18, splash: prepareSplash(splash) };
 }
 
 async function decodeOriginalMascotAudio(audioContext: AudioContext, scenes: readonly OriginalMascotLearningVideoScene[]) {
@@ -279,8 +343,8 @@ async function canRenderOriginalMascotDeterministically() {
 }
 
 async function renderDeterministicOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
-  const [mascot, buffers] = await Promise.all([
-    loadImage("/mascot-variations/Original.png"),
+  const [assets, buffers] = await Promise.all([
+    loadOriginalMascotVideoAssets(),
     decodeOriginalMascotAudio(audioContext, scenes),
   ]);
 
@@ -303,7 +367,7 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
     await output.start();
     await audioSource.add(await renderOriginalMascotOfflineAudio(buffers, scenes, starts, frameCount * frameDuration));
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-      drawOriginalMascotFrame(context, mascot, scenes, starts, durationSeconds, frameIndex * frameDuration);
+      drawOriginalMascotFrame(context, assets, scenes, starts, durationSeconds, frameIndex * frameDuration);
       await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
     }
     await output.finalize();
@@ -319,7 +383,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length < 4 || scenes.length > 12) throw new Error("invalid_video_scene_count");
 
-  const mascot = await loadImage("/mascot-variations/Original.png");
+  const assets = await loadOriginalMascotVideoAssets();
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
   const { starts, durationSeconds } = getOriginalMascotTiming(buffers, scenes);
   const canvas = document.createElement("canvas");
@@ -357,7 +421,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
   const startedAt = performance.now();
   const drawFrame = (now: number) => {
     const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
-    drawOriginalMascotFrame(context, mascot, scenes, starts, durationSeconds, elapsed);
+    drawOriginalMascotFrame(context, assets, scenes, starts, durationSeconds, elapsed);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 

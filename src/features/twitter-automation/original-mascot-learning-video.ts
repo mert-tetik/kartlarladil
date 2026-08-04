@@ -10,6 +10,7 @@ export type ProgressionVideoScene = BaseScene & {
   kind: "progression";
   terms: { tier: "A1" | "B1" | "C1"; term: string }[];
   activeTier: "A1" | "B1" | "C1" | null;
+  mascot: "original" | "mascot4" | "mascot18";
 };
 
 export type QuizVideoScene = BaseScene & {

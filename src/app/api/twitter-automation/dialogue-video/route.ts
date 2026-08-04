@@ -33,7 +33,8 @@ const requestSchema = z.object({
 });
 
 type DialogueMode = z.infer<typeof requestSchema>["mode"];
-type DialoguePlanScene = { text: string; translation?: string };
+type DialogueSpeaker = "learner" | "guide";
+type DialoguePlanScene = { text: string; translation?: string; speaker?: DialogueSpeaker };
 type DialoguePlan = { caption: string; scenes: DialoguePlanScene[] };
 
 const LANGUAGE_NAMES: Record<LanguageCode, string> = {
@@ -52,20 +53,24 @@ function extractJsonObject(value: string) {
   return firstBrace >= 0 && lastBrace > firstBrace ? trimmed.slice(firstBrace, lastBrace + 1) : trimmed;
 }
 
-function parsePlan(value: string, needsTranslation: boolean, maxSceneCount: number): DialoguePlan | null {
+function parsePlan(value: string, needsTranslation: boolean, maxSceneCount: number, requiresMarketingRoles: boolean): DialoguePlan | null {
   try {
     const parsed = JSON.parse(extractJsonObject(value)) as { caption?: unknown; scenes?: unknown };
     if (typeof parsed.caption !== "string" || !Array.isArray(parsed.scenes) || parsed.scenes.length === 0 || parsed.scenes.length > maxSceneCount) return null;
     const scenes = parsed.scenes.map((scene) => {
       if (!scene || typeof scene !== "object") return null;
-      const values = scene as { text?: unknown; translation?: unknown };
+      const values = scene as { text?: unknown; translation?: unknown; speaker?: unknown };
       const text = typeof values.text === "string" ? values.text.trim() : "";
       const translation = typeof values.translation === "string" ? values.translation.trim() : "";
       if (!text || text.length > 220 || (needsTranslation && (!translation || translation.length > 240))) return null;
-      return needsTranslation ? { text, translation } : { text };
+      if (requiresMarketingRoles && values.speaker !== "learner" && values.speaker !== "guide") return null;
+      if (needsTranslation) return { text, translation };
+      return requiresMarketingRoles ? { text, speaker: values.speaker as DialogueSpeaker } : { text };
     });
     if (scenes.some((scene) => !scene)) return null;
-    return { caption: parsed.caption.trim().slice(0, 400), scenes: scenes as DialoguePlanScene[] };
+    const resolvedScenes = scenes as DialoguePlanScene[];
+    if (requiresMarketingRoles && (resolvedScenes[0]?.speaker !== "learner" || !resolvedScenes.some((scene) => scene.speaker === "guide"))) return null;
+    return { caption: parsed.caption.trim().slice(0, 400), scenes: resolvedScenes };
   } catch {
     return null;
   }
@@ -75,8 +80,9 @@ function instructionsFor(mode: DialogueMode) {
   if (mode === "marketing-dialogue-video") {
     return [
       "Create a brief FoxiesDeck marketing conversation for a vertical social video.",
-      "Return one JSON object only: { caption, scenes }. scenes may contain up to 9 objects with exactly { text }. A final Download FoxiesDeck NOW! CTA is appended by the app, so do not include it yourself.",
-      "Both characters speak naturally in the provided native language. The first character opens frustrated that they cannot learn the provided learning language. The second character is the FoxiesDeck guide, shown as the Original mascot, and explains the app honestly.",
+      "Return one JSON object only: { caption, scenes }. scenes may contain up to 9 objects with exactly { text, speaker }. speaker is exactly learner or guide. A final Download FoxiesDeck NOW! CTA is appended by the app, so do not include it yourself.",
+      "There are two fixed identities. learner is a random mascot who is completely clueless about FoxiesDeck. The learner opens frustrated that they cannot learn the provided learning language, then can only describe their problem or ask curious follow-up questions. The learner must never explain, endorse, recommend, or state any FoxiesDeck feature or fact.",
+      "guide is always the Original mascot. The guide is the only character who knows FoxiesDeck. Every product fact, feature explanation, recommendation, benefit, and call to action must be spoken by guide. The guide never acts confused or asks how the app works.",
       "Only mention real FoxiesDeck capabilities when useful: choose from 14 learning languages and CEFR tiers; draw, search, or create vocabulary cards; build a personal card pool; learn with quizzes; cards become learned after their tier threshold; earn points and rank up; review learned cards; practice conversations with AI characters; ask Foxy about words, grammar, and usage; play vocabulary games. The mobile app supports the core card collection, draw, quiz, review, and rank journey.",
       "Keep each text under 18 words, conversational, speakable, and free of stage directions. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
     ].join("\n");
@@ -104,7 +110,12 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
     });
-    return parsePlan(extractResponseOutputText(response), mode === "learning-dialogue-video", mode === "marketing-dialogue-video" ? 9 : 10);
+    return parsePlan(
+      extractResponseOutputText(response),
+      mode === "learning-dialogue-video",
+      mode === "marketing-dialogue-video" ? 9 : 10,
+      mode === "marketing-dialogue-video",
+    );
   };
   return await generate(false) ?? await generate(true);
 }
@@ -127,7 +138,7 @@ export async function POST(request: Request) {
 
   try {
     const scenes = mode === "marketing-dialogue-video"
-      ? [...plan.scenes, { text: "Download FoxiesDeck NOW!" }]
+      ? [...plan.scenes, { text: "Download FoxiesDeck NOW!", speaker: "guide" as const }]
       : plan.scenes;
     const firstCharacter = pick(CHARACTER_VARIATIONS);
     const secondCharacter = mode === "marketing-dialogue-video"
@@ -135,7 +146,7 @@ export async function POST(request: Request) {
       : pick(CHARACTER_VARIATIONS.filter((variation) => variation !== firstCharacter));
     const renderedScenes = scenes.map((scene, index) => ({
       ...scene,
-      character: mode === "marketing-dialogue-video" && index === scenes.length - 1 ? 2 : index % 2 === 0 ? 1 : 2,
+      character: mode === "marketing-dialogue-video" ? scene.speaker === "guide" ? 2 : 1 : index % 2 === 0 ? 1 : 2,
     })) as Array<DialoguePlanScene & { character: 1 | 2 }>;
     const audioDataUrls = await generatePoyoSpeechDataUrls(renderedScenes.map((scene) => ({
       text: scene.text,

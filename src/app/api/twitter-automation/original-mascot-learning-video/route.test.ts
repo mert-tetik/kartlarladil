@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 
 describe("Original mascot learning video plans", () => {
-  it("accepts a complete A1, B1, C1 progression and requires every active tier", () => {
+  it("accepts a complete A1, B1, C1 progression in term-then-explanation order", () => {
     const plan = parseProgressionPlan(JSON.stringify({
       caption: "Learn it step by step. #languagelearning #vocabulary",
       terms: [
@@ -11,15 +11,18 @@ describe("Original mascot learning video plans", () => {
         { tier: "C1", term: "observe" },
       ],
       narration: [
-        { text: "Start with look.", voice: "learning", activeTier: "A1" },
-        { text: "Then watch more carefully.", voice: "learning", activeTier: "B1" },
-        { text: "Observe is the most precise.", voice: "learning", activeTier: "C1" },
-        { text: "Use the right word for the detail you need.", voice: "native", activeTier: null },
+        { text: "look", phase: "term", activeTier: "A1" },
+        { text: "Look means to direct your eyes toward something.", phase: "explanation", activeTier: "A1" },
+        { text: "watch", phase: "term", activeTier: "B1" },
+        { text: "Watch means to look carefully for a while.", phase: "explanation", activeTier: "B1" },
+        { text: "observe", phase: "term", activeTier: "C1" },
+        { text: "Observe means to notice details carefully.", phase: "explanation", activeTier: "C1" },
+        { text: "Choose the word that matches how carefully you look.", phase: "outro", activeTier: null },
       ],
     }));
 
     expect(plan?.terms.map((term) => term.tier)).toEqual(["A1", "B1", "C1"]);
-    expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: plan?.narration.filter((scene) => scene.activeTier !== "C1") }))).toBeNull();
+    expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: [...(plan?.narration ?? [])].reverse() }))).toBeNull();
   });
 
   it("accepts Terra's word field for progression terms", () => {
@@ -31,10 +34,13 @@ describe("Original mascot learning video plans", () => {
         { tier: "C1", word: "scrutinize" },
       ],
       narration: [
-        { text: "Look.", voice: "learning", activeTier: "A1" },
-        { text: "Observe.", voice: "learning", activeTier: "B1" },
-        { text: "Scrutinize.", voice: "learning", activeTier: "C1" },
-        { text: "Each word is more precise.", voice: "native", activeTier: null },
+        { text: "look", phase: "term", activeTier: "A1" },
+        { text: "Basic looking.", phase: "explanation", activeTier: "A1" },
+        { text: "observe", phase: "term", activeTier: "B1" },
+        { text: "Careful looking.", phase: "explanation", activeTier: "B1" },
+        { text: "scrutinize", phase: "term", activeTier: "C1" },
+        { text: "Very detailed looking.", phase: "explanation", activeTier: "C1" },
+        { text: "Use the precise option.", phase: "outro", activeTier: null },
       ],
     }));
 

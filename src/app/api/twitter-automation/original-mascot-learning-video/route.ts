@@ -51,18 +51,28 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
       "Create an A1-to-C1 vocabulary progression for a FoxiesDeck vertical learning video.",
       "Return one JSON object only: { caption, terms, narration }.",
       "terms must contain exactly three distinct, semantically connected target-language words in this exact tier set: A1, B1, C1. They should express the same broad idea with increasingly precise or advanced vocabulary.",
-      "narration must contain 4 to 8 objects: { text, voice, activeTier }. voice is native or learning; activeTier is A1, B1, C1, or null. Include each tier as an activeTier at least once. Use learning voice only for the target words; native voice explains the distinction naturally.",
+      "narration must contain exactly 7 objects with { text, phase, activeTier } in this exact order: term/A1, explanation/A1, term/B1, explanation/B1, term/C1, explanation/C1, outro/null.",
+      "For every term phase, text must be the exact target-language word for that tier. Each explanation phase must explain that word naturally in the native language. outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
       "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep every spoken text brief and natural.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
     parseProgressionPlan,
   );
   if (!plan) return null;
-  const audioDataUrls = await generatePoyoSpeechDataUrls(plan.narration.map((scene) => ({ text: scene.text, language: scene.voice === "learning" ? language : nativeLanguage, speed: 1 })));
+  const spokenScenes = plan.narration.map((scene) => {
+    const term = scene.activeTier ? plan.terms.find((entry) => entry.tier === scene.activeTier)?.term : null;
+    return {
+      ...scene,
+      text: scene.phase === "term" && term ? term : scene.text,
+      language: scene.phase === "term" ? language : nativeLanguage,
+      mascot: scene.phase === "term" ? pick(["mascot4", "mascot18"] as const) : "original" as const,
+    };
+  });
+  const audioDataUrls = await generatePoyoSpeechDataUrls(spokenScenes.map((scene) => ({ text: scene.text, language: scene.language, speed: 1 })));
   return {
     mode: "tier-progression-video",
     caption: plan.caption,
-    scenes: plan.narration.map((scene, index) => ({ kind: "progression", subtitle: scene.text, terms: plan.terms, activeTier: scene.activeTier, audioDataUrl: audioDataUrls[index]! })),
+    scenes: spokenScenes.map((scene, index) => ({ kind: "progression", subtitle: scene.text, terms: plan.terms, activeTier: scene.activeTier, mascot: scene.mascot, audioDataUrl: audioDataUrls[index]! })),
   };
 }
 
