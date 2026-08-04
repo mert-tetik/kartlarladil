@@ -22,6 +22,25 @@ describe("Original mascot learning video plans", () => {
     expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: plan?.narration.filter((scene) => scene.activeTier !== "C1") }))).toBeNull();
   });
 
+  it("accepts Terra's word field for progression terms", () => {
+    const plan = parseProgressionPlan(JSON.stringify({
+      caption: "Build precise vocabulary. #languagelearning #vocabulary",
+      terms: [
+        { tier: "A1", word: "look" },
+        { tier: "B1", word: "observe" },
+        { tier: "C1", word: "scrutinize" },
+      ],
+      narration: [
+        { text: "Look.", voice: "learning", activeTier: "A1" },
+        { text: "Observe.", voice: "learning", activeTier: "B1" },
+        { text: "Scrutinize.", voice: "learning", activeTier: "C1" },
+        { text: "Each word is more precise.", voice: "native", activeTier: null },
+      ],
+    }));
+
+    expect(plan?.terms.map((term) => term.term)).toEqual(["look", "observe", "scrutinize"]);
+  });
+
   it("rejects incomplete quiz and sentence scripts", () => {
     expect(parseQuizPlan('{"caption":"x","question":"x"}')).toBeNull();
     expect(parseSentencePlan(JSON.stringify({

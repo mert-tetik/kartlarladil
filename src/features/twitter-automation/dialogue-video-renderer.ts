@@ -24,6 +24,8 @@ const CHARACTER_ENTER_SECONDS = 0.82;
 const CHARACTER_EXIT_SECONDS = 0.62;
 const CHARACTER_SCALE = 1.65;
 const CHARACTER_STAGE_CENTER_Y = 1380;
+const CHARACTER_SIDE_INSET = -92;
+const DIALOGUE_SUBTITLE_FONT = '"Avenir Next", "Helvetica Neue", Manrope, Arial, sans-serif';
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -77,22 +79,26 @@ function wrapText(context: CanvasRenderingContext2D, text: string, maxWidth: num
 function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoScene) {
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = "#f5f5f4";
-  context.font = "600 54px Manrope, Arial, sans-serif";
+  context.font = `700 76px ${DIALOGUE_SUBTITLE_FONT}`;
   const primary = wrapText(context, scene.text, SUBTITLE_MAX_WIDTH);
   const translation = scene.translation?.trim() ? wrapText(context, scene.translation, SUBTITLE_MAX_WIDTH) : [];
-  const primaryLineHeight = 68;
-  const translationLineHeight = 50;
-  const totalHeight = primary.length * primaryLineHeight + (translation.length ? 30 + translation.length * translationLineHeight : 0);
+  const primaryLineHeight = 90;
+  const translationLineHeight = 62;
+  const totalHeight = primary.length * primaryLineHeight + (translation.length ? 26 + translation.length * translationLineHeight : 0);
   let y = 320 - totalHeight / 2 + primaryLineHeight / 2;
+  context.lineJoin = "round";
+  context.lineWidth = 3;
+  context.strokeStyle = "rgba(0, 0, 0, 0.88)";
+  context.fillStyle = "#ffffff";
   primary.forEach((line) => {
+    context.strokeText(line, CANVAS_WIDTH / 2, y);
     context.fillText(line, CANVAS_WIDTH / 2, y);
     y += primaryLineHeight;
   });
   if (translation.length) {
-    y += 15;
-    context.fillStyle = "#a8a29e";
-    context.font = "500 38px Manrope, Arial, sans-serif";
+    y += 13;
+    context.fillStyle = "#f76808";
+    context.font = `700 50px ${DIALOGUE_SUBTITLE_FONT}`;
     translation.forEach((line) => {
       context.fillText(line, CANVAS_WIDTH / 2, y);
       y += translationLineHeight;
@@ -168,7 +174,7 @@ function drawCharacter(
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const targetX = side === "left" ? 42 : CANVAS_WIDTH - width - 42;
+  const targetX = side === "left" ? CHARACTER_SIDE_INSET : CANVAS_WIDTH - width - CHARACTER_SIDE_INSET;
   const targetY = CHARACTER_STAGE_CENTER_Y - height / 2;
   const startY = CANVAS_HEIGHT + 90;
   const entering = easeOutQuint(motion.entering);

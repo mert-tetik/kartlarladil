@@ -24,8 +24,11 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
     const caption = cleanText(parsed.caption, 400);
     if (!caption || !Array.isArray(parsed.terms) || !Array.isArray(parsed.narration) || parsed.terms.length !== 3 || parsed.narration.length < 4 || parsed.narration.length > 8) return null;
     const terms = parsed.terms.map((entry) => {
-      const item = entry as { tier?: unknown; term?: unknown };
-      const term = cleanText(item?.term, 80);
+      // Terra naturally returns `word` for vocabulary entries even when the
+      // UI calls the collection `terms`. Accept both equivalent schemas so a
+      // valid progression is not discarded and retried as a 502.
+      const item = entry as { tier?: unknown; term?: unknown; word?: unknown };
+      const term = cleanText(item?.term ?? item?.word, 80);
       return term && (item?.tier === "A1" || item?.tier === "B1" || item?.tier === "C1") ? { tier: item.tier, term } : null;
     });
     const narration = parsed.narration.map((entry) => {
