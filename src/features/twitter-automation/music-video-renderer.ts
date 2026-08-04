@@ -1,3 +1,5 @@
+import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+
 export const MUSIC_VIDEO_DURATION_SECONDS = 30;
 
 type MusicVideoRenderOptions = {
@@ -6,6 +8,10 @@ type MusicVideoRenderOptions = {
   imageUrl: string;
   musicUrl: string;
 };
+
+const FRAME_RATE = 30;
+const VIDEO_BITRATE = 4_000_000;
+const AUDIO_BITRATE = 128_000;
 
 function waitForImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -60,7 +66,71 @@ export function prepareMusicVideoAudio() {
   return audioContext;
 }
 
-export async function renderMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, imageUrl, musicUrl }: MusicVideoRenderOptions) {
+async function decodeMusic(audioContext: AudioContext, musicUrl: string) {
+  const response = await fetch(musicUrl);
+  if (!response.ok) throw new Error("music_load_failed");
+  return await audioContext.decodeAudioData(await response.arrayBuffer());
+}
+
+async function renderOfflineMusic(buffer: AudioBuffer, offset: number, durationSeconds: number) {
+  const sampleRate = 48_000;
+  const offlineContext = new OfflineAudioContext(2, Math.ceil(durationSeconds * sampleRate), sampleRate);
+  const gain = offlineContext.createGain();
+  gain.gain.setValueAtTime(0.0001, 0);
+  gain.gain.exponentialRampToValueAtTime(0.44, 0.08);
+  gain.gain.setValueAtTime(0.44, Math.max(0.08, durationSeconds - 0.16));
+  gain.gain.exponentialRampToValueAtTime(0.0001, durationSeconds);
+  const source = offlineContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(gain).connect(offlineContext.destination);
+  source.start(0, offset, durationSeconds);
+  return await offlineContext.startRendering();
+}
+
+async function canRenderMusicVideoDeterministically(width: number, height: number) {
+  if (typeof OfflineAudioContext === "undefined") return false;
+  return await canEncodeVideo("vp8", { width, height, bitrate: VIDEO_BITRATE })
+    && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
+}
+
+async function renderDeterministicMusicVideo({ audioContext, durationSeconds, imageUrl, musicUrl }: Required<MusicVideoRenderOptions>) {
+  const [image, buffer] = await Promise.all([waitForImage(imageUrl), decodeMusic(audioContext, musicUrl)]);
+  if (buffer.duration < durationSeconds) throw new Error("music_too_short");
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("canvas_not_supported");
+
+    const frameCount = Math.ceil(durationSeconds * FRAME_RATE);
+    const frameDuration = 1 / FRAME_RATE;
+    const maximumOffset = Math.max(0, buffer.duration - durationSeconds - 0.05);
+    const offset = maximumOffset ? Math.random() * maximumOffset : 0;
+    const target = new BufferTarget();
+    const output = new Output({ format: new WebMOutputFormat(), target });
+    const videoSource = new CanvasSource(canvas, { codec: "vp8", bitrate: VIDEO_BITRATE, keyFrameInterval: 2 });
+    const audioSource = new AudioBufferSource({ codec: "opus", bitrate: AUDIO_BITRATE });
+    output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
+    output.addAudioTrack(audioSource);
+    await output.start();
+    await audioSource.add(await renderOfflineMusic(buffer, offset, frameCount * frameDuration));
+
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
+    }
+
+    await output.finalize();
+    if (!target.buffer) throw new Error("deterministic_recording_failed");
+    return new Blob([target.buffer], { type: await output.getMimeType() });
+  } finally {
+    await audioContext.close();
+  }
+}
+
+async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, imageUrl, musicUrl }: MusicVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") {
     throw new Error("video_not_supported");
   }
@@ -119,6 +189,23 @@ export async function renderMusicVideo({ audioContext, durationSeconds = MUSIC_V
     audioDestination.disconnect();
     await audioContext.close();
   }
+}
+
+/**
+ * Exports every image-to-music video frame by frame with WebCodecs when
+ * available. Older browsers retain the MediaRecorder implementation above.
+ */
+export async function renderMusicVideo(options: MusicVideoRenderOptions) {
+  const image = await waitForImage(options.imageUrl);
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  if (await canRenderMusicVideoDeterministically(width, height)) {
+    return await renderDeterministicMusicVideo({
+      ...options,
+      durationSeconds: options.durationSeconds ?? MUSIC_VIDEO_DURATION_SECONDS,
+    });
+  }
+  return await renderRealtimeMusicVideo(options);
 }
 
 declare global {

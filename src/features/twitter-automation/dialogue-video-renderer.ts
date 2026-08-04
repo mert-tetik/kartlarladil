@@ -15,6 +15,9 @@ type DialogueVideoRenderOptions = {
 
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
+const DETERMINISTIC_FRAME_RATE = 30;
+const DETERMINISTIC_VIDEO_BITRATE = 4_500_000;
+const DETERMINISTIC_AUDIO_BITRATE = 128_000;
 const SCENE_GAP_SECONDS = 0.22;
 const SUBTITLE_MAX_WIDTH = 900;
 
@@ -93,6 +96,15 @@ function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoSc
   }
 }
 
+function drawBackgroundOverlay(context: CanvasRenderingContext2D) {
+  const overlay = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+  overlay.addColorStop(0, "rgba(0, 0, 0, 0.74)");
+  overlay.addColorStop(0.42, "rgba(0, 0, 0, 0.42)");
+  overlay.addColorStop(1, "rgba(0, 0, 0, 0.68)");
+  context.fillStyle = overlay;
+  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+}
+
 function drawBackground(context: CanvasRenderingContext2D, video: HTMLVideoElement) {
   const sourceWidth = video.videoWidth;
   const sourceHeight = video.videoHeight;
@@ -101,12 +113,12 @@ function drawBackground(context: CanvasRenderingContext2D, video: HTMLVideoEleme
   const width = sourceWidth * scale;
   const height = sourceHeight * scale;
   context.drawImage(video, (CANVAS_WIDTH - width) / 2, (CANVAS_HEIGHT - height) / 2, width, height);
-  const overlay = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-  overlay.addColorStop(0, "rgba(0, 0, 0, 0.74)");
-  overlay.addColorStop(0.42, "rgba(0, 0, 0, 0.42)");
-  overlay.addColorStop(1, "rgba(0, 0, 0, 0.68)");
-  context.fillStyle = overlay;
-  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  drawBackgroundOverlay(context);
+}
+
+function drawDecodedBackground(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement | OffscreenCanvas) {
+  context.drawImage(canvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  drawBackgroundOverlay(context);
 }
 
 function drawCharacter(
@@ -135,7 +147,7 @@ function drawCharacter(
 }
 
 /** Browser-only 9:16 dialogue renderer. Each speaker rises from below the frame on their turn. */
-export async function renderDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
+async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (!scenes.length || scenes.length > 10) throw new Error("invalid_dialogue_scene_count");
 
@@ -163,6 +175,12 @@ export async function renderDialogueVideo({ audioContext, backgroundVideoUrl, fi
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
+  // A detached canvas can leave MediaRecorder with a stale frame while Web
+  // Audio continues normally. Keep the implementation surface in the DOM for
+  // the complete capture, but entirely outside the visible studio UI.
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;pointer-events:none;opacity:0";
+  document.body.append(canvas);
   const context = canvas.getContext("2d");
   if (!context) throw new Error("canvas_not_supported");
 
@@ -192,11 +210,9 @@ export async function renderDialogueVideo({ audioContext, backgroundVideoUrl, fi
     source.start(startTime + starts[index]!);
   });
 
-  let animationId = 0;
-  let stopped = false;
-  const startedAt = performance.now();
-  const drawFrame = (now: number) => {
-    const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
+  let renderTimer: number | null = null;
+  const drawFrame = () => {
+    const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
     const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
     const scene = scenes[sceneIndex]!;
     const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
@@ -204,28 +220,169 @@ export async function renderDialogueVideo({ audioContext, backgroundVideoUrl, fi
     drawSubtitles(context, scene);
     drawCharacter(context, firstImage, Math.max(0, elapsed - firstTurnStarts[1]) / 0.82, localElapsed, "left", scene.character === 1);
     drawCharacter(context, secondImage, Math.max(0, elapsed - firstTurnStarts[2]) / 0.82, localElapsed, "right", scene.character === 2);
-    if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 
   await backgroundVideo.play().catch(() => { throw new Error("dialogue_background_playback_failed"); });
-  drawFrame(startedAt);
   recorder.start(250);
+  drawFrame();
+  // Render at a fixed cadence. requestAnimationFrame may be suspended while
+  // the browser continues the already-scheduled Web Audio dialogue.
+  renderTimer = window.setInterval(drawFrame, 1000 / 30);
   window.setTimeout(() => {
-    stopped = true;
-    window.cancelAnimationFrame(animationId);
-    videoStream.getTracks().forEach((track) => track.stop());
+    if (renderTimer !== null) window.clearInterval(renderTimer);
+    drawFrame();
     if (recorder.state !== "inactive") recorder.stop();
-  }, durationSeconds * 1000);
+  }, (durationSeconds + 0.12) * 1000);
 
   try {
     return await completed;
   } finally {
+    if (renderTimer !== null) window.clearInterval(renderTimer);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     backgroundVideo.pause();
     backgroundVideo.removeAttribute("src");
     backgroundVideo.load();
     backgroundVideo.remove();
+    canvas.remove();
     await audioContext.close();
   }
 }
+
+function getDialogueTiming(audioBuffers: readonly AudioBuffer[], scenes: readonly DialogueVideoScene[]) {
+  const starts: number[] = [];
+  let elapsedSeconds = 0;
+  audioBuffers.forEach((buffer) => {
+    starts.push(elapsedSeconds);
+    elapsedSeconds += buffer.duration + SCENE_GAP_SECONDS;
+  });
+  const durationSeconds = elapsedSeconds - SCENE_GAP_SECONDS + 0.3;
+  const firstTurnStarts = {
+    1: starts.find((_, index) => scenes[index]?.character === 1) ?? Number.POSITIVE_INFINITY,
+    2: starts.find((_, index) => scenes[index]?.character === 2) ?? Number.POSITIVE_INFINITY,
+  } as const;
+  return { starts, durationSeconds, firstTurnStarts };
+}
+
+async function decodeDialogueAudio(audioContext: AudioContext, scenes: readonly DialogueVideoScene[]) {
+  return await Promise.all(scenes.map(async (scene) => {
+    const response = await fetch(scene.audioDataUrl);
+    if (!response.ok) throw new Error("speech_load_failed");
+    return await audioContext.decodeAudioData(await response.arrayBuffer());
+  }));
+}
+
+async function renderOfflineDialogueAudio(audioBuffers: readonly AudioBuffer[], starts: readonly number[], durationSeconds: number) {
+  const sampleRate = 48_000;
+  const offlineContext = new OfflineAudioContext(2, Math.ceil(durationSeconds * sampleRate), sampleRate);
+  audioBuffers.forEach((buffer, index) => {
+    const source = offlineContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(offlineContext.destination);
+    source.start(starts[index]!);
+  });
+  return await offlineContext.startRendering();
+}
+
+async function canRenderDialogueDeterministically() {
+  if (typeof OfflineAudioContext === "undefined") return false;
+  return await canEncodeVideo("vp8", {
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
+    bitrate: DETERMINISTIC_VIDEO_BITRATE,
+  }) && await canEncodeAudio("opus", {
+    numberOfChannels: 2,
+    sampleRate: 48_000,
+    bitrate: DETERMINISTIC_AUDIO_BITRATE,
+  });
+}
+
+async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
+  const [backgroundResponse, firstImage, secondImage, audioBuffers] = await Promise.all([
+    fetch(backgroundVideoUrl),
+    loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
+    loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
+    decodeDialogueAudio(audioContext, scenes),
+  ]);
+  if (!backgroundResponse.ok) throw new Error("dialogue_background_load_failed");
+
+  const backgroundInput = new Input({
+    source: new BlobSource(await backgroundResponse.blob()),
+    formats: ALL_FORMATS,
+  });
+
+  try {
+    const backgroundTrack = await backgroundInput.getPrimaryVideoTrack();
+    const backgroundDuration = await backgroundInput.computeDuration();
+    if (!backgroundTrack || !Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
+      throw new Error("dialogue_background_load_failed");
+    }
+
+    const { starts, durationSeconds, firstTurnStarts } = getDialogueTiming(audioBuffers, scenes);
+    const frameCount = Math.ceil(durationSeconds * DETERMINISTIC_FRAME_RATE);
+    const frameDuration = 1 / DETERMINISTIC_FRAME_RATE;
+    const canvas = document.createElement("canvas");
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("canvas_not_supported");
+
+    const backgroundSink = new CanvasSink(backgroundTrack, {
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      fit: "cover",
+      poolSize: 2,
+    });
+    const target = new BufferTarget();
+    const output = new Output({ format: new WebMOutputFormat(), target });
+    const videoSource = new CanvasSource(canvas, {
+      codec: "vp8",
+      bitrate: DETERMINISTIC_VIDEO_BITRATE,
+      keyFrameInterval: 2,
+    });
+    const audioSource = new AudioBufferSource({
+      codec: "opus",
+      bitrate: DETERMINISTIC_AUDIO_BITRATE,
+    });
+    output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
+    output.addAudioTrack(audioSource);
+    await output.start();
+
+    const mixedAudio = await renderOfflineDialogueAudio(audioBuffers, starts, frameCount * frameDuration);
+    await audioSource.add(mixedAudio);
+
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      const elapsed = frameIndex * frameDuration;
+      const backgroundFrame = await backgroundSink.getCanvas(elapsed % backgroundDuration);
+      if (!backgroundFrame) throw new Error("dialogue_background_frame_unavailable");
+      const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
+      const scene = scenes[sceneIndex]!;
+      const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
+      drawDecodedBackground(context, backgroundFrame.canvas);
+      drawSubtitles(context, scene);
+      drawCharacter(context, firstImage, Math.max(0, elapsed - firstTurnStarts[1]) / 0.82, localElapsed, "left", scene.character === 1);
+      drawCharacter(context, secondImage, Math.max(0, elapsed - firstTurnStarts[2]) / 0.82, localElapsed, "right", scene.character === 2);
+      await videoSource.add(elapsed, frameDuration, { keyFrame: frameIndex % (DETERMINISTIC_FRAME_RATE * 2) === 0 });
+    }
+
+    await output.finalize();
+    if (!target.buffer) throw new Error("deterministic_recording_failed");
+    return new Blob([target.buffer], { type: await output.getMimeType() });
+  } finally {
+    backgroundInput.dispose();
+    await audioContext.close();
+  }
+}
+
+/**
+ * Frame-exact dialogue export for Chrome/Android. Rendering proceeds frame by
+ * frame rather than in real time, so slow devices take longer to export but do
+ * not skip dialogue animation frames. Older browsers retain MediaRecorder.
+ */
+export async function renderDialogueVideo(options: DialogueVideoRenderOptions) {
+  if (await canRenderDialogueDeterministically()) {
+    return await renderDeterministicDialogueVideo(options);
+  }
+  return await renderRealtimeDialogueVideo(options);
+}
+import { ALL_FORMATS, AudioBufferSource, BlobSource, BufferTarget, CanvasSink, CanvasSource, canEncodeAudio, canEncodeVideo, Input, Output, WebMOutputFormat } from "mediabunny";

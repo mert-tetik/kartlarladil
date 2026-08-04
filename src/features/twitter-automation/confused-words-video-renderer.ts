@@ -1,3 +1,4 @@
+import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
 import type { VocabularyCard } from "@/types/domain";
 
 export type ConfusedWordsVideoScene = {
@@ -33,6 +34,9 @@ const CARD_WIDTH = 430;
 const CARD_Y = 360;
 const CARD_HIGHLIGHT_SCALE = 1.075;
 const CARD_TRANSITION_SECONDS = 0.32;
+const FRAME_RATE = 30;
+const VIDEO_BITRATE = 4_500_000;
+const AUDIO_BITRATE = 128_000;
 const MASCOT_BY_PHASE_SCENE = [18, 18, 18, 3, 4, 4, 4, 4] as const;
 const MIRRORED_BY_PHASE_SCENE = [true, true, false, false, true, true, false, false] as const;
 
@@ -172,14 +176,114 @@ function resolvePhasePairs({ phases, firstCard, secondCard }: ConfusedWordsVideo
   return firstCard && secondCard ? [{ first: firstCard, second: secondCard }] : [];
 }
 
-export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
-  const { audioContext, cardImageUrls, firstCardImageUrl, secondCardImageUrl, scenes } = options;
-  if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (!scenes.length || scenes.length % 8 !== 0) throw new Error("invalid_video_scene_count");
-  const phasePairs = resolvePhasePairs(options);
-  const phaseCount = scenes.length / MASCOT_BY_PHASE_SCENE.length;
-  if (phasePairs.length < phaseCount && !cardImageUrls?.length && !firstCardImageUrl && !secondCardImageUrl) throw new Error("confused_words_cards_unavailable");
+type ConfusedWordsFrameAssets = {
+  tintedSplash: PreparedSplash;
+  mascots: Record<3 | 4 | 18, HTMLImageElement>;
+  cardImages: readonly HTMLImageElement[];
+  phasePairs: readonly ConfusedWordsCardPair[];
+};
 
+function drawConfusedWordsFrame(
+  context: CanvasRenderingContext2D,
+  assets: ConfusedWordsFrameAssets,
+  starts: readonly number[],
+  durationSeconds: number,
+  elapsed: number,
+) {
+  const clampedElapsed = Math.min(durationSeconds, Math.max(0, elapsed));
+  const sceneIndex = getConfusedWordsSceneIndex(starts, clampedElapsed);
+  const phaseIndex = getConfusedWordsPhaseIndex(sceneIndex);
+  const phaseSceneIndex = sceneIndex % MASCOT_BY_PHASE_SCENE.length;
+  const visibleMascot = MASCOT_BY_PHASE_SCENE[phaseSceneIndex]!;
+  const visibleMirrored = MIRRORED_BY_PHASE_SCENE[phaseSceneIndex]!;
+  const previousPhaseSceneIndex = (sceneIndex - 1 + MASCOT_BY_PHASE_SCENE.length) % MASCOT_BY_PHASE_SCENE.length;
+  const localSceneElapsed = clampedElapsed - starts[sceneIndex]!;
+  const transitionProgress = easeOutQuint(localSceneElapsed / CARD_TRANSITION_SECONDS);
+  const highlightedSide = visibleMirrored ? "left" : "right";
+  const previousHighlightedSide = sceneIndex > 0 ? MIRRORED_BY_PHASE_SCENE[previousPhaseSceneIndex]! ? "left" : "right" : null;
+  const cardScale = (side: "left" | "right") => {
+    const from = previousHighlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
+    const to = highlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
+    return from + (to - from) * transitionProgress;
+  };
+  const pair = assets.phasePairs[phaseIndex] ?? assets.phasePairs[0];
+  const firstCardImage = assets.cardImages[phaseIndex * 2] ?? assets.cardImages[0];
+  const secondCardImage = assets.cardImages[phaseIndex * 2 + 1] ?? assets.cardImages[1];
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  drawTintedSplash(context, assets.tintedSplash);
+  const drawCard = (side: "left" | "right") => {
+    const x = side === "left" ? 80 : 570;
+    const cardImage = side === "left" ? firstCardImage : secondCardImage;
+    const card = side === "left" ? pair?.first : pair?.second;
+    if (cardImage) drawAppCard(context, cardImage, x, cardScale(side));
+    else if (card) drawFallbackCard(context, card, x, cardScale(side));
+  };
+  drawCard(highlightedSide === "left" ? "right" : "left");
+  drawCard(highlightedSide);
+  drawMascot(context, assets.mascots[visibleMascot], visibleMirrored);
+}
+
+function getConfusedWordsTiming(audioBuffers: readonly AudioBuffer[], playbackRates: readonly number[]) {
+  let elapsedSeconds = 0;
+  const starts = audioBuffers.map((buffer, index) => {
+    const start = elapsedSeconds;
+    const duration = buffer.duration / playbackRates[index]!;
+    elapsedSeconds += index === audioBuffers.length - 1 ? duration : Math.max(0.04, duration - AUDIO_CROSSFADE_SECONDS);
+    return start;
+  });
+  return { starts, durationSeconds: elapsedSeconds + 0.28 };
+}
+
+async function decodeConfusedWordsAudio(audioContext: AudioContext, scenes: readonly ConfusedWordsVideoScene[]) {
+  return await Promise.all(scenes.map(async (scene) => {
+    const response = await fetch(scene.audioDataUrl);
+    if (!response.ok) throw new Error("speech_load_failed");
+    return await audioContext.decodeAudioData(await response.arrayBuffer());
+  }));
+}
+
+async function renderConfusedWordsOfflineAudio(
+  audioBuffers: readonly AudioBuffer[],
+  playbackRates: readonly number[],
+  starts: readonly number[],
+  durationSeconds: number,
+) {
+  const sampleRate = 48_000;
+  const offlineContext = new OfflineAudioContext(2, Math.ceil(durationSeconds * sampleRate), sampleRate);
+  audioBuffers.forEach((buffer, index) => {
+    const source = offlineContext.createBufferSource();
+    const gain = offlineContext.createGain();
+    source.buffer = buffer;
+    source.playbackRate.value = playbackRates[index]!;
+    source.connect(gain).connect(offlineContext.destination);
+    const sourceStart = starts[index]!;
+    const sourceDuration = buffer.duration / playbackRates[index]!;
+    const fadeDuration = Math.min(AUDIO_CROSSFADE_SECONDS, sourceDuration / 3);
+    if (index > 0) {
+      gain.gain.setValueAtTime(0, sourceStart);
+      gain.gain.linearRampToValueAtTime(1, sourceStart + fadeDuration);
+    } else {
+      gain.gain.setValueAtTime(1, sourceStart);
+    }
+    if (index < audioBuffers.length - 1) {
+      gain.gain.setValueAtTime(1, sourceStart + Math.max(fadeDuration, sourceDuration - fadeDuration));
+      gain.gain.linearRampToValueAtTime(0, sourceStart + sourceDuration);
+    }
+    source.start(sourceStart);
+  });
+  return await offlineContext.startRendering();
+}
+
+async function canRenderConfusedWordsDeterministically() {
+  if (typeof OfflineAudioContext === "undefined") return false;
+  return await canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE })
+    && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
+}
+
+async function loadConfusedWordsAssets(options: ConfusedWordsVideoRenderOptions) {
+  const { cardImageUrls, firstCardImageUrl, secondCardImageUrl } = options;
   const normalizedCardUrls = cardImageUrls?.length ? cardImageUrls : [firstCardImageUrl, secondCardImageUrl].filter((url): url is string => Boolean(url));
   const [splash, mascot3, mascot4, mascot18, ...cardImages] = await Promise.all([
     loadImage("/splash.png"),
@@ -188,22 +292,59 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     loadImage("/mascots/mascot18.png"),
     ...normalizedCardUrls.map((url) => loadImage(url)),
   ]);
-  const tintedSplash = prepareTintedSplash(splash, findVisibleImageBounds(splash));
-  const audioBuffers = await Promise.all(scenes.map(async (scene) => {
-    const response = await fetch(scene.audioDataUrl);
-    if (!response.ok) throw new Error("speech_load_failed");
-    return await audioContext.decodeAudioData(await response.arrayBuffer());
-  }));
-  const mascots = { 3: mascot3, 4: mascot4, 18: mascot18 } as const;
+  return {
+    tintedSplash: prepareTintedSplash(splash, findVisibleImageBounds(splash)),
+    mascots: { 3: mascot3, 4: mascot4, 18: mascot18 } as const,
+    cardImages,
+    phasePairs: resolvePhasePairs(options),
+  } satisfies ConfusedWordsFrameAssets;
+}
+
+async function renderDeterministicConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
+  const { audioContext, scenes } = options;
+  const [assets, audioBuffers] = await Promise.all([loadConfusedWordsAssets(options), decodeConfusedWordsAudio(audioContext, scenes)]);
+  try {
+    const playbackRates = scenes.map((scene) => scene.playbackRate ?? 1);
+    const { starts, durationSeconds } = getConfusedWordsTiming(audioBuffers, playbackRates);
+    const frameCount = Math.ceil(durationSeconds * FRAME_RATE);
+    const frameDuration = 1 / FRAME_RATE;
+    const canvas = document.createElement("canvas");
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("canvas_not_supported");
+    const target = new BufferTarget();
+    const output = new Output({ format: new WebMOutputFormat(), target });
+    const videoSource = new CanvasSource(canvas, { codec: "vp8", bitrate: VIDEO_BITRATE, keyFrameInterval: 2 });
+    const audioSource = new AudioBufferSource({ codec: "opus", bitrate: AUDIO_BITRATE });
+    output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
+    output.addAudioTrack(audioSource);
+    await output.start();
+    await audioSource.add(await renderConfusedWordsOfflineAudio(audioBuffers, playbackRates, starts, frameCount * frameDuration));
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      drawConfusedWordsFrame(context, assets, starts, durationSeconds, frameIndex * frameDuration);
+      await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
+    }
+    await output.finalize();
+    if (!target.buffer) throw new Error("deterministic_recording_failed");
+    return new Blob([target.buffer], { type: await output.getMimeType() });
+  } finally {
+    await audioContext.close();
+  }
+}
+
+/** Legacy real-time renderer for browsers without WebCodecs. */
+async function renderRealtimeConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
+  const { audioContext, cardImageUrls, firstCardImageUrl, secondCardImageUrl, scenes } = options;
+  if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
+  if (!scenes.length || scenes.length % 8 !== 0) throw new Error("invalid_video_scene_count");
+  const phasePairs = resolvePhasePairs(options);
+  const phaseCount = scenes.length / MASCOT_BY_PHASE_SCENE.length;
+  if (phasePairs.length < phaseCount && !cardImageUrls?.length && !firstCardImageUrl && !secondCardImageUrl) throw new Error("confused_words_cards_unavailable");
+
+  const [assets, audioBuffers] = await Promise.all([loadConfusedWordsAssets(options), decodeConfusedWordsAudio(audioContext, scenes)]);
   const playbackRates = scenes.map((scene) => scene.playbackRate ?? 1);
-  let elapsedSeconds = 0;
-  const starts = audioBuffers.map((buffer, index) => {
-    const start = elapsedSeconds;
-    const duration = buffer.duration / playbackRates[index]!;
-    elapsedSeconds += index === audioBuffers.length - 1 ? duration : Math.max(0.04, duration - AUDIO_CROSSFADE_SECONDS);
-    return start;
-  });
-  const durationSeconds = elapsedSeconds + 0.28;
+  const { starts, durationSeconds } = getConfusedWordsTiming(audioBuffers, playbackRates);
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
@@ -258,42 +399,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   let renderTimer: number | null = null;
   const drawFrame = () => {
     const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
-    const sceneIndex = getConfusedWordsSceneIndex(starts, elapsed);
-    const phaseIndex = getConfusedWordsPhaseIndex(sceneIndex);
-    const phaseSceneIndex = sceneIndex % MASCOT_BY_PHASE_SCENE.length;
-    const visibleMascot = MASCOT_BY_PHASE_SCENE[phaseSceneIndex]!;
-    const visibleMirrored = MIRRORED_BY_PHASE_SCENE[phaseSceneIndex]!;
-    const previousPhaseSceneIndex = (sceneIndex - 1 + MASCOT_BY_PHASE_SCENE.length) % MASCOT_BY_PHASE_SCENE.length;
-    const localSceneElapsed = elapsed - starts[sceneIndex]!;
-    const transitionProgress = easeOutQuint(localSceneElapsed / CARD_TRANSITION_SECONDS);
-    const highlightedSide = visibleMirrored ? "left" : "right";
-    const previousHighlightedSide = sceneIndex > 0 ? MIRRORED_BY_PHASE_SCENE[previousPhaseSceneIndex]! ? "left" : "right" : null;
-    const cardScale = (side: "left" | "right") => {
-      const from = previousHighlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
-      const to = highlightedSide === side ? CARD_HIGHLIGHT_SCALE : 1;
-      return from + (to - from) * transitionProgress;
-    };
-    const pair = phasePairs[phaseIndex] ?? phasePairs[0];
-    const firstCardImage = cardImages[phaseIndex * 2] ?? cardImages[0];
-    const secondCardImage = cardImages[phaseIndex * 2 + 1] ?? cardImages[1];
-
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    drawTintedSplash(context, tintedSplash);
-    // Draw the non-active card first so the highlighted card sits cleanly on top.
-    const drawCard = (side: "left" | "right") => {
-      const x = side === "left" ? 80 : 570;
-      const cardImage = side === "left" ? firstCardImage : secondCardImage;
-      const card = side === "left" ? pair?.first : pair?.second;
-      if (cardImage) drawAppCard(context, cardImage, x, cardScale(side));
-      else if (card) drawFallbackCard(context, card, x, cardScale(side));
-    };
-    drawCard(highlightedSide === "left" ? "right" : "left");
-    drawCard(highlightedSide);
-    // Use the same scene-to-mascot mapping for every 8-scene phase. A single,
-    // fully opaque draw avoids the flicker caused by alpha-compositing two
-    // transparent mascot PNGs over one another.
-    drawMascot(context, mascots[visibleMascot], visibleMirrored);
+    drawConfusedWordsFrame(context, assets, starts, durationSeconds, elapsed);
   };
 
   recorder.start(250);
@@ -314,4 +420,18 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
     canvas.remove();
     await audioContext.close();
   }
+}
+
+/** Frame-exact Confused Words export on Chrome/Android, with a legacy fallback. */
+export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
+  if (!options.scenes.length || options.scenes.length % MASCOT_BY_PHASE_SCENE.length !== 0) throw new Error("invalid_video_scene_count");
+  const phasePairs = resolvePhasePairs(options);
+  const phaseCount = options.scenes.length / MASCOT_BY_PHASE_SCENE.length;
+  if (phasePairs.length < phaseCount && !options.cardImageUrls?.length && !options.firstCardImageUrl && !options.secondCardImageUrl) {
+    throw new Error("confused_words_cards_unavailable");
+  }
+  if (await canRenderConfusedWordsDeterministically()) {
+    return await renderDeterministicConfusedWordsVideo(options);
+  }
+  return await renderRealtimeConfusedWordsVideo(options);
 }
