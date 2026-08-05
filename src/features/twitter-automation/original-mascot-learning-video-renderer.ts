@@ -278,6 +278,19 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   if (isCountdown) drawClock(context, localElapsed, "quiz");
 }
 
+function drawOutro(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "outro" }>, localElapsed: number) {
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "#17120e";
+  const fontSize = 72;
+  const lineHeight = 92;
+  context.font = `700 ${fontSize}px Manrope, Arial, sans-serif`;
+  const y = 720;
+  scene.lines.forEach((line, index) => {
+    context.fillText(line, CANVAS_WIDTH / 2, y + (index - (scene.lines.length - 1) / 2) * lineHeight);
+  });
+}
+
 function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default") {
   const remaining = Math.max(0, COUNTDOWN_SECONDS - elapsed);
   const progress = Math.min(1, elapsed / COUNTDOWN_SECONDS);
@@ -372,21 +385,23 @@ function drawOriginalMascotFrame(
   const localElapsed = Math.max(0, clampedElapsed - starts[sceneIndex]!);
   const isProgression = scene.kind === "progression";
   const isQuiz = scene.kind === "quiz";
-  context.fillStyle = isProgression || isQuiz ? "#ffffff" : "#090909";
+  const isOutro = scene.kind === "outro";
+  context.fillStyle = isProgression || isQuiz || isOutro ? "#ffffff" : "#090909";
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  if (!isProgression && !isQuiz) {
+  if (!isProgression && !isQuiz && !isOutro) {
     context.fillStyle = "#14110e";
     context.beginPath();
     context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
     context.fill();
   }
-  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz ? "quiz" : "default");
+  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro ? "quiz" : "default");
   if (isProgression) {
     drawProgression(context, scene);
     drawProgressionSubtitle(context, scene.subtitle);
   }
   if (isQuiz) drawQuiz(context, scene, localElapsed);
   if (scene.kind === "sentence") drawSentence(context, scene, localElapsed);
+  if (isOutro) drawOutro(context, scene, localElapsed);
   const mascot = scene.kind === "progression" ? assets[scene.mascot] : assets.original;
   let mascotOffsetY = 0;
   let mascotAlpha = 1;

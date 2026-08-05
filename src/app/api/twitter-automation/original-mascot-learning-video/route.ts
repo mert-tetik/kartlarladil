@@ -174,15 +174,19 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
     { text: plan2.reveal, language: nativeLanguage },
   ];
   const transitionText = "Peki ya, bir kelime daha.";
-  const [audioDataUrls1, audioDataUrls2, transitionAudio] = await Promise.all([
+  const outroLines = ["Peki ya bu kelime ne anlama geliyor?", "Yorumlara yazın!"];
+  const outroSpoken = outroLines.join(" ");
+  const [audioDataUrls1, audioDataUrls2, transitionAudio, outroAudio] = await Promise.all([
     generatePoyoSpeechDataUrls(spoken1),
     generatePoyoSpeechDataUrls(spoken2),
     generatePoyoSpeechDataUrls([{ text: transitionText, language: nativeLanguage }]),
+    generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
   ]);
   await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz1.card.term, quiz2.card.term]);
   const base1 = { kind: "quiz" as const, term: quiz1.card.term, tier: quiz1.card.tier, options: quiz1.options, correctIndex: quiz1.correctIndex };
   const base2 = { kind: "quiz" as const, term: quiz2.card.term, tier: quiz2.card.tier, options: quiz2.options, correctIndex: quiz2.correctIndex };
   const transitionScene = { kind: "quiz" as const, phase: "question" as const, term: "Peki ya", tier: "A1" as const, options: [], correctIndex: -1, subtitle: transitionText, audioDataUrl: transitionAudio[0]! };
+  const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
   return {
     mode: "vocabulary-quiz-video",
     caption: `${plan1.caption}\n\n${plan2.caption}`,
@@ -190,6 +194,7 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
       ...buildQuizScenes(base1, plan1, audioDataUrls1),
       transitionScene,
       ...buildQuizScenes(base2, plan2, audioDataUrls2),
+      outroScene,
     ],
   };
 }

@@ -30,7 +30,12 @@ export type SentenceVideoScene = BaseScene & {
   correction: string | null;
 };
 
-export type OriginalMascotLearningVideoScene = ProgressionVideoScene | QuizVideoScene | SentenceVideoScene;
+export type OutroVideoScene = BaseScene & {
+  kind: "outro";
+  lines: string[];
+};
+
+export type OriginalMascotLearningVideoScene = ProgressionVideoScene | QuizVideoScene | SentenceVideoScene | OutroVideoScene;
 
 export type OriginalMascotLearningVideoPayload = {
   mode: OriginalMascotLearningVideoMode;
