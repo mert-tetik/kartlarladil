@@ -15,7 +15,7 @@ const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_500_000;
 const AUDIO_BITRATE = 128_000;
 
-type PreparedSplash = { image: HTMLCanvasElement; width: number; height: number };
+type PreparedSplash = { image: HTMLCanvasElement; orangeImage: HTMLCanvasElement; width: number; height: number };
 type OriginalMascotVideoAssets = {
   original: HTMLImageElement;
   mascot4: HTMLImageElement;
@@ -72,7 +72,19 @@ function prepareSplash(splash: HTMLImageElement): PreparedSplash {
   const imageContext = image.getContext("2d");
   if (!imageContext) throw new Error("canvas_not_supported");
   imageContext.drawImage(splash, minX, minY, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
-  return { image, width: croppedWidth, height: croppedHeight };
+  // Tint on an isolated transparent canvas. Compositing directly on the video
+  // canvas would use the white background as the destination and turn the
+  // entire splash rectangle orange.
+  const orangeImage = document.createElement("canvas");
+  orangeImage.width = croppedWidth;
+  orangeImage.height = croppedHeight;
+  const orangeContext = orangeImage.getContext("2d");
+  if (!orangeContext) throw new Error("canvas_not_supported");
+  orangeContext.drawImage(image, 0, 0);
+  orangeContext.globalCompositeOperation = "source-in";
+  orangeContext.fillStyle = "#f76808";
+  orangeContext.fillRect(0, 0, croppedWidth, croppedHeight);
+  return { image, orangeImage, width: croppedWidth, height: croppedHeight };
 }
 
 function drawRoundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, fill: string, stroke?: string) {
@@ -107,22 +119,12 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
   lines.forEach((line, index) => context.fillText(line, x, firstY + lineHeight * index));
 }
 
-function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, tint?: string) {
-  const splashWidth = 320;
+function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, orange = false) {
+  const splashWidth = orange ? 640 : 320;
   const splashHeight = splashWidth * splash.height / splash.width;
   const x = (CANVAS_WIDTH - splashWidth) / 2;
-  const y = tint ? 116 : 44;
-  context.drawImage(splash.image, x, y, splashWidth, splashHeight);
-  if (tint) {
-    context.save();
-    context.beginPath();
-    context.rect(x, y, splashWidth, splashHeight);
-    context.clip();
-    context.globalCompositeOperation = "source-in";
-    context.fillStyle = tint;
-    context.fillRect(x, y, splashWidth, splashHeight);
-    context.restore();
-  }
+  const y = orange ? 116 : 44;
+  context.drawImage(orange ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
   if (!subtitle) return;
   context.fillStyle = "#f5f5f4";
   context.textAlign = "center";
@@ -175,8 +177,8 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#f76808";
-  context.font = "600 44px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 812, 54);
+  context.font = "700 44px Manrope, Arial, sans-serif";
+  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 900, 54);
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
@@ -298,7 +300,7 @@ function drawOriginalMascotFrame(
     context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
     context.fill();
   }
-  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "#f76808" : undefined);
+  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression);
   if (isProgression) {
     drawProgression(context, scene);
     drawProgressionSubtitle(context, scene.subtitle);

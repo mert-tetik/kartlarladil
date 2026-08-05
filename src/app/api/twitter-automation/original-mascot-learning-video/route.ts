@@ -74,7 +74,7 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
       "Return one JSON object only: { caption, terms, narration }.",
       "terms must contain exactly three distinct, semantically connected target-language words in this exact tier set: A1, B1, C1. They should express the same broad idea with increasingly precise or advanced vocabulary.",
       "narration must contain exactly 8 objects with { text, phase, activeTier } in this exact order: intro/null, term/A1, explanation/A1, term/B1, explanation/B1, term/C1, explanation/C1, outro/null.",
-      "For every term phase, text must be the exact target-language word for that tier. intro is a brief native-language hook introducing the A1-to-C1 comparison. Each explanation phase must explain that word naturally in the native language. outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
+      "For every term phase, text must be the exact target-language word for that tier. intro is a native-language hook of at most 6 words introducing the A1-to-C1 comparison. Each explanation phase must explain that word naturally in the native language. outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
       "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep every spoken text brief and natural.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
