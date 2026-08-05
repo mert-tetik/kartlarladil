@@ -344,9 +344,9 @@ function drawSentence(context: CanvasRenderingContext2D, scene: Extract<Original
     context.font = "700 80px Manrope, Arial, sans-serif";
     drawCenteredLines(context, wrapText(context, scene.subtitle, 980, 2), CANVAS_WIDTH / 2, 800, 92);
     if (scene.correction) {
-      context.fillStyle = "#17120e";
+      context.fillStyle = "#10b981";
       context.font = "600 56px Manrope, Arial, sans-serif";
-      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 880, 72);
+      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 940, 72);
     }
   }
 }

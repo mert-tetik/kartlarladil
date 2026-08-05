@@ -226,10 +226,10 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     { text: plan.sentence, language },
     { text: plan.question, language: nativeLanguage },
     { text: plan.reveal, language: nativeLanguage },
-    ...(plan.correction ? [{ text: plan.correction, language }] : []),
+    ...(plan.correction ? [{ text: `Yanlış! ${plan.correction}`, language }] : []),
   ];
   const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3), ...spokenPerPlan(plan4)];
-  const outroLines = ["Yorumlara yazın!"];
+  const outroLines = ["Cevabı yorumlara yazın"];
   const outroSpoken = outroLines.join(" ");
   const introLines = ["Verilen cümleler doğru mu?"];
   const introSpoken = introLines.join(" ");
@@ -246,7 +246,7 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     const correctionAudio = plan.correction ? audioDataUrls[audioIndex++]! : null;
     return { sentenceAudio, questionAudio, revealAudio, correctionAudio };
   };
-  const buildSentenceScenes = (plan: typeof plan1, audios: ReturnType<typeof takeAudios>, hasTimer: boolean) => {
+  const buildSentenceScenes = (plan: typeof plan1, audios: ReturnType<typeof takeAudios>, hasTimer: boolean, hasReveal: boolean) => {
     const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
     const scenes: OriginalMascotLearningVideoScene[] = [
       { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audios.sentenceAudio },
@@ -254,12 +254,14 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     if (hasTimer) {
       scenes.push({ ...base, phase: "countdown" as const, subtitle: "", durationSeconds: 5 });
     }
-    scenes.push({
-      ...base,
-      phase: "reveal" as const,
-      subtitle: plan.reveal,
-      audioDataUrl: plan.isCorrect || !audios.correctionAudio ? audios.revealAudio : audios.correctionAudio,
-    });
+    if (hasReveal) {
+      scenes.push({
+        ...base,
+        phase: "reveal" as const,
+        subtitle: plan.reveal,
+        audioDataUrl: plan.isCorrect || !audios.correctionAudio ? audios.revealAudio : audios.correctionAudio,
+      });
+    }
     return scenes;
   };
   const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
@@ -269,10 +271,10 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     caption: [plan1.caption, plan2.caption, plan3.caption, plan4.caption].join("\n\n"),
     scenes: [
       introScene,
-      ...buildSentenceScenes(plan1, takeAudios(plan1), true),
-      ...buildSentenceScenes(plan2, takeAudios(plan2), true),
-      ...buildSentenceScenes(plan3, takeAudios(plan3), true),
-      ...buildSentenceScenes(plan4, takeAudios(plan4), false),
+      ...buildSentenceScenes(plan1, takeAudios(plan1), true, true),
+      ...buildSentenceScenes(plan2, takeAudios(plan2), true, true),
+      ...buildSentenceScenes(plan3, takeAudios(plan3), true, true),
+      ...buildSentenceScenes(plan4, takeAudios(plan4), false, false),
       outroScene,
     ],
   };
