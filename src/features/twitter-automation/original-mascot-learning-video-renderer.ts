@@ -521,7 +521,7 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
 /** Legacy real-time renderer for browsers without WebCodecs. */
 async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (scenes.length < 4 || scenes.length > 18) throw new Error("invalid_video_scene_count");
+  if (scenes.length < 4 || scenes.length > 20) throw new Error("invalid_video_scene_count");
 
   const assets = await loadOriginalMascotVideoAssets();
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
@@ -585,7 +585,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
 
 /** Browser-only 9:16 renderer with frame-exact WebCodecs export on Chrome/Android. */
 export async function renderOriginalMascotLearningVideo(options: OriginalMascotLearningVideoRenderOptions) {
-  if (options.scenes.length < 4 || options.scenes.length > 18) throw new Error("invalid_video_scene_count");
+  if (options.scenes.length < 4 || options.scenes.length > 20) throw new Error("invalid_video_scene_count");
   if (await canRenderOriginalMascotDeterministically()) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }
