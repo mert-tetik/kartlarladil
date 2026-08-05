@@ -199,35 +199,56 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
   };
 }
 
-async function createSentencePayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
-  const plan = await createPlan(
+async function createSingleSentencePlan(language: LanguageCode, nativeLanguage: LanguageCode) {
+  return await createPlan(
     [
       "Create a concise FoxiesDeck grammar judgment video plan.",
       "Return one JSON object only: { caption, sentence, isCorrect, correction, question, reveal, explanation }.",
       "sentence is a short, useful sentence in the selected learning language. Randomly make it either deceptively correct or genuinely incorrect. isCorrect must match it. correction is empty when correct, otherwise the corrected learning-language sentence.",
-      "question, reveal, and explanation are in the selected native language. question asks if the sentence is correct. reveal clearly says correct or incorrect. explanation clearly explains why. caption has 2 or 3 relevant hashtags.",
+      "question and reveal are in the selected native language. question asks if the sentence is correct. reveal clearly states correct or incorrect. explanation is not used in the final video; provide a brief placeholder.",
+      "caption has 2 or 3 relevant hashtags.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
     parseSentencePlan,
   );
-  if (!plan) return null;
-  const spoken = [
+}
+
+async function createSentencePayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
+  const plans = await Promise.all([
+    createSingleSentencePlan(language, nativeLanguage),
+    createSingleSentencePlan(language, nativeLanguage),
+    createSingleSentencePlan(language, nativeLanguage),
+  ]);
+  if (plans.some((plan) => !plan)) return null;
+  const [plan1, plan2, plan3] = plans as [NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>];
+  const spokenPerPlan = (plan: typeof plan1) => [
     { text: plan.sentence, language },
     { text: plan.question, language: nativeLanguage },
     { text: plan.reveal, language: nativeLanguage },
-    { text: plan.explanation, language: nativeLanguage },
   ];
-  const audioDataUrls = await generatePoyoSpeechDataUrls(spoken);
-  const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
+  const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3)];
+  const outroLines = ["Yorumlara yazın!"];
+  const outroSpoken = outroLines.join(" ");
+  const [audioDataUrls, outroAudio] = await Promise.all([
+    generatePoyoSpeechDataUrls(allSpoken),
+    generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
+  ]);
+  const buildSentenceScenes = (plan: typeof plan1, audioDataUrls: string[]) => {
+    const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
+    return [
+      { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audioDataUrls[0]! },
+      { ...base, phase: "reveal" as const, subtitle: plan.reveal, audioDataUrl: audioDataUrls[2]! },
+    ];
+  };
+  const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
   return {
     mode: "sentence-check-video",
-    caption: plan.caption,
+    caption: [plan1.caption, plan2.caption, plan3.caption].join("\n\n"),
     scenes: [
-      { ...base, phase: "question", subtitle: plan.sentence, audioDataUrl: audioDataUrls[0]! },
-      { ...base, phase: "question", subtitle: plan.question, audioDataUrl: audioDataUrls[1]! },
-      { ...base, phase: "countdown", subtitle: plan.question, durationSeconds: 4 },
-      { ...base, phase: "reveal", subtitle: plan.reveal, audioDataUrl: audioDataUrls[2]! },
-      { ...base, phase: "explanation", subtitle: plan.explanation, audioDataUrl: audioDataUrls[3]! },
+      ...buildSentenceScenes(plan1, audioDataUrls.slice(0, 3)),
+      ...buildSentenceScenes(plan2, audioDataUrls.slice(3, 6)),
+      ...buildSentenceScenes(plan3, audioDataUrls.slice(6, 9)),
+      outroScene,
     ],
   };
 }

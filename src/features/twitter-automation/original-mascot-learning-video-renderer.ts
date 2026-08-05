@@ -321,26 +321,20 @@ function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: 
 }
 
 function drawSentence(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "sentence" }>, localElapsed: number) {
-  drawRoundedRect(context, 88, 366, 904, 330, 28, "#141210", "#37332d");
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = "#fffaf4";
-  context.font = "600 50px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, scene.sentence, 790, 4), CANVAS_WIDTH / 2, 528, 62);
-  if (scene.phase === "countdown") {
-    drawClock(context, localElapsed);
+  context.fillStyle = "#17120e";
+  if (scene.phase === "question") {
+    context.font = "600 110px Manrope, Arial, sans-serif";
+    drawCenteredLines(context, wrapText(context, scene.sentence, 980, 3), CANVAS_WIDTH / 2, 820, 126);
     return;
   }
   if (scene.phase === "reveal" || scene.phase === "explanation") {
-    const color = scene.isCorrect ? "#86efac" : "#fda4af";
-    drawRoundedRect(context, 168, 748, 744, 92, 18, scene.isCorrect ? "#14532d" : "#631c28", color);
-    context.fillStyle = color;
-    context.font = "600 34px Manrope, Arial, sans-serif";
-    context.fillText(scene.isCorrect ? "CORRECT" : "INCORRECT", CANVAS_WIDTH / 2, 794);
+    context.font = "700 160px Manrope, Arial, sans-serif";
+    context.fillText(scene.isCorrect ? "CORRECT" : "INCORRECT", CANVAS_WIDTH / 2, 560);
     if (scene.correction) {
-      context.fillStyle = "#e7e5e4";
-      context.font = "500 34px Manrope, Arial, sans-serif";
-      drawCenteredLines(context, wrapText(context, scene.correction, 800, 2), CANVAS_WIDTH / 2, 900, 44);
+      context.font = "600 90px Manrope, Arial, sans-serif";
+      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 940, 106);
     }
   }
 }
@@ -386,15 +380,16 @@ function drawOriginalMascotFrame(
   const isProgression = scene.kind === "progression";
   const isQuiz = scene.kind === "quiz";
   const isOutro = scene.kind === "outro";
-  context.fillStyle = isProgression || isQuiz || isOutro ? "#ffffff" : "#090909";
+  const isSentence = scene.kind === "sentence";
+  context.fillStyle = isProgression || isQuiz || isOutro || isSentence ? "#ffffff" : "#090909";
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  if (!isProgression && !isQuiz && !isOutro) {
+  if (!isProgression && !isQuiz && !isOutro && !isSentence) {
     context.fillStyle = "#14110e";
     context.beginPath();
     context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
     context.fill();
   }
-  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro ? "quiz" : "default");
+  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro || isSentence ? "quiz" : "default");
   if (isProgression) {
     drawProgression(context, scene);
     drawProgressionSubtitle(context, scene.subtitle);
