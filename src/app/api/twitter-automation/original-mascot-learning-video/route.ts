@@ -204,7 +204,7 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
   const base1 = { kind: "quiz" as const, term: quiz1.card.term, tier: quiz1.card.tier, options: quiz1.options, correctIndex: quiz1.correctIndex, language };
   const base2 = { kind: "quiz" as const, term: quiz2.card.term, tier: quiz2.card.tier, options: quiz2.options, correctIndex: quiz2.correctIndex, language };
   const base3 = { kind: "quiz" as const, term: quiz3.card.term, tier: quiz3.card.tier, options: quiz3.options, correctIndex: quiz3.correctIndex, language };
-  const transitionScene = { kind: "quiz" as const, phase: "question" as const, term: "Peki ya", tier: "A1" as const, options: [], correctIndex: -1, language: nativeLanguage, subtitle: transitionText, audioDataUrl: transitionAudio[0]! };
+  const transitionScene = { kind: "quiz" as const, phase: "question" as const, term: "", tier: "A1" as const, options: [], correctIndex: -1, language: nativeLanguage, subtitle: transitionText, audioDataUrl: transitionAudio[0]! };
   const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
   return {
     mode: "vocabulary-quiz-video",

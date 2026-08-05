@@ -20,6 +20,9 @@ const QUIZ_REVEAL_RED = "#ef4444";
 const QUIZ_REVEAL_GREEN = "#10b981";
 const QUIZ_COUNTDOWN_Y = 1550;
 const MASCOT_NORMAL_Y = 1320;
+const QUIZ_SUBTITLE_Y = 360;
+const QUIZ_TERM_Y = 480;
+const OUTRO_Y = 760;
 
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
@@ -164,7 +167,7 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   if (isQuiz) {
     context.fillStyle = "#17120e";
     context.font = "700 56px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, subtitle, 700, 3), CANVAS_WIDTH / 2, 340, 68);
+    drawCenteredLines(context, wrapText(context, subtitle, 700, 3), CANVAS_WIDTH / 2, QUIZ_SUBTITLE_Y, 68);
   } else {
     context.fillStyle = "#f5f5f4";
     context.font = "600 48px Manrope, Arial, sans-serif";
@@ -221,7 +224,7 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   const showButtons = !isQuestion;
 
   const BIG_WORD_Y = 900;
-  const TERM_Y = 460;
+  const TERM_Y = QUIZ_TERM_Y;
   const BIG_FONT = 160;
   const TERM_FONT = 84;
   let termY = TERM_Y;
@@ -287,7 +290,7 @@ function drawOutro(context: CanvasRenderingContext2D, scene: Extract<OriginalMas
   const fontSize = 72;
   const lineHeight = 92;
   context.font = `700 ${fontSize}px Manrope, Arial, sans-serif`;
-  const y = 720;
+  const y = OUTRO_Y;
   scene.lines.forEach((line, index) => {
     context.fillText(line, CANVAS_WIDTH / 2, y + (index - (scene.lines.length - 1) / 2) * lineHeight);
   });
