@@ -18,8 +18,8 @@ const QUIZ_OPTION_COLORS = ["#ef4444", "#3b82f6", "#fbbf24", "#10b981"] as const
 const QUIZ_OPTION_TEXT_COLORS = ["#ffffff", "#ffffff", "#17120e", "#ffffff"] as const;
 const QUIZ_REVEAL_RED = "#ef4444";
 const QUIZ_REVEAL_GREEN = "#10b981";
-const QUIZ_COUNTDOWN_Y = 1380;
-const MASCOT_NORMAL_Y = 1000;
+const QUIZ_COUNTDOWN_Y = 1600;
+const MASCOT_NORMAL_Y = 1400;
 
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
@@ -164,7 +164,7 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   if (isQuiz) {
     context.fillStyle = "#17120e";
     context.font = "700 56px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 340, 68);
+    drawCenteredLines(context, wrapText(context, subtitle, 700, 3), CANVAS_WIDTH / 2, 340, 68);
   } else {
     context.fillStyle = "#f5f5f4";
     context.font = "600 48px Manrope, Arial, sans-serif";
@@ -221,7 +221,7 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   const showButtons = !isQuestion;
 
   const BIG_WORD_Y = 900;
-  const TERM_Y = 520;
+  const TERM_Y = 460;
   const BIG_FONT = 160;
   const TERM_FONT = 84;
   let termY = TERM_Y;
@@ -243,7 +243,8 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
-  context.font = `600 ${termFont}px Manrope, Arial, sans-serif`;
+  const termFontFamily = scene.language === "en" ? '"Super Water", Manrope, Arial, sans-serif' : "Manrope, Arial, sans-serif";
+  context.font = `600 ${termFont}px ${termFontFamily}`;
   drawCenteredLines(context, wrapText(context, scene.term, 900, 2), CANVAS_WIDTH / 2, termY, termLineHeight);
 
   if (showButtons) {
@@ -264,12 +265,12 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
         const transition = isReveal ? smoothRevealProgress(localElapsed, 0.6) : isExplanation ? 1 : 0;
         const fill = reveal ? (correct ? lerpHex(baseFill, QUIZ_REVEAL_GREEN, transition) : lerpHex(baseFill, QUIZ_REVEAL_RED, transition)) : baseFill;
         const textColor = reveal ? "#ffffff" : baseText;
-        const y = 640 + index * 118;
-        drawRoundedRect(context, 100, y, 880, 100, 20, fill);
+        const y = 640 + index * 142;
+        drawRoundedRect(context, 100, y, 880, 120, 20, fill);
         context.textAlign = "left";
         context.fillStyle = textColor;
-        context.font = "600 36px Manrope, Arial, sans-serif";
-        context.fillText(`${labels[index]} ${option}`, 142, y + 52);
+        context.font = "600 42px Manrope, Arial, sans-serif";
+        context.fillText(`${labels[index]} ${option}`, 142, y + 62);
       });
       context.restore();
     }
@@ -520,7 +521,7 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
 /** Legacy real-time renderer for browsers without WebCodecs. */
 async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (scenes.length < 4 || scenes.length > 15) throw new Error("invalid_video_scene_count");
+  if (scenes.length < 4 || scenes.length > 18) throw new Error("invalid_video_scene_count");
 
   const assets = await loadOriginalMascotVideoAssets();
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
@@ -584,7 +585,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
 
 /** Browser-only 9:16 renderer with frame-exact WebCodecs export on Chrome/Android. */
 export async function renderOriginalMascotLearningVideo(options: OriginalMascotLearningVideoRenderOptions) {
-  if (options.scenes.length < 4 || options.scenes.length > 15) throw new Error("invalid_video_scene_count");
+  if (options.scenes.length < 4 || options.scenes.length > 18) throw new Error("invalid_video_scene_count");
   if (await canRenderOriginalMascotDeterministically()) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }

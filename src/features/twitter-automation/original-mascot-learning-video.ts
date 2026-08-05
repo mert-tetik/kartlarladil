@@ -1,3 +1,5 @@
+import type { LanguageCode } from "@/types/domain";
+
 export type OriginalMascotLearningVideoMode = "tier-progression-video" | "vocabulary-quiz-video" | "sentence-check-video";
 
 type BaseScene = {
@@ -20,6 +22,7 @@ export type QuizVideoScene = BaseScene & {
   tier: "A1" | "A2" | "B1" | "B2" | "C1";
   options: string[];
   correctIndex: number;
+  language: LanguageCode;
 };
 
 export type SentenceVideoScene = BaseScene & {
