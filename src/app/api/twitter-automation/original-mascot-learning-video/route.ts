@@ -102,62 +102,97 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
   };
 }
 
-async function selectQuizCards(language: LanguageCode, nativeLanguage: LanguageCode) {
+async function selectTwoQuizCards(language: LanguageCode, nativeLanguage: LanguageCode) {
   const quizTiers: Tier[] = ["A1", "A2", "B1", "B2"];
-  const [term] = await selectSocialStudioVocabularyTerms({
+  const [term1, term2] = await selectSocialStudioVocabularyTerms({
     language,
     nativeLanguage,
     tier: pick(quizTiers),
-    count: 1,
+    count: 2,
     generator: "vocabulary-quiz-video",
   });
-  const card = await resolveSocialStudioVocabularyCard(term!, language, nativeLanguage);
+  const card1 = await resolveSocialStudioVocabularyCard(term1!, language, nativeLanguage);
+  const card2 = await resolveSocialStudioVocabularyCard(term2!, language, nativeLanguage);
   const candidates = shuffle(VOCABULARY_CARDS.filter((card) => card.language === language && card.termKind === "word"));
-  const correctMeaning = card.translations[nativeLanguage] || card.translation;
-  const distractors = candidates
-    .filter((candidate) => candidate.sourceKey !== card.sourceKey)
-    .map((candidate) => candidate.translations[nativeLanguage] || candidate.translation)
-    .filter((meaning) => meaning && meaning.toLocaleLowerCase() !== correctMeaning.toLocaleLowerCase());
-  const uniqueDistractors = [...new Set(distractors.map((meaning) => meaning.trim()))].slice(0, 3);
-  if (uniqueDistractors.length !== 3) return null;
-  const options = shuffle([correctMeaning, ...uniqueDistractors]);
-  return { card, options, correctIndex: options.findIndex((option) => option === correctMeaning) };
+  const buildQuiz = (card: typeof card1) => {
+    const correctMeaning = card.translations[nativeLanguage] || card.translation;
+    const distractors = candidates
+      .filter((candidate) => candidate.sourceKey !== card.sourceKey)
+      .map((candidate) => candidate.translations[nativeLanguage] || candidate.translation)
+      .filter((meaning) => meaning && meaning.toLocaleLowerCase() !== correctMeaning.toLocaleLowerCase());
+    const uniqueDistractors = [...new Set(distractors.map((meaning) => meaning.trim()))].slice(0, 3);
+    if (uniqueDistractors.length !== 3) return null;
+    const options = shuffle([correctMeaning, ...uniqueDistractors]);
+    return { card, options, correctIndex: options.findIndex((option) => option === correctMeaning) };
+  };
+  const quiz1 = buildQuiz(card1);
+  const quiz2 = buildQuiz(card2);
+  if (!quiz1 || quiz1.correctIndex < 0 || !quiz2 || quiz2.correctIndex < 0) return null;
+  return { quiz1, quiz2 };
 }
 
-async function createQuizPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
-  const quiz = await selectQuizCards(language, nativeLanguage);
-  if (!quiz || quiz.correctIndex < 0) return null;
-  const plan = await createPlan(
+async function createSingleQuizPlan(language: LanguageCode, nativeLanguage: LanguageCode, quiz: { card: typeof VOCABULARY_CARDS[number]; options: string[]; correctIndex: number }) {
+  return await createPlan(
     [
       "Create a concise native-language narration plan for a FoxiesDeck vocabulary quiz video.",
       "Return one JSON object only: { caption, question, prompt, reveal, explanation }.",
-      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct native-language meaning. explanation briefly explains the word using the supplied example.",
+      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct native-language meaning. explanation simply repeats the correct answer; do not give an example sentence, do not explain usage, and do not add extra context.",
       "caption has 2 or 3 relevant hashtags. Keep all spoken values brief, natural, and easy to understand.",
     ].join("\n"),
     { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language], word: quiz.card.term, meaning: quiz.options[quiz.correctIndex], example: quiz.card.examples[0]?.sentence ?? quiz.card.example },
     parseQuizPlan,
   );
-  if (!plan) return null;
-  const spoken = [
-    { text: plan.question, language: nativeLanguage },
-    { text: quiz.card.term, language },
-    { text: plan.prompt, language: nativeLanguage },
-    { text: plan.reveal, language: nativeLanguage },
-    { text: plan.explanation, language: nativeLanguage },
+}
+
+function buildQuizScenes(base: { kind: "quiz"; term: string; tier: Tier; options: string[]; correctIndex: number }, plan: NonNullable<Awaited<ReturnType<typeof createSingleQuizPlan>>>, audioDataUrls: string[]) {
+  return [
+    { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audioDataUrls[0]! },
+    { ...base, phase: "question" as const, subtitle: base.term, audioDataUrl: audioDataUrls[1]! },
+    { ...base, phase: "question" as const, subtitle: plan.prompt, audioDataUrl: audioDataUrls[2]! },
+    { ...base, phase: "countdown" as const, subtitle: plan.prompt, durationSeconds: 6 },
+    { ...base, phase: "reveal" as const, subtitle: plan.reveal, audioDataUrl: audioDataUrls[3]! },
+    { ...base, phase: "explanation" as const, subtitle: plan.explanation, audioDataUrl: audioDataUrls[4]! },
   ];
-  const audioDataUrls = await generatePoyoSpeechDataUrls(spoken);
-  await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz.card.term]);
-  const base = { kind: "quiz" as const, term: quiz.card.term, tier: quiz.card.tier, options: quiz.options, correctIndex: quiz.correctIndex };
+}
+
+async function createQuizPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
+  const selected = await selectTwoQuizCards(language, nativeLanguage);
+  if (!selected) return null;
+  const { quiz1, quiz2 } = selected;
+  const plan1 = await createSingleQuizPlan(language, nativeLanguage, quiz1);
+  const plan2 = await createSingleQuizPlan(language, nativeLanguage, quiz2);
+  if (!plan1 || !plan2) return null;
+  const spoken1 = [
+    { text: plan1.question, language: nativeLanguage },
+    { text: quiz1.card.term, language },
+    { text: plan1.prompt, language: nativeLanguage },
+    { text: plan1.reveal, language: nativeLanguage },
+    { text: plan1.explanation, language: nativeLanguage },
+  ];
+  const spoken2 = [
+    { text: plan2.question, language: nativeLanguage },
+    { text: quiz2.card.term, language },
+    { text: plan2.prompt, language: nativeLanguage },
+    { text: plan2.reveal, language: nativeLanguage },
+    { text: plan2.explanation, language: nativeLanguage },
+  ];
+  const transitionText = "Peki ya, bir kelime daha.";
+  const [audioDataUrls1, audioDataUrls2, transitionAudio] = await Promise.all([
+    generatePoyoSpeechDataUrls(spoken1),
+    generatePoyoSpeechDataUrls(spoken2),
+    generatePoyoSpeechDataUrls([{ text: transitionText, language: nativeLanguage }]),
+  ]);
+  await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz1.card.term, quiz2.card.term]);
+  const base1 = { kind: "quiz" as const, term: quiz1.card.term, tier: quiz1.card.tier, options: quiz1.options, correctIndex: quiz1.correctIndex };
+  const base2 = { kind: "quiz" as const, term: quiz2.card.term, tier: quiz2.card.tier, options: quiz2.options, correctIndex: quiz2.correctIndex };
+  const transitionScene = { kind: "quiz" as const, phase: "question" as const, term: "Peki ya", tier: "A1" as const, options: [], correctIndex: -1, subtitle: transitionText, audioDataUrl: transitionAudio[0]! };
   return {
     mode: "vocabulary-quiz-video",
-    caption: plan.caption,
+    caption: `${plan1.caption}\n\n${plan2.caption}`,
     scenes: [
-      { ...base, phase: "question", subtitle: plan.question, audioDataUrl: audioDataUrls[0]! },
-      { ...base, phase: "question", subtitle: quiz.card.term, audioDataUrl: audioDataUrls[1]! },
-      { ...base, phase: "question", subtitle: plan.prompt, audioDataUrl: audioDataUrls[2]! },
-      { ...base, phase: "countdown", subtitle: plan.prompt, durationSeconds: 4 },
-      { ...base, phase: "reveal", subtitle: plan.reveal, audioDataUrl: audioDataUrls[3]! },
-      { ...base, phase: "explanation", subtitle: plan.explanation, audioDataUrl: audioDataUrls[4]! },
+      ...buildQuizScenes(base1, plan1, audioDataUrls1),
+      transitionScene,
+      ...buildQuizScenes(base2, plan2, audioDataUrls2),
     ],
   };
 }

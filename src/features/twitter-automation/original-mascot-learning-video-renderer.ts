@@ -156,7 +156,7 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   const splashWidth = isQuiz ? 720 : isProgression ? 320 : 320;
   const splashHeight = splashWidth * splash.height / splash.width;
   const x = (CANVAS_WIDTH - splashWidth) / 2;
-  const y = isQuiz ? 180 : isProgression ? 44 : 44;
+  const y = isQuiz ? 120 : isProgression ? 44 : 44;
   context.drawImage(isQuiz || isProgression ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
   if (!subtitle) return;
   context.textAlign = "center";
@@ -229,7 +229,7 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
 
   const BIG_WORD_Y = 900;
   const TERM_Y = 520;
-  const BIG_FONT = 140;
+  const BIG_FONT = 160;
   const TERM_FONT = 84;
   let termY = TERM_Y;
   let termFont = TERM_FONT;
@@ -283,14 +283,6 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   }
 
   if (isCountdown) drawClock(context, localElapsed, "quiz");
-
-  if (isExplanation) {
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillStyle = "#17120e";
-    context.font = "600 48px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, `Doğru cevap ${scene.term}`, 900), CANVAS_WIDTH / 2, 1180, 60);
-  }
 }
 
 function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default") {
@@ -511,7 +503,7 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
 /** Legacy real-time renderer for browsers without WebCodecs. */
 async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (scenes.length < 4 || scenes.length > 12) throw new Error("invalid_video_scene_count");
+  if (scenes.length < 4 || scenes.length > 13) throw new Error("invalid_video_scene_count");
 
   const assets = await loadOriginalMascotVideoAssets();
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
@@ -575,7 +567,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
 
 /** Browser-only 9:16 renderer with frame-exact WebCodecs export on Chrome/Android. */
 export async function renderOriginalMascotLearningVideo(options: OriginalMascotLearningVideoRenderOptions) {
-  if (options.scenes.length < 4 || options.scenes.length > 12) throw new Error("invalid_video_scene_count");
+  if (options.scenes.length < 4 || options.scenes.length > 13) throw new Error("invalid_video_scene_count");
   if (await canRenderOriginalMascotDeterministically()) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }
