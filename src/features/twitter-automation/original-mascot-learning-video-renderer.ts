@@ -182,13 +182,6 @@ function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, 
   const startY = CANVAS_HEIGHT + 80;
   const y = startY + (targetY - startY) * easeOutQuint(elapsed / 0.86) + extraOffsetY;
   context.save();
-  if (speaking) {
-    context.globalAlpha = 0.22 * extraAlpha;
-    context.fillStyle = "#f5ac27";
-    context.beginPath();
-    context.ellipse(CANVAS_WIDTH / 2, y + height * 0.75, width * 0.42, height * 0.22, 0, 0, Math.PI * 2);
-    context.fill();
-  }
   context.globalAlpha = Math.min(1, 0.2 + easeOutQuint(elapsed / 0.55) * 0.8) * extraAlpha;
   context.drawImage(image, (CANVAS_WIDTH - width) / 2, y, width, height);
   context.restore();

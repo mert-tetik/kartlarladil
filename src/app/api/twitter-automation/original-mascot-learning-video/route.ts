@@ -136,7 +136,7 @@ async function createSingleQuizPlan(language: LanguageCode, nativeLanguage: Lang
     [
       "Create a concise native-language narration plan for a FoxiesDeck vocabulary quiz video.",
       "Return one JSON object only: { caption, question, prompt, reveal, explanation }.",
-      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct native-language meaning. explanation simply repeats the correct answer; do not give an example sentence, do not explain usage, and do not add extra context.",
+      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct answer clearly, for example 'Doğru cevap ...'. explanation is not used in the final video; provide a brief placeholder sentence.",
       "caption has 2 or 3 relevant hashtags. Keep all spoken values brief, natural, and easy to understand.",
     ].join("\n"),
     { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language], word: quiz.card.term, meaning: quiz.options[quiz.correctIndex], example: quiz.card.examples[0]?.sentence ?? quiz.card.example },
@@ -151,7 +151,6 @@ function buildQuizScenes(base: { kind: "quiz"; term: string; tier: Tier; options
     { ...base, phase: "question" as const, subtitle: plan.prompt, audioDataUrl: audioDataUrls[2]! },
     { ...base, phase: "countdown" as const, subtitle: plan.prompt, durationSeconds: 6 },
     { ...base, phase: "reveal" as const, subtitle: plan.reveal, audioDataUrl: audioDataUrls[3]! },
-    { ...base, phase: "explanation" as const, subtitle: plan.explanation, audioDataUrl: audioDataUrls[4]! },
   ];
 }
 
@@ -167,14 +166,12 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
     { text: quiz1.card.term, language },
     { text: plan1.prompt, language: nativeLanguage },
     { text: plan1.reveal, language: nativeLanguage },
-    { text: plan1.explanation, language: nativeLanguage },
   ];
   const spoken2 = [
     { text: plan2.question, language: nativeLanguage },
     { text: quiz2.card.term, language },
     { text: plan2.prompt, language: nativeLanguage },
     { text: plan2.reveal, language: nativeLanguage },
-    { text: plan2.explanation, language: nativeLanguage },
   ];
   const transitionText = "Peki ya, bir kelime daha.";
   const [audioDataUrls1, audioDataUrls2, transitionAudio] = await Promise.all([
