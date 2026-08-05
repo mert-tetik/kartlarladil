@@ -1,6 +1,5 @@
 import sharp from "sharp";
 import { z } from "zod";
-import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
@@ -8,6 +7,7 @@ import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-spee
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -61,9 +61,9 @@ async function formatAvatarFrame(image: Buffer) {
   return `data:image/webp;base64,${formattedFrame.toString("base64")}`;
 }
 
-function selectCard(language: LanguageCode, tier: Tier) {
-  const cards = VOCABULARY_CARDS.filter((card) => card.language === language && card.tier === tier && card.termKind === "word");
-  return cards[Math.floor(Math.random() * cards.length)] ?? null;
+async function selectCard(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
+  const [term] = await selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier, count: 1, generator: "ai-word-of-the-day-video" });
+  return await resolveSocialStudioVocabularyCard(term!, language, nativeLanguage);
 }
 
 function extractJsonObject(value: string) {
@@ -286,8 +286,16 @@ export async function POST(request: Request) {
   const poyoApiKey = process.env.POYO_API_KEY;
   if (!poyoApiKey?.trim()) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
 
-  const card = selectCard(parsed.data.language, parsed.data.tier);
-  if (!card) return Response.json({ errorCode: "card_not_found" }, { status: 404 });
+  let card: VocabularyCard;
+  try {
+    card = await selectCard(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
+  } catch (error) {
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
+    return Response.json({
+      errorCode,
+      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The video could not select a fresh vocabulary term." }),
+    }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
+  }
 
   let plan: VideoPlan | null;
   try {
@@ -363,6 +371,13 @@ export async function POST(request: Request) {
   const videoPayload = await videoResponse.json().catch(() => null) as { data?: { task_id?: unknown } } | null;
   const taskId = videoPayload?.data?.task_id;
   if (!videoResponse.ok || typeof taskId !== "string") return Response.json({ errorCode: "avatar_submission_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Kling Avatar submission", provider: "PoYo Generate / Kling", fallbackDetail: `Kling did not accept the avatar task (HTTP ${videoResponse.status}).` }) }, { status: 502 });
+
+  try {
+    await recordSocialStudioVocabularyUsage(parsed.data.language, "ai-word-of-the-day-video", [card.term]);
+  } catch (error) {
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "social_vocabulary_history_unavailable";
+    return Response.json({ errorCode, diagnostic: createSocialStudioDiagnostic({ stage: "Vocabulary usage recording", provider: "Supabase", error, fallbackDetail: "The video was prepared but its vocabulary history could not be saved." }) }, { status: 503 });
+  }
 
   return Response.json({
     taskId,

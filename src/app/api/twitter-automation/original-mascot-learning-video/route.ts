@@ -7,7 +7,8 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import type { LanguageCode } from "@/types/domain";
+import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
+import type { LanguageCode, Tier } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,16 +69,18 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
 }
 
 async function createProgressionPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
+  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
   const plan = await createPlan(
     [
       "Create an A1-to-C1 vocabulary progression for a FoxiesDeck vertical learning video.",
       "Return one JSON object only: { caption, terms, narration }.",
       "terms must contain exactly three distinct, semantically connected target-language words in this exact tier set: A1, B1, C1. They should express the same broad idea with increasingly precise or advanced vocabulary.",
+      "Choose the terms yourself, not from a catalogue. The input includes previously used terms with lastUsedAt timestamps. Prefer terms never in that list; only reuse a term when no suitable unused term can be found, then choose the oldest one, never a recent one.",
       "narration must contain exactly 8 objects with { text, phase, activeTier } in this exact order: intro/null, term/A1, explanation/A1, term/B1, explanation/B1, term/C1, explanation/C1, outro/null.",
       "For every term phase, text must be the exact target-language word for that tier. intro is a native-language hook of at most 6 words introducing the A1-to-C1 comparison. Each explanation phase must begin directly with the meaning in the native language; never repeat, quote, or name its target-language word because it was spoken in the previous scene. outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
       "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep every spoken text brief and natural.",
     ].join("\n"),
-    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
+    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage], previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage) },
     parseProgressionPlan,
   );
   if (!plan) return null;
@@ -91,6 +94,7 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
     };
   });
   const audioDataUrls = await generatePoyoSpeechDataUrls(spokenScenes.map((scene) => ({ text: scene.text, language: scene.language, speed: 1 })));
+  await recordSocialStudioVocabularyUsage(language, "tier-progression-video", plan.terms.map((entry) => entry.term));
   return {
     mode: "tier-progression-video",
     caption: plan.caption,
@@ -98,10 +102,17 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
   };
 }
 
-function selectQuizCards(language: LanguageCode, nativeLanguage: LanguageCode) {
+async function selectQuizCards(language: LanguageCode, nativeLanguage: LanguageCode) {
+  const quizTiers: Tier[] = ["A1", "A2", "B1", "B2"];
+  const [term] = await selectSocialStudioVocabularyTerms({
+    language,
+    nativeLanguage,
+    tier: pick(quizTiers),
+    count: 1,
+    generator: "vocabulary-quiz-video",
+  });
+  const card = await resolveSocialStudioVocabularyCard(term!, language, nativeLanguage);
   const candidates = shuffle(VOCABULARY_CARDS.filter((card) => card.language === language && card.termKind === "word"));
-  const card = candidates.find((candidate) => Boolean(candidate.translations[nativeLanguage] || candidate.translation));
-  if (!card) return null;
   const correctMeaning = card.translations[nativeLanguage] || card.translation;
   const distractors = candidates
     .filter((candidate) => candidate.sourceKey !== card.sourceKey)
@@ -114,7 +125,7 @@ function selectQuizCards(language: LanguageCode, nativeLanguage: LanguageCode) {
 }
 
 async function createQuizPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
-  const quiz = selectQuizCards(language, nativeLanguage);
+  const quiz = await selectQuizCards(language, nativeLanguage);
   if (!quiz || quiz.correctIndex < 0) return null;
   const plan = await createPlan(
     [
@@ -135,6 +146,7 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
     { text: plan.explanation, language: nativeLanguage },
   ];
   const audioDataUrls = await generatePoyoSpeechDataUrls(spoken);
+  await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz.card.term]);
   const base = { kind: "quiz" as const, term: quiz.card.term, tier: quiz.card.tier, options: quiz.options, correctIndex: quiz.correctIndex };
   return {
     mode: "vocabulary-quiz-video",
@@ -211,7 +223,7 @@ export async function POST(request: Request) {
       diagnostic: createSocialStudioDiagnostic({ stage: "PoYo ElevenLabs TTS", provider: "PoYo Generate", error, fallbackDetail: "The voice task could not be completed." }),
     }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "learning_video_generation_failed",
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "learning_video_generation_failed",
       diagnostic: createSocialStudioDiagnostic({
         stage: "A1 to C1 script plan",
         provider: "PoYo Responses / Terra",

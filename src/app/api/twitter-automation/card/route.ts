@@ -1,42 +1,39 @@
 import { NextResponse } from "next/server";
-import { VOCABULARY_CARDS } from "@/data/cards";
-import { isLanguageCode } from "@/data/languages";
+import { z } from "zod";
+import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
-import type { Tier, VocabularyCard } from "@/types/domain";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import {
+  recordSocialStudioVocabularyUsage,
+  resolveSocialStudioVocabularyCard,
+  selectSocialStudioVocabularyTerms,
+  SocialStudioVocabularyError,
+} from "@/features/twitter-automation/social-studio-vocabulary";
 
-type PostType = "word" | "phrase" | "random";
+const requestSchema = z.object({
+  language: z.enum(LANGUAGE_CODES),
+  nativeLanguage: z.enum(LOCALE_CODES),
+  tier: z.enum(TIERS),
+  generator: z.string().trim().min(1).max(80).default("self-vocabulary-card"),
+});
 
-function isPhrase(card: VocabularyCard) {
-  return card.termKind === "fixed_phrase" || /\s/u.test(card.term.trim());
-}
-
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   if (!hasSocialStudioSession(request.headers.get("cookie"))) {
     return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const language = searchParams.get("language");
-  const tier = searchParams.get("tier");
-  const postType = searchParams.get("type") as PostType | null;
-
-  if (!language || !isLanguageCode(language) || !TIERS.includes(tier as Tier) || !["word", "phrase", "random"].includes(postType ?? "")) {
+  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const pool = VOCABULARY_CARDS.filter((card) => {
-    if (card.language !== language || card.tier !== tier) return false;
-    if (postType === "word") return !isPhrase(card);
-    if (postType === "phrase") return isPhrase(card);
-    return true;
-  });
-
-  const card = pool[Math.floor(Math.random() * pool.length)];
-
-  if (!card) {
-    return NextResponse.json({ error: "card_not_found" }, { status: 404 });
+  try {
+    const [term] = await selectSocialStudioVocabularyTerms({ ...parsed.data, count: 1 });
+    const card = await resolveSocialStudioVocabularyCard(term!, parsed.data.language, parsed.data.nativeLanguage);
+    await recordSocialStudioVocabularyUsage(parsed.data.language, parsed.data.generator, [card.term]);
+    return NextResponse.json({ card }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
+    return NextResponse.json({ errorCode }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
   }
-
-  return NextResponse.json({ card });
 }

@@ -1,13 +1,10 @@
 import { z } from "zod";
-import { LOCALE_CODES } from "@/data/languages";
-import { VOCABULARY_CARDS } from "@/data/cards";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
-import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
-import { generatedCardSchema, matchesRequestedTargetLanguage, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -91,23 +88,12 @@ function normalizeTerm(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en").trim();
 }
 
-function getCandidateCards(language: LanguageCode) {
-  return VOCABULARY_CARDS
-    .filter((card) => card.language === language && card.termKind === "word" && !/\s/u.test(card.term))
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 96);
-}
-
-function findCandidateCard(language: LanguageCode, term: string) {
-  const normalizedTerm = normalizeTerm(term);
-  return VOCABULARY_CARDS.find((candidate) => candidate.language === language && candidate.termKind === "word" && normalizeTerm(candidate.term) === normalizedTerm) ?? null;
-}
-
-async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, candidateCards: readonly VocabularyCard[]) {
+async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
+  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
   const instructions = [
     "Create a FoxiesDeck vertical short-video plan with exactly three phases about commonly confused or very-close-in-meaning vocabulary words.",
     "Return one JSON object only, with exactly: phases, caption. phases must contain exactly three objects. Each phase object must contain exactly: firstTerm, secondTerm, connector, question, firstMeaningTail, secondMeaningTail.",
-    "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Prefer a useful pair from candidateTerms, but you may choose a real word outside that list when it makes a more useful commonly-confused pair. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
+    "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Choose them yourself, never from a catalogue. Prefer words never in the supplied previouslyUsedTerms list. If an appropriate unused word truly cannot be found, choose only the oldest used word, never a recent one. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
     "connector is only the native-language equivalent of 'and'. question is the native-language equivalent of 'what is the difference between them?'.",
     "firstMeaningTail is a native-language phrase that follows the first term and means '[its meaning] while,'; do not repeat the first term. secondMeaningTail is a native-language phrase that follows the second term and means '[its meaning].'; do not repeat the second term.",
     "caption is one ready-to-post native-language caption under 260 characters, with an inviting hook and 2 or 3 relevant hashtags including #languagelearning.",
@@ -117,7 +103,7 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
     learningLanguage: LANGUAGE_NAMES[language],
     nativeLanguage: LANGUAGE_NAMES[nativeLanguage],
     requestedTier: tier,
-    candidateTerms: candidateCards.map((card) => card.term),
+    previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage),
   };
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
@@ -139,61 +125,11 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
   return await generate(false) ?? await generate(true);
 }
 
-function toStudioCustomCard(generated: GeneratedCardResponse): VocabularyCard {
-  const sourceKey = `social-studio:${generated.language}:${encodeURIComponent(generated.term).replace(/%/gu, "-")}`;
-  const translations = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, generated.translations[locale]!])) as VocabularyCard["translations"];
-  const grammar = { summary: "", rules: generated.grammar, details: [] };
-  const grammarByLocale = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, grammar])) as unknown as VocabularyCard["grammarByLocale"];
-  return {
-    id: sourceKey,
-    sourceKey,
-    englishKey: translations.en,
-    language: generated.language,
-    tier: generated.tier,
-    termKind: generated.termKind,
-    term: generated.term,
-    translation: translations.en,
-    translations,
-    translationMeaningsByLocale: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, [translations[locale]]])) as VocabularyCard["translationMeaningsByLocale"],
-    pronunciation: generated.pronunciation,
-    partOfSpeech: generated.partOfSpeech,
-    example: generated.example,
-    exampleTranslation: generated.exampleTranslation,
-    examples: [{
-      id: `${sourceKey}:example:0`, context: "natural", label: "Natural", sentence: generated.example, translation: generated.exampleTranslation,
-      translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, locale === "en" ? generated.exampleTranslation : generated.exampleTranslation])) as VocabularyCard["examples"][number]["translations"],
-    }],
-    grammar,
-    grammarByLocale,
-  };
-}
-
-async function createStudioCustomCard(term: string, language: LanguageCode, nativeLanguage: LocaleCode) {
-  const poyo = createSocialStudioPoyoClient();
-  const { output } = await generateSocialStudioTextWithFallback(
-    SOCIAL_CONTENT_CREATIVE_MODEL,
-    (model) => poyo.responses.create({
-    model,
-    instructions: buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
-    input: buildCreateCardInput({ locale: nativeLanguage, term, targetLanguage: language }),
-    max_output_tokens: 700,
-    reasoning: { effort: "minimal" },
-    store: false,
-    text: { format: { type: "text" }, verbosity: "low" },
-    }),
-    extractResponseOutputText,
-  );
-  const generated = generatedCardSchema.safeParse(JSON.parse(extractJsonObject(output)));
-  if (!generated.success || !matchesRequestedTargetLanguage(generated.data, language)) throw new Error("custom_card_generation_failed");
-  return toStudioCustomCard(generated.data);
-}
-
 async function resolveCards(plan: ConfusedWordsPlan, language: LanguageCode, nativeLanguage: LocaleCode) {
   const resolved = new Map<string, VocabularyCard>();
   for (const term of plan.phases.flatMap((phase) => [phase.firstTerm, phase.secondTerm])) {
     const key = normalizeTerm(term);
-    const existing = findCandidateCard(language, term);
-    resolved.set(key, existing ?? await createStudioCustomCard(term, language, nativeLanguage));
+    resolved.set(key, await resolveSocialStudioVocabularyCard(term, language, nativeLanguage));
   }
   return plan.phases.map((phase) => ({
     first: resolved.get(normalizeTerm(phase.firstTerm))!,
@@ -222,10 +158,10 @@ export async function POST(request: Request) {
 
   let plan: ConfusedWordsPlan | null;
   try {
-    plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, getCandidateCards(parsed.data.language));
+    plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "confused_words_plan_failed",
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "confused_words_plan_failed",
       diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words script plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The three-phase script request failed." }),
     }, { status: 502 });
   }
@@ -239,7 +175,7 @@ export async function POST(request: Request) {
     cards = await resolveCards(plan, parsed.data.language, parsed.data.nativeLanguage);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "custom_card_generation_failed",
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "custom_card_generation_failed",
       diagnostic: createSocialStudioDiagnostic({ stage: "Custom vocabulary card generation", provider: "PoYo Responses / Terra", error, fallbackDetail: "A required card was not present in the catalogue and its custom-card request failed." }),
     }, { status: 502 });
   }
@@ -257,6 +193,7 @@ export async function POST(request: Request) {
 
   try {
     const audioDataUrls = await generateSceneSpeechInBatches(sceneDefinitions);
+    await recordSocialStudioVocabularyUsage(parsed.data.language, "confused-words-video", plan.phases.flatMap((phase) => [phase.firstTerm, phase.secondTerm]));
     return Response.json({
       caption: plan.caption,
       phases: cards,

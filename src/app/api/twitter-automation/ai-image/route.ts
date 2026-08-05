@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { VOCABULARY_CARDS } from "@/data/cards";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -63,15 +63,12 @@ const CAPTION_BRIEFS: Record<ImageMode, string> = {
   "ai-vocabulary-progression": "Start with a clear Beginner to Advanced-style headline, then frame the word pairs as a vocabulary upgrade.",
 };
 
-function getCardsForMode(mode: ImageMode, language: LanguageCode, tier: Tier) {
-  const tiers: Tier[] = mode === "ai-vocabulary-progression"
-    ? ["A1", "A2"]
-      : mode === "ai-false-friends"
-        ? ["A1", "A2", "B1", "B2", "C1"]
-        : [tier];
+async function getCardsForMode(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
+  if (mode === "ai-false-friends") return [];
   const count = mode === "ai-daily-challenge" || mode === "ai-vocabulary-progression" ? 3 : 1;
-  const pool = VOCABULARY_CARDS.filter((card) => card.language === language && tiers.includes(card.tier) && card.termKind === "word");
-  return [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+  const selectionTier = mode === "ai-vocabulary-progression" ? "A1" : tier;
+  const terms = await selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier: selectionTier, count, generator: mode });
+  return await Promise.all(terms.map((term) => resolveSocialStudioVocabularyCard(term, language, nativeLanguage)));
 }
 
 function serializeCards(cards: VocabularyCard[], nativeLanguage: LanguageCode) {
@@ -105,6 +102,7 @@ function parseAiImagePlan(rawPlan: string, mode: ImageMode): AiImagePlan | null 
 
 async function createArtDirection(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, cards: VocabularyCard[]) {
   if (!process.env.POYO_API_KEY?.trim()) return null;
+  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
 
   const instructions = [
       "You are the senior visual art director for FoxiesDeck, a playful multilingual vocabulary-card app.",
@@ -113,7 +111,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
         : "Return one JSON object with exactly two string fields: artDirection and caption. Do not add markdown or any text outside the JSON object.",
       "artDirection must be a detailed, production-ready English image-generation prompt for a 1:1 social media visual.",
       "caption must be a ready-to-post social caption written in the selected native language. It needs a concise hook or title, natural emoji only when appropriate, and two or three relevant hashtags including #languagelearning. Keep it below 260 characters. If the visual asks a question, quiz, or challenge, never reveal or hint at its answer in the caption.",
-      "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, commonly confused words from the selected learning language itself. The two terms must look or sound similar but have clearly different meanings. Never choose a word from the native language, direct translations, or a pair whose meanings are identical. The native language is only for writing the caption and explaining meanings, never for selecting the two terms.",
+      "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, commonly confused words from the selected learning language itself. Prefer terms absent from previouslyUsedTerms; if an appropriate unused term cannot be found, use the oldest listed term, never a recent one. The two terms must look or sound similar but have clearly different meanings. Never choose a word from the native language, direct translations, or a pair whose meanings are identical. The native language is only for writing the caption and explaining meanings, never for selecting the two terms.",
       `Caption format for this mode: ${CAPTION_BRIEFS[mode]}`,
       "Describe composition, camera angle, visual hierarchy, precise placement, lighting, material finish, typography treatment, and the relationship between the mascot and vocabulary cards.",
       "Use a polished minimalist 3D card-collecting aesthetic. Cards must look like real FoxiesDeck vocabulary cards, not generic flashcards.",
@@ -133,6 +131,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       nativeLanguage: ENGLISH_LANGUAGE_NAMES[nativeLanguage],
       selectedTier: tier,
       cards: serializeCards(cards, nativeLanguage),
+      previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage),
     };
   const poyo = createSocialStudioPoyoClient();
   const generatePlan = async (repair: boolean) => {
@@ -210,9 +209,15 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
   }
 
-  const cards = getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.tier);
-  if (!cards.length) {
-    return Response.json({ errorCode: "card_not_found" }, { status: 404 });
+  let cards: VocabularyCard[];
+  try {
+    cards = await getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
+  } catch (error) {
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
+    return Response.json({
+      errorCode,
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
+    }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
   }
 
   let imagePlan: AiImagePlan | null;
@@ -220,7 +225,7 @@ export async function POST(request: Request) {
     imagePlan = await createArtDirection(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, cards);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "art_direction_failed",
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "art_direction_failed",
       diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The creative plan request failed." }),
     }, { status: 502 });
   }
@@ -237,6 +242,10 @@ export async function POST(request: Request) {
       prompt: createImagePrompt(parsed.data.mode, imagePlan),
       size: "1:1",
     });
+    const usedTerms = parsed.data.mode === "ai-false-friends" && imagePlan.falseFriend
+      ? [imagePlan.falseFriend.firstTerm, imagePlan.falseFriend.secondTerm]
+      : cards.map((card) => card.term);
+    await recordSocialStudioVocabularyUsage(parsed.data.language, parsed.data.mode, usedTerms);
 
     return Response.json({
       imageUrl: image.dataUrl,

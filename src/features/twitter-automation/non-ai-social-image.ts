@@ -1,7 +1,7 @@
 import "server-only";
 
 import sharp from "sharp";
-import { VOCABULARY_CARDS } from "@/data/cards";
+import { recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type NonAiImageMode = "word-of-the-day" | "word-of-the-day-poster";
@@ -23,9 +23,9 @@ function escapeXml(value: string) {
   return value.replace(/[&<>'"]/gu, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&apos;", '"': "&quot;" })[character] ?? character);
 }
 
-function chooseCard(language: LanguageCode, tier: Tier) {
-  const cards = VOCABULARY_CARDS.filter((card) => card.language === language && card.tier === tier && card.termKind === "word");
-  return cards[Math.floor(Math.random() * cards.length)] as VocabularyCard | undefined;
+async function chooseCard(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, mode: NonAiImageMode) {
+  const [term] = await selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier, count: 1, generator: mode });
+  return await resolveSocialStudioVocabularyCard(term!, language, nativeLanguage);
 }
 
 function captionFor(card: VocabularyCard) {
@@ -63,8 +63,8 @@ export async function createNonAiSocialImage({ language, nativeLanguage, tier, m
   tier: Tier;
   mode: NonAiImageMode;
 }) {
-  const card = chooseCard(language, tier);
-  if (!card) throw new Error("card_not_found");
+  const card = await chooseCard(language, nativeLanguage, tier, mode);
   const png = await sharp(Buffer.from(imageSvg(card, nativeLanguage, mode))).png().toBuffer();
+  await recordSocialStudioVocabularyUsage(language, mode, [card.term]);
   return { dataUrl: `data:image/png;base64,${png.toString("base64")}`, caption: captionFor(card) };
 }

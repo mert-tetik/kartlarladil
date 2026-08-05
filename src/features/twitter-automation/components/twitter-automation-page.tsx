@@ -480,7 +480,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setPosterImageUrl("");
     setLocalImageRenderError("");
     try {
-      const response = await fetch(`/api/twitter-automation/card?language=${nextLanguage}&tier=${nextTier}&type=word`);
+      const response = await fetch("/api/twitter-automation/card", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ language: nextLanguage, nativeLanguage, tier: nextTier, generator: "self-vocabulary-card" }),
+      });
       if (response.status === 401) {
         setAuthenticated(false);
         return null;
@@ -533,7 +537,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       const responses = await Promise.all(randomCarouselTiers().map(async (randomTier) => {
-        const response = await fetch(`/api/twitter-automation/card?language=${encodeURIComponent(language)}&tier=${randomTier}&type=word`);
+        const response = await fetch("/api/twitter-automation/card", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ language, nativeLanguage, tier: randomTier, generator: "vocabulary-carousel" }),
+        });
         if (response.status === 401) {
           setAuthenticated(false);
           return null;
@@ -569,7 +577,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       const responses = await Promise.all(progressionTiers.map(async (progressionTier) => {
-        const response = await fetch(`/api/twitter-automation/card?language=${encodeURIComponent(language)}&tier=${progressionTier}&type=word`);
+        const response = await fetch("/api/twitter-automation/card", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ language, nativeLanguage, tier: progressionTier, generator: "tier-progression-carousel" }),
+        });
         if (response.status === 401) {
           setAuthenticated(false);
           return null;
