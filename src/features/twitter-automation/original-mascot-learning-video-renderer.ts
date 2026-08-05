@@ -275,7 +275,7 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
     }
   }
 
-  if (isCountdown) drawClock(context, localElapsed, "quiz");
+  if (isCountdown) drawClock(context, localElapsed, "quiz", scene.durationSeconds ?? 6);
 }
 
 function drawOutro(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "outro" }>, localElapsed: number) {
@@ -291,9 +291,9 @@ function drawOutro(context: CanvasRenderingContext2D, scene: Extract<OriginalMas
   });
 }
 
-function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default") {
-  const remaining = Math.max(0, COUNTDOWN_SECONDS - elapsed);
-  const progress = Math.min(1, elapsed / COUNTDOWN_SECONDS);
+function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default", duration = 5) {
+  const remaining = Math.max(0, duration - elapsed);
+  const progress = Math.min(1, elapsed / duration);
   const x = CANVAS_WIDTH / 2;
   const y = variant === "quiz" ? QUIZ_COUNTDOWN_Y : 1120;
   const radius = variant === "quiz" ? 160 : 96;
@@ -321,26 +321,57 @@ function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: 
 }
 
 function drawSentence(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "sentence" }>, localElapsed: number) {
+  const isQuestion = scene.phase === "question";
+  const isCountdown = scene.phase === "countdown";
+  const isReveal = scene.phase === "reveal" || scene.phase === "explanation";
+  const countdownDuration = scene.durationSeconds ?? 5;
+
+  const BIG_FONT = 110;
+  const SMALL_FONT = 56;
+  const BIG_Y = 820;
+  const SMALL_Y = 440;
+  const BIG_LINE_HEIGHT = 126;
+  const SMALL_LINE_HEIGHT = 68;
+  let sentenceFont = BIG_FONT;
+  let sentenceY = BIG_Y;
+  let sentenceLineHeight = BIG_LINE_HEIGHT;
+  if (isCountdown) {
+    const moveDuration = 0.5;
+    const p = Math.min(1, localElapsed / moveDuration);
+    const eased = easeInOutCubic(p);
+    sentenceFont = BIG_FONT + (SMALL_FONT - BIG_FONT) * eased;
+    sentenceY = BIG_Y + (SMALL_Y - BIG_Y) * eased;
+    sentenceLineHeight = BIG_LINE_HEIGHT + (SMALL_LINE_HEIGHT - BIG_LINE_HEIGHT) * eased;
+  } else if (isReveal) {
+    sentenceFont = SMALL_FONT;
+    sentenceY = SMALL_Y;
+    sentenceLineHeight = SMALL_LINE_HEIGHT;
+  }
+
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
-  if (scene.phase === "question") {
-    context.font = "600 110px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, scene.sentence, 980, 3), CANVAS_WIDTH / 2, 820, 126);
-    return;
+  context.font = `600 ${sentenceFont}px Manrope, Arial, sans-serif`;
+  drawCenteredLines(context, wrapText(context, scene.sentence, 980, 3), CANVAS_WIDTH / 2, sentenceY, sentenceLineHeight);
+
+  if (isCountdown) {
+    drawClock(context, localElapsed, "quiz", countdownDuration);
   }
-  if (scene.phase === "reveal" || scene.phase === "explanation") {
-    context.font = "700 160px Manrope, Arial, sans-serif";
-    context.fillText(scene.isCorrect ? "CORRECT" : "INCORRECT", CANVAS_WIDTH / 2, 560);
+
+  if (isReveal) {
+    context.fillStyle = scene.isCorrect ? "#10b981" : "#ef4444";
+    context.font = "700 80px Manrope, Arial, sans-serif";
+    context.fillText(scene.isCorrect ? "CORRECT" : "INCORRECT", CANVAS_WIDTH / 2, 640);
     if (scene.correction) {
-      context.font = "600 90px Manrope, Arial, sans-serif";
-      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 940, 106);
+      context.fillStyle = "#17120e";
+      context.font = "600 56px Manrope, Arial, sans-serif";
+      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 840, 72);
     }
   }
 }
 
-function scheduleCountdownTicks(context: BaseAudioContext, destination: AudioNode, startTime: number) {
-  for (let index = 0; index < COUNTDOWN_SECONDS; index += 1) {
+function scheduleCountdownTicks(context: BaseAudioContext, destination: AudioNode, startTime: number, duration: number) {
+  for (let index = 0; index < Math.floor(duration); index += 1) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.type = "sine";
@@ -400,9 +431,11 @@ function drawOriginalMascotFrame(
   const mascot = scene.kind === "progression" ? assets[scene.mascot] : assets.original;
   let mascotOffsetY = 0;
   let mascotAlpha = 1;
-  if (isQuiz && scene.phase === "countdown") {
+  const isCountdownScene = (isQuiz || isSentence) && scene.phase === "countdown";
+  if (isCountdownScene) {
+    const countdownDuration = scene.durationSeconds ?? (isQuiz ? 6 : 5);
     const hideDuration = 0.5;
-    const showStart = COUNTDOWN_SECONDS - hideDuration;
+    const showStart = countdownDuration - hideDuration;
     if (localElapsed < hideDuration) {
       const p = easeInOutCubic(localElapsed / hideDuration);
       mascotOffsetY = 300 * p;
@@ -455,7 +488,7 @@ async function renderOriginalMascotOfflineAudio(
   });
   scenes.forEach((scene, index) => {
     if ((scene.kind === "quiz" || scene.kind === "sentence") && scene.phase === "countdown") {
-      scheduleCountdownTicks(offlineContext, offlineContext.destination, starts[index]!);
+      scheduleCountdownTicks(offlineContext, offlineContext.destination, starts[index]!, scene.durationSeconds ?? 5);
     }
   });
   return await offlineContext.startRendering();
@@ -538,7 +571,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
     source.start(startTime + starts[index]!);
   });
   scenes.forEach((scene, index) => {
-    if ((scene.kind === "quiz" || scene.kind === "sentence") && scene.phase === "countdown") scheduleCountdownTicks(audioContext, destination, startTime + starts[index]!);
+    if ((scene.kind === "quiz" || scene.kind === "sentence") && scene.phase === "countdown") scheduleCountdownTicks(audioContext, destination, startTime + starts[index]!, scene.durationSeconds ?? 5);
   });
 
   let animationId = 0;

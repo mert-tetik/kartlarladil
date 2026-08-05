@@ -237,6 +237,7 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
     return [
       { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audioDataUrls[0]! },
+      { ...base, phase: "countdown" as const, subtitle: "", durationSeconds: 5 },
       { ...base, phase: "reveal" as const, subtitle: plan.reveal, audioDataUrl: audioDataUrls[2]! },
     ];
   };
