@@ -1,7 +1,7 @@
 export type ProgressionPlan = {
   caption: string;
   terms: Array<{ tier: "A1" | "B1" | "C1"; term: string }>;
-  narration: Array<{ text: string; phase: "term" | "explanation" | "outro"; activeTier: "A1" | "B1" | "C1" | null }>;
+  narration: Array<{ text: string; phase: "intro" | "term" | "explanation" | "outro"; activeTier: "A1" | "B1" | "C1" | null }>;
 };
 
 export type QuizPlan = { caption: string; question: string; prompt: string; reveal: string; explanation: string };
@@ -23,10 +23,11 @@ function normalizeTier(value: unknown): "A1" | "B1" | "C1" | null {
   return tier === "A1" || tier === "B1" || tier === "C1" ? tier : null;
 }
 
-function normalizeProgressionPhase(value: unknown): "term" | "explanation" | "outro" | null {
+function normalizeProgressionPhase(value: unknown): "intro" | "term" | "explanation" | "outro" | null {
   const phase = typeof value === "string" ? value.trim().toLowerCase().replaceAll(/[\s_-]+/g, " ") : "";
   if (["term", "word", "say word", "say term"].includes(phase)) return "term";
   if (["explanation", "explain", "meaning", "definition"].includes(phase)) return "explanation";
+  if (["intro", "introduction", "opening", "hook"].includes(phase)) return "intro";
   if (["outro", "summary", "closing", "conclusion"].includes(phase)) return "outro";
   return null;
 }
@@ -81,8 +82,9 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
     const resolvedNarration = narration.filter((scene): scene is NonNullable<typeof scene> => scene !== null);
     const narrationByKind = (phase: "term" | "explanation", tier: "A1" | "B1" | "C1") =>
       resolvedNarration.find((scene) => scene.phase === phase && scene.activeTier === tier)?.text;
+    const intro = resolvedNarration.find((scene) => scene.phase === "intro")?.text ?? cleanText((parsed as { intro?: unknown }).intro, 220);
     const outro = resolvedNarration.find((scene) => scene.phase === "outro")?.text ?? cleanText(parsed.outro, 220);
-    if (!outro) return null;
+    if (!intro || !outro) return null;
 
     const normalizedNarration = resolvedTerms.flatMap((term) => {
       const explanation = narrationByKind("explanation", term.tier);
@@ -94,7 +96,7 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
         : [];
     });
     if (normalizedNarration.length !== 6) return null;
-    return { caption, terms: resolvedTerms, narration: [...normalizedNarration, { text: outro, phase: "outro", activeTier: null }] };
+    return { caption, terms: resolvedTerms, narration: [{ text: intro, phase: "intro", activeTier: null }, ...normalizedNarration, { text: outro, phase: "outro", activeTier: null }] };
   } catch {
     return null;
   }

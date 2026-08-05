@@ -107,10 +107,22 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
   lines.forEach((line, index) => context.fillText(line, x, firstY + lineHeight * index));
 }
 
-function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string) {
+function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, tint?: string) {
   const splashWidth = 320;
   const splashHeight = splashWidth * splash.height / splash.width;
-  context.drawImage(splash.image, (CANVAS_WIDTH - splashWidth) / 2, 44, splashWidth, splashHeight);
+  const x = (CANVAS_WIDTH - splashWidth) / 2;
+  const y = tint ? 116 : 44;
+  context.drawImage(splash.image, x, y, splashWidth, splashHeight);
+  if (tint) {
+    context.save();
+    context.beginPath();
+    context.rect(x, y, splashWidth, splashHeight);
+    context.clip();
+    context.globalCompositeOperation = "source-in";
+    context.fillStyle = tint;
+    context.fillRect(x, y, splashWidth, splashHeight);
+    context.restore();
+  }
   if (!subtitle) return;
   context.fillStyle = "#f5f5f4";
   context.textAlign = "center";
@@ -142,7 +154,7 @@ function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, 
 }
 
 function drawProgression(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "progression" }>) {
-  const rowY = 380;
+  const rowY = 292;
   const rowHeight = 132;
   scene.terms.forEach((entry, index) => {
     const active = scene.activeTier === entry.tier;
@@ -164,7 +176,7 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
   context.textBaseline = "middle";
   context.fillStyle = "#f76808";
   context.font = "600 44px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 900, 54);
+  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 812, 54);
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
@@ -277,14 +289,17 @@ function drawOriginalMascotFrame(
   const sceneIndex = starts.reduce((active, start, index) => start <= clampedElapsed ? index : active, 0);
   const scene = scenes[sceneIndex]!;
   const localElapsed = Math.max(0, clampedElapsed - starts[sceneIndex]!);
-  context.fillStyle = "#090909";
+  const isProgression = scene.kind === "progression";
+  context.fillStyle = isProgression ? "#ffffff" : "#090909";
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  context.fillStyle = "#14110e";
-  context.beginPath();
-  context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
-  context.fill();
-  drawHeader(context, assets.splash, scene.kind === "progression" ? "" : scene.subtitle);
-  if (scene.kind === "progression") {
+  if (!isProgression) {
+    context.fillStyle = "#14110e";
+    context.beginPath();
+    context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "#f76808" : undefined);
+  if (isProgression) {
     drawProgression(context, scene);
     drawProgressionSubtitle(context, scene.subtitle);
   }

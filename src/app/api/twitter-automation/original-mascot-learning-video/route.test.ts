@@ -11,6 +11,7 @@ describe("Original mascot learning video plans", () => {
         { tier: "C1", term: "observe" },
       ],
       narration: [
+        { text: "Let's level up how you look at things.", phase: "intro", activeTier: null },
         { text: "look", phase: "term", activeTier: "A1" },
         { text: "Look means to direct your eyes toward something.", phase: "explanation", activeTier: "A1" },
         { text: "watch", phase: "term", activeTier: "B1" },
@@ -23,7 +24,7 @@ describe("Original mascot learning video plans", () => {
 
     expect(plan?.terms.map((term) => term.tier)).toEqual(["A1", "B1", "C1"]);
     expect(parseProgressionPlan(JSON.stringify({ ...plan, narration: [...(plan?.narration ?? [])].reverse() }))?.narration.map((scene) => `${scene.phase}:${scene.activeTier}`)).toEqual([
-      "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
+      "intro:null", "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
     ]);
   });
 
@@ -36,6 +37,7 @@ describe("Original mascot learning video plans", () => {
         { tier: "C1", word: "scrutinize" },
       ],
       narration: [
+        { text: "Let's compare three levels.", phase: "intro", activeTier: null },
         { text: "look", phase: "term", activeTier: "A1" },
         { text: "Basic looking.", phase: "explanation", activeTier: "A1" },
         { text: "observe", phase: "term", activeTier: "B1" },
@@ -58,6 +60,7 @@ describe("Original mascot learning video plans", () => {
         { level: "c1", word: "scrutinize" },
       ],
       scenes: [
+        { text: "Let us compare three levels.", type: "introduction" },
         { text: "Use the most precise word when it fits.", type: "summary" },
         { text: "To look is to direct your eyes at something.", type: "definition", active_tier: "A1" },
         { text: "observe", type: "word", tier: "B1" },
@@ -69,7 +72,7 @@ describe("Original mascot learning video plans", () => {
     }));
 
     expect(plan?.narration.map((scene) => `${scene.phase}:${scene.activeTier}`)).toEqual([
-      "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
+      "intro:null", "term:A1", "explanation:A1", "term:B1", "explanation:B1", "term:C1", "explanation:C1", "outro:null",
     ]);
   });
 
