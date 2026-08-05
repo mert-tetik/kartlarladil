@@ -274,7 +274,7 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
       ...buildSentenceScenes(plan1, takeAudios(plan1), true, true),
       ...buildSentenceScenes(plan2, takeAudios(plan2), true, true),
       ...buildSentenceScenes(plan3, takeAudios(plan3), true, true),
-      ...buildSentenceScenes(plan4, takeAudios(plan4), false, false),
+      ...buildSentenceScenes(plan4, takeAudios(plan4), true, false),
       outroScene,
     ],
   };
