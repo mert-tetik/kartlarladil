@@ -328,23 +328,22 @@ function drawSentence(context: CanvasRenderingContext2D, scene: Extract<Original
 
   const BIG_FONT = 110;
   const SMALL_FONT = 56;
-  const BIG_Y = 820;
-  const SMALL_Y = 440;
+  const QUESTION_Y = 820;
+  const COUNTDOWN_Y = 620;
+  const REVEAL_Y = 440;
   const BIG_LINE_HEIGHT = 126;
   const SMALL_LINE_HEIGHT = 68;
   let sentenceFont = BIG_FONT;
-  let sentenceY = BIG_Y;
+  let sentenceY = QUESTION_Y;
   let sentenceLineHeight = BIG_LINE_HEIGHT;
   if (isCountdown) {
     const moveDuration = 0.5;
     const p = Math.min(1, localElapsed / moveDuration);
     const eased = easeInOutCubic(p);
-    sentenceFont = BIG_FONT + (SMALL_FONT - BIG_FONT) * eased;
-    sentenceY = BIG_Y + (SMALL_Y - BIG_Y) * eased;
-    sentenceLineHeight = BIG_LINE_HEIGHT + (SMALL_LINE_HEIGHT - BIG_LINE_HEIGHT) * eased;
+    sentenceY = QUESTION_Y + (COUNTDOWN_Y - QUESTION_Y) * eased;
   } else if (isReveal) {
     sentenceFont = SMALL_FONT;
-    sentenceY = SMALL_Y;
+    sentenceY = REVEAL_Y;
     sentenceLineHeight = SMALL_LINE_HEIGHT;
   }
 

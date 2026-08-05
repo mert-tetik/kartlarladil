@@ -229,9 +229,12 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
   const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3)];
   const outroLines = ["Yorumlara yazın!"];
   const outroSpoken = outroLines.join(" ");
-  const [audioDataUrls, outroAudio] = await Promise.all([
+  const introLines = ["Verilen cümleler doğru mu?"];
+  const introSpoken = introLines.join(" ");
+  const [audioDataUrls, outroAudio, introAudio] = await Promise.all([
     generatePoyoSpeechDataUrls(allSpoken),
     generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
+    generatePoyoSpeechDataUrls([{ text: introSpoken, language: nativeLanguage }]),
   ]);
   const buildSentenceScenes = (plan: typeof plan1, audioDataUrls: string[]) => {
     const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
@@ -242,10 +245,12 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     ];
   };
   const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
+  const introScene = { kind: "outro" as const, lines: introLines, subtitle: "", audioDataUrl: introAudio[0]! };
   return {
     mode: "sentence-check-video",
     caption: [plan1.caption, plan2.caption, plan3.caption].join("\n\n"),
     scenes: [
+      introScene,
       ...buildSentenceScenes(plan1, audioDataUrls.slice(0, 3)),
       ...buildSentenceScenes(plan2, audioDataUrls.slice(3, 6)),
       ...buildSentenceScenes(plan3, audioDataUrls.slice(6, 9)),
