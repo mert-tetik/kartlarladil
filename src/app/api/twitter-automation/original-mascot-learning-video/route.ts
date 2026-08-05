@@ -5,7 +5,7 @@ import type { OriginalMascotLearningVideoPayload } from "@/features/twitter-auto
 import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
@@ -36,17 +36,19 @@ function pick<T>(items: readonly T[]): T {
 async function createPlan<T>(instructions: string, input: Record<string, unknown>, parse: (value: string) => T | null) {
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
-    const response = await poyo.responses.create({
-      model: SOCIAL_CONTENT_CREATIVE_MODEL,
+    const { output } = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_CREATIVE_MODEL,
+      (model) => poyo.responses.create({
+      model,
       instructions: `${instructions}${repair ? "\nYour previous response was invalid. Return one valid JSON object with every requested field." : ""}`,
       input: JSON.stringify(input),
       max_output_tokens: 900,
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    });
-    assertPoyoResponsesOutput(response);
-    const output = extractResponseOutputText(response);
+      }),
+      extractResponseOutputText,
+    );
     return parse(output);
   };
   let lastError: unknown;

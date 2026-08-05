@@ -6,7 +6,7 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-speech";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -119,18 +119,20 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
   };
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
-    const response = await poyo.responses.create({
-      model: SOCIAL_CONTENT_CREATIVE_MODEL,
+    const { output } = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_CREATIVE_MODEL,
+      (model) => poyo.responses.create({
+      model,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return only valid JSON with all four required string fields.` : instructions,
       input: JSON.stringify(input),
       max_output_tokens: 1000,
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
-    });
-    assertPoyoResponsesOutput(response);
-    const output = extractResponseOutputText(response).trim();
-    return parseVideoPlan(output);
+      }),
+      extractResponseOutputText,
+    );
+    return parseVideoPlan(output.trim());
   };
 
   return await generate(false) ?? await generate(true);

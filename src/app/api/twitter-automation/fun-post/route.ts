@@ -1,7 +1,7 @@
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { isLanguageCode } from "@/data/languages";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
@@ -55,8 +55,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await createSocialStudioPoyoClient().responses.create({
-      model: SOCIAL_CONTENT_TEXT_MODEL,
+    const poyo = createSocialStudioPoyoClient();
+    const { output } = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      (model) => poyo.responses.create({
+      model,
       instructions: [...BASE_INSTRUCTIONS, CONTENT_RULES[mode]].join("\n"),
       input: JSON.stringify({
         mode,
@@ -67,10 +70,10 @@ export async function POST(request: Request) {
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    });
-    assertPoyoResponsesOutput(response);
-    const output = extractResponseOutputText(response).trim();
-    const post = output;
+      }),
+      extractResponseOutputText,
+    );
+    const post = output.trim();
 
     if (!post) {
       return Response.json({

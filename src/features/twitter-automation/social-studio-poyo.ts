@@ -6,6 +6,7 @@ const POYO_RESPONSES_BASE_URL = "https://api.poyo.ai/v1";
 
 export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
+export const SOCIAL_CONTENT_FALLBACK_MODEL = "gpt-5.5";
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
@@ -40,6 +41,36 @@ export function assertPoyoResponsesOutput(source: string | unknown) {
     if (error instanceof PoyoResponsesProviderError) throw error;
     // Normal model output is often JSON too. A parsing failure simply means it
     // is regular text and should be handled by each route's plan parser.
+  }
+}
+
+function isRetryablePoyoResponsesFailure(error: unknown) {
+  if (error instanceof PoyoResponsesProviderError) return error.providerStatus >= 500;
+  const status = error && typeof error === "object" && "status" in error ? (error as { status?: unknown }).status : undefined;
+  return typeof status === "number" && status >= 500;
+}
+
+/** Runs a PoYo Responses request on its intended model. Only a provider-side
+ * 5xx failure is retried once on GPT-5.5; model-output validation failures do
+ * not silently change models. */
+export async function generateSocialStudioTextWithFallback<T>(
+  primaryModel: string,
+  generate: (model: string) => Promise<T>,
+  extractOutput: (response: T) => string,
+) {
+  const run = async (model: string) => {
+    const response = await generate(model);
+    assertPoyoResponsesOutput(response);
+    const output = extractOutput(response);
+    assertPoyoResponsesOutput(output);
+    return { output, model };
+  };
+
+  try {
+    return await run(primaryModel);
+  } catch (error) {
+    if (!isRetryablePoyoResponsesFailure(error) || primaryModel === SOCIAL_CONTENT_FALLBACK_MODEL) throw error;
+    return await run(SOCIAL_CONTENT_FALLBACK_MODEL);
   }
 }
 

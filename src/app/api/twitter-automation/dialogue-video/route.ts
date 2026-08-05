@@ -3,7 +3,7 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { getDialogueBackgroundPublicUrl } from "@/features/twitter-automation/dialogue-backgrounds";
 import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
@@ -102,17 +102,19 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
     ? { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language] }
     : { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] };
   const generate = async (repair: boolean) => {
-    const response = await poyo.responses.create({
-      model: SOCIAL_CONTENT_CREATIVE_MODEL,
+    const { output } = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_CREATIVE_MODEL,
+      (model) => poyo.responses.create({
+      model,
       instructions: `${instructionsFor(mode)}${repair ? "\nThe previous response was invalid. Return valid JSON with every required field." : ""}`,
       input: JSON.stringify(input),
       max_output_tokens: 700,
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    });
-    assertPoyoResponsesOutput(response);
-    const output = extractResponseOutputText(response);
+      }),
+      extractResponseOutputText,
+    );
     return parsePlan(
       output,
       mode === "learning-dialogue-video",

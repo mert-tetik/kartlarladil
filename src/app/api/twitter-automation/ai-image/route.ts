@@ -4,7 +4,7 @@ import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { assertPoyoResponsesOutput, createSocialStudioPoyoClient, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -136,8 +136,10 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
     };
   const poyo = createSocialStudioPoyoClient();
   const generatePlan = async (repair: boolean) => {
-    const response = await poyo.responses.create({
-      model: SOCIAL_CONTENT_CREATIVE_MODEL,
+    const { output } = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_CREATIVE_MODEL,
+      (model) => poyo.responses.create({
+      model,
       instructions: repair
         ? `${instructions}\nYour previous response was invalid. Return only valid JSON matching the required fields. For False Friends, include two commonly confused words from the selected learning language with different meanings. Never use a cross-language translation pair.`
         : instructions,
@@ -146,10 +148,10 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
-    });
-    assertPoyoResponsesOutput(response);
-    const output = extractResponseOutputText(response).trim();
-    return parseAiImagePlan(output, mode);
+      }),
+      extractResponseOutputText,
+    );
+    return parseAiImagePlan(output.trim(), mode);
   };
 
   return await generatePlan(false) ?? await generatePlan(true);
