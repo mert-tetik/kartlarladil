@@ -43,8 +43,13 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
       outro?: unknown;
     };
     const caption = cleanText(parsed.caption, 400);
-    if (!caption || !Array.isArray(parsed.terms) || parsed.terms.length !== 3) return null;
-    const terms = parsed.terms.map((entry) => {
+    const rawTerms = Array.isArray(parsed.terms)
+      ? parsed.terms
+      : parsed.terms && typeof parsed.terms === "object"
+        ? Object.entries(parsed.terms as Record<string, unknown>).map(([tier, term]) => ({ tier, term }))
+        : null;
+    if (!caption || !rawTerms || rawTerms.length !== 3) return null;
+    const terms = rawTerms.map((entry) => {
       // Terra naturally returns `word` for vocabulary entries even when the
       // UI calls the collection `terms`. Accept both equivalent schemas so a
       // valid progression is not discarded and retried as a 502.
@@ -75,7 +80,9 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
       const phase = normalizeProgressionPhase(item?.phase ?? item?.type);
       const rawTier = item?.activeTier ?? item?.active_tier ?? item?.tier;
       const activeTier = rawTier === null || rawTier === undefined || rawTier === "" ? null : normalizeTier(rawTier);
-      return text && phase && activeTier !== null || (text && phase === "outro" && activeTier === null)
+      const acceptsEmptyTier = (phase === "intro" || phase === "outro") && activeTier === null;
+      const acceptsActiveTier = (phase === "term" || phase === "explanation") && activeTier !== null;
+      return text && phase && (acceptsEmptyTier || acceptsActiveTier)
         ? { text, phase, activeTier }
         : null;
     });

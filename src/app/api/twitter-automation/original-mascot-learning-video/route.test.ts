@@ -51,6 +51,25 @@ describe("Original mascot learning video plans", () => {
     expect(plan?.terms.map((term) => term.term)).toEqual(["look", "observe", "scrutinize"]);
   });
 
+  it("accepts GPT-5.5's tier-keyed term object", () => {
+    const plan = parseProgressionPlan(JSON.stringify({
+      caption: "Three ways to begin. #languagelearning #vocabulary",
+      terms: { A1: "start", B1: "begin", C1: "commence" },
+      narration: [
+        { text: "Let us compare three levels.", phase: "intro", activeTier: null },
+        { text: "start", phase: "term", activeTier: "A1" },
+        { text: "A basic word for beginning.", phase: "explanation", activeTier: "A1" },
+        { text: "begin", phase: "term", activeTier: "B1" },
+        { text: "A natural alternative for starting.", phase: "explanation", activeTier: "B1" },
+        { text: "commence", phase: "term", activeTier: "C1" },
+        { text: "A formal word for beginning.", phase: "explanation", activeTier: "C1" },
+        { text: "Use the word that fits the situation.", phase: "outro", activeTier: null },
+      ],
+    }));
+
+    expect(plan?.terms).toEqual([{ tier: "A1", term: "start" }, { tier: "B1", term: "begin" }, { tier: "C1", term: "commence" }]);
+  });
+
   it("normalizes reordered scene aliases from Terra", () => {
     const plan = parseProgressionPlan(JSON.stringify({
       caption: "Build precise vocabulary. #languagelearning #vocabulary",
