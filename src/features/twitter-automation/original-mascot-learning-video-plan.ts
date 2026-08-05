@@ -32,6 +32,14 @@ function normalizeProgressionPhase(value: unknown): "intro" | "term" | "explanat
   return null;
 }
 
+function stripRepeatedLeadingTerm(explanation: string, term: string) {
+  const trimmed = explanation.trim();
+  const withoutOpeningQuote = trimmed.replace(/^["'“‘]+/u, "");
+  if (!withoutOpeningQuote.toLocaleLowerCase().startsWith(term.toLocaleLowerCase())) return trimmed;
+  const remainder = withoutOpeningQuote.slice(term.length).replace(/^["'”’\s,;:—–-]+/u, "").trim();
+  return remainder || trimmed;
+}
+
 export function parseProgressionPlan(value: string): ProgressionPlan | null {
   try {
     const parsed = JSON.parse(extractJsonObject(value)) as {
@@ -98,7 +106,7 @@ export function parseProgressionPlan(value: string): ProgressionPlan | null {
       return explanation
         ? [
             { text: narrationByKind("term", term.tier) ?? term.term, phase: "term" as const, activeTier: term.tier },
-            { text: explanation, phase: "explanation" as const, activeTier: term.tier },
+            { text: stripRepeatedLeadingTerm(explanation, term.term), phase: "explanation" as const, activeTier: term.tier },
           ]
         : [];
     });

@@ -70,6 +70,25 @@ describe("Original mascot learning video plans", () => {
     expect(plan?.terms).toEqual([{ tier: "A1", term: "start" }, { tier: "B1", term: "begin" }, { tier: "C1", term: "commence" }]);
   });
 
+  it("removes a repeated target word only from the start of its explanation", () => {
+    const plan = parseProgressionPlan(JSON.stringify({
+      caption: "Three ways to begin. #languagelearning #vocabulary",
+      terms: { A1: "start", B1: "begin", C1: "commence" },
+      narration: [
+        { text: "Three levels, one idea.", phase: "intro", activeTier: null },
+        { text: "start", phase: "term", activeTier: "A1" },
+        { text: "“Start”, bir şeyi başlatmak demektir.", phase: "explanation", activeTier: "A1" },
+        { text: "begin", phase: "term", activeTier: "B1" },
+        { text: "Bir şeye başlamak anlamına gelir.", phase: "explanation", activeTier: "B1" },
+        { text: "commence", phase: "term", activeTier: "C1" },
+        { text: "Resmî bir bağlamda başlamak demektir.", phase: "explanation", activeTier: "C1" },
+        { text: "Doğru seviyeyi seç.", phase: "outro", activeTier: null },
+      ],
+    }));
+
+    expect(plan?.narration[2]?.text).toBe("bir şeyi başlatmak demektir.");
+  });
+
   it("normalizes reordered scene aliases from Terra", () => {
     const plan = parseProgressionPlan(JSON.stringify({
       caption: "Build precise vocabulary. #languagelearning #vocabulary",
