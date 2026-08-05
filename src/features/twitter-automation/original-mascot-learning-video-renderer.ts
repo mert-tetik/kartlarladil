@@ -14,6 +14,37 @@ const TIER_COLORS = { A1: "#5eead4", A2: "#7dd3fc", B1: "#c4b5fd", B2: "#fcd34d"
 const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_500_000;
 const AUDIO_BITRATE = 128_000;
+const QUIZ_OPTION_COLORS = ["#ef4444", "#3b82f6", "#fbbf24", "#10b981"] as const;
+const QUIZ_OPTION_TEXT_COLORS = ["#ffffff", "#ffffff", "#17120e", "#ffffff"] as const;
+const QUIZ_REVEAL_RED = "#ef4444";
+const QUIZ_REVEAL_GREEN = "#10b981";
+const QUIZ_COUNTDOWN_Y = 1380;
+const MASCOT_NORMAL_Y = 1000;
+
+function easeInOutCubic(value: number) {
+  const t = Math.max(0, Math.min(1, value));
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function hexToRgb(hex: string) {
+  const clean = hex.replace("#", "");
+  const bigint = parseInt(clean, 16);
+  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+
+function lerpHex(from: string, to: string, progress: number) {
+  const a = hexToRgb(from);
+  const b = hexToRgb(to);
+  const p = Math.max(0, Math.min(1, progress));
+  const r = Math.round(a.r + (b.r - a.r) * p);
+  const g = Math.round(a.g + (b.g - a.g) * p);
+  const b2 = Math.round(a.b + (b.b - a.b) * p);
+  return `rgb(${r}, ${g}, ${b2})`;
+}
+
+function smoothRevealProgress(localElapsed: number, duration = 0.6) {
+  return Math.max(0, Math.min(1, localElapsed / duration));
+}
 
 type PreparedSplash = { image: HTMLCanvasElement; orangeImage: HTMLCanvasElement; width: number; height: number };
 type OriginalMascotVideoAssets = {
@@ -119,38 +150,46 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
   lines.forEach((line, index) => context.fillText(line, x, firstY + lineHeight * index));
 }
 
-function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, orange = false) {
-  const splashWidth = orange ? 640 : 320;
+function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, variant: "progression" | "quiz" | "default" = "default") {
+  const isQuiz = variant === "quiz";
+  const isProgression = variant === "progression";
+  const splashWidth = isQuiz ? 720 : isProgression ? 320 : 320;
   const splashHeight = splashWidth * splash.height / splash.width;
   const x = (CANVAS_WIDTH - splashWidth) / 2;
-  const y = orange ? 116 : 44;
-  context.drawImage(orange ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
+  const y = isQuiz ? 180 : isProgression ? 44 : 44;
+  context.drawImage(isQuiz || isProgression ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
   if (!subtitle) return;
-  context.fillStyle = "#f5f5f4";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.font = "600 48px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, subtitle, 860), CANVAS_WIDTH / 2, 198, 62);
+  if (isQuiz) {
+    context.fillStyle = "#17120e";
+    context.font = "700 72px Manrope, Arial, sans-serif";
+    drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 360, 84);
+  } else {
+    context.fillStyle = "#f5f5f4";
+    context.font = "600 48px Manrope, Arial, sans-serif";
+    drawCenteredLines(context, wrapText(context, subtitle, 860), CANVAS_WIDTH / 2, 198, 62);
+  }
 }
 
-function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean) {
+function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean, extraOffsetY = 0, extraAlpha = 1) {
   const maxWidth = 780;
   const maxHeight = 880;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const targetY = 1000 + Math.max(0, (maxHeight - height) / 2);
+  const targetY = MASCOT_NORMAL_Y + Math.max(0, (maxHeight - height) / 2);
   const startY = CANVAS_HEIGHT + 80;
-  const y = startY + (targetY - startY) * easeOutQuint(elapsed / 0.86);
+  const y = startY + (targetY - startY) * easeOutQuint(elapsed / 0.86) + extraOffsetY;
   context.save();
   if (speaking) {
-    context.globalAlpha = 0.22;
+    context.globalAlpha = 0.22 * extraAlpha;
     context.fillStyle = "#f5ac27";
     context.beginPath();
     context.ellipse(CANVAS_WIDTH / 2, y + height * 0.75, width * 0.42, height * 0.22, 0, 0, Math.PI * 2);
     context.fill();
   }
-  context.globalAlpha = Math.min(1, 0.2 + easeOutQuint(elapsed / 0.55) * 0.8);
+  context.globalAlpha = Math.min(1, 0.2 + easeOutQuint(elapsed / 0.55) * 0.8) * extraAlpha;
   context.drawImage(image, (CANVAS_WIDTH - width) / 2, y, width, height);
   context.restore();
 }
@@ -184,46 +223,53 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = TIER_COLORS[scene.tier];
-  context.font = "600 26px Manrope, Arial, sans-serif";
-  context.fillText(`${scene.tier} QUICK QUIZ`, CANVAS_WIDTH / 2, 352);
-  context.fillStyle = "#fffaf4";
-  context.font = "600 76px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, scene.term, 850, 2), CANVAS_WIDTH / 2, 448, 86);
+  context.fillStyle = "#17120e";
+  context.font = "600 84px Manrope, Arial, sans-serif";
+  drawCenteredLines(context, wrapText(context, scene.term, 900, 2), CANVAS_WIDTH / 2, 520, 92);
   scene.options.forEach((option, index) => {
     const reveal = scene.phase === "reveal" || scene.phase === "explanation";
     const correct = index === scene.correctIndex;
-    const fill = reveal && correct ? "#14532d" : "#141210";
-    const stroke = reveal && correct ? "#86efac" : "#37332d";
-    const y = 574 + index * 120;
-    drawRoundedRect(context, 100, y, 880, 94, 20, fill, stroke);
+    const baseFill = QUIZ_OPTION_COLORS[index]!;
+    const baseText = QUIZ_OPTION_TEXT_COLORS[index]!;
+    const labels = ["A)", "B)", "C)", "D)"];
+    const transition = reveal ? smoothRevealProgress(localElapsed, 0.6) : 0;
+    const fill = reveal ? (correct ? lerpHex(baseFill, QUIZ_REVEAL_GREEN, transition) : lerpHex(baseFill, QUIZ_REVEAL_RED, transition)) : baseFill;
+    const textColor = reveal ? "#ffffff" : baseText;
+    const y = 640 + index * 118;
+    drawRoundedRect(context, 100, y, 880, 100, 20, fill);
     context.textAlign = "left";
-    context.fillStyle = reveal && correct ? "#dcfce7" : "#e7e5e4";
-    context.font = "500 34px Manrope, Arial, sans-serif";
-    context.fillText(option, 142, y + 48);
+    context.fillStyle = textColor;
+    context.font = "600 36px Manrope, Arial, sans-serif";
+    context.fillText(`${labels[index]} ${option}`, 142, y + 52);
   });
-  if (scene.phase === "countdown") drawClock(context, localElapsed);
+  if (scene.phase === "countdown") drawClock(context, localElapsed, "quiz");
 }
 
-function drawClock(context: CanvasRenderingContext2D, elapsed: number) {
+function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default") {
   const remaining = Math.max(0, COUNTDOWN_SECONDS - elapsed);
   const progress = Math.min(1, elapsed / COUNTDOWN_SECONDS);
   const x = CANVAS_WIDTH / 2;
-  const y = 1120;
+  const y = variant === "quiz" ? QUIZ_COUNTDOWN_Y : 1120;
+  const radius = variant === "quiz" ? 160 : 96;
+  const lineWidth = variant === "quiz" ? 22 : 16;
+  const fontSize = variant === "quiz" ? 120 : 64;
+  const bgStroke = variant === "quiz" ? "#e5e5e5" : "#292524";
+  const progressStroke = variant === "quiz" ? "#f76808" : "#f5ac27";
+  const textFill = variant === "quiz" ? "#17120e" : "#fffaf4";
   context.save();
-  context.lineWidth = 16;
-  context.strokeStyle = "#292524";
+  context.lineWidth = lineWidth;
+  context.strokeStyle = bgStroke;
   context.beginPath();
-  context.arc(x, y, 96, 0, Math.PI * 2);
+  context.arc(x, y, radius, 0, Math.PI * 2);
   context.stroke();
-  context.strokeStyle = "#f5ac27";
+  context.strokeStyle = progressStroke;
   context.beginPath();
-  context.arc(x, y, 96, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - progress));
+  context.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - progress));
   context.stroke();
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = "#fffaf4";
-  context.font = "600 64px Manrope, Arial, sans-serif";
+  context.fillStyle = textFill;
+  context.font = `600 ${fontSize}px Manrope, Arial, sans-serif`;
   context.fillText(String(Math.max(0, Math.ceil(remaining))), x, y + 3);
   context.restore();
 }
@@ -292,23 +338,42 @@ function drawOriginalMascotFrame(
   const scene = scenes[sceneIndex]!;
   const localElapsed = Math.max(0, clampedElapsed - starts[sceneIndex]!);
   const isProgression = scene.kind === "progression";
-  context.fillStyle = isProgression ? "#ffffff" : "#090909";
+  const isQuiz = scene.kind === "quiz";
+  context.fillStyle = isProgression || isQuiz ? "#ffffff" : "#090909";
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  if (!isProgression) {
+  if (!isProgression && !isQuiz) {
     context.fillStyle = "#14110e";
     context.beginPath();
     context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
     context.fill();
   }
-  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression);
+  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz ? "quiz" : "default");
   if (isProgression) {
     drawProgression(context, scene);
     drawProgressionSubtitle(context, scene.subtitle);
   }
-  if (scene.kind === "quiz") drawQuiz(context, scene, localElapsed);
+  if (isQuiz) drawQuiz(context, scene, localElapsed);
   if (scene.kind === "sentence") drawSentence(context, scene, localElapsed);
   const mascot = scene.kind === "progression" ? assets[scene.mascot] : assets.original;
-  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl));
+  let mascotOffsetY = 0;
+  let mascotAlpha = 1;
+  if (isQuiz && scene.phase === "countdown") {
+    const hideDuration = 0.5;
+    const showStart = COUNTDOWN_SECONDS - hideDuration;
+    if (localElapsed < hideDuration) {
+      const p = easeInOutCubic(localElapsed / hideDuration);
+      mascotOffsetY = 300 * p;
+      mascotAlpha = 1 - p;
+    } else if (localElapsed > showStart) {
+      const p = easeInOutCubic((localElapsed - showStart) / hideDuration);
+      mascotOffsetY = 300 * (1 - p);
+      mascotAlpha = p;
+    } else {
+      mascotOffsetY = 300;
+      mascotAlpha = 0;
+    }
+  }
+  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl), mascotOffsetY, mascotAlpha);
 }
 
 async function loadOriginalMascotVideoAssets(): Promise<OriginalMascotVideoAssets> {
