@@ -18,8 +18,8 @@ const QUIZ_OPTION_COLORS = ["#ef4444", "#3b82f6", "#fbbf24", "#10b981"] as const
 const QUIZ_OPTION_TEXT_COLORS = ["#ffffff", "#ffffff", "#17120e", "#ffffff"] as const;
 const QUIZ_REVEAL_RED = "#ef4444";
 const QUIZ_REVEAL_GREEN = "#10b981";
-const QUIZ_COUNTDOWN_Y = 1600;
-const MASCOT_NORMAL_Y = 1400;
+const QUIZ_COUNTDOWN_Y = 1550;
+const MASCOT_NORMAL_Y = 1320;
 
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
@@ -243,9 +243,10 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
+  const termText = scene.language === "en" ? scene.term.toUpperCase() : scene.term;
   const termFontFamily = scene.language === "en" ? '"Super Water", Manrope, Arial, sans-serif' : "Manrope, Arial, sans-serif";
   context.font = `600 ${termFont}px ${termFontFamily}`;
-  drawCenteredLines(context, wrapText(context, scene.term, 900, 2), CANVAS_WIDTH / 2, termY, termLineHeight);
+  drawCenteredLines(context, wrapText(context, termText, 900, 2), CANVAS_WIDTH / 2, termY, termLineHeight);
 
   if (showButtons) {
     let buttonsAlpha = 1;
@@ -265,12 +266,12 @@ function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMasc
         const transition = isReveal ? smoothRevealProgress(localElapsed, 0.6) : isExplanation ? 1 : 0;
         const fill = reveal ? (correct ? lerpHex(baseFill, QUIZ_REVEAL_GREEN, transition) : lerpHex(baseFill, QUIZ_REVEAL_RED, transition)) : baseFill;
         const textColor = reveal ? "#ffffff" : baseText;
-        const y = 640 + index * 142;
-        drawRoundedRect(context, 100, y, 880, 120, 20, fill);
+        const y = 620 + index * 190;
+        drawRoundedRect(context, 100, y, 880, 160, 28, fill);
         context.textAlign = "left";
         context.fillStyle = textColor;
-        context.font = "600 42px Manrope, Arial, sans-serif";
-        context.fillText(`${labels[index]} ${option}`, 142, y + 62);
+        context.font = "600 60px Manrope, Arial, sans-serif";
+        context.fillText(`${labels[index]} ${option}`, 142, y + 84);
       });
       context.restore();
     }
@@ -441,6 +442,11 @@ async function loadOriginalMascotVideoAssets(): Promise<OriginalMascotVideoAsset
     loadImage("/mascots/mascot18.png"),
     loadImage("/splash.png"),
   ]);
+  // Ensure the Super Water display font is loaded before drawing so the first
+  // frames do not fall back to a system font.
+  if (document.fonts) {
+    await document.fonts.load('600 160px "Super Water"').catch(() => undefined);
+  }
   return { original, mascot4, mascot18, splash: prepareSplash(splash) };
 }
 
