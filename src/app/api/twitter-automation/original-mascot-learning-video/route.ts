@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
-import type { OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
+import type { OriginalMascotLearningVideoPayload, OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
 import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
@@ -218,15 +218,17 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     createSingleSentencePlan(language, nativeLanguage),
     createSingleSentencePlan(language, nativeLanguage),
     createSingleSentencePlan(language, nativeLanguage),
+    createSingleSentencePlan(language, nativeLanguage),
   ]);
   if (plans.some((plan) => !plan)) return null;
-  const [plan1, plan2, plan3] = plans as [NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>];
+  const [plan1, plan2, plan3, plan4] = plans as [NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>, NonNullable<typeof plans[number]>];
   const spokenPerPlan = (plan: typeof plan1) => [
     { text: plan.sentence, language },
     { text: plan.question, language: nativeLanguage },
     { text: plan.reveal, language: nativeLanguage },
+    ...(plan.correction ? [{ text: plan.correction, language }] : []),
   ];
-  const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3)];
+  const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3), ...spokenPerPlan(plan4)];
   const outroLines = ["Yorumlara yazın!"];
   const outroSpoken = outroLines.join(" ");
   const introLines = ["Verilen cümleler doğru mu?"];
@@ -236,24 +238,41 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
     generatePoyoSpeechDataUrls([{ text: introSpoken, language: nativeLanguage }]),
   ]);
-  const buildSentenceScenes = (plan: typeof plan1, audioDataUrls: string[]) => {
+  let audioIndex = 0;
+  const takeAudios = (plan: typeof plan1) => {
+    const sentenceAudio = audioDataUrls[audioIndex++]!;
+    const questionAudio = audioDataUrls[audioIndex++]!;
+    const revealAudio = audioDataUrls[audioIndex++]!;
+    const correctionAudio = plan.correction ? audioDataUrls[audioIndex++]! : null;
+    return { sentenceAudio, questionAudio, revealAudio, correctionAudio };
+  };
+  const buildSentenceScenes = (plan: typeof plan1, audios: ReturnType<typeof takeAudios>, hasTimer: boolean) => {
     const base = { kind: "sentence" as const, sentence: plan.sentence, isCorrect: plan.isCorrect, correction: plan.correction || null };
-    return [
-      { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audioDataUrls[0]! },
-      { ...base, phase: "countdown" as const, subtitle: "", durationSeconds: 5 },
-      { ...base, phase: "reveal" as const, subtitle: plan.reveal, audioDataUrl: audioDataUrls[2]! },
+    const scenes: OriginalMascotLearningVideoScene[] = [
+      { ...base, phase: "question" as const, subtitle: plan.question, audioDataUrl: audios.sentenceAudio },
     ];
+    if (hasTimer) {
+      scenes.push({ ...base, phase: "countdown" as const, subtitle: "", durationSeconds: 5 });
+    }
+    scenes.push({
+      ...base,
+      phase: "reveal" as const,
+      subtitle: plan.reveal,
+      audioDataUrl: plan.isCorrect || !audios.correctionAudio ? audios.revealAudio : audios.correctionAudio,
+    });
+    return scenes;
   };
   const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
   const introScene = { kind: "outro" as const, lines: introLines, subtitle: "", audioDataUrl: introAudio[0]! };
   return {
     mode: "sentence-check-video",
-    caption: [plan1.caption, plan2.caption, plan3.caption].join("\n\n"),
+    caption: [plan1.caption, plan2.caption, plan3.caption, plan4.caption].join("\n\n"),
     scenes: [
       introScene,
-      ...buildSentenceScenes(plan1, audioDataUrls.slice(0, 3)),
-      ...buildSentenceScenes(plan2, audioDataUrls.slice(3, 6)),
-      ...buildSentenceScenes(plan3, audioDataUrls.slice(6, 9)),
+      ...buildSentenceScenes(plan1, takeAudios(plan1), true),
+      ...buildSentenceScenes(plan2, takeAudios(plan2), true),
+      ...buildSentenceScenes(plan3, takeAudios(plan3), true),
+      ...buildSentenceScenes(plan4, takeAudios(plan4), false),
       outroScene,
     ],
   };

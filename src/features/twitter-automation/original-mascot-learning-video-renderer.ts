@@ -342,11 +342,11 @@ function drawSentence(context: CanvasRenderingContext2D, scene: Extract<Original
   if (isReveal) {
     context.fillStyle = scene.isCorrect ? "#10b981" : "#ef4444";
     context.font = "700 80px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, scene.subtitle, 980, 2), CANVAS_WIDTH / 2, 880, 92);
+    drawCenteredLines(context, wrapText(context, scene.subtitle, 980, 2), CANVAS_WIDTH / 2, 800, 92);
     if (scene.correction) {
       context.fillStyle = "#17120e";
       context.font = "600 56px Manrope, Arial, sans-serif";
-      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 1040, 72);
+      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 880, 72);
     }
   }
 }
@@ -520,7 +520,7 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
 /** Legacy real-time renderer for browsers without WebCodecs. */
 async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (scenes.length < 4 || scenes.length > 13) throw new Error("invalid_video_scene_count");
+  if (scenes.length < 4 || scenes.length > 15) throw new Error("invalid_video_scene_count");
 
   const assets = await loadOriginalMascotVideoAssets();
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
@@ -584,7 +584,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes 
 
 /** Browser-only 9:16 renderer with frame-exact WebCodecs export on Chrome/Android. */
 export async function renderOriginalMascotLearningVideo(options: OriginalMascotLearningVideoRenderOptions) {
-  if (options.scenes.length < 4 || options.scenes.length > 13) throw new Error("invalid_video_scene_count");
+  if (options.scenes.length < 4 || options.scenes.length > 15) throw new Error("invalid_video_scene_count");
   if (await canRenderOriginalMascotDeterministically()) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }
