@@ -50,7 +50,9 @@ export async function getSocialStudioVocabularyUsage(language: LanguageCode): Pr
 }
 
 export async function recordSocialStudioVocabularyUsage(language: LanguageCode, generator: string, terms: readonly string[]) {
-  const uniqueTerms = [...new Map(terms.map((term) => [normalizeSocialStudioVocabularyTerm(term), term.trim()]).filter(([normalized]) => normalized.length > 0)).values()];
+  const uniqueTerms = [...new Map<string, string>(terms
+    .map((term): [string, string] => [normalizeSocialStudioVocabularyTerm(term), term.trim()])
+    .filter(([normalized]) => normalized.length > 0)).values()];
   if (!uniqueTerms.length) return;
 
   const supabase = createSupabaseAdminClient();
