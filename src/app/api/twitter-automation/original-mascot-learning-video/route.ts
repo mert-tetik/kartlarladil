@@ -205,7 +205,7 @@ async function createSingleSentencePlan(language: LanguageCode, nativeLanguage: 
       "Create a concise FoxiesDeck grammar judgment video plan.",
       "Return one JSON object only: { caption, sentence, isCorrect, correction, question, reveal, explanation }.",
       "sentence is a short, useful sentence in the selected learning language. Randomly make it either deceptively correct or genuinely incorrect. isCorrect must match it. correction is empty when correct, otherwise the corrected learning-language sentence.",
-      "question and reveal are in the selected native language. question asks if the sentence is correct. reveal clearly states correct or incorrect. explanation is not used in the final video; provide a brief placeholder.",
+      "question and reveal are in the selected native language. question asks if the sentence is correct. reveal must be a single word only: 'Doğru' when correct or 'Yanlış' when incorrect. explanation is not used in the final video; provide a brief placeholder.",
       "caption has 2 or 3 relevant hashtags.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },

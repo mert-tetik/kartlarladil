@@ -325,33 +325,15 @@ function drawSentence(context: CanvasRenderingContext2D, scene: Extract<Original
   const isCountdown = scene.phase === "countdown";
   const isReveal = scene.phase === "reveal" || scene.phase === "explanation";
   const countdownDuration = scene.durationSeconds ?? 5;
-
-  const BIG_FONT = 110;
-  const SMALL_FONT = 56;
-  const QUESTION_Y = 820;
-  const COUNTDOWN_Y = 620;
-  const REVEAL_Y = 440;
-  const BIG_LINE_HEIGHT = 126;
-  const SMALL_LINE_HEIGHT = 68;
-  let sentenceFont = BIG_FONT;
-  let sentenceY = QUESTION_Y;
-  let sentenceLineHeight = BIG_LINE_HEIGHT;
-  if (isCountdown) {
-    const moveDuration = 0.5;
-    const p = Math.min(1, localElapsed / moveDuration);
-    const eased = easeInOutCubic(p);
-    sentenceY = QUESTION_Y + (COUNTDOWN_Y - QUESTION_Y) * eased;
-  } else if (isReveal) {
-    sentenceFont = SMALL_FONT;
-    sentenceY = REVEAL_Y;
-    sentenceLineHeight = SMALL_LINE_HEIGHT;
-  }
+  const SENTENCE_FONT = 110;
+  const SENTENCE_Y = 620;
+  const SENTENCE_LINE_HEIGHT = 126;
 
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
-  context.font = `600 ${sentenceFont}px Manrope, Arial, sans-serif`;
-  drawCenteredLines(context, wrapText(context, scene.sentence, 980, 3), CANVAS_WIDTH / 2, sentenceY, sentenceLineHeight);
+  context.font = `600 ${SENTENCE_FONT}px Manrope, Arial, sans-serif`;
+  drawCenteredLines(context, wrapText(context, scene.sentence, 980, 3), CANVAS_WIDTH / 2, SENTENCE_Y, SENTENCE_LINE_HEIGHT);
 
   if (isCountdown) {
     drawClock(context, localElapsed, "quiz", countdownDuration);
@@ -360,11 +342,11 @@ function drawSentence(context: CanvasRenderingContext2D, scene: Extract<Original
   if (isReveal) {
     context.fillStyle = scene.isCorrect ? "#10b981" : "#ef4444";
     context.font = "700 80px Manrope, Arial, sans-serif";
-    context.fillText(scene.isCorrect ? "CORRECT" : "INCORRECT", CANVAS_WIDTH / 2, 640);
+    drawCenteredLines(context, wrapText(context, scene.subtitle, 980, 2), CANVAS_WIDTH / 2, 880, 92);
     if (scene.correction) {
       context.fillStyle = "#17120e";
       context.font = "600 56px Manrope, Arial, sans-serif";
-      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 840, 72);
+      drawCenteredLines(context, wrapText(context, scene.correction, 980, 3), CANVAS_WIDTH / 2, 1040, 72);
     }
   }
 }
