@@ -9,7 +9,7 @@ type OriginalMascotLearningVideoRenderOptions = {
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const SCENE_GAP_SECONDS = 0.2;
-const COUNTDOWN_SECONDS = 4;
+const COUNTDOWN_SECONDS = 6;
 const TIER_COLORS = { A1: "#5eead4", A2: "#7dd3fc", B1: "#c4b5fd", B2: "#fcd34d", C1: "#fda4af" } as const;
 const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_500_000;
@@ -163,8 +163,8 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   context.textBaseline = "middle";
   if (isQuiz) {
     context.fillStyle = "#17120e";
-    context.font = "700 72px Manrope, Arial, sans-serif";
-    drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 360, 84);
+    context.font = "700 56px Manrope, Arial, sans-serif";
+    drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 340, 68);
   } else {
     context.fillStyle = "#f5f5f4";
     context.font = "600 48px Manrope, Arial, sans-serif";
@@ -221,28 +221,76 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
+  const isQuestion = scene.phase === "question";
+  const isCountdown = scene.phase === "countdown";
+  const isReveal = scene.phase === "reveal";
+  const isExplanation = scene.phase === "explanation";
+  const showButtons = !isQuestion;
+
+  const BIG_WORD_Y = 900;
+  const TERM_Y = 520;
+  const BIG_FONT = 140;
+  const TERM_FONT = 84;
+  let termY = TERM_Y;
+  let termFont = TERM_FONT;
+  let termLineHeight = 92;
+  if (isQuestion) {
+    termY = BIG_WORD_Y;
+    termFont = BIG_FONT;
+    termLineHeight = 150;
+  } else if (isCountdown) {
+    const moveDuration = 0.5;
+    const p = Math.min(1, localElapsed / moveDuration);
+    const eased = easeInOutCubic(p);
+    termFont = BIG_FONT + (TERM_FONT - BIG_FONT) * eased;
+    termY = BIG_WORD_Y + (TERM_Y - BIG_WORD_Y) * eased;
+    termLineHeight = 150 + (92 - 150) * eased;
+  }
+
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
-  context.font = "600 84px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, scene.term, 900, 2), CANVAS_WIDTH / 2, 520, 92);
-  scene.options.forEach((option, index) => {
-    const reveal = scene.phase === "reveal" || scene.phase === "explanation";
-    const correct = index === scene.correctIndex;
-    const baseFill = QUIZ_OPTION_COLORS[index]!;
-    const baseText = QUIZ_OPTION_TEXT_COLORS[index]!;
-    const labels = ["A)", "B)", "C)", "D)"];
-    const transition = reveal ? smoothRevealProgress(localElapsed, 0.6) : 0;
-    const fill = reveal ? (correct ? lerpHex(baseFill, QUIZ_REVEAL_GREEN, transition) : lerpHex(baseFill, QUIZ_REVEAL_RED, transition)) : baseFill;
-    const textColor = reveal ? "#ffffff" : baseText;
-    const y = 640 + index * 118;
-    drawRoundedRect(context, 100, y, 880, 100, 20, fill);
-    context.textAlign = "left";
-    context.fillStyle = textColor;
-    context.font = "600 36px Manrope, Arial, sans-serif";
-    context.fillText(`${labels[index]} ${option}`, 142, y + 52);
-  });
-  if (scene.phase === "countdown") drawClock(context, localElapsed, "quiz");
+  context.font = `600 ${termFont}px Manrope, Arial, sans-serif`;
+  drawCenteredLines(context, wrapText(context, scene.term, 900, 2), CANVAS_WIDTH / 2, termY, termLineHeight);
+
+  if (showButtons) {
+    let buttonsAlpha = 1;
+    if (isCountdown) {
+      const p = Math.min(1, localElapsed / 0.5);
+      buttonsAlpha = easeInOutCubic(p);
+    }
+    if (buttonsAlpha > 0) {
+      context.save();
+      context.globalAlpha = buttonsAlpha;
+      scene.options.forEach((option, index) => {
+        const reveal = isReveal || isExplanation;
+        const correct = index === scene.correctIndex;
+        const baseFill = QUIZ_OPTION_COLORS[index]!;
+        const baseText = QUIZ_OPTION_TEXT_COLORS[index]!;
+        const labels = ["A)", "B)", "C)", "D)"];
+        const transition = isReveal ? smoothRevealProgress(localElapsed, 0.6) : isExplanation ? 1 : 0;
+        const fill = reveal ? (correct ? lerpHex(baseFill, QUIZ_REVEAL_GREEN, transition) : lerpHex(baseFill, QUIZ_REVEAL_RED, transition)) : baseFill;
+        const textColor = reveal ? "#ffffff" : baseText;
+        const y = 640 + index * 118;
+        drawRoundedRect(context, 100, y, 880, 100, 20, fill);
+        context.textAlign = "left";
+        context.fillStyle = textColor;
+        context.font = "600 36px Manrope, Arial, sans-serif";
+        context.fillText(`${labels[index]} ${option}`, 142, y + 52);
+      });
+      context.restore();
+    }
+  }
+
+  if (isCountdown) drawClock(context, localElapsed, "quiz");
+
+  if (isExplanation) {
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "#17120e";
+    context.font = "600 48px Manrope, Arial, sans-serif";
+    drawCenteredLines(context, wrapText(context, `Doğru cevap ${scene.term}`, 900), CANVAS_WIDTH / 2, 1180, 60);
+  }
 }
 
 function drawClock(context: CanvasRenderingContext2D, elapsed: number, variant: "quiz" | "default" = "default") {
