@@ -161,10 +161,10 @@ function drawProgression(context: CanvasRenderingContext2D, scene: Extract<Origi
   scene.terms.forEach((entry, index) => {
     const active = scene.activeTier === entry.tier;
     const y = rowY + index * 150;
-    drawRoundedRect(context, 100, y, 880, rowHeight, 24, active ? "#211b16" : "#12110f", active ? TIER_COLORS[entry.tier] : "#302d28");
+    drawRoundedRect(context, 100, y, 880, rowHeight, 24, active ? TIER_COLORS[entry.tier] : "#12110f", active ? TIER_COLORS[entry.tier] : "#302d28");
     context.textAlign = "left";
     context.textBaseline = "middle";
-    context.fillStyle = TIER_COLORS[entry.tier];
+    context.fillStyle = active ? "#fffaf4" : TIER_COLORS[entry.tier];
     context.font = "600 34px Manrope, Arial, sans-serif";
     context.fillText(entry.tier, 142, y + rowHeight / 2);
     context.fillStyle = active ? "#fffaf4" : "#a8a29e";
@@ -177,8 +177,8 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#f76808";
-  context.font = "700 44px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, subtitle, 880), CANVAS_WIDTH / 2, 900, 54);
+  context.font = "700 50px Manrope, Arial, sans-serif";
+  drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 900, 60);
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
