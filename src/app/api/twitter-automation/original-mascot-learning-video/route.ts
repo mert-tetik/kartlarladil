@@ -52,9 +52,10 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
     return parse(output);
   };
   let lastError: unknown;
-  // A temporary upstream failure should not turn a whole browser-rendered
-  // video into a 502. Keep the repair prompt, then make one clean retry.
-  for (const repair of [false, true, true]) {
+  // Each provider call has a bounded primary-to-fallback window. A second
+  // repair round can push browser video generation beyond Vercel's request
+  // deadline, so the strict prompt gets one complete attempt per request.
+  for (const repair of [false]) {
     try {
       const plan = await generate(repair);
       if (plan) return plan;

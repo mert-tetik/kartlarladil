@@ -7,6 +7,8 @@ const POYO_RESPONSES_BASE_URL = "https://api.poyo.ai/v1";
 export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
 export const SOCIAL_CONTENT_FALLBACK_MODEL = "gpt-5.5";
+const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 12_000;
+const POYO_FALLBACK_RESPONSE_TIMEOUT_MS = 20_000;
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
@@ -50,6 +52,20 @@ function isRetryablePoyoResponsesFailure(error: unknown) {
   return typeof status === "number" && status >= 500;
 }
 
+async function withResponseTimeout<T>(promise: Promise<T>, timeoutMs: number, model: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new PoyoResponsesProviderError(504, `${model} did not respond within ${Math.ceil(timeoutMs / 1_000)} seconds.`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 /** Runs a PoYo Responses request on its intended model. Only a provider-side
  * 5xx failure is retried once on GPT-5.5; model-output validation failures do
  * not silently change models. */
@@ -67,10 +83,10 @@ export async function generateSocialStudioTextWithFallback<T>(
   };
 
   try {
-    return await run(primaryModel);
+    return await withResponseTimeout(run(primaryModel), POYO_PRIMARY_RESPONSE_TIMEOUT_MS, primaryModel);
   } catch (error) {
     if (!isRetryablePoyoResponsesFailure(error) || primaryModel === SOCIAL_CONTENT_FALLBACK_MODEL) throw error;
-    return await run(SOCIAL_CONTENT_FALLBACK_MODEL);
+    return await withResponseTimeout(run(SOCIAL_CONTENT_FALLBACK_MODEL), POYO_FALLBACK_RESPONSE_TIMEOUT_MS, SOCIAL_CONTENT_FALLBACK_MODEL);
   }
 }
 
