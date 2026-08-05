@@ -10,7 +10,7 @@ const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const SCENE_GAP_SECONDS = 0.2;
 const COUNTDOWN_SECONDS = 6;
-const TIER_COLORS = { A1: "#5eead4", A2: "#7dd3fc", B1: "#c4b5fd", B2: "#fcd34d", C1: "#fda4af" } as const;
+const TIER_COLORS = { A1: "#00d9b0", A2: "#00b4ff", B1: "#9f6cff", B2: "#ffcc00", C1: "#ff4d6d" } as const;
 const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_500_000;
 const AUDIO_BITRATE = 128_000;
@@ -20,9 +20,11 @@ const QUIZ_REVEAL_RED = "#ef4444";
 const QUIZ_REVEAL_GREEN = "#10b981";
 const QUIZ_COUNTDOWN_Y = 1550;
 const MASCOT_NORMAL_Y = 1320;
+const MASCOT_PROGRESSION_Y = 1100;
 const QUIZ_SUBTITLE_Y = 360;
 const QUIZ_TERM_Y = 480;
 const OUTRO_Y = 760;
+const PROGRESSION_SUBTITLE_Y = 960;
 
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
@@ -156,10 +158,10 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
 function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, variant: "progression" | "quiz" | "default" = "default") {
   const isQuiz = variant === "quiz";
   const isProgression = variant === "progression";
-  const splashWidth = isQuiz ? 720 : isProgression ? 320 : 320;
+  const splashWidth = isQuiz ? 720 : isProgression ? 440 : 320;
   const splashHeight = splashWidth * splash.height / splash.width;
   const x = (CANVAS_WIDTH - splashWidth) / 2;
-  const y = isQuiz ? 120 : isProgression ? 44 : 44;
+  const y = isQuiz ? 120 : isProgression ? 80 : 44;
   context.drawImage(isQuiz || isProgression ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
   if (!subtitle) return;
   context.textAlign = "center";
@@ -175,13 +177,13 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   }
 }
 
-function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean, extraOffsetY = 0, extraAlpha = 1) {
+function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean, targetYBase: number, extraOffsetY = 0, extraAlpha = 1) {
   const maxWidth = 780;
   const maxHeight = 880;
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const targetY = MASCOT_NORMAL_Y + Math.max(0, (maxHeight - height) / 2);
+  const targetY = targetYBase + Math.max(0, (maxHeight - height) / 2);
   const startY = CANVAS_HEIGHT + 80;
   const y = startY + (targetY - startY) * easeOutQuint(elapsed / 0.86) + extraOffsetY;
   context.save();
@@ -190,21 +192,31 @@ function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, 
   context.restore();
 }
 
-function drawProgression(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "progression" }>) {
+function drawProgression(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "progression" }>, elapsed: number) {
   const rowY = 292;
   const rowHeight = 132;
+  const gap = 172;
+  const baseX = 100;
+  const baseWidth = 880;
   scene.terms.forEach((entry, index) => {
     const active = scene.activeTier === entry.tier;
-    const y = rowY + index * 150;
-    drawRoundedRect(context, 100, y, 880, rowHeight, 24, active ? TIER_COLORS[entry.tier] : "#12110f", active ? TIER_COLORS[entry.tier] : "#302d28");
+    const targetScale = active ? 1.06 : 1;
+    const currentScale = 1 + (targetScale - 1) * easeOutQuint(Math.min(1, elapsed / 0.4));
+    const width = baseWidth * currentScale;
+    const height = rowHeight * currentScale;
+    const x = baseX - (width - baseWidth) / 2;
+    const y = rowY + index * gap;
+    const yOffset = (rowHeight - height) / 2;
+    const centerY = y + rowHeight / 2 + yOffset;
+    drawRoundedRect(context, x, y + yOffset, width, height, 24 * currentScale, TIER_COLORS[entry.tier]);
     context.textAlign = "left";
     context.textBaseline = "middle";
-    context.fillStyle = active ? "#fffaf4" : TIER_COLORS[entry.tier];
-    context.font = "600 34px Manrope, Arial, sans-serif";
-    context.fillText(entry.tier, 142, y + rowHeight / 2);
-    context.fillStyle = active ? "#fffaf4" : "#a8a29e";
-    context.font = "600 52px Manrope, Arial, sans-serif";
-    context.fillText(entry.term, 276, y + rowHeight / 2);
+    context.fillStyle = "#ffffff";
+    context.font = "700 48px Manrope, Arial, sans-serif";
+    context.fillText(entry.tier, 142, centerY);
+    context.fillStyle = active ? "#fffaf4" : "#f5f5f4";
+    context.font = "600 60px Manrope, Arial, sans-serif";
+    context.fillText(entry.term, 276, centerY);
   });
 }
 
@@ -213,7 +225,7 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
   context.textBaseline = "middle";
   context.fillStyle = "#f76808";
   context.font = "700 50px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, 900, 60);
+  drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, PROGRESSION_SUBTITLE_Y, 60);
 }
 
 function drawQuiz(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "quiz" }>, localElapsed: number) {
@@ -408,7 +420,7 @@ function drawOriginalMascotFrame(
   }
   drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro || isSentence ? "quiz" : "default");
   if (isProgression) {
-    drawProgression(context, scene);
+    drawProgression(context, scene, localElapsed);
     drawProgressionSubtitle(context, scene.subtitle);
   }
   if (isQuiz) drawQuiz(context, scene, localElapsed);
@@ -435,7 +447,8 @@ function drawOriginalMascotFrame(
       mascotAlpha = 0;
     }
   }
-  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl), mascotOffsetY, mascotAlpha);
+  const mascotTargetY = scene.kind === "progression" ? MASCOT_PROGRESSION_Y : MASCOT_NORMAL_Y;
+  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl), mascotTargetY, mascotOffsetY, mascotAlpha);
 }
 
 async function loadOriginalMascotVideoAssets(): Promise<OriginalMascotVideoAssets> {
