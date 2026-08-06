@@ -894,6 +894,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       const payload = await response.json().catch(() => null) as ({
         caption?: string;
         backgroundVideoUrl?: string;
+        backgroundVideoPath?: string;
         firstCharacter?: string;
         secondCharacter?: string;
         voices?: Record<string, string>;
@@ -909,6 +910,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       const videoBlob = await renderDialogueVideo({
         audioContext,
         backgroundVideoUrl: payload.backgroundVideoUrl,
+        backgroundVideoPath: payload.backgroundVideoPath,
         firstCharacter: payload.firstCharacter,
         secondCharacter: payload.secondCharacter,
         scenes: payload.scenes,
