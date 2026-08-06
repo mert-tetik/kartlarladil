@@ -16,14 +16,14 @@ const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png",
 // Shared ElevenLabs Voice Library voices, verified with a completed PoYo Turbo
 // generation. The cast stays stable per mascot across languages and videos.
 const DIALOGUE_MASCOT_VOICES = {
-  "Animal.png": { id: "yl2ZDV1MzN4HbQJbMihG", label: "Alex — upbeat young male" },
-  "Bear.png": { id: "9XfYMbJVZqPHaQtYnTAO", label: "Cody — upbeat educator" },
-  "Bunny.png": { id: "mUfWEBhcigm8YlCDbmGP", label: "Joey — upbeat host" },
-  "Lion.png": { id: "x8xv0H8Ako6Iw3cKXLoC", label: "Haven — energetic tenor" },
-  "Panda.png": { id: "xctasy8XvGp2cVO9HL9k", label: "Allison — energetic female" },
-  "Racoon.png": { id: "HDA9tsk27wYi3uq0fPcK", label: "Stuart — energetic male" },
-  "Tiger.png": { id: "xctasy8XvGp2cVO9HL9k", label: "Allison — energetic female" },
-  "Wolf.png": { id: "rU18Fk3uSDhmg5Xh41o4", label: "Ryan — warm young male" },
+  "Animal.png": { id: "eppqEXVumQ3CfdndcIBd", label: "Random voice 1" },
+  "Bear.png": { id: "J1lfByWs8gvoooryDWEi", label: "Random voice 2" },
+  "Bunny.png": { id: "M5t0724ORuAGCh3p3DUR", label: "Random voice 3" },
+  "Lion.png": { id: "fBD19tfE58bkETeiwUoC", label: "Random voice 4" },
+  "Panda.png": { id: "1jR8l3dNgd4OQs6kxgaF", label: "Random voice 5" },
+  "Racoon.png": { id: "IvUJKFyjVb5hItY9dJAT", label: "Random voice 6" },
+  "Tiger.png": { id: "nuVIy6kn92EbEZwTlTnc", label: "Random voice 7" },
+  "Wolf.png": { id: "XJ2fW4ybq7HouelYYGcL", label: "Random voice 8" },
   "Original.png": { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy — custom mascot voice" },
 } as const;
 
