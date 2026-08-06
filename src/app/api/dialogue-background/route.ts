@@ -17,9 +17,10 @@ export async function GET(request: Request) {
     return new Response(`upstream_failed: ${upstream.status}`, { status: 502 });
   }
 
-  return new Response(upstream.body, {
+  const blob = await upstream.blob();
+  return new Response(blob, {
     headers: {
-      "Content-Type": upstream.headers.get("content-type") || "video/mp4",
+      "Content-Type": blob.type || "video/mp4",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
