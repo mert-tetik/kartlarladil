@@ -216,13 +216,13 @@ function drawCharacter(
 function seekTo(video: HTMLVideoElement, time: number) {
   return new Promise<void>((resolve, reject) => {
     if (Math.abs(video.currentTime - time) < 0.001) {
-      resolve();
+      window.requestAnimationFrame(() => resolve());
       return;
     }
     const onSeeked = () => {
       video.removeEventListener("seeked", onSeeked);
       video.removeEventListener("error", onError);
-      resolve();
+      window.requestAnimationFrame(() => resolve());
     };
     const onError = () => {
       video.removeEventListener("seeked", onSeeked);
@@ -293,6 +293,7 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),
   ]);
+  await seekTo(backgroundVideo, 0);
   const backgroundDuration = backgroundVideo.duration;
   if (!Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
     throw new Error("dialogue_background_load_failed");
