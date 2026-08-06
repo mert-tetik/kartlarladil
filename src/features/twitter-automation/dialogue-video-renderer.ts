@@ -284,6 +284,7 @@ async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, f
   });
 
   let renderTimer: number | null = null;
+  let videoFrameCallbackId: number | null = null;
   const drawFrame = () => {
     const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
     const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
@@ -296,15 +297,29 @@ async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, f
     if (firstMotion) drawCharacter(context, firstImage, firstMotion, localElapsed, "left");
     if (secondMotion) drawCharacter(context, secondImage, secondMotion, localElapsed, "right");
   };
+  const scheduleFrame = () => {
+    if (elapsed < durationSeconds && typeof backgroundVideo.requestVideoFrameCallback === "function") {
+      videoFrameCallbackId = backgroundVideo.requestVideoFrameCallback(() => {
+        drawFrame();
+        scheduleFrame();
+      });
+    }
+  };
+  const elapsed = () => Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
 
   await backgroundVideo.play().catch(() => { throw new Error("dialogue_background_playback_failed"); });
   recorder.start(250);
   drawFrame();
-  // Render at a fixed cadence. requestAnimationFrame may be suspended while
-  // the browser continues the already-scheduled Web Audio dialogue.
-  renderTimer = window.setInterval(drawFrame, 1000 / 30);
+  if (typeof backgroundVideo.requestVideoFrameCallback === "function") {
+    scheduleFrame();
+  } else {
+    // Render at a fixed cadence for older browsers. requestVideoFrameCallback is
+    // preferred because it aligns canvas draws with the video's decoded frames.
+    renderTimer = window.setInterval(drawFrame, 1000 / 30);
+  }
   window.setTimeout(() => {
     if (renderTimer !== null) window.clearInterval(renderTimer);
+    if (videoFrameCallbackId !== null) backgroundVideo.cancelVideoFrameCallback?.(videoFrameCallbackId);
     drawFrame();
     if (recorder.state !== "inactive") recorder.stop();
   }, (durationSeconds + 0.12) * 1000);
@@ -313,6 +328,7 @@ async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, f
     return await completed;
   } finally {
     if (renderTimer !== null) window.clearInterval(renderTimer);
+    if (videoFrameCallbackId !== null) backgroundVideo.cancelVideoFrameCallback?.(videoFrameCallbackId);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     backgroundVideo.pause();
