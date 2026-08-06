@@ -226,7 +226,7 @@ function drawCharacter(
 /** Browser-only 9:16 dialogue renderer. Each speaker rises from below the frame on their turn. */
 async function renderRealtimeDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
-  if (!scenes.length || scenes.length > 10) throw new Error("invalid_dialogue_scene_count");
+  if (!scenes.length || scenes.length > 14) throw new Error("invalid_dialogue_scene_count");
 
   const [backgroundVideo, firstImage, secondImage] = await Promise.all([
     loadBackgroundVideo(backgroundVideoUrl),

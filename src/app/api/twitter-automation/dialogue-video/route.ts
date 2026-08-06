@@ -63,7 +63,7 @@ function parsePlan(value: string, needsTranslation: boolean, maxSceneCount: numb
       const values = scene as { text?: unknown; translation?: unknown; speaker?: unknown };
       const text = typeof values.text === "string" ? values.text.trim() : "";
       const translation = typeof values.translation === "string" ? values.translation.trim() : "";
-      if (!text || text.length > 220 || (needsTranslation && (!translation || translation.length > 240))) return null;
+      if (!text || text.length > 260 || (needsTranslation && (!translation || translation.length > 300))) return null;
       if (requiresMarketingRoles && values.speaker !== "learner" && values.speaker !== "guide") return null;
       if (needsTranslation) return { text, translation };
       return requiresMarketingRoles ? { text, speaker: values.speaker as DialogueSpeaker } : { text };
@@ -89,10 +89,12 @@ function instructionsFor(mode: DialogueMode) {
     ].join("\n");
   }
   return [
-    "Create a brief, everyday two-person conversation for a language-learning vertical social video.",
-    "Return one JSON object only: { caption, scenes }. scenes may contain up to 10 objects with exactly { text, translation }.",
-    "text is spoken entirely in the provided learning language. translation is its natural native-language subtitle. The conversation must feel like a plausible everyday interaction, be suitable for learners, and use short, clear turns.",
-    "Keep each text and translation under 18 words. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
+    "Create a lively, everyday two-person conversation for a language-learning vertical social video.",
+    "Return one JSON object only: { caption, scenes }. scenes may contain up to 14 objects with exactly { text, translation }.",
+    "text is spoken entirely in the provided learning language. translation is its natural native-language subtitle.",
+    "Pick a completely random real-life situation every time. Examples include: gossip about someone, discussing a movie or show, chatting at a café, ordering at a restaurant, shopping at a store, asking a stranger on the street, texting or calling online, talking to a partner, or a casual family conversation.",
+    "The two speakers should feel like natural friends, coworkers, classmates, couple, family members, or strangers. Vary the relationship, location, and topic freely.",
+    "Keep each text and translation under 22 words, conversational, and speakable. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
   ].join("\n");
 }
 
@@ -108,7 +110,7 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
       model,
       instructions: `${instructionsFor(mode)}${repair ? "\nThe previous response was invalid. Return valid JSON with every required field." : ""}`,
       input: JSON.stringify(input),
-      max_output_tokens: 700,
+      max_output_tokens: 900,
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
@@ -118,7 +120,7 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
     return parsePlan(
       output,
       mode === "learning-dialogue-video",
-      mode === "marketing-dialogue-video" ? 9 : 10,
+      mode === "marketing-dialogue-video" ? 9 : 14,
       mode === "marketing-dialogue-video",
     );
   };
@@ -154,7 +156,7 @@ export async function POST(request: Request) {
     const firstCharacter = pick(CHARACTER_VARIATIONS);
     const secondCharacter = mode === "marketing-dialogue-video"
       ? "Original.png"
-      : pick(CHARACTER_VARIATIONS.filter((variation) => variation !== firstCharacter));
+      : pick(CHARACTER_VARIATIONS.filter((variation) => variation !== firstCharacter && DIALOGUE_MASCOT_VOICES[variation].id !== DIALOGUE_MASCOT_VOICES[firstCharacter].id));
     const renderedScenes = scenes.map((scene, index) => ({
       ...scene,
       character: mode === "marketing-dialogue-video" ? scene.speaker === "guide" ? 2 : 1 : index % 2 === 0 ? 1 : 2,
