@@ -158,10 +158,10 @@ function drawCenteredLines(context: CanvasRenderingContext2D, lines: readonly st
 function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, subtitle: string, variant: "progression" | "quiz" | "default" = "default") {
   const isQuiz = variant === "quiz";
   const isProgression = variant === "progression";
-  const splashWidth = isQuiz ? 720 : isProgression ? 440 : 320;
+  const splashWidth = isQuiz ? 720 : isProgression ? 520 : 320;
   const splashHeight = splashWidth * splash.height / splash.width;
   const x = (CANVAS_WIDTH - splashWidth) / 2;
-  const y = isQuiz ? 120 : isProgression ? 80 : 44;
+  const y = isQuiz ? 120 : isProgression ? 120 : 44;
   context.drawImage(isQuiz || isProgression ? splash.orangeImage : splash.image, x, y, splashWidth, splashHeight);
   if (!subtitle) return;
   context.textAlign = "center";
