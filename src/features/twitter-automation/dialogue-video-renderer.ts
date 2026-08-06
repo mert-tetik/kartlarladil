@@ -76,7 +76,21 @@ function wrapText(context: CanvasRenderingContext2D, text: string, maxWidth: num
   return lines.slice(0, 4);
 }
 
-function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoScene) {
+const subtitleCache = new Map<string, HTMLCanvasElement>();
+
+function getSubtitleCacheKey(scene: DialogueVideoScene) {
+  return `${scene.text}|${scene.translation ?? ""}`;
+}
+
+function renderSubtitlesToCache(scene: DialogueVideoScene) {
+  const key = getSubtitleCacheKey(scene);
+  let cached = subtitleCache.get(key);
+  if (cached) return cached;
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = 640;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas_not_supported");
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.font = `700 76px ${DIALOGUE_SUBTITLE_FONT}`;
@@ -104,15 +118,36 @@ function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoSc
       y += translationLineHeight;
     });
   }
+  subtitleCache.set(key, canvas);
+  return canvas;
 }
 
-function drawBackgroundOverlay(context: CanvasRenderingContext2D) {
+function drawSubtitles(context: CanvasRenderingContext2D, scene: DialogueVideoScene) {
+  const cached = renderSubtitlesToCache(scene);
+  context.drawImage(cached, 0, 0);
+}
+
+let cachedOverlayCanvas: HTMLCanvasElement | null = null;
+
+function getOverlayCanvas() {
+  if (cachedOverlayCanvas) return cachedOverlayCanvas;
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas_not_supported");
   const overlay = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
   overlay.addColorStop(0, "rgba(0, 0, 0, 0.74)");
   overlay.addColorStop(0.42, "rgba(0, 0, 0, 0.42)");
   overlay.addColorStop(1, "rgba(0, 0, 0, 0.68)");
   context.fillStyle = overlay;
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  cachedOverlayCanvas = canvas;
+  return canvas;
+}
+
+function drawBackgroundOverlay(context: CanvasRenderingContext2D) {
+  context.drawImage(getOverlayCanvas(), 0, 0);
 }
 
 function drawBackground(context: CanvasRenderingContext2D, video: HTMLVideoElement) {
@@ -424,15 +459,17 @@ export async function renderDialogueVideo(options: DialogueVideoRenderOptions) {
   try {
     if (await canRenderDialogueDeterministically()) {
       try {
+        console.log("[DialogueVideo] using deterministic renderer");
         return await renderDeterministicDialogueVideo(options);
       } catch (error) {
         // Some Chrome/Android builds can encode VP8 but cannot WebCodecs-decode
         // the selected MP4 background. Keep the deterministic route as the
         // default, then use Chrome's proven HTML video decoder when that exact
         // device cannot complete it.
-        console.warn("Frame-exact dialogue export was unavailable; using the compatibility renderer.", error);
+        console.warn("[DialogueVideo] deterministic renderer failed; falling back to realtime", error);
       }
     }
+    console.log("[DialogueVideo] using realtime renderer");
     return await renderRealtimeDialogueVideo(options);
   } finally {
     if (options.audioContext.state !== "closed") await options.audioContext.close();
