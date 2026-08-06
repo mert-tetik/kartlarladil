@@ -196,27 +196,26 @@ function drawProgression(context: CanvasRenderingContext2D, scene: Extract<Origi
   const rowY = 292;
   const rowHeight = 132;
   const gap = 172;
-  const baseX = 100;
   const baseWidth = 880;
   scene.terms.forEach((entry, index) => {
     const active = scene.activeTier === entry.tier;
     const targetScale = active ? 1.06 : 1;
     const currentScale = 1 + (targetScale - 1) * easeOutQuint(Math.min(1, elapsed / 0.4));
-    const width = baseWidth * currentScale;
-    const height = rowHeight * currentScale;
-    const x = baseX - (width - baseWidth) / 2;
-    const y = rowY + index * gap;
-    const yOffset = (rowHeight - height) / 2;
-    const centerY = y + rowHeight / 2 + yOffset;
-    drawRoundedRect(context, x, y + yOffset, width, height, 24 * currentScale, TIER_COLORS[entry.tier]);
+    const centerX = CANVAS_WIDTH / 2;
+    const centerY = rowY + index * gap + rowHeight / 2;
+    context.save();
+    context.translate(centerX, centerY);
+    context.scale(currentScale, currentScale);
+    drawRoundedRect(context, -baseWidth / 2, -rowHeight / 2, baseWidth, rowHeight, 24, TIER_COLORS[entry.tier]);
     context.textAlign = "left";
     context.textBaseline = "middle";
     context.fillStyle = "#ffffff";
     context.font = "700 48px Manrope, Arial, sans-serif";
-    context.fillText(entry.tier, 142, centerY);
+    context.fillText(entry.tier, -baseWidth / 2 + 42, 0);
     context.fillStyle = active ? "#fffaf4" : "#f5f5f4";
     context.font = "600 60px Manrope, Arial, sans-serif";
-    context.fillText(entry.term, 276, centerY);
+    context.fillText(entry.term, -baseWidth / 2 + 176, 0);
+    context.restore();
   });
 }
 
