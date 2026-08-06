@@ -38,6 +38,20 @@ function loadImage(source: string) {
   });
 }
 
+function loadBackgroundVideo(source: string) {
+  return new Promise<HTMLVideoElement>((resolve, reject) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.onloadeddata = () => resolve(video);
+    video.onerror = () => reject(new Error("dialogue_background_load_failed"));
+    video.src = source;
+    video.load();
+  });
+}
+
 function easeOutQuint(value: number) {
   return 1 - (1 - Math.max(0, Math.min(1, value))) ** 5;
 }
@@ -131,8 +145,14 @@ function drawBackgroundOverlay(context: CanvasRenderingContext2D) {
   context.drawImage(getOverlayCanvas(), 0, 0);
 }
 
-function drawDecodedBackground(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement | OffscreenCanvas) {
-  context.drawImage(canvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+function drawBackground(context: CanvasRenderingContext2D, video: HTMLVideoElement) {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+  if (!sourceWidth || !sourceHeight) throw new Error("dialogue_background_load_failed");
+  const scale = Math.max(CANVAS_WIDTH / sourceWidth, CANVAS_HEIGHT / sourceHeight);
+  const width = sourceWidth * scale;
+  const height = sourceHeight * scale;
+  context.drawImage(video, (CANVAS_WIDTH - width) / 2, (CANVAS_HEIGHT - height) / 2, width, height);
   drawBackgroundOverlay(context);
 }
 
@@ -193,6 +213,28 @@ function drawCharacter(
   context.restore();
 }
 
+function seekTo(video: HTMLVideoElement, time: number) {
+  return new Promise<void>((resolve, reject) => {
+    if (Math.abs(video.currentTime - time) < 0.001) {
+      resolve();
+      return;
+    }
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", onError);
+      resolve();
+    };
+    const onError = () => {
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", onError);
+      reject(new Error("dialogue_background_seek_failed"));
+    };
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("error", onError);
+    video.currentTime = time;
+  });
+}
+
 function getDialogueTiming(audioBuffers: readonly AudioBuffer[], scenes: readonly DialogueVideoScene[]) {
   const starts: number[] = [];
   let elapsedSeconds = 0;
@@ -245,81 +287,63 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
   const backgroundFetchUrl = backgroundVideoPath
     ? `/api/dialogue-background?path=${encodeURIComponent(backgroundVideoPath)}`
     : backgroundVideoUrl;
-  const [backgroundResponse, firstImage, secondImage, audioBuffers] = await Promise.all([
-    fetch(backgroundFetchUrl),
+  const [backgroundVideo, firstImage, secondImage, audioBuffers] = await Promise.all([
+    loadBackgroundVideo(backgroundFetchUrl),
     loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),
   ]);
-  if (!backgroundResponse.ok) throw new Error("dialogue_background_load_failed");
-
-  const backgroundInput = new Input({
-    source: new BlobSource(await backgroundResponse.blob()),
-    formats: ALL_FORMATS,
-  });
-
-  try {
-    const backgroundTrack = await backgroundInput.getPrimaryVideoTrack();
-    const backgroundDuration = await backgroundInput.computeDuration();
-    if (!backgroundTrack || !Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
-      throw new Error("dialogue_background_load_failed");
-    }
-
-    const { starts, durationSeconds } = getDialogueTiming(audioBuffers, scenes);
-    const frameCount = Math.ceil(durationSeconds * DETERMINISTIC_FRAME_RATE);
-    const frameDuration = 1 / DETERMINISTIC_FRAME_RATE;
-    const canvas = document.createElement("canvas");
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("canvas_not_supported");
-
-    const backgroundSink = new CanvasSink(backgroundTrack, {
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      fit: "cover",
-      poolSize: 6,
-    });
-    const target = new BufferTarget();
-    const output = new Output({ format: new WebMOutputFormat(), target });
-    const videoSource = new CanvasSource(canvas, {
-      codec: "vp8",
-      bitrate: DETERMINISTIC_VIDEO_BITRATE,
-      keyFrameInterval: 5,
-    });
-    const audioSource = new AudioBufferSource({
-      codec: "opus",
-      bitrate: DETERMINISTIC_AUDIO_BITRATE,
-    });
-    output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
-    output.addAudioTrack(audioSource);
-    await output.start();
-
-    const mixedAudio = await renderOfflineDialogueAudio(audioBuffers, starts, frameCount * frameDuration);
-    await audioSource.add(mixedAudio);
-
-    for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-      const elapsed = frameIndex * frameDuration;
-      const backgroundFrame = await backgroundSink.getCanvas(elapsed % backgroundDuration);
-      if (!backgroundFrame) throw new Error("dialogue_background_frame_unavailable");
-      const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
-      const scene = scenes[sceneIndex]!;
-      const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
-      drawDecodedBackground(context, backgroundFrame.canvas);
-      drawSubtitles(context, scene);
-      const firstMotion = getCharacterMotion(1, scenes, starts, durationSeconds, sceneIndex, elapsed);
-      const secondMotion = getCharacterMotion(2, scenes, starts, durationSeconds, sceneIndex, elapsed);
-      if (firstMotion) drawCharacter(context, firstImage, firstMotion, localElapsed, "left");
-      if (secondMotion) drawCharacter(context, secondImage, secondMotion, localElapsed, "right");
-      await videoSource.add(elapsed, frameDuration, { keyFrame: frameIndex % (DETERMINISTIC_FRAME_RATE * 2) === 0 });
-    }
-
-    await output.finalize();
-    if (!target.buffer) throw new Error("deterministic_recording_failed");
-    return new Blob([target.buffer], { type: await output.getMimeType() });
-  } finally {
-    backgroundInput.dispose();
+  const backgroundDuration = backgroundVideo.duration;
+  if (!Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
+    throw new Error("dialogue_background_load_failed");
   }
+
+  const { starts, durationSeconds } = getDialogueTiming(audioBuffers, scenes);
+  const frameCount = Math.ceil(durationSeconds * DETERMINISTIC_FRAME_RATE);
+  const frameDuration = 1 / DETERMINISTIC_FRAME_RATE;
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas_not_supported");
+
+  const target = new BufferTarget();
+  const output = new Output({ format: new WebMOutputFormat(), target });
+  const videoSource = new CanvasSource(canvas, {
+    codec: "vp8",
+    bitrate: DETERMINISTIC_VIDEO_BITRATE,
+    keyFrameInterval: 5,
+  });
+  const audioSource = new AudioBufferSource({
+    codec: "opus",
+    bitrate: DETERMINISTIC_AUDIO_BITRATE,
+  });
+  output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
+  output.addAudioTrack(audioSource);
+  await output.start();
+
+  const mixedAudio = await renderOfflineDialogueAudio(audioBuffers, starts, frameCount * frameDuration);
+  await audioSource.add(mixedAudio);
+
+  for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+    const elapsed = frameIndex * frameDuration;
+    const t = elapsed % backgroundDuration;
+    await seekTo(backgroundVideo, t);
+    const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
+    const scene = scenes[sceneIndex]!;
+    const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
+    drawBackground(context, backgroundVideo);
+    drawSubtitles(context, scene);
+    const firstMotion = getCharacterMotion(1, scenes, starts, durationSeconds, sceneIndex, elapsed);
+    const secondMotion = getCharacterMotion(2, scenes, starts, durationSeconds, sceneIndex, elapsed);
+    if (firstMotion) drawCharacter(context, firstImage, firstMotion, localElapsed, "left");
+    if (secondMotion) drawCharacter(context, secondImage, secondMotion, localElapsed, "right");
+    await videoSource.add(elapsed, frameDuration, { keyFrame: frameIndex % (DETERMINISTIC_FRAME_RATE * 2) === 0 });
+  }
+
+  await output.finalize();
+  if (!target.buffer) throw new Error("deterministic_recording_failed");
+  return new Blob([target.buffer], { type: await output.getMimeType() });
 }
 
 /**
@@ -336,4 +360,4 @@ export async function renderDialogueVideo(options: DialogueVideoRenderOptions) {
     if (options.audioContext.state !== "closed") await options.audioContext.close();
   }
 }
-import { ALL_FORMATS, AudioBufferSource, BlobSource, BufferTarget, CanvasSink, CanvasSource, canEncodeAudio, canEncodeVideo, Input, Output, WebMOutputFormat } from "mediabunny";
+import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
