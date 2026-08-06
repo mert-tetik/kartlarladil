@@ -8,6 +8,7 @@ export type DialogueVideoScene = {
 type DialogueVideoRenderOptions = {
   audioContext: AudioContext;
   backgroundVideoUrl: string;
+  backgroundVideoPath?: string;
   firstCharacter: string;
   secondCharacter: string;
   scenes: readonly DialogueVideoScene[];
@@ -240,9 +241,12 @@ async function canRenderDialogueDeterministically() {
   }
 }
 
-async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
+async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, backgroundVideoPath, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
+  const backgroundFetchUrl = backgroundVideoPath
+    ? `/api/dialogue-background?path=${encodeURIComponent(backgroundVideoPath)}`
+    : backgroundVideoUrl;
   const [backgroundResponse, firstImage, secondImage, audioBuffers] = await Promise.all([
-    fetch(backgroundVideoUrl),
+    fetch(backgroundFetchUrl),
     loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),

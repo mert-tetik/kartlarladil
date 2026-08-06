@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
-import { getDialogueBackgroundPublicUrl } from "@/features/twitter-automation/dialogue-backgrounds";
+import { getDialogueBackgroundPublicUrl, pickDialogueBackgroundPath } from "@/features/twitter-automation/dialogue-backgrounds";
 import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
@@ -157,6 +157,7 @@ export async function POST(request: Request) {
     const secondCharacter = mode === "marketing-dialogue-video"
       ? "Original.png"
       : pick(CHARACTER_VARIATIONS.filter((variation) => variation !== firstCharacter && DIALOGUE_MASCOT_VOICES[variation].id !== DIALOGUE_MASCOT_VOICES[firstCharacter].id));
+    const backgroundVideoPath = pickDialogueBackgroundPath();
     const renderedScenes = scenes.map((scene, index) => ({
       ...scene,
       character: mode === "marketing-dialogue-video" ? scene.speaker === "guide" ? 2 : 1 : index % 2 === 0 ? 1 : 2,
@@ -172,6 +173,7 @@ export async function POST(request: Request) {
       firstCharacter,
       secondCharacter,
       backgroundVideoUrl: getDialogueBackgroundPublicUrl(),
+      backgroundVideoPath,
       voices: {
         [firstCharacter]: DIALOGUE_MASCOT_VOICES[firstCharacter].label,
         [secondCharacter]: DIALOGUE_MASCOT_VOICES[secondCharacter].label,
