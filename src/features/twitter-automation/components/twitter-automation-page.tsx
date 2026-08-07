@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type StudioMode = "text" | "image" | "video";
-type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner";
+type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
 type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression";
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
 type TierProgressionCarouselGeneratorMode = "tier-progression-carousel";
@@ -58,8 +58,10 @@ const TEXT_GENERATOR_OPTIONS: Array<{ value: TextGeneratorMode; label: string; d
   { value: "word-quiz", label: "Word Quiz", description: "A quick multiple-choice vocabulary challenge" },
   { value: "language-tip", label: "Language Tip", description: "A concise grammar, usage, or pronunciation tip" },
   { value: "false-friends", label: "False Friends", description: "Two easy-to-confuse words, clearly explained" },
-  { value: "daily-challenge", label: "Daily Challenge", description: "A small set of words to learn today" },
+  { value: "daily-challenge", label: "Daily Challenge", description: "Three useful words to learn today" },
   { value: "relatable-learner", label: "Relatable Learner Post", description: "A funny, familiar language-learning moment" },
+  { value: "tiered-vocabulary", label: "Tiered Vocabulary", description: "One word at A1, B2, and C1 levels" },
+  { value: "example-sentences", label: "Example Sentences", description: "Three sentences with native-language meanings" },
 ];
 
 const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: string; description: string }> = [

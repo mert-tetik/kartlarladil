@@ -14,7 +14,7 @@ const MAX_STAGED_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression"] as const;
 const NON_AI_IMAGE_GENERATORS = ["word-of-the-day", "word-of-the-day-poster"] as const;
-const TEXT_GENERATORS = ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner"] as const;
+const TEXT_GENERATORS = ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"] as const;
 const VIDEO_GENERATORS = ["ai-word-of-the-day-video", "confused-words-video"] as const;
 const MUSIC_VIDEO_GENERATORS = [
   "music-word-of-the-day",

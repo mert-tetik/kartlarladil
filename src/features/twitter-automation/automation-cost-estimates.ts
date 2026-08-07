@@ -83,6 +83,8 @@ const TEXT_GENERATORS = new Set([
   "false-friends",
   "daily-challenge",
   "relatable-learner",
+  "tiered-vocabulary",
+  "example-sentences",
 ]);
 
 const MUSIC_AI_IMAGE_GENERATORS = new Set([
