@@ -39,6 +39,13 @@ const VIDEO_BITRATE = 4_500_000;
 const AUDIO_BITRATE = 128_000;
 const MASCOT_BY_PHASE_SCENE = [18, 18, 18, 3, 4, 4, 4, 4] as const;
 const MIRRORED_BY_PHASE_SCENE = [true, true, false, false, true, true, false, false] as const;
+const SUBTITLE_FONT = '700 64px Manrope, Arial, sans-serif';
+const SUBTITLE_COLOR = '#f97316';
+const SUBTITLE_Y = 980;
+const SUBTITLE_MAX_WIDTH = 920;
+const SUBTITLE_LINE_HEIGHT = 78;
+const MASCOT_MAX_WIDTH = 720;
+const MASCOT_MAX_HEIGHT = 700;
 
 type VisibleImageBounds = { x: number; y: number; width: number; height: number };
 type PreparedSplash = { image: HTMLCanvasElement; x: number; y: number };
@@ -152,13 +159,11 @@ function drawMascot(
   mirrored: boolean,
   opacity = 1,
 ) {
-  const maxWidth = 820;
-  const maxHeight = 800;
-  const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const scale = Math.min(MASCOT_MAX_WIDTH / image.naturalWidth, MASCOT_MAX_HEIGHT / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
   const x = (CANVAS_WIDTH - width) / 2;
-  const y = 1030 + Math.max(0, (maxHeight - height) / 2);
+  const y = 1030 + Math.max(0, (MASCOT_MAX_HEIGHT - height) / 2);
   context.save();
   context.globalAlpha = opacity;
   if (mirrored) {
@@ -176,6 +181,53 @@ function resolvePhasePairs({ phases, firstCard, secondCard }: ConfusedWordsVideo
   return firstCard && secondCard ? [{ first: firstCard, second: secondCard }] : [];
 }
 
+const subtitleCache = new Map<string, HTMLCanvasElement>();
+
+function wrapSubtitleText(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const words = text.split(/\s+/u).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && context.measureText(candidate).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 3);
+}
+
+function renderSubtitleToCache(text: string) {
+  const cached = subtitleCache.get(text);
+  if (cached) return cached;
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = 280;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas_not_supported");
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = SUBTITLE_FONT;
+  const lines = wrapSubtitleText(context, text, SUBTITLE_MAX_WIDTH);
+  const totalHeight = lines.length * SUBTITLE_LINE_HEIGHT;
+  let y = canvas.height / 2 - totalHeight / 2 + SUBTITLE_LINE_HEIGHT / 2;
+  context.fillStyle = SUBTITLE_COLOR;
+  for (const line of lines) {
+    context.fillText(line, CANVAS_WIDTH / 2, y);
+    y += SUBTITLE_LINE_HEIGHT;
+  }
+  subtitleCache.set(text, canvas);
+  return canvas;
+}
+
+function drawSceneSubtitle(context: CanvasRenderingContext2D, text: string) {
+  const cached = renderSubtitleToCache(text);
+  context.drawImage(cached, 0, SUBTITLE_Y - cached.height / 2);
+}
+
 type ConfusedWordsFrameAssets = {
   tintedSplash: PreparedSplash;
   mascots: Record<3 | 4 | 18, HTMLImageElement>;
@@ -186,6 +238,7 @@ type ConfusedWordsFrameAssets = {
 function drawConfusedWordsFrame(
   context: CanvasRenderingContext2D,
   assets: ConfusedWordsFrameAssets,
+  scenes: readonly ConfusedWordsVideoScene[],
   starts: readonly number[],
   durationSeconds: number,
   elapsed: number,
@@ -213,6 +266,8 @@ function drawConfusedWordsFrame(
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   drawTintedSplash(context, assets.tintedSplash);
+  const sceneText = scenes[sceneIndex]?.text;
+  if (sceneText) drawSceneSubtitle(context, sceneText);
   const drawCard = (side: "left" | "right") => {
     const x = side === "left" ? 80 : 570;
     const cardImage = side === "left" ? firstCardImage : secondCardImage;
@@ -322,7 +377,7 @@ async function renderDeterministicConfusedWordsVideo(options: ConfusedWordsVideo
     await output.start();
     await audioSource.add(await renderConfusedWordsOfflineAudio(audioBuffers, playbackRates, starts, frameCount * frameDuration));
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-      drawConfusedWordsFrame(context, assets, starts, durationSeconds, frameIndex * frameDuration);
+      drawConfusedWordsFrame(context, assets, scenes, starts, durationSeconds, frameIndex * frameDuration);
       await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
     }
     await output.finalize();
@@ -399,7 +454,7 @@ async function renderRealtimeConfusedWordsVideo(options: ConfusedWordsVideoRende
   let renderTimer: number | null = null;
   const drawFrame = () => {
     const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
-    drawConfusedWordsFrame(context, assets, starts, durationSeconds, elapsed);
+    drawConfusedWordsFrame(context, assets, scenes, starts, durationSeconds, elapsed);
   };
 
   recorder.start(250);
