@@ -13,19 +13,67 @@ export const maxDuration = 120;
 
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png", "Panda.png", "Racoon.png", "Tiger.png", "Wolf.png"] as const;
-// Shared ElevenLabs Voice Library voices, verified with a completed PoYo Turbo
-// generation. The cast stays stable per mascot across languages and videos.
-const DIALOGUE_MASCOT_VOICES = {
-  "Animal.png": { id: "eppqEXVumQ3CfdndcIBd", label: "Random voice 1" },
-  "Bear.png": { id: "J1lfByWs8gvoooryDWEi", label: "Random voice 2" },
-  "Bunny.png": { id: "M5t0724ORuAGCh3p3DUR", label: "Random voice 3" },
-  "Lion.png": { id: "fBD19tfE58bkETeiwUoC", label: "Random voice 4" },
-  "Panda.png": { id: "1jR8l3dNgd4OQs6kxgaF", label: "Random voice 5" },
-  "Racoon.png": { id: "IvUJKFyjVb5hItY9dJAT", label: "Random voice 6" },
-  "Tiger.png": { id: "nuVIy6kn92EbEZwTlTnc", label: "Random voice 7" },
-  "Wolf.png": { id: "XJ2fW4ybq7HouelYYGcL", label: "Random voice 8" },
-  "Original.png": { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy — custom mascot voice" },
-} as const;
+const DIALOGUE_VOICE_IDS = [
+  "J1lfByWs8gvoooryDWEi",
+  "1jR8l3dNgd4OQs6kxgaF",
+  "XJ2fW4ybq7HouelYYGcL",
+  "IvUJKFyjVb5hItY9dJAT",
+  "M5t0724ORuAGCh3p3DUR",
+  "nuVIy6kn92EbEZwTlTnc",
+  "fBD19tfE58bkETeiwUoC",
+  "eppqEXVumQ3CfdndcIBd",
+] as const;
+
+function cyrb128(str: string) {
+  let h1 = 1779033703;
+  let h2 = 3144134277;
+  let h3 = 1013904242;
+  let h4 = 2773480762;
+  for (let i = 0; i < str.length; i++) {
+    const k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  return (h1 ^ h2 ^ h3 ^ h4) >>> 0;
+}
+
+function mulberry32(seed: number) {
+  return function () {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleWithSeed<T>(items: readonly T[], seed: string) {
+  const rng = mulberry32(cyrb128(seed));
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Assign each non-Original mascot a random voice from the pool once, then keep
+// that cast stable forever. The seed is fixed so every deploy uses the same
+// mapping, but the mapping itself is a random shuffle of the provided IDs.
+const SHUFFLED_DIALOGUE_VOICE_IDS = shuffleWithSeed(DIALOGUE_VOICE_IDS, "foxiesdeck-dialogue-voice-cast-v1");
+
+const DIALOGUE_MASCOT_VOICES = Object.fromEntries([
+  ...CHARACTER_VARIATIONS.map((variation, index) => {
+    const id = SHUFFLED_DIALOGUE_VOICE_IDS[index]!;
+    return [variation, { id, label: `Voice ${index + 1}` }] as const;
+  }),
+  ["Original.png", { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy — custom mascot voice" }] as const,
+]) as Record<string, { id: string; label: string }>;
 
 const requestSchema = z.object({
   mode: z.enum(["marketing-dialogue-video", "learning-dialogue-video"]),
