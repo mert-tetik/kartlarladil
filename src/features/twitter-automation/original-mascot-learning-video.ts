@@ -40,9 +40,10 @@ export type OutroVideoScene = BaseScene & {
 
 export type SentenceTranslationVideoScene = BaseScene & {
   kind: "sentence-translation";
-  phase: "sentence" | "translation";
+  phase: "sentence" | "translation" | "comment";
   sentence: string;
   translation: string;
+  commentPrompt: string;
   speakerMascot: string;
 };
 

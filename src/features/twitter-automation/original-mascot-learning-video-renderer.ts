@@ -1,9 +1,13 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+import { LANGUAGE_BY_CODE } from "@/data/languages";
 import type { OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
+import type { LanguageCode } from "@/types/domain";
 
 type OriginalMascotLearningVideoRenderOptions = {
   audioContext: AudioContext;
   scenes: readonly OriginalMascotLearningVideoScene[];
+  language?: LanguageCode;
+  nativeLanguage?: LanguageCode;
 };
 
 const CANVAS_WIDTH = 1080;
@@ -25,6 +29,10 @@ const QUIZ_SUBTITLE_Y = 360;
 const QUIZ_TERM_Y = 480;
 const OUTRO_Y = 760;
 const PROGRESSION_SUBTITLE_Y = 960;
+const MASCOT_SENTENCE_TRANSLATION_Y = 1120;
+const MASCOT_SENTENCE_TRANSLATION_WIDTH = 920;
+const MASCOT_SENTENCE_TRANSLATION_HEIGHT = 1000;
+const FLAG_SIZE = 96;
 
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
@@ -57,6 +65,8 @@ type OriginalMascotVideoAssets = {
   mascot4: HTMLImageElement;
   mascot18: HTMLImageElement;
   speaker: HTMLImageElement | null;
+  learningFlag: HTMLImageElement | null;
+  nativeFlag: HTMLImageElement | null;
   splash: PreparedSplash;
 };
 
@@ -178,9 +188,7 @@ function drawHeader(context: CanvasRenderingContext2D, splash: PreparedSplash, s
   }
 }
 
-function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean, targetYBase: number, extraOffsetY = 0, extraAlpha = 1) {
-  const maxWidth = 780;
-  const maxHeight = 880;
+function drawMascot(context: CanvasRenderingContext2D, image: HTMLImageElement, elapsed: number, speaking: boolean, targetYBase: number, extraOffsetY = 0, extraAlpha = 1, maxWidth = 780, maxHeight = 880) {
   const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
@@ -228,21 +236,39 @@ function drawProgressionSubtitle(context: CanvasRenderingContext2D, subtitle: st
   drawCenteredLines(context, wrapText(context, subtitle, 900), CANVAS_WIDTH / 2, PROGRESSION_SUBTITLE_Y, 60);
 }
 
-function drawSentenceTranslation(context: CanvasRenderingContext2D, scene: Extract<OriginalMascotLearningVideoScene, { kind: "sentence-translation" }>) {
-  const showTranslation = scene.phase === "translation";
+function drawFlag(context: CanvasRenderingContext2D, flag: HTMLImageElement | null, x: number, y: number) {
+  if (!flag) return;
+  const aspect = flag.naturalWidth / flag.naturalHeight;
+  const width = FLAG_SIZE * aspect;
+  const height = FLAG_SIZE;
+  context.drawImage(flag, x - width / 2, y - height / 2, width, height);
+}
+
+function drawSentenceTranslation(
+  context: CanvasRenderingContext2D,
+  scene: Extract<OriginalMascotLearningVideoScene, { kind: "sentence-translation" }>,
+  assets: OriginalMascotVideoAssets,
+) {
+  const showRight = scene.phase === "translation" || scene.phase === "comment";
+  const rightText = scene.phase === "comment" ? scene.commentPrompt : scene.translation;
   const sentenceX = CANVAS_WIDTH * 0.28;
   const translationX = CANVAS_WIDTH * 0.72;
-  const centerY = 760;
+  const textY = 760;
+  const flagY = 540;
   const maxWidth = 460;
   const lineHeight = 86;
+
+  drawFlag(context, assets.learningFlag, sentenceX, flagY);
+  drawFlag(context, assets.nativeFlag, translationX, flagY);
+
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#17120e";
   context.font = "700 68px Manrope, Arial, sans-serif";
-  drawCenteredLines(context, wrapText(context, scene.sentence, maxWidth, 4), sentenceX, centerY, lineHeight);
-  if (showTranslation) {
+  drawCenteredLines(context, wrapText(context, scene.sentence, maxWidth, 4), sentenceX, textY, lineHeight);
+  if (showRight) {
     context.fillStyle = "#f76808";
-    drawCenteredLines(context, wrapText(context, scene.translation, maxWidth, 4), translationX, centerY, lineHeight);
+    drawCenteredLines(context, wrapText(context, rightText, maxWidth, 4), translationX, textY, lineHeight);
   }
 }
 
@@ -437,7 +463,7 @@ function drawOriginalMascotFrame(
     context.ellipse(CANVAS_WIDTH / 2, 1460, 640, 520, 0, 0, Math.PI * 2);
     context.fill();
   }
-  drawHeader(context, assets.splash, isProgression ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro || isSentence || isSentenceTranslation ? "quiz" : "default");
+  drawHeader(context, assets.splash, isProgression ? "" : isSentenceTranslation ? "" : scene.subtitle, isProgression ? "progression" : isQuiz || isOutro || isSentence || isSentenceTranslation ? "quiz" : "default");
   if (isProgression) {
     drawProgression(context, scene, localElapsed);
     drawProgressionSubtitle(context, scene.subtitle);
@@ -445,7 +471,7 @@ function drawOriginalMascotFrame(
   if (isQuiz) drawQuiz(context, scene, localElapsed);
   if (scene.kind === "sentence") drawSentence(context, scene, localElapsed);
   if (isOutro) drawOutro(context, scene, localElapsed);
-  if (isSentenceTranslation) drawSentenceTranslation(context, scene);
+  if (isSentenceTranslation) drawSentenceTranslation(context, scene, assets);
   const mascot = scene.kind === "progression"
     ? assets[scene.mascot]
     : scene.kind === "sentence-translation"
@@ -471,8 +497,23 @@ function drawOriginalMascotFrame(
       mascotAlpha = 0;
     }
   }
-  const mascotTargetY = scene.kind === "progression" ? MASCOT_PROGRESSION_Y : MASCOT_NORMAL_Y;
-  drawMascot(context, mascot, clampedElapsed, Boolean(scene.audioDataUrl), mascotTargetY, mascotOffsetY, mascotAlpha);
+  const isSentenceTranslationScene = scene.kind === "sentence-translation";
+  const mascotTargetY = scene.kind === "progression"
+    ? MASCOT_PROGRESSION_Y
+    : isSentenceTranslationScene
+      ? MASCOT_SENTENCE_TRANSLATION_Y
+      : MASCOT_NORMAL_Y;
+  drawMascot(
+    context,
+    mascot,
+    clampedElapsed,
+    Boolean(scene.audioDataUrl),
+    mascotTargetY,
+    mascotOffsetY,
+    mascotAlpha,
+    isSentenceTranslationScene ? MASCOT_SENTENCE_TRANSLATION_WIDTH : undefined,
+    isSentenceTranslationScene ? MASCOT_SENTENCE_TRANSLATION_HEIGHT : undefined,
+  );
 }
 
 function getSpeakerMascotSource(scenes: readonly OriginalMascotLearningVideoScene[]) {
@@ -480,21 +521,30 @@ function getSpeakerMascotSource(scenes: readonly OriginalMascotLearningVideoScen
   return scene ? `/mascot-variations/${encodeURIComponent(scene.speakerMascot)}` : null;
 }
 
-async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[]): Promise<OriginalMascotVideoAssets> {
+function getFlagSource(language?: LanguageCode) {
+  const flagCode = language ? LANGUAGE_BY_CODE[language]?.flagCode : null;
+  return flagCode ? `/flags/4x3/${flagCode}.svg` : null;
+}
+
+async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[], language?: LanguageCode, nativeLanguage?: LanguageCode): Promise<OriginalMascotVideoAssets> {
   const speakerSource = getSpeakerMascotSource(scenes);
-  const [original, mascot4, mascot18, splash, speaker] = await Promise.all([
+  const learningFlagSource = getFlagSource(language);
+  const nativeFlagSource = getFlagSource(nativeLanguage);
+  const [original, mascot4, mascot18, splash, speaker, learningFlag, nativeFlag] = await Promise.all([
     loadImage("/mascot-variations/Original.png"),
     loadImage("/mascots/mascot4.webp"),
     loadImage("/mascots/mascot18.png"),
     loadImage("/splash.png"),
     speakerSource ? loadImage(speakerSource) : Promise.resolve(null),
+    learningFlagSource ? loadImage(learningFlagSource) : Promise.resolve(null),
+    nativeFlagSource ? loadImage(nativeFlagSource) : Promise.resolve(null),
   ]);
   // Ensure the Super Water display font is loaded before drawing so the first
   // frames do not fall back to a system font.
   if (document.fonts) {
     await document.fonts.load('600 160px "Super Water"').catch(() => undefined);
   }
-  return { original, mascot4, mascot18, speaker, splash: prepareSplash(splash) };
+  return { original, mascot4, mascot18, speaker, learningFlag, nativeFlag, splash: prepareSplash(splash) };
 }
 
 async function decodeOriginalMascotAudio(audioContext: AudioContext, scenes: readonly OriginalMascotLearningVideoScene[]) {
@@ -535,9 +585,9 @@ async function canRenderOriginalMascotDeterministically() {
     && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
 }
 
-async function renderDeterministicOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
+async function renderDeterministicOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: OriginalMascotLearningVideoRenderOptions) {
   const [assets, buffers] = await Promise.all([
-    loadOriginalMascotVideoAssets(scenes),
+    loadOriginalMascotVideoAssets(scenes, language, nativeLanguage),
     decodeOriginalMascotAudio(audioContext, scenes),
   ]);
 
@@ -572,11 +622,11 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
 }
 
 /** Legacy real-time renderer for browsers without WebCodecs. */
-async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes }: OriginalMascotLearningVideoRenderOptions) {
+async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: OriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length < 2 || scenes.length > 20) throw new Error("invalid_video_scene_count");
 
-  const assets = await loadOriginalMascotVideoAssets(scenes);
+  const assets = await loadOriginalMascotVideoAssets(scenes, language, nativeLanguage);
   const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
   const { starts, durationSeconds } = getOriginalMascotTiming(buffers, scenes);
   const canvas = document.createElement("canvas");

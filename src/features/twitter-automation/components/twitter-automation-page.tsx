@@ -974,12 +974,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       }
 
       setMusicVideoStatus("rendering");
-      const videoBlob = await renderOriginalMascotLearningVideo({ audioContext, scenes: payload.scenes });
+      const videoBlob = await renderOriginalMascotLearningVideo({ audioContext, scenes: payload.scenes, language, nativeLanguage });
       audioContext = null;
       setMusicVideoUrl(URL.createObjectURL(videoBlob));
       setMusicVideoBlob(videoBlob);
       setMusicVideoCaption(payload.caption);
-      setMusicVideoTrackLabel(mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check");
+      setMusicVideoTrackLabel(mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : mode === "sentence-check-video" ? "Sentence check" : "Random sentence");
       setMusicVideoStatus("finished");
     } catch (error) {
       setMusicVideoStatus("failed");

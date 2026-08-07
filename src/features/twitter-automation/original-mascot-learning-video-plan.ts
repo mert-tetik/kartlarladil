@@ -6,7 +6,7 @@ export type ProgressionPlan = {
 
 export type QuizPlan = { caption: string; question: string; prompt: string; reveal: string; explanation: string };
 export type SentencePlan = { caption: string; sentence: string; isCorrect: boolean; correction: string; question: string; reveal: string; explanation: string };
-export type SentenceTranslationPlan = { caption: string; sentence: string; translation: string };
+export type SentenceTranslationPlan = { caption: string; sentence: string; translation: string; commentPrompt: string };
 
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === "string" && value.trim() && value.trim().length <= maxLength ? value.trim() : null;
@@ -153,7 +153,8 @@ export function parseSentenceTranslationPlan(value: string): SentenceTranslation
     const caption = cleanText(parsed.caption, 400);
     const sentence = cleanText(parsed.sentence, 220);
     const translation = cleanText(parsed.translation, 260);
-    return caption && sentence && translation ? { caption, sentence, translation } : null;
+    const commentPrompt = cleanText(parsed.commentPrompt, 180);
+    return caption && sentence && translation && commentPrompt ? { caption, sentence, translation, commentPrompt } : null;
   } catch {
     return null;
   }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import type { OriginalMascotLearningVideoPayload, OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
-import { parseProgressionPlan, parseQuizPlan, parseSentencePlan, parseSentenceTranslationPlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
+import { parseProgressionPlan, parseQuizPlan, parseSentencePlan, parseSentenceTranslationPlan, type SentenceTranslationPlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
@@ -314,30 +314,69 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
 }
 
 async function createSentenceTranslationPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
-  const plan = await createPlan(
-    [
-      "Create a random sentence translation snippet for a FoxiesDeck vertical learning video.",
-      "Return one JSON object only: { caption, sentence, translation }.",
-      "sentence is a single, natural, useful sentence in the learning language. translation is its natural equivalent in the native language. Do not tie the sentence to any CEFR level; pick it completely at random.",
-      "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep the sentence and translation brief and speakable.",
-    ].join("\n"),
-    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
-    parseSentenceTranslationPlan,
-  );
-  if (!plan) return null;
+  const plans: Array<NonNullable<Awaited<ReturnType<typeof createPlan<SentenceTranslationPlan>>>>> = [];
+  let attempts = 0;
+  while (plans.length < 5 && attempts < 20) {
+    attempts++;
+    const plan = await createPlan<SentenceTranslationPlan>(
+      [
+        "Create a random sentence translation snippet for a FoxiesDeck vertical learning video.",
+        "Return one JSON object only: { caption, sentence, translation, commentPrompt }.",
+        "sentence is a single, natural, useful sentence in the learning language. translation is its natural equivalent in the native language. Do not tie the sentence to any CEFR level; pick it completely at random.",
+        "commentPrompt is a native-language phrase asking viewers to write the answer in the comments, e.g. 'Cevabı yorumlara yazın'.",
+        "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep the sentence, translation, and commentPrompt brief and speakable.",
+      ].join("\n"),
+      {
+        learningLanguage: LANGUAGE_NAMES[language],
+        nativeLanguage: LANGUAGE_NAMES[nativeLanguage],
+        previousSentences: plans.map((plan) => plan.sentence),
+      },
+      parseSentenceTranslationPlan,
+    );
+    if (!plan) continue;
+    const normalized = plan.sentence.toLocaleLowerCase().trim();
+    if (plans.some((existing) => existing.sentence.toLocaleLowerCase().trim() === normalized)) continue;
+    plans.push(plan);
+  }
+  if (plans.length < 5) return null;
+
   const speakerMascot = pick(CHARACTER_VARIATIONS);
   const speakerVoice = pick(NON_ORIGINAL_VOICE_IDS);
-  const [sentenceAudio, translationAudio] = await Promise.all([
-    generatePoyoSpeechDataUrls([{ text: plan.sentence, language, speed: 1, voice: speakerVoice }]),
-    generatePoyoSpeechDataUrls([{ text: plan.translation, language: nativeLanguage, speed: 1 }]),
+  const spokenSegments = plans.flatMap((plan, index) => [
+    { text: plan.sentence, language, speed: 1, voice: speakerVoice },
+    index < 4 ? { text: plan.translation, language: nativeLanguage, speed: 1 } : { text: plan.commentPrompt, language: nativeLanguage, speed: 1 },
   ]);
+  const audioDataUrls = await generatePoyoSpeechDataUrls(spokenSegments);
+  let audioIndex = 0;
+  const scenes: OriginalMascotLearningVideoScene[] = [];
+  for (let index = 0; index < plans.length; index++) {
+    const plan = plans[index]!;
+    const isLast = index === plans.length - 1;
+    scenes.push({
+      kind: "sentence-translation" as const,
+      phase: "sentence" as const,
+      sentence: plan.sentence,
+      translation: plan.translation,
+      commentPrompt: plan.commentPrompt,
+      speakerMascot,
+      subtitle: "",
+      audioDataUrl: audioDataUrls[audioIndex++]!,
+    });
+    scenes.push({
+      kind: "sentence-translation" as const,
+      phase: isLast ? "comment" as const : "translation" as const,
+      sentence: plan.sentence,
+      translation: plan.translation,
+      commentPrompt: plan.commentPrompt,
+      speakerMascot,
+      subtitle: "",
+      audioDataUrl: audioDataUrls[audioIndex++]!,
+    });
+  }
   return {
     mode: "sentence-translation-video",
-    caption: plan.caption,
-    scenes: [
-      { kind: "sentence-translation" as const, phase: "sentence" as const, sentence: plan.sentence, translation: plan.translation, speakerMascot, subtitle: plan.sentence, audioDataUrl: sentenceAudio[0]! },
-      { kind: "sentence-translation" as const, phase: "translation" as const, sentence: plan.sentence, translation: plan.translation, speakerMascot, subtitle: plan.translation, audioDataUrl: translationAudio[0]! },
-    ],
+    caption: plans.map((plan) => plan.caption).join("\n\n"),
+    scenes,
   };
 }
 
