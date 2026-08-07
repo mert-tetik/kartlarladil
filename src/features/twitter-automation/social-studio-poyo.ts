@@ -8,7 +8,7 @@ export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
 export const SOCIAL_CONTENT_FALLBACK_MODEL = "gpt-5.5";
 const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 12_000;
-const POYO_FALLBACK_RESPONSE_TIMEOUT_MS = 20_000;
+const POYO_FALLBACK_RESPONSE_TIMEOUT_MS = 60_000;
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
