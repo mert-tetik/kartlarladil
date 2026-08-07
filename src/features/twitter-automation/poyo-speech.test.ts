@@ -15,7 +15,7 @@ describe("PoYo speech segments", () => {
 
   it("submits each fragment to the avatar TTS model in its requested language and returns audio data URLs", async () => {
     let taskIndex = 0;
-    const fetchMock = vi.fn(async (input: string) => {
+    const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
       if (input.endsWith("/api/generate/submit")) {
         taskIndex += 1;
         return Response.json({ data: { task_id: `speech-${taskIndex}` } });

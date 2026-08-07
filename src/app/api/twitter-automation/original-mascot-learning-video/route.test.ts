@@ -115,7 +115,27 @@ describe("Original mascot learning video plans", () => {
   });
 
   it("rejects incomplete quiz and sentence scripts", () => {
+    expect(parseQuizPlan(JSON.stringify({
+      caption: "x",
+      question: "x",
+      prompt: "x",
+      reveal: "x",
+      explanation: "x",
+      transition: "x",
+      outro: "x",
+    }))).not.toBeNull();
     expect(parseQuizPlan('{"caption":"x","question":"x"}')).toBeNull();
+    expect(parseSentencePlan(JSON.stringify({
+      caption: "Check this. #grammar #languagelearning",
+      sentence: "She go to work every day.",
+      isCorrect: false,
+      correction: "She goes to work every day.",
+      question: "Is this sentence correct?",
+      reveal: "It is incorrect.",
+      explanation: "Third person singular needs goes.",
+      intro: "Are these sentences correct?",
+      outro: "Write your answer in the comments.",
+    }))).not.toBeNull();
     expect(parseSentencePlan(JSON.stringify({
       caption: "Check this. #grammar #languagelearning",
       sentence: "She go to work every day.",
@@ -124,6 +144,8 @@ describe("Original mascot learning video plans", () => {
       question: "Is this sentence correct?",
       reveal: "It is incorrect.",
       explanation: "Third person singular needs goes.",
+      intro: "Are these sentences correct?",
+      outro: "Write your answer in the comments.",
     }))).toBeNull();
   });
 
@@ -136,6 +158,8 @@ describe("Original mascot learning video plans", () => {
       question: "Is this sentence correct?",
       reveal: "Yes, it is correct.",
       explanation: "Present perfect works with an unfinished period of time.",
+      intro: "Are these sentences correct?",
+      outro: "Write your answer in the comments.",
     }) + "\n```");
 
     expect(plan).toMatchObject({ isCorrect: true, correction: "" });

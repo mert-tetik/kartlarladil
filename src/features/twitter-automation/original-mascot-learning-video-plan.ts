@@ -4,8 +4,8 @@ export type ProgressionPlan = {
   narration: Array<{ text: string; phase: "intro" | "term" | "explanation" | "outro"; activeTier: "A1" | "B1" | "C1" | null }>;
 };
 
-export type QuizPlan = { caption: string; question: string; prompt: string; reveal: string; explanation: string };
-export type SentencePlan = { caption: string; sentence: string; isCorrect: boolean; correction: string; question: string; reveal: string; explanation: string };
+export type QuizPlan = { caption: string; question: string; prompt: string; reveal: string; explanation: string; transition: string; outro: string };
+export type SentencePlan = { caption: string; sentence: string; isCorrect: boolean; correction: string; question: string; reveal: string; explanation: string; intro: string; outro: string };
 export type SentenceTranslationPlan = { caption: string; sentence: string; translation: string; commentPrompt: string };
 
 function cleanText(value: unknown, maxLength: number) {
@@ -126,7 +126,9 @@ export function parseQuizPlan(value: string): QuizPlan | null {
     const prompt = cleanText(parsed.prompt, 160);
     const reveal = cleanText(parsed.reveal, 180);
     const explanation = cleanText(parsed.explanation, 260);
-    return caption && question && prompt && reveal && explanation ? { caption, question, prompt, reveal, explanation } : null;
+    const transition = cleanText(parsed.transition, 180);
+    const outro = cleanText(parsed.outro, 180);
+    return caption && question && prompt && reveal && explanation && transition && outro ? { caption, question, prompt, reveal, explanation, transition, outro } : null;
   } catch {
     return null;
   }
@@ -141,7 +143,9 @@ export function parseSentencePlan(value: string): SentencePlan | null {
     const question = cleanText(parsed.question, 180);
     const reveal = cleanText(parsed.reveal, 180);
     const explanation = cleanText(parsed.explanation, 300);
-    return caption && sentence && typeof parsed.isCorrect === "boolean" && question && reveal && explanation && (parsed.isCorrect || correction) ? { caption, sentence, isCorrect: parsed.isCorrect, correction, question, reveal, explanation } : null;
+    const intro = cleanText(parsed.intro, 180);
+    const outro = cleanText(parsed.outro, 180);
+    return caption && sentence && typeof parsed.isCorrect === "boolean" && question && reveal && explanation && intro && outro && (parsed.isCorrect || correction) ? { caption, sentence, isCorrect: parsed.isCorrect, correction, question, reveal, explanation, intro, outro } : null;
   } catch {
     return null;
   }

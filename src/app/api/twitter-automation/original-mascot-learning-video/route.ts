@@ -89,7 +89,8 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
       "terms must contain exactly three distinct, semantically connected target-language words in this exact tier set: A1, B1, C1. They should express the same broad idea with increasingly precise or advanced vocabulary.",
       "Choose the terms yourself, not from a catalogue. The input includes previously used terms with lastUsedAt timestamps. Prefer terms never in that list; only reuse a term when no suitable unused term can be found, then choose the oldest one, never a recent one.",
       "narration must contain exactly 8 objects with { text, phase, activeTier } in this exact order: intro/null, term/A1, explanation/A1, term/B1, explanation/B1, term/C1, explanation/C1, outro/null.",
-      "For every term phase, text must be the exact target-language word for that tier. intro is a native-language hook of at most 6 words introducing the A1-to-C1 comparison. Each explanation phase must state the meaning in a single consistent native-language sentence using the format '{target-language word} [meaning] demektir'. Always include the exact target-language word first, then its meaning, and end with 'demektir'. outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
+      "For every term phase, text must be the exact target-language word for that tier. intro is a native-language hook of at most 6 words introducing the A1-to-C1 comparison. Each explanation phase must state the meaning in a single consistent native-language sentence. Begin with the exact target-language word, then give its meaning naturally in native language. Do not use a fixed formula like 'demektir' or 'means' in every language; vary the phrasing naturally.",
+      "outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
       "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep every spoken text brief and natural.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage], previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage) },
@@ -149,8 +150,8 @@ async function createSingleQuizPlan(language: LanguageCode, nativeLanguage: Lang
   return await createPlan(
     [
       "Create a concise native-language narration plan for a FoxiesDeck vocabulary quiz video.",
-      "Return one JSON object only: { caption, question, prompt, reveal, explanation }.",
-      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct answer clearly, for example 'Doğru cevap ...'. explanation is not used in the final video; provide a brief placeholder sentence.",
+      "Return one JSON object only: { caption, question, prompt, reveal, explanation, transition, outro }.",
+      "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct answer clearly in native language, for example 'The answer is ...' or equivalent natural phrase. transition is a short native-language phrase connecting two quiz words (e.g. 'And the next word?'). outro asks viewers to write the answer in the comments.",
       "caption has 2 or 3 relevant hashtags. Keep all spoken values brief, natural, and easy to understand.",
     ].join("\n"),
     { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language], word: quiz.card.term, meaning: quiz.options[quiz.correctIndex], example: quiz.card.examples[0]?.sentence ?? quiz.card.example },
@@ -202,30 +203,32 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
     { text: quiz3.card.term, language },
     { text: plan3.prompt, language: nativeLanguage },
   ];
-  const transitionText = "Peki ya, bir kelime daha.";
-  const outroLines = ["Cevabı yorumlara yazın"];
-  const outroSpoken = outroLines.join(" ");
-  const [audioDataUrls1, audioDataUrls2, audioDataUrls3, transitionAudio, outroAudio] = await Promise.all([
+  const transitionSpoken1 = plan1.transition;
+  const transitionSpoken2 = plan2.transition;
+  const outroSpoken = plan3.outro;
+  const [audioDataUrls1, audioDataUrls2, audioDataUrls3, transitionAudio1, transitionAudio2, outroAudio] = await Promise.all([
     generatePoyoSpeechDataUrls(spoken1),
     generatePoyoSpeechDataUrls(spoken2),
     generatePoyoSpeechDataUrls(spoken3),
-    generatePoyoSpeechDataUrls([{ text: transitionText, language: nativeLanguage }]),
+    generatePoyoSpeechDataUrls([{ text: transitionSpoken1, language: nativeLanguage }]),
+    generatePoyoSpeechDataUrls([{ text: transitionSpoken2, language: nativeLanguage }]),
     generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
   ]);
   await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz1.card.term, quiz2.card.term, quiz3.card.term]);
   const base1 = { kind: "quiz" as const, term: quiz1.card.term, tier: quiz1.card.tier, options: quiz1.options, correctIndex: quiz1.correctIndex, language };
   const base2 = { kind: "quiz" as const, term: quiz2.card.term, tier: quiz2.card.tier, options: quiz2.options, correctIndex: quiz2.correctIndex, language };
   const base3 = { kind: "quiz" as const, term: quiz3.card.term, tier: quiz3.card.tier, options: quiz3.options, correctIndex: quiz3.correctIndex, language };
-  const transitionScene = { kind: "quiz" as const, phase: "question" as const, term: "", tier: "A1" as const, options: [], correctIndex: -1, language: nativeLanguage, subtitle: transitionText, audioDataUrl: transitionAudio[0]! };
-  const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
+  const transitionScene1 = { kind: "quiz" as const, phase: "question" as const, term: "", tier: "A1" as const, options: [], correctIndex: -1, language: nativeLanguage, subtitle: transitionSpoken1, audioDataUrl: transitionAudio1[0]! };
+  const transitionScene2 = { kind: "quiz" as const, phase: "question" as const, term: "", tier: "A1" as const, options: [], correctIndex: -1, language: nativeLanguage, subtitle: transitionSpoken2, audioDataUrl: transitionAudio2[0]! };
+  const outroScene = { kind: "outro" as const, lines: [plan3.outro], subtitle: "", audioDataUrl: outroAudio[0]! };
   return {
     mode: "vocabulary-quiz-video",
     caption: `${plan1.caption}\n\n${plan2.caption}\n\n${plan3.caption}`,
     scenes: [
       ...buildQuizScenes(base1, plan1, audioDataUrls1),
-      transitionScene,
+      transitionScene1,
       ...buildQuizScenes(base2, plan2, audioDataUrls2),
-      transitionScene,
+      transitionScene2,
       ...buildFinalQuizScenes(base3, plan3, audioDataUrls3),
       outroScene,
     ],
@@ -236,9 +239,9 @@ async function createSingleSentencePlan(language: LanguageCode, nativeLanguage: 
   return await createPlan(
     [
       "Create a concise FoxiesDeck grammar judgment video plan.",
-      "Return one JSON object only: { caption, sentence, isCorrect, correction, question, reveal, explanation }.",
+      "Return one JSON object only: { caption, sentence, isCorrect, correction, question, reveal, explanation, intro, outro }.",
       "sentence is a short, useful sentence in the selected learning language. Randomly make it either deceptively correct or genuinely incorrect. isCorrect must match it. correction is empty when correct, otherwise the corrected learning-language sentence.",
-      "question and reveal are in the selected native language. question asks if the sentence is correct. reveal must be a single word only: 'Doğru' when correct or 'Yanlış' when incorrect. explanation is not used in the final video; provide a brief placeholder.",
+      "question, reveal, intro, and outro are in the selected native language. question asks if the sentence is correct. reveal must be a single native-language word only: the word for 'correct' when isCorrect is true, or the word for 'incorrect' when isCorrect is false. intro is a short native-language phrase introducing the video, such as asking whether the given sentences are correct. outro asks viewers to write the answer in the comments.",
       "caption has 2 or 3 relevant hashtags.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
@@ -259,13 +262,11 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     { text: plan.sentence, language },
     { text: plan.question, language: nativeLanguage },
     { text: plan.reveal, language: nativeLanguage },
-    ...(plan.correction ? [{ text: `Yanlış! ${plan.correction}`, language }] : []),
+    ...(plan.correction ? [{ text: `${plan.reveal}! ${plan.correction}`, language }] : []),
   ];
   const allSpoken = [...spokenPerPlan(plan1), ...spokenPerPlan(plan2), ...spokenPerPlan(plan3), ...spokenPerPlan(plan4)];
-  const outroLines = ["Cevabı yorumlara yazın"];
-  const outroSpoken = outroLines.join(" ");
-  const introLines = ["Verilen cümleler doğru mu?"];
-  const introSpoken = introLines.join(" ");
+  const introSpoken = plan1.intro;
+  const outroSpoken = plan4.outro;
   const [audioDataUrls, outroAudio, introAudio] = await Promise.all([
     generatePoyoSpeechDataUrls(allSpoken),
     generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
@@ -297,8 +298,8 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
     }
     return scenes;
   };
-  const outroScene = { kind: "outro" as const, lines: outroLines, subtitle: "", audioDataUrl: outroAudio[0]! };
-  const introScene = { kind: "outro" as const, lines: introLines, subtitle: "", audioDataUrl: introAudio[0]! };
+  const outroScene = { kind: "outro" as const, lines: [plan4.outro], subtitle: "", audioDataUrl: outroAudio[0]! };
+  const introScene = { kind: "outro" as const, lines: [plan1.intro], subtitle: "", audioDataUrl: introAudio[0]! };
   return {
     mode: "sentence-check-video",
     caption: [plan1.caption, plan2.caption, plan3.caption, plan4.caption].join("\n\n"),
@@ -323,7 +324,7 @@ async function createSentenceTranslationPayload(language: LanguageCode, nativeLa
         "Create a random sentence translation snippet for a FoxiesDeck vertical learning video.",
         "Return one JSON object only: { caption, sentence, translation, commentPrompt }.",
         "sentence is a single, natural, useful sentence in the learning language. translation is its natural equivalent in the native language. Do not tie the sentence to any CEFR level; pick it completely at random.",
-        "commentPrompt is a native-language phrase asking viewers to write the answer in the comments, e.g. 'Cevabı yorumlara yazın'.",
+        "commentPrompt is a native-language phrase asking viewers to write the answer in the comments.",
         "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep the sentence, translation, and commentPrompt brief and speakable.",
       ].join("\n"),
       {

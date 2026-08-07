@@ -21,6 +21,7 @@ import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
+import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -148,10 +149,11 @@ const POSTER_TIER_PALETTES: Record<Tier, { base: string; deep: string; accent: s
 };
 
 function createWordCaption(card: VocabularyCard) {
-  const language = ENGLISH_LANGUAGE_NAMES[card.language].toUpperCase();
+  const languageNative = LANGUAGE_BY_CODE[card.language].nativeName;
+  const title = getWordOfTheDayTitle(card.language);
   const example = card.examples[0]?.sentence ?? card.example;
   const tag = ENGLISH_LANGUAGE_NAMES[card.language].toLowerCase().replaceAll(" ", "");
-  return `${language} WORD OF THE DAY!! ${example}\n\n#${tag} #language #wordoftheday`;
+  return `${languageNative.toUpperCase()} ${title.toUpperCase()}!! ${example}\n\n#${tag} #language #wordoftheday`;
 }
 
 function isCardGenerator(mode: GeneratorMode) {
@@ -1477,7 +1479,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 `}</style>
                 <div className="relative z-10">
                   <div className="relative h-12 w-56 overflow-hidden"><Image alt="" className="object-[50%_48%] object-cover" fill sizes="14rem" src="/splash.png" unoptimized /></div>
-                  <h2 className="mt-2 max-w-md font-display text-5xl font-semibold leading-[0.92]">{ENGLISH_LANGUAGE_NAMES[card.language].toUpperCase()} WORD OF THE DAY</h2>
+                  <h2 className="mt-2 max-w-md font-display text-5xl font-semibold leading-[0.92]">{LANGUAGE_BY_CODE[card.language].nativeName.toUpperCase()} {getWordOfTheDayTitle(card.language).toUpperCase()}</h2>
                 </div>
                 <div className="pointer-events-none absolute bottom-10 right-14 z-0 w-40 rotate-6"><Image alt="" className="h-auto w-full object-contain" height={512} src="/mascots/mascot16.webp" unoptimized width={512} /></div>
                 <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex w-max -translate-x-1/2 -translate-y-1/2 items-center gap-20">
@@ -1642,7 +1644,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                           <Image alt="FoxiesDeck" className="object-[50%_48%] object-cover" fill sizes="(min-width: 640px) 12rem, 7rem" src="/splash.png" unoptimized />
                         </div>
                         <h2 className="mt-1 max-w-[11rem] font-display text-[1.1rem] font-semibold leading-[0.92] sm:max-w-sm sm:text-4xl">
-                          {ENGLISH_LANGUAGE_NAMES[card.language].toUpperCase()} WORD OF THE DAY
+                          {LANGUAGE_BY_CODE[card.language].nativeName.toUpperCase()} {getWordOfTheDayTitle(card.language).toUpperCase()}
                         </h2>
                       </div>
                     </div>

@@ -84,7 +84,7 @@ const requestSchema = z.object({
 type DialogueMode = z.infer<typeof requestSchema>["mode"];
 type DialogueSpeaker = "learner" | "guide";
 type DialoguePlanScene = { text: string; translation?: string; speaker?: DialogueSpeaker };
-type DialoguePlan = { caption: string; scenes: DialoguePlanScene[] };
+type DialoguePlan = { caption: string; scenes: DialoguePlanScene[]; cta: string };
 
 const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   tr: "Turkish", en: "English", de: "German", ru: "Russian", fr: "French", es: "Spanish", it: "Italian",
@@ -104,8 +104,10 @@ function extractJsonObject(value: string) {
 
 function parsePlan(value: string, needsTranslation: boolean, maxSceneCount: number, requiresMarketingRoles: boolean): DialoguePlan | null {
   try {
-    const parsed = JSON.parse(extractJsonObject(value)) as { caption?: unknown; scenes?: unknown };
+    const parsed = JSON.parse(extractJsonObject(value)) as { caption?: unknown; scenes?: unknown; cta?: unknown };
     if (typeof parsed.caption !== "string" || !Array.isArray(parsed.scenes) || parsed.scenes.length === 0 || parsed.scenes.length > maxSceneCount) return null;
+    const cta = typeof parsed.cta === "string" ? parsed.cta.trim() : "";
+    if (requiresMarketingRoles && (!cta || cta.length === 0 || cta.length > 120)) return null;
     const scenes = parsed.scenes.map((scene) => {
       if (!scene || typeof scene !== "object") return null;
       const values = scene as { text?: unknown; translation?: unknown; speaker?: unknown };
@@ -119,7 +121,7 @@ function parsePlan(value: string, needsTranslation: boolean, maxSceneCount: numb
     if (scenes.some((scene) => !scene)) return null;
     const resolvedScenes = scenes as DialoguePlanScene[];
     if (requiresMarketingRoles && (resolvedScenes[0]?.speaker !== "learner" || !resolvedScenes.some((scene) => scene.speaker === "guide"))) return null;
-    return { caption: parsed.caption.trim().slice(0, 400), scenes: resolvedScenes };
+    return { caption: parsed.caption.trim().slice(0, 400), scenes: resolvedScenes, cta: requiresMarketingRoles ? cta : "" };
   } catch {
     return null;
   }
@@ -129,7 +131,8 @@ function instructionsFor(mode: DialogueMode) {
   if (mode === "marketing-dialogue-video") {
     return [
       "Create a brief FoxiesDeck marketing conversation for a vertical social video.",
-      "Return one JSON object only: { caption, scenes }. scenes may contain up to 9 objects with exactly { text, speaker }. speaker is exactly learner or guide. A final Download FoxiesDeck NOW! CTA is appended by the app, so do not include it yourself.",
+      "Return one JSON object only: { caption, scenes, cta }. scenes may contain up to 8 objects with exactly { text, speaker }. speaker is exactly learner or guide. A final CTA is appended by the app using the `cta` field, so do not include it inside scenes.",
+      "cta is a short native-language call to action that encourages viewers to download FoxiesDeck, such as 'Download FoxiesDeck NOW!' or equivalent natural phrase in the native language.",
       "There are two fixed identities. learner is a random mascot who is completely clueless about FoxiesDeck. The learner opens frustrated that they cannot learn the provided learning language, then can only describe their problem or ask curious follow-up questions. The learner must never explain, endorse, recommend, or state any FoxiesDeck feature or fact.",
       "guide is always the Original mascot. The guide is the only character who knows FoxiesDeck. Every product fact, feature explanation, recommendation, benefit, and call to action must be spoken by guide. The guide never acts confused or asks how the app works.",
       "Only mention real FoxiesDeck capabilities when useful: choose from 14 learning languages and CEFR tiers; draw, search, or create vocabulary cards; build a personal card pool; learn with quizzes; cards become learned after their tier threshold; earn points and rank up; review learned cards; practice conversations with AI characters; ask Foxy about words, grammar, and usage; play vocabulary games. The mobile app supports the core card collection, draw, quiz, review, and rank journey.",
@@ -168,7 +171,7 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
     return parsePlan(
       output,
       mode === "learning-dialogue-video",
-      mode === "marketing-dialogue-video" ? 9 : 14,
+      mode === "marketing-dialogue-video" ? 8 : 14,
       mode === "marketing-dialogue-video",
     );
   };
@@ -199,7 +202,7 @@ export async function POST(request: Request) {
 
   try {
     const scenes = mode === "marketing-dialogue-video"
-      ? [...plan.scenes, { text: "Download FoxiesDeck NOW!", speaker: "guide" as const }]
+      ? [...plan.scenes, { text: plan.cta, speaker: "guide" as const }]
       : plan.scenes;
     const firstCharacter = pick(CHARACTER_VARIATIONS);
     const secondCharacter = mode === "marketing-dialogue-video"
