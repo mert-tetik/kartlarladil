@@ -55,7 +55,7 @@ const MODE_BRIEFS: Record<ImageMode, string> = {
   "ai-false-friends": "Create an editorial Easy to Confuse visual, never a single-word quiz. Independently choose two real, well-established commonly confused words from the selected learning language itself. Ignore the supplied card terms for this mode. The two words must look or sound similar but have clearly different meanings, such as English affect/effect or German seit/seid. Never compare the learning language with the selected native language and never use a translation pair. Show exactly two large, separate vocabulary cards or term panels side by side, with a clear compact contrast such as 'looks similar' versus 'means different'. Do not ask 'What does ... mean?', do not use a single card, and do not hide the meanings as a quiz answer.",
   "ai-daily-challenge": "Create a Daily Challenge visual presenting three real words as a compact learning mission. It should feel rewarding, collectable, and suitable for a social post.",
   "ai-vocabulary-progression": "Create a clean side-by-side vocabulary progression visual. The left column is clearly labelled Beginner and shows the supplied A1-A2 words with their real A1 or A2 tier badges. The right column is clearly labelled Advanced and shows a natural B2-C1 target-language alternative for each beginner word, aligned row-for-row. Every right-side term must be a genuine, more sophisticated alternative in the same meaning area, never the identical beginner word. Every Advanced card must visibly use a B2 or C1 tier badge and the matching B2/C1 tier colour treatment. Never show A1 or A2 on any Advanced card, even when its paired Beginner card is A1 or A2. The supplied A1-A2 cards are reference data for the left column only; do not copy their tier badges, colours, or difficulty to the Advanced column. Keep the two columns balanced, highly readable, and card-led.",
-  "ai-example-sentences": "Create an educational Example Sentences visual. The left side must show three natural, varied sentences in the selected learning language, each on its own line. The right side must show their clear meanings in the selected native language, aligned sentence-for-sentence. Use a clean two-column layout, a small flag or language label above each column, the FoxiesDeck mascot at the bottom, and a polished card-like frame around each sentence pair. Keep the text large and highly readable for social media.",
+  "ai-example-sentences": "Create an educational Example Sentences visual. The supplied cards each contain one real target-language example sentence and its native-language meaning; use those exact example sentences on the left side and their matching meanings on the right side, aligned sentence-for-sentence. The three cards are independent random tiers from A1 to C1; visibly show each card's real tier badge next to its sentence. Use a clean two-column layout, a small flag or language label above each column, the FoxiesDeck mascot at the bottom, and a polished card-like frame around each sentence pair. Keep the background light and neutral, use each row's own tier colour only as a subtle accent, and keep the text large and highly readable for social media.",
 };
 
 const CAPTION_BRIEFS: Record<ImageMode, string> = {
@@ -72,7 +72,12 @@ function pick<T>(items: readonly T[]): T {
 }
 
 async function getCardsForMode(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
-  if (mode === "ai-false-friends" || mode === "ai-example-sentences") return [];
+  if (mode === "ai-false-friends") return [];
+  if (mode === "ai-example-sentences") {
+    const randomTiers = Array.from({ length: 3 }, () => pick<Tier>(TIERS));
+    const termSets = await Promise.all(randomTiers.map((randomTier) => selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier: randomTier, count: 1, generator: mode })));
+    return await Promise.all(termSets.map(([term]) => resolveSocialStudioVocabularyCard(term!, language, nativeLanguage)));
+  }
   if (mode === "ai-daily-challenge") {
     const randomTiers = Array.from({ length: 3 }, () => pick<Tier>(TIERS));
     const termSets = await Promise.all(randomTiers.map((randomTier) => selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier: randomTier, count: 1, generator: mode })));
