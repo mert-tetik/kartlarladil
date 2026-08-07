@@ -28,7 +28,7 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type StudioMode = "text" | "image" | "video";
 type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
-type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression";
+type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression" | "ai-example-sentences";
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
 type TierProgressionCarouselGeneratorMode = "tier-progression-carousel";
 type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | AiImageGeneratorMode;
@@ -70,6 +70,7 @@ const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: st
   { value: "ai-false-friends", label: "False Friends", description: "Two similar-looking words from the selected language, clearly contrasted" },
   { value: "ai-daily-challenge", label: "Daily Challenge", description: "A three-word study challenge visual" },
   { value: "ai-vocabulary-progression", label: "Beginner to Advanced", description: "Beginner words beside their advanced alternatives" },
+  { value: "ai-example-sentences", label: "Example Sentences", description: "Three example sentences in the learning language with native-language meanings" },
 ];
 
 const IMAGE_GENERATOR_OPTIONS: Array<{ value: ImageGeneratorMode; label: string; description: string }> = [

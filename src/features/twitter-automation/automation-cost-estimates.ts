@@ -69,6 +69,7 @@ const AI_IMAGE_GENERATORS = new Set([
   "ai-false-friends",
   "ai-daily-challenge",
   "ai-vocabulary-progression",
+  "ai-example-sentences",
 ]);
 
 const NON_AI_IMAGE_GENERATORS = new Set([
