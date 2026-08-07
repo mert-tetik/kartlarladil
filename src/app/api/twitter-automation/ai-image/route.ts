@@ -11,7 +11,7 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const IMAGE_MODES = [
   "ai-word-of-the-day",

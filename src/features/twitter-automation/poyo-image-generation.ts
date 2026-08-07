@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const POYO_API_URL = "https://api.poyo.ai";
-const IMAGE_TASK_TIMEOUT_MS = 90_000;
+const IMAGE_TASK_TIMEOUT_MS = 210_000;
 const IMAGE_TASK_POLL_INTERVAL_MS = 3_000;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
