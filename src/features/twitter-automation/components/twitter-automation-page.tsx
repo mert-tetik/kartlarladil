@@ -135,6 +135,9 @@ const DEFAULT_HIGHLIGHTED_GENERATOR_MODES: readonly GeneratorMode[] = [
   "vocabulary-quiz-video",
   "sentence-check-video",
   "sentence-translation-video",
+  "tiered-vocabulary",
+  "example-sentences",
+  "ai-example-sentences",
 ];
 
 const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
