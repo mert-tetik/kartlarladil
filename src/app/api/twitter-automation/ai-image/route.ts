@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TIERS } from "@/data/tiers";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
@@ -63,9 +64,18 @@ const CAPTION_BRIEFS: Record<ImageMode, string> = {
   "ai-vocabulary-progression": "Start with a clear Beginner to Advanced-style headline, then frame the word pairs as a vocabulary upgrade.",
 };
 
+function pick<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)]!;
+}
+
 async function getCardsForMode(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
   if (mode === "ai-false-friends") return [];
-  const count = mode === "ai-daily-challenge" || mode === "ai-vocabulary-progression" ? 3 : 1;
+  if (mode === "ai-daily-challenge") {
+    const randomTiers = Array.from({ length: 3 }, () => pick<Tier>(TIERS));
+    const termSets = await Promise.all(randomTiers.map((randomTier) => selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier: randomTier, count: 1, generator: mode })));
+    return await Promise.all(termSets.map(([term]) => resolveSocialStudioVocabularyCard(term!, language, nativeLanguage)));
+  }
+  const count = mode === "ai-vocabulary-progression" ? 3 : 1;
   const selectionTier = mode === "ai-vocabulary-progression" ? "A1" : tier;
   const terms = await selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier: selectionTier, count, generator: mode });
   return await Promise.all(terms.map((term) => resolveSocialStudioVocabularyCard(term, language, nativeLanguage)));

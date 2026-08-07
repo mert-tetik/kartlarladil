@@ -41,10 +41,11 @@ export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "m
       ref={onSlideRef}
       style={{ backgroundImage: `url(${TIER_BACKGROUND_IMAGES[card.tier]})`, backgroundPosition: "center", backgroundSize: "cover" }}
     >
-      <h2 className={cn(presentation === "meaning" ? "mt-5" : "mt-8", "break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:text-5xl", usesSuperWater && "font-super-water")} style={{ color: presentation === "tier" ? TIER_ACCENTS[card.tier] : "#17120e" }}>
+      <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+      <h2 className={cn("absolute left-0 right-0 top-6 z-10 px-6 break-words text-center font-display text-4xl font-semibold leading-[0.92] sm:top-8 sm:px-8 sm:text-5xl", usesSuperWater && "font-super-water")} style={{ color: presentation === "tier" ? TIER_ACCENTS[card.tier] : "#ffffff" }}>
         {displayHeadline}
       </h2>
-      <div className="absolute inset-x-0 bottom-0 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">
+      <div className="absolute inset-x-0 bottom-0 z-10 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">
         <div className={cn("w-full", presentation === "meaning" ? "max-w-[270px] sm:max-w-[306px]" : "max-w-[292px] sm:max-w-[328px]")} data-carousel-card-face="front">
           <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} staticFace translationLocale={nativeLanguage} />
         </div>

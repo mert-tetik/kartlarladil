@@ -81,6 +81,19 @@ function parseTerms(value: string, count: number) {
   }
 }
 
+function shuffle<T>(items: readonly T[]) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+function selectFromCatalog(language: LanguageCode, tier: Tier, count: number, usage: readonly SocialStudioVocabularyUsage[]) {
+  const candidates = VOCABULARY_CARDS.filter((card) => card.language === language && card.termKind === "word" && card.tier === tier);
+  if (candidates.length < count) return null;
+  const usedSet = new Set(usage.map(({ term }) => normalizeSocialStudioVocabularyTerm(term)));
+  const unused = candidates.filter((card) => !usedSet.has(normalizeSocialStudioVocabularyTerm(card.term)));
+  const pool = unused.length >= count ? unused : candidates;
+  return shuffle(pool).slice(0, count).map((card) => card.term);
+}
+
 export async function selectSocialStudioVocabularyTerms({
   language,
   nativeLanguage,
@@ -95,6 +108,9 @@ export async function selectSocialStudioVocabularyTerms({
   generator: string;
 }) {
   const usage = await getSocialStudioVocabularyUsage(language);
+  const catalogTerms = selectFromCatalog(language, tier, count, usage);
+  if (catalogTerms) return catalogTerms;
+
   const poyo = createSocialStudioPoyoClient();
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
