@@ -1,6 +1,6 @@
 import type { LanguageCode } from "@/types/domain";
 
-export type OriginalMascotLearningVideoMode = "tier-progression-video" | "vocabulary-quiz-video" | "sentence-check-video";
+export type OriginalMascotLearningVideoMode = "tier-progression-video" | "vocabulary-quiz-video" | "sentence-check-video" | "sentence-translation-video";
 
 type BaseScene = {
   subtitle: string;
@@ -38,7 +38,15 @@ export type OutroVideoScene = BaseScene & {
   lines: string[];
 };
 
-export type OriginalMascotLearningVideoScene = ProgressionVideoScene | QuizVideoScene | SentenceVideoScene | OutroVideoScene;
+export type SentenceTranslationVideoScene = BaseScene & {
+  kind: "sentence-translation";
+  phase: "sentence" | "translation";
+  sentence: string;
+  translation: string;
+  speakerMascot: string;
+};
+
+export type OriginalMascotLearningVideoScene = ProgressionVideoScene | QuizVideoScene | SentenceVideoScene | OutroVideoScene | SentenceTranslationVideoScene;
 
 export type OriginalMascotLearningVideoPayload = {
   mode: OriginalMascotLearningVideoMode;

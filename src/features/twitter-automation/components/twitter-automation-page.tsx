@@ -91,6 +91,7 @@ const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string;
   { value: "tier-progression-video", label: "A1 to C1 Video", description: "Original mascot explains an A1, B1, and C1 word progression" },
   { value: "vocabulary-quiz-video", label: "Vocabulary Quiz Video", description: "Original mascot asks a timed four-choice meaning quiz" },
   { value: "sentence-check-video", label: "Sentence Check Video", description: "Original mascot runs a timed correct-or-incorrect sentence challenge" },
+  { value: "sentence-translation-video", label: "Random Sentence Video", description: "A random learning-language sentence is spoken by a mascot, then Original mascot translates it" },
   ...MUSIC_VIDEO_IMAGE_GENERATOR_OPTIONS.map((option) => ({
     value: `music-${option.value}` as MusicVideoGeneratorMode,
     label: `${option.label} Music Video`,
@@ -129,6 +130,7 @@ const DEFAULT_HIGHLIGHTED_GENERATOR_MODES: readonly GeneratorMode[] = [
   "tier-progression-video",
   "vocabulary-quiz-video",
   "sentence-check-video",
+  "sentence-translation-video",
 ];
 
 const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
@@ -193,7 +195,7 @@ function isDialogueVideoGenerator(mode: GeneratorMode): mode is DialogueVideoGen
 }
 
 function isOriginalMascotLearningVideoGenerator(mode: GeneratorMode): mode is OriginalMascotLearningVideoGeneratorMode {
-  return mode === "tier-progression-video" || mode === "vocabulary-quiz-video" || mode === "sentence-check-video";
+  return mode === "tier-progression-video" || mode === "vocabulary-quiz-video" || mode === "sentence-check-video" || mode === "sentence-translation-video";
 }
 
 function generatorContentSource(mode: GeneratorMode): "AI" | "SELF" | "IMG" {
@@ -203,7 +205,13 @@ function generatorContentSource(mode: GeneratorMode): "AI" | "SELF" | "IMG" {
 }
 
 function originalMascotLearningVideoLabel(mode: OriginalMascotLearningVideoGeneratorMode) {
-  return mode === "tier-progression-video" ? "A1 to C1 progression" : mode === "vocabulary-quiz-video" ? "Vocabulary quiz" : "Sentence check";
+  return mode === "tier-progression-video"
+    ? "A1 to C1 progression"
+    : mode === "vocabulary-quiz-video"
+      ? "Vocabulary quiz"
+      : mode === "sentence-check-video"
+        ? "Sentence check"
+        : "Random sentence";
 }
 
 function originalMascotLearningVideoDescription(mode: OriginalMascotLearningVideoGeneratorMode) {
@@ -211,7 +219,9 @@ function originalMascotLearningVideoDescription(mode: OriginalMascotLearningVide
     ? "Original mascot explains three semantically connected A1, B1, and C1 words with tier-color highlights."
     : mode === "vocabulary-quiz-video"
       ? "Original mascot presents a four-choice vocabulary quiz, then reveals and explains the answer."
-      : "Original mascot asks whether a sentence is correct, gives four seconds with a ticking clock, then explains the answer.";
+      : mode === "sentence-check-video"
+        ? "Original mascot asks whether a sentence is correct, gives four seconds with a ticking clock, then explains the answer."
+        : "A random learning-language sentence is shown, spoken by a random mascot, then Original mascot gives the native translation.";
 }
 
 function getMusicVideoImageMode(mode: MusicVideoGeneratorMode): MusicVideoImageGeneratorMode {

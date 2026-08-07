@@ -2,7 +2,7 @@ import { z } from "zod";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import type { OriginalMascotLearningVideoPayload, OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
-import { parseProgressionPlan, parseQuizPlan, parseSentencePlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
+import { parseProgressionPlan, parseQuizPlan, parseSentencePlan, parseSentenceTranslationPlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
@@ -15,8 +15,20 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
+const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png", "Panda.png", "Racoon.png", "Tiger.png", "Wolf.png"] as const;
+const NON_ORIGINAL_VOICE_IDS = [
+  "J1lfByWs8gvoooryDWEi",
+  "1jR8l3dNgd4OQs6kxgaF",
+  "XJ2fW4ybq7HouelYYGcL",
+  "IvUJKFyjVb5hItY9dJAT",
+  "M5t0724ORuAGCh3p3DUR",
+  "nuVIy6kn92EbEZwTlTnc",
+  "fBD19tfE58bkETeiwUoC",
+  "eppqEXVumQ3CfdndcIBd",
+] as const;
+
 const requestSchema = z.object({
-  mode: z.enum(["tier-progression-video", "vocabulary-quiz-video", "sentence-check-video"]),
+  mode: z.enum(["tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"]),
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LANGUAGE_CODES),
 });
@@ -301,6 +313,34 @@ async function createSentencePayload(language: LanguageCode, nativeLanguage: Lan
   };
 }
 
+async function createSentenceTranslationPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
+  const plan = await createPlan(
+    [
+      "Create a random sentence translation snippet for a FoxiesDeck vertical learning video.",
+      "Return one JSON object only: { caption, sentence, translation }.",
+      "sentence is a single, natural, useful sentence in the learning language. translation is its natural equivalent in the native language. Do not tie the sentence to any CEFR level; pick it completely at random.",
+      "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep the sentence and translation brief and speakable.",
+    ].join("\n"),
+    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
+    parseSentenceTranslationPlan,
+  );
+  if (!plan) return null;
+  const speakerMascot = pick(CHARACTER_VARIATIONS);
+  const speakerVoice = pick(NON_ORIGINAL_VOICE_IDS);
+  const [sentenceAudio, translationAudio] = await Promise.all([
+    generatePoyoSpeechDataUrls([{ text: plan.sentence, language, speed: 1, voice: speakerVoice }]),
+    generatePoyoSpeechDataUrls([{ text: plan.translation, language: nativeLanguage, speed: 1 }]),
+  ]);
+  return {
+    mode: "sentence-translation-video",
+    caption: plan.caption,
+    scenes: [
+      { kind: "sentence-translation" as const, phase: "sentence" as const, sentence: plan.sentence, translation: plan.translation, speakerMascot, subtitle: plan.sentence, audioDataUrl: sentenceAudio[0]! },
+      { kind: "sentence-translation" as const, phase: "translation" as const, sentence: plan.sentence, translation: plan.translation, speakerMascot, subtitle: plan.translation, audioDataUrl: translationAudio[0]! },
+    ],
+  };
+}
+
 export async function POST(request: Request) {
   if (!hasSocialStudioSession(request.headers.get("cookie"))) return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
@@ -313,7 +353,9 @@ export async function POST(request: Request) {
       ? await createProgressionPayload(language, nativeLanguage)
       : mode === "vocabulary-quiz-video"
         ? await createQuizPayload(language, nativeLanguage)
-        : await createSentencePayload(language, nativeLanguage);
+        : mode === "sentence-check-video"
+          ? await createSentencePayload(language, nativeLanguage)
+          : await createSentenceTranslationPayload(language, nativeLanguage);
     if (!payload) return Response.json({
       errorCode: "invalid_learning_video_plan",
       diagnostic: createSocialStudioDiagnostic({
