@@ -42,6 +42,7 @@ function loadBackgroundVideo(source: string) {
   return new Promise<HTMLVideoElement>((resolve, reject) => {
     const video = document.createElement("video");
     video.crossOrigin = "anonymous";
+    video.loop = true;
     video.muted = true;
     video.playsInline = true;
     video.preload = "auto";
@@ -213,28 +214,6 @@ function drawCharacter(
   context.restore();
 }
 
-function seekTo(video: HTMLVideoElement, time: number) {
-  return new Promise<void>((resolve, reject) => {
-    if (Math.abs(video.currentTime - time) < 0.001) {
-      window.requestAnimationFrame(() => resolve());
-      return;
-    }
-    const onSeeked = () => {
-      video.removeEventListener("seeked", onSeeked);
-      video.removeEventListener("error", onError);
-      window.requestAnimationFrame(() => resolve());
-    };
-    const onError = () => {
-      video.removeEventListener("seeked", onSeeked);
-      video.removeEventListener("error", onError);
-      reject(new Error("dialogue_background_seek_failed"));
-    };
-    video.addEventListener("seeked", onSeeked);
-    video.addEventListener("error", onError);
-    video.currentTime = time;
-  });
-}
-
 function getDialogueTiming(audioBuffers: readonly AudioBuffer[], scenes: readonly DialogueVideoScene[]) {
   const starts: number[] = [];
   let elapsedSeconds = 0;
@@ -293,11 +272,11 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),
   ]);
-  await seekTo(backgroundVideo, 0);
   const backgroundDuration = backgroundVideo.duration;
   if (!Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
     throw new Error("dialogue_background_load_failed");
   }
+  await backgroundVideo.play().catch(() => { throw new Error("dialogue_background_playback_failed"); });
 
   const { starts, durationSeconds } = getDialogueTiming(audioBuffers, scenes);
   const frameCount = Math.ceil(durationSeconds * DETERMINISTIC_FRAME_RATE);
@@ -328,8 +307,6 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
 
   for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
     const elapsed = frameIndex * frameDuration;
-    const t = elapsed % backgroundDuration;
-    await seekTo(backgroundVideo, t);
     const sceneIndex = starts.reduce((active, start, index) => start <= elapsed ? index : active, 0);
     const scene = scenes[sceneIndex]!;
     const localElapsed = Math.max(0, elapsed - starts[sceneIndex]!);
