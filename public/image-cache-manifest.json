@@ -1,5 +1,5 @@
 {
-  "version": "643e57f8ae2bd706fe9cc8bdfe3c5c5b33f29a7a914a3bed0c9e41ef03f9f81d",
+  "version": "4afe63be84f212322aaed966fd92028518fb132f05f329203c084f518d364de4",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -96,6 +96,26 @@
     {
       "url": "/chests/chest-sprite.png",
       "revision": "0fb076e853d395e01390c8cd541fe7dba01c95540ed3b96b457d65df6dd5875f"
+    },
+    {
+      "url": "/colored-backgrounds/blue.png",
+      "revision": "5f225c440ea7635713e30fb1b95aa526b3362233d314bcd3b34e66a9cd84d914"
+    },
+    {
+      "url": "/colored-backgrounds/green.png",
+      "revision": "437597ed28ad8a287a2e46faee76dfb41d20f6de77b0e7c1a6d9219cd8d74555"
+    },
+    {
+      "url": "/colored-backgrounds/purple.png",
+      "revision": "d378680b0ed922d0a14c224849aa0e88fb68222a02a26ccb5cf323285776e629"
+    },
+    {
+      "url": "/colored-backgrounds/red.png",
+      "revision": "3d8c565ab66761afc1b4f3449fc59f194ea22ef85ee23507b526a0559523044e"
+    },
+    {
+      "url": "/colored-backgrounds/yellow.png",
+      "revision": "a7f052761a2ab1e254cc108c874af5d58d1fba9543c425101cfa8bd84b313b8e"
     },
     {
       "url": "/custom-card-page-bg.webp",
@@ -218,6 +238,42 @@
       "revision": "dc9c3d199ba64af3ddebcbd19e9978e0d560e0c082a1b55766652fb9c15e0f41"
     },
     {
+      "url": "/mascot-variations/Animal.png",
+      "revision": "bc22dd6c8ada2f7510fa0c4d3b6fbeaf9c0bd3c3c616de7f513ba42256ba5624"
+    },
+    {
+      "url": "/mascot-variations/Bear.png",
+      "revision": "25f33fafe8bbdb1465a266513f091b0a3d0838b56f739e3b7b2b6cbfe140600a"
+    },
+    {
+      "url": "/mascot-variations/Bunny.png",
+      "revision": "437151e66df6dcd09b092edc4d7d5eadf1879663b4a0d11681eff66fbc7cae2f"
+    },
+    {
+      "url": "/mascot-variations/Lion.png",
+      "revision": "0cd00da585cb19954dcb5a56c9abaf6b60242340c9c17056990fdef79fd8e6e1"
+    },
+    {
+      "url": "/mascot-variations/Original.png",
+      "revision": "0ad757bde2e1eb52c5d0886e84b204434982f35af8087c266ce8b63a90db4ecb"
+    },
+    {
+      "url": "/mascot-variations/Panda.png",
+      "revision": "4d2491d2e333029550ede097110ab3820578c4c64aa366c604df965a2795c09d"
+    },
+    {
+      "url": "/mascot-variations/Racoon.png",
+      "revision": "213dc8b661814d578a8f8290cfe6cd383e9ecfca64df99ce53e08352fff4dd3a"
+    },
+    {
+      "url": "/mascot-variations/Tiger.png",
+      "revision": "d8bf2b03de5cb8f890ddf9c439647099babdb697303b71e8b66d6b14e3595658"
+    },
+    {
+      "url": "/mascot-variations/Wolf.png",
+      "revision": "12de515e7ae1a37171ae0ccf5d315b3cf7ff08828a6c84c121d67dc0d71e2f4f"
+    },
+    {
       "url": "/mascots/mascot1.webp",
       "revision": "edf301b794fdee3eb4f6279ca3699d479ad1902e0e73dfeaa4bf40e8eb9f8845"
     },
@@ -252,6 +308,10 @@
     {
       "url": "/mascots/mascot17.webp",
       "revision": "44d495e78d7dc80b455a68548ef7288a4f6557ea413af050d8cfb2c2824eb77b"
+    },
+    {
+      "url": "/mascots/mascot18.png",
+      "revision": "ca09e7b26371bee77c5fe1c1b5ffec74d48056e7954b64fd6edf65f319e13ffc"
     },
     {
       "url": "/mascots/mascot2.webp",

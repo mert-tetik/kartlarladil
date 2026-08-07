@@ -16,7 +16,7 @@ type DialogueVideoRenderOptions = {
 
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
-const DETERMINISTIC_FRAME_RATE = 30;
+const DETERMINISTIC_FRAME_RATE = 24;
 const DETERMINISTIC_VIDEO_BITRATE = 4_500_000;
 const DETERMINISTIC_AUDIO_BITRATE = 128_000;
 const SCENE_GAP_SECONDS = 0.22;
@@ -188,18 +188,30 @@ function getCharacterMotion(
   return exiting < 1 ? { active: false, entering: 1, exiting } : null;
 }
 
+function createScaledCharacterCanvas(image: HTMLImageElement) {
+  const maxWidth = 480 * CHARACTER_SCALE;
+  const maxHeight = 800 * CHARACTER_SCALE;
+  const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas_not_supported");
+  ctx.drawImage(image, 0, 0, width, height);
+  return canvas;
+}
+
 function drawCharacter(
   context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
+  cachedImage: HTMLCanvasElement,
   motion: CharacterMotion,
   activeProgress: number,
   side: "left" | "right",
 ) {
-  const maxWidth = 480 * CHARACTER_SCALE;
-  const maxHeight = 800 * CHARACTER_SCALE;
-  const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-  const width = image.naturalWidth * scale;
-  const height = image.naturalHeight * scale;
+  const width = cachedImage.width;
+  const height = cachedImage.height;
   const targetX = side === "left" ? CHARACTER_SIDE_INSET : CANVAS_WIDTH - width - CHARACTER_SIDE_INSET;
   const targetY = CHARACTER_STAGE_CENTER_Y - height / 2;
   const startY = CANVAS_HEIGHT + 90;
@@ -210,7 +222,7 @@ function drawCharacter(
   const y = startY + (targetY - startY) * visible - talkingLift;
   context.save();
   context.globalAlpha = motion.active ? Math.min(1, 0.3 + visible * 0.7) : Math.min(0.96, visible * 0.96);
-  context.drawImage(image, targetX, y, width, height);
+  context.drawImage(cachedImage, targetX, y);
   context.restore();
 }
 
@@ -266,16 +278,19 @@ async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoU
   const backgroundFetchUrl = backgroundVideoPath
     ? `/api/dialogue-background?path=${encodeURIComponent(backgroundVideoPath)}`
     : backgroundVideoUrl;
-  const [backgroundVideo, firstImage, secondImage, audioBuffers] = await Promise.all([
+  const [backgroundVideo, firstImageRaw, secondImageRaw, audioBuffers] = await Promise.all([
     loadBackgroundVideo(backgroundFetchUrl),
     loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),
   ]);
+  const firstImage = createScaledCharacterCanvas(firstImageRaw);
+  const secondImage = createScaledCharacterCanvas(secondImageRaw);
   const backgroundDuration = backgroundVideo.duration;
   if (!Number.isFinite(backgroundDuration) || backgroundDuration <= 0) {
     throw new Error("dialogue_background_load_failed");
   }
+  backgroundVideo.currentTime = 0;
   await backgroundVideo.play().catch(() => { throw new Error("dialogue_background_playback_failed"); });
 
   const { starts, durationSeconds } = getDialogueTiming(audioBuffers, scenes);
