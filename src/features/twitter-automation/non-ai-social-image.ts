@@ -35,8 +35,8 @@ function captionFor(card: VocabularyCard) {
   return `${language} WORD OF THE DAY!! ${example}\n\n#${tag} #language #wordoftheday`;
 }
 
-const SANS_FONT = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-const SERIF_FONT = "Georgia, 'Times New Roman', Times, serif";
+const SANS_FONT = "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif";
+const SERIF_FONT = "Georgia, Times New Roman, Times, serif";
 
 function imageSvg(card: VocabularyCard, nativeLanguage: LanguageCode, mode: NonAiImageMode) {
   const color = TIER_COLORS[card.tier];
@@ -46,8 +46,8 @@ function imageSvg(card: VocabularyCard, nativeLanguage: LanguageCode, mode: NonA
   const example = card.examples[0]?.sentence ?? card.example ?? "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
   <rect width="1080" height="1080" fill="#11100f"/>
-  <circle cx="900" cy="142" r="280" fill="${color}" opacity=".34"/>
-  <circle cx="126" cy="972" r="370" fill="${color}" opacity=".16"/>
+  <circle cx="900" cy="142" r="280" fill="${color}" opacity="0.34"/>
+  <circle cx="126" cy="972" r="370" fill="${color}" opacity="0.16"/>
   <text x="84" y="118" fill="#d9e4dc" font-family="${SANS_FONT}" font-size="30" font-weight="700" letter-spacing="3">${escapeXml(label)}</text>
   <rect x="84" y="202" width="912" height="676" rx="42" fill="#f8f4eb"/>
   <rect x="122" y="242" width="150" height="54" rx="27" fill="${color}"/>
