@@ -22,6 +22,7 @@ import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayloa
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
+import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -349,7 +350,6 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : card ? createWordCaption(card) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
-  const posterTierPalette = card ? POSTER_TIER_PALETTES[card.tier] : null;
   const aiImagePending = aiImageStatus === "running";
   const musicVideoPending = musicVideoStatus === "creating-image" || musicVideoStatus === "rendering";
   const isMusicVideoMode = isMusicVideoGenerator(generatorMode);
@@ -421,7 +421,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           const dataUrl = await toPng(source, {
             cacheBust: true,
             pixelRatio: 2,
-            backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#000000",
+            backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#11100f",
           });
           if (!cancelled) {
             if (isPoster) setPosterImageUrl(dataUrl);
@@ -779,7 +779,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         imageUrl = await toPng(source, {
           cacheBust: true,
           pixelRatio: 1,
-          backgroundColor: sourceMode === "word-of-the-day" ? "#000000" : POSTER_TIER_PALETTES[nextCard.tier].base,
+          backgroundColor: sourceMode === "word-of-the-day" ? "#11100f" : POSTER_TIER_PALETTES[nextCard.tier].base,
         });
         nextCaption = createWordCaption(nextCard);
       }
@@ -1471,11 +1471,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   <div className="social-card-front w-[420px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
                   <div className="social-card-back w-[420px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
                 </div>
-              </div> : <div ref={musicPosterExportRef} className="relative h-[810px] w-[1080px] overflow-hidden px-16 py-14 text-white" style={{ backgroundColor: posterTierPalette?.base }}>
-                <div className="absolute inset-0" style={{ background: `linear-gradient(142deg, ${posterTierPalette?.base ?? "#059669"} 0%, ${posterTierPalette?.deep ?? "#064e3b"} 100%)` }} />
-                <div className="absolute inset-x-0 bottom-0 h-[30%]" style={{ backgroundColor: posterTierPalette?.deep }} />
-                <div className="absolute inset-10 border" style={{ borderColor: `${posterTierPalette?.accent ?? "#a7f3d0"}a6` }} />
-                <div className="absolute left-16 right-16 top-[34%] h-px" style={{ backgroundColor: `${posterTierPalette?.accent ?? "#a7f3d0"}8c` }} />
+              </div> : <div ref={musicPosterExportRef} className="relative h-[810px] w-[1080px] overflow-hidden px-16 py-14 text-white" style={{ backgroundColor: POSTER_TIER_PALETTES[card.tier].base }}>
+                <div className="absolute inset-0" style={{ background: `linear-gradient(142deg, ${POSTER_TIER_PALETTES[card.tier].base} 0%, ${POSTER_TIER_PALETTES[card.tier].deep} 100%)` }} />
+                <div className="absolute inset-x-0 bottom-0 h-[30%]" style={{ backgroundColor: POSTER_TIER_PALETTES[card.tier].deep }} />
+                <div className="absolute inset-10 border" style={{ borderColor: `${POSTER_TIER_PALETTES[card.tier].accent}a6` }} />
+                <div className="absolute left-16 right-16 top-[34%] h-px" style={{ backgroundColor: `${POSTER_TIER_PALETTES[card.tier].accent}8c` }} />
                 <style>{`
                   .social-video-poster-front [data-card-face] > div,
                   .social-video-poster-back [data-card-face] > div,
@@ -1628,49 +1628,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   <div
                     ref={posterExportRef}
                     data-social-word-poster
-                    className="pointer-events-none fixed left-[-10000px] top-0 aspect-[4/3] w-[1024px] overflow-hidden px-10 py-7 text-white"
-                    style={{ backgroundColor: posterTierPalette?.base }}
+                    className="pointer-events-none fixed left-[-10000px] top-0"
                   >
-                    <div className="absolute inset-0" style={{ background: `linear-gradient(142deg, ${posterTierPalette?.base ?? "#059669"} 0%, ${posterTierPalette?.deep ?? "#064e3b"} 100%)` }} />
-                    <div className="absolute inset-x-0 bottom-0 h-[30%]" style={{ backgroundColor: posterTierPalette?.deep }} />
-                    <div className="absolute inset-3 border sm:inset-5" style={{ borderColor: `${posterTierPalette?.accent ?? "#a7f3d0"}a6` }} />
-                    <div className="absolute left-5 right-5 top-[34%] h-px sm:left-10 sm:right-10" style={{ backgroundColor: `${posterTierPalette?.accent ?? "#a7f3d0"}8c` }} />
-
-                    <style>{`
-                      .social-word-poster-front [data-card-face] > div,
-                      .social-word-poster-back [data-card-face] > div,
-                      .social-word-poster-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-                      .social-word-poster-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-                      .social-word-poster-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-                    `}</style>
-
-                    <div className="relative z-10 translate-y-2 sm:translate-y-3">
-                      <div>
-                        <div className="relative h-[22px] w-28 overflow-hidden sm:h-9 sm:w-48">
-                          <Image alt="FoxiesDeck" className="object-[50%_48%] object-cover" fill sizes="(min-width: 640px) 12rem, 7rem" src="/splash.png" unoptimized />
-                        </div>
-                        <h2 className="mt-1 max-w-[11rem] font-display text-[1.1rem] font-semibold leading-[0.92] sm:max-w-sm sm:text-4xl">
-                          {LANGUAGE_BY_CODE[card.language].nativeName.toUpperCase()} {getWordOfTheDayTitle(card.language).toUpperCase()}
-                        </h2>
-                      </div>
-                    </div>
-
-                    <div className="pointer-events-none absolute bottom-2 right-3 z-0 w-20 rotate-6 sm:bottom-5 sm:right-7 sm:w-32">
-                      <Image alt="" className="h-auto w-full object-contain" height={512} src="/mascots/mascot16.webp" unoptimized width={512} />
-                    </div>
-
-                    <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex w-max -translate-x-1/2 -translate-y-1/2 items-center gap-6 sm:gap-16">
-                      <div className="social-word-poster-front w-[116px] sm:w-[220px]">
-                        <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
-                      </div>
-                      <div className="social-word-poster-back w-[116px] sm:w-[220px]">
-                        <VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} />
-                      </div>
-                    </div>
-
-                    <div className="absolute bottom-4 left-5 z-10 max-w-[64%] sm:bottom-7 sm:left-10 sm:max-w-[66%]">
-                      <p className="text-[8px] font-semibold leading-3 text-white sm:text-base sm:leading-6">{card.examples[0]?.sentence ?? card.example}</p>
-                    </div>
+                    <WordOfTheDayImage card={card} mode="poster" nativeLanguage={nativeLanguage} />
                   </div>
                   <div className="border-t border-white/15 bg-[#1b1714] p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1700,18 +1660,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   </div>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
                     {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering card image..."}</p></div></div>}
-                    <div ref={exportRef} className="social-card-export pointer-events-none fixed left-[-10000px] top-0 w-[1024px] bg-black px-12 py-10">
-                      <style>{`
-                        .social-card-export .social-card-front [data-card-face] > div,
-                        .social-card-export .social-card-back [data-card-face] > div,
-                        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-                        .social-card-export .social-card-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-                        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-                      `}</style>
-                      <div className="mx-auto flex max-w-4xl items-center justify-start gap-5 overflow-x-auto pb-2 sm:justify-center sm:gap-14">
-                        <div className="social-card-front w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
-                        <div className="social-card-back w-[228px] shrink-0 sm:w-[300px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
-                      </div>
+                    <div ref={exportRef} className="pointer-events-none fixed left-[-10000px] top-0">
+                      <WordOfTheDayImage card={card} mode="card" nativeLanguage={nativeLanguage} />
                     </div>
                     <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
                       <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !cardImageUrl} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{cardImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: cardImageUrl, mimeType: "image/png" })} /> : null}
