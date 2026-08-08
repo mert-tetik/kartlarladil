@@ -23,7 +23,7 @@ interface WordOfTheDayImageProps {
 }
 
 function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode): ComponentProps<typeof VocabularyCardView> {
-  return { card, face, flippable: false, frontFit: true, showActions: false, staticFace: true, translationLocale };
+  return { card, face, flippable: false, frontFit: true, showActions: false, staticFace: false, translationLocale };
 }
 
 export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayImageProps) {
