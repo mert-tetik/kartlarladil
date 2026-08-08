@@ -44,6 +44,7 @@ const imageRuntimeCaching = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  serverExternalPackages: ["@resvg/resvg-js"],
   async redirects() {
     return [
       { source: "/kart-cek", destination: "/card-draw", permanent: true },
