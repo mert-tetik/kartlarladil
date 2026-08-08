@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
-import { cn } from "@/lib/utils";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const POSTER_TIER_PALETTES = {
@@ -13,14 +11,6 @@ const POSTER_TIER_PALETTES = {
   B1: { base: "#6331c5", deep: "#3b176f", accent: "#ddd6fe", light: "#ede9fe" },
   B2: { base: "#b45309", deep: "#642d0a", accent: "#fde68a", light: "#fef3c7" },
   C1: { base: "#be123c", deep: "#6d0c29", accent: "#fecdd3", light: "#ffe4e6" },
-} as const;
-
-const TIER_TEXT = {
-  A1: "A1 · Beginner",
-  A2: "A2 · Elementary",
-  B1: "B1 · Intermediate",
-  B2: "B2 · Upper Intermediate",
-  C1: "C1 · Advanced",
 } as const;
 
 type WordOfTheDayImageMode = "card" | "poster";
@@ -58,14 +48,14 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
           <header className="flex items-start justify-between">
             <div>
               <div className="relative h-9 w-48 overflow-hidden">
-                <Image alt="FoxiesDeck" className="object-[50%_48%] object-cover" fill sizes="12rem" src="/splash.png" unoptimized />
+                <img alt="FoxiesDeck" className="h-full w-full object-cover object-[50%_48%]" loading="eager" src="/splash.png" />
               </div>
               <h1 className="mt-2 max-w-md font-display text-4xl font-semibold leading-tight">
                 {languageNative.toUpperCase()} {title.toUpperCase()}
               </h1>
             </div>
             <div className="relative h-28 w-28 shrink-0 rotate-6">
-              <Image alt="" className="h-auto w-full object-contain" height={512} src="/mascots/mascot16.webp" unoptimized width={512} />
+              <img alt="" className="h-auto w-full object-contain" loading="eager" src="/mascots/mascot16.webp" />
             </div>
           </header>
 

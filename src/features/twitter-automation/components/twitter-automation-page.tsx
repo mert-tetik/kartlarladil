@@ -418,6 +418,14 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
         try {
           await document.fonts?.ready;
+          const loadedImages = Promise.all(Array.from(source.querySelectorAll("img")).map((image) => {
+            if (image.complete) return Promise.resolve();
+            return new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), { once: true });
+            });
+          }));
+          await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
           const dataUrl = await toPng(source, {
             cacheBust: true,
             pixelRatio: 2,
