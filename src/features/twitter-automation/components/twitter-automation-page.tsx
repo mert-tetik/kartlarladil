@@ -428,7 +428,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
           const dataUrl = await toPng(source, {
             cacheBust: true,
-            pixelRatio: 2,
+            pixelRatio: 3,
             backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#11100f",
           });
           if (!cancelled) {
@@ -1636,7 +1636,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   <div
                     ref={posterExportRef}
                     data-social-word-poster
-                    className="pointer-events-none fixed left-[-10000px] top-0"
+                    className="pointer-events-none fixed left-0 top-0 -z-[9999] h-fit w-fit overflow-hidden"
                   >
                     <WordOfTheDayImage card={card} mode="poster" nativeLanguage={nativeLanguage} />
                   </div>
@@ -1668,7 +1668,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   </div>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
                     {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering card image..."}</p></div></div>}
-                    <div ref={exportRef} className="pointer-events-none fixed left-[-10000px] top-0">
+                    <div ref={exportRef} className="pointer-events-none fixed left-0 top-0 -z-[9999] h-fit w-fit overflow-hidden">
                       <WordOfTheDayImage card={card} mode="card" nativeLanguage={nativeLanguage} />
                     </div>
                     <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
