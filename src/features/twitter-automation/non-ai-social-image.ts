@@ -1,6 +1,6 @@
 import "server-only";
 
-import sharp from "sharp";
+import { Resvg } from "@resvg/resvg-js";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -68,6 +68,9 @@ export async function createNonAiSocialImage({ language, nativeLanguage, tier, m
   mode: NonAiImageMode;
 }) {
   const card = await chooseCard(language, nativeLanguage, tier, mode);
-  const png = await sharp(Buffer.from(imageSvg(card, nativeLanguage, mode))).png().toBuffer();
-  return { dataUrl: `data:image/png;base64,${png.toString("base64")}`, caption: captionFor(card) };
+  const resvg = new Resvg(imageSvg(card, nativeLanguage, mode), {
+    fitTo: { mode: "width", value: 1080 },
+  });
+  const png = resvg.render().asPng();
+  return { dataUrl: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, caption: captionFor(card) };
 }
