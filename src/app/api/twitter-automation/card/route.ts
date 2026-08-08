@@ -4,7 +4,6 @@ import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import {
-  recordSocialStudioVocabularyUsage,
   resolveSocialStudioVocabularyCard,
   selectSocialStudioVocabularyTerms,
   SocialStudioVocabularyError,
@@ -30,10 +29,9 @@ export async function POST(request: Request) {
   try {
     const [term] = await selectSocialStudioVocabularyTerms({ ...parsed.data, count: 1 });
     const card = await resolveSocialStudioVocabularyCard(term!, parsed.data.language, parsed.data.nativeLanguage);
-    await recordSocialStudioVocabularyUsage(parsed.data.language, parsed.data.generator, [card.term]);
     return NextResponse.json({ card }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
-    return NextResponse.json({ errorCode }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
+    return NextResponse.json({ errorCode }, { status: 502 });
   }
 }

@@ -7,7 +7,7 @@ import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-spee
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
+import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -102,6 +102,7 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
     "framePrompt is a detailed English prompt for an avatar-ready vertical social visual. The generated source is center-cropped to 9:16, so keep every critical element inside the central 80% width. Put the featured FoxiesDeck vocabulary card fully readable in the upper third. The supplied mascot reference must appear as a faithful polished 3D version of the same 2D mascot, chest-up in the lower half, facing the camera with its full mouth unobstructed for lip sync. Choose one random but tasteful scene that supports the featured word. Preserve generous negative space and do not use sparkles, grids, fake interface chrome, or unrelated logos.",
     "spokenBefore and spokenAfter are spoken by the fox mascot in the selected native language, not the learning language. The exact featured word is inserted between them later and must not appear in either field. spokenBefore is a very short natural lead-in of 3 to 8 words, ending as if introducing the word. spokenAfter contains a compact explanation in one or two natural sentences, around 16 to 26 words total: lively, warm, lightly funny, and genuinely useful. Include one brief playful image, comparison, or tiny joke that fits the word. Do not use quotation marks, hashtags, stage directions, or English unless English is the selected native language.",
     "caption must be a ready-to-post caption in the selected native language, with a short hook and two or three relevant hashtags including #languagelearning.",
+    "The featured word must be completely random and must not repeat any word used in previous generations, even when this request runs immediately after another one.",
     "Reference image 1 is the official FoxiesDeck fox mascot. Keep its face, ears, tail, orange-and-cream palette, and expression recognisable when making it 3D.",
     "Reference image 2 is the official FoxiesDeck wordmark. Use it only if it improves the composition, and reproduce it faithfully.",
     "Reference image 3 is the official FoxiesDeck logo. Use it only if useful and never replace it with a generic logo.",
@@ -294,7 +295,7 @@ export async function POST(request: Request) {
     return Response.json({
       errorCode,
       diagnostic: createSocialStudioDiagnostic({ stage: "Avatar vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The video could not select a fresh vocabulary term." }),
-    }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
+    }, { status: 502 });
   }
 
   let plan: VideoPlan | null;
@@ -371,13 +372,6 @@ export async function POST(request: Request) {
   const videoPayload = await videoResponse.json().catch(() => null) as { data?: { task_id?: unknown } } | null;
   const taskId = videoPayload?.data?.task_id;
   if (!videoResponse.ok || typeof taskId !== "string") return Response.json({ errorCode: "avatar_submission_failed", diagnostic: createSocialStudioDiagnostic({ stage: "Kling Avatar submission", provider: "PoYo Generate / Kling", fallbackDetail: `Kling did not accept the avatar task (HTTP ${videoResponse.status}).` }) }, { status: 502 });
-
-  try {
-    await recordSocialStudioVocabularyUsage(parsed.data.language, "ai-word-of-the-day-video", [card.term]);
-  } catch (error) {
-    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "social_vocabulary_history_unavailable";
-    return Response.json({ errorCode, diagnostic: createSocialStudioDiagnostic({ stage: "Vocabulary usage recording", provider: "Supabase", error, fallbackDetail: "The video was prepared but its vocabulary history could not be saved." }) }, { status: 503 });
-  }
 
   return Response.json({
     taskId,

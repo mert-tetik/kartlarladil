@@ -7,7 +7,7 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
+import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -81,19 +81,18 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
 }
 
 async function createProgressionPayload(language: LanguageCode, nativeLanguage: LanguageCode): Promise<OriginalMascotLearningVideoPayload | null> {
-  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
   const plan = await createPlan(
     [
       "Create an A1-to-C1 vocabulary progression for a FoxiesDeck vertical learning video.",
       "Return one JSON object only: { caption, terms, narration }.",
       "terms must contain exactly three distinct, semantically connected target-language words in this exact tier set: A1, B1, C1. They should express the same broad idea with increasingly precise or advanced vocabulary.",
-      "Choose the terms yourself, not from a catalogue. The input includes previously used terms with lastUsedAt timestamps. Prefer terms never in that list; only reuse a term when no suitable unused term can be found, then choose the oldest one, never a recent one.",
+      "Choose the terms yourself, not from a catalogue. Do not use any previously used terms or example lists. The selection must be completely random and must not repeat any term used in previous generations, even when this request runs immediately after another one.",
       "narration must contain exactly 8 objects with { text, phase, activeTier } in this exact order: intro/null, term/A1, explanation/A1, term/B1, explanation/B1, term/C1, explanation/C1, outro/null.",
       "For every term phase, text must be the exact target-language word for that tier. intro is a native-language hook of at most 6 words introducing the A1-to-C1 comparison. Each explanation phase must state the meaning in a single consistent native-language sentence. Begin with the exact target-language word, then give its meaning naturally in native language. Do not use a fixed formula like 'demektir' or 'means' in every language; vary the phrasing naturally.",
       "outro is a native-language closing that briefly summarizes the progression and encourages the viewer to use the more precise word when appropriate.",
       "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep every spoken text brief and natural.",
     ].join("\n"),
-    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage], previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage) },
+    { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
     parseProgressionPlan,
   );
   if (!plan) return null;
@@ -107,7 +106,6 @@ async function createProgressionPayload(language: LanguageCode, nativeLanguage: 
     };
   });
   const audioDataUrls = await generatePoyoSpeechDataUrls(spokenScenes.map((scene) => ({ text: scene.text, language: scene.language, speed: 1 })));
-  await recordSocialStudioVocabularyUsage(language, "tier-progression-video", plan.terms.map((entry) => entry.term));
   return {
     mode: "tier-progression-video",
     caption: plan.caption,
@@ -153,6 +151,7 @@ async function createSingleQuizPlan(language: LanguageCode, nativeLanguage: Lang
       "Return one JSON object only: { caption, question, prompt, reveal, explanation, transition, outro }.",
       "question asks what the target-language word means but does not repeat it. prompt asks the viewer to choose. reveal states the correct answer clearly in native language, for example 'The answer is ...' or equivalent natural phrase. transition is a short native-language phrase connecting two quiz words (e.g. 'And the next word?'). outro asks viewers to write the answer in the comments.",
       "caption has 2 or 3 relevant hashtags. Keep all spoken values brief, natural, and easy to understand.",
+      "The selected word must be completely random and must not repeat any word used in previous generations, even when this request runs immediately after another one.",
     ].join("\n"),
     { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language], word: quiz.card.term, meaning: quiz.options[quiz.correctIndex], example: quiz.card.examples[0]?.sentence ?? quiz.card.example },
     parseQuizPlan,
@@ -214,7 +213,6 @@ async function createQuizPayload(language: LanguageCode, nativeLanguage: Languag
     generatePoyoSpeechDataUrls([{ text: transitionSpoken2, language: nativeLanguage }]),
     generatePoyoSpeechDataUrls([{ text: outroSpoken, language: nativeLanguage }]),
   ]);
-  await recordSocialStudioVocabularyUsage(language, "vocabulary-quiz-video", [quiz1.card.term, quiz2.card.term, quiz3.card.term]);
   const base1 = { kind: "quiz" as const, term: quiz1.card.term, tier: quiz1.card.tier, options: quiz1.options, correctIndex: quiz1.correctIndex, language };
   const base2 = { kind: "quiz" as const, term: quiz2.card.term, tier: quiz2.card.tier, options: quiz2.options, correctIndex: quiz2.correctIndex, language };
   const base3 = { kind: "quiz" as const, term: quiz3.card.term, tier: quiz3.card.tier, options: quiz3.options, correctIndex: quiz3.correctIndex, language };
@@ -242,6 +240,7 @@ async function createSingleSentencePlan(language: LanguageCode, nativeLanguage: 
       "Return one JSON object only: { caption, sentence, isCorrect, correction, question, reveal, explanation, intro, outro }.",
       "sentence is a short, useful sentence in the selected learning language. Randomly make it either deceptively correct or genuinely incorrect. isCorrect must match it. correction is empty when correct, otherwise the corrected learning-language sentence.",
       "question, reveal, intro, and outro are in the selected native language. question asks if the sentence is correct. reveal must be a single native-language word only: the word for 'correct' when isCorrect is true, or the word for 'incorrect' when isCorrect is false. intro is a short native-language phrase introducing the video, such as asking whether the given sentences are correct. outro asks viewers to write the answer in the comments.",
+      "The sentence must be completely random and must not repeat any sentence used in previous generations, even when this request runs immediately after another one. The four sentences in the same video must all be different from each other.",
       "caption has 2 or 3 relevant hashtags.",
     ].join("\n"),
     { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] },
@@ -326,17 +325,15 @@ async function createSentenceTranslationPayload(language: LanguageCode, nativeLa
         "sentence is a single, natural, useful sentence in the learning language. translation is its natural equivalent in the native language. Do not tie the sentence to any CEFR level; pick it completely at random.",
         "commentPrompt is a native-language phrase asking viewers to write the answer in the comments.",
         "caption is a concise native-language social caption with 2 or 3 relevant hashtags. Keep the sentence, translation, and commentPrompt brief and speakable.",
+        "The sentence must be completely random and must not repeat any sentence used in previous generations, even when this request runs immediately after another one. All five sentences in the same video must be different from each other.",
       ].join("\n"),
       {
         learningLanguage: LANGUAGE_NAMES[language],
         nativeLanguage: LANGUAGE_NAMES[nativeLanguage],
-        previousSentences: plans.map((plan) => plan.sentence),
       },
       parseSentenceTranslationPlan,
     );
     if (!plan) continue;
-    const normalized = plan.sentence.toLocaleLowerCase().trim();
-    if (plans.some((existing) => existing.sentence.toLocaleLowerCase().trim() === normalized)) continue;
     plans.push(plan);
   }
   if (plans.length < 5) return null;

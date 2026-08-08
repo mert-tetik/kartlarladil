@@ -1,7 +1,7 @@
 import "server-only";
 
 import sharp from "sharp";
-import { recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
+import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type NonAiImageMode = "word-of-the-day" | "word-of-the-day-poster";
@@ -65,6 +65,5 @@ export async function createNonAiSocialImage({ language, nativeLanguage, tier, m
 }) {
   const card = await chooseCard(language, nativeLanguage, tier, mode);
   const png = await sharp(Buffer.from(imageSvg(card, nativeLanguage, mode))).png().toBuffer();
-  await recordSocialStudioVocabularyUsage(language, mode, [card.term]);
   return { dataUrl: `data:image/png;base64,${png.toString("base64")}`, caption: captionFor(card) };
 }

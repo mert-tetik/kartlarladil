@@ -16,6 +16,7 @@ const BASE_INSTRUCTIONS = [
   "Stay below 280 characters. Return only the post text. Never use an em dash or an en dash; use commas or full stops instead.",
   "If the post asks followers a question, quiz, or challenge, never reveal, state, or hint at the answer. Leave the answer for comments and engagement.",
   "Do not promote FoxiesDeck, the app, cards, decks, reviewing, or any product benefit unless the mode specifically asks for it.",
+  "The content must be completely random. Do not repeat any word, sentence, example, or false-friend pair used in previous generations, even when this request runs immediately after another one.",
 ];
 
 const CONTENT_RULES = {

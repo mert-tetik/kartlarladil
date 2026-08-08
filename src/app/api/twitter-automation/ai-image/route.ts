@@ -6,7 +6,7 @@ import { hasSocialStudioSession } from "@/features/twitter-automation/social-stu
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
+import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -50,12 +50,12 @@ const ENGLISH_LANGUAGE_NAMES: Record<LanguageCode, string> = {
 };
 
 const MODE_BRIEFS: Record<ImageMode, string> = {
-  "ai-word-of-the-day": "Create a premium Word of the Day campaign visual around one featured word. The word must be the hero, supported by a physical FoxiesDeck card, a compact meaning, and an approachable mascot moment.",
-  "ai-mini-quiz": "Create a playful mini vocabulary quiz visual. Show one clear question, three readable answer choices, and a compelling card-led composition that invites followers to answer in comments. Never reveal or hint at the correct answer.",
-  "ai-false-friends": "Create an editorial Easy to Confuse visual, never a single-word quiz. Independently choose two real, well-established commonly confused words from the selected learning language itself. Ignore the supplied card terms for this mode. The two words must look or sound similar but have clearly different meanings, such as English affect/effect or German seit/seid. Never compare the learning language with the selected native language and never use a translation pair. Show exactly two large, separate vocabulary cards or term panels side by side, with a clear compact contrast such as 'looks similar' versus 'means different'. Do not ask 'What does ... mean?', do not use a single card, and do not hide the meanings as a quiz answer.",
-  "ai-daily-challenge": "Create a Daily Challenge visual presenting three real words as a compact learning mission. It should feel rewarding, collectable, and suitable for a social post.",
-  "ai-vocabulary-progression": "Create a clean side-by-side vocabulary progression visual. The left column is clearly labelled Beginner and shows the supplied A1-A2 words with their real A1 or A2 tier badges. The right column is clearly labelled Advanced and shows a natural B2-C1 target-language alternative for each beginner word, aligned row-for-row. Every right-side term must be a genuine, more sophisticated alternative in the same meaning area, never the identical beginner word. Every Advanced card must visibly use a B2 or C1 tier badge and the matching B2/C1 tier colour treatment. Never show A1 or A2 on any Advanced card, even when its paired Beginner card is A1 or A2. The supplied A1-A2 cards are reference data for the left column only; do not copy their tier badges, colours, or difficulty to the Advanced column. Keep the two columns balanced, highly readable, and card-led.",
-  "ai-example-sentences": "Create an educational Example Sentences visual. The supplied cards each contain one real target-language example sentence and its native-language meaning; use those exact example sentences on the left side and their matching meanings on the right side, aligned sentence-for-sentence. The three cards are independent random tiers from A1 to C1; visibly show each card's real tier badge next to its sentence. Use a clean two-column layout, a small flag or language label above each column, the FoxiesDeck mascot at the bottom, and a polished card-like frame around each sentence pair. Keep the background light and neutral, use each row's own tier colour only as a subtle accent, and keep the text large and highly readable for social media.",
+  "ai-word-of-the-day": "Create a premium Word of the Day campaign visual around one featured word. The word must be the hero, supported by a physical FoxiesDeck card, a compact meaning, and an approachable mascot moment. The choice must be completely random and must not repeat any word used in the previous few generations.",
+  "ai-mini-quiz": "Create a playful mini vocabulary quiz visual. Show one clear question, three readable answer choices, and a compelling card-led composition that invites followers to answer in comments. Never reveal or hint at the correct answer. The word and choices must be completely random and must not repeat any word used in the previous few generations.",
+  "ai-false-friends": "Create an editorial Easy to Confuse visual, never a single-word quiz. Independently choose two real, well-established commonly confused words from the selected learning language itself. Ignore the supplied card terms for this mode. The two words must look or sound similar but have clearly different meanings, such as English affect/effect or German seit/seid. Never compare the learning language with the selected native language and never use a translation pair. Show exactly two large, separate vocabulary cards or term panels side by side, with a clear compact contrast such as 'looks similar' versus 'means different'. Do not ask 'What does ... mean?', do not use a single card, and do not hide the meanings as a quiz answer. The pair must be completely random and must not repeat any false-friend pair used in the previous few generations.",
+  "ai-daily-challenge": "Create a Daily Challenge visual presenting three real words as a compact learning mission. It should feel rewarding, collectable, and suitable for a social post. The three words must be completely random and must not repeat any words used in the previous few generations.",
+  "ai-vocabulary-progression": "Create a clean side-by-side vocabulary progression visual. The left column is clearly labelled Beginner and shows the supplied A1-A2 words with their real A1 or A2 tier badges. The right column is clearly labelled Advanced and shows a natural B2-C1 target-language alternative for each beginner word, aligned row-for-row. Every right-side term must be a genuine, more sophisticated alternative in the same meaning area, never the identical beginner word. Every Advanced card must visibly use a B2 or C1 tier badge and the matching B2/C1 tier colour treatment. Never show A1 or A2 on any Advanced card, even when its paired Beginner card is A1 or A2. The supplied A1-A2 cards are reference data for the left column only; do not copy their tier badges, colours, or difficulty to the Advanced column. Keep the two columns balanced, highly readable, and card-led. The beginner words and their advanced alternatives must be completely random and must not repeat any progression used in the previous few generations.",
+  "ai-example-sentences": "Create an educational Example Sentences visual. The supplied cards each contain one real target-language example sentence and its native-language meaning; use those exact example sentences on the left side and their matching meanings on the right side, aligned sentence-for-sentence. The three cards are independent random tiers from A1 to C1; visibly show each card's real tier badge next to its sentence. Use a clean two-column layout, a small flag or language label above each column, the FoxiesDeck mascot at the bottom, and a polished card-like frame around each sentence pair. Keep the background light and neutral, use each row's own tier colour only as a subtle accent, and keep the text large and highly readable for social media. The three sentences and their meanings must be completely random and must not repeat any sentence used in the previous few generations.",
 };
 
 const CAPTION_BRIEFS: Record<ImageMode, string> = {
@@ -120,7 +120,6 @@ function parseAiImagePlan(rawPlan: string, mode: ImageMode): AiImagePlan | null 
 
 async function createArtDirection(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, cards: VocabularyCard[]) {
   if (!process.env.POYO_API_KEY?.trim()) return null;
-  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
 
   const instructions = [
       "You are the senior visual art director for FoxiesDeck, a playful multilingual vocabulary-card app.",
@@ -129,7 +128,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
         : "Return one JSON object with exactly two string fields: artDirection and caption. Do not add markdown or any text outside the JSON object.",
       "artDirection must be a detailed, production-ready English image-generation prompt for a 1:1 social media visual.",
       "caption must be a ready-to-post social caption written in the selected native language. It needs a concise hook or title, natural emoji only when appropriate, and two or three relevant hashtags including #languagelearning. Keep it below 260 characters. If the visual asks a question, quiz, or challenge, never reveal or hint at its answer in the caption.",
-      "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, commonly confused words from the selected learning language itself. Prefer terms absent from previouslyUsedTerms; if an appropriate unused term cannot be found, use the oldest listed term, never a recent one. The two terms must look or sound similar but have clearly different meanings. Never choose a word from the native language, direct translations, or a pair whose meanings are identical. The native language is only for writing the caption and explaining meanings, never for selecting the two terms.",
+      "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, commonly confused words from the selected learning language itself. The two terms must look or sound similar but have clearly different meanings. Never choose a word from the native language, direct translations, or a pair whose meanings are identical. The native language is only for writing the caption and explaining meanings, never for selecting the two terms. The pair must be completely random and must not repeat any false-friend pair used in the previous few generations.",
       `Caption format for this mode: ${CAPTION_BRIEFS[mode]}`,
       "Describe composition, camera angle, visual hierarchy, precise placement, lighting, material finish, typography treatment, and the relationship between the mascot and vocabulary cards.",
       "Use a polished minimalist 3D card-collecting aesthetic. Cards must look like real FoxiesDeck vocabulary cards, not generic flashcards.",
@@ -142,6 +141,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       "When the visual asks followers a question, quiz, or challenge, never show, reveal, or hint at the answer. Keep the answer for comments and engagement.",
       "Use the native-language meanings supplied in the input for explanations and answer choices. Do not use English as a fallback unless English is the selected native language.",
       "Never invent vocabulary terms, translations, or example sentences beyond the supplied data unless the content brief explicitly asks for a false-friend comparison or a beginner-to-advanced progression pair.",
+      "All vocabulary, examples, and comparisons must be completely random and must not repeat content from any previous generation.",
       MODE_BRIEFS[mode],
     ].join("\n");
   const input = {
@@ -149,7 +149,6 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       nativeLanguage: ENGLISH_LANGUAGE_NAMES[nativeLanguage],
       selectedTier: tier,
       cards: serializeCards(cards, nativeLanguage),
-      previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage),
     };
   const poyo = createSocialStudioPoyoClient();
   const generatePlan = async (repair: boolean) => {
@@ -235,7 +234,7 @@ export async function POST(request: Request) {
     return Response.json({
       errorCode,
       diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
-    }, { status: errorCode === "social_vocabulary_history_unavailable" ? 503 : 502 });
+    }, { status: 502 });
   }
 
   let imagePlan: AiImagePlan | null;
@@ -260,10 +259,6 @@ export async function POST(request: Request) {
       prompt: createImagePrompt(parsed.data.mode, imagePlan),
       size: "1:1",
     });
-    const usedTerms = parsed.data.mode === "ai-false-friends" && imagePlan.falseFriend
-      ? [imagePlan.falseFriend.firstTerm, imagePlan.falseFriend.secondTerm]
-      : cards.map((card) => card.term);
-    await recordSocialStudioVocabularyUsage(parsed.data.language, parsed.data.mode, usedTerms);
 
     return Response.json({
       imageUrl: image.dataUrl,

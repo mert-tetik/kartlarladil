@@ -4,7 +4,7 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { formatSocialStudioVocabularyUsage, getSocialStudioVocabularyUsage, recordSocialStudioVocabularyUsage, resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
+import { resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -89,11 +89,10 @@ function normalizeTerm(value: string) {
 }
 
 async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
-  const vocabularyUsage = await getSocialStudioVocabularyUsage(language);
   const instructions = [
     "Create a FoxiesDeck vertical short-video plan with exactly three phases about commonly confused or very-close-in-meaning vocabulary words.",
     "Return one JSON object only, with exactly: phases, caption. phases must contain exactly three objects. Each phase object must contain exactly: firstTerm, secondTerm, connector, question, firstMeaningTail, secondMeaningTail.",
-    "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Choose them yourself, never from a catalogue. Prefer words never in the supplied previouslyUsedTerms list. If an appropriate unused word truly cannot be found, choose only the oldest used word, never a recent one. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
+    "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Choose them yourself, never from a catalogue. Do not use any previously used terms or example lists. The words must be completely random and must not repeat any term used in previous generations, even when this request runs immediately after another one. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
     "connector is only the native-language equivalent of 'and'. question is the native-language equivalent of 'what is the difference between them?'.",
     "firstMeaningTail is a native-language phrase that follows the first term and means '[its meaning] while,'; do not repeat the first term. secondMeaningTail is a native-language phrase that follows the second term and means '[its meaning].'; do not repeat the second term.",
     "caption is one ready-to-post native-language caption under 260 characters, with an inviting hook and 2 or 3 relevant hashtags including #languagelearning.",
@@ -103,7 +102,6 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
     learningLanguage: LANGUAGE_NAMES[language],
     nativeLanguage: LANGUAGE_NAMES[nativeLanguage],
     requestedTier: tier,
-    previouslyUsedTerms: formatSocialStudioVocabularyUsage(vocabularyUsage),
   };
   const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
@@ -193,7 +191,6 @@ export async function POST(request: Request) {
 
   try {
     const audioDataUrls = await generateSceneSpeechInBatches(sceneDefinitions);
-    await recordSocialStudioVocabularyUsage(parsed.data.language, "confused-words-video", plan.phases.flatMap((phase) => [phase.firstTerm, phase.secondTerm]));
     return Response.json({
       caption: plan.caption,
       phases: cards,
