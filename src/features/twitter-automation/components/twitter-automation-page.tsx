@@ -13,6 +13,7 @@ import { ScheduledPostsTable } from "@/features/twitter-automation/components/sc
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
+import { SelfSocialImage, type SelfSocialImageMode } from "@/features/twitter-automation/components/self-social-image";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
@@ -23,6 +24,7 @@ import { formatSocialStudioClientFailure, formatSocialStudioFailure, type Social
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
+import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -30,10 +32,11 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 type StudioMode = "text" | "image" | "video";
 type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
 type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression" | "ai-example-sentences";
+type SelfImageGeneratorMode = "self-mini-quiz" | "self-false-friends" | "self-daily-challenge" | "self-vocabulary-progression" | "self-example-sentences";
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
 type TierProgressionCarouselGeneratorMode = "tier-progression-carousel";
-type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | AiImageGeneratorMode;
-type MusicVideoImageGeneratorMode = Exclude<ImageGeneratorMode, VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode>;
+type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | AiImageGeneratorMode | SelfImageGeneratorMode;
+type MusicVideoImageGeneratorMode = Exclude<ImageGeneratorMode, VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | SelfImageGeneratorMode>;
 type MusicVideoGeneratorMode = `music-${MusicVideoImageGeneratorMode}`;
 type ConfusedWordsVideoGeneratorMode = "confused-words-video";
 type DialogueVideoGeneratorMode = "marketing-dialogue-video" | "learning-dialogue-video";
@@ -74,12 +77,21 @@ const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: st
   { value: "ai-example-sentences", label: "Example Sentences", description: "Three example sentences in the learning language with native-language meanings" },
 ];
 
+const SELF_IMAGE_GENERATOR_OPTIONS: Array<{ value: SelfImageGeneratorMode; label: string; description: string }> = [
+  { value: "self-mini-quiz", label: "Mini Quiz (Self)", description: "A non-AI social quiz visual built around one vocabulary word" },
+  { value: "self-false-friends", label: "False Friends (Self)", description: "Two real cards side by side, easy-to-confuse style" },
+  { value: "self-daily-challenge", label: "Daily Challenge (Self)", description: "A non-AI three-word study challenge visual" },
+  { value: "self-vocabulary-progression", label: "Beginner to Advanced (Self)", description: "Three real cards at A1, B2, and C1 levels" },
+  { value: "self-example-sentences", label: "Example Sentences (Self)", description: "Three real example sentences with native-language meanings" },
+];
+
 const IMAGE_GENERATOR_OPTIONS: Array<{ value: ImageGeneratorMode; label: string; description: string }> = [
   { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
   { value: "word-of-the-day-poster", label: "Word of the Day poster", description: "A single social image with the post copy built in" },
   { value: "vocabulary-carousel", label: "Vocabulary Carousel", description: "Six non-AI 3:4 card visuals for one carousel post" },
   { value: "tier-progression-carousel", label: "A1 to C1 Carousel", description: "Three non-AI 3:4 cards at A1, B2, and C1" },
   ...AI_IMAGE_GENERATOR_OPTIONS,
+  ...SELF_IMAGE_GENERATOR_OPTIONS,
 ];
 
 const MUSIC_VIDEO_IMAGE_GENERATOR_OPTIONS: Array<{ value: MusicVideoImageGeneratorMode; label: string; description: string }> = [
@@ -139,6 +151,11 @@ const DEFAULT_HIGHLIGHTED_GENERATOR_MODES: readonly GeneratorMode[] = [
   "tiered-vocabulary",
   "example-sentences",
   "ai-example-sentences",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
 ];
 
 const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
@@ -173,6 +190,10 @@ function isTextGenerator(mode: GeneratorMode): mode is TextGeneratorMode {
 
 function isAiImageGenerator(mode: GeneratorMode): mode is AiImageGeneratorMode {
   return AI_IMAGE_GENERATOR_OPTIONS.some((option) => option.value === mode);
+}
+
+function isSelfImageGenerator(mode: GeneratorMode): mode is SelfImageGeneratorMode {
+  return SELF_IMAGE_GENERATOR_OPTIONS.some((option) => option.value === mode);
 }
 
 function isVocabularyCarouselGenerator(mode: GeneratorMode): mode is VocabularyCarouselGeneratorMode {
@@ -338,6 +359,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [carouselCaption, setCarouselCaption] = useState("");
   const [carouselError, setCarouselError] = useState("");
   const [isRenderingCarousel, setIsRenderingCarousel] = useState(false);
+  const [selfCards, setSelfCards] = useState<VocabularyCard[]>([]);
+  const [selfImageUrl, setSelfImageUrl] = useState("");
+  const [selfImageCaption, setSelfImageCaption] = useState("");
+  const [selfImageError, setSelfImageError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const aiVideoStatusFailuresRef = useRef(0);
@@ -347,8 +372,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const musicPosterExportRef = useRef<HTMLDivElement>(null);
   const carouselSlideRefs = useRef<Array<HTMLDivElement | null>>([]);
   const confusedWordsCardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const selfImageExportRef = useRef<HTMLDivElement>(null);
 
-  const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : card ? createWordCaption(card) : "";
+  const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : isSelfImageGenerator(generatorMode) ? selfImageCaption : card ? createWordCaption(card) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
   const aiImagePending = aiImageStatus === "running";
   const musicVideoPending = musicVideoStatus === "creating-image" || musicVideoStatus === "rendering";
@@ -450,6 +476,44 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }, [card, generatorMode, nativeLanguage]);
 
   useEffect(() => {
+    if (!isSelfImageGenerator(generatorMode) || selfCards.length === 0) return;
+
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      void (async () => {
+        const source = selfImageExportRef.current;
+        if (!source) return;
+        setIsRenderingLocalImage(true);
+        setSelfImageError("");
+        setSelfImageUrl("");
+
+        try {
+          await document.fonts?.ready;
+          const loadedImages = Promise.all(Array.from(source.querySelectorAll("img")).map((image) => {
+            if (image.complete) return Promise.resolve();
+            return new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), { once: true });
+            });
+          }));
+          await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
+          const dataUrl = await toPng(source, { cacheBust: true, pixelRatio: 3, backgroundColor: "#11100f" });
+          if (!cancelled) setSelfImageUrl(dataUrl);
+        } catch {
+          if (!cancelled) setSelfImageError("The self image could not be rendered. Try again.");
+        } finally {
+          if (!cancelled) setIsRenderingLocalImage(false);
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [selfCards, generatorMode, nativeLanguage]);
+
+  useEffect(() => {
     if (!aiVideoTaskId || (aiVideoStatus !== "queued" && aiVideoStatus !== "running")) return;
 
     let cancelled = false;
@@ -500,28 +564,107 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     };
   }, [musicVideoUrl]);
 
+  async function fetchCard(nextLanguage: LanguageCode, nextTier: Tier): Promise<VocabularyCard | null> {
+    const response = await fetch("/api/twitter-automation/card", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language: nextLanguage, nativeLanguage, tier: nextTier, generator: "self-vocabulary-card" }),
+    });
+    if (response.status === 401) {
+      setAuthenticated(false);
+      return null;
+    }
+    const payload = await response.json() as { card?: VocabularyCard };
+    return payload.card ?? null;
+  }
+
   async function loadCard(nextLanguage: LanguageCode, nextTier: Tier, showLoading = true) {
     if (showLoading) setIsLoading(true);
     setCardImageUrl("");
     setPosterImageUrl("");
     setLocalImageRenderError("");
     try {
-      const response = await fetch("/api/twitter-automation/card", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ language: nextLanguage, nativeLanguage, tier: nextTier, generator: "self-vocabulary-card" }),
-      });
-      if (response.status === 401) {
-        setAuthenticated(false);
-        return null;
-      }
-
-      const payload = await response.json() as { card?: VocabularyCard };
-      const nextCard = payload.card ?? null;
+      const nextCard = await fetchCard(nextLanguage, nextTier);
       setCard(nextCard);
       return nextCard;
     } finally {
       if (showLoading) setIsLoading(false);
+    }
+  }
+
+  function captionForSelfImage(mode: SelfImageGeneratorMode, cards: VocabularyCard[]) {
+    const tag = ENGLISH_LANGUAGE_NAMES[cards[0]?.language ?? "en"].toLowerCase().replaceAll(" ", "");
+    switch (mode) {
+      case "self-mini-quiz": {
+        const card = cards[0];
+        const correct = getPrimaryCardTranslation(card, nativeLanguage);
+        const options = [correct, ...cards.slice(1, 4).map((c) => getPrimaryCardTranslation(c, nativeLanguage))].sort(() => Math.random() - 0.5);
+        const labels = ["A", "B", "C", "D"];
+        const body = options.map((text, index) => `${labels[index]}) ${text}`).join("\n");
+        return `What does "${card.term}" mean?\n${body}\n\nComment your answer!\n\n#${tag} #languagelearning #vocabularyquiz`;
+      }
+      case "self-false-friends": {
+        const [first, second] = cards;
+        return `"${first.term}" vs "${second.term}" — two ${LANGUAGE_BY_CODE[first.language].nativeName} words that look or sound similar but mean different things.\n\n#${tag} #languagelearning #falsefriends`;
+      }
+      case "self-daily-challenge": {
+        const terms = cards.map((c) => c.term).join(", ");
+        return `Today's ${LANGUAGE_BY_CODE[cards[0].language].nativeName} challenge: ${terms}\n\nAdd them to your FoxiesDeck collection.\n\n#${tag} #languagelearning #dailychallenge`;
+      }
+      case "self-vocabulary-progression": {
+        const [beginner, intermediate, advanced] = cards;
+        return `Beginner → Advanced in ${LANGUAGE_BY_CODE[cards[0].language].nativeName}:\n${beginner.term} → ${intermediate.term} → ${advanced.term}\n\nLevel up one word at a time.\n\n#${tag} #languagelearning #vocabulary`;
+      }
+      case "self-example-sentences": {
+        return `Three real ${LANGUAGE_BY_CODE[cards[0].language].nativeName} sentences. Write your own in the comments!\n\n#${tag} #languagelearning #examplesentences`;
+      }
+      default: return "";
+    }
+  }
+
+  async function generateSelfImage(mode: SelfImageGeneratorMode) {
+    setIsLoading(true);
+    setCard(null);
+    setCardImageUrl("");
+    setPosterImageUrl("");
+    setSelfCards([]);
+    setSelfImageUrl("");
+    setSelfImageCaption("");
+    setSelfImageError("");
+
+    try {
+      let tiers: Tier[];
+      switch (mode) {
+        case "self-mini-quiz": tiers = [tier, tier, tier, tier]; break;
+        case "self-false-friends": tiers = [tier, tier]; break;
+        case "self-daily-challenge": tiers = (["A1", "A2", "B1", "B2", "C1"] as Tier[]).sort(() => Math.random() - 0.5).slice(0, 3); break;
+        case "self-vocabulary-progression": tiers = ["A1", "B2", "C1"]; break;
+        case "self-example-sentences": tiers = (["A1", "A2", "B1", "B2", "C1"] as Tier[]).sort(() => Math.random() - 0.5).slice(0, 3); break;
+        default: tiers = [];
+      }
+
+      const candidates = await Promise.all(tiers.map((t) => fetchCard(language, t)));
+      const seen = new Set<string>();
+      const cards: VocabularyCard[] = [];
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        if (seen.has(candidate.sourceKey)) continue;
+        seen.add(candidate.sourceKey);
+        cards.push(candidate);
+      }
+
+      const requiredCount = mode === "self-mini-quiz" ? 4 : mode === "self-false-friends" ? 2 : 3;
+      if (cards.length < requiredCount) {
+        setSelfImageError("Could not load enough fresh cards. Try again.");
+        return;
+      }
+
+      setSelfCards(cards);
+      setSelfImageCaption(captionForSelfImage(mode, cards));
+    } catch {
+      setSelfImageError("The self image could not be prepared. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -1060,6 +1203,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
+    setSelfCards([]);
+    setSelfImageUrl("");
+    setSelfImageCaption("");
+    setSelfImageError("");
   }
 
   function selectLanguage(nextLanguage: LanguageCode) {
@@ -1102,6 +1249,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setCarouselCaption("");
     setCarouselError("");
     carouselSlideRefs.current = [];
+    setSelfCards([]);
+    setSelfImageUrl("");
+    setSelfImageCaption("");
+    setSelfImageError("");
   }
 
   function toggleGeneratorHighlight(mode: GeneratorMode) {
@@ -1121,6 +1272,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     if (isAiImageGenerator(generatorMode)) {
       void generateAiImage(generatorMode);
+      return;
+    }
+
+    if (isSelfImageGenerator(generatorMode)) {
+      void generateSelfImage(generatorMode);
       return;
     }
 
@@ -1247,6 +1403,20 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       URL.revokeObjectURL(objectUrl);
     } catch {
       window.open(aiImageUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function downloadSelfImage() {
+    if (!selfImageUrl || !selfCards.length) return;
+
+    setIsExporting(true);
+    try {
+      const link = document.createElement("a");
+      link.download = `foxiesdeck-self-${generatorMode}-${selfCards[0].language}-${Date.now()}.png`;
+      link.href = selfImageUrl;
+      link.click();
     } finally {
       setIsExporting(false);
     }
@@ -1531,7 +1701,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 >
                   {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{ENGLISH_LANGUAGE_NAMES[item.code]}</option>)}
                 </select>
-                {isCarouselImageGenerator(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? "Every run creates one A1, one B2, and one C1 card. The selected level is intentionally ignored." : "Every run uses six different cards from random levels. The selected level is intentionally ignored."}</p> : isCardGenerator(generatorMode) || isAiImageGenerator(generatorMode) ? <>{!isAiImageGenerator(generatorMode) || aiImageUsesTier(generatorMode) ? <>
+                {isCarouselImageGenerator(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? "Every run creates one A1, one B2, and one C1 card. The selected level is intentionally ignored." : "Every run uses six different cards from random levels. The selected level is intentionally ignored."}</p> : isCardGenerator(generatorMode) || isSelfImageGenerator(generatorMode) || (isAiImageGenerator(generatorMode) && aiImageUsesTier(generatorMode)) ? <>{isSelfImageGenerator(generatorMode) ? (generatorMode === "self-mini-quiz" || generatorMode === "self-false-friends" ? <>
                   <p className="mt-5 text-sm font-semibold">Level</p>
                   <div className="mt-2 grid grid-cols-5 gap-1.5">
                     {TIERS.map((item) => (
@@ -1540,13 +1710,22 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </Button>
                     ))}
                   </div>
-                </> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{generatorMode === "ai-vocabulary-progression" ? "Word range: A1-A2 to B2-C1" : "The comparison is selected from the two chosen languages."}</p>}</> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">Posts are written in the native language, with examples and vocabulary in the selected learning language.</p>}
-                {isAiImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">GPT picks the art direction and writes a detailed square-image prompt from the selected content type and real card data.</p> : null}
+                </> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">Cards are picked from random levels.</p>) : <>
+                  <p className="mt-5 text-sm font-semibold">Level</p>
+                  <div className="mt-2 grid grid-cols-5 gap-1.5">
+                    {TIERS.map((item) => (
+                      <Button className={tier === item ? "bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" : "border-white/15 bg-[#100d0c] text-[#f9f2e9] hover:bg-[#231d19]"} key={item} onClick={() => selectTier(item)} size="sm" type="button">
+                        {item}
+                      </Button>
+                    ))}
+                  </div>
+                </>}</> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">Posts are written in the native language, with examples and vocabulary in the selected learning language.</p>}
+                {isAiImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">GPT picks the art direction and writes a detailed square-image prompt from the selected content type and real card data.</p> : isSelfImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">Real FoxiesDeck cards are composed into a square social visual in the browser.</p> : null}
               </>
 
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || (isAiImageGenerator(generatorMode) && aiImagePending)} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", (isLoading || aiImagePending) && "animate-spin")} aria-hidden="true" />
-                {isAiImageGenerator(generatorMode) ? aiImagePending ? `Generating image, ${aiImageProgress}%` : "Generate AI image" : isCarouselImageGenerator(generatorMode) ? isLoading ? `Creating ${carouselSlideCount} carousel images...` : `Generate ${carouselSlideCount}-image carousel` : isTextGenerator(generatorMode) ? "Generate post" : "Create another Word of the Day"}
+                {isAiImageGenerator(generatorMode) ? aiImagePending ? `Generating image, ${aiImageProgress}%` : "Generate AI image" : isSelfImageGenerator(generatorMode) ? isLoading ? "Composing self image..." : "Generate self image" : isCarouselImageGenerator(generatorMode) ? isLoading ? `Creating ${carouselSlideCount} carousel images...` : `Generate ${carouselSlideCount}-image carousel` : isTextGenerator(generatorMode) ? "Generate post" : "Create another Word of the Day"}
               </Button>
             </aside>
 
@@ -1630,7 +1809,31 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     </div>
                   </div>}
                 </div>
-              ) : generatorMode === "word-of-the-day-poster" ? card ? (
+              ) : isSelfImageGenerator(generatorMode) ? selfCards.length ? (
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+                  {selfImageUrl ? <Image alt="Generated self visual" className="aspect-square w-full bg-black object-cover" height={1080} src={selfImageUrl} unoptimized width={1080} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
+                  <div
+                    ref={selfImageExportRef}
+                    data-social-self-image
+                    className="pointer-events-none fixed left-0 top-0 -z-[9999] h-fit w-fit overflow-hidden"
+                  >
+                    <SelfSocialImage cards={selfCards} mode={generatorMode as SelfSocialImageMode} nativeLanguage={nativeLanguage} />
+                  </div>
+                  <div className="border-t border-white/15 bg-[#1b1714] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#ffb355]">Post caption</p>
+                        <p className="mt-1 text-xs text-[#cdbfb3]">Ready-to-publish text and hashtags.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
+                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !selfImageUrl} onClick={downloadSelfImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{selfImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: selfImageUrl, mimeType: "image/png" })} /> : null}
+                      </div>
+                    </div>
+                    <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                  </div>
+                </div>
+              ) : <div className="grid min-h-80 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Composing self image..." : selfImageError || "No self image data was found."}</div> : generatorMode === "word-of-the-day-poster" ? card ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
                   {posterImageUrl ? <Image alt="Rendered Word of the Day poster" className="aspect-[4/3] w-full bg-black object-cover" height={768} src={posterImageUrl} unoptimized width={1024} /> : <div className="grid aspect-[4/3] place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering poster image..."}</p></div></div>}
                   <div
