@@ -68,6 +68,40 @@ function QuizOption({ label, text, color }: { label: string; text: string; color
   );
 }
 
+const MINI_QUIZ_QUESTION: Record<LanguageCode, (term: string) => string> = {
+  tr: (term) => `“${term}” kelimesi ne anlama geliyor?`,
+  en: (term) => `What does “${term}” mean?`,
+  de: (term) => `Was bedeutet „${term}“?`,
+  fr: (term) => `Que signifie « ${term} » ?`,
+  es: (term) => `¿Qué significa “${term}”?`,
+  it: (term) => `Cosa significa “${term}”?`,
+  pt: (term) => `O que significa “${term}”?`,
+  nl: (term) => `Wat betekent “${term}”?`,
+  pl: (term) => `Co znaczy „${term}”?`,
+  ru: (term) => `Что означает «${term}»?`,
+  ar: (term) => `ماذا يعني “${term}”؟`,
+  ja: (term) => `「${term}」の意味は何ですか？`,
+  ko: (term) => `“${term}”의 의미는 무엇인가요?`,
+  "zh-CN": (term) => `“${term}”是什么意思？`,
+};
+
+const MINI_QUIZ_FOOTER: Record<LanguageCode, string> = {
+  tr: "Cevabını yoruma yaz",
+  en: "Comment your answer",
+  de: "Schreib deine Antwort in die Kommentare",
+  fr: "Commente ta réponse",
+  es: "Comenta tu respuesta",
+  it: "Commenta la tua risposta",
+  pt: "Comenta a tua resposta",
+  nl: "Reageer met je antwoord",
+  pl: "Napisz odpowiedź w komentarzu",
+  ru: "Напиши свой ответ в комментариях",
+  ar: "اكتب إجابتك في التعليقات",
+  ja: "コメントで答えを書いて",
+  ko: "댓글로 답을 남겨줘",
+  "zh-CN": "在评论里写下你的答案",
+};
+
 export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImageProps) {
   const languageName = useMemo(() => LANGUAGE_BY_CODE[cards[0]?.language ?? "en"].nativeName, [cards]);
 
@@ -78,21 +112,25 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
     const colors = ["#ef4444", "#22c55e", "#3b82f6", "#eab308"];
 
     return (
-      <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
+      <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] px-10 py-12 text-center text-white" style={{ width: 1080, height: 1440 }}>
         <style>{overrideStyles()}</style>
         <SelfImageHeader label="Mini Quiz" />
-        <h2 className="mx-auto mt-16 max-w-2xl font-display text-6xl font-semibold leading-tight">What does &ldquo;{card.term}&rdquo; mean?</h2>
-        <div className="mx-auto mt-8 w-[280px]">
-          <div className="self-image-front">
-            <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
-          </div>
-        </div>
-        <div className="mt-10 grid w-full max-w-3xl grid-cols-2 gap-5">
+        <h2 className="mx-auto mt-20 max-w-3xl font-display text-6xl font-semibold leading-tight">
+          {MINI_QUIZ_QUESTION[nativeLanguage](card.term)}
+        </h2>
+        <div className="mt-14 grid w-full max-w-3xl grid-cols-2 gap-6">
           {shuffled.map((text, index) => (
-            <QuizOption key={index} label={String.fromCharCode(65 + index)} text={text} color={colors[index]} />
+            <div
+              key={index}
+              className="flex items-center gap-5 rounded-2xl px-8 py-10 text-left shadow-xl"
+              style={{ backgroundColor: colors[index] }}
+            >
+              <span className="text-3xl font-bold text-white">{String.fromCharCode(65 + index)})</span>
+              <span className="text-3xl font-semibold leading-tight text-white">{text}</span>
+            </div>
           ))}
         </div>
-        <p className="mt-10 text-lg font-semibold text-white/80">Comment your answer</p>
+        <p className="mt-16 text-2xl font-semibold text-white/80">{MINI_QUIZ_FOOTER[nativeLanguage]}</p>
       </article>
     );
   }

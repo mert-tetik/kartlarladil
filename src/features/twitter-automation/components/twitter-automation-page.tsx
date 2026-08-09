@@ -1811,7 +1811,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 </div>
               ) : isSelfImageGenerator(generatorMode) ? selfCards.length ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                  {selfImageUrl ? <Image alt="Generated self visual" className="aspect-square w-full bg-black object-cover" height={1080} src={selfImageUrl} unoptimized width={1080} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
+                  {selfImageUrl ? <Image alt="Generated self visual" className="aspect-[3/4] h-auto w-full bg-black object-cover" height={1440} src={selfImageUrl} unoptimized width={1080} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
                   <div
                     ref={selfImageExportRef}
                     data-social-self-image
