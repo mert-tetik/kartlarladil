@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const POSTER_TIER_PALETTES = {
@@ -88,36 +89,35 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
     );
   }
 
+  const cardTitle = getWordOfTheDayTitle(nativeLanguage);
+  const useSuperWater = canUseSuperWater(nativeLanguage);
+  const cardTitleDisplay = useSuperWater
+    ? formatSuperWaterText(nativeLanguage, cardTitle).toLocaleUpperCase("en-US")
+    : cardTitle.toUpperCase();
+
   return (
     <article
       className="relative box-border overflow-hidden"
-      style={{ width: 1080, height: 1080, backgroundColor: "#11100f" }}
+      style={{ width: 1024, height: 768, backgroundColor: "#b45309" }}
       data-social-word-card
     >
       <style>{overrideStyles}</style>
-      <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 20% 30%, ${palette.base}, transparent 45%)` }} aria-hidden="true" />
-      <div className="absolute inset-0 opacity-25" style={{ background: `radial-gradient(circle at 80% 70%, ${palette.accent}, transparent 40%)` }} aria-hidden="true" />
+      <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 30% 30%, #f5ac27, transparent 50%)" }} aria-hidden="true" />
+      <div className="absolute inset-0 opacity-15" style={{ background: "radial-gradient(circle at 70% 70%, #f97316, transparent 45%)" }} aria-hidden="true" />
 
-      <div className="relative z-10 flex h-full flex-col items-center justify-center p-14 text-center">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb355]">
-          FoxiesDeck · {title}
-        </p>
+      <div className="relative z-10 flex h-full flex-col items-center justify-center px-10 py-8 text-center text-white">
+        <h1 className={useSuperWater ? "font-super-water text-7xl font-semibold leading-tight" : "font-display text-6xl font-semibold leading-tight"}>
+          {cardTitleDisplay}
+        </h1>
 
-        <div className="mt-8 flex items-center justify-center gap-14">
-          <div className="social-word-front w-[300px]">
+        <div className="mt-6 flex items-center justify-center gap-10">
+          <div className="social-word-front w-[380px]">
             <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
           </div>
-          <div className="social-word-back w-[300px]">
+          <div className="social-word-back w-[380px]">
             <VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} />
           </div>
         </div>
-
-        <p className="mx-auto mt-10 max-w-3xl text-xl leading-relaxed text-[#cdbfb3]">
-          {example}
-        </p>
-        <p className="mt-10 text-lg font-semibold text-[#ffb355]">
-          {title} · foxiesdeck.com
-        </p>
       </div>
     </article>
   );
