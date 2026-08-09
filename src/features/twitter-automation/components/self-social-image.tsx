@@ -41,6 +41,21 @@ function overrideStyles() {
   `;
 }
 
+function SplashLogo({ className }: { className?: string }) {
+  return <img alt="FoxiesDeck" className={className} loading="eager" src="/splash.png" />;
+}
+
+function SelfImageHeader({ label }: { label: string }) {
+  return (
+    <header className="absolute left-0 right-0 top-10 z-10 flex flex-col items-center">
+      <div className="relative h-10 w-52 overflow-hidden">
+        <SplashLogo className="h-full w-full object-cover object-[50%_48%]" />
+      </div>
+      <p className="mt-3 text-sm font-bold uppercase tracking-[0.25em] text-white/70">{label}</p>
+    </header>
+  );
+}
+
 function QuizOption({ label, text, color }: { label: string; text: string; color: string }) {
   return (
     <div
@@ -65,8 +80,8 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
     return (
       <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
         <style>{overrideStyles()}</style>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb355]">FoxiesDeck · Mini Quiz</p>
-        <h2 className="mx-auto mt-6 max-w-2xl font-display text-6xl font-semibold leading-tight">What does &ldquo;{card.term}&rdquo; mean?</h2>
+        <SelfImageHeader label="Mini Quiz" />
+        <h2 className="mx-auto mt-16 max-w-2xl font-display text-6xl font-semibold leading-tight">What does &ldquo;{card.term}&rdquo; mean?</h2>
         <div className="mx-auto mt-8 w-[280px]">
           <div className="self-image-front">
             <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
@@ -77,7 +92,7 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
             <QuizOption key={index} label={String.fromCharCode(65 + index)} text={text} color={colors[index]} />
           ))}
         </div>
-        <p className="mt-10 text-lg font-semibold text-[#ffb355]">Comment your answer · foxiesdeck.com</p>
+        <p className="mt-10 text-lg font-semibold text-white/80">Comment your answer</p>
       </article>
     );
   }
@@ -87,8 +102,8 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
     return (
       <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
         <style>{overrideStyles()}</style>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb355]">FoxiesDeck · Easy to Confuse</p>
-        <h2 className="mx-auto mt-6 max-w-3xl font-display text-6xl font-semibold leading-tight">Look Similar · Mean Different</h2>
+        <SelfImageHeader label="Easy to Confuse" />
+        <h2 className="mx-auto mt-16 max-w-3xl font-display text-6xl font-semibold leading-tight">Look Similar · Mean Different</h2>
         <div className="mt-12 flex items-center gap-12">
           <div className="w-[280px]">
             <div className="self-image-front">
@@ -96,7 +111,7 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
             </div>
             <p className="mt-4 text-2xl font-semibold" style={{ color: TIER_ACCENT[first.tier] }}>{getPrimaryCardTranslation(first, nativeLanguage)}</p>
           </div>
-          <div className="text-5xl font-bold text-[#ffb355]">VS</div>
+          <div className="text-5xl font-bold text-white/70">VS</div>
           <div className="w-[280px]">
             <div className="self-image-front">
               <VocabularyCardView {...cardViewProps(second, "front", nativeLanguage)} />
@@ -104,7 +119,7 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
             <p className="mt-4 text-2xl font-semibold" style={{ color: TIER_ACCENT[second.tier] }}>{getPrimaryCardTranslation(second, nativeLanguage)}</p>
           </div>
         </div>
-        <p className="mt-14 text-lg font-semibold text-[#cdbfb3]">Can you tell the difference? · foxiesdeck.com</p>
+        <p className="mt-14 text-lg font-semibold text-white/80">Can you tell the difference?</p>
       </article>
     );
   }
@@ -114,8 +129,8 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
     return (
       <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
         <style>{overrideStyles()}</style>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb355]">FoxiesDeck · Daily Challenge</p>
-        <h2 className="mx-auto mt-6 max-w-3xl font-display text-6xl font-semibold leading-tight">Three {languageName} words to learn today</h2>
+        <SelfImageHeader label="Daily Challenge" />
+        <h2 className="mx-auto mt-16 max-w-3xl font-display text-6xl font-semibold leading-tight">Three {languageName} words to learn today</h2>
         <div className="mt-12 flex items-start gap-8">
           {[a, b, c].map((card, index) => (
             <div key={index} className="w-[240px]">
@@ -125,7 +140,7 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
             </div>
           ))}
         </div>
-        <p className="mt-12 text-lg font-semibold text-[#ffb355]">Add them to your FoxiesDeck collection · foxiesdeck.com</p>
+        <p className="mt-12 text-lg font-semibold text-white/80">Add them to your collection</p>
       </article>
     );
   }
@@ -140,8 +155,8 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
     return (
       <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
         <style>{overrideStyles()}</style>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb355]">FoxiesDeck · Beginner to Advanced</p>
-        <h2 className="mx-auto mt-6 max-w-3xl font-display text-6xl font-semibold leading-tight">Level up your {languageName} vocabulary</h2>
+        <SelfImageHeader label="Beginner to Advanced" />
+        <h2 className="mx-auto mt-16 max-w-3xl font-display text-6xl font-semibold leading-tight">Level up your {languageName} vocabulary</h2>
         <div className="mt-12 flex items-start gap-8">
           {[beginner, intermediate, advanced].map((card, index) => (
             <div key={index} className="w-[240px]">
@@ -152,20 +167,20 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
             </div>
           ))}
         </div>
-        <p className="mt-12 text-lg font-semibold text-[#ffb355]">Upgrade one word at a time · foxiesdeck.com</p>
+        <p className="mt-12 text-lg font-semibold text-white/80">Upgrade one word at a time</p>
       </article>
     );
   }
 
   if (mode === "self-example-sentences" && cards.length >= 3) {
     return (
-      <article className="relative flex flex-col items-center justify-start overflow-hidden bg-[#fffaf4] p-12 text-[#1c1917]" style={{ width: 1080, height: 1080 }}>
+      <article className="relative flex flex-col items-center justify-start overflow-hidden bg-[#11100f] p-12 text-white" style={{ width: 1080, height: 1080 }}>
         <style>{overrideStyles()}</style>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#b45309]">FoxiesDeck · Example Sentences</p>
-        <h2 className="mx-auto mt-4 max-w-3xl text-center font-display text-5xl font-semibold leading-tight">Three real {languageName} sentences</h2>
+        <SelfImageHeader label="Example Sentences" />
+        <h2 className="mx-auto mt-16 max-w-3xl text-center font-display text-5xl font-semibold leading-tight">Three real {languageName} sentences</h2>
         <div className="mt-10 w-full max-w-4xl space-y-6">
           {cards.slice(0, 3).map((card, index) => (
-            <div key={index} className="rounded-2xl border-2 p-6 shadow-sm" style={{ borderColor: TIER_ACCENT[card.tier] }}>
+            <div key={index} className="rounded-2xl border-2 bg-[#1b1714] p-6 shadow-sm" style={{ borderColor: TIER_ACCENT[card.tier] }}>
               <div className="flex items-start gap-6">
                 <div className="w-[140px] shrink-0">
                   <div className="self-image-front scale-[0.55] origin-top-left">
@@ -174,13 +189,13 @@ export function SelfSocialImage({ mode, cards, nativeLanguage }: SelfSocialImage
                 </div>
                 <div className="flex-1">
                   <p className="text-2xl font-semibold leading-snug">{card.examples[0]?.sentence ?? card.example}</p>
-                  <p className="mt-2 text-xl text-[#78716c]">{card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation}</p>
+                  <p className="mt-2 text-xl text-white/70">{card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation}</p>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <p className="mt-8 text-lg font-semibold text-[#b45309]">Write your own sentence in the comments · foxiesdeck.com</p>
+        <p className="mt-8 text-lg font-semibold text-white/80">Write your own sentence in the comments</p>
       </article>
     );
   }
