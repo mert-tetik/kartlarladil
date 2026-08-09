@@ -455,7 +455,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           const dataUrl = await toPng(source, {
             cacheBust: true,
             pixelRatio: 3,
-            backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#b45309",
+            backgroundColor: isPoster ? POSTER_TIER_PALETTES[card.tier].base : "#ffffff",
           });
           if (!cancelled) {
             if (isPoster) setPosterImageUrl(dataUrl);

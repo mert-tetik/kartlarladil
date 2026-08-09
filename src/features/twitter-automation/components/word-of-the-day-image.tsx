@@ -98,12 +98,18 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
   return (
     <article
       className="relative box-border overflow-hidden"
-      style={{ width: 1024, height: 768, backgroundColor: "#b45309" }}
+      style={{ width: 1024, height: 768, backgroundColor: "#ffffff" }}
       data-social-word-card
     >
       <style>{overrideStyles}</style>
-      <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 30% 30%, #f5ac27, transparent 50%)" }} aria-hidden="true" />
-      <div className="absolute inset-0 opacity-15" style={{ background: "radial-gradient(circle at 70% 70%, #f97316, transparent 45%)" }} aria-hidden="true" />
+      <div className="absolute inset-0 z-0 bg-black/45" aria-hidden="true" />
+
+      <img
+        alt=""
+        className="pointer-events-none absolute -bottom-16 -right-16 z-0 h-[640px] w-[640px] object-contain opacity-90"
+        loading="eager"
+        src="/mascots/mascot1.webp"
+      />
 
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-10 py-8 text-center text-white">
         <h1 className={useSuperWater ? "font-super-water text-7xl font-semibold leading-tight" : "font-display text-6xl font-semibold leading-tight"}>
@@ -111,10 +117,10 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
         </h1>
 
         <div className="mt-6 flex items-center justify-center gap-10">
-          <div className="social-word-front w-[380px]">
+          <div className="social-word-front scale-[1.15]" style={{ width: 420 }}>
             <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
           </div>
-          <div className="social-word-back w-[380px]">
+          <div className="social-word-back scale-[1.15]" style={{ width: 420 }}>
             <VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} />
           </div>
         </div>
