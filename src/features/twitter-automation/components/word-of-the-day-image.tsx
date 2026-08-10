@@ -5,7 +5,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
-import type { LanguageCode, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 const POSTER_TIER_PALETTES = {
   A1: { base: "#047857", deep: "#043c2d", accent: "#a7f3d0" },
@@ -14,6 +14,14 @@ const POSTER_TIER_PALETTES = {
   B2: { base: "#b45309", deep: "#642d0a", accent: "#fde68a" },
   C1: { base: "#be123c", deep: "#6d0c29", accent: "#fecdd3" },
 } as const;
+
+const TIER_ACCENT_COLORS: Record<Tier, string> = {
+  A1: "#10b981",
+  A2: "#0ea5e9",
+  B1: "#8b5cf6",
+  B2: "#f59e0b",
+  C1: "#f43f5e",
+};
 
 type WordOfTheDayImageMode = "card" | "poster";
 
@@ -46,6 +54,7 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
     : card.term;
   const meaning = getPrimaryCardTranslation(card, nativeLanguage);
   const example = card.examples[0]?.sentence ?? card.example;
+  const titleColor = TIER_ACCENT_COLORS[card.tier];
 
   if (mode === "poster") {
     return (
@@ -98,33 +107,36 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
   return (
     <article
       className="relative box-border overflow-hidden"
-      style={{ width: 1024, height: 768, backgroundColor: "#ffffff" }}
+      style={{ width: 1024, height: 768, backgroundColor: "#f76808" }}
       data-social-word-card
     >
       <style>{overrideStyles}</style>
-      <div className="absolute inset-0 z-0 bg-black/45" aria-hidden="true" />
 
-      <img
-        alt=""
-        className="pointer-events-none absolute -bottom-16 -right-16 z-0 h-[640px] w-[640px] object-contain opacity-90"
-        loading="eager"
-        src="/mascots/mascot1.webp"
-      />
+      <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 h-full w-full" viewBox="0 0 1024 768">
+        <path d="M0 0H310C420 150 342 315 225 468C153 562 146 674 205 768H0Z" fill="#FBE4C2" />
+      </svg>
 
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-10 py-8 text-center text-white">
-        <h1 className={useSuperWater ? "font-super-water text-7xl font-semibold leading-tight" : "font-display text-6xl font-semibold leading-tight"}>
+        <h1 className={useSuperWater ? "font-super-water text-7xl font-semibold leading-tight" : "font-display text-6xl font-semibold leading-tight"} style={{ color: titleColor, WebkitTextStroke: "2px #000000" }}>
           {cardTitleDisplay}
         </h1>
 
-        <div className="mt-6 flex items-center justify-center gap-10">
-          <div className="social-word-front scale-[1.15]" style={{ width: 420 }}>
-            <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} />
+        <div className="mt-5 flex items-center justify-center gap-6">
+          <div className="social-word-front" style={{ width: 390 }}>
+            <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} frontContentScale={1.25} />
           </div>
-          <div className="social-word-back scale-[1.15]" style={{ width: 420 }}>
+          <div className="social-word-back" style={{ width: 390 }}>
             <VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} />
           </div>
         </div>
       </div>
+
+      <img
+        alt=""
+        className="pointer-events-none absolute -bottom-32 -right-32 z-20 h-[560px] w-[560px] object-contain opacity-100"
+        loading="eager"
+        src="/mascots/mascot1.webp"
+      />
     </article>
   );
 }
