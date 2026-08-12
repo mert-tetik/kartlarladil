@@ -74,6 +74,15 @@ describe("automation randomization", () => {
     ]));
   });
 
+  it("labels every concrete generator with its production source", () => {
+    const options = Object.values(AUTOMATION_GENERATOR_OPTIONS).flat().filter((option) => option.value !== RANDOM_GENERATOR);
+
+    expect(options.every((option) => option.source === "AI" || option.source === "SELF" || option.source === "IMG")).toBe(true);
+    expect(AUTOMATION_GENERATOR_OPTIONS.text.find((option) => option.value === "fun-post")?.source).toBe("AI");
+    expect(AUTOMATION_GENERATOR_OPTIONS.image.find((option) => option.value === "self-mini-quiz")?.source).toBe("SELF");
+    expect(AUTOMATION_GENERATOR_OPTIONS.video.find((option) => option.value === "music-ai-mini-quiz")?.source).toBe("IMG");
+  });
+
   it("maps old random selectors to the single Random selector", () => {
     expect(normalizeGeneratorMode("image", "random-no-ai-image")).toBe(RANDOM_GENERATOR);
     expect(resolveGeneratorSelection("image", "random-no-ai-image", undefined, () => 0.9)).toBe("self-example-sentences");
