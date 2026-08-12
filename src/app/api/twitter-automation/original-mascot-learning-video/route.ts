@@ -7,7 +7,7 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
+import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier } from "@/types/domain";
 
@@ -402,9 +402,16 @@ export async function POST(request: Request) {
         fallbackDetail: "The provider returned a response, but it did not contain the required A1, B1, C1 plan fields after repair.",
       }),
     }, { status: 502 });
+    const caption = payload.mode === "tier-progression-video"
+      ? createNativeVisualCaption({ kind: "tierProgression", learningLanguage: language, nativeLanguage, itemCount: 3 })
+      : payload.mode === "vocabulary-quiz-video"
+        ? createNativeVisualCaption({ kind: "miniQuiz", learningLanguage: language, nativeLanguage, itemCount: 3 })
+        : payload.mode === "sentence-check-video"
+          ? createNativeVisualCaption({ kind: "sentenceCheck", learningLanguage: language, nativeLanguage, itemCount: 4 })
+          : createNativeVisualCaption({ kind: "sentenceTranslation", learningLanguage: language, nativeLanguage, itemCount: 5 });
     return Response.json({
       ...payload,
-      caption: finalizeNativeCaption(payload.caption, nativeLanguage),
+      caption,
     });
   } catch (error) {
     if (error instanceof PoyoSpeechError) return Response.json({

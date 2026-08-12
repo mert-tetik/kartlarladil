@@ -4,7 +4,7 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
+import { createNativeVisualCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -193,9 +193,22 @@ export async function POST(request: Request) {
   try {
     const audioDataUrls = await generateSceneSpeechInBatches(sceneDefinitions);
     return Response.json({
-      caption: finalizeNativeCaption(plan.caption, parsed.data.nativeLanguage),
+      caption: createNativeVisualCaption({
+        kind: "falseFriends",
+        learningLanguage: parsed.data.language,
+        nativeLanguage: parsed.data.nativeLanguage,
+        itemCount: PHASE_COUNT,
+      }),
       phases: cards,
-      scenes: sceneDefinitions.map(({ speechSpeed: _speechSpeed, ...scene }, index) => ({ ...scene, audioDataUrl: audioDataUrls[index]! })),
+      scenes: sceneDefinitions.map((scene, index) => ({
+        phaseIndex: scene.phaseIndex,
+        text: scene.text,
+        language: scene.language,
+        mascot: scene.mascot,
+        mirrored: scene.mirrored,
+        playbackRate: scene.playbackRate,
+        audioDataUrl: audioDataUrls[index]!,
+      })),
     });
   } catch (error) {
     if (error instanceof PoyoSpeechError) return Response.json({

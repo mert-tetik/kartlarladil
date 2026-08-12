@@ -32,7 +32,7 @@ describe("createNonAiSocialImage", () => {
     expect(image.caption.split("\n")).toHaveLength(5);
     expect(image.caption).toContain("Günün Kelimesi");
     expect(image.caption).toContain(" — ");
-    expect(image.caption).toContain("#dilöğrenme #kelimeöğrenme #gününkelimesi");
+    expect(image.caption).toContain("#dilöğrenme #kelimeöğrenme #yabancıdil #dilpratiği #kelimehazinesi");
     writeDebugImage("non-ai-wotd.png", image.dataUrl);
   });
 

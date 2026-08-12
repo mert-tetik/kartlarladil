@@ -6,7 +6,7 @@ import { hasSocialStudioSession } from "@/features/twitter-automation/social-stu
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
+import { createNativeVisualCaption, finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -213,6 +213,21 @@ function createImagePrompt(mode: ImageMode, imagePlan: AiImagePlan) {
   ].join("\n");
 }
 
+function createImageCaption(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, fallbackCaption: string) {
+  if (mode === "ai-word-of-the-day") return finalizeNativeCaption(fallbackCaption, nativeLanguage);
+
+  const details = mode === "ai-mini-quiz"
+    ? { kind: "miniQuiz" as const, itemCount: 1 }
+    : mode === "ai-false-friends"
+      ? { kind: "falseFriends" as const, itemCount: 2 }
+      : mode === "ai-daily-challenge"
+        ? { kind: "dailyChallenge" as const, itemCount: 3 }
+        : mode === "ai-vocabulary-progression"
+          ? { kind: "vocabularyProgression" as const, itemCount: 3 }
+          : { kind: "exampleSentences" as const, itemCount: 3 };
+  return createNativeVisualCaption({ kind: details.kind, learningLanguage: language, nativeLanguage, itemCount: details.itemCount });
+}
+
 export async function POST(request: Request) {
   if (!hasSocialStudioSession(request.headers.get("cookie"))) {
     return Response.json({ errorCode: "unauthorized" }, { status: 401 });
@@ -264,7 +279,7 @@ export async function POST(request: Request) {
     return Response.json({
       imageUrl: image.dataUrl,
       artDirection: imagePlan.artDirection,
-      caption: finalizeNativeCaption(imagePlan.caption, parsed.data.nativeLanguage),
+      caption: createImageCaption(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, imagePlan.caption),
     });
   } catch (error) {
     if (error instanceof PoyoImageError) {

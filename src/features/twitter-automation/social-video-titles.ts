@@ -1,7 +1,9 @@
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 export type SocialCaptionKind = "miniQuiz" | "falseFriends" | "dailyChallenge" | "vocabularyProgression" | "exampleSentences" | "vocabularyCarousel" | "tierProgression";
+export type SocialVisualCaptionKind = SocialCaptionKind | "marketingDialogue" | "everydayDialogue" | "sentenceCheck" | "sentenceTranslation";
 
 /**
  * Localized "Word of the Day" titles for social posters and thumbnails.
@@ -26,20 +28,54 @@ export const WORD_OF_THE_DAY_TITLE: Record<LanguageCode, string> = {
 };
 
 const NATIVE_CAPTION_HASHTAGS: Record<LanguageCode, readonly string[]> = {
-  tr: ["#dilöğrenme", "#kelimeöğrenme", "#gününkelimesi"],
-  en: ["#languagelearning", "#vocabulary", "#wordoftheday"],
-  de: ["#sprachenlernen", "#wortschatz", "#wortdestages"],
-  ru: ["#изучениеязыков", "#словарныйзапас", "#словодня"],
-  fr: ["#apprentissagedeslangues", "#vocabulaire", "#motdujour"],
-  es: ["#aprendizajedeidiomas", "#vocabulario", "#palabradeldía"],
-  it: ["#apprendimentolingue", "#vocabolario", "#paroladelgiorno"],
-  pt: ["#aprendizadodeidiomas", "#vocabulário", "#palavradodia"],
-  nl: ["#talenleren", "#woordenschat", "#woordvandedag"],
-  pl: ["#naukajezykow", "#slownictwo", "#slowodnia"],
-  ar: ["#تعلماللغات", "#مفردات", "#كلمةاليوم"],
-  ja: ["#語学学習", "#単語", "#今日の単語"],
-  ko: ["#언어학습", "#어휘", "#오늘의단어"],
-  "zh-CN": ["#语言学习", "#词汇", "#每日一词"],
+  tr: ["#dilöğrenme", "#kelimeöğrenme", "#yabancıdil", "#dilpratiği", "#kelimehazinesi"],
+  en: ["#languagelearning", "#vocabulary", "#languagepractice", "#learnalanguage", "#wordpower"],
+  de: ["#sprachenlernen", "#wortschatz", "#fremdsprachen", "#sprachpraxis", "#wortlernen"],
+  ru: ["#изучениеязыков", "#словарныйзапас", "#иностранныеязыки", "#языковаяпрактика", "#учимслова"],
+  fr: ["#apprentissagedeslangues", "#vocabulaire", "#languesétrangères", "#pratiquedeslangues", "#apprendrelesmots"],
+  es: ["#aprendizajedeidiomas", "#vocabulario", "#idiomas", "#prácticadeidiomas", "#aprendepalabras"],
+  it: ["#apprendimentolingue", "#vocabolario", "#linguestraniere", "#praticadellingua", "#imparoleparole"],
+  pt: ["#aprendizadodeidiomas", "#vocabulário", "#línguasestrangeiras", "#práticadeidiomas", "#aprendapalavras"],
+  nl: ["#talenleren", "#woordenschat", "#vreemdetalen", "#taalvaardigheid", "#woordleren"],
+  pl: ["#naukajezykow", "#slownictwo", "#jezykiobce", "#praktykajezykowa", "#naukaslow"],
+  ar: ["#تعلماللغات", "#مفردات", "#لغاتأجنبية", "#ممارسةاللغة", "#تعلمالكلمات"],
+  ja: ["#語学学習", "#単語", "#外国語", "#語学練習", "#単語学習"],
+  ko: ["#언어학습", "#어휘", "#외국어", "#언어연습", "#단어공부"],
+  "zh-CN": ["#语言学习", "#词汇", "#外语学习", "#语言练习", "#背单词"],
+};
+
+const NATIVE_VIDEO_CAPTION_HEADINGS: Record<LanguageCode, Record<"marketingDialogue" | "everydayDialogue" | "sentenceCheck" | "sentenceTranslation", string>> = {
+  tr: { marketingDialogue: "FoxiesDeck Diyaloğu", everydayDialogue: "Günlük Diyalog", sentenceCheck: "Cümle Kontrolü", sentenceTranslation: "Rastgele Cümleler" },
+  en: { marketingDialogue: "FoxiesDeck Dialogue", everydayDialogue: "Everyday Dialogue", sentenceCheck: "Sentence Check", sentenceTranslation: "Random Sentences" },
+  de: { marketingDialogue: "FoxiesDeck-Dialog", everydayDialogue: "Alltagsdialog", sentenceCheck: "Satzcheck", sentenceTranslation: "Zufällige Sätze" },
+  ru: { marketingDialogue: "Диалог FoxiesDeck", everydayDialogue: "Повседневный диалог", sentenceCheck: "Проверка предложений", sentenceTranslation: "Случайные предложения" },
+  fr: { marketingDialogue: "Dialogue FoxiesDeck", everydayDialogue: "Dialogue du quotidien", sentenceCheck: "Vérification de phrases", sentenceTranslation: "Phrases aléatoires" },
+  es: { marketingDialogue: "Diálogo de FoxiesDeck", everydayDialogue: "Diálogo cotidiano", sentenceCheck: "Comprobación de frases", sentenceTranslation: "Frases aleatorias" },
+  it: { marketingDialogue: "Dialogo FoxiesDeck", everydayDialogue: "Dialogo quotidiano", sentenceCheck: "Controllo delle frasi", sentenceTranslation: "Frasi casuali" },
+  pt: { marketingDialogue: "Diálogo FoxiesDeck", everydayDialogue: "Diálogo do dia a dia", sentenceCheck: "Verificação de frases", sentenceTranslation: "Frases aleatórias" },
+  nl: { marketingDialogue: "FoxiesDeck-dialoog", everydayDialogue: "Alledaagse dialoog", sentenceCheck: "Zinnen controleren", sentenceTranslation: "Willekeurige zinnen" },
+  pl: { marketingDialogue: "Dialog FoxiesDeck", everydayDialogue: "Codzienny dialog", sentenceCheck: "Sprawdzanie zdań", sentenceTranslation: "Losowe zdania" },
+  ar: { marketingDialogue: "حوار FoxiesDeck", everydayDialogue: "حوار يومي", sentenceCheck: "فحص الجمل", sentenceTranslation: "جمل عشوائية" },
+  ja: { marketingDialogue: "FoxiesDeckの会話", everydayDialogue: "日常会話", sentenceCheck: "文のチェック", sentenceTranslation: "ランダムな例文" },
+  ko: { marketingDialogue: "FoxiesDeck 대화", everydayDialogue: "일상 대화", sentenceCheck: "문장 확인", sentenceTranslation: "무작위 문장" },
+  "zh-CN": { marketingDialogue: "FoxiesDeck 对话", everydayDialogue: "日常对话", sentenceCheck: "句子检查", sentenceTranslation: "随机句子" },
+};
+
+const NATIVE_VISUAL_CAPTION_SUMMARIES: Record<LanguageCode, (learningLanguageName: string, itemCount?: number) => string> = {
+  tr: (language, count) => count ? `${language} pratiği için ${count} kısa bölüm bu görselde seni bekliyor.` : `${language} pratiğine bu görselle devam et.`,
+  en: (language, count) => count ? `This visual gives you ${count} short ways to practise ${language}.` : `Keep practising ${language} with this visual.`,
+  de: (language, count) => count ? `Dieser Beitrag bietet dir ${count} kurze Übungen für ${language}.` : `Übe ${language} mit diesem Beitrag weiter.`,
+  ru: (language, count) => count ? `В этом материале — ${count} коротких заданий для практики ${language}.` : `Продолжай практиковать ${language} с этим материалом.`,
+  fr: (language, count) => count ? `Ce visuel propose ${count} courtes activités pour pratiquer le ${language}.` : `Continue à pratiquer le ${language} avec ce visuel.`,
+  es: (language, count) => count ? `Este visual propone ${count} momentos breves para practicar ${language}.` : `Sigue practicando ${language} con este visual.`,
+  it: (language, count) => count ? `Questo contenuto propone ${count} brevi momenti per esercitarti in ${language}.` : `Continua a esercitarti in ${language} con questo contenuto.`,
+  pt: (language, count) => count ? `Este visual traz ${count} momentos curtos para praticar ${language}.` : `Continue praticando ${language} com este visual.`,
+  nl: (language, count) => count ? `Deze visual biedt ${count} korte oefenmomenten voor ${language}.` : `Blijf ${language} oefenen met deze visual.`,
+  pl: (language, count) => count ? `Ten materiał zawiera ${count} krótkie ćwiczenia z języka ${language}.` : `Ćwicz dalej język ${language} z tym materiałem.`,
+  ar: (language, count) => count ? `يحتوي هذا المحتوى على ${count} فقرات قصيرة للتدرب على ${language}.` : `تابع التدريب على ${language} مع هذا المحتوى.`,
+  ja: (language, count) => count ? `このビジュアルには、${language}を練習するための短いパートが${count}つあります。` : `このビジュアルで${language}の練習を続けましょう。`,
+  ko: (language, count) => count ? `이 콘텐츠에는 ${language} 연습을 위한 짧은 파트가 ${count}개 있어요.` : `이 콘텐츠로 ${language} 연습을 이어 가세요.`,
+  "zh-CN": (language, count) => count ? `这张图片包含 ${count} 个简短的${language}练习内容。` : `用这张图片继续练习${language}吧。`,
 };
 
 const NATIVE_CAPTION_HEADINGS: Record<LanguageCode, Record<SocialCaptionKind, string>> = {
@@ -90,6 +126,25 @@ export function getNativeCaptionHeading(language: LanguageCode, kind: SocialCapt
   }
 
   return NATIVE_CAPTION_HEADINGS[language][kind];
+}
+
+export function createNativeVisualCaption({
+  kind,
+  learningLanguage,
+  nativeLanguage,
+  itemCount,
+}: {
+  kind: SocialVisualCaptionKind;
+  learningLanguage: LanguageCode;
+  nativeLanguage: LanguageCode;
+  itemCount?: number;
+}) {
+  const heading = kind === "marketingDialogue" || kind === "everydayDialogue" || kind === "sentenceCheck" || kind === "sentenceTranslation"
+    ? NATIVE_VIDEO_CAPTION_HEADINGS[nativeLanguage][kind]
+    : getNativeCaptionHeading(nativeLanguage, kind);
+  const learningLanguageName = getLanguageDisplayName(learningLanguage, nativeLanguage);
+  const summary = NATIVE_VISUAL_CAPTION_SUMMARIES[nativeLanguage](learningLanguageName, itemCount);
+  return finalizeNativeCaption([heading, summary].join("\n\n"), nativeLanguage);
 }
 
 export function finalizeNativeCaption(caption: string, nativeLanguage: LanguageCode) {

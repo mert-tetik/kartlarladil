@@ -39,13 +39,11 @@ import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayloa
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import {
+  createNativeVisualCaption,
   createWordOfTheDayCaption,
-  finalizeNativeCaption,
-  getNativeCaptionHeading,
   getWordOfTheDayTitle,
 } from "@/features/twitter-automation/social-video-titles";
 import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
-import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -633,63 +631,27 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     }
   }
 
-  function captionForSelfImage(mode: SelfImageGeneratorMode, cards: VocabularyCard[]) {
-    const createCaption = (kind: Parameters<typeof getNativeCaptionHeading>[1], content: string) =>
-      finalizeNativeCaption([getNativeCaptionHeading(nativeLanguage, kind), content].filter(Boolean).join("\n\n"), nativeLanguage);
-
+  function captionForSelfImage(mode: SelfImageGeneratorMode) {
     switch (mode) {
-      case "self-mini-quiz": {
-        const card = cards[0];
-        const correct = getPrimaryCardTranslation(card, nativeLanguage);
-        const options = [correct, ...cards.slice(1, 4).map((c) => getPrimaryCardTranslation(c, nativeLanguage))].sort(() => Math.random() - 0.5);
-        const labels = ["A", "B", "C", "D"];
-        const body = options.map((text, index) => `${labels[index]}) ${text}`).join("\n");
-        return createCaption("miniQuiz", [card.term, body].join("\n\n"));
-      }
-      case "self-false-friends": {
-        const [first, second] = cards;
-        return createCaption("falseFriends", [first.term, second.term].join(" · "));
-      }
-      case "self-daily-challenge": {
-        const terms = cards.map((c) => c.term).join(", ");
-        return createCaption("dailyChallenge", terms);
-      }
-      case "self-example-sentences": {
-        const examples = cards.map((card) => {
-          const sentence = card.examples[0]?.sentence ?? card.example;
-          const translation = card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation;
-          return [sentence, translation].filter(Boolean).join("\n");
-        }).join("\n\n");
-        return createCaption("exampleSentences", examples);
-      }
+      case "self-mini-quiz": return createNativeVisualCaption({ kind: "miniQuiz", learningLanguage: language, nativeLanguage, itemCount: 1 });
+      case "self-false-friends": return createNativeVisualCaption({ kind: "falseFriends", learningLanguage: language, nativeLanguage, itemCount: 2 });
+      case "self-daily-challenge": return createNativeVisualCaption({ kind: "dailyChallenge", learningLanguage: language, nativeLanguage, itemCount: 3 });
+      case "self-vocabulary-progression": return createNativeVisualCaption({ kind: "vocabularyProgression", learningLanguage: language, nativeLanguage, itemCount: 3 });
+      case "self-example-sentences": return createNativeVisualCaption({ kind: "exampleSentences", learningLanguage: language, nativeLanguage, itemCount: 3 });
       default: return "";
     }
   }
 
-  function captionForSelfFalseFriends(pair: SelfFalseFriendsContent) {
-    return finalizeNativeCaption([
-      getNativeCaptionHeading(nativeLanguage, "falseFriends"),
-      `${pair.firstTerm} / ${pair.secondTerm}`,
-      pair.firstExplanation,
-      pair.secondExplanation,
-    ].join("\n\n"), nativeLanguage);
+  function captionForSelfFalseFriends() {
+    return createNativeVisualCaption({ kind: "falseFriends", learningLanguage: language, nativeLanguage, itemCount: 2 });
   }
 
-  function captionForSelfVocabularyProgression(progression: SelfVocabularyProgressionContent) {
-    return finalizeNativeCaption([
-      getNativeCaptionHeading(nativeLanguage, "vocabularyProgression"),
-      `${progression.beginnerTerm} → ${progression.intermediateTerm} → ${progression.advancedTerm}`,
-      progression.beginnerExplanation,
-      progression.intermediateExplanation,
-      progression.advancedExplanation,
-    ].join("\n\n"), nativeLanguage);
+  function captionForSelfVocabularyProgression() {
+    return createNativeVisualCaption({ kind: "vocabularyProgression", learningLanguage: language, nativeLanguage, itemCount: 3 });
   }
 
-  function captionForSelfExampleSentences(examples: SelfExampleSentencesContent) {
-    return finalizeNativeCaption([
-      getNativeCaptionHeading(nativeLanguage, "exampleSentences"),
-      ...examples.sentences.map((example) => `${example.sentence}\n${example.translation}`),
-    ].join("\n\n"), nativeLanguage);
+  function captionForSelfExampleSentences() {
+    return createNativeVisualCaption({ kind: "exampleSentences", learningLanguage: language, nativeLanguage, itemCount: 3 });
   }
 
   async function requestSelfFalseFriends(): Promise<SelfFalseFriendsContent | null> {
@@ -775,7 +737,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfFalseFriendsTerm(candidate) === normalizeSelfFalseFriendsTerm(term)) === index)
           .slice(0, 24);
         setSelfFalseFriends(pair);
-        setSelfImageCaption(captionForSelfFalseFriends(pair));
+        setSelfImageCaption(captionForSelfFalseFriends());
         return;
       }
 
@@ -788,7 +750,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfVocabularyProgressionTerm(candidate) === normalizeSelfVocabularyProgressionTerm(term)) === index)
           .slice(0, 36);
         setSelfVocabularyProgression(progression);
-        setSelfImageCaption(captionForSelfVocabularyProgression(progression));
+        setSelfImageCaption(captionForSelfVocabularyProgression());
         return;
       }
 
@@ -801,7 +763,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           .filter((sentence, index, sentences) => sentences.findIndex((candidate) => normalizeSelfExampleSentence(candidate) === normalizeSelfExampleSentence(sentence)) === index)
           .slice(0, 24);
         setSelfExampleSentences(examples);
-        setSelfImageCaption(captionForSelfExampleSentences(examples));
+        setSelfImageCaption(captionForSelfExampleSentences());
         return;
       }
 
@@ -829,7 +791,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       }
 
       setSelfCards(cards);
-      setSelfImageCaption(captionForSelfImage(mode, cards));
+      setSelfImageCaption(captionForSelfImage(mode));
     } catch {
       setSelfImageError("The self image could not be prepared. Try again.");
     } finally {
@@ -894,10 +856,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
       setCarouselCards(cards);
-      setCarouselCaption(finalizeNativeCaption([
-        getNativeCaptionHeading(nativeLanguage, "vocabularyCarousel"),
-        cards.map((card) => `${card.term} — ${getPrimaryCardTranslation(card, nativeLanguage)}`).join("\n"),
-      ].join("\n\n"), nativeLanguage));
+      setCarouselCaption(createNativeVisualCaption({
+        kind: "vocabularyCarousel",
+        learningLanguage: language,
+        nativeLanguage,
+        itemCount: cards.length,
+      }));
     } catch {
       setCarouselError("The vocabulary carousel could not be created. Try again.");
     } finally {
@@ -936,10 +900,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return;
       }
       setCarouselCards(cards);
-      setCarouselCaption(finalizeNativeCaption([
-        getNativeCaptionHeading(nativeLanguage, "tierProgression"),
-        cards.map((card) => `${card.tier}: ${card.term} — ${getPrimaryCardTranslation(card, nativeLanguage)}`).join("\n"),
-      ].join("\n\n"), nativeLanguage));
+      setCarouselCaption(createNativeVisualCaption({
+        kind: "tierProgression",
+        learningLanguage: language,
+        nativeLanguage,
+        itemCount: cards.length,
+      }));
     } catch {
       setCarouselError("The A1 to C1 carousel could not be created. Try again.");
     } finally {
