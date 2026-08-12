@@ -7,9 +7,13 @@ import { Button } from "@/components/ui/button";
 import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
+import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
+import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
 import { cn } from "@/lib/utils";
+import type { LanguageCode } from "@/types/domain";
 
 type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
 
@@ -26,6 +30,7 @@ type AutomationOutput = {
   status: AutomationOutputStatus;
   caption: string | null;
   mediaUrl: string | null;
+  mediaUrls?: string[];
   media_type: "image" | "video" | null;
   error_code: string | null;
 };
@@ -41,8 +46,21 @@ const GENERATOR_LABELS: Record<string, string> = {
   "ai-example-sentences": "AI Example Sentences görseli",
   "word-of-the-day": "Word of the Day görseli",
   "word-of-the-day-poster": "Word of the Day posteri",
+  "vocabulary-carousel": "Vocabulary Carousel",
+  "tier-progression-carousel": "A1 to C1 Carousel",
+  "self-mini-quiz": "Mini Quiz (Self) görseli",
+  "self-false-friends": "False Friends (Self) görseli",
+  "self-daily-challenge": "Daily Challenge (Self) görseli",
+  "self-vocabulary-progression": "Beginner to Advanced (Self) görseli",
+  "self-example-sentences": "Example Sentences (Self) görseli",
   "ai-word-of-the-day-video": "Word of the Day videosu",
   "confused-words-video": "Confused Words videosu",
+  "marketing-dialogue-video": "FoxiesDeck diyalog videosu",
+  "learning-dialogue-video": "Öğrenme diyalog videosu",
+  "tier-progression-video": "A1 to C1 öğrenme videosu",
+  "vocabulary-quiz-video": "Kelime quiz videosu",
+  "sentence-check-video": "Cümle kontrol videosu",
+  "sentence-translation-video": "Cümle çeviri videosu",
 };
 
 function formatScheduledAt(value: string) {
@@ -58,6 +76,14 @@ function getOutputLabel(output: AutomationOutput) {
 
 function isConfusedWordsVideo(output: AutomationOutput) {
   return output.generator === "confused-words-video";
+}
+
+function isDialogueVideo(output: AutomationOutput) {
+  return output.generator === "marketing-dialogue-video" || output.generator === "learning-dialogue-video";
+}
+
+function isOriginalMascotLearningVideo(output: AutomationOutput): output is AutomationOutput & { generator: OriginalMascotLearningVideoMode } {
+  return output.generator === "tier-progression-video" || output.generator === "vocabulary-quiz-video" || output.generator === "sentence-check-video" || output.generator === "sentence-translation-video";
 }
 
 function isGenerationComplete(output: AutomationOutput) {
@@ -145,7 +171,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
   const renderBrowserVideo = useCallback(async (output: AutomationOutput) => {
     const isConfusedWords = isConfusedWordsVideo(output);
-    if ((!output.mediaUrl && !isConfusedWords) || processingOutputId || output.tier === "random") return;
+    const isDialogue = isDialogueVideo(output);
+    const isOriginalLearning = isOriginalMascotLearningVideo(output);
+    if ((!output.mediaUrl && !isConfusedWords && !isDialogue && !isOriginalLearning) || processingOutputId || output.tier === "random") return;
     setProcessingOutputId(output.id);
     setProcessingStartedAt(Date.now());
     setMessage("");
@@ -179,6 +207,45 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
           scenes: plan.scenes,
         });
         caption = plan.caption;
+      } else if (isDialogue) {
+        const planResponse = await fetch("/api/twitter-automation/dialogue-video", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mode: output.generator, language: output.language, nativeLanguage: output.native_language }),
+        });
+        const plan = await planResponse.json().catch(() => null) as {
+          caption?: string;
+          backgroundVideoUrl?: string;
+          backgroundVideoPath?: string;
+          firstCharacter?: string;
+          secondCharacter?: string;
+          scenes?: DialogueVideoScene[];
+          errorCode?: string;
+        } | null;
+        if (!planResponse.ok || !plan?.caption || !plan.backgroundVideoUrl || !plan.firstCharacter || !plan.secondCharacter || !Array.isArray(plan.scenes) || !plan.scenes.length) {
+          throw new Error(plan?.errorCode ?? "dialogue_video_prepare_failed");
+        }
+        blob = await renderDialogueVideo({
+          audioContext,
+          backgroundVideoUrl: plan.backgroundVideoUrl,
+          backgroundVideoPath: plan.backgroundVideoPath,
+          firstCharacter: plan.firstCharacter,
+          secondCharacter: plan.secondCharacter,
+          scenes: plan.scenes,
+        });
+        caption = plan.caption;
+      } else if (isOriginalLearning) {
+        const planResponse = await fetch("/api/twitter-automation/original-mascot-learning-video", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mode: output.generator, language: output.language, nativeLanguage: output.native_language }),
+        });
+        const plan = await planResponse.json().catch(() => null) as (OriginalMascotLearningVideoPayload & { errorCode?: string }) | null;
+        if (!planResponse.ok || !plan?.caption || !Array.isArray(plan.scenes) || !plan.scenes.length || plan.mode !== output.generator) {
+          throw new Error(plan?.errorCode ?? "original_mascot_learning_video_prepare_failed");
+        }
+        blob = await renderOriginalMascotLearningVideo({ audioContext, scenes: plan.scenes, language: output.language as LanguageCode, nativeLanguage: output.native_language as LanguageCode });
+        caption = plan.caption;
       } else {
         const tracks = ["/social-audio/music1.mp3", "/social-audio/music2.mp3", "/social-audio/music3.mp3", "/social-audio/music4.mp3", "/social-audio/music5.mp3", "/social-audio/music6.mp3", "/social-audio/music7.mp3"];
         const musicUrl = tracks[Math.floor(Math.random() * tracks.length)]!;
@@ -194,7 +261,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
     } catch {
-      setMessage(isConfusedWords ? "Açıklama videosuna ses eklenemedi. Chrome’da tekrar dene." : "Müzikli videoya ses eklenemedi. Chrome’da tekrar dene.");
+      setMessage(isConfusedWords || isDialogue || isOriginalLearning ? "Sesli video renderlanamadı. Chrome’da tekrar dene." : "Müzikli videoya ses eklenemedi. Chrome’da tekrar dene.");
     } finally {
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       await load();
@@ -267,10 +334,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
         <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Video sesi için devam et" : "İçerikler sırayla üretiliyor"}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Tarayıcının sesli video kaydına izin vermesi için bu adımı sen başlatmalısın.` : progressStatus}</p>
-        <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-black tracking-[0.25em] text-white">TEST</span> : null}</div>
+        <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
         <p className="mt-2 text-xs text-[#a9b8ae]">{browserVideoOutputs.length ? "Tahmini kalan süre: devam etme onayından sonra hesaplanacak" : `Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
-        {browserVideoOutputs.length ? <Button className="mt-7 h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(processingOutputId)} onClick={() => void renderBrowserVideo(browserVideoOutputs[0]!)} type="button">{processingOutputId ? <LoaderCircle className="size-4 animate-spin" /> : <Video className="size-4" />}{isConfusedWordsVideo(browserVideoOutputs[0]!) ? "Devam et ve açıklama videosunu renderla" : "Devam et ve videoya ses ekle"}</Button> : null}
+        {browserVideoOutputs.length ? <Button className="mt-7 h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(processingOutputId)} onClick={() => void renderBrowserVideo(browserVideoOutputs[0]!)} type="button">{processingOutputId ? <LoaderCircle className="size-4 animate-spin" /> : <Video className="size-4" />}{isConfusedWordsVideo(browserVideoOutputs[0]!) ? "Devam et ve açıklama videosunu renderla" : isDialogueVideo(browserVideoOutputs[0]!) || isOriginalMascotLearningVideo(browserVideoOutputs[0]!) ? "Devam et ve sesli videoyu renderla" : "Devam et ve videoya ses ekle"}</Button> : null}
         {message ? <p className="mt-5 text-sm text-[#ffb9c1]">{message}</p> : null}
       </div>
     </main> : <main className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -281,7 +348,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         return <article className={cn("overflow-hidden rounded border p-3", ready ? "border-[#2b634a] bg-[#11251c]" : scheduled ? "border-[#29435d] bg-[#101d28]" : "border-[#61352e] bg-[#2c1917]")} key={output.id}>
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-[#a9b8ae]">{getOutputLabel(output)}</p></div>{ready || scheduled ? <Check aria-label="İçerik hazır" className="mt-0.5 size-5 shrink-0 text-[#a9ecc8]" /> : <CircleAlert aria-label="İçerik üretilemedi" className="mt-0.5 size-5 shrink-0 text-[#ffb9c1]" />}</div>
           <div className="mt-3 flex items-center gap-2 text-xs text-[#d7e2da]"><CalendarClock className="size-3.5 shrink-0 text-[#c7f05d]" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
-          {output.mediaUrl ? <div className="relative mt-3 overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="mt-3 flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="mt-3 grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
+          {output.mediaUrls?.length ? <div className="mt-3 grid grid-cols-3 gap-1 overflow-hidden rounded border border-white/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-sm" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="relative mt-3 overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="mt-3 flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="mt-3 grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
           {output.error_code ? <p className="mt-3 break-words text-[11px] text-[#ffb9c1]">{output.error_code}</p> : null}
         </article>;
       })}</div>

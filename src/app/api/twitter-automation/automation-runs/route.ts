@@ -109,6 +109,11 @@ async function toMediaUrl(path: string | null) {
   return error || !data?.signedUrl ? null : data.signedUrl;
 }
 
+function mediaPaths(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((path): path is string => typeof path === "string" && path.startsWith("automation/")))];
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
@@ -118,14 +123,22 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs,error_code,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at)")
+      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at)")
       .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
       .limit(300);
     if (runId) query = query.eq("run_id", runId);
     const { data, error } = await query;
     if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
-    const outputs = await Promise.all((data ?? []).map(async (output) => ({ ...output, mediaUrl: await toMediaUrl(typeof output.media_path === "string" ? output.media_path : null) })));
+    const outputs = await Promise.all((data ?? []).map(async (output) => {
+      const paths = mediaPaths(output.media_paths);
+      const mediaUrls = await Promise.all(paths.map((path) => toMediaUrl(path)));
+      return {
+        ...output,
+        mediaUrl: await toMediaUrl(typeof output.media_path === "string" ? output.media_path : null),
+        mediaUrls: mediaUrls.filter((url): url is string => Boolean(url)),
+      };
+    }));
     return NextResponse.json({ outputs });
   } catch {
     return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });

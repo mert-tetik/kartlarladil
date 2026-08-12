@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs")
+      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
       .in("status", parsed.data.stagedMediaPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .order("scheduled_at", { ascending: true })
       .limit(1);
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
 
     const update = parsed.data.stagedMediaPath
-      ? { status: "ready_to_schedule", media_path: parsed.data.stagedMediaPath, media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
+      ? { status: "ready_to_schedule", media_path: parsed.data.stagedMediaPath, media_paths: [], media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
       : { status: "processing", updated_at: new Date().toISOString() };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")

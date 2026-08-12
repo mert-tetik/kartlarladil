@@ -78,6 +78,13 @@ const AI_IMAGE_GENERATORS = new Set([
 const NON_AI_IMAGE_GENERATORS = new Set([
   "word-of-the-day",
   "word-of-the-day-poster",
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
 ]);
 
 const TEXT_GENERATORS = new Set([
@@ -103,9 +110,14 @@ const MUSIC_AI_IMAGE_GENERATORS = new Set([
 const MUSIC_NON_AI_IMAGE_GENERATORS = new Set([
   "music-word-of-the-day",
   "music-word-of-the-day-poster",
+  "music-self-mini-quiz",
+  "music-self-false-friends",
+  "music-self-daily-challenge",
+  "music-self-vocabulary-progression",
+  "music-self-example-sentences",
 ]);
 
-const CONFUSED_WORDS_VIDEO_GENERATOR = "confused-words-video";
+const BROWSER_VIDEO_GENERATORS = new Set(["confused-words-video", "marketing-dialogue-video", "learning-dialogue-video", "tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"]);
 // Terra writes three pair/explanation phases; their 24 short TTS fragments
 // average roughly 480 characters in total. Canvas rendering itself has no AI charge.
 const CONFUSED_WORDS_VIDEO_POYO_USD = VIDEO_PLAN_POYO_USD * 2 + (480 / 1_000) * 0.04;
@@ -145,7 +157,7 @@ function estimateGenerator(generator: string): CostBreakdown {
   if (generator === "ai-word-of-the-day-video") {
     return { poyoUsd: AVATAR_VIDEO_POYO_USD };
   }
-  if (generator === CONFUSED_WORDS_VIDEO_GENERATOR) return { poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD };
+  if (BROWSER_VIDEO_GENERATORS.has(generator)) return { poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD };
 
   if (generator === "random-text") return { poyoUsd: TEXT_POST_POYO_USD };
   if (generator === "random-ai-image") return { poyoUsd: AI_IMAGE_POYO_USD };
@@ -165,14 +177,14 @@ function estimateGenerator(generator: string): CostBreakdown {
   if (generator === "random-ai-video") {
     return averageCosts([
       { poyoUsd: AVATAR_VIDEO_POYO_USD },
-      { poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD },
+      ...Array.from(BROWSER_VIDEO_GENERATORS, () => ({ poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD })),
       ...Array.from(MUSIC_AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
     ]);
   }
   if (generator === "random-video") {
     return averageCosts([
       { poyoUsd: AVATAR_VIDEO_POYO_USD },
-      { poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD },
+      ...Array.from(BROWSER_VIDEO_GENERATORS, () => ({ poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD })),
       ...Array.from(MUSIC_AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
       ...Array.from(MUSIC_NON_AI_IMAGE_GENERATORS, () => ({ poyoUsd: 0 })),
     ]);

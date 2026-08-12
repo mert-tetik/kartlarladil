@@ -4,7 +4,13 @@ import { SOCIAL_STUDIO_SESSION_COOKIE, createSocialStudioSession } from "@/featu
 import { publishWithUploadPost, type DataUrlAsset, type RemoteVideoAsset } from "@/features/twitter-automation/upload-post-publishing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createNonAiSocialImage } from "@/features/twitter-automation/non-ai-social-image";
-import type { LanguageCode, Tier } from "@/types/domain";
+import { renderAutomationCarousel, renderAutomationSelfImage, type AutomationCarouselGenerator } from "@/features/twitter-automation/automation-non-ai-visuals";
+import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
+import { isSelfExampleSentencesContent } from "@/features/twitter-automation/self-example-sentences";
+import { isSelfFalseFriendsContent } from "@/features/twitter-automation/self-false-friends";
+import { isSelfVocabularyProgressionContent } from "@/features/twitter-automation/self-vocabulary-progression";
+import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
+import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -14,8 +20,10 @@ const MAX_STAGED_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression", "ai-example-sentences"] as const;
 const NON_AI_IMAGE_GENERATORS = ["word-of-the-day", "word-of-the-day-poster"] as const;
+const SELF_IMAGE_GENERATORS = ["self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences"] as const;
+const CAROUSEL_GENERATORS = ["vocabulary-carousel", "tier-progression-carousel"] as const;
 const TEXT_GENERATORS = ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"] as const;
-const VIDEO_GENERATORS = ["ai-word-of-the-day-video", "confused-words-video"] as const;
+const VIDEO_GENERATORS = ["ai-word-of-the-day-video", "confused-words-video", "marketing-dialogue-video", "learning-dialogue-video", "tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"] as const;
 const MUSIC_VIDEO_GENERATORS = [
   "music-word-of-the-day",
   "music-word-of-the-day-poster",
@@ -25,6 +33,11 @@ const MUSIC_VIDEO_GENERATORS = [
   "music-ai-daily-challenge",
   "music-ai-vocabulary-progression",
   "music-ai-example-sentences",
+  "music-self-mini-quiz",
+  "music-self-false-friends",
+  "music-self-daily-challenge",
+  "music-self-vocabulary-progression",
+  "music-self-example-sentences",
 ] as const;
 const IMAGE_TO_VIDEO_GENERATORS = MUSIC_VIDEO_GENERATORS;
 const AI_VIDEO_GENERATORS = [
@@ -36,11 +49,17 @@ const AI_VIDEO_GENERATORS = [
   "music-ai-daily-challenge",
   "music-ai-vocabulary-progression",
   "music-ai-example-sentences",
+  "music-self-mini-quiz",
+  "music-self-false-friends",
+  "music-self-daily-challenge",
+  "music-self-vocabulary-progression",
+  "music-self-example-sentences",
 ] as const;
 const TIER_OPTIONS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 type ImageGenerator = (typeof IMAGE_GENERATORS)[number];
 type TextGenerator = (typeof TEXT_GENERATORS)[number];
+type SelfImageGenerator = (typeof SELF_IMAGE_GENERATORS)[number];
 type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
 
 export type AutomationOutputRecord = {
@@ -56,6 +75,7 @@ export type AutomationOutputRecord = {
   status: OutputStatus;
   caption: string | null;
   media_path: string | null;
+  media_paths: unknown;
   media_type: "image" | "video" | null;
   provider_task_id: string | null;
   upload_post_jobs: unknown;
@@ -72,11 +92,11 @@ function resolveTier(tier: Tier | "random") {
 }
 
 function resolveGenerator(output: AutomationOutputRecord) {
-  if (output.generator === "random-content") return pick([...TEXT_GENERATORS, ...IMAGE_GENERATORS, ...NON_AI_IMAGE_GENERATORS, ...VIDEO_GENERATORS, ...MUSIC_VIDEO_GENERATORS]);
+  if (output.generator === "random-content") return pick([...TEXT_GENERATORS, ...IMAGE_GENERATORS, ...NON_AI_IMAGE_GENERATORS, ...SELF_IMAGE_GENERATORS, ...CAROUSEL_GENERATORS, ...VIDEO_GENERATORS, ...MUSIC_VIDEO_GENERATORS]);
   if (output.generator === "random-text") return pick(TEXT_GENERATORS);
-  if (output.generator === "random-image") return pick([...IMAGE_GENERATORS, ...NON_AI_IMAGE_GENERATORS]);
+  if (output.generator === "random-image") return pick([...IMAGE_GENERATORS, ...NON_AI_IMAGE_GENERATORS, ...SELF_IMAGE_GENERATORS, ...CAROUSEL_GENERATORS]);
   if (output.generator === "random-ai-image") return pick(IMAGE_GENERATORS);
-  if (output.generator === "random-no-ai-image") return pick(NON_AI_IMAGE_GENERATORS);
+  if (output.generator === "random-no-ai-image") return pick([...NON_AI_IMAGE_GENERATORS, ...SELF_IMAGE_GENERATORS, ...CAROUSEL_GENERATORS]);
   if (output.generator === "random-video") return pick([...VIDEO_GENERATORS, ...MUSIC_VIDEO_GENERATORS]);
   if (output.generator === "random-image-to-video") return pick(IMAGE_TO_VIDEO_GENERATORS);
   if (output.generator === "random-ai-video") return pick(AI_VIDEO_GENERATORS);
@@ -108,11 +128,11 @@ function parseDataUrl(value: string) {
   return { mimeType: match[1] as DataUrlAsset["mimeType"], data: Buffer.from(match[2], "base64") };
 }
 
-async function storeGeneratedImage(dataUrl: string, outputId: string) {
+async function storeGeneratedImage(dataUrl: string, outputId: string, suffix?: string) {
   const image = parseDataUrl(dataUrl);
   if (!image.data.length || image.data.length > MAX_STAGED_IMAGE_BYTES) throw new Error("generated_image_too_large");
   const extension = image.mimeType === "image/png" ? "png" : image.mimeType === "image/jpeg" ? "jpg" : "webp";
-  const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}.${extension}`;
+  const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}${suffix ? `-${suffix}` : ""}.${extension}`;
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.storage.from(AUTOMATION_BUCKET).upload(path, image.data, {
     contentType: image.mimeType,
@@ -216,18 +236,133 @@ async function createNonAiImage(output: AutomationOutputRecord, generator: (type
   return { caption: image.caption, mediaPath: await storeGeneratedImage(image.dataUrl, output.id) };
 }
 
+async function createVocabularyCards({
+  output,
+  tiers,
+  generator,
+}: {
+  output: AutomationOutputRecord;
+  tiers: readonly Tier[];
+  generator: string;
+}) {
+  const cards: VocabularyCard[] = [];
+  const seen = new Set<string>();
+  for (const [index, cardTier] of tiers.entries()) {
+    const terms = await selectSocialStudioVocabularyTerms({
+      language: output.language,
+      nativeLanguage: output.native_language,
+      tier: cardTier,
+      count: 1,
+      generator: `${generator}-${output.id}-${index}`,
+    });
+    const card = await resolveSocialStudioVocabularyCard(terms[0]!, output.language, output.native_language);
+    if (seen.has(card.sourceKey)) throw new Error("automation_duplicate_vocabulary_card");
+    seen.add(card.sourceKey);
+    cards.push(card);
+  }
+  return cards;
+}
+
+function shuffledTiers(count: number) {
+  return [...TIER_OPTIONS].sort(() => Math.random() - 0.5).slice(0, count);
+}
+
+async function createSelfImage(output: AutomationOutputRecord, generator: SelfImageGenerator, tier: Tier) {
+  let cards: VocabularyCard[] = [];
+  let falseFriends: Parameters<typeof renderAutomationSelfImage>[0]["falseFriends"];
+  let vocabularyProgression: Parameters<typeof renderAutomationSelfImage>[0]["vocabularyProgression"];
+  let exampleSentences: Parameters<typeof renderAutomationSelfImage>[0]["exampleSentences"];
+
+  if (generator === "self-mini-quiz") {
+    cards = await createVocabularyCards({ output, tiers: [tier, tier, tier, tier], generator });
+  } else if (generator === "self-daily-challenge") {
+    cards = await createVocabularyCards({ output, tiers: shuffledTiers(3), generator });
+  } else if (generator === "self-false-friends") {
+    const { POST } = await import("@/app/api/twitter-automation/self-false-friends/route");
+    const response = await POST(createInternalRequest("/api/twitter-automation/self-false-friends", {
+      method: "POST",
+      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentTerms: [] }),
+    }));
+    const payload = await readJson(response);
+    if (!response.ok || !isSelfFalseFriendsContent(payload?.pair)) throw new Error(errorCode(payload, "self_false_friends_generation_failed"));
+    falseFriends = payload.pair;
+  } else if (generator === "self-vocabulary-progression") {
+    const { POST } = await import("@/app/api/twitter-automation/self-vocabulary-progression/route");
+    const response = await POST(createInternalRequest("/api/twitter-automation/self-vocabulary-progression", {
+      method: "POST",
+      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentTerms: [] }),
+    }));
+    const payload = await readJson(response);
+    if (!response.ok || !isSelfVocabularyProgressionContent(payload?.progression)) throw new Error(errorCode(payload, "self_vocabulary_progression_generation_failed"));
+    vocabularyProgression = payload.progression;
+  } else {
+    const { POST } = await import("@/app/api/twitter-automation/self-example-sentences/route");
+    const response = await POST(createInternalRequest("/api/twitter-automation/self-example-sentences", {
+      method: "POST",
+      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentSentences: [] }),
+    }));
+    const payload = await readJson(response);
+    if (!response.ok || !isSelfExampleSentencesContent(payload?.examples)) throw new Error(errorCode(payload, "self_example_sentences_generation_failed"));
+    exampleSentences = payload.examples;
+  }
+
+  const dataUrl = renderAutomationSelfImage({
+    mode: generator,
+    cards,
+    nativeLanguage: output.native_language,
+    falseFriends,
+    vocabularyProgression,
+    exampleSentences,
+  });
+  const kind = generator === "self-mini-quiz"
+    ? "miniQuiz"
+    : generator === "self-false-friends"
+      ? "falseFriends"
+      : generator === "self-daily-challenge"
+        ? "dailyChallenge"
+        : generator === "self-vocabulary-progression"
+          ? "vocabularyProgression"
+          : "exampleSentences";
+  const itemCount = generator === "self-mini-quiz" ? 1 : generator === "self-false-friends" ? 2 : 3;
+  return {
+    caption: createNativeVisualCaption({ kind, learningLanguage: output.language, nativeLanguage: output.native_language, itemCount }),
+    mediaPath: await storeGeneratedImage(dataUrl, output.id),
+  };
+}
+
+async function createCarousel(output: AutomationOutputRecord, generator: AutomationCarouselGenerator) {
+  const tiers = generator === "vocabulary-carousel" ? Array.from({ length: 6 }, () => pick(TIER_OPTIONS)) : TIER_OPTIONS;
+  const cards = await createVocabularyCards({ output, tiers, generator });
+  const mediaPaths = await storeGeneratedImages(
+    renderAutomationCarousel({ cards, mode: generator, language: output.language, nativeLanguage: output.native_language }),
+    output.id,
+  );
+  return {
+    caption: createNativeVisualCaption({
+      kind: generator === "vocabulary-carousel" ? "vocabularyCarousel" : "tierProgression",
+      learningLanguage: output.language,
+      nativeLanguage: output.native_language,
+      itemCount: cards.length,
+    }),
+    mediaPaths,
+  };
+}
+
 async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typeof MUSIC_VIDEO_GENERATORS)[number], tier: Tier) {
   const sourceGenerator = generator.slice("music-".length);
   const source = (IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
     ? await createImage(output, sourceGenerator as ImageGenerator, tier)
     : (NON_AI_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
       ? await createNonAiImage(output, sourceGenerator as (typeof NON_AI_IMAGE_GENERATORS)[number], tier)
-      : null;
+      : (SELF_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
+        ? await createSelfImage(output, sourceGenerator as SelfImageGenerator, tier)
+        : null;
   if (!source) throw new Error("unsupported_music_video_generator");
   await updateOutput(output.id, {
     status: "awaiting_browser_video",
     caption: source.caption,
     media_path: source.mediaPath,
+    media_paths: [],
     media_type: "image",
     generated_at: new Date().toISOString(),
     error_code: null,
@@ -235,12 +370,13 @@ async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typ
   return "browser_video_required";
 }
 
-async function prepareConfusedWordsVideo(output: AutomationOutputRecord, tier: Tier) {
+async function prepareBrowserVideo(output: AutomationOutputRecord, tier: Tier) {
   await updateOutput(output.id, {
     status: "awaiting_browser_video",
     tier,
     caption: null,
     media_path: null,
+    media_paths: [],
     media_type: null,
     generated_at: new Date().toISOString(),
     error_code: null,
@@ -262,6 +398,7 @@ async function startVideo(output: AutomationOutputRecord, tier: Tier) {
     provider_task_id: payload.taskId,
     caption: payload.caption.trim(),
     media_path: firstFrame,
+    media_paths: [],
     media_type: "image",
     generated_at: new Date().toISOString(),
     error_code: null,
@@ -283,7 +420,7 @@ async function resolveVideo(output: AutomationOutputRecord) {
     const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove([output.media_path]);
     if (error) throw new Error("automation_media_cleanup_failed");
   }
-  await updateOutput(output.id, { media_path: video.path, media_type: "video", error_code: null });
+  await updateOutput(output.id, { media_path: video.path, media_paths: [], media_type: "video", error_code: null });
   return "video_ready";
 }
 
@@ -293,9 +430,15 @@ async function scheduleOutput(output: AutomationOutputRecord) {
   if (!output.caption) throw new Error("automation_caption_missing");
 
   let asset: DataUrlAsset | RemoteVideoAsset | undefined;
+  let assets: DataUrlAsset[] | undefined;
   if (output.media_type === "image") {
-    if (!output.media_path) throw new Error("automation_media_missing");
-    asset = await readStoredImage(output.media_path);
+    const mediaPaths = asMediaPaths(output.media_paths);
+    if (mediaPaths.length) {
+      assets = await Promise.all(mediaPaths.map(readStoredImage));
+    } else {
+      if (!output.media_path) throw new Error("automation_media_missing");
+      asset = await readStoredImage(output.media_path);
+    }
   } else if (output.media_type === "video") {
     if (!output.media_path) throw new Error("automation_media_missing");
     const sourceUrl = output.media_path.startsWith("https://") ? output.media_path : await createStagedVideoUrl(output.media_path);
@@ -310,6 +453,7 @@ async function scheduleOutput(output: AutomationOutputRecord) {
       socialMediaId,
       caption: output.caption,
       asset,
+      assets,
       scheduledFor: output.scheduled_at,
       requestId: `automation-${output.id}-${socialMediaId}`,
     });
@@ -326,6 +470,17 @@ async function scheduleOutput(output: AutomationOutputRecord) {
   return "scheduled";
 }
 
+function asMediaPaths(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((path): path is string => typeof path === "string" && path.startsWith(AUTOMATION_MEDIA_PREFIX)))];
+}
+
+async function storeGeneratedImages(dataUrls: readonly string[], outputId: string) {
+  const paths: string[] = [];
+  for (const [index, dataUrl] of dataUrls.entries()) paths.push(await storeGeneratedImage(dataUrl, outputId, String(index + 1)));
+  return paths;
+}
+
 export async function scheduleReadyAutomationRun(runId: string) {
   const supabase = createSupabaseAdminClient();
   const { data: lockedOutputs, error: lockError } = await supabase
@@ -333,7 +488,7 @@ export async function scheduleReadyAutomationRun(runId: string) {
     .update({ status: "processing", updated_at: new Date().toISOString() })
     .eq("run_id", runId)
     .eq("status", "ready_to_schedule")
-    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs")
+    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
     .returns<AutomationOutputRecord[]>();
   if (lockError) throw new Error("automation_schedule_lock_failed");
 
@@ -374,16 +529,26 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
     }
     if ((IMAGE_GENERATORS as readonly string[]).includes(generator)) {
       const generated = await createImage(output, generator as ImageGenerator, tier);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
       return { outcome: "content_ready" as const };
     }
     if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(generator)) {
       const generated = await createNonAiImage(output, generator as (typeof NON_AI_IMAGE_GENERATORS)[number], tier);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      return { outcome: "content_ready" as const };
+    }
+    if ((SELF_IMAGE_GENERATORS as readonly string[]).includes(generator)) {
+      const generated = await createSelfImage(output, generator as SelfImageGenerator, tier);
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      return { outcome: "content_ready" as const };
+    }
+    if ((CAROUSEL_GENERATORS as readonly string[]).includes(generator)) {
+      const generated = await createCarousel(output, generator as AutomationCarouselGenerator);
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPaths[0]!, media_paths: generated.mediaPaths, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
       return { outcome: "content_ready" as const };
     }
     if (generator === "ai-word-of-the-day-video") return { outcome: await startVideo(output, tier) };
-    if (generator === "confused-words-video") return { outcome: await prepareConfusedWordsVideo(output, tier) };
+    if ((VIDEO_GENERATORS as readonly string[]).includes(generator)) return { outcome: await prepareBrowserVideo(output, tier) };
     if ((MUSIC_VIDEO_GENERATORS as readonly string[]).includes(generator)) return { outcome: await prepareMusicVideo(output, generator as (typeof MUSIC_VIDEO_GENERATORS)[number], tier) };
     throw new Error("unsupported_automation_generator");
   } catch (error) {
@@ -417,23 +582,28 @@ export async function cleanupStagedAutomationMedia(now = new Date()) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("social_content_automation_outputs")
-    .select("id,media_path")
+    .select("id,media_path,media_paths")
     .eq("status", "scheduled")
-    .not("media_path", "is", null)
     .lt("scheduled_at_upload_post", cutoff)
     .limit(100);
   if (error) throw new Error("automation_media_cleanup_query_failed");
 
-  const staleOutputs = (data ?? []).filter((output) => typeof output.media_path === "string" && output.media_path.startsWith(AUTOMATION_MEDIA_PREFIX));
+  const staleOutputs = (data ?? []).map((output) => ({
+    id: output.id,
+    paths: [...new Set([
+      typeof output.media_path === "string" && output.media_path.startsWith(AUTOMATION_MEDIA_PREFIX) ? output.media_path : null,
+      ...asMediaPaths(output.media_paths),
+    ].filter((path): path is string => Boolean(path)))],
+  })).filter((output) => output.paths.length);
   if (!staleOutputs.length) return { removed: 0 };
 
-  const paths = staleOutputs.map((output) => output.media_path as string);
+  const paths = [...new Set(staleOutputs.flatMap((output) => output.paths))];
   const { error: removeError } = await supabase.storage.from(AUTOMATION_BUCKET).remove(paths);
   if (removeError) throw new Error("automation_media_cleanup_failed");
 
   const { error: updateError } = await supabase
     .from("social_content_automation_outputs")
-    .update({ media_path: null, media_type: null, updated_at: now.toISOString() })
+    .update({ media_path: null, media_paths: [], media_type: null, updated_at: now.toISOString() })
     .in("id", staleOutputs.map((output) => output.id));
   if (updateError) throw new Error("automation_media_cleanup_update_failed");
   return { removed: staleOutputs.length };
