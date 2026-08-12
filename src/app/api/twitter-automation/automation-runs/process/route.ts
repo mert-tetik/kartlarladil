@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (!candidate) return NextResponse.json({ processed: false, state: "idle" });
 
     const update = parsed.data.stagedMediaPath
-      ? { status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
+      ? { status: "ready_to_schedule", media_path: parsed.data.stagedMediaPath, media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
       : { status: "processing", updated_at: new Date().toISOString() };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")
@@ -57,9 +57,12 @@ export async function POST(request: NextRequest) {
       if (removeError) throw new Error("automation_media_cleanup_failed");
     }
 
-    const result = await processAutomationOutput(parsed.data.stagedMediaPath
-      ? { ...candidate, status: "processing", media_path: parsed.data.stagedMediaPath, media_type: "video", caption: parsed.data.caption ?? candidate.caption }
-      : candidate);
+    if (parsed.data.stagedMediaPath) {
+      await refreshAutomationRunStatus(candidate.run_id);
+      return NextResponse.json({ processed: true, outputId: candidate.id, outcome: "content_ready" });
+    }
+
+    const result = await processAutomationOutput(candidate);
     if (result.outcome === "video_pending") {
       await supabase.from("social_content_automation_outputs").update({ status: "generating_video", updated_at: new Date().toISOString() }).eq("id", candidate.id);
     }

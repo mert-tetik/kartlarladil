@@ -41,7 +41,7 @@ const TIER_OPTIONS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 type ImageGenerator = (typeof IMAGE_GENERATORS)[number];
 type TextGenerator = (typeof TEXT_GENERATORS)[number];
-type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "scheduled" | "failed";
+type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
 
 export type AutomationOutputRecord = {
   id: string;
@@ -326,37 +326,61 @@ async function scheduleOutput(output: AutomationOutputRecord) {
   return "scheduled";
 }
 
+export async function scheduleReadyAutomationRun(runId: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data: lockedOutputs, error: lockError } = await supabase
+    .from("social_content_automation_outputs")
+    .update({ status: "processing", updated_at: new Date().toISOString() })
+    .eq("run_id", runId)
+    .eq("status", "ready_to_schedule")
+    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs")
+    .returns<AutomationOutputRecord[]>();
+  if (lockError) throw new Error("automation_schedule_lock_failed");
+
+  let scheduled = 0;
+  let failed = 0;
+  for (const output of lockedOutputs ?? []) {
+    try {
+      await scheduleOutput({ ...output, status: "processing" });
+      scheduled += 1;
+    } catch (error) {
+      failed += 1;
+      await updateOutput(output.id, {
+        status: "failed",
+        error_code: error instanceof Error ? error.message : "automation_schedule_failed",
+      });
+    }
+  }
+
+  await refreshAutomationRunStatus(runId);
+  return { scheduled, failed };
+}
+
 export async function processAutomationOutput(output: AutomationOutputRecord) {
   try {
-    if (output.status === "processing" && output.media_type === "video" && output.media_path) {
-      return { outcome: await scheduleOutput(output) };
-    }
     if (output.status === "generating_video") {
       const videoState = await resolveVideo(output);
       if (videoState === "video_pending") return { outcome: "video_pending" as const };
-      const refreshed = { ...output, media_path: (await createSupabaseAdminClient().from("social_content_automation_outputs").select("media_path, media_type").eq("id", output.id).single()).data?.media_path ?? output.media_path, media_type: "video" as const };
-      return { outcome: await scheduleOutput(refreshed) };
+      await updateOutput(output.id, { status: "ready_to_schedule", error_code: null });
+      return { outcome: "content_ready" as const };
     }
 
     const generator = resolveGenerator(output);
     const tier = resolveTier(output.tier);
     if ((TEXT_GENERATORS as readonly string[]).includes(generator)) {
       const caption = await createText(output, generator as TextGenerator);
-      const readyOutput = { ...output, caption };
-      await updateOutput(output.id, { caption, generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: await scheduleOutput(readyOutput) };
+      await updateOutput(output.id, { status: "ready_to_schedule", caption, generated_at: new Date().toISOString(), error_code: null });
+      return { outcome: "content_ready" as const };
     }
     if ((IMAGE_GENERATORS as readonly string[]).includes(generator)) {
       const generated = await createImage(output, generator as ImageGenerator, tier);
-      const readyOutput = { ...output, caption: generated.caption, media_path: generated.mediaPath, media_type: "image" as const };
-      await updateOutput(output.id, { caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: await scheduleOutput(readyOutput) };
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      return { outcome: "content_ready" as const };
     }
     if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(generator)) {
       const generated = await createNonAiImage(output, generator as (typeof NON_AI_IMAGE_GENERATORS)[number], tier);
-      const readyOutput = { ...output, caption: generated.caption, media_path: generated.mediaPath, media_type: "image" as const };
-      await updateOutput(output.id, { caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: await scheduleOutput(readyOutput) };
+      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
+      return { outcome: "content_ready" as const };
     }
     if (generator === "ai-word-of-the-day-video") return { outcome: await startVideo(output, tier) };
     if (generator === "confused-words-video") return { outcome: await prepareConfusedWordsVideo(output, tier) };
@@ -376,6 +400,10 @@ export async function refreshAutomationRunStatus(runId: string) {
   const statuses = (data ?? []).map((item) => item.status as OutputStatus);
   if (statuses.some((status) => status === "queued" || status === "processing" || status === "generating_video" || status === "awaiting_browser_video")) {
     await supabase.from("social_content_automation_runs").update({ status: "processing" }).eq("id", runId);
+    return;
+  }
+  if (statuses.some((status) => status === "ready_to_schedule")) {
+    await supabase.from("social_content_automation_runs").update({ status: "ready_to_schedule", completed_at: null }).eq("id", runId);
     return;
   }
   await supabase.from("social_content_automation_runs").update({
