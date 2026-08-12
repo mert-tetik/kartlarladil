@@ -64,9 +64,12 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
         <div className="absolute inset-0 opacity-20" style={{ backgroundColor: palette.accent }} aria-hidden="true" />
 
         <header className="relative z-10 flex items-start justify-between">
-          <h1 className="translate-y-1 font-sans text-4xl font-semibold leading-tight">
-            {titleDisplay}
-          </h1>
+          <div className="flex items-center gap-4">
+            <img alt="FoxiesDeck logosu" className="h-16 w-16 shrink-0 object-contain" src="/logo.webp" />
+            <h1 className="translate-y-1 font-sans text-4xl font-semibold leading-tight">
+              {titleDisplay}
+            </h1>
+          </div>
           <span className="font-super-water text-6xl font-semibold leading-none" style={{ color: "#ffffff" }}>
             {card.tier}
           </span>
@@ -89,7 +92,6 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
             <p className="text-3xl leading-relaxed">{example}</p>
             <p className="mt-2 text-2xl leading-relaxed opacity-80">{exampleTranslation}</p>
           </div>
-          <img alt="FoxiesDeck logosu" className="absolute -bottom-8 -left-2 h-28 w-28 object-contain" src="/logo.webp" />
         </footer>
       </article>
     );

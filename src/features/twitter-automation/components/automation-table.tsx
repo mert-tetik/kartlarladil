@@ -87,6 +87,7 @@ const GENERATORS: Record<SelectableContentType, Array<{ value: string; label: st
     { value: "ai-false-friends", label: "AI False Friends" },
     { value: "ai-daily-challenge", label: "AI Daily Challenge" },
     { value: "ai-vocabulary-progression", label: "AI Beginner to Advanced" },
+    { value: "ai-example-sentences", label: "AI Example Sentences" },
   ],
   video: [
     { value: "random-video", label: "Random video mode" },
@@ -101,6 +102,7 @@ const GENERATORS: Record<SelectableContentType, Array<{ value: string; label: st
     { value: "music-ai-false-friends", label: "AI False Friends Music Video" },
     { value: "music-ai-daily-challenge", label: "AI Daily Challenge Music Video" },
     { value: "music-ai-vocabulary-progression", label: "AI Beginner to Advanced Music Video" },
+    { value: "music-ai-example-sentences", label: "AI Example Sentences Music Video" },
   ],
 };
 

@@ -94,6 +94,7 @@ const MUSIC_AI_IMAGE_GENERATORS = new Set([
   "music-ai-false-friends",
   "music-ai-daily-challenge",
   "music-ai-vocabulary-progression",
+  "music-ai-example-sentences",
 ]);
 
 const MUSIC_NON_AI_IMAGE_GENERATORS = new Set([

@@ -55,7 +55,7 @@ type SelfImageGeneratorMode = "self-mini-quiz" | "self-false-friends" | "self-da
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
 type TierProgressionCarouselGeneratorMode = "tier-progression-carousel";
 type ImageGeneratorMode = "word-of-the-day" | "word-of-the-day-poster" | VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | AiImageGeneratorMode | SelfImageGeneratorMode;
-type MusicVideoImageGeneratorMode = Exclude<ImageGeneratorMode, VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode | SelfImageGeneratorMode>;
+type MusicVideoImageGeneratorMode = Exclude<ImageGeneratorMode, VocabularyCarouselGeneratorMode | TierProgressionCarouselGeneratorMode>;
 type MusicVideoGeneratorMode = `music-${MusicVideoImageGeneratorMode}`;
 type ConfusedWordsVideoGeneratorMode = "confused-words-video";
 type DialogueVideoGeneratorMode = "marketing-dialogue-video" | "learning-dialogue-video";
@@ -117,6 +117,7 @@ const MUSIC_VIDEO_IMAGE_GENERATOR_OPTIONS: Array<{ value: MusicVideoImageGenerat
   { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
   { value: "word-of-the-day-poster", label: "Word of the Day poster", description: "A single social image with the post copy built in" },
   ...AI_IMAGE_GENERATOR_OPTIONS,
+  ...SELF_IMAGE_GENERATOR_OPTIONS,
 ];
 
 const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string; description: string }> = [
@@ -273,6 +274,10 @@ function getMusicVideoImageMode(mode: MusicVideoGeneratorMode): MusicVideoImageG
   return mode.slice("music-".length) as MusicVideoImageGeneratorMode;
 }
 
+function isMusicVideoFromSelfImage(mode: GeneratorMode): mode is `music-${SelfImageGeneratorMode}` {
+  return isMusicVideoGenerator(mode) && isSelfImageGenerator(getMusicVideoImageMode(mode));
+}
+
 function aiImageUsesTier(mode: AiImageGeneratorMode) {
   return mode === "ai-word-of-the-day" || mode === "ai-mini-quiz" || mode === "ai-daily-challenge";
 }
@@ -388,6 +393,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const posterExportRef = useRef<HTMLDivElement>(null);
   const musicCardExportRef = useRef<HTMLDivElement>(null);
   const musicPosterExportRef = useRef<HTMLDivElement>(null);
+  const musicSelfImageExportRef = useRef<HTMLDivElement>(null);
   const carouselSlideRefs = useRef<Array<HTMLDivElement | null>>([]);
   const confusedWordsCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const selfImageExportRef = useRef<HTMLDivElement>(null);
@@ -654,6 +660,32 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     return createNativeVisualCaption({ kind: "exampleSentences", learningLanguage: language, nativeLanguage, itemCount: 3 });
   }
 
+  function resetSelfImageContent() {
+    setSelfCards([]);
+    setSelfFalseFriends(null);
+    setSelfExampleSentences(null);
+    setSelfVocabularyProgression(null);
+    setSelfImageUrl("");
+    setSelfImageCaption("");
+    setSelfImageError("");
+  }
+
+  type PreparedSelfImageContent = {
+    cards: VocabularyCard[];
+    falseFriends: SelfFalseFriendsContent | null;
+    exampleSentences: SelfExampleSentencesContent | null;
+    vocabularyProgression: SelfVocabularyProgressionContent | null;
+    caption: string;
+  };
+
+  function applyPreparedSelfImageContent(content: PreparedSelfImageContent) {
+    setSelfCards(content.cards);
+    setSelfFalseFriends(content.falseFriends);
+    setSelfExampleSentences(content.exampleSentences);
+    setSelfVocabularyProgression(content.vocabularyProgression);
+    setSelfImageCaption(content.caption);
+  }
+
   async function requestSelfFalseFriends(): Promise<SelfFalseFriendsContent | null> {
     const response = await fetch("/api/twitter-automation/self-false-friends", {
       method: "POST",
@@ -714,57 +746,39 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     return payload.examples;
   }
 
-  async function generateSelfImage(mode: SelfImageGeneratorMode) {
-    setIsLoading(true);
-    setCard(null);
-    setCardImageUrl("");
-    setPosterImageUrl("");
-    setSelfCards([]);
-    setSelfFalseFriends(null);
-    setSelfExampleSentences(null);
-    setSelfVocabularyProgression(null);
-    setSelfImageUrl("");
-    setSelfImageCaption("");
-    setSelfImageError("");
-
+  async function prepareSelfImageContent(mode: SelfImageGeneratorMode): Promise<PreparedSelfImageContent | null> {
     try {
       if (mode === "self-false-friends") {
         const pair = await requestSelfFalseFriends();
-        if (!pair) return;
+        if (!pair) return null;
 
         const freshTerms = [pair.firstTerm, pair.secondTerm];
         recentSelfFalseFriendsTermsRef.current = [...freshTerms, ...recentSelfFalseFriendsTermsRef.current]
           .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfFalseFriendsTerm(candidate) === normalizeSelfFalseFriendsTerm(term)) === index)
           .slice(0, 24);
-        setSelfFalseFriends(pair);
-        setSelfImageCaption(captionForSelfFalseFriends());
-        return;
+        return { cards: [], falseFriends: pair, exampleSentences: null, vocabularyProgression: null, caption: captionForSelfFalseFriends() };
       }
 
       if (mode === "self-vocabulary-progression") {
         const progression = await requestSelfVocabularyProgression();
-        if (!progression) return;
+        if (!progression) return null;
 
         const freshTerms = [progression.beginnerTerm, progression.intermediateTerm, progression.advancedTerm];
         recentSelfVocabularyProgressionTermsRef.current = [...freshTerms, ...recentSelfVocabularyProgressionTermsRef.current]
           .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfVocabularyProgressionTerm(candidate) === normalizeSelfVocabularyProgressionTerm(term)) === index)
           .slice(0, 36);
-        setSelfVocabularyProgression(progression);
-        setSelfImageCaption(captionForSelfVocabularyProgression());
-        return;
+        return { cards: [], falseFriends: null, exampleSentences: null, vocabularyProgression: progression, caption: captionForSelfVocabularyProgression() };
       }
 
       if (mode === "self-example-sentences") {
         const examples = await requestSelfExampleSentences();
-        if (!examples) return;
+        if (!examples) return null;
 
         const freshSentences = examples.sentences.map((example) => example.sentence);
         recentSelfExampleSentencesRef.current = [...freshSentences, ...recentSelfExampleSentencesRef.current]
           .filter((sentence, index, sentences) => sentences.findIndex((candidate) => normalizeSelfExampleSentence(candidate) === normalizeSelfExampleSentence(sentence)) === index)
           .slice(0, 24);
-        setSelfExampleSentences(examples);
-        setSelfImageCaption(captionForSelfExampleSentences());
-        return;
+        return { cards: [], falseFriends: null, exampleSentences: examples, vocabularyProgression: null, caption: captionForSelfExampleSentences() };
       }
 
       let tiers: Tier[];
@@ -787,13 +801,26 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       const requiredCount = mode === "self-mini-quiz" ? 4 : 3;
       if (cards.length < requiredCount) {
         setSelfImageError("Could not load enough fresh cards. Try again.");
-        return;
+        return null;
       }
 
-      setSelfCards(cards);
-      setSelfImageCaption(captionForSelfImage(mode));
+      return { cards, falseFriends: null, exampleSentences: null, vocabularyProgression: null, caption: captionForSelfImage(mode) };
     } catch {
       setSelfImageError("The self image could not be prepared. Try again.");
+      return null;
+    }
+  }
+
+  async function generateSelfImage(mode: SelfImageGeneratorMode) {
+    setIsLoading(true);
+    setCard(null);
+    setCardImageUrl("");
+    setPosterImageUrl("");
+    resetSelfImageContent();
+
+    try {
+      const content = await prepareSelfImageContent(mode);
+      if (content) applyPreparedSelfImageContent(content);
     } finally {
       setIsLoading(false);
     }
@@ -1014,6 +1041,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setMusicVideoUrl("");
     setMusicVideoBlob(null);
     setDialogueVoiceCast([]);
+    if (isSelfImageGenerator(sourceMode)) resetSelfImageContent();
 
     try {
       // This is intentionally created directly from the button interaction so browsers permit audio capture.
@@ -1042,6 +1070,37 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
         imageUrl = payload.imageUrl;
         nextCaption = payload.caption ?? "";
+      } else if (isSelfImageGenerator(sourceMode)) {
+        const content = await prepareSelfImageContent(sourceMode);
+        if (!content) {
+          setMusicVideoStatus("failed");
+          setMusicVideoError("The self image could not be prepared. Try again.");
+          return;
+        }
+
+        applyPreparedSelfImageContent(content);
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+        const source = musicSelfImageExportRef.current;
+        if (!source) {
+          setMusicVideoStatus("failed");
+          setMusicVideoError("The self image visual could not be prepared. Try again.");
+          return;
+        }
+
+        const loadedImages = Promise.all(Array.from(source.querySelectorAll("img")).map((image) => {
+          if (image.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          });
+        }));
+        await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
+        imageUrl = await toPng(source, {
+          cacheBust: true,
+          pixelRatio: 1,
+          backgroundColor: "#11100f",
+        });
+        nextCaption = content.caption;
       } else {
         const nextCard = await loadCard(language, tier, false);
         if (!nextCard) {
@@ -1776,8 +1835,18 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 </div>
               </div>)}
             </div>
-            {isMusicVideoGenerator(generatorMode) && card ? <div aria-hidden="true" className="pointer-events-none fixed left-[-12000px] top-0 z-[-1]">
-              {getMusicVideoImageMode(generatorMode) === "word-of-the-day" ? <div ref={musicCardExportRef} className="social-card-export w-[1080px] bg-black px-12 py-20">
+            {isMusicVideoGenerator(generatorMode) ? <div aria-hidden="true" className="pointer-events-none fixed left-[-12000px] top-0 z-[-1]">
+              {isMusicVideoFromSelfImage(generatorMode) ? (selfCards.length > 0 || selfFalseFriends || selfExampleSentences || selfVocabularyProgression) ? <div ref={musicSelfImageExportRef} data-social-music-self-image>
+                <SelfSocialImage
+                  cards={selfCards}
+                  exampleSentences={selfExampleSentences}
+                  falseFriends={selfFalseFriends}
+                  learningLanguage={language}
+                  mode={getMusicVideoImageMode(generatorMode) as SelfSocialImageMode}
+                  nativeLanguage={nativeLanguage}
+                  vocabularyProgression={selfVocabularyProgression}
+                />
+              </div> : null : card ? getMusicVideoImageMode(generatorMode) === "word-of-the-day" ? <div ref={musicCardExportRef} className="social-card-export w-[1080px] bg-black px-12 py-20">
                 <style>{`
                   .social-card-export .social-card-front [data-card-face] > div,
                   .social-card-export .social-card-back [data-card-face] > div,
@@ -1811,7 +1880,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   <div className="social-video-poster-back w-[300px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
                 </div>
                 <p className="absolute bottom-14 left-16 z-10 max-w-[66%] text-xl font-semibold leading-8">{card.examples[0]?.sentence ?? card.example}</p>
-              </div>}
+              </div> : null}
             </div> : null}
           </div>
         ) : (

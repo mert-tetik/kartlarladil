@@ -78,6 +78,43 @@ const NATIVE_VISUAL_CAPTION_SUMMARIES: Record<LanguageCode, (learningLanguageNam
   "zh-CN": (language, count) => count ? `这张图片包含 ${count} 个简短的${language}练习内容。` : `用这张图片继续练习${language}吧。`,
 };
 
+const RUSSIAN_CAPTION_LANGUAGE_FORMS: Record<LanguageCode, { accusative: string; genitive: string }> = {
+  tr: { accusative: "\u0442\u0443\u0440\u0435\u0446\u043a\u0438\u0439", genitive: "\u0442\u0443\u0440\u0435\u0446\u043a\u043e\u0433\u043e" },
+  en: { accusative: "\u0430\u043d\u0433\u043b\u0438\u0439\u0441\u043a\u0438\u0439", genitive: "\u0430\u043d\u0433\u043b\u0438\u0439\u0441\u043a\u043e\u0433\u043e" },
+  de: { accusative: "\u043d\u0435\u043c\u0435\u0446\u043a\u0438\u0439", genitive: "\u043d\u0435\u043c\u0435\u0446\u043a\u043e\u0433\u043e" },
+  ru: { accusative: "\u0440\u0443\u0441\u0441\u043a\u0438\u0439", genitive: "\u0440\u0443\u0441\u0441\u043a\u043e\u0433\u043e" },
+  fr: { accusative: "\u0444\u0440\u0430\u043d\u0446\u0443\u0437\u0441\u043a\u0438\u0439", genitive: "\u0444\u0440\u0430\u043d\u0446\u0443\u0437\u0441\u043a\u043e\u0433\u043e" },
+  es: { accusative: "\u0438\u0441\u043f\u0430\u043d\u0441\u043a\u0438\u0439", genitive: "\u0438\u0441\u043f\u0430\u043d\u0441\u043a\u043e\u0433\u043e" },
+  it: { accusative: "\u0438\u0442\u0430\u043b\u044c\u044f\u043d\u0441\u043a\u0438\u0439", genitive: "\u0438\u0442\u0430\u043b\u044c\u044f\u043d\u0441\u043a\u043e\u0433\u043e" },
+  pt: { accusative: "\u043f\u043e\u0440\u0442\u0443\u0433\u0430\u043b\u044c\u0441\u043a\u0438\u0439", genitive: "\u043f\u043e\u0440\u0442\u0443\u0433\u0430\u043b\u044c\u0441\u043a\u043e\u0433\u043e" },
+  nl: { accusative: "\u043d\u0438\u0434\u0435\u0440\u043b\u0430\u043d\u0434\u0441\u043a\u0438\u0439", genitive: "\u043d\u0438\u0434\u0435\u0440\u043b\u0430\u043d\u0434\u0441\u043a\u043e\u0433\u043e" },
+  pl: { accusative: "\u043f\u043e\u043b\u044c\u0441\u043a\u0438\u0439", genitive: "\u043f\u043e\u043b\u044c\u0441\u043a\u043e\u0433\u043e" },
+  ar: { accusative: "\u0430\u0440\u0430\u0431\u0441\u043a\u0438\u0439", genitive: "\u0430\u0440\u0430\u0431\u0441\u043a\u043e\u0433\u043e" },
+  ja: { accusative: "\u044f\u043f\u043e\u043d\u0441\u043a\u0438\u0439", genitive: "\u044f\u043f\u043e\u043d\u0441\u043a\u043e\u0433\u043e" },
+  ko: { accusative: "\u043a\u043e\u0440\u0435\u0439\u0441\u043a\u0438\u0439", genitive: "\u043a\u043e\u0440\u0435\u0439\u0441\u043a\u043e\u0433\u043e" },
+  "zh-CN": { accusative: "\u043a\u0438\u0442\u0430\u0439\u0441\u043a\u0438\u0439", genitive: "\u043a\u0438\u0442\u0430\u0439\u0441\u043a\u043e\u0433\u043e" },
+};
+
+function getRussianShortTaskLabel(count: number) {
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return "\u043a\u043e\u0440\u043e\u0442\u043a\u0438\u0445 \u0437\u0430\u0434\u0430\u043d\u0438\u0439";
+  if (lastDigit === 1) return "\u043a\u043e\u0440\u043e\u0442\u043a\u043e\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u0435";
+  if (lastDigit >= 2 && lastDigit <= 4) return "\u043a\u043e\u0440\u043e\u0442\u043a\u0438\u0445 \u0437\u0430\u0434\u0430\u043d\u0438\u044f";
+  return "\u043a\u043e\u0440\u043e\u0442\u043a\u0438\u0445 \u0437\u0430\u0434\u0430\u043d\u0438\u0439";
+}
+
+function getNativeVisualCaptionSummary(nativeLanguage: LanguageCode, learningLanguage: LanguageCode, itemCount?: number) {
+  if (nativeLanguage !== "ru") {
+    return NATIVE_VISUAL_CAPTION_SUMMARIES[nativeLanguage](getLanguageDisplayName(learningLanguage, nativeLanguage), itemCount);
+  }
+
+  const language = RUSSIAN_CAPTION_LANGUAGE_FORMS[learningLanguage];
+  return itemCount === undefined
+    ? `\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0439 \u043f\u0440\u0430\u043a\u0442\u0438\u043a\u043e\u0432\u0430\u0442\u044c ${language.accusative} \u0441 \u044d\u0442\u0438\u043c \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u043e\u043c.`
+    : `\u0412 \u044d\u0442\u043e\u043c \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u0435 \u2014 ${itemCount} ${getRussianShortTaskLabel(itemCount)} \u0434\u043b\u044f \u043f\u0440\u0430\u043a\u0442\u0438\u043a\u0438 ${language.genitive}.`;
+}
+
 const NATIVE_CAPTION_HEADINGS: Record<LanguageCode, Record<SocialCaptionKind, string>> = {
   tr: { miniQuiz: "Mini Quiz", falseFriends: "Aynı Anlamda Farklı Kelimeler", dailyChallenge: "Günün Meydan Okuması", vocabularyProgression: "Kelime Gelişimi", exampleSentences: "Örnek Cümleler", vocabularyCarousel: "Bugünün Kelimeleri", tierProgression: "A1'den C1'e Kelimeler" },
   en: { miniQuiz: "Mini Quiz", falseFriends: "Different Words, Same Meaning", dailyChallenge: "Daily Challenge", vocabularyProgression: "Vocabulary Progression", exampleSentences: "Example Sentences", vocabularyCarousel: "Today's Words", tierProgression: "Words from A1 to C1" },
@@ -142,8 +179,7 @@ export function createNativeVisualCaption({
   const heading = kind === "marketingDialogue" || kind === "everydayDialogue" || kind === "sentenceCheck" || kind === "sentenceTranslation"
     ? NATIVE_VIDEO_CAPTION_HEADINGS[nativeLanguage][kind]
     : getNativeCaptionHeading(nativeLanguage, kind);
-  const learningLanguageName = getLanguageDisplayName(learningLanguage, nativeLanguage);
-  const summary = NATIVE_VISUAL_CAPTION_SUMMARIES[nativeLanguage](learningLanguageName, itemCount);
+  const summary = getNativeVisualCaptionSummary(nativeLanguage, learningLanguage, itemCount);
   return finalizeNativeCaption([heading, summary].join("\n\n"), nativeLanguage);
 }
 

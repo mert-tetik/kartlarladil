@@ -210,7 +210,7 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     return (
       <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] px-16 py-10 text-center text-white" style={{ width: 1200, height: 900 }}>
         <style>{overrideStyles()}</style>
-        <SelfImageHeader label="Mini Quiz" prominent />
+        <SelfImageHeader label={getNativeCaptionHeading(nativeLanguage, "miniQuiz")} prominent />
         <h2 className="mx-auto mt-16 max-w-5xl font-display text-6xl font-semibold leading-tight">
           {MINI_QUIZ_QUESTION[nativeLanguage](card.term)}
         </h2>

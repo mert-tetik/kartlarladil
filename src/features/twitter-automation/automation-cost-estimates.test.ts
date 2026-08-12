@@ -33,6 +33,15 @@ describe("automation cost estimates", () => {
     expect(estimate.totalUsd).toBeCloseTo(0.01315, 8);
   });
 
+  it("prices AI Example Sentences music videos as AI image source generation", () => {
+    const estimate = estimateAutomationGroupCost([{
+      contentType: "video",
+      generator: "music-ai-example-sentences",
+    }]);
+
+    expect(estimate.totalUsd).toBeCloseTo(0.01315, 8);
+  });
+
   it("includes the PoYo image, TTS, and avatar costs for avatar videos", () => {
     const estimate = estimateAutomationGroupCost([{
       contentType: "video",

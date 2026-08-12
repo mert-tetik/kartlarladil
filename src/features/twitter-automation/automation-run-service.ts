@@ -24,6 +24,7 @@ const MUSIC_VIDEO_GENERATORS = [
   "music-ai-false-friends",
   "music-ai-daily-challenge",
   "music-ai-vocabulary-progression",
+  "music-ai-example-sentences",
 ] as const;
 const IMAGE_TO_VIDEO_GENERATORS = MUSIC_VIDEO_GENERATORS;
 const AI_VIDEO_GENERATORS = [
@@ -34,6 +35,7 @@ const AI_VIDEO_GENERATORS = [
   "music-ai-false-friends",
   "music-ai-daily-challenge",
   "music-ai-vocabulary-progression",
+  "music-ai-example-sentences",
 ] as const;
 const TIER_OPTIONS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
