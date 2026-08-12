@@ -70,4 +70,14 @@ describe("automation cost estimates", () => {
 
     expect(estimate.totalUsd).toBeCloseTo(0.01315 * 6 / 8, 8);
   });
+
+  it("uses only the selected sources for the single Random generator", () => {
+    const estimate = estimateAutomationGroupCost([{
+      contentType: "image",
+      generator: "random",
+      randomIncludes: { image: ["self"] },
+    }]);
+
+    expect(estimate.totalUsd).toBe(0);
+  });
 });

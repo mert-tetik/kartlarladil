@@ -7,11 +7,14 @@
  * generation charges in the current workflow.
  */
 
+import { RANDOM_GENERATOR, isRandomGenerator, randomGeneratorsFor, resolveRandomIncludes, type RandomIncludes } from "@/features/twitter-automation/automation-randomization";
+
 export type AutomationCostRow = {
   contentType: "random" | "text" | "image" | "video";
   generator: string;
   contentTypes?: Array<"text" | "image" | "video">;
   generators?: Partial<Record<"text" | "image" | "video", string>>;
+  randomIncludes?: RandomIncludes;
 };
 
 type CostBreakdown = {
@@ -178,20 +181,26 @@ function estimateGenerator(generator: string): CostBreakdown {
   return { poyoUsd: 0 };
 }
 
+function estimateGeneratorMode(contentType: "text" | "image" | "video", generator: string, randomIncludes: readonly string[] | undefined) {
+  if (!isRandomGenerator(generator)) return estimateGenerator(generator);
+  return averageCosts(randomGeneratorsFor(contentType, resolveRandomIncludes(contentType, generator, randomIncludes)).map(estimateGenerator));
+}
+
 function selectedContentTypes(row: AutomationCostRow) {
   if (row.contentTypes?.length) return [...new Set(row.contentTypes)];
   if (row.contentType === "text" || row.contentType === "image" || row.contentType === "video") return [row.contentType];
   return ["text", "image", "video"] as const;
 }
 
-function fallbackGenerator(contentType: "text" | "image" | "video") {
-  return contentType === "text" ? "random-text" : contentType === "image" ? "random-ai-image" : "random-video";
+function fallbackGenerator() {
+  return RANDOM_GENERATOR;
 }
 
 function estimateRow(row: AutomationCostRow): CostBreakdown {
-  return averageCosts(selectedContentTypes(row).map((contentType) => estimateGenerator(
-    row.generators?.[contentType] ?? (row.contentType === contentType ? row.generator : fallbackGenerator(contentType)),
-  )));
+  return averageCosts(selectedContentTypes(row).map((contentType) => {
+    const generator = row.generators?.[contentType] ?? (row.contentType === contentType ? row.generator : fallbackGenerator());
+    return estimateGeneratorMode(contentType, generator, row.randomIncludes?.[contentType]);
+  }));
 }
 
 export function estimateAutomationGroupCost(rows: readonly AutomationCostRow[]): AutomationCostEstimate {

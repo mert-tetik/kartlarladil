@@ -4,9 +4,11 @@ import { CalendarClock, Check, CircleAlert, ImageIcon, LoaderCircle, MessageSqua
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
 import { cn } from "@/lib/utils";
 
 type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
@@ -76,17 +78,21 @@ function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   return `${getOutputLabel(output)} üretim sırasını bekliyor`;
 }
 
-export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose: () => void }) {
+export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { runId: string; onClose: () => void; scope?: AutomationScope }) {
+  const isTestAutomation = scope === "test";
+  const scopeSearchParams = automationScopeSearchParams(scope);
   const [outputs, setOutputs] = useState<AutomationOutput[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [processingOutputId, setProcessingOutputId] = useState<string | null>(null);
+  const [processingStartedAt, setProcessingStartedAt] = useState<number | null>(null);
   const [isSchedulingAll, setIsSchedulingAll] = useState(false);
   const [message, setMessage] = useState("");
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async (showLoading = false) => {
     if (showLoading) setState("loading");
     try {
-      const response = await fetch(`/api/twitter-automation/automation-runs?runId=${encodeURIComponent(runId)}`, { cache: "no-store" });
+      const response = await fetch(`/api/twitter-automation/automation-runs?runId=${encodeURIComponent(runId)}${scopeSearchParams ? "&scope=test" : ""}`, { cache: "no-store" });
       const payload = await response.json().catch(() => null) as { outputs?: AutomationOutput[]; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_runs_unavailable");
       setOutputs(Array.isArray(payload?.outputs) ? payload.outputs : []);
@@ -95,7 +101,7 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       setState("error");
       setMessage("İçerik üretim akışı yenilenemedi.");
     }
-  }, [runId]);
+  }, [runId, scopeSearchParams]);
 
   const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video"), [outputs]);
   const nextOutput = useMemo(() => {
@@ -108,16 +114,22 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
   const progress = outputs.length ? Math.round((completeCount / outputs.length) * 100) : 0;
   const isReviewReady = state === "ready" && outputs.length > 0 && !nextOutput && !browserVideoOutputs.length && !processingOutputId;
   const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : nextOutput;
+  const estimatedSecondsRemaining = useMemo(() => estimateRemainingGenerationSeconds({
+    activeElapsedSeconds: processingOutputId && processingStartedAt ? Math.max(0, (now - processingStartedAt) / 1_000) : 0,
+    activeOutputId: processingOutputId,
+    outputs: outputs.map((output) => ({ contentType: output.content_type, generator: output.generator, id: output.id, status: output.status })),
+  }), [now, outputs, processingOutputId, processingStartedAt]);
 
   const processNext = useCallback(async () => {
     if (!nextOutput || processingOutputId) return;
     setProcessingOutputId(nextOutput.id);
+    setProcessingStartedAt(Date.now());
     setMessage("");
     try {
       const response = await fetch("/api/twitter-automation/automation-runs/process", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ outputId: nextOutput.id }),
+        body: JSON.stringify({ outputId: nextOutput.id, scope }),
       });
       const payload = await response.json().catch(() => null) as { outcome?: string; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
@@ -127,13 +139,15 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
     } finally {
       await load();
       setProcessingOutputId(null);
+      setProcessingStartedAt(null);
     }
-  }, [load, nextOutput, processingOutputId]);
+  }, [load, nextOutput, processingOutputId, scope]);
 
   const renderBrowserVideo = useCallback(async (output: AutomationOutput) => {
     const isConfusedWords = isConfusedWordsVideo(output);
     if ((!output.mediaUrl && !isConfusedWords) || processingOutputId || output.tier === "random") return;
     setProcessingOutputId(output.id);
+    setProcessingStartedAt(Date.now());
     setMessage("");
     let audioContext: AudioContext | null = null;
     try {
@@ -175,7 +189,7 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       const response = await fetch("/api/twitter-automation/automation-runs/process", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path, ...(caption ? { caption } : {}) }),
+        body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path, ...(caption ? { caption } : {}), scope }),
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
@@ -185,18 +199,19 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       await load();
       setProcessingOutputId(null);
+      setProcessingStartedAt(null);
     }
-  }, [load, processingOutputId]);
+  }, [load, processingOutputId, scope]);
 
   const scheduleAll = useCallback(async () => {
-    if (!readyOutputs.length || isSchedulingAll || processingOutputId) return;
+    if (isTestAutomation || !readyOutputs.length || isSchedulingAll || processingOutputId) return;
     setIsSchedulingAll(true);
     setMessage("");
     try {
       const response = await fetch("/api/twitter-automation/automation-runs/schedule", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ runId }),
+        body: JSON.stringify({ runId, scope }),
       });
       const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
@@ -207,7 +222,7 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       await load();
       setIsSchedulingAll(false);
     }
-  }, [isSchedulingAll, load, processingOutputId, readyOutputs.length, runId]);
+  }, [isSchedulingAll, isTestAutomation, load, processingOutputId, readyOutputs.length, runId, scope]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(true), 0);
@@ -226,6 +241,12 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
     const timer = window.setInterval(() => void load(), nextOutput.status === "generating_video" ? 8_000 : 1_500);
     return () => window.clearInterval(timer);
   }, [load, nextOutput, processingOutputId]);
+
+  useEffect(() => {
+    if (isReviewReady || browserVideoOutputs.length) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [browserVideoOutputs.length, isReviewReady]);
 
   const progressStatus = browserVideoOutputs.length
     ? "Ses eklemek için onay bekleniyor"
@@ -246,8 +267,9 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
         {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
         <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Video sesi için devam et" : "İçerikler sırayla üretiliyor"}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Tarayıcının sesli video kaydına izin vermesi için bu adımı sen başlatmalısın.` : progressStatus}</p>
-        <div className="mt-7 h-2 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
+        <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-black tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
+        <p className="mt-2 text-xs text-[#a9b8ae]">{browserVideoOutputs.length ? "Tahmini kalan süre: devam etme onayından sonra hesaplanacak" : `Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
         {browserVideoOutputs.length ? <Button className="mt-7 h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(processingOutputId)} onClick={() => void renderBrowserVideo(browserVideoOutputs[0]!)} type="button">{processingOutputId ? <LoaderCircle className="size-4 animate-spin" /> : <Video className="size-4" />}{isConfusedWordsVideo(browserVideoOutputs[0]!) ? "Devam et ve açıklama videosunu renderla" : "Devam et ve videoya ses ekle"}</Button> : null}
         {message ? <p className="mt-5 text-sm text-[#ffb9c1]">{message}</p> : null}
       </div>
@@ -265,6 +287,6 @@ export function GeneratedPostsTable({ runId, onClose }: { runId: string; onClose
       })}</div>
     </main>}
 
-    {isReviewReady ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78]" disabled={!readyOutputs.length || isSchedulingAll || Boolean(processingOutputId)} onClick={() => void scheduleAll()} type="button">{isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}Schedule all ({readyOutputs.length})</Button></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || progressStatus}</footer>}
+    {isReviewReady ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78] disabled:cursor-not-allowed disabled:opacity-45" disabled={isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId)} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : undefined} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || progressStatus}</footer>}
   </section>;
 }

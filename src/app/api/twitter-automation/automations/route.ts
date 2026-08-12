@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const AUTOMATION_OWNER_KEY = "social-studio";
 const TABLE_NAME = "social_content_automation_state";
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const TIER_CODES = ["A1", "A2", "B1", "B2", "C1"] as const;
@@ -18,6 +18,11 @@ const generatorModesSchema = z.object({
   text: z.string().trim().min(1).max(120).optional(),
   image: z.string().trim().min(1).max(120).optional(),
   video: z.string().trim().min(1).max(120).optional(),
+}).strict();
+const randomIncludesSchema = z.object({
+  text: z.array(z.enum(["ai"])).min(1).max(1).optional(),
+  image: z.array(z.enum(["self", "ai"])).min(1).max(2).optional(),
+  video: z.array(z.enum(["ai", "self", "img"])).min(1).max(3).optional(),
 }).strict();
 
 type SocialMediaDatabaseRow = {
@@ -71,6 +76,7 @@ const automationRowSchema = z.object({
   generator: z.string().trim().min(1).max(120),
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
+  randomIncludes: randomIncludesSchema.optional(),
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LANGUAGE_CODES),
   tier: z.enum(["random", ...TIER_CODES]),
@@ -157,6 +163,7 @@ function hasValidSocialSelections(groups: z.infer<typeof automationGroupsSchema>
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
 
   try {
     const supabase = createSupabaseAdminClient();
@@ -164,7 +171,7 @@ export async function GET(request: NextRequest) {
       supabase
       .from(TABLE_NAME)
       .select("groups, updated_at")
-      .eq("owner_key", AUTOMATION_OWNER_KEY)
+      .eq("owner_key", ownerKey)
       .maybeSingle<{ groups: unknown; updated_at: string }>(),
       loadSocialMediaAccounts(),
     ]);
@@ -185,6 +192,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
 
   const parsed = automationGroupsSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 400 });
@@ -203,7 +211,7 @@ export async function PUT(request: NextRequest) {
     const { error } = await supabase
       .from(TABLE_NAME)
       .upsert({
-        owner_key: AUTOMATION_OWNER_KEY,
+        owner_key: ownerKey,
         groups: parsed.data.groups,
         updated_at: updatedAt,
       }, { onConflict: "owner_key" });

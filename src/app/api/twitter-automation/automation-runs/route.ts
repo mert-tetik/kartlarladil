@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { RANDOM_GENERATOR, resolveGeneratorSelection } from "@/features/twitter-automation/automation-randomization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OWNER_KEY = "social-studio";
 const STATE_TABLE = "social_content_automation_state";
 const AUTOMATION_BUCKET = "social-studio-automation";
 const languageSchema = z.enum(["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"]);
@@ -17,12 +18,18 @@ const generatorModesSchema = z.object({
   image: z.string().trim().min(1).max(120).optional(),
   video: z.string().trim().min(1).max(120).optional(),
 }).strict();
+const randomIncludesSchema = z.object({
+  text: z.array(z.enum(["ai"])).min(1).max(1).optional(),
+  image: z.array(z.enum(["self", "ai"])).min(1).max(2).optional(),
+  video: z.array(z.enum(["ai", "self", "img"])).min(1).max(3).optional(),
+}).strict();
 const rowSchema = z.object({
   id: z.string().uuid(),
   contentType: z.enum(["random", "text", "image", "video"]),
   generator: z.string().trim().min(1).max(120),
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
+  randomIncludes: randomIncludesSchema.optional(),
   language: languageSchema,
   nativeLanguage: languageSchema,
   tier: z.enum(["random", "A1", "A2", "B1", "B2", "C1"]),
@@ -35,10 +42,12 @@ const groupsSchema = z.array(z.object({
   name: z.string().trim().min(1).max(120),
   rows: z.array(rowSchema).min(1).max(100),
 }).passthrough()).min(1).max(30);
-const requestSchema = z.object({ horizonDays: z.union([z.literal(1), z.literal(3), z.literal(7)]) }).strict();
+const requestSchema = z.object({
+  horizonDays: z.union([z.literal(1), z.literal(3), z.literal(7)]),
+  scope: z.enum(["production", "test"]).optional(),
+}).strict();
 
 type AutomationRow = z.infer<typeof rowSchema>;
-type AutomationGroup = z.infer<typeof groupsSchema>[number];
 type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
 
 function isAuthorized(request: NextRequest) {
@@ -85,8 +94,9 @@ function resolveContentMode(row: AutomationRow) {
           ? ["video"]
           : ["text", "image", "video"];
   const contentType = selectedTypes[Math.floor(Math.random() * selectedTypes.length)]!;
-  const generator = row.generators?.[contentType]
-    ?? (row.contentType === contentType ? row.generator : contentType === "text" ? "random-text" : contentType === "image" ? "random-ai-image" : "random-video");
+  const generatorMode = row.generators?.[contentType]
+    ?? (row.contentType === contentType ? row.generator : RANDOM_GENERATOR);
+  const generator = resolveGeneratorSelection(contentType, generatorMode, row.randomIncludes?.[contentType]);
 
   return { contentType, generator };
 }
@@ -101,6 +111,7 @@ async function toMediaUrl(path: string | null) {
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
   const runId = request.nextUrl.searchParams.get("runId");
   if (runId && !z.string().uuid().safeParse(runId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
   try {
@@ -108,7 +119,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("social_content_automation_outputs")
       .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_type,provider_task_id,upload_post_jobs,error_code,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at)")
-      .eq("run.owner_key", OWNER_KEY)
+      .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
       .limit(300);
     if (runId) query = query.eq("run_id", runId);
@@ -125,10 +136,11 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsedRequest = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsedRequest.success) return NextResponse.json({ errorCode: "invalid_automation_horizon" }, { status: 400 });
+  const ownerKey = automationOwnerKey(normalizeAutomationScope(parsedRequest.data.scope));
 
   try {
     const supabase = createSupabaseAdminClient();
-    const { data: state, error: stateError } = await supabase.from(STATE_TABLE).select("groups").eq("owner_key", OWNER_KEY).maybeSingle<{ groups: unknown }>();
+    const { data: state, error: stateError } = await supabase.from(STATE_TABLE).select("groups").eq("owner_key", ownerKey).maybeSingle<{ groups: unknown }>();
     if (stateError) return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
     const parsedGroups = groupsSchema.safeParse(state?.groups);
     if (!parsedGroups.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .insert({ owner_key: OWNER_KEY, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: sourceRows.length * parsedRequest.data.horizonDays })
+      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: sourceRows.length * parsedRequest.data.horizonDays })
       .select("id,horizon_days,created_at")
       .single();
     if (runError || !run) return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });

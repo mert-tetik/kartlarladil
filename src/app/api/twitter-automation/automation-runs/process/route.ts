@@ -3,6 +3,7 @@ import { z } from "zod";
 import { processAutomationOutput, refreshAutomationRunStatus, type AutomationOutputRecord } from "@/features/twitter-automation/automation-run-service";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export const maxDuration = 120;
 
 const requestSchema = z.object({
   outputId: z.string().uuid().optional(),
+  scope: z.enum(["production", "test"]).optional(),
   stagedMediaPath: z.string().regex(/^automation\/[\da-f-]+\.webm$/iu).optional(),
   caption: z.string().trim().min(1).max(400).optional(),
 }).strict().superRefine((value, context) => {
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_output" }, { status: 400 });
+  const ownerKey = automationOwnerKey(normalizeAutomationScope(parsed.data.scope));
 
   try {
     const supabase = createSupabaseAdminClient();
@@ -38,6 +41,15 @@ export async function POST(request: NextRequest) {
     const { data: candidate, error: candidateError } = await query.maybeSingle<AutomationOutputRecord>();
     if (candidateError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!candidate) return NextResponse.json({ processed: false, state: "idle" });
+
+    const { data: run, error: runError } = await supabase
+      .from("social_content_automation_runs")
+      .select("id")
+      .eq("id", candidate.run_id)
+      .eq("owner_key", ownerKey)
+      .maybeSingle();
+    if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
 
     const update = parsed.data.stagedMediaPath
       ? { status: "ready_to_schedule", media_path: parsed.data.stagedMediaPath, media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }

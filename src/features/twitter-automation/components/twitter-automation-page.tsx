@@ -332,7 +332,7 @@ function GeneratorModeOption({
   );
 }
 
-export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "social-medias" | "scheduled-posts" }) {
+export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "test-automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [username, setUsername] = useState("");
@@ -1710,7 +1710,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   if (view === "automations") {
-    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} />;
+    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenAlternateAutomation={() => router.push("/content-automation/test-automations")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} />;
+  }
+
+  if (view === "test-automations") {
+    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenAlternateAutomation={() => router.push("/content-automation/automations")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} scope="test" />;
   }
 
   if (view === "social-medias") {
@@ -1740,7 +1744,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
             <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Social content studio</h1>
             <p className="mt-2 text-sm leading-6 text-[#cdbfb3]">Choose a format first, then create an export-ready post for the right channel.</p>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap"><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/social-medias")} type="button"><Database className="size-4" aria-hidden="true" />Social medias</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Automation table</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/scheduled-posts")} type="button"><CalendarClock className="size-4" aria-hidden="true" />Scheduled Posts</Button></div>
+          <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap"><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/social-medias")} type="button"><Database className="size-4" aria-hidden="true" />Social medias</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Automation table</Button><Button className="h-11 border-white/20 bg-white/[0.06] text-[#f9f2e9] hover:bg-white/[0.1]" onClick={() => router.push("/content-automation/test-automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Test table</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/scheduled-posts")} type="button"><CalendarClock className="size-4" aria-hidden="true" />Scheduled Posts</Button></div>
         </header>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
