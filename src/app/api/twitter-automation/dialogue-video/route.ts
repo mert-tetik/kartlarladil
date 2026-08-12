@@ -5,6 +5,7 @@ import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } 
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -220,7 +221,7 @@ export async function POST(request: Request) {
       voice: (scene.character === 1 ? DIALOGUE_MASCOT_VOICES[firstCharacter] : DIALOGUE_MASCOT_VOICES[secondCharacter]).id,
     })));
     return Response.json({
-      caption: plan.caption,
+      caption: finalizeNativeCaption(plan.caption, nativeLanguage),
       firstCharacter,
       secondCharacter,
       backgroundVideoUrl: getDialogueBackgroundPublicUrl(),

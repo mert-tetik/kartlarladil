@@ -4,6 +4,7 @@ import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import {
+  createRandomSocialStudioWordOfTheDayPosterCard,
   resolveSocialStudioVocabularyCard,
   selectSocialStudioVocabularyTerms,
   SocialStudioVocabularyError,
@@ -27,6 +28,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (parsed.data.generator === "word-of-the-day-poster") {
+      const card = await createRandomSocialStudioWordOfTheDayPosterCard(parsed.data.language, parsed.data.nativeLanguage);
+      return NextResponse.json({ card }, { headers: { "Cache-Control": "no-store" } });
+    }
+
     const [term] = await selectSocialStudioVocabularyTerms({ ...parsed.data, count: 1 });
     const card = await resolveSocialStudioVocabularyCard(term!, parsed.data.language, parsed.data.nativeLanguage);
     return NextResponse.json({ card }, { headers: { "Cache-Control": "no-store" } });

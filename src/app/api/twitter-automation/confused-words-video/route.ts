@@ -4,6 +4,7 @@ import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -95,7 +96,7 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
     "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Choose them yourself, never from a catalogue. Do not use any previously used terms or example lists. The words must be completely random and must not repeat any term used in previous generations, even when this request runs immediately after another one. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
     "connector is only the native-language equivalent of 'and'. question is the native-language equivalent of 'what is the difference between them?'.",
     "firstMeaningTail is a native-language phrase that follows the first term and means '[its meaning] while,'; do not repeat the first term. secondMeaningTail is a native-language phrase that follows the second term and means '[its meaning].'; do not repeat the second term.",
-    "caption is one ready-to-post native-language caption under 260 characters, with an inviting hook and 2 or 3 relevant hashtags including #languagelearning.",
+    `caption is one ready-to-post native-language caption under 260 characters, with an inviting hook. End with exactly these native-language hashtags: ${getNativeCaptionHashtags(nativeLanguage).join(" ")}. Do not use English hashtags unless English is the selected native language.`,
     "Use natural punctuation for speech. Keep every spoken fragment brief and easy to understand.",
   ].join("\n");
   const input = {
@@ -192,7 +193,7 @@ export async function POST(request: Request) {
   try {
     const audioDataUrls = await generateSceneSpeechInBatches(sceneDefinitions);
     return Response.json({
-      caption: plan.caption,
+      caption: finalizeNativeCaption(plan.caption, parsed.data.nativeLanguage),
       phases: cards,
       scenes: sceneDefinitions.map(({ speechSpeed: _speechSpeed, ...scene }, index) => ({ ...scene, audioDataUrl: audioDataUrls[index]! })),
     });

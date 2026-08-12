@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
@@ -38,6 +38,9 @@ interface VocabularyCardViewProps {
   frontFit?: boolean;
   frontMinimal?: boolean;
   frontContentScale?: number;
+  frontTranslationBelowTerm?: boolean;
+  frontHideStudyMetadata?: boolean;
+  frontFitCoreText?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
   primaryTranslationOnly?: boolean;
@@ -61,6 +64,48 @@ const ADD_BUTTON_TEXT_BY_TIER: Record<Tier, string> = {
   C1: "text-rose-800",
 };
 
+function FittedSingleLineText({ children }: { children: string }) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const text = textRef.current;
+
+    if (!container || !text) {
+      return;
+    }
+
+    const fitText = () => {
+      const availableWidth = container.clientWidth;
+      const textWidth = text.scrollWidth;
+
+      setScale(availableWidth > 0 && textWidth > availableWidth ? availableWidth / textWidth : 1);
+    };
+
+    fitText();
+    void document.fonts?.ready.then(fitText);
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(fitText);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [children]);
+
+  return (
+    <span ref={containerRef} className="block w-full overflow-hidden">
+      <span ref={textRef} className="inline-block origin-center whitespace-nowrap" style={{ transform: `scale(${scale})` }}>
+        {children}
+      </span>
+    </span>
+  );
+}
+
 export function VocabularyCardView({
   card,
   inventory,
@@ -77,6 +122,9 @@ export function VocabularyCardView({
   frontFit = false,
   frontMinimal = false,
   frontContentScale = 1,
+  frontTranslationBelowTerm = false,
+  frontHideStudyMetadata = false,
+  frontFitCoreText = false,
   compact = false,
   translationLocale,
   primaryTranslationOnly = false,
@@ -159,7 +207,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} footerMode={footerMode} footerProgressCount={footerProgressCount} />
       </article>
     );
   }
@@ -197,6 +245,9 @@ export function VocabularyCardView({
           frontFit={frontFit}
           frontMinimal={frontMinimal}
           frontContentScale={frontContentScale}
+          frontTranslationBelowTerm={frontTranslationBelowTerm}
+          frontHideStudyMetadata={frontHideStudyMetadata}
+          frontFitCoreText={frontFitCoreText}
           isControlled={isControlled}
           compact={compact}
           translationLocale={translationLocale}
@@ -231,6 +282,9 @@ function CardFront({
   frontFit = false,
   frontMinimal = false,
   frontContentScale = 1,
+  frontTranslationBelowTerm = false,
+  frontHideStudyMetadata = false,
+  frontFitCoreText = false,
   compact = false,
   translationLocale,
   primaryTranslationOnly = false,
@@ -249,6 +303,9 @@ function CardFront({
   frontFit?: boolean;
   frontMinimal?: boolean;
   frontContentScale?: number;
+  frontTranslationBelowTerm?: boolean;
+  frontHideStudyMetadata?: boolean;
+  frontFitCoreText?: boolean;
   isControlled?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
@@ -357,7 +414,7 @@ function CardFront({
       </div>
 
       <div className={cn("flex flex-1 flex-col justify-center text-center", compact ? "py-1 max-sm:py-0.5" : "py-4 max-sm:py-2", frontMinimal && "gap-1")} style={frontContentScale === 1 ? undefined : { transform: `scale(${frontContentScale})` }}>
-        {!frontMinimal ? (
+        {!frontMinimal && !frontHideStudyMetadata ? (
           <>
             <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
               <span>{getLanguageDisplayName(card.language, locale)}</span>
@@ -392,33 +449,65 @@ function CardFront({
               ? compact
                 ? "text-lg max-sm:text-base"
                 : "text-xl max-sm:text-lg"
-              : "mt-3 text-2xl max-sm:mt-1 sm:text-4xl",
+              : frontFitCoreText
+                ? "mt-3 text-3xl max-sm:mt-1 sm:text-5xl"
+                : "mt-3 text-2xl max-sm:mt-1 sm:text-4xl",
           )}
         >
-          {card.term}
+          {frontFitCoreText ? <FittedSingleLineText>{card.term}</FittedSingleLineText> : card.term}
         </h3>
-        {!frontMinimal ? (
+        {frontTranslationBelowTerm ? (
+          <>
+            <p className={cn("mt-2 font-semibold leading-tight text-foreground/70 dark:text-white/85 max-sm:mt-1", frontFitCoreText ? "text-2xl max-sm:text-lg sm:text-4xl" : "text-xl max-sm:text-base sm:text-3xl")}>
+              {frontFitCoreText ? <FittedSingleLineText>{cardTranslation}</FittedSingleLineText> : cardTranslation}
+            </p>
+            {!frontMinimal && !frontHideStudyMetadata ? (
+              <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
+                {getPartOfSpeechLabel(card.termKind, locale)}
+              </p>
+            ) : null}
+          </>
+        ) : !frontMinimal ? (
+          <>
           <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
             {getPartOfSpeechLabel(card.termKind, locale)}
           </p>
-        ) : null}
-        <div
-          className={cn(
-            "flex items-start justify-center",
-            frontMinimal ? "min-h-0" : "mt-5 max-sm:mt-1",
-            frontFit ? "min-h-0" : frontMinimal ? "min-h-0" : "h-12 max-sm:h-8",
-          )}
-        >
-          <p
+            <div
+              className={cn(
+                "flex items-start justify-center",
+                "mt-5 max-sm:mt-1",
+                frontFit ? "min-h-0" : "h-12 max-sm:h-8",
+              )}
+            >
+              <p
+                className={cn(
+                  "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
+                  frontFit ? "line-clamp-3" : "line-clamp-2",
+                )}
+              >
+                {cardTranslation}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div
             className={cn(
-              "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
-              frontFit ? "line-clamp-3" : "line-clamp-2",
-              frontMinimal && "text-base max-sm:text-sm",
+              "flex items-start justify-center",
+              "min-h-0",
+              frontFit ? "min-h-0" : "h-12 max-sm:h-8",
             )}
           >
-            {cardTranslation}
-          </p>
-        </div>
+            <p
+              className={cn(
+                "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
+                frontFit ? "line-clamp-3" : "line-clamp-2",
+                "text-base max-sm:text-sm",
+              )}
+            >
+              {cardTranslation}
+            </p>
+          </div>
+        )}
       </div>
 
       <div

@@ -12,8 +12,24 @@ import { AutomationTable } from "@/features/twitter-automation/components/automa
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
 import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
+import { VocabularyCarouselIntro } from "@/features/twitter-automation/components/vocabulary-carousel-intro";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
 import { SelfSocialImage, type SelfSocialImageMode } from "@/features/twitter-automation/components/self-social-image";
+import {
+  isSelfFalseFriendsContent,
+  normalizeSelfFalseFriendsTerm,
+  type SelfFalseFriendsContent,
+} from "@/features/twitter-automation/self-false-friends";
+import {
+  isSelfExampleSentencesContent,
+  normalizeSelfExampleSentence,
+  type SelfExampleSentencesContent,
+} from "@/features/twitter-automation/self-example-sentences";
+import {
+  isSelfVocabularyProgressionContent,
+  normalizeSelfVocabularyProgressionTerm,
+  type SelfVocabularyProgressionContent,
+} from "@/features/twitter-automation/self-vocabulary-progression";
 import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
@@ -22,7 +38,12 @@ import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
 import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
-import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
+import {
+  createWordOfTheDayCaption,
+  finalizeNativeCaption,
+  getNativeCaptionHeading,
+  getWordOfTheDayTitle,
+} from "@/features/twitter-automation/social-video-titles";
 import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
@@ -71,7 +92,7 @@ const TEXT_GENERATOR_OPTIONS: Array<{ value: TextGeneratorMode; label: string; d
 const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: string; description: string }> = [
   { value: "ai-word-of-the-day", label: "Word of the Day Campaign", description: "A polished hero visual around one real word card" },
   { value: "ai-mini-quiz", label: "Mini Quiz", description: "A social quiz visual built around one vocabulary word" },
-  { value: "ai-false-friends", label: "False Friends", description: "Two similar-looking words from the selected language, clearly contrasted" },
+  { value: "ai-false-friends", label: "False Friends", description: "Two related words from the selected language, clearly contrasted by nuance" },
   { value: "ai-daily-challenge", label: "Daily Challenge", description: "A three-word study challenge visual" },
   { value: "ai-vocabulary-progression", label: "Beginner to Advanced", description: "Beginner words beside their advanced alternatives" },
   { value: "ai-example-sentences", label: "Example Sentences", description: "Three example sentences in the learning language with native-language meanings" },
@@ -79,17 +100,17 @@ const AI_IMAGE_GENERATOR_OPTIONS: Array<{ value: AiImageGeneratorMode; label: st
 
 const SELF_IMAGE_GENERATOR_OPTIONS: Array<{ value: SelfImageGeneratorMode; label: string; description: string }> = [
   { value: "self-mini-quiz", label: "Mini Quiz (Self)", description: "A non-AI social quiz visual built around one vocabulary word" },
-  { value: "self-false-friends", label: "False Friends (Self)", description: "Two real cards side by side, easy-to-confuse style" },
+  { value: "self-false-friends", label: "False Friends (Self)", description: "GPT-created near-synonym cards with their nuance clearly explained" },
   { value: "self-daily-challenge", label: "Daily Challenge (Self)", description: "A non-AI three-word study challenge visual" },
-  { value: "self-vocabulary-progression", label: "Beginner to Advanced (Self)", description: "Three real cards at A1, B2, and C1 levels" },
-  { value: "self-example-sentences", label: "Example Sentences (Self)", description: "Three real example sentences with native-language meanings" },
+  { value: "self-vocabulary-progression", label: "Beginner to Advanced (Self)", description: "GPT-created A1, B2, and C1 alternatives for one shared meaning" },
+  { value: "self-example-sentences", label: "Example Sentences (Self)", description: "GPT-created random sentence pairs with native-language meanings" },
 ];
 
 const IMAGE_GENERATOR_OPTIONS: Array<{ value: ImageGeneratorMode; label: string; description: string }> = [
   { value: "word-of-the-day", label: "Word of the Day", description: "A real card visual with its ready-to-post caption" },
   { value: "word-of-the-day-poster", label: "Word of the Day poster", description: "A single social image with the post copy built in" },
-  { value: "vocabulary-carousel", label: "Vocabulary Carousel", description: "Six non-AI 3:4 card visuals for one carousel post" },
-  { value: "tier-progression-carousel", label: "A1 to C1 Carousel", description: "Three non-AI 3:4 cards at A1, B2, and C1" },
+  { value: "vocabulary-carousel", label: "Vocabulary Carousel", description: "A brand intro followed by six non-AI 3:4 card visuals" },
+  { value: "tier-progression-carousel", label: "A1 to C1 Carousel", description: "A brand intro followed by one card from every CEFR tier" },
   ...AI_IMAGE_GENERATOR_OPTIONS,
   ...SELF_IMAGE_GENERATOR_OPTIONS,
 ];
@@ -172,16 +193,12 @@ const POSTER_TIER_PALETTES: Record<Tier, { base: string; deep: string; accent: s
   C1: { base: "#be123c", deep: "#6d0c29", accent: "#fecdd3" },
 };
 
-function createWordCaption(card: VocabularyCard) {
-  const languageNative = LANGUAGE_BY_CODE[card.language].nativeName;
-  const title = getWordOfTheDayTitle(card.language);
-  const example = card.examples[0]?.sentence ?? card.example;
-  const tag = ENGLISH_LANGUAGE_NAMES[card.language].toLowerCase().replaceAll(" ", "");
-  return `${languageNative.toUpperCase()} ${title.toUpperCase()}!! ${example}\n\n#${tag} #language #wordoftheday`;
-}
-
 function isCardGenerator(mode: GeneratorMode) {
   return mode === "word-of-the-day" || mode === "word-of-the-day-poster";
+}
+
+function isGptWordOfTheDayPoster(mode: GeneratorMode) {
+  return mode === "word-of-the-day-poster";
 }
 
 function isTextGenerator(mode: GeneratorMode): mode is TextGeneratorMode {
@@ -360,6 +377,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const [carouselError, setCarouselError] = useState("");
   const [isRenderingCarousel, setIsRenderingCarousel] = useState(false);
   const [selfCards, setSelfCards] = useState<VocabularyCard[]>([]);
+  const [selfFalseFriends, setSelfFalseFriends] = useState<SelfFalseFriendsContent | null>(null);
+  const [selfExampleSentences, setSelfExampleSentences] = useState<SelfExampleSentencesContent | null>(null);
+  const [selfVocabularyProgression, setSelfVocabularyProgression] = useState<SelfVocabularyProgressionContent | null>(null);
   const [selfImageUrl, setSelfImageUrl] = useState("");
   const [selfImageCaption, setSelfImageCaption] = useState("");
   const [selfImageError, setSelfImageError] = useState("");
@@ -373,8 +393,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const carouselSlideRefs = useRef<Array<HTMLDivElement | null>>([]);
   const confusedWordsCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const selfImageExportRef = useRef<HTMLDivElement>(null);
+  const recentSelfFalseFriendsTermsRef = useRef<string[]>([]);
+  const recentSelfExampleSentencesRef = useRef<string[]>([]);
+  const recentSelfVocabularyProgressionTermsRef = useRef<string[]>([]);
 
-  const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : isSelfImageGenerator(generatorMode) ? selfImageCaption : card ? createWordCaption(card) : "";
+  const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : isSelfImageGenerator(generatorMode) ? selfImageCaption : card ? createWordOfTheDayCaption(card, nativeLanguage) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
   const aiImagePending = aiImageStatus === "running";
   const musicVideoPending = musicVideoStatus === "creating-image" || musicVideoStatus === "rendering";
@@ -383,7 +406,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const isDialogueVideoMode = isDialogueVideoGenerator(generatorMode);
   const isOriginalMascotLearningVideoMode = isOriginalMascotLearningVideoGenerator(generatorMode);
   const isBrowserVideoMode = isMusicVideoMode || isConfusedWordsVideoMode || isDialogueVideoMode || isOriginalMascotLearningVideoMode;
-  const carouselSlideCount = isTierProgressionCarouselGenerator(generatorMode) ? 3 : 6;
+  const selfImagePreview = generatorMode === "self-example-sentences"
+    ? { aspectClassName: "aspect-[4/3]", height: 900, width: 1200 }
+    : generatorMode === "self-mini-quiz"
+      ? { aspectClassName: "aspect-[4/3]", height: 900, width: 1200 }
+      : { aspectClassName: "aspect-[3/4]", height: 1440, width: 1080 };
+  const carouselCardCount = isTierProgressionCarouselGenerator(generatorMode) ? TIERS.length : 6;
+  const carouselSlideCount = carouselCardCount + 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -399,7 +428,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }, []);
 
   useEffect(() => {
-    if (!isCarouselImageGenerator(generatorMode) || carouselCards.length !== carouselSlideCount) return;
+    if (!isCarouselImageGenerator(generatorMode) || carouselCards.length !== carouselCardCount) return;
 
     let cancelled = false;
     const frame = window.requestAnimationFrame(() => {
@@ -411,8 +440,20 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         try {
           await document.fonts?.ready;
           const slides = carouselSlideRefs.current;
-          if (slides.length !== carouselCards.length || slides.some((slide) => !slide)) throw new Error("carousel_render_unavailable");
-          const rendered = await Promise.all(slides.map((slide) => toPng(slide!, { cacheBust: true, pixelRatio: 3, backgroundColor: "#16120f" })));
+          if (slides.length !== carouselSlideCount || slides.some((slide) => !slide)) throw new Error("carousel_render_unavailable");
+          const images = slides.flatMap((slide) => Array.from(slide!.querySelectorAll("img")));
+          await Promise.race([
+            Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), { once: true });
+            }))),
+            new Promise<void>((resolve) => window.setTimeout(resolve, 5_000)),
+          ]);
+          const rendered = await Promise.all(slides.map((slide, index) => toPng(slide!, {
+            cacheBust: true,
+            pixelRatio: 1.5,
+            backgroundColor: index === 0 ? "#f76808" : "#16120f",
+          })));
           if (!cancelled) setCarouselImageUrls(rendered);
         } catch {
           if (!cancelled) setCarouselError("The carousel images could not be rendered. Try again.");
@@ -426,7 +467,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       cancelled = true;
       window.cancelAnimationFrame(frame);
     };
-  }, [carouselCards, carouselSlideCount, generatorMode]);
+  }, [carouselCardCount, carouselCards, carouselSlideCount, generatorMode]);
 
   useEffect(() => {
     if (!card || (generatorMode !== "word-of-the-day" && generatorMode !== "word-of-the-day-poster")) return;
@@ -476,7 +517,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }, [card, generatorMode, nativeLanguage]);
 
   useEffect(() => {
-    if (!isSelfImageGenerator(generatorMode) || selfCards.length === 0) return;
+    if (!isSelfImageGenerator(generatorMode) || (selfCards.length === 0 && !selfFalseFriends && !selfExampleSentences && !selfVocabularyProgression)) return;
 
     let cancelled = false;
     const frame = window.requestAnimationFrame(() => {
@@ -497,7 +538,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
             });
           }));
           await Promise.race([loadedImages, new Promise<void>((resolve) => window.setTimeout(resolve, 5_000))]);
-          const dataUrl = await toPng(source, { cacheBust: true, pixelRatio: 3, backgroundColor: "#11100f" });
+          const dataUrl = await toPng(source, { cacheBust: true, pixelRatio: 1.5, backgroundColor: "#11100f" });
           if (!cancelled) setSelfImageUrl(dataUrl);
         } catch {
           if (!cancelled) setSelfImageError("The self image could not be rendered. Try again.");
@@ -511,7 +552,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       cancelled = true;
       window.cancelAnimationFrame(frame);
     };
-  }, [selfCards, generatorMode, nativeLanguage]);
+  }, [selfCards, selfFalseFriends, selfExampleSentences, selfVocabularyProgression, generatorMode, nativeLanguage]);
 
   useEffect(() => {
     if (!aiVideoTaskId || (aiVideoStatus !== "queued" && aiVideoStatus !== "running")) return;
@@ -564,11 +605,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     };
   }, [musicVideoUrl]);
 
-  async function fetchCard(nextLanguage: LanguageCode, nextTier: Tier): Promise<VocabularyCard | null> {
+  async function fetchCard(nextLanguage: LanguageCode, nextTier: Tier, generator = "self-vocabulary-card"): Promise<VocabularyCard | null> {
     const response = await fetch("/api/twitter-automation/card", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ language: nextLanguage, nativeLanguage, tier: nextTier, generator: "self-vocabulary-card" }),
+      body: JSON.stringify({ language: nextLanguage, nativeLanguage, tier: nextTier, generator }),
     });
     if (response.status === 401) {
       setAuthenticated(false);
@@ -578,13 +619,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     return payload.card ?? null;
   }
 
-  async function loadCard(nextLanguage: LanguageCode, nextTier: Tier, showLoading = true) {
+  async function loadCard(nextLanguage: LanguageCode, nextTier: Tier, showLoading = true, generator = "self-vocabulary-card") {
     if (showLoading) setIsLoading(true);
     setCardImageUrl("");
     setPosterImageUrl("");
     setLocalImageRenderError("");
     try {
-      const nextCard = await fetchCard(nextLanguage, nextTier);
+      const nextCard = await fetchCard(nextLanguage, nextTier, generator);
       setCard(nextCard);
       return nextCard;
     } finally {
@@ -593,7 +634,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   function captionForSelfImage(mode: SelfImageGeneratorMode, cards: VocabularyCard[]) {
-    const tag = ENGLISH_LANGUAGE_NAMES[cards[0]?.language ?? "en"].toLowerCase().replaceAll(" ", "");
+    const createCaption = (kind: Parameters<typeof getNativeCaptionHeading>[1], content: string) =>
+      finalizeNativeCaption([getNativeCaptionHeading(nativeLanguage, kind), content].filter(Boolean).join("\n\n"), nativeLanguage);
+
     switch (mode) {
       case "self-mini-quiz": {
         const card = cards[0];
@@ -601,25 +644,112 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         const options = [correct, ...cards.slice(1, 4).map((c) => getPrimaryCardTranslation(c, nativeLanguage))].sort(() => Math.random() - 0.5);
         const labels = ["A", "B", "C", "D"];
         const body = options.map((text, index) => `${labels[index]}) ${text}`).join("\n");
-        return `What does "${card.term}" mean?\n${body}\n\nComment your answer!\n\n#${tag} #languagelearning #vocabularyquiz`;
+        return createCaption("miniQuiz", [card.term, body].join("\n\n"));
       }
       case "self-false-friends": {
         const [first, second] = cards;
-        return `"${first.term}" vs "${second.term}" — two ${LANGUAGE_BY_CODE[first.language].nativeName} words that look or sound similar but mean different things.\n\n#${tag} #languagelearning #falsefriends`;
+        return createCaption("falseFriends", [first.term, second.term].join(" · "));
       }
       case "self-daily-challenge": {
         const terms = cards.map((c) => c.term).join(", ");
-        return `Today's ${LANGUAGE_BY_CODE[cards[0].language].nativeName} challenge: ${terms}\n\nAdd them to your FoxiesDeck collection.\n\n#${tag} #languagelearning #dailychallenge`;
-      }
-      case "self-vocabulary-progression": {
-        const [beginner, intermediate, advanced] = cards;
-        return `Beginner → Advanced in ${LANGUAGE_BY_CODE[cards[0].language].nativeName}:\n${beginner.term} → ${intermediate.term} → ${advanced.term}\n\nLevel up one word at a time.\n\n#${tag} #languagelearning #vocabulary`;
+        return createCaption("dailyChallenge", terms);
       }
       case "self-example-sentences": {
-        return `Three real ${LANGUAGE_BY_CODE[cards[0].language].nativeName} sentences. Write your own in the comments!\n\n#${tag} #languagelearning #examplesentences`;
+        const examples = cards.map((card) => {
+          const sentence = card.examples[0]?.sentence ?? card.example;
+          const translation = card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation;
+          return [sentence, translation].filter(Boolean).join("\n");
+        }).join("\n\n");
+        return createCaption("exampleSentences", examples);
       }
       default: return "";
     }
+  }
+
+  function captionForSelfFalseFriends(pair: SelfFalseFriendsContent) {
+    return finalizeNativeCaption([
+      getNativeCaptionHeading(nativeLanguage, "falseFriends"),
+      `${pair.firstTerm} / ${pair.secondTerm}`,
+      pair.firstExplanation,
+      pair.secondExplanation,
+    ].join("\n\n"), nativeLanguage);
+  }
+
+  function captionForSelfVocabularyProgression(progression: SelfVocabularyProgressionContent) {
+    return finalizeNativeCaption([
+      getNativeCaptionHeading(nativeLanguage, "vocabularyProgression"),
+      `${progression.beginnerTerm} → ${progression.intermediateTerm} → ${progression.advancedTerm}`,
+      progression.beginnerExplanation,
+      progression.intermediateExplanation,
+      progression.advancedExplanation,
+    ].join("\n\n"), nativeLanguage);
+  }
+
+  function captionForSelfExampleSentences(examples: SelfExampleSentencesContent) {
+    return finalizeNativeCaption([
+      getNativeCaptionHeading(nativeLanguage, "exampleSentences"),
+      ...examples.sentences.map((example) => `${example.sentence}\n${example.translation}`),
+    ].join("\n\n"), nativeLanguage);
+  }
+
+  async function requestSelfFalseFriends(): Promise<SelfFalseFriendsContent | null> {
+    const response = await fetch("/api/twitter-automation/self-false-friends", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language, nativeLanguage, recentTerms: recentSelfFalseFriendsTermsRef.current }),
+    });
+    if (response.status === 401) {
+      setAuthenticated(false);
+      return null;
+    }
+
+    const payload = await response.json().catch(() => null) as ({ pair?: unknown } & SocialStudioFailurePayload) | null;
+    if (!response.ok || !isSelfFalseFriendsContent(payload?.pair)) {
+      setSelfImageError(formatSocialStudioFailure(response, payload, "The False Friends content could not be created. Try again."));
+      return null;
+    }
+
+    return payload.pair;
+  }
+
+  async function requestSelfVocabularyProgression(): Promise<SelfVocabularyProgressionContent | null> {
+    const response = await fetch("/api/twitter-automation/self-vocabulary-progression", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language, nativeLanguage, recentTerms: recentSelfVocabularyProgressionTermsRef.current }),
+    });
+    if (response.status === 401) {
+      setAuthenticated(false);
+      return null;
+    }
+
+    const payload = await response.json().catch(() => null) as ({ progression?: unknown } & SocialStudioFailurePayload) | null;
+    if (!response.ok || !isSelfVocabularyProgressionContent(payload?.progression)) {
+      setSelfImageError(formatSocialStudioFailure(response, payload, "The vocabulary progression could not be created. Try again."));
+      return null;
+    }
+
+    return payload.progression;
+  }
+
+  async function requestSelfExampleSentences(): Promise<SelfExampleSentencesContent | null> {
+    const response = await fetch("/api/twitter-automation/self-example-sentences", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language, nativeLanguage, recentSentences: recentSelfExampleSentencesRef.current }),
+    });
+    if (response.status === 401) {
+      setAuthenticated(false);
+      return null;
+    }
+
+    const payload = await response.json().catch(() => null) as ({ examples?: unknown } & SocialStudioFailurePayload) | null;
+    if (!response.ok || !isSelfExampleSentencesContent(payload?.examples)) {
+      setSelfImageError(formatSocialStudioFailure(response, payload, "The example sentences could not be created. Try again."));
+      return null;
+    }
+
+    return payload.examples;
   }
 
   async function generateSelfImage(mode: SelfImageGeneratorMode) {
@@ -628,18 +758,57 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setCardImageUrl("");
     setPosterImageUrl("");
     setSelfCards([]);
+    setSelfFalseFriends(null);
+    setSelfExampleSentences(null);
+    setSelfVocabularyProgression(null);
     setSelfImageUrl("");
     setSelfImageCaption("");
     setSelfImageError("");
 
     try {
+      if (mode === "self-false-friends") {
+        const pair = await requestSelfFalseFriends();
+        if (!pair) return;
+
+        const freshTerms = [pair.firstTerm, pair.secondTerm];
+        recentSelfFalseFriendsTermsRef.current = [...freshTerms, ...recentSelfFalseFriendsTermsRef.current]
+          .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfFalseFriendsTerm(candidate) === normalizeSelfFalseFriendsTerm(term)) === index)
+          .slice(0, 24);
+        setSelfFalseFriends(pair);
+        setSelfImageCaption(captionForSelfFalseFriends(pair));
+        return;
+      }
+
+      if (mode === "self-vocabulary-progression") {
+        const progression = await requestSelfVocabularyProgression();
+        if (!progression) return;
+
+        const freshTerms = [progression.beginnerTerm, progression.intermediateTerm, progression.advancedTerm];
+        recentSelfVocabularyProgressionTermsRef.current = [...freshTerms, ...recentSelfVocabularyProgressionTermsRef.current]
+          .filter((term, index, terms) => terms.findIndex((candidate) => normalizeSelfVocabularyProgressionTerm(candidate) === normalizeSelfVocabularyProgressionTerm(term)) === index)
+          .slice(0, 36);
+        setSelfVocabularyProgression(progression);
+        setSelfImageCaption(captionForSelfVocabularyProgression(progression));
+        return;
+      }
+
+      if (mode === "self-example-sentences") {
+        const examples = await requestSelfExampleSentences();
+        if (!examples) return;
+
+        const freshSentences = examples.sentences.map((example) => example.sentence);
+        recentSelfExampleSentencesRef.current = [...freshSentences, ...recentSelfExampleSentencesRef.current]
+          .filter((sentence, index, sentences) => sentences.findIndex((candidate) => normalizeSelfExampleSentence(candidate) === normalizeSelfExampleSentence(sentence)) === index)
+          .slice(0, 24);
+        setSelfExampleSentences(examples);
+        setSelfImageCaption(captionForSelfExampleSentences(examples));
+        return;
+      }
+
       let tiers: Tier[];
       switch (mode) {
         case "self-mini-quiz": tiers = [tier, tier, tier, tier]; break;
-        case "self-false-friends": tiers = [tier, tier]; break;
         case "self-daily-challenge": tiers = (["A1", "A2", "B1", "B2", "C1"] as Tier[]).sort(() => Math.random() - 0.5).slice(0, 3); break;
-        case "self-vocabulary-progression": tiers = ["A1", "B2", "C1"]; break;
-        case "self-example-sentences": tiers = (["A1", "A2", "B1", "B2", "C1"] as Tier[]).sort(() => Math.random() - 0.5).slice(0, 3); break;
         default: tiers = [];
       }
 
@@ -653,7 +822,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         cards.push(candidate);
       }
 
-      const requiredCount = mode === "self-mini-quiz" ? 4 : mode === "self-false-friends" ? 2 : 3;
+      const requiredCount = mode === "self-mini-quiz" ? 4 : 3;
       if (cards.length < requiredCount) {
         setSelfImageError("Could not load enough fresh cards. Try again.");
         return;
@@ -724,9 +893,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         setCarouselError("Six different vocabulary cards could not be prepared. Try again.");
         return;
       }
-      const tag = ENGLISH_LANGUAGE_NAMES[language].toLowerCase().replaceAll(" ", "");
       setCarouselCards(cards);
-      setCarouselCaption(`Six ${ENGLISH_LANGUAGE_NAMES[language]} words to keep in your vocabulary today. Which one will you use first?\n\n#${tag} #languagelearning #vocabulary`);
+      setCarouselCaption(finalizeNativeCaption([
+        getNativeCaptionHeading(nativeLanguage, "vocabularyCarousel"),
+        cards.map((card) => `${card.term} — ${getPrimaryCardTranslation(card, nativeLanguage)}`).join("\n"),
+      ].join("\n\n"), nativeLanguage));
     } catch {
       setCarouselError("The vocabulary carousel could not be created. Try again.");
     } finally {
@@ -735,7 +906,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   async function generateTierProgressionCarousel() {
-    const progressionTiers: Tier[] = ["A1", "B2", "C1"];
+    const progressionTiers: Tier[] = [...TIERS];
     setIsLoading(true);
     setCard(null);
     setCarouselCards([]);
@@ -760,13 +931,15 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         return payload.card ?? null;
       }));
       const cards = responses.filter((candidate): candidate is VocabularyCard => candidate !== null);
-      if (cards.length !== 3 || new Set(cards.map((candidate) => candidate.sourceKey)).size !== 3) {
-        setCarouselError("The A1, B2, and C1 cards could not be prepared. Try again.");
+      if (cards.length !== TIERS.length || new Set(cards.map((candidate) => candidate.sourceKey)).size !== TIERS.length) {
+        setCarouselError("One card for each level from A1 to C1 could not be prepared. Try again.");
         return;
       }
-      const tag = ENGLISH_LANGUAGE_NAMES[language].toLowerCase().replaceAll(" ", "");
       setCarouselCards(cards);
-      setCarouselCaption(`From A1 to C1: three ${ENGLISH_LANGUAGE_NAMES[language]} words for your next level.\n\n#${tag} #languagelearning #vocabulary`);
+      setCarouselCaption(finalizeNativeCaption([
+        getNativeCaptionHeading(nativeLanguage, "tierProgression"),
+        cards.map((card) => `${card.tier}: ${card.term} — ${getPrimaryCardTranslation(card, nativeLanguage)}`).join("\n"),
+      ].join("\n\n"), nativeLanguage));
     } catch {
       setCarouselError("The A1 to C1 carousel could not be created. Try again.");
     } finally {
@@ -932,7 +1105,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           pixelRatio: 1,
           backgroundColor: sourceMode === "word-of-the-day" ? "#11100f" : POSTER_TIER_PALETTES[nextCard.tier].base,
         });
-        nextCaption = createWordCaption(nextCard);
+        nextCaption = createWordOfTheDayCaption(nextCard, nativeLanguage);
       }
 
       setMusicVideoStatus("rendering");
@@ -1204,6 +1377,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     setCarouselError("");
     carouselSlideRefs.current = [];
     setSelfCards([]);
+    setSelfFalseFriends(null);
     setSelfImageUrl("");
     setSelfImageCaption("");
     setSelfImageError("");
@@ -1315,7 +1489,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       return;
     }
 
-    void loadCard(language, tier);
+    void loadCard(language, tier, true, isGptWordOfTheDayPoster(generatorMode) ? "word-of-the-day-poster" : "self-vocabulary-card");
   }
 
   async function copyCaption() {
@@ -1323,7 +1497,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   async function createCarouselAssets(): Promise<SocialPublishImageAsset[] | undefined> {
-    if (carouselImageUrls.length !== carouselCards.length) return undefined;
+    if (carouselImageUrls.length !== carouselSlideCount) return undefined;
     return carouselImageUrls.map((dataUrl) => ({ dataUrl, mimeType: "image/png" as const }));
   }
 
@@ -1409,12 +1583,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   async function downloadSelfImage() {
-    if (!selfImageUrl || !selfCards.length) return;
+    if (!selfImageUrl || (selfCards.length === 0 && !selfFalseFriends && !selfExampleSentences && !selfVocabularyProgression)) return;
 
     setIsExporting(true);
     try {
       const link = document.createElement("a");
-      link.download = `foxiesdeck-self-${generatorMode}-${selfCards[0].language}-${Date.now()}.png`;
+      link.download = `foxiesdeck-self-${generatorMode}-${language}-${Date.now()}.png`;
       link.href = selfImageUrl;
       link.click();
     } finally {
@@ -1701,7 +1875,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 >
                   {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{ENGLISH_LANGUAGE_NAMES[item.code]}</option>)}
                 </select>
-                {isCarouselImageGenerator(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? "Every run creates one A1, one B2, and one C1 card. The selected level is intentionally ignored." : "Every run uses six different cards from random levels. The selected level is intentionally ignored."}</p> : isCardGenerator(generatorMode) || isSelfImageGenerator(generatorMode) || (isAiImageGenerator(generatorMode) && aiImageUsesTier(generatorMode)) ? <>{isSelfImageGenerator(generatorMode) ? (generatorMode === "self-mini-quiz" || generatorMode === "self-false-friends" ? <>
+                {isCarouselImageGenerator(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? "Every run creates one card from each tier, A1 through C1. The selected level is intentionally ignored." : "Every run uses six different cards from random levels. The selected level is intentionally ignored."}</p> : isGptWordOfTheDayPoster(generatorMode) ? <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">GPT creates a completely random word and determines its CEFR level for each poster.</p> : isCardGenerator(generatorMode) || isSelfImageGenerator(generatorMode) || (isAiImageGenerator(generatorMode) && aiImageUsesTier(generatorMode)) ? <>{isSelfImageGenerator(generatorMode) ? (generatorMode === "self-mini-quiz" ? <>
                   <p className="mt-5 text-sm font-semibold">Level</p>
                   <div className="mt-2 grid grid-cols-5 gap-1.5">
                     {TIERS.map((item) => (
@@ -1710,7 +1884,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </Button>
                     ))}
                   </div>
-                </> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">Cards are picked from random levels.</p>) : <>
+                </> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">{generatorMode === "self-false-friends" ? "GPT selects a fresh pair and explains the nuance in your native language." : "Cards are picked from random levels."}</p>) : <>
                   <p className="mt-5 text-sm font-semibold">Level</p>
                   <div className="mt-2 grid grid-cols-5 gap-1.5">
                     {TIERS.map((item) => (
@@ -1720,7 +1894,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     ))}
                   </div>
                 </>}</> : <p className="mt-5 text-xs leading-5 text-[#cdbfb3]">Posts are written in the native language, with examples and vocabulary in the selected learning language.</p>}
-                {isAiImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">GPT picks the art direction and writes a detailed square-image prompt from the selected content type and real card data.</p> : isSelfImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">Real FoxiesDeck cards are composed into a square social visual in the browser.</p> : null}
+                {isAiImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">GPT picks the art direction and writes a detailed square-image prompt from the selected content type and real card data.</p> : isSelfImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{generatorMode === "self-false-friends" ? "GPT writes the words and native-language nuance explanations. The browser renders them as original comparison cards." : "Real FoxiesDeck cards are composed into a square social visual in the browser."}</p> : null}
               </>
 
               <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || (isAiImageGenerator(generatorMode) && aiImagePending)} onClick={generateContent} type="button">
@@ -1745,12 +1919,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 </div>
               ) : isCarouselImageGenerator(generatorMode) ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1b1714]">
-                  {carouselCards.length === carouselSlideCount ? <>
+                  {carouselCards.length === carouselCardCount ? <>
                     <div className="border-b border-white/15 p-4 sm:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-[#ffb355]">{isTierProgressionCarouselGenerator(generatorMode) ? "A1 to C1 vocabulary carousel" : "6-image vocabulary carousel"}</p>
-                          <p className="mt-1 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? `A1, B2, and C1 cards in ${ENGLISH_LANGUAGE_NAMES[language]}, with each tier shown in its own color.` : `Each slide has a random CEFR level and a different ${ENGLISH_LANGUAGE_NAMES[language]} word.`}</p>
+                          <p className="text-sm font-semibold text-[#ffb355]">{isTierProgressionCarouselGenerator(generatorMode) ? "6-image A1 to C1 carousel" : "7-image vocabulary carousel"}</p>
+                          <p className="mt-1 text-xs leading-5 text-[#cdbfb3]">{isTierProgressionCarouselGenerator(generatorMode) ? <>A brand intro, then one {ENGLISH_LANGUAGE_NAMES[language]} word for each tier from A1 to C1.</> : <>A brand intro, then six different {ENGLISH_LANGUAGE_NAMES[language]} words from random CEFR levels.</>}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
@@ -1761,7 +1935,8 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       <textarea className="mt-4 min-h-24 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={carouselCaption} />
                     </div>
                     <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[440px]">
-                      {carouselCards.map((carouselCard, index) => <VocabularyCarouselPost card={carouselCard} key={carouselCard.sourceKey} nativeLanguage={nativeLanguage} presentation={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "meaning"} onSlideRef={(element) => { carouselSlideRefs.current[index] = element; }} />)}
+                      <VocabularyCarouselIntro learningLanguage={language} mode={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "vocabulary"} nativeLanguage={nativeLanguage} onSlideRef={(element) => { carouselSlideRefs.current[0] = element; }} wordCount={carouselCardCount} />
+                      {carouselCards.map((carouselCard, index) => <VocabularyCarouselPost card={carouselCard} key={carouselCard.sourceKey} nativeLanguage={nativeLanguage} presentation={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "meaning"} onSlideRef={(element) => { carouselSlideRefs.current[index + 1] = element; }} />)}
                     </div>
                     {carouselImageUrls.length === carouselSlideCount ? <div className="flex gap-4 overflow-x-auto p-4 sm:p-5">
                       {carouselImageUrls.map((imageUrl, index) => <div className="shrink-0" key={imageUrl}><Image alt={`Generated vocabulary carousel slide ${index + 1}`} className="aspect-[3/4] w-[360px] rounded-lg bg-[#16120f] object-cover sm:w-[440px]" height={587} src={imageUrl} unoptimized width={440} /></div>)}
@@ -1776,7 +1951,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <div>
                       {isLoading ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
                       <h2 className="mt-4 font-display text-2xl font-semibold">{isLoading ? `Creating ${carouselSlideCount} carousel images` : isTierProgressionCarouselGenerator(generatorMode) ? "Create an A1 to C1 carousel" : "Create a vocabulary carousel"}</h2>
-                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{carouselError || (isLoading ? "Vocabulary cards are being prepared." : isTierProgressionCarouselGenerator(generatorMode) ? "Choose the learning and native languages. Each run creates A1, B2, and C1 3:4 card visuals without AI generation." : "Choose the learning and native languages. Each run creates six different 3:4 card visuals without AI generation.")}</p>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{carouselError || (isLoading ? "Vocabulary cards are being prepared." : isTierProgressionCarouselGenerator(generatorMode) ? "Choose the learning and native languages. Each run creates a brand intro followed by A1, A2, B1, B2, and C1 card visuals without AI generation." : "Choose the learning and native languages. Each run creates a brand intro followed by six different 3:4 card visuals without AI generation.")}</p>
                     </div>
                   </div>}
                 </div>
@@ -1809,15 +1984,15 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     </div>
                   </div>}
                 </div>
-              ) : isSelfImageGenerator(generatorMode) ? selfCards.length ? (
+              ) : isSelfImageGenerator(generatorMode) ? (selfCards.length > 0 || selfFalseFriends || selfExampleSentences || selfVocabularyProgression) ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                  {selfImageUrl ? <Image alt="Generated self visual" className="aspect-[3/4] h-auto w-full bg-black object-cover" height={1440} src={selfImageUrl} unoptimized width={1080} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
+                  {selfImageUrl ? <Image alt="Generated self visual" className={cn("h-auto w-full bg-black object-cover", selfImagePreview.aspectClassName)} height={selfImagePreview.height} src={selfImageUrl} unoptimized width={selfImagePreview.width} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
                   <div
                     ref={selfImageExportRef}
                     data-social-self-image
                     className="pointer-events-none fixed left-0 top-0 -z-[9999] h-fit w-fit overflow-hidden"
                   >
-                    <SelfSocialImage cards={selfCards} mode={generatorMode as SelfSocialImageMode} nativeLanguage={nativeLanguage} />
+                    <SelfSocialImage cards={selfCards} exampleSentences={selfExampleSentences} falseFriends={selfFalseFriends} learningLanguage={language} vocabularyProgression={selfVocabularyProgression} mode={generatorMode as SelfSocialImageMode} nativeLanguage={nativeLanguage} />
                   </div>
                   <div className="border-t border-white/15 bg-[#1b1714] p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">

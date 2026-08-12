@@ -5,7 +5,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
-import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 const POSTER_TIER_PALETTES = {
   A1: { base: "#047857", deep: "#043c2d", accent: "#a7f3d0" },
@@ -14,14 +14,6 @@ const POSTER_TIER_PALETTES = {
   B2: { base: "#b45309", deep: "#642d0a", accent: "#fde68a" },
   C1: { base: "#be123c", deep: "#6d0c29", accent: "#fecdd3" },
 } as const;
-
-const TIER_ACCENT_COLORS: Record<Tier, string> = {
-  A1: "#10b981",
-  A2: "#0ea5e9",
-  B1: "#8b5cf6",
-  B2: "#f59e0b",
-  C1: "#f43f5e",
-};
 
 type WordOfTheDayImageMode = "card" | "poster";
 
@@ -53,8 +45,10 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
     ? formatSuperWaterText(card.language, card.term).toLocaleUpperCase("en-US")
     : card.term;
   const meaning = getPrimaryCardTranslation(card, nativeLanguage);
+  const meaningDisplay = meaning.toLocaleUpperCase(nativeLanguage);
+  const nativeMeaningClass = meaningDisplay.length > 11 ? "font-sans mt-7 text-[5.5rem] font-medium leading-[0.9]" : "font-sans mt-7 text-[6.5rem] font-medium leading-[0.9]";
   const example = card.examples[0]?.sentence ?? card.example;
-  const titleColor = TIER_ACCENT_COLORS[card.tier];
+  const exampleTranslation = card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation;
 
   if (mode === "poster") {
     return (
@@ -68,31 +62,34 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
         data-social-word-poster
       >
         <div className="absolute inset-0 opacity-20" style={{ backgroundColor: palette.accent }} aria-hidden="true" />
-        <div className="absolute -left-20 -top-20 h-[420px] w-[420px] rounded-full opacity-20" style={{ backgroundColor: palette.accent }} aria-hidden="true" />
-        <div className="absolute -bottom-24 -right-24 h-[360px] w-[360px] rounded-full opacity-15" style={{ backgroundColor: palette.deep }} aria-hidden="true" />
 
         <header className="relative z-10 flex items-start justify-between">
-          <h1 className={canUseSuperWater(nativeLanguage) ? "font-super-water text-4xl font-semibold leading-tight" : "font-display text-4xl font-semibold leading-tight"}>
+          <h1 className="translate-y-1 font-sans text-4xl font-semibold leading-tight">
             {titleDisplay}
           </h1>
-          <span className="rounded-full px-4 py-1.5 text-sm font-bold uppercase tracking-wide" style={{ backgroundColor: palette.accent, color: palette.deep }}>
+          <span className="font-super-water text-6xl font-semibold leading-none" style={{ color: "#ffffff" }}>
             {card.tier}
           </span>
         </header>
 
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center text-center">
-          <p className="text-xl opacity-80">{card.partOfSpeech} · {card.pronunciation}</p>
-          <h2 className={canUseSuperWater(card.language) ? "font-super-water mt-4 text-[8rem] font-semibold leading-[0.85]" : "font-display mt-4 text-[7rem] font-semibold leading-[0.85]"}>
-            {termDisplay}
-          </h2>
-          <p className="mt-5 max-w-2xl text-4xl font-medium leading-snug" style={{ color: palette.accent }}>
-            {meaning}
-          </p>
+          <div className="max-w-4xl">
+            <p className="text-2xl font-medium opacity-80">{card.pronunciation}</p>
+            <h2 className={canUseSuperWater(card.language) ? "font-super-water mt-5 text-[8rem] font-semibold leading-[0.85]" : "font-display mt-5 text-[7rem] font-semibold leading-[0.85]"}>
+              {termDisplay}
+            </h2>
+            <p className={nativeMeaningClass} style={{ color: palette.accent }}>
+              {meaningDisplay}
+            </p>
+          </div>
         </main>
 
-        <footer className="relative z-10 text-center">
-          <p className="mx-auto max-w-4xl text-2xl leading-relaxed">{example}</p>
-          <p className="mt-3 text-sm font-semibold opacity-70">foxiesdeck.com</p>
+        <footer className="relative z-10 min-h-28 text-center">
+          <div className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl">
+            <p className="text-3xl leading-relaxed">{example}</p>
+            <p className="mt-2 text-2xl leading-relaxed opacity-80">{exampleTranslation}</p>
+          </div>
+          <img alt="FoxiesDeck logosu" className="absolute -bottom-8 -left-2 h-28 w-28 object-contain" src="/logo.webp" />
         </footer>
       </article>
     );
@@ -117,8 +114,14 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
       </svg>
 
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-10 py-8 text-center text-white">
-        <h1 className={useSuperWater ? "font-super-water text-7xl font-semibold leading-tight" : "font-display text-6xl font-semibold leading-tight"} style={{ color: titleColor, WebkitTextStroke: "2px #000000" }}>
-          {cardTitleDisplay}
+        <h1
+          className={useSuperWater ? "relative font-super-water text-7xl font-semibold leading-tight" : "relative font-display text-6xl font-semibold leading-tight"}
+          style={{ color: "#ffffff" }}
+        >
+          <span aria-hidden="true" className="pointer-events-none absolute left-0 top-0 select-none text-black" style={{ transform: "translate(-10px, 10px)" }}>
+            {cardTitleDisplay}
+          </span>
+          <span className="relative">{cardTitleDisplay}</span>
         </h1>
 
         <div className="mt-5 flex items-center justify-center gap-6">

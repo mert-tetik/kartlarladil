@@ -9,9 +9,15 @@ import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, SOC
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export class SocialStudioVocabularyError extends Error {
-  constructor(public readonly code: "vocabulary_selection_failed" | "custom_card_generation_failed") {
+  constructor(public readonly code: "vocabulary_selection_failed" | "custom_card_generation_failed" | "word_of_the_day_poster_generation_failed") {
     super(code);
   }
+}
+
+const TURKISH_ASCII_PRONUNCIATION_PATTERN = /^[A-Za-z '-]+$/u;
+
+export function isTurkishAsciiPronunciation(value: string) {
+  return TURKISH_ASCII_PRONUNCIATION_PATTERN.test(value.trim());
 }
 
 export function normalizeSocialStudioVocabularyTerm(value: string) {
@@ -133,6 +139,49 @@ export async function createSocialStudioCustomCard(term: string, language: Langu
   }
   const generated = generatedCardSchema.safeParse(raw);
   if (!generated.success || !matchesRequestedTargetLanguage(generated.data, language)) throw new SocialStudioVocabularyError("custom_card_generation_failed");
+  return toStudioCustomCard(generated.data);
+}
+
+export async function createRandomSocialStudioWordOfTheDayPosterCard(language: LanguageCode, nativeLanguage: LocaleCode) {
+  const poyo = createSocialStudioPoyoClient();
+  const { output } = await generateSocialStudioTextWithFallback(
+    SOCIAL_CONTENT_CREATIVE_MODEL,
+    (model) => poyo.responses.create({
+      model,
+      instructions: [
+        buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
+        "Create the entire Word of the Day poster card from scratch. Do not select or reuse any catalogue entry, supplied term, example list, or previous card.",
+        `Choose one useful, naturally occurring ${language} word at random. Set termKind to \"word\" and choose its accurate CEFR tier yourself from A1, A2, B1, B2, or C1.`,
+        `Write pronunciation as an ASCII-only Turkish-reader phonetic spelling: use only A-Z, a-z, spaces, apostrophes, and hyphens. Do not use IPA, accents, Turkish special characters, non-Latin letters, or punctuation.`,
+        `Set exampleTranslation to the natural ${nativeLanguage} translation of the example sentence, not English unless ${nativeLanguage} is en.`,
+        "Return a complete, accurate card with every translation field, a natural example sentence, and concise grammar notes.",
+      ].join("\n"),
+      input: JSON.stringify({ generator: "word-of-the-day-poster", learningLanguage: language, nativeLanguage }),
+      max_output_tokens: 900,
+      reasoning: { effort: "minimal" },
+      store: false,
+      text: { format: { type: "text" }, verbosity: "low" },
+    }),
+    extractResponseOutputText,
+  );
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(extractJsonObject(output));
+  } catch {
+    throw new SocialStudioVocabularyError("word_of_the_day_poster_generation_failed");
+  }
+
+  const generated = generatedCardSchema.safeParse(raw);
+  if (
+    !generated.success
+    || !matchesRequestedTargetLanguage(generated.data, language)
+    || generated.data.termKind !== "word"
+    || !isTurkishAsciiPronunciation(generated.data.pronunciation)
+  ) {
+    throw new SocialStudioVocabularyError("word_of_the_day_poster_generation_failed");
+  }
+
   return toStudioCustomCard(generated.data);
 }
 

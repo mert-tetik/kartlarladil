@@ -1,7 +1,10 @@
 import "server-only";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
-import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
+import { createWordOfTheDayCaption, getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
+import { createRandomSocialStudioWordOfTheDayPosterCard, resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type NonAiImageMode = "word-of-the-day" | "word-of-the-day-poster";
@@ -14,34 +17,65 @@ const TIER_COLORS: Record<Tier, string> = {
   C1: "#be123c",
 };
 
-const LANGUAGE_NAMES: Record<LanguageCode, string> = {
-  tr: "Turkish", en: "English", de: "German", ru: "Russian", fr: "French", es: "Spanish", it: "Italian",
-  pt: "Portuguese", nl: "Dutch", pl: "Polish", ar: "Arabic", ja: "Japanese", ko: "Korean", "zh-CN": "Chinese",
+const POSTER_TIER_PALETTES: Record<Tier, { base: string; deep: string; accent: string }> = {
+  A1: { base: "#047857", deep: "#043c2d", accent: "#a7f3d0" },
+  A2: { base: "#0369a1", deep: "#083b5c", accent: "#bae6fd" },
+  B1: { base: "#6331c5", deep: "#3b176f", accent: "#ddd6fe" },
+  B2: { base: "#b45309", deep: "#642d0a", accent: "#fde68a" },
+  C1: { base: "#be123c", deep: "#6d0c29", accent: "#fecdd3" },
 };
+
+const LOGO_IMAGE_DATA_URL = `data:image/webp;base64,${readFileSync(join(process.cwd(), "public", "logo.webp")).toString("base64")}`;
 
 function escapeXml(value: string) {
   return value.replace(/[&<>'"]/gu, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&apos;", '"': "&quot;" })[character] ?? character);
 }
 
 async function chooseCard(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier, mode: NonAiImageMode) {
+  if (mode === "word-of-the-day-poster") {
+    return await createRandomSocialStudioWordOfTheDayPosterCard(language, nativeLanguage);
+  }
+
   const [term] = await selectSocialStudioVocabularyTerms({ language, nativeLanguage, tier, count: 1, generator: mode });
   return await resolveSocialStudioVocabularyCard(term!, language, nativeLanguage);
-}
-
-function captionFor(card: VocabularyCard) {
-  const language = LANGUAGE_NAMES[card.language].toUpperCase();
-  const example = card.examples[0]?.sentence ?? card.example;
-  const tag = LANGUAGE_NAMES[card.language].toLowerCase().replaceAll(" ", "");
-  return `${language} WORD OF THE DAY!! ${example}\n\n#${tag} #language #wordoftheday`;
 }
 
 const SANS_FONT = "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif";
 const SERIF_FONT = "Georgia, Times New Roman, Times, serif";
 
+function posterImageSvg(card: VocabularyCard, nativeLanguage: LanguageCode) {
+  const palette = POSTER_TIER_PALETTES[card.tier];
+  const meaning = card.translations[nativeLanguage] || card.translation || "";
+  const meaningDisplay = meaning.toLocaleUpperCase(nativeLanguage);
+  const example = card.examples[0]?.sentence ?? card.example ?? "";
+  const exampleTranslation = card.examples[0]?.translations[nativeLanguage] ?? card.exampleTranslation;
+  const termSize = card.term.length > 12 ? 88 : 120;
+  const nativeMeaningSize = meaningDisplay.length > 11 ? 88 : 104;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768">
+  <defs>
+    <linearGradient id="poster-background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${palette.base}"/><stop offset="1" stop-color="${palette.deep}"/></linearGradient>
+  </defs>
+  <rect width="1024" height="768" fill="url(#poster-background)"/>
+  <rect width="1024" height="768" fill="${palette.accent}" opacity="0.2"/>
+  <text x="48" y="88" fill="#ffffff" font-family="${SANS_FONT}" font-size="48" font-weight="600">${escapeXml(getWordOfTheDayTitle(nativeLanguage).toUpperCase())}</text>
+  <text x="976" y="92" text-anchor="end" fill="#ffffff" font-family="Super Water, ${SANS_FONT}" font-size="68" font-weight="600">${card.tier}</text>
+  <text x="512" y="198" text-anchor="middle" fill="#ffffff" font-family="${SANS_FONT}" font-size="30" font-weight="500" opacity="0.8">${escapeXml(card.pronunciation)}</text>
+  <text x="512" y="342" text-anchor="middle" fill="#ffffff" font-family="${SERIF_FONT}" font-size="${termSize}" font-weight="600">${escapeXml(card.term.toUpperCase())}</text>
+  <text x="512" y="478" text-anchor="middle" fill="${palette.accent}" font-family="${SANS_FONT}" font-size="${nativeMeaningSize}" font-weight="500">${escapeXml(meaningDisplay)}</text>
+  <text x="512" y="660" text-anchor="middle" fill="#ffffff" font-family="${SANS_FONT}" font-size="32">${escapeXml(example)}</text>
+  <text x="512" y="706" text-anchor="middle" fill="#ffffff" font-family="${SANS_FONT}" font-size="28" opacity="0.8">${escapeXml(exampleTranslation)}</text>
+  <image href="${LOGO_IMAGE_DATA_URL}" x="40" y="640" width="112" height="112" preserveAspectRatio="xMidYMid meet"/>
+</svg>`;
+}
+
 function imageSvg(card: VocabularyCard, nativeLanguage: LanguageCode, mode: NonAiImageMode) {
+  if (mode === "word-of-the-day-poster") {
+    return posterImageSvg(card, nativeLanguage);
+  }
+
   const color = TIER_COLORS[card.tier];
   const meaning = card.translations[nativeLanguage] || card.translation || "";
-  const label = mode === "word-of-the-day-poster" ? "WORD OF THE DAY" : "FOXIESDECK · WORD CARD";
+  const label = "FOXIESDECK · WORD CARD";
   const termSize = card.term.length > 12 ? 104 : 136;
   const example = card.examples[0]?.sentence ?? card.example ?? "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
@@ -70,7 +104,8 @@ export async function createNonAiSocialImage({ language, nativeLanguage, tier, m
   const card = await chooseCard(language, nativeLanguage, tier, mode);
   const resvg = new Resvg(imageSvg(card, nativeLanguage, mode), {
     fitTo: { mode: "width", value: 1080 },
+    font: { fontFiles: [join(process.cwd(), "public", "fonts", "super-water.ttf")] },
   });
   const png = resvg.render().asPng();
-  return { dataUrl: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, caption: captionFor(card) };
+  return { dataUrl: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, caption: createWordOfTheDayCaption(card, nativeLanguage) };
 }

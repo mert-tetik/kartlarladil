@@ -59,6 +59,6 @@ describe("automation cost estimates", () => {
       generator: "random-image",
     }]);
 
-    expect(estimate.totalUsd).toBeCloseTo(0.01315 * 5 / 7, 8);
+    expect(estimate.totalUsd).toBeCloseTo(0.01315 * 6 / 8, 8);
   });
 });
