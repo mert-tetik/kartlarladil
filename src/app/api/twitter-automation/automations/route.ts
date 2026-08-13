@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const TABLE_NAME = "social_content_automation_state";
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
+const languageSelectionSchema = z.enum(["random", ...LANGUAGE_CODES]);
 const TIER_CODES = ["A1", "A2", "B1", "B2", "C1"] as const;
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u);
 const platformSchema = z.string().trim().min(1).max(80);
@@ -78,8 +79,8 @@ const automationRowSchema = z.object({
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
   quantity: z.number().int().min(1).max(20).default(1),
-  language: z.enum(LANGUAGE_CODES),
-  nativeLanguage: z.enum(LANGUAGE_CODES),
+  language: languageSelectionSchema,
+  nativeLanguage: languageSelectionSchema,
   tier: z.enum(["random", ...TIER_CODES]),
   platforms: z.array(platformSchema).min(1).max(20),
   accounts: z.record(platformSchema, z.array(accountIdSchema).min(1).max(20)),

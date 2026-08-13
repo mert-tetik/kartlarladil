@@ -18,6 +18,7 @@ type SelectableContentType = AutomationContentType;
 type Platform = string;
 type GroupTone = "emerald" | "blue" | "amber" | "rose";
 type TierSelection = Tier | "random";
+type LanguageSelection = LanguageCode | "random";
 type SyncState = "loading" | "saved" | "saving" | "error";
 
 interface SocialMediaAccount {
@@ -40,8 +41,8 @@ interface AutomationRow {
   generators: Partial<Record<SelectableContentType, string>>;
   randomIncludes: RandomIncludes;
   quantity: number;
-  language: LanguageCode;
-  nativeLanguage: LanguageCode;
+  language: LanguageSelection;
+  nativeLanguage: LanguageSelection;
   tier: TierSelection;
   platforms: Platform[];
   accounts: Partial<Record<Platform, string[]>>;
@@ -204,6 +205,8 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
       }));
       const normalizedContentType: ContentType = resolvedContentTypes.length === 1 ? resolvedContentTypes[0]! : "random";
       const quantity = Number.isInteger(legacyRow.quantity) ? Math.min(20, Math.max(1, legacyRow.quantity!)) : 1;
+      const language: LanguageSelection = legacyRow.language === "random" ? "random" : row.language;
+      const nativeLanguage: LanguageSelection = legacyRow.nativeLanguage === "random" ? "random" : row.nativeLanguage;
 
       return {
         ...row,
@@ -211,6 +214,8 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
         generators,
         randomIncludes,
         quantity,
+        language,
+        nativeLanguage,
         contentType: normalizedContentType,
         generator: resolvedContentTypes.length === 1 ? generators[resolvedContentTypes[0]] ?? RANDOM_GENERATOR : "random-content",
         platforms,
@@ -515,7 +520,7 @@ function GroupRows(props: GroupRowsProps) {
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-28 space-y-1.5">{CONTENT_TYPES.map((option) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={option.value}><input aria-label={`${option.label} content type`} checked={row.contentTypes.includes(option.value)} className="accent-[#55c39a]" onChange={() => onToggleContentType(group.id, row, option.value)} type="checkbox" />{option.label}</label>)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-52 space-y-3">{row.contentTypes.map((contentType) => <GeneratorModeSelector contentType={contentType} generator={row.generators[contentType] ?? RANDOM_GENERATOR} key={contentType} onSelect={(generator) => onSelectGenerator(group.id, row, contentType, generator)} onToggleInclude={(include) => onToggleRandomInclude(group.id, row, contentType, include)} randomIncludes={row.randomIncludes[contentType]} />)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><label className="block min-w-24"><span className="mb-1 block text-[10px] font-semibold text-[#8d9b92]">Outputs per day</span><select aria-label="Outputs per automation row" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { quantity: Number(event.target.value) })} value={row.quantity}>{CONTENT_QUANTITY_OPTIONS.map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select><span className="mt-1 block text-[10px] text-[#7f9086]">Each gets a random time</span></label></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="grid grid-cols-3 gap-2"><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Learning language</span><select aria-label="Learning language" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { language: event.target.value as LanguageCode })} value={row.language}>{LANGUAGE_OPTIONS.map((option) => <option key={option.code} value={option.code}>{option.code.toUpperCase()}</option>)}</select></label><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Native language</span><select aria-label="Native language" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { nativeLanguage: event.target.value as LanguageCode })} value={row.nativeLanguage}>{LANGUAGE_OPTIONS.map((option) => <option key={option.code} value={option.code}>{option.code.toUpperCase()}</option>)}</select></label><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Tier</span><select aria-label="Tier" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { tier: event.target.value as TierSelection })} value={row.tier}><option value="random">Random</option>{TIERS.map((option) => <option key={option} value={option}>{option}</option>)}</select></label></div></td>
+      <td className="border-r border-white/[0.075] px-2 py-2"><div className="grid grid-cols-3 gap-2"><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Learning language</span><select aria-label="Learning language" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { language: event.target.value as LanguageSelection })} value={row.language}><option value="random">Random</option>{LANGUAGE_OPTIONS.map((option) => <option key={option.code} value={option.code}>{option.code.toUpperCase()}</option>)}</select></label><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Native language</span><select aria-label="Native language" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { nativeLanguage: event.target.value as LanguageSelection })} value={row.nativeLanguage}><option value="random">Random</option>{LANGUAGE_OPTIONS.map((option) => <option key={option.code} value={option.code}>{option.code.toUpperCase()}</option>)}</select></label><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Tier</span><select aria-label="Tier" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { tier: event.target.value as TierSelection })} value={row.tier}><option value="random">Random</option>{TIERS.map((option) => <option key={option} value={option}>{option}</option>)}</select></label></div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex min-w-40 flex-wrap gap-x-2 gap-y-1.5 px-1"><span className="w-full text-[10px] text-[#7f9086]">Post once to each selected network</span>{platformOptions.map((platform) => <label className="flex items-center gap-1 text-xs text-[#d7e2da]" key={platform.value}><input aria-label={`${platform.label} network`} checked={row.platforms.includes(platform.value)} className="accent-[#55c39a]" onChange={() => onTogglePlatform(group.id, row, platform.value)} type="checkbox" />{platform.label}</label>)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-48 space-y-3 px-1">{row.platforms.map((platform) => <div className="space-y-1.5" key={platform}><p className="text-xs font-semibold text-[#a9b8ae]">{platformOptions.find((item) => item.value === platform)?.label}</p><div className="space-y-1.5">{getAccountsForPlatform(socialAccounts, platform).toSorted((first, second) => first.accountName.localeCompare(second.accountName)).map((account) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={account.id}><input aria-label={`${account.accountName} account`} checked={row.accounts[platform]?.includes(account.id) ?? false} className="accent-[#55c39a]" onChange={() => onToggleAccount(group.id, row, platform, account.id)} type="checkbox" /><span>{account.accountName}</span></label>)}</div></div>)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex items-center gap-1"><input aria-label="Schedule start time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleStart: event.target.value })} type="time" value={row.scheduleStart} /><span className="text-[#718077]">to</span><input aria-label="Schedule end time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleEnd: event.target.value })} type="time" value={row.scheduleEnd} /></div><p className="mt-1 px-1 text-[10px] text-[#7f9086]">Random publish time</p></td>

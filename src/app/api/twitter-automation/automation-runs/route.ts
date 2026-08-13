@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 const STATE_TABLE = "social_content_automation_state";
 const AUTOMATION_BUCKET = "social-studio-automation";
-const languageSchema = z.enum(["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"]);
+const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
+const languageSelectionSchema = z.enum(["random", ...LANGUAGE_CODES]);
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u);
 const selectableContentTypeSchema = z.enum(["text", "image", "video"]);
 const generatorModesSchema = z.object({
@@ -31,8 +32,8 @@ const rowSchema = z.object({
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
   quantity: z.number().int().min(1).max(20).default(1),
-  language: languageSchema,
-  nativeLanguage: languageSchema,
+  language: languageSelectionSchema,
+  nativeLanguage: languageSelectionSchema,
   tier: z.enum(["random", "A1", "A2", "B1", "B2", "C1"]),
   accounts: z.record(z.string(), z.array(z.string().regex(/^\d+$/u)).min(1)).refine((accounts) => Object.values(accounts).flat().length > 0),
   scheduleStart: timeSchema,
@@ -50,6 +51,7 @@ const requestSchema = z.object({
 
 type AutomationRow = z.infer<typeof rowSchema>;
 type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
+type OutputLanguage = (typeof LANGUAGE_CODES)[number];
 
 function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
@@ -82,6 +84,16 @@ function createScheduledAt(dayOffset: number, start: string, end: string) {
 
 function targetAccountIds(row: AutomationRow) {
   return [...new Set(Object.values(row.accounts).flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
+}
+
+function pickLanguage(candidates: readonly OutputLanguage[] = LANGUAGE_CODES) {
+  return candidates[Math.floor(Math.random() * candidates.length)]!;
+}
+
+function resolveOutputLanguages(row: AutomationRow) {
+  const language = row.language === "random" ? pickLanguage() : row.language;
+  if (row.nativeLanguage !== "random") return { language, nativeLanguage: row.nativeLanguage };
+  return { language, nativeLanguage: pickLanguage(LANGUAGE_CODES.filter((candidate) => candidate !== language)) };
 }
 
 function resolveContentMode(row: AutomationRow) {
@@ -172,14 +184,15 @@ export async function POST(request: NextRequest) {
 
     const rows = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.flatMap(({ group, row, targetIds }) => Array.from({ length: row.quantity }, () => {
       const { contentType, generator } = resolveContentMode(row);
+      const { language, nativeLanguage } = resolveOutputLanguages(row);
       return {
         run_id: run.id,
         day_offset: dayOffset,
         group_name: group.name,
         content_type: contentType,
         generator,
-        language: row.language,
-        native_language: row.nativeLanguage,
+        language,
+        native_language: nativeLanguage,
         tier: row.tier,
         scheduled_at: createScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd),
         target_account_ids: targetIds,

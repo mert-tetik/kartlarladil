@@ -124,4 +124,50 @@ describe("automation run creation", () => {
     expect(await response.json()).toMatchObject({ outputCount: 20 });
     expect(outputInsertMock).toHaveBeenCalledWith(expect.arrayContaining(Array(20).fill(expect.objectContaining({ generator: "fun-post" }))));
   });
+
+  it("resolves random learning and native languages separately for each output", async () => {
+    const createdOutputs: Array<{ language: string; native_language: string }> = [];
+    stateMaybeSingleMock.mockResolvedValue({
+      data: {
+        groups: [{
+          id: "47c65ced-6664-4cb8-9efd-fbb38de4f158",
+          name: "Test campaign",
+          rows: [{
+            id: "a670283d-1d18-42d8-8463-7f19c280b5bb",
+            contentType: "text",
+            generator: "fun-post",
+            quantity: 2,
+            language: "random",
+            nativeLanguage: "random",
+            tier: "B1",
+            accounts: { instagram: ["1"] },
+            scheduleStart: "09:00",
+            scheduleEnd: "18:00",
+          }],
+        }],
+      },
+      error: null,
+    });
+    runInsertMock.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: "c77a7440-df76-4050-94c4-282118936152", horizon_days: 1, created_at: "2026-08-13T00:00:00Z" }, error: null }) }) });
+    outputInsertMock.mockImplementation((outputs: Array<{ language: string; native_language: string }>) => {
+      createdOutputs.push(...outputs);
+      return Promise.resolve({ error: null });
+    });
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock };
+      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs", {
+      method: "POST",
+      body: JSON.stringify({ horizonDays: 1 }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(createdOutputs).toHaveLength(2);
+    expect(createdOutputs.every((output) => output.language !== "random" && output.native_language !== "random")).toBe(true);
+    expect(createdOutputs.every((output) => output.language !== output.native_language)).toBe(true);
+  });
 });
