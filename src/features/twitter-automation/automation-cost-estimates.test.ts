@@ -68,7 +68,7 @@ describe("automation cost estimates", () => {
       generator: "random-image",
     }]);
 
-    expect(estimate.totalUsd).toBeCloseTo(0.01315 * 6 / 8, 8);
+    expect(estimate.totalUsd).toBeCloseTo(0.01315 * 6 / 15, 8);
   });
 
   it("uses only the selected sources for the single Random generator", () => {
@@ -79,5 +79,19 @@ describe("automation cost estimates", () => {
     }]);
 
     expect(estimate.totalUsd).toBe(0);
+  });
+
+  it("multiplies a row's estimate by its selected output quantity", () => {
+    const single = estimateAutomationGroupCost([{
+      contentType: "text",
+      generator: "fun-post",
+    }]);
+    const multiple = estimateAutomationGroupCost([{
+      contentType: "text",
+      generator: "fun-post",
+      quantity: 5,
+    }]);
+
+    expect(multiple.totalUsd).toBeCloseTo(single.totalUsd * 5, 8);
   });
 });

@@ -77,6 +77,7 @@ const automationRowSchema = z.object({
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
+  quantity: z.number().int().min(1).max(20).default(1),
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LANGUAGE_CODES),
   tier: z.enum(["random", ...TIER_CODES]),

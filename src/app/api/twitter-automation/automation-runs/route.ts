@@ -30,6 +30,7 @@ const rowSchema = z.object({
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
+  quantity: z.number().int().min(1).max(20).default(1),
   language: languageSchema,
   nativeLanguage: languageSchema,
   tier: z.enum(["random", "A1", "A2", "B1", "B2", "C1"]),
@@ -161,14 +162,15 @@ export async function POST(request: NextRequest) {
     const sourceRows = parsedGroups.data.flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
     if (!sourceRows.length) return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
 
+    const outputsPerDay = sourceRows.reduce((total, item) => total + item.row.quantity, 0);
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: sourceRows.length * parsedRequest.data.horizonDays })
+      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: outputsPerDay * parsedRequest.data.horizonDays })
       .select("id,horizon_days,created_at")
       .single();
     if (runError || !run) return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
 
-    const rows = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.map(({ group, row, targetIds }) => {
+    const rows = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.flatMap(({ group, row, targetIds }) => Array.from({ length: row.quantity }, () => {
       const { contentType, generator } = resolveContentMode(row);
       return {
         run_id: run.id,
@@ -183,7 +185,7 @@ export async function POST(request: NextRequest) {
         target_account_ids: targetIds,
         status: "queued",
       };
-    }));
+    })));
     const { error: outputsError } = await supabase.from("social_content_automation_outputs").insert(rows);
     if (outputsError) {
       await supabase.from("social_content_automation_runs").delete().eq("id", run.id);

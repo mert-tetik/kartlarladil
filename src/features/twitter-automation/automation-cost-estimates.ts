@@ -15,6 +15,7 @@ export type AutomationCostRow = {
   contentTypes?: Array<"text" | "image" | "video">;
   generators?: Partial<Record<"text" | "image" | "video", string>>;
   randomIncludes?: RandomIncludes;
+  quantity?: number;
 };
 
 type CostBreakdown = {
@@ -209,10 +210,12 @@ function fallbackGenerator() {
 }
 
 function estimateRow(row: AutomationCostRow): CostBreakdown {
-  return averageCosts(selectedContentTypes(row).map((contentType) => {
+  const perOutput = averageCosts(selectedContentTypes(row).map((contentType) => {
     const generator = row.generators?.[contentType] ?? (row.contentType === contentType ? row.generator : fallbackGenerator());
     return estimateGeneratorMode(contentType, generator, row.randomIncludes?.[contentType]);
   }));
+  const quantity = Number.isInteger(row.quantity) ? Math.max(1, row.quantity!) : 1;
+  return { poyoUsd: perOutput.poyoUsd * quantity };
 }
 
 export function estimateAutomationGroupCost(rows: readonly AutomationCostRow[]): AutomationCostEstimate {
