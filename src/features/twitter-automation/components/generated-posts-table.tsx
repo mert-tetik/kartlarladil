@@ -110,6 +110,20 @@ function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   return `${getOutputLabel(output)} üretim sırasını bekliyor`;
 }
 
+function MediaErrorHint({ errorCode }: { errorCode: string | null }) {
+  if (!errorCode) return null;
+
+  return <div className="group absolute right-2 top-2 z-20">
+    <button aria-label="Üretim hata ayrıntısını göster" className="grid size-7 place-items-center rounded border border-[#ffb9c1]/55 bg-[#2c1917]/95 text-[#ffb9c1] transition-colors hover:bg-[#3b211e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffb9c1]" type="button">
+      <CircleAlert className="size-4" aria-hidden="true" />
+    </button>
+    <div className="pointer-events-none absolute right-0 top-full mt-2 w-64 rounded border border-[#ffb9c1]/35 bg-[#211413] p-2 text-left text-[11px] leading-4 text-[#ffd9de] opacity-0 shadow-sm transition-opacity duration-150 delay-500 group-hover:opacity-100 group-focus-within:opacity-100 group-focus-within:delay-0" role="tooltip">
+      <p className="font-semibold">Üretim hatası</p>
+      <p className="mt-1 break-words text-[#ffb9c1]">{errorCode}</p>
+    </div>
+  </div>;
+}
+
 export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { runId: string; onClose: () => void; scope?: AutomationScope }) {
   const isTestAutomation = scope === "test";
   const scopeSearchParams = automationScopeSearchParams(scope);
@@ -419,8 +433,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         return <article className={cn("overflow-hidden rounded border p-3", ready ? "border-[#2b634a] bg-[#11251c]" : scheduled ? "border-[#29435d] bg-[#101d28]" : "border-[#61352e] bg-[#2c1917]")} key={output.id}>
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-[#a9b8ae]">{getOutputLabel(output)}</p></div>{ready || scheduled ? <Check aria-label="İçerik hazır" className="mt-0.5 size-5 shrink-0 text-[#a9ecc8]" /> : <CircleAlert aria-label="İçerik üretilemedi" className="mt-0.5 size-5 shrink-0 text-[#ffb9c1]" />}</div>
           <div className="mt-3 flex items-center gap-2 text-xs text-[#d7e2da]"><CalendarClock className="size-3.5 shrink-0 text-[#c7f05d]" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
-          {output.mediaUrls?.length ? <div className="mt-3 grid grid-cols-3 gap-1 overflow-hidden rounded border border-white/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-sm" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="relative mt-3 overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="mt-3 flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="mt-3 grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
-          {output.error_code ? <p className="mt-3 break-words text-[11px] text-[#ffb9c1]">{output.error_code}</p> : null}
+          <div className="relative mt-3">
+            {output.mediaUrls?.length ? <div className="grid grid-cols-3 gap-1 overflow-hidden rounded border border-white/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-sm" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
+            <MediaErrorHint errorCode={output.error_code} />
+          </div>
         </article>;
       })}</div>
     </main>}
