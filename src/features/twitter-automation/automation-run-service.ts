@@ -3,14 +3,7 @@ import "server-only";
 import { SOCIAL_STUDIO_SESSION_COOKIE, createSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { publishWithUploadPost, type DataUrlAsset, type RemoteVideoAsset } from "@/features/twitter-automation/upload-post-publishing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createNonAiSocialImage } from "@/features/twitter-automation/non-ai-social-image";
-import { renderAutomationCarousel, renderAutomationSelfImage, type AutomationCarouselGenerator } from "@/features/twitter-automation/automation-non-ai-visuals";
-import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
-import { isSelfExampleSentencesContent } from "@/features/twitter-automation/self-example-sentences";
-import { isSelfFalseFriendsContent } from "@/features/twitter-automation/self-false-friends";
-import { isSelfVocabularyProgressionContent } from "@/features/twitter-automation/self-vocabulary-progression";
-import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms } from "@/features/twitter-automation/social-studio-vocabulary";
-import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier } from "@/types/domain";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -59,8 +52,7 @@ const TIER_OPTIONS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 type ImageGenerator = (typeof IMAGE_GENERATORS)[number];
 type TextGenerator = (typeof TEXT_GENERATORS)[number];
-type SelfImageGenerator = (typeof SELF_IMAGE_GENERATORS)[number];
-type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
+type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
 
 export type AutomationOutputRecord = {
   id: string;
@@ -231,132 +223,28 @@ async function createImage(output: AutomationOutputRecord, generator: ImageGener
   return { caption: payload.caption.trim(), mediaPath: await storeGeneratedImage(payload.imageUrl, output.id) };
 }
 
-async function createNonAiImage(output: AutomationOutputRecord, generator: (typeof NON_AI_IMAGE_GENERATORS)[number], tier: Tier) {
-  const image = await createNonAiSocialImage({ language: output.language, nativeLanguage: output.native_language, tier, mode: generator });
-  return { caption: image.caption, mediaPath: await storeGeneratedImage(image.dataUrl, output.id) };
-}
-
-async function createVocabularyCards({
-  output,
-  tiers,
-  generator,
-}: {
-  output: AutomationOutputRecord;
-  tiers: readonly Tier[];
-  generator: string;
-}) {
-  const cards: VocabularyCard[] = [];
-  const seen = new Set<string>();
-  for (const [index, cardTier] of tiers.entries()) {
-    const terms = await selectSocialStudioVocabularyTerms({
-      language: output.language,
-      nativeLanguage: output.native_language,
-      tier: cardTier,
-      count: 1,
-      generator: `${generator}-${output.id}-${index}`,
-    });
-    const card = await resolveSocialStudioVocabularyCard(terms[0]!, output.language, output.native_language);
-    if (seen.has(card.sourceKey)) throw new Error("automation_duplicate_vocabulary_card");
-    seen.add(card.sourceKey);
-    cards.push(card);
-  }
-  return cards;
-}
-
-function shuffledTiers(count: number) {
-  return [...TIER_OPTIONS].sort(() => Math.random() - 0.5).slice(0, count);
-}
-
-async function createSelfImage(output: AutomationOutputRecord, generator: SelfImageGenerator, tier: Tier) {
-  let cards: VocabularyCard[] = [];
-  let falseFriends: Parameters<typeof renderAutomationSelfImage>[0]["falseFriends"];
-  let vocabularyProgression: Parameters<typeof renderAutomationSelfImage>[0]["vocabularyProgression"];
-  let exampleSentences: Parameters<typeof renderAutomationSelfImage>[0]["exampleSentences"];
-
-  if (generator === "self-mini-quiz") {
-    cards = await createVocabularyCards({ output, tiers: [tier, tier, tier, tier], generator });
-  } else if (generator === "self-daily-challenge") {
-    cards = await createVocabularyCards({ output, tiers: shuffledTiers(3), generator });
-  } else if (generator === "self-false-friends") {
-    const { POST } = await import("@/app/api/twitter-automation/self-false-friends/route");
-    const response = await POST(createInternalRequest("/api/twitter-automation/self-false-friends", {
-      method: "POST",
-      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentTerms: [] }),
-    }));
-    const payload = await readJson(response);
-    if (!response.ok || !isSelfFalseFriendsContent(payload?.pair)) throw new Error(errorCode(payload, "self_false_friends_generation_failed"));
-    falseFriends = payload.pair;
-  } else if (generator === "self-vocabulary-progression") {
-    const { POST } = await import("@/app/api/twitter-automation/self-vocabulary-progression/route");
-    const response = await POST(createInternalRequest("/api/twitter-automation/self-vocabulary-progression", {
-      method: "POST",
-      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentTerms: [] }),
-    }));
-    const payload = await readJson(response);
-    if (!response.ok || !isSelfVocabularyProgressionContent(payload?.progression)) throw new Error(errorCode(payload, "self_vocabulary_progression_generation_failed"));
-    vocabularyProgression = payload.progression;
-  } else {
-    const { POST } = await import("@/app/api/twitter-automation/self-example-sentences/route");
-    const response = await POST(createInternalRequest("/api/twitter-automation/self-example-sentences", {
-      method: "POST",
-      body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, recentSentences: [] }),
-    }));
-    const payload = await readJson(response);
-    if (!response.ok || !isSelfExampleSentencesContent(payload?.examples)) throw new Error(errorCode(payload, "self_example_sentences_generation_failed"));
-    exampleSentences = payload.examples;
-  }
-
-  const dataUrl = renderAutomationSelfImage({
-    mode: generator,
-    cards,
-    nativeLanguage: output.native_language,
-    falseFriends,
-    vocabularyProgression,
-    exampleSentences,
+async function prepareBrowserImage(output: AutomationOutputRecord, tier: Tier) {
+  await updateOutput(output.id, {
+    status: "awaiting_browser_image",
+    tier,
+    caption: null,
+    media_path: null,
+    media_paths: [],
+    media_type: null,
+    generated_at: new Date().toISOString(),
+    error_code: null,
   });
-  const kind = generator === "self-mini-quiz"
-    ? "miniQuiz"
-    : generator === "self-false-friends"
-      ? "falseFriends"
-      : generator === "self-daily-challenge"
-        ? "dailyChallenge"
-        : generator === "self-vocabulary-progression"
-          ? "vocabularyProgression"
-          : "exampleSentences";
-  const itemCount = generator === "self-mini-quiz" ? 1 : generator === "self-false-friends" ? 2 : 3;
-  return {
-    caption: createNativeVisualCaption({ kind, learningLanguage: output.language, nativeLanguage: output.native_language, itemCount }),
-    mediaPath: await storeGeneratedImage(dataUrl, output.id),
-  };
-}
-
-async function createCarousel(output: AutomationOutputRecord, generator: AutomationCarouselGenerator) {
-  const tiers = generator === "vocabulary-carousel" ? Array.from({ length: 6 }, () => pick(TIER_OPTIONS)) : TIER_OPTIONS;
-  const cards = await createVocabularyCards({ output, tiers, generator });
-  const mediaPaths = await storeGeneratedImages(
-    renderAutomationCarousel({ cards, mode: generator, language: output.language, nativeLanguage: output.native_language }),
-    output.id,
-  );
-  return {
-    caption: createNativeVisualCaption({
-      kind: generator === "vocabulary-carousel" ? "vocabularyCarousel" : "tierProgression",
-      learningLanguage: output.language,
-      nativeLanguage: output.native_language,
-      itemCount: cards.length,
-    }),
-    mediaPaths,
-  };
+  return "browser_image_required";
 }
 
 async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typeof MUSIC_VIDEO_GENERATORS)[number], tier: Tier) {
   const sourceGenerator = generator.slice("music-".length);
+  if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator) || (SELF_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)) {
+    return prepareBrowserImage(output, tier);
+  }
   const source = (IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
     ? await createImage(output, sourceGenerator as ImageGenerator, tier)
-    : (NON_AI_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
-      ? await createNonAiImage(output, sourceGenerator as (typeof NON_AI_IMAGE_GENERATORS)[number], tier)
-      : (SELF_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)
-        ? await createSelfImage(output, sourceGenerator as SelfImageGenerator, tier)
-        : null;
+    : null;
   if (!source) throw new Error("unsupported_music_video_generator");
   await updateOutput(output.id, {
     status: "awaiting_browser_video",
@@ -475,12 +363,6 @@ function asMediaPaths(value: unknown) {
   return [...new Set(value.filter((path): path is string => typeof path === "string" && path.startsWith(AUTOMATION_MEDIA_PREFIX)))];
 }
 
-async function storeGeneratedImages(dataUrls: readonly string[], outputId: string) {
-  const paths: string[] = [];
-  for (const [index, dataUrl] of dataUrls.entries()) paths.push(await storeGeneratedImage(dataUrl, outputId, String(index + 1)));
-  return paths;
-}
-
 export async function scheduleReadyAutomationRun(runId: string) {
   const supabase = createSupabaseAdminClient();
   const { data: lockedOutputs, error: lockError } = await supabase
@@ -532,20 +414,8 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
       await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
       return { outcome: "content_ready" as const };
     }
-    if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(generator)) {
-      const generated = await createNonAiImage(output, generator as (typeof NON_AI_IMAGE_GENERATORS)[number], tier);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: "content_ready" as const };
-    }
-    if ((SELF_IMAGE_GENERATORS as readonly string[]).includes(generator)) {
-      const generated = await createSelfImage(output, generator as SelfImageGenerator, tier);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: "content_ready" as const };
-    }
-    if ((CAROUSEL_GENERATORS as readonly string[]).includes(generator)) {
-      const generated = await createCarousel(output, generator as AutomationCarouselGenerator);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPaths[0]!, media_paths: generated.mediaPaths, media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: "content_ready" as const };
+    if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(generator) || (SELF_IMAGE_GENERATORS as readonly string[]).includes(generator) || (CAROUSEL_GENERATORS as readonly string[]).includes(generator)) {
+      return { outcome: await prepareBrowserImage(output, tier) };
     }
     if (generator === "ai-word-of-the-day-video") return { outcome: await startVideo(output, tier) };
     if ((VIDEO_GENERATORS as readonly string[]).includes(generator)) return { outcome: await prepareBrowserVideo(output, tier) };
@@ -563,7 +433,7 @@ export async function refreshAutomationRunStatus(runId: string) {
   const { data, error } = await supabase.from("social_content_automation_outputs").select("status").eq("run_id", runId);
   if (error) throw new Error("automation_run_status_failed");
   const statuses = (data ?? []).map((item) => item.status as OutputStatus);
-  if (statuses.some((status) => status === "queued" || status === "processing" || status === "generating_video" || status === "awaiting_browser_video")) {
+  if (statuses.some((status) => status === "queued" || status === "processing" || status === "generating_video" || status === "awaiting_browser_image" || status === "awaiting_browser_video")) {
     await supabase.from("social_content_automation_runs").update({ status: "processing" }).eq("id", runId);
     return;
   }

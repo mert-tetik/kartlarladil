@@ -9,14 +9,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
+const stagedMediaPathSchema = z.string().regex(/^automation\/[\da-f-]+(?:-\d+)?\.(?:png|webm)$/iu);
+
 const requestSchema = z.object({
   outputId: z.string().uuid().optional(),
   scope: z.enum(["production", "test"]).optional(),
-  stagedMediaPath: z.string().regex(/^automation\/[\da-f-]+\.webm$/iu).optional(),
+  stagedMediaPath: stagedMediaPathSchema.optional(),
+  stagedMediaPaths: z.array(stagedMediaPathSchema).min(1).max(7).optional(),
   caption: z.string().trim().min(1).max(400).optional(),
+  browserImageError: z.string().trim().min(1).max(120).optional(),
 }).strict().superRefine((value, context) => {
-  if (value.stagedMediaPath && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
-  if (value.caption && !value.stagedMediaPath) context.addIssue({ code: "custom", path: ["caption"], message: "A staged video is required." });
+  const stagedPaths = value.stagedMediaPaths ?? (value.stagedMediaPath ? [value.stagedMediaPath] : []);
+  if ((stagedPaths.length || value.browserImageError) && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
+  if (value.stagedMediaPaths && value.stagedMediaPath) context.addIssue({ code: "custom", path: ["stagedMediaPaths"], message: "Only one staged media field can be used." });
+  if (value.browserImageError && stagedPaths.length) context.addIssue({ code: "custom", path: ["browserImageError"], message: "A browser image cannot be both completed and failed." });
+  if (value.caption && !stagedPaths.length) context.addIssue({ code: "custom", path: ["caption"], message: "Staged media is required." });
 });
 
 function isAuthorized(request: NextRequest) {
@@ -28,13 +35,16 @@ export async function POST(request: NextRequest) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_output" }, { status: 400 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(parsed.data.scope));
+  const stagedPaths = parsed.data.stagedMediaPaths ?? (parsed.data.stagedMediaPath ? [parsed.data.stagedMediaPath] : []);
+  const stagedImagePaths = stagedPaths.filter((path) => path.endsWith(".png"));
+  const stagedVideoPath = stagedPaths.find((path) => path.endsWith(".webm"));
 
   try {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
       .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
-      .in("status", parsed.data.stagedMediaPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
+      .in("status", stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image"] : stagedVideoPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .order("scheduled_at", { ascending: true })
       .limit(1);
     if (parsed.data.outputId) query = query.eq("id", parsed.data.outputId);
@@ -51,9 +61,21 @@ export async function POST(request: NextRequest) {
     if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
 
-    const update = parsed.data.stagedMediaPath
-      ? { status: "ready_to_schedule", media_path: parsed.data.stagedMediaPath, media_paths: [], media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
-      : { status: "processing", updated_at: new Date().toISOString() };
+    const update = parsed.data.browserImageError
+      ? { status: "failed", error_code: parsed.data.browserImageError, updated_at: new Date().toISOString() }
+      : stagedImagePaths.length
+      ? {
+        status: candidate.generator.startsWith("music-") ? "awaiting_browser_video" : "ready_to_schedule",
+        media_path: stagedImagePaths[0]!,
+        media_paths: stagedImagePaths.length > 1 ? stagedImagePaths : [],
+        media_type: "image",
+        caption: parsed.data.caption ?? candidate.caption,
+        generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      : stagedVideoPath
+        ? { status: "ready_to_schedule", media_path: stagedVideoPath, media_paths: [], media_type: "video", ...(parsed.data.caption ? { caption: parsed.data.caption } : {}), updated_at: new Date().toISOString() }
+        : { status: "processing", updated_at: new Date().toISOString() };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")
       .update(update)
@@ -64,14 +86,14 @@ export async function POST(request: NextRequest) {
     if (lockError) return NextResponse.json({ errorCode: "automation_output_lock_failed" }, { status: 503 });
     if (!locked) return NextResponse.json({ processed: false, state: "busy" }, { status: 409 });
 
-    if (parsed.data.stagedMediaPath && candidate.media_path?.startsWith("automation/")) {
+    if (stagedPaths.length && candidate.media_path?.startsWith("automation/") && !stagedPaths.includes(candidate.media_path)) {
       const { error: removeError } = await supabase.storage.from("social-studio-automation").remove([candidate.media_path]);
       if (removeError) throw new Error("automation_media_cleanup_failed");
     }
 
-    if (parsed.data.stagedMediaPath) {
+    if (stagedPaths.length || parsed.data.browserImageError) {
       await refreshAutomationRunStatus(candidate.run_id);
-      return NextResponse.json({ processed: true, outputId: candidate.id, outcome: "content_ready" });
+      return NextResponse.json({ processed: true, outputId: candidate.id, outcome: parsed.data.browserImageError ? "failed" : candidate.generator.startsWith("music-") ? "browser_video_required" : "content_ready" });
     }
 
     const result = await processAutomationOutput(candidate);

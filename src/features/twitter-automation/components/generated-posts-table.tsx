@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
-import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
+import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
+import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
@@ -15,7 +16,7 @@ import { automationScopeSearchParams, type AutomationScope } from "@/features/tw
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
-type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
+type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
 
 type AutomationOutput = {
   id: string;
@@ -23,8 +24,8 @@ type AutomationOutput = {
   group_name: string;
   content_type: string;
   generator: string;
-  language: string;
-  native_language: string;
+  language: LanguageCode;
+  native_language: LanguageCode;
   tier: "A1" | "A2" | "B1" | "B2" | "C1" | "random";
   scheduled_at: string;
   status: AutomationOutputStatus;
@@ -86,6 +87,10 @@ function isOriginalMascotLearningVideo(output: AutomationOutput): output is Auto
   return output.generator === "tier-progression-video" || output.generator === "vocabulary-quiz-video" || output.generator === "sentence-check-video" || output.generator === "sentence-translation-video";
 }
 
+function isBrowserRenderedImage(output: AutomationOutput): output is AutomationOutput & AutomationBrowserImageOutput {
+  return output.status === "awaiting_browser_image" && output.tier !== "random";
+}
+
 function isGenerationComplete(output: AutomationOutput) {
   return output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed";
 }
@@ -97,6 +102,7 @@ function isReadyForSchedule(output: AutomationOutput) {
 function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   if (isProcessing || output.status === "processing") return `${getOutputLabel(output)} üretiliyor`;
   if (output.status === "generating_video") return `${getOutputLabel(output)} renderlanıyor`;
+  if (output.status === "awaiting_browser_image") return `${getOutputLabel(output)} Studio tasarımıyla renderlanıyor`;
   if (output.status === "awaiting_browser_video") return `${getOutputLabel(output)} için ses ekleme onayı bekleniyor`;
   if (output.status === "ready_to_schedule") return `${getOutputLabel(output)} hazır`;
   if (output.status === "scheduled") return `${getOutputLabel(output)} schedule edildi`;
@@ -129,17 +135,19 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     }
   }, [runId, scopeSearchParams]);
 
+  const browserImageOutputs = useMemo(() => outputs.filter(isBrowserRenderedImage), [outputs]);
   const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video"), [outputs]);
+  const browserImageOutput = browserImageOutputs[0] ?? null;
   const nextOutput = useMemo(() => {
-    if (browserVideoOutputs.length) return null;
+    if (browserImageOutputs.length || browserVideoOutputs.length) return null;
     return outputs.find((output) => output.status === "queued" || output.status === "generating_video") ?? null;
-  }, [browserVideoOutputs.length, outputs]);
+  }, [browserImageOutputs.length, browserVideoOutputs.length, outputs]);
   const completeCount = useMemo(() => outputs.filter(isGenerationComplete).length, [outputs]);
   const readyOutputs = useMemo(() => outputs.filter(isReadyForSchedule), [outputs]);
   const failedOutputs = useMemo(() => outputs.filter((output) => output.status === "failed"), [outputs]);
   const progress = outputs.length ? Math.round((completeCount / outputs.length) * 100) : 0;
-  const isReviewReady = state === "ready" && outputs.length > 0 && !nextOutput && !browserVideoOutputs.length && !processingOutputId;
-  const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : nextOutput;
+  const isReviewReady = state === "ready" && outputs.length > 0 && !nextOutput && !browserImageOutputs.length && !browserVideoOutputs.length && !processingOutputId;
+  const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : browserImageOutputs[0] ?? nextOutput;
   const estimatedSecondsRemaining = useMemo(() => estimateRemainingGenerationSeconds({
     activeElapsedSeconds: processingOutputId && processingStartedAt ? Math.max(0, (now - processingStartedAt) / 1_000) : 0,
     activeOutputId: processingOutputId,
@@ -168,6 +176,62 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       setProcessingStartedAt(null);
     }
   }, [load, nextOutput, processingOutputId, scope]);
+
+  const beginBrowserImageRender = useCallback((outputId: string) => {
+    setProcessingOutputId(outputId);
+    setProcessingStartedAt(Date.now());
+    setMessage("");
+  }, []);
+
+  const completeBrowserImageRender = useCallback(async (output: AutomationOutput, result: { caption: string; imageDataUrls: string[] }) => {
+    try {
+      const stagedMediaPaths = await Promise.all(result.imageDataUrls.map(async (dataUrl, index) => {
+        const imageResponse = await fetch(dataUrl);
+        const blob = await imageResponse.blob();
+        return stageBrowserImage(blob, output.id, index);
+      }));
+      const response = await fetch("/api/twitter-automation/automation-runs/process", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ outputId: output.id, stagedMediaPaths: stagedMediaPaths.map((item) => item.path), caption: result.caption, scope }),
+      });
+      const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
+    } catch {
+      setMessage("Studio görseli kaydedilemedi. Sayfayı yenileyip tekrar deneyebilirsin.");
+    } finally {
+      await load();
+      setProcessingOutputId(null);
+      setProcessingStartedAt(null);
+    }
+  }, [load, scope]);
+
+  const failBrowserImageRender = useCallback(async (output: AutomationOutput) => {
+    setMessage("Studio görseli renderlanamadı. Review ekranında hata ayrıntısını göreceksin.");
+    try {
+      await fetch("/api/twitter-automation/automation-runs/process", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ outputId: output.id, browserImageError: "browser_image_render_failed", scope }),
+      });
+    } finally {
+      await load();
+      setProcessingOutputId(null);
+      setProcessingStartedAt(null);
+    }
+  }, [load, scope]);
+
+  const handleBrowserImageStart = useCallback(() => {
+    if (browserImageOutput) beginBrowserImageRender(browserImageOutput.id);
+  }, [beginBrowserImageRender, browserImageOutput]);
+
+  const handleBrowserImageComplete = useCallback((result: { caption: string; imageDataUrls: string[] }) => {
+    if (browserImageOutput) void completeBrowserImageRender(browserImageOutput, result);
+  }, [browserImageOutput, completeBrowserImageRender]);
+
+  const handleBrowserImageError = useCallback(() => {
+    if (browserImageOutput) void failBrowserImageRender(browserImageOutput);
+  }, [browserImageOutput, failBrowserImageRender]);
 
   const renderBrowserVideo = useCallback(async (output: AutomationOutput) => {
     const isConfusedWords = isConfusedWordsVideo(output);
@@ -324,6 +388,13 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         : "İçerikler hazırlanıyor";
 
   return <section aria-live="polite" className="flex max-h-[calc(100dvh-2rem)] w-[min(70rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-white/15 bg-[#171a19] text-[#f7f3ed] shadow-sm">
+    {browserImageOutput ? <AutomationBrowserImageRenderer
+      key={browserImageOutput.id}
+      onComplete={handleBrowserImageComplete}
+      onError={handleBrowserImageError}
+      onStart={handleBrowserImageStart}
+      output={browserImageOutput}
+    /> : null}
     <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4">
       <div className="min-w-0"><p className="truncate text-sm font-semibold">{isReviewReady ? "Üretilen içerikler" : "İçerikler hazırlanıyor"}</p><p className="truncate text-xs text-[#8d9b92]">{outputs.length} içerik · {completeCount} tamamlandı</p></div>
       <div className="flex items-center gap-2"><Button aria-label="İçerik durumunu yenile" className="size-8 rounded border-transparent bg-white/[0.06] p-0 text-[#d7e2da] hover:bg-white/[0.12]" disabled={state === "loading" || Boolean(processingOutputId) || isSchedulingAll} onClick={() => void load(true)} type="button"><RefreshCw className={cn("size-3.5", state === "loading" && "animate-spin")} /></Button><Button className="h-8 rounded border-white/10 bg-white/[0.06] px-3 text-xs text-[#d7e2da] hover:bg-white/[0.12]" disabled={Boolean(processingOutputId) || isSchedulingAll || (state === "ready" && !isReviewReady)} onClick={onClose} type="button"><X className="size-3.5" />Kapat</Button></div>
@@ -331,9 +402,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
     {!isReviewReady ? <main className="grid min-h-[27rem] place-items-center p-6 text-center">
       <div className="w-full max-w-xl">
-        {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
-        <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Video sesi için devam et" : "İçerikler sırayla üretiliyor"}</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Tarayıcının sesli video kaydına izin vermesi için bu adımı sen başlatmalısın.` : progressStatus}</p>
+        {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : browserImageOutputs.length ? <ImageIcon className="mx-auto size-8 animate-pulse text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
+        <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Video sesi için devam et" : browserImageOutputs.length ? "Studio görseli renderlanıyor" : "İçerikler sırayla üretiliyor"}</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Tarayıcının sesli video kaydına izin vermesi için bu adımı sen başlatmalısın.` : browserImageOutputs.length ? "Bu görsel, Social Content Studio ile aynı tasarım bileşenlerinden hazırlanıyor." : progressStatus}</p>
         <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
         <p className="mt-2 text-xs text-[#a9b8ae]">{browserVideoOutputs.length ? "Tahmini kalan süre: devam etme onayından sonra hesaplanacak" : `Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>

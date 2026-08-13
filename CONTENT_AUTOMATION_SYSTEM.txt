@@ -595,8 +595,9 @@ durumlari hata koduyla saklanir; tekrar deneme/backoff yonetimi sonraki asamadir
   Browser WebM Blob'lari icin signed upload token'i ve Upload-Post teslim signed URL'ini verir.
 - src/features/twitter-automation/browser-media-stage.ts
   Browser Blob'unu private Supabase Storage'a dogrudan signed-upload ile yukler.
-- src/features/twitter-automation/non-ai-social-image.ts
-  Automation icin Word of the Day ve Poster PNG'lerini server-side uretir.
+- src/features/twitter-automation/components/automation-browser-image-renderer.tsx
+  Studio'nun ayni React gorsel bilesenlerini tarayicida PNG'ye renderlar; SELF,
+  carousel ve Word of the Day otomasyonlari ayri bir SVG tasarimi kullanmaz.
 - src/features/twitter-automation/automation-run-service.ts
   Mevcut text/image/video generatorlarini tekrar kullanan server-side run
   orkestrasyonu, medya Storage ve idempotent Upload-Post teslimi.
