@@ -38,6 +38,18 @@ type AutomationOutput = {
 
 type LoadState = "loading" | "ready" | "error";
 
+const BROWSER_IMAGE_GENERATORS = new Set([
+  "word-of-the-day",
+  "word-of-the-day-poster",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+]);
+
 const GENERATOR_LABELS: Record<string, string> = {
   "ai-word-of-the-day": "AI Word of the Day görseli",
   "ai-mini-quiz": "AI Mini Quiz görseli",
@@ -88,7 +100,8 @@ function isOriginalMascotLearningVideo(output: AutomationOutput): output is Auto
 }
 
 function isBrowserRenderedImage(output: AutomationOutput): output is AutomationOutput & AutomationBrowserImageOutput {
-  return output.status === "awaiting_browser_image" && output.tier !== "random";
+  const sourceGenerator = output.generator.startsWith("music-") ? output.generator.slice("music-".length) : output.generator;
+  return output.status === "awaiting_browser_video" && output.media_type === null && output.tier !== "random" && BROWSER_IMAGE_GENERATORS.has(sourceGenerator);
 }
 
 function isGenerationComplete(output: AutomationOutput) {
@@ -102,7 +115,7 @@ function isReadyForSchedule(output: AutomationOutput) {
 function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   if (isProcessing || output.status === "processing") return `${getOutputLabel(output)} üretiliyor`;
   if (output.status === "generating_video") return `${getOutputLabel(output)} renderlanıyor`;
-  if (output.status === "awaiting_browser_image") return `${getOutputLabel(output)} Studio tasarımıyla renderlanıyor`;
+  if (isBrowserRenderedImage(output) || output.status === "awaiting_browser_image") return `${getOutputLabel(output)} Studio tasarımıyla renderlanıyor`;
   if (output.status === "awaiting_browser_video") return `${getOutputLabel(output)} için ses ekleme onayı bekleniyor`;
   if (output.status === "ready_to_schedule") return `${getOutputLabel(output)} hazır`;
   if (output.status === "scheduled") return `${getOutputLabel(output)} schedule edildi`;
@@ -150,7 +163,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [runId, scopeSearchParams]);
 
   const browserImageOutputs = useMemo(() => outputs.filter(isBrowserRenderedImage), [outputs]);
-  const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video"), [outputs]);
+  const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video" && !isBrowserRenderedImage(output)), [outputs]);
   const browserImageOutput = browserImageOutputs[0] ?? null;
   const nextOutput = useMemo(() => {
     if (browserImageOutputs.length || browserVideoOutputs.length) return null;

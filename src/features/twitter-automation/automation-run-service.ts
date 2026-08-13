@@ -225,7 +225,9 @@ async function createImage(output: AutomationOutputRecord, generator: ImageGener
 
 async function prepareBrowserImage(output: AutomationOutputRecord, tier: Tier) {
   await updateOutput(output.id, {
-    status: "awaiting_browser_image",
+    // The deployed database already recognizes this browser wait state. Using
+    // it keeps Self renders working while schema migrations catch up.
+    status: "awaiting_browser_video",
     tier,
     caption: null,
     media_path: null,

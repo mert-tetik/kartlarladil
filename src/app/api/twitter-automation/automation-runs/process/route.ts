@@ -10,6 +10,17 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const stagedMediaPathSchema = z.string().regex(/^automation\/[\da-f-]+(?:-\d+)?\.(?:png|webm)$/iu);
+const BROWSER_IMAGE_GENERATORS = new Set([
+  "word-of-the-day",
+  "word-of-the-day-poster",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+]);
 
 const requestSchema = z.object({
   outputId: z.string().uuid().optional(),
@@ -30,6 +41,11 @@ function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
 }
 
+function isBrowserImageOutput(generator: string, mediaType: AutomationOutputRecord["media_type"]) {
+  const sourceGenerator = generator.startsWith("music-") ? generator.slice("music-".length) : generator;
+  return mediaType === null && BROWSER_IMAGE_GENERATORS.has(sourceGenerator);
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
@@ -44,7 +60,7 @@ export async function POST(request: NextRequest) {
     let query = supabase
       .from("social_content_automation_outputs")
       .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
-      .in("status", stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image"] : stagedVideoPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
+      .in("status", stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image", "awaiting_browser_video"] : stagedVideoPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .order("scheduled_at", { ascending: true })
       .limit(1);
     if (parsed.data.outputId) query = query.eq("id", parsed.data.outputId);
@@ -60,6 +76,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
+    if ((stagedImagePaths.length || parsed.data.browserImageError) && !isBrowserImageOutput(candidate.generator, candidate.media_type)) {
+      return NextResponse.json({ errorCode: "automation_browser_image_not_expected" }, { status: 409 });
+    }
 
     const update = parsed.data.browserImageError
       ? { status: "failed", error_code: parsed.data.browserImageError, updated_at: new Date().toISOString() }
