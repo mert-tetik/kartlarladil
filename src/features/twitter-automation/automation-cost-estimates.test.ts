@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { estimateAutomationGroupCost } from "@/features/twitter-automation/automation-cost-estimates";
+import { estimateAutomationGroupCost, type AutomationCostRow } from "@/features/twitter-automation/automation-cost-estimates";
+import { describeExpectedOutputSourceMix, estimateAutomationOutputDistribution } from "@/features/twitter-automation/automation-output-distribution";
 
 describe("automation cost estimates", () => {
   it("uses PoYo Luna pricing for normal text posts", () => {
@@ -79,6 +80,40 @@ describe("automation cost estimates", () => {
     }]);
 
     expect(estimate.totalUsd).toBe(0);
+  });
+
+  it("uses the same per-mode probabilities as scheduled random outputs", () => {
+    const row: AutomationCostRow = {
+      contentType: "image",
+      generator: "random",
+      randomIncludes: { image: ["self", "ai"] },
+      quantity: 5,
+    };
+
+    const distribution = estimateAutomationOutputDistribution([row]);
+    const estimate = estimateAutomationGroupCost([row]);
+
+    expect(distribution.totalOutputs).toBeCloseTo(5, 8);
+    expect(distribution.expectedBySource.SELF).toBeCloseTo(3, 8);
+    expect(distribution.expectedBySource.AI).toBeCloseTo(2, 8);
+    expect(describeExpectedOutputSourceMix(distribution)).toBe("AI 2 · SELF 3");
+    expect(estimate.totalUsd).toBeCloseTo(2 * 0.01315, 8);
+  });
+
+  it("splits multi-content rows before calculating individual mode probabilities", () => {
+    const distribution = estimateAutomationOutputDistribution([{
+      contentType: "random",
+      generator: "random",
+      contentTypes: ["text", "image"],
+      generators: { text: "fun-post", image: "random" },
+      randomIncludes: { image: ["self"] },
+      quantity: 6,
+    }]);
+
+    expect(distribution.expectedByContentType.text).toBeCloseTo(3, 8);
+    expect(distribution.expectedByContentType.image).toBeCloseTo(3, 8);
+    expect(distribution.expectedBySource.AI).toBeCloseTo(3, 8);
+    expect(distribution.expectedBySource.SELF).toBeCloseTo(3, 8);
   });
 
   it("multiplies a row's estimate by its selected output quantity", () => {

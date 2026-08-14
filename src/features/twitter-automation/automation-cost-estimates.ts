@@ -7,16 +7,9 @@
  * generation charges in the current workflow.
  */
 
-import { RANDOM_GENERATOR, isRandomGenerator, randomGeneratorsFor, resolveRandomIncludes, type RandomIncludes } from "@/features/twitter-automation/automation-randomization";
+import { estimateAutomationOutputDistribution, type AutomationOutputEstimateRow } from "@/features/twitter-automation/automation-output-distribution";
 
-export type AutomationCostRow = {
-  contentType: "random" | "text" | "image" | "video";
-  generator: string;
-  contentTypes?: Array<"text" | "image" | "video">;
-  generators?: Partial<Record<"text" | "image" | "video", string>>;
-  randomIncludes?: RandomIncludes;
-  quantity?: number;
-};
+export type AutomationCostRow = AutomationOutputEstimateRow;
 
 type CostBreakdown = {
   poyoUsd: number;
@@ -141,12 +134,6 @@ function addCosts(...costs: CostBreakdown[]): CostBreakdown {
   return costs.reduce<CostBreakdown>((total, cost) => ({ poyoUsd: total.poyoUsd + cost.poyoUsd }), { poyoUsd: 0 });
 }
 
-function averageCosts(costs: CostBreakdown[]): CostBreakdown {
-  if (!costs.length) return { poyoUsd: 0 };
-  const total = addCosts(...costs);
-  return { poyoUsd: total.poyoUsd / costs.length };
-}
-
 function estimateGenerator(generator: string): CostBreakdown {
   if (TEXT_GENERATORS.has(generator)) return { poyoUsd: TEXT_POST_POYO_USD };
   if (AI_IMAGE_GENERATORS.has(generator) || MUSIC_AI_IMAGE_GENERATORS.has(generator)) {
@@ -160,62 +147,14 @@ function estimateGenerator(generator: string): CostBreakdown {
   }
   if (BROWSER_VIDEO_GENERATORS.has(generator)) return { poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD };
 
-  if (generator === "random-text") return { poyoUsd: TEXT_POST_POYO_USD };
-  if (generator === "random-ai-image") return { poyoUsd: AI_IMAGE_POYO_USD };
-  if (generator === "random-no-ai-image") return { poyoUsd: 0 };
-  if (generator === "random-image") {
-    return averageCosts([
-      ...Array.from(AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
-      ...Array.from(NON_AI_IMAGE_GENERATORS, () => ({ poyoUsd: 0 })),
-    ]);
-  }
-  if (generator === "random-image-to-video") {
-    return averageCosts([
-      ...Array.from(MUSIC_AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
-      ...Array.from(MUSIC_NON_AI_IMAGE_GENERATORS, () => ({ poyoUsd: 0 })),
-    ]);
-  }
-  if (generator === "random-ai-video") {
-    return averageCosts([
-      { poyoUsd: AVATAR_VIDEO_POYO_USD },
-      ...Array.from(BROWSER_VIDEO_GENERATORS, () => ({ poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD })),
-      ...Array.from(MUSIC_AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
-    ]);
-  }
-  if (generator === "random-video") {
-    return averageCosts([
-      { poyoUsd: AVATAR_VIDEO_POYO_USD },
-      ...Array.from(BROWSER_VIDEO_GENERATORS, () => ({ poyoUsd: CONFUSED_WORDS_VIDEO_POYO_USD })),
-      ...Array.from(MUSIC_AI_IMAGE_GENERATORS, () => ({ poyoUsd: AI_IMAGE_POYO_USD })),
-      ...Array.from(MUSIC_NON_AI_IMAGE_GENERATORS, () => ({ poyoUsd: 0 })),
-    ]);
-  }
-
   return { poyoUsd: 0 };
 }
 
-function estimateGeneratorMode(contentType: "text" | "image" | "video", generator: string, randomIncludes: readonly string[] | undefined) {
-  if (!isRandomGenerator(generator)) return estimateGenerator(generator);
-  return averageCosts(randomGeneratorsFor(contentType, resolveRandomIncludes(contentType, generator, randomIncludes)).map(estimateGenerator));
-}
-
-function selectedContentTypes(row: AutomationCostRow) {
-  if (row.contentTypes?.length) return [...new Set(row.contentTypes)];
-  if (row.contentType === "text" || row.contentType === "image" || row.contentType === "video") return [row.contentType];
-  return ["text", "image", "video"] as const;
-}
-
-function fallbackGenerator() {
-  return RANDOM_GENERATOR;
-}
-
 function estimateRow(row: AutomationCostRow): CostBreakdown {
-  const perOutput = averageCosts(selectedContentTypes(row).map((contentType) => {
-    const generator = row.generators?.[contentType] ?? (row.contentType === contentType ? row.generator : fallbackGenerator());
-    return estimateGeneratorMode(contentType, generator, row.randomIncludes?.[contentType]);
-  }));
-  const quantity = Number.isInteger(row.quantity) ? Math.max(1, row.quantity!) : 1;
-  return { poyoUsd: perOutput.poyoUsd * quantity };
+  const distribution = estimateAutomationOutputDistribution([row]);
+  return {
+    poyoUsd: distribution.entries.reduce((total, entry) => total + entry.expectedOutputs * estimateGenerator(entry.generator).poyoUsd, 0),
+  };
 }
 
 export function estimateAutomationGroupCost(rows: readonly AutomationCostRow[]): AutomationCostEstimate {
@@ -241,5 +180,5 @@ export function formatAutomationCostTry(value: number) {
 
 export function describeAutomationCostEstimate(estimate: AutomationCostEstimate) {
   const provider = estimate.poyoUsd > 0 ? `PoYo ${formatAutomationCostTry(estimate.poyoUsd * USD_TO_TRY)}` : "No paid AI provider is used";
-  return `AI generation estimate: ${formatAutomationCostTry(estimate.oneOffTry)} for one daily run, ${formatAutomationCostTry(estimate.monthlyTry)} for 30 daily runs. ${provider}. Uses USD/TRY 47.525 (2026-07-31). Random modes use their expected average; one generated item is shared across all selected social accounts.`;
+  return `AI generation estimate: ${formatAutomationCostTry(estimate.oneOffTry)} for one daily run, ${formatAutomationCostTry(estimate.monthlyTry)} for 30 daily runs. ${provider}. Uses USD/TRY 47.525 (2026-07-31). Random modes use the exact uniform selection probabilities used when outputs are scheduled; one generated item is shared across all selected social accounts.`;
 }
