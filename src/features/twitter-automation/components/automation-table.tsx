@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Filter, FolderPlus, GripVertical, Pencil, Plus, RefreshCw, Save, Search, Shuffle, Sparkles, Trash2 } from "lucide-react";
-import { useCallback, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Filter, FolderPlus, GripVertical, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Shuffle, Sparkles, Trash2 } from "lucide-react";
+import { createContext, useCallback, useContext, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,14 @@ interface AutomationResponse {
   socialAccounts?: SocialMediaAccount[];
 }
 
+interface GroupActionsContextValue {
+  groups: readonly AutomationGroup[];
+  duplicateGroup: (groupId: string) => void;
+  moveGroup: (groupId: string, direction: -1 | 1) => void;
+}
+
+const GroupActionsContext = createContext<GroupActionsContextValue | null>(null);
+
 const CONTENT_TYPES: Array<{ value: SelectableContentType; label: string }> = [
   { value: "text", label: "Text" },
   { value: "image", label: "Image" },
@@ -127,6 +135,53 @@ function createRow(socialAccounts: readonly SocialMediaAccount[]): AutomationRow
 
 function createGroup(name: string, tone: GroupTone, socialAccounts: readonly SocialMediaAccount[]): AutomationGroup {
   return { id: crypto.randomUUID(), name, tone, color: GROUP_TONES[tone].color, icon: "flag", collapsed: false, rows: [createRow(socialAccounts)] };
+}
+
+function copyAutomationRow(row: AutomationRow): AutomationRow {
+  return {
+    ...row,
+    id: crypto.randomUUID(),
+    contentTypes: [...row.contentTypes],
+    generators: { ...row.generators },
+    randomIncludes: {
+      ...(row.randomIncludes.text ? { text: [...row.randomIncludes.text] } : {}),
+      ...(row.randomIncludes.image ? { image: [...row.randomIncludes.image] } : {}),
+      ...(row.randomIncludes.video ? { video: [...row.randomIncludes.video] } : {}),
+    },
+    platforms: [...row.platforms],
+    accounts: Object.fromEntries(Object.entries(row.accounts).map(([platform, accountIds]) => [platform, [...(accountIds ?? [])]])),
+    saved: false,
+  };
+}
+
+function getCopiedGroupName(group: AutomationGroup, groups: readonly AutomationGroup[]) {
+  const baseName = `${group.name} copy`;
+  const takenNames = new Set(groups.map((item) => item.name));
+  if (!takenNames.has(baseName)) return baseName;
+
+  let copyNumber = 2;
+  while (takenNames.has(`${baseName} ${copyNumber}`)) copyNumber += 1;
+  return `${baseName} ${copyNumber}`;
+}
+
+function copyAutomationGroup(group: AutomationGroup, groups: readonly AutomationGroup[]): AutomationGroup {
+  return {
+    ...group,
+    id: crypto.randomUUID(),
+    name: getCopiedGroupName(group, groups),
+    collapsed: false,
+    rows: group.rows.map(copyAutomationRow),
+  };
+}
+
+function moveAutomationGroup(groups: readonly AutomationGroup[], groupId: string, direction: -1 | 1): AutomationGroup[] {
+  const index = groups.findIndex((group) => group.id === groupId);
+  const targetIndex = index + direction;
+  if (index < 0 || targetIndex < 0 || targetIndex >= groups.length) return [...groups];
+
+  const reorderedGroups = [...groups];
+  [reorderedGroups[index], reorderedGroups[targetIndex]] = [reorderedGroups[targetIndex], reorderedGroups[index]];
+  return reorderedGroups;
 }
 
 function createInitialGroups(socialAccounts: readonly SocialMediaAccount[]) {
@@ -467,6 +522,20 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     setDraggedRow(null);
   }
 
+  function moveGroup(groupId: string, direction: -1 | 1) {
+    setGroups((current) => moveAutomationGroup(current, groupId, direction));
+  }
+
+  function duplicateGroup(groupId: string) {
+    setGroups((current) => {
+      const sourceIndex = current.findIndex((group) => group.id === groupId);
+      if (sourceIndex < 0) return current;
+
+      const copiedGroup = copyAutomationGroup(current[sourceIndex], current);
+      return [...current.slice(0, sourceIndex + 1), copiedGroup, ...current.slice(sourceIndex + 1)];
+    });
+  }
+
   async function scheduleAutomation(horizonDays: 1 | 3 | 7) {
     if (!isHydrated || schedulingHorizon) return;
     setSchedulingHorizon(horizonDays);
@@ -494,7 +563,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
 
   const hasSocialAccounts = socialAccounts.length > 0;
 
-  return <section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
+  return <GroupActionsContext.Provider value={{ groups, duplicateGroup, moveGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
     <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 py-1.5 sm:px-5">
       <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to content studio" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "saving" || syncState === "loading" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{syncState === "loading" ? "Loading automation" : syncState === "saving" ? "Saving to Supabase" : syncState === "error" ? "Supabase unavailable" : "Saved to Supabase"}</div>
@@ -504,7 +573,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     <div className="min-h-0 flex-1 overflow-auto overscroll-contain"><table className="min-w-[1620px] w-full border-collapse text-left"><thead className="sticky top-0 z-20"><tr><th className="w-11 border-b border-r border-white/10 bg-[#171a19] px-3 py-2"><input aria-label="Select all rows" className="accent-[#55c39a]" type="checkbox" /></th><ColumnHeader label="content_type" type="enum" /><ColumnHeader label="generator_mode" type="text" /><ColumnHeader label="quantity" type="integer" /><ColumnHeader label="parameters" type="json" /><ColumnHeader label="social_networks" type="array" /><ColumnHeader label="social_accounts" type="array" /><ColumnHeader label="schedule_window" type="time range" /><ColumnHeader label="state" type="text" /><th className="w-24 border-b border-white/10 bg-[#171a19] px-3 py-2" /></tr></thead><tbody>{visibleGroups.map((group) => <GroupRows group={group} groupColor={getGroupColor(group)} isRenaming={renamingGroupId === group.id} key={group.id} onAddRow={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, collapsed: false, rows: [...item.rows, createRow(socialAccounts)] } : item))} onDeleteGroup={() => setGroups((current) => current.length === 1 ? current : current.filter((item) => item.id !== group.id))} onDragOver={(event) => event.preventDefault()} onDrop={() => moveRow(group.id)} onRename={(name) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name } : item))} onRenameFinish={() => setRenamingGroupId(null)} onRenameStart={() => setRenamingGroupId(group.id)} onSetGroupColor={(color) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, color } : item))} onSetGroupIcon={(icon) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, icon } : item))} onToggle={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, collapsed: !item.collapsed } : item))} onUpdateRow={updateRow} onSaveGroup={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, rows: item.rows.map((row) => ({ ...row, saved: true })) } : item))} onSaveRow={saveRow} onSelectGenerator={selectGenerator} onToggleContentType={toggleContentType} onToggleRandomInclude={toggleRandomInclude} onToggleAccount={toggleAccount} onTogglePlatform={togglePlatform} onDeleteRow={(rowId) => setGroups((current) => current.map((item) => item.id !== group.id ? item : group.rows.length === 1 ? item : { ...item, rows: item.rows.filter((row) => row.id !== rowId) }))} onDragStart={(rowId) => setDraggedRow({ groupId: group.id, rowId })} platformOptions={platformOptions} socialAccounts={socialAccounts} tone={GROUP_TONES[group.tone]} />)}</tbody></table>{!isHydrated ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">Loading social media accounts...</div> : !hasSocialAccounts ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#ffb9c1]">No non-email social media accounts are available.</div> : !visibleGroups.length ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">No automation rows match this filter.</div> : null}</div>
     <footer className="flex min-h-10 shrink-0 items-center justify-between border-t border-white/10 bg-[#171a19] px-3 text-xs text-[#829287] sm:px-5"><span>{isTestAutomation ? "TEST table: content can be generated and reviewed, but it can never be scheduled to production." : "Buttons prepare the selected output quantity from each row for every future day. Each output gets its own random mode selection and time within the saved range."}</span><span title={`Expected source mix: ${dailyOutputMix}`}>{dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day</span></footer>
     {isGeneratedPostsOpen && activeRunId ? createPortal(<div aria-label="Generated posts" aria-modal="true" className="fixed inset-0 z-[9999] grid place-items-center p-4" role="dialog"><GeneratedPostsTable onClose={() => setIsGeneratedPostsOpen(false)} runId={activeRunId} scope={scope} /></div>, document.body) : null}
-  </section>;
+  </section></GroupActionsContext.Provider>;
 }
 
 type ToneStyle = (typeof GROUP_TONES)[GroupTone];
@@ -553,6 +622,7 @@ function LegacyGroupRows({ group, groupColor, tone, isRenaming, platformOptions,
 
 function GroupRows(props: GroupRowsProps) {
   const { group, groupColor, tone, isRenaming, platformOptions, socialAccounts, onToggle, onRename, onRenameStart, onRenameFinish, onAddRow, onDeleteGroup, onSaveGroup, onSetGroupColor, onSetGroupIcon, onDragOver, onDrop, onUpdateRow, onSaveRow, onToggleContentType, onSelectGenerator, onToggleRandomInclude, onTogglePlatform, onToggleAccount, onDeleteRow, onDragStart } = props;
+  const groupActions = useContext(GroupActionsContext);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const iconPickerRef = useRef<HTMLDivElement>(null);
   const headerStyle: CSSProperties = { backgroundColor: groupColor };
@@ -563,6 +633,9 @@ function GroupRows(props: GroupRowsProps) {
   const groupIconOption = getGroupIconOption(groupIcon);
   const countryIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "country");
   const socialIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "social");
+  const groupIndex = groupActions?.groups.findIndex((item) => item.id === group.id) ?? -1;
+  const canMoveGroupUp = groupIndex > 0;
+  const canMoveGroupDown = groupIndex >= 0 && groupIndex < (groupActions?.groups.length ?? 0) - 1;
 
   useEffect(() => {
     if (!isIconPickerOpen) return;
@@ -596,6 +669,9 @@ function GroupRows(props: GroupRowsProps) {
               <div className="leading-tight"><span className="mr-1.5 text-[10px] text-black/60">AI estimate</span><span className="text-xs font-semibold text-black">{formatAutomationCostTry(costEstimate.oneOffTry)}</span><span className="mx-1 text-black/40">·</span><span className="text-[10px] text-black/60">monthly</span><span className="ml-1 text-xs font-semibold text-black">{formatAutomationCostTry(costEstimate.monthlyTry)}</span></div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <Button aria-label="Move group up" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupUp} onClick={() => groupActions?.moveGroup(group.id, -1)} title="Move group up" type="button"><MoveUp className="size-3.5" /></Button>
+              <Button aria-label="Move group down" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupDown} onClick={() => groupActions?.moveGroup(group.id, 1)} title="Move group down" type="button"><MoveDown className="size-3.5" /></Button>
+              <Button aria-label="Duplicate group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!groupActions} onClick={() => groupActions?.duplicateGroup(group.id)} title="Duplicate group" type="button"><Copy className="size-3.5" /></Button>
               <label className="grid size-7 cursor-pointer place-items-center rounded border border-white/10 bg-black/10" title="Group color"><span className="sr-only">Group color</span><input aria-label="Group color" className="size-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => onSetGroupColor(event.target.value)} type="color" value={groupColor} /></label>
               <Button className="h-7 rounded border-white/10 bg-white/[0.05] px-2 text-xs text-[#d7e2da] hover:bg-white/10" onClick={onSaveGroup} type="button"><Save className="size-3.5" />Save group</Button>
               <Button aria-label="Add row to group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={onAddRow} type="button"><Plus className="size-3.5" /></Button>
