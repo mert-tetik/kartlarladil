@@ -3,7 +3,10 @@ import { AUTOMATION_GROUP_ICON_IDS, normalizeAutomationGroupIcon } from "@/featu
 
 describe("automation group icons", () => {
   it("keeps the supported saved icon selections", () => {
-    expect(AUTOMATION_GROUP_ICON_IDS).toEqual(["flag", "us", "de", "ru", "fr", "es", "instagram", "youtube", "tiktok", "x", "pinterest"]);
+    expect(AUTOMATION_GROUP_ICON_IDS).toEqual([
+      "flag", "gb", "us", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "sa", "jp", "kr", "cn",
+      "instagram", "youtube", "tiktok", "x", "pinterest", "linkedin", "facebook", "threads", "bluesky", "reddit", "discord", "telegram", "google-business", "slack", "mastodon", "nostr", "lemmy", "devto", "hashnode", "wordpress", "whop", "listmonk",
+    ]);
     expect(normalizeAutomationGroupIcon("youtube")).toBe("youtube");
   });
 
