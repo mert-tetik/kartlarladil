@@ -3,7 +3,7 @@ import { AUTOMATION_GROUP_ICON_IDS, normalizeAutomationGroupIcon } from "@/featu
 
 describe("automation group icons", () => {
   it("keeps the supported saved icon selections", () => {
-    expect(AUTOMATION_GROUP_ICON_IDS).toEqual(["flag", "instagram", "youtube", "x", "tiktok"]);
+    expect(AUTOMATION_GROUP_ICON_IDS).toEqual(["flag", "us", "de", "ru", "fr", "es", "instagram", "youtube", "tiktok", "x", "pinterest"]);
     expect(normalizeAutomationGroupIcon("youtube")).toBe("youtube");
   });
 

@@ -1,5 +1,5 @@
 {
-  "version": "4afe63be84f212322aaed966fd92028518fb132f05f329203c084f518d364de4",
+  "version": "bb96cafd66eca03650f0e25fc859c356756e30b31a23c48fcf27eb5528bdbeac",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -92,6 +92,50 @@
     {
       "url": "/apple-icon.png",
       "revision": "9d0fa2d0789ef328934bafacf721deb9f3f2a026c0851044958a9a9ceac5ada0"
+    },
+    {
+      "url": "/automation-group-icons/flags/de.svg",
+      "revision": "efd480af5a154a7651f29da23ee0d09dbc892410fb4041898ddf8face336c575"
+    },
+    {
+      "url": "/automation-group-icons/flags/es.svg",
+      "revision": "f9cfaff858e95f830733ade9591037b5322dfb5827a53b70956a3d190bb49b9a"
+    },
+    {
+      "url": "/automation-group-icons/flags/fr.svg",
+      "revision": "a526851c372e3372b1596be71af355ea72b1650bbc4c06e6e2c226900d3de6cc"
+    },
+    {
+      "url": "/automation-group-icons/flags/ru.svg",
+      "revision": "7100aaae51ff3b6a2bf0ca932b3bc518bdc760814725e7cca31d821a26c3dd7c"
+    },
+    {
+      "url": "/automation-group-icons/flags/tr.svg",
+      "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
+    },
+    {
+      "url": "/automation-group-icons/flags/us.svg",
+      "revision": "e7be4240cf57987926673708f09233be1ab6bdf35acc7b86bd32a263f197a2a7"
+    },
+    {
+      "url": "/automation-group-icons/social/instagram.svg",
+      "revision": "1060526807a40fb7c1fcd06fa720865d295a9dc58f409660c716ec16bf06421e"
+    },
+    {
+      "url": "/automation-group-icons/social/pinterest.svg",
+      "revision": "3ddfb8bdb609e7bb419d613f940692f0d44a3c13173ea317b1cd69f339416603"
+    },
+    {
+      "url": "/automation-group-icons/social/tiktok.svg",
+      "revision": "474e542d15b871647fb7b1f7eeeebf899de7de7577c43dc9005c4ac82e2fa4a9"
+    },
+    {
+      "url": "/automation-group-icons/social/x.svg",
+      "revision": "07099f0e2eea46fe8cef6a2422dee63e1aa98c3cab07f3edf9a0b333314f758b"
+    },
+    {
+      "url": "/automation-group-icons/social/youtube.svg",
+      "revision": "7f5156448b9c1b65156e34e4443f0eff8b85f5afa783fc8a8d09f49380fed424"
     },
     {
       "url": "/chests/chest-sprite.png",

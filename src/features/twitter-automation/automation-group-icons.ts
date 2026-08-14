@@ -1,9 +1,15 @@
 export const AUTOMATION_GROUP_ICON_OPTIONS = [
-  { value: "flag", label: "Flag", color: "#f7c96f" },
-  { value: "instagram", label: "Instagram", color: "#f66f9c" },
-  { value: "youtube", label: "YouTube", color: "#ff6a62" },
-  { value: "x", label: "X", color: "#e9f2ec" },
-  { value: "tiktok", label: "TikTok", color: "#65decf" },
+  { value: "flag", label: "Türkiye", category: "country", src: "/automation-group-icons/flags/tr.svg" },
+  { value: "us", label: "United States", category: "country", src: "/automation-group-icons/flags/us.svg" },
+  { value: "de", label: "Germany", category: "country", src: "/automation-group-icons/flags/de.svg" },
+  { value: "ru", label: "Russia", category: "country", src: "/automation-group-icons/flags/ru.svg" },
+  { value: "fr", label: "France", category: "country", src: "/automation-group-icons/flags/fr.svg" },
+  { value: "es", label: "Spain", category: "country", src: "/automation-group-icons/flags/es.svg" },
+  { value: "instagram", label: "Instagram", category: "social", src: "/automation-group-icons/social/instagram.svg" },
+  { value: "youtube", label: "YouTube", category: "social", src: "/automation-group-icons/social/youtube.svg" },
+  { value: "tiktok", label: "TikTok", category: "social", src: "/automation-group-icons/social/tiktok.svg" },
+  { value: "x", label: "X", category: "social", src: "/automation-group-icons/social/x.svg" },
+  { value: "pinterest", label: "Pinterest", category: "social", src: "/automation-group-icons/social/pinterest.svg" },
 ] as const;
 
 export type AutomationGroupIcon = (typeof AUTOMATION_GROUP_ICON_OPTIONS)[number]["value"];
