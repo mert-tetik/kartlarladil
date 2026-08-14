@@ -529,6 +529,7 @@ function LegacyGroupRows({ group, groupColor, tone, isRenaming, platformOptions,
 function GroupRows(props: GroupRowsProps) {
   const { group, groupColor, tone, isRenaming, platformOptions, socialAccounts, onToggle, onRename, onRenameStart, onRenameFinish, onAddRow, onDeleteGroup, onSaveGroup, onSetGroupColor, onSetGroupIcon, onDragOver, onDrop, onUpdateRow, onSaveRow, onToggleContentType, onSelectGenerator, onToggleRandomInclude, onTogglePlatform, onToggleAccount, onDeleteRow, onDragStart } = props;
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const iconPickerRef = useRef<HTMLDivElement>(null);
   const headerStyle: CSSProperties = { backgroundColor: groupColor };
   const rowStyle: CSSProperties = { backgroundColor: getRowColor(groupColor) };
   const costEstimate = estimateAutomationGroupCost(group.rows);
@@ -538,6 +539,17 @@ function GroupRows(props: GroupRowsProps) {
   const countryIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "country");
   const socialIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "social");
 
+  useEffect(() => {
+    if (!isIconPickerOpen) return;
+
+    function closeOnOutsidePointerDown(event: PointerEvent) {
+      if (!iconPickerRef.current?.contains(event.target as Node)) setIsIconPickerOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
+  }, [isIconPickerOpen]);
+
   return <>
     <tr className={cn("group-header relative border-y border-white/10", tone.header)} onDragOver={onDragOver} onDrop={onDrop} style={headerStyle}>
       <td className="relative p-0" colSpan={10}>
@@ -545,7 +557,7 @@ function GroupRows(props: GroupRowsProps) {
         <div className="flex h-14 items-center justify-between gap-3 px-4 pl-5">
           <div className="flex min-w-0 items-center gap-2">
             <Button aria-label={group.collapsed ? "Expand group" : "Collapse group"} className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={onToggle} type="button">{group.collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}</Button>
-            <div className="relative">
+            <div className="relative" ref={iconPickerRef}>
               <Button aria-expanded={isIconPickerOpen} aria-haspopup="dialog" aria-label={`Choose visual for ${group.name}`} className={cn("size-11 shrink-0 rounded border p-0", groupIconOption.category === "social" ? "border-white/45 bg-white hover:bg-white/90" : "border-white/15 bg-black/15 hover:bg-black/25")} onClick={() => setIsIconPickerOpen((current) => !current)} title="Choose group visual" type="button"><GroupIcon icon={groupIcon} size="trigger" /></Button>
               {isIconPickerOpen ? <div aria-label="Group visual choices" className="absolute left-0 top-12 z-30 max-h-[min(40rem,calc(100vh-5rem))] w-80 overflow-y-auto rounded-lg border border-white/15 bg-[#101212] p-4 shadow-sm" role="dialog"><p className="mb-2 text-xs font-semibold text-[#aab7af]">Countries</p><div className="grid grid-cols-3 gap-2">{countryIcons.map((option) => <Button aria-label={`Use ${option.label} flag`} aria-pressed={groupIcon === option.value} className={cn("flex h-16 rounded border p-0 hover:bg-white/[0.08]", groupIcon === option.value ? "border-[#55c39a] bg-white/10" : "border-transparent bg-transparent")} key={option.value} onClick={() => { onSetGroupIcon(option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><GroupIcon icon={option.value} size="picker" /></Button>)}</div><div className="my-4 h-px bg-white/10" /><p className="mb-2 text-xs font-semibold text-[#aab7af]">Social media</p><div className="grid grid-cols-5 gap-2">{socialIcons.map((option) => <Button aria-label={`Use ${option.label} logo`} aria-pressed={groupIcon === option.value} className={cn("flex h-[3.25rem] rounded border p-0 bg-white hover:bg-white/90", groupIcon === option.value ? "border-[#55c39a]" : "border-white/70")} key={option.value} onClick={() => { onSetGroupIcon(option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><GroupIcon icon={option.value} size="picker" /></Button>)}</div></div> : null}
             </div>

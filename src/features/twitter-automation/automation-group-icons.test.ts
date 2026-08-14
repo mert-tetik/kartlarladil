@@ -5,7 +5,7 @@ describe("automation group icons", () => {
   it("keeps the supported saved icon selections", () => {
     expect(AUTOMATION_GROUP_ICON_IDS).toEqual([
       "flag", "gb", "us", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "sa", "jp", "kr", "cn",
-      "instagram", "youtube", "tiktok", "x", "pinterest", "linkedin", "facebook", "threads", "bluesky", "reddit", "discord", "telegram", "google-business", "slack", "mastodon", "nostr", "lemmy", "devto", "hashnode", "wordpress", "whop", "listmonk",
+      "youtube", "instagram", "tiktok", "x", "threads", "pinterest", "facebook",
     ]);
     expect(normalizeAutomationGroupIcon("youtube")).toBe("youtube");
   });

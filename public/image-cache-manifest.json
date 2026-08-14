@@ -1,5 +1,5 @@
 {
-  "version": "dd49932007087cd1c84eace04ee045b1b15b9c55a6f8912781a1536f178b48f5",
+  "version": "effdc73910f371170aeb7df2719a14776d651ff175110d4707b42b90015f8215",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -154,68 +154,16 @@
       "revision": "e7be4240cf57987926673708f09233be1ab6bdf35acc7b86bd32a263f197a2a7"
     },
     {
-      "url": "/automation-group-icons/social/bluesky.svg",
-      "revision": "2e936b654c0ae98ea6245170d5eaf05e94977f40841e6a4803cea1d31eadde1f"
-    },
-    {
-      "url": "/automation-group-icons/social/devdotto.svg",
-      "revision": "26de264ee89d62a793d690430594d5f0d97e2a9a59575b269785351d9a6c1b35"
-    },
-    {
-      "url": "/automation-group-icons/social/discord.svg",
-      "revision": "79a8105c2fc15d8caa6ee7b87b58597432e171386d22a2cc2237f0eb3bbbe7dd"
-    },
-    {
       "url": "/automation-group-icons/social/facebook.svg",
       "revision": "daf5a4fff42cb6b9868b7eb61a9f742663cc128d929d37c85873b8b10eaa345a"
-    },
-    {
-      "url": "/automation-group-icons/social/googlebusinessprofile.ico",
-      "revision": "8720df457a93b97d3cdd7c05714c8e255a1969085844eb247756b869dbea636a"
-    },
-    {
-      "url": "/automation-group-icons/social/hashnode.svg",
-      "revision": "891855f55de61e148fef220e309f52d1da207de5c1ab19a3342afc94acc68d1d"
     },
     {
       "url": "/automation-group-icons/social/instagram.svg",
       "revision": "1060526807a40fb7c1fcd06fa720865d295a9dc58f409660c716ec16bf06421e"
     },
     {
-      "url": "/automation-group-icons/social/lemmy.svg",
-      "revision": "3771bb320923d73ddaac0b77bf6f30fe877e96bb8a774d1de48add5fc8b4de97"
-    },
-    {
-      "url": "/automation-group-icons/social/linkedin.svg",
-      "revision": "fe754a658bf5a0ec91d5e31ff8979d18ce705435c35e4daa29501c2073ff7584"
-    },
-    {
-      "url": "/automation-group-icons/social/listmonk.svg",
-      "revision": "563fa71f66ac2067de2a945258b1e1c6fd0c3b22f6cb259d0494218a3f6ad324"
-    },
-    {
-      "url": "/automation-group-icons/social/mastodon.svg",
-      "revision": "c97d1209d3d337f281d7449be73dcf031de86527ea4108f65507d97213669693"
-    },
-    {
-      "url": "/automation-group-icons/social/nostr.svg",
-      "revision": "ae6b0408871f4e7f280660114720823a9d0614baa6a2041fa82a53ea69ce7935"
-    },
-    {
       "url": "/automation-group-icons/social/pinterest.svg",
       "revision": "3ddfb8bdb609e7bb419d613f940692f0d44a3c13173ea317b1cd69f339416603"
-    },
-    {
-      "url": "/automation-group-icons/social/reddit.svg",
-      "revision": "cc158155e9ea8119a00fd5501a86a4a0b82a9445efb2455ccfabd417e7b0fe4d"
-    },
-    {
-      "url": "/automation-group-icons/social/slack.svg",
-      "revision": "5ff275ef6df5aca7ac8ed3cf95d003015b4b153f99c570bdcaf9d1674bd6aa5c"
-    },
-    {
-      "url": "/automation-group-icons/social/telegram.svg",
-      "revision": "4435c9a57e165a1c3b7f27e0b5b11b82b10d674ea4fff7f6748cb67b7fcb994e"
     },
     {
       "url": "/automation-group-icons/social/threads.svg",
@@ -224,14 +172,6 @@
     {
       "url": "/automation-group-icons/social/tiktok.svg",
       "revision": "474e542d15b871647fb7b1f7eeeebf899de7de7577c43dc9005c4ac82e2fa4a9"
-    },
-    {
-      "url": "/automation-group-icons/social/whop.svg",
-      "revision": "2d7a310283d6f9cc753210d83224cd6db6348cb82a5536348884e5831d46203f"
-    },
-    {
-      "url": "/automation-group-icons/social/wordpress.svg",
-      "revision": "0d45778b7cb89372dd4710f38874c5b87045a8bbc8aba5bb7f40fbaf5fcb8808"
     },
     {
       "url": "/automation-group-icons/social/x.svg",
