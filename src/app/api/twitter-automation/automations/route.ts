@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { AUTOMATION_GROUP_ICON_IDS } from "@/features/twitter-automation/automation-group-icons";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
@@ -130,6 +131,7 @@ const automationGroupsSchema = z.object({
     name: z.string().trim().min(1).max(120),
     tone: z.enum(["emerald", "blue", "amber", "rose"]),
     color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
+    icon: z.enum(AUTOMATION_GROUP_ICON_IDS).optional(),
     collapsed: z.boolean(),
     rows: z.array(automationRowSchema).min(1).max(100),
   }).strict()).max(30),
