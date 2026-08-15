@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ImgHTMLAttributes } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GeneratedPostsTable } from "./generated-posts-table";
@@ -75,6 +75,89 @@ describe("GeneratedPostsTable", () => {
     expect(tooltip).toHaveClass("delay-500", "group-hover:opacity-100");
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(hint).toBeVisible();
+  });
+
+  it("moves unverified remaining outputs to a yellow review state after a refresh failure", async () => {
+    const pendingOutput = {
+      id: "5d13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Test kampanyası",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-08-14T10:00:00+03:00",
+      status: "queued",
+      caption: null,
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const;
+    let loadCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+      void _init;
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) {
+        loadCount += 1;
+        return loadCount === 1
+          ? { ok: true, json: async () => ({ outputs: [pendingOutput] }) }
+          : { ok: false, json: async () => ({ errorCode: "automation_runs_unavailable" }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/process") return { ok: true, json: async () => ({ processed: true }) };
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="5d13ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
+
+    const reviewButton = await screen.findByRole("button", { name: "Sonuç ekranına git" });
+    expect(screen.getAllByText("İçerik üretim akışı yenilenemedi.").length).toBeGreaterThan(0);
+    fireEvent.click(reviewButton);
+
+    expect(await screen.findByText("Beklemede")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Yeniden dene" })).toBeVisible();
+    const statusHint = screen.getByRole("button", { name: "İçerik durumu ayrıntısını göster" });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("İçerik üretim akışı yenilenemedi.");
+    expect(statusHint).toHaveClass("text-[#f1c75b]");
+  });
+
+  it("restores a failed output as successful when its retry returns a ready result", async () => {
+    const failedOutput = {
+      id: "4d13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Test kampanyası",
+      content_type: "image",
+      generator: "ai-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-08-14T10:00:00+03:00",
+      status: "failed",
+      caption: "Hazır açıklama",
+      mediaUrl: "https://assets.test/ready.png",
+      mediaUrls: [],
+      media_type: "image",
+      error_code: "automation_schedule_failed",
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+      void _init;
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [failedOutput] }) };
+      if (url === "/api/twitter-automation/automation-runs/retry") return { ok: true, json: async () => ({ outputId: failedOutput.id, status: "ready_to_schedule" }) };
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="4d13ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Yeniden üret" }));
+
+    await waitFor(() => expect(screen.getByText("Başarılı")).toBeVisible());
+    const retryCall = fetchMock.mock.calls.find(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry");
+    expect(retryCall).toBeDefined();
+    expect(JSON.parse(String(retryCall?.[1]?.body))).toMatchObject({ outputId: failedOutput.id, scope: "test" });
   });
 
   it("renders Self images from the deployed browser wait state", async () => {
