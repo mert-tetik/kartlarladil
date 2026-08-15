@@ -44,6 +44,7 @@ const groupsSchema = z.array(z.object({
   name: z.string().trim().min(1).max(120),
   rows: z.array(rowSchema).min(1).max(100),
 }).passthrough()).min(1).max(30);
+const storedAutomationStateSchema = z.union([groupsSchema, z.object({ groups: groupsSchema }).passthrough()]);
 const requestSchema = z.object({
   horizonDays: z.union([z.literal(1), z.literal(3), z.literal(7)]),
   scope: z.enum(["production", "test"]).optional(),
@@ -168,10 +169,11 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const { data: state, error: stateError } = await supabase.from(STATE_TABLE).select("groups").eq("owner_key", ownerKey).maybeSingle<{ groups: unknown }>();
     if (stateError) return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
-    const parsedGroups = groupsSchema.safeParse(state?.groups);
-    if (!parsedGroups.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
+    const parsedState = storedAutomationStateSchema.safeParse(state?.groups);
+    if (!parsedState.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
+    const parsedGroups = Array.isArray(parsedState.data) ? parsedState.data : parsedState.data.groups;
 
-    const sourceRows = parsedGroups.data.flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
+    const sourceRows = parsedGroups.flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
     if (!sourceRows.length) return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
 
     const outputsPerDay = sourceRows.reduce((total, item) => total + item.row.quantity, 0);

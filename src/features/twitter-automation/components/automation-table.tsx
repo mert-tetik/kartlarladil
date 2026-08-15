@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Filter, FolderPlus, GripVertical, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Shuffle, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
 import { createContext, useCallback, useContext, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import { GeneratedPostsTable } from "@/features/twitter-automation/components/ge
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
 import { describeAutomationCostEstimate, estimateAutomationGroupCost, formatAutomationCostTry } from "@/features/twitter-automation/automation-cost-estimates";
 import { AUTOMATION_GROUP_ICON_OPTIONS, normalizeAutomationGroupIcon, type AutomationGroupIcon } from "@/features/twitter-automation/automation-group-icons";
+import { AUTOMATION_SUPER_GROUP_ICON_OPTIONS, normalizeAutomationSuperGroupIcon, type AutomationSuperGroup, type AutomationSuperGroupIcon } from "@/features/twitter-automation/automation-super-groups";
 import { describeExpectedOutputSourceMix, estimateAutomationOutputDistribution } from "@/features/twitter-automation/automation-output-distribution";
 import { AUTOMATION_GENERATOR_OPTIONS, RANDOM_GENERATOR, RANDOM_INCLUDE_OPTIONS, defaultRandomIncludes, normalizeGeneratorMode, normalizeRandomIncludes, resolveRandomIncludes, type AutomationContentType, type RandomInclude, type RandomIncludes } from "@/features/twitter-automation/automation-randomization";
 import { cn } from "@/lib/utils";
@@ -60,19 +61,29 @@ interface AutomationGroup {
   tone: GroupTone;
   color?: string;
   icon?: AutomationGroupIcon;
+  superGroupId?: string;
   collapsed: boolean;
   rows: AutomationRow[];
 }
 
 interface AutomationResponse {
   groups?: AutomationGroup[];
+  superGroups?: AutomationSuperGroup[];
   socialAccounts?: SocialMediaAccount[];
 }
 
 interface GroupActionsContextValue {
   groups: readonly AutomationGroup[];
+  visibleGroups: readonly AutomationGroup[];
+  superGroups: readonly AutomationSuperGroup[];
+  addSuperGroup: () => void;
   duplicateGroup: (groupId: string) => void;
   moveGroup: (groupId: string, direction: -1 | 1) => void;
+  assignGroupToSuperGroup: (groupId: string, superGroupId: string) => void;
+  removeGroupFromSuperGroup: (groupId: string) => void;
+  renameSuperGroup: (superGroupId: string, name: string) => void;
+  updateSuperGroupIcon: (superGroupId: string, icon: AutomationSuperGroupIcon) => void;
+  deleteSuperGroup: (superGroupId: string) => void;
 }
 
 const GroupActionsContext = createContext<GroupActionsContextValue | null>(null);
@@ -138,6 +149,10 @@ function createGroup(name: string, tone: GroupTone, socialAccounts: readonly Soc
   return { id: crypto.randomUUID(), name, tone, color: GROUP_TONES[tone].color, icon: "flag", collapsed: false, rows: [createRow(socialAccounts)] };
 }
 
+function createSuperGroup(name: string): AutomationSuperGroup {
+  return { id: crypto.randomUUID(), name, icon: "social" };
+}
+
 function copyAutomationRow(row: AutomationRow): AutomationRow {
   return {
     ...row,
@@ -176,9 +191,14 @@ function copyAutomationGroup(group: AutomationGroup, groups: readonly Automation
 }
 
 function moveAutomationGroup(groups: readonly AutomationGroup[], groupId: string, direction: -1 | 1): AutomationGroup[] {
-  const index = groups.findIndex((group) => group.id === groupId);
-  const targetIndex = index + direction;
-  if (index < 0 || targetIndex < 0 || targetIndex >= groups.length) return [...groups];
+  const group = groups.find((item) => item.id === groupId);
+  if (!group) return [...groups];
+
+  const siblingIndexes = groups.flatMap((item, index) => item.superGroupId === group.superGroupId ? [index] : []);
+  const siblingIndex = siblingIndexes.findIndex((index) => groups[index]?.id === groupId);
+  const targetIndex = siblingIndexes[siblingIndex + direction];
+  const index = siblingIndexes[siblingIndex];
+  if (index === undefined || targetIndex === undefined) return [...groups];
 
   const reorderedGroups = [...groups];
   [reorderedGroups[index], reorderedGroups[targetIndex]] = [reorderedGroups[targetIndex], reorderedGroups[index]];
@@ -206,6 +226,11 @@ function getGroupIcon(group: AutomationGroup) {
 
 function getGroupIconOption(icon: AutomationGroupIcon) {
   return AUTOMATION_GROUP_ICON_OPTIONS.find((option) => option.value === icon)!;
+}
+
+function SuperGroupIcon({ icon, size = "trigger" }: { icon: AutomationSuperGroupIcon; size?: "trigger" | "picker" }) {
+  const Icon = icon === "video" ? Video : icon === "image" ? ImageIcon : icon === "text" ? FileText : Share2;
+  return <Icon aria-hidden="true" className={size === "picker" ? "size-6" : "size-4"} />;
 }
 
 function GroupIcon({ icon, size }: { icon: AutomationGroupIcon; size: "trigger" | "picker" }) {
@@ -270,14 +295,26 @@ function getRowColor(color: string) {
   return `rgb(${Math.round((red + match) * 255)} ${Math.round((green + match) * 255)} ${Math.round((blue + match) * 255)})`;
 }
 
-function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly SocialMediaAccount[]) {
+function normalizeSuperGroups(superGroups: readonly AutomationSuperGroup[]) {
+  return superGroups.map((superGroup) => ({ ...superGroup, icon: normalizeAutomationSuperGroupIcon(superGroup.icon) }));
+}
+
+function orderGroupsBySuperGroup(groups: readonly AutomationGroup[], superGroups: readonly AutomationSuperGroup[]) {
+  const superGroupIds = new Set(superGroups.map((superGroup) => superGroup.id));
+  const ungroupedGroups = groups.filter((group) => !group.superGroupId || !superGroupIds.has(group.superGroupId));
+  return [...ungroupedGroups, ...superGroups.flatMap((superGroup) => groups.filter((group) => group.superGroupId === superGroup.id))];
+}
+
+function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly SocialMediaAccount[], superGroups: readonly AutomationSuperGroup[]) {
   const platformOptions = getPlatformOptions(socialAccounts);
   const validPlatforms = new Set(platformOptions.map((platform) => platform.value));
+  const validSuperGroupIds = new Set(superGroups.map((superGroup) => superGroup.id));
 
   return groups.map((group) => ({
     ...group,
     color: getGroupColor(group),
     icon: getGroupIcon(group),
+    superGroupId: group.superGroupId && validSuperGroupIds.has(group.superGroupId) ? group.superGroupId : undefined,
     rows: group.rows.map((row) => {
       const legacyRow = row as Partial<AutomationRow>;
       const contentTypes = (legacyRow.contentTypes ?? []).filter((type): type is SelectableContentType => type === "text" || type === "image" || type === "video");
@@ -344,6 +381,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const isTestAutomation = scope === "test";
   const scopeSearchParams = automationScopeSearchParams(scope);
   const [groups, setGroups] = useState<AutomationGroup[]>([]);
+  const [superGroups, setSuperGroups] = useState<AutomationSuperGroup[]>([]);
   const [socialAccounts, setSocialAccounts] = useState<SocialMediaAccount[]>([]);
   const [query, setQuery] = useState("");
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
@@ -358,7 +396,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const pendingAutoSaveTimeout = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const platformOptions = getPlatformOptions(socialAccounts);
-  const visibleGroups = groups.map((group) => ({
+  const visibleGroups = orderGroupsBySuperGroup(groups, superGroups).map((group) => ({
     ...group,
     rows: group.rows.filter((row) => !deferredQuery || [group.name, row.contentType, row.generator, row.platforms.join(" "), Object.values(row.accounts).flat().join(" "), row.language, row.nativeLanguage, row.tier].join(" ").toLocaleLowerCase().includes(deferredQuery)),
   })).filter((group) => group.rows.length > 0 || !deferredQuery);
@@ -380,8 +418,10 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
       const sourceGroups = Array.isArray(payload.groups) && payload.groups.length > 0
         ? payload.groups
         : createInitialGroups(nextSocialAccounts);
+      const nextSuperGroups = normalizeSuperGroups(Array.isArray(payload.superGroups) ? payload.superGroups : []);
       setSocialAccounts(nextSocialAccounts);
-      setGroups(normalizeGroups(sourceGroups, nextSocialAccounts));
+      setSuperGroups(nextSuperGroups);
+      setGroups(normalizeGroups(sourceGroups, nextSocialAccounts, nextSuperGroups));
       setSyncState("saved");
       setIsHydrated(true);
     } catch {
@@ -400,7 +440,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
       const response = await fetch(`/api/twitter-automation/automations${scopeSearchParams}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ groups }),
+        body: JSON.stringify({ groups, superGroups }),
       });
       if (!response.ok) throw new Error("Automation state could not be saved.");
       if (requestId === saveRequestId.current) setSyncState("saved");
@@ -409,7 +449,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
       if (requestId === saveRequestId.current) setSyncState("error");
       return false;
     }
-  }, [groups, isHydrated, scopeSearchParams]);
+  }, [groups, isHydrated, scopeSearchParams, superGroups]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -537,6 +577,31 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     });
   }
 
+  function addSuperGroup() {
+    setSuperGroups((current) => [...current, createSuperGroup(`New upper group ${current.length + 1}`)]);
+  }
+
+  function assignGroupToSuperGroup(groupId: string, superGroupId: string) {
+    setGroups((current) => current.map((group) => group.id === groupId ? { ...group, superGroupId } : group));
+  }
+
+  function removeGroupFromSuperGroup(groupId: string) {
+    setGroups((current) => current.map((group) => group.id === groupId ? { ...group, superGroupId: undefined } : group));
+  }
+
+  function renameSuperGroup(superGroupId: string, name: string) {
+    setSuperGroups((current) => current.map((superGroup) => superGroup.id === superGroupId ? { ...superGroup, name } : superGroup));
+  }
+
+  function updateSuperGroupIcon(superGroupId: string, icon: AutomationSuperGroupIcon) {
+    setSuperGroups((current) => current.map((superGroup) => superGroup.id === superGroupId ? { ...superGroup, icon } : superGroup));
+  }
+
+  function deleteSuperGroup(superGroupId: string) {
+    setSuperGroups((current) => current.filter((superGroup) => superGroup.id !== superGroupId));
+    setGroups((current) => current.map((group) => group.superGroupId === superGroupId ? { ...group, superGroupId: undefined } : group));
+  }
+
   async function scheduleAutomation(horizonDays: 1 | 3 | 7) {
     if (!isHydrated || schedulingHorizon) return;
     setSchedulingHorizon(horizonDays);
@@ -564,7 +629,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
 
   const hasSocialAccounts = socialAccounts.length > 0;
 
-  return <GroupActionsContext.Provider value={{ groups, duplicateGroup, moveGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
+  return <GroupActionsContext.Provider value={{ groups, visibleGroups, superGroups, addSuperGroup, duplicateGroup, moveGroup, assignGroupToSuperGroup, removeGroupFromSuperGroup, renameSuperGroup, updateSuperGroupIcon, deleteSuperGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
     <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 py-1.5 sm:px-5">
       <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to content studio" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "saving" || syncState === "loading" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{syncState === "loading" ? "Loading automation" : syncState === "saving" ? "Saving to Supabase" : syncState === "error" ? "Supabase unavailable" : "Saved to Supabase"}</div>
@@ -608,6 +673,42 @@ interface GroupRowsProps {
   onDragStart: (rowId: string) => void;
 }
 
+function SuperGroupHeader({ superGroup, memberCount }: { superGroup: AutomationSuperGroup; memberCount: number }) {
+  const groupActions = useContext(GroupActionsContext);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const iconPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isIconPickerOpen) return;
+
+    function closeOnOutsidePointerDown(event: PointerEvent) {
+      if (!iconPickerRef.current?.contains(event.target as Node)) setIsIconPickerOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
+  }, [isIconPickerOpen]);
+
+  return <tr className="super-group-header border-y border-[#6f93a9]/35 bg-[#16232c]" data-super-group-id={superGroup.id}>
+    <td className="p-0" colSpan={10}>
+      <div className="flex h-11 items-center justify-between gap-3 px-4 pl-5">
+        <div className="flex min-w-0 items-center gap-2">
+          <FolderTree aria-hidden="true" className="size-3.5 shrink-0 text-[#8cc8ef]" />
+          <div className="relative" ref={iconPickerRef}>
+            <Button aria-expanded={isIconPickerOpen} aria-haspopup="dialog" aria-label={`Choose visual for ${superGroup.name}`} className="size-8 shrink-0 rounded border border-[#8cc8ef]/35 bg-[#0e181f] p-0 text-[#8cc8ef] hover:bg-[#1c3340]" onClick={() => setIsIconPickerOpen((current) => !current)} title="Choose upper group visual" type="button"><SuperGroupIcon icon={superGroup.icon} /></Button>
+            {isIconPickerOpen ? <div aria-label="Upper group visual choices" className="absolute left-0 top-9 z-40 grid w-56 grid-cols-4 gap-1.5 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog">{AUTOMATION_SUPER_GROUP_ICON_OPTIONS.map((option) => <Button aria-label={`Use ${option.label} upper group icon`} aria-pressed={superGroup.icon === option.value} className={cn("flex h-12 rounded border p-0 text-[#b9dff6] hover:bg-[#1c3340]", superGroup.icon === option.value ? "border-[#8cc8ef] bg-[#1c3340]" : "border-transparent bg-transparent")} key={option.value} onClick={() => { groupActions?.updateSuperGroupIcon(superGroup.id, option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><SuperGroupIcon icon={option.value} size="picker" /></Button>)}</div> : null}
+          </div>
+          {isRenaming ? <input autoFocus aria-label="Upper group name" className="min-w-0 max-w-64 border-b border-[#8cc8ef] bg-transparent text-sm font-semibold text-[#e7f5ff] outline-none" onBlur={() => setIsRenaming(false)} onChange={(event) => groupActions?.renameSuperGroup(superGroup.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur(); }} value={superGroup.name} /> : <button className="max-w-64 truncate text-left text-sm font-semibold text-[#e7f5ff]" onClick={() => setIsRenaming(true)} type="button">{superGroup.name}</button>}
+          <Button aria-label="Rename upper group" className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-[#9dbbcf] hover:bg-white/10 hover:text-white" onClick={() => setIsRenaming(true)} type="button"><Pencil className="size-3.5" /></Button>
+          <span className="shrink-0 text-xs text-[#9dbbcf]">{memberCount} groups</span>
+        </div>
+        <Button aria-label="Delete upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#ffb1aa] hover:bg-[#2c1917]" onClick={() => groupActions?.deleteSuperGroup(superGroup.id)} title="Delete upper group and ungroup its campaigns" type="button"><Trash2 className="size-3.5" /></Button>
+      </div>
+    </td>
+  </tr>;
+}
+
 // Kept temporarily so existing table structure remains available during the random-source migration.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyGroupRows({ group, groupColor, tone, isRenaming, platformOptions, socialAccounts, onToggle, onRename, onRenameStart, onRenameFinish, onAddRow, onDeleteGroup, onSaveGroup, onSetGroupColor, onDragOver, onDrop, onUpdateRow, onSaveRow, onToggleContentType, onSelectGenerator, onTogglePlatform, onToggleAccount, onDeleteRow, onDragStart }: GroupRowsProps) {
@@ -625,7 +726,9 @@ function GroupRows(props: GroupRowsProps) {
   const { group, groupColor, tone, isRenaming, platformOptions, socialAccounts, onToggle, onRename, onRenameStart, onRenameFinish, onAddRow, onDeleteGroup, onSaveGroup, onSetGroupColor, onSetGroupIcon, onDragOver, onDrop, onUpdateRow, onSaveRow, onToggleContentType, onSelectGenerator, onToggleRandomInclude, onTogglePlatform, onToggleAccount, onDeleteRow, onDragStart } = props;
   const groupActions = useContext(GroupActionsContext);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [isSuperGroupPickerOpen, setIsSuperGroupPickerOpen] = useState(false);
   const iconPickerRef = useRef<HTMLDivElement>(null);
+  const superGroupPickerRef = useRef<HTMLDivElement>(null);
   const headerStyle: CSSProperties = { backgroundColor: groupColor };
   const rowStyle: CSSProperties = { backgroundColor: getRowColor(groupColor) };
   const costEstimate = estimateAutomationGroupCost(group.rows);
@@ -634,22 +737,31 @@ function GroupRows(props: GroupRowsProps) {
   const groupIconOption = getGroupIconOption(groupIcon);
   const countryIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "country");
   const socialIcons = AUTOMATION_GROUP_ICON_OPTIONS.filter((option) => option.category === "social");
-  const groupIndex = groupActions?.groups.findIndex((item) => item.id === group.id) ?? -1;
+  const siblingGroups = groupActions?.groups.filter((item) => item.superGroupId === group.superGroupId) ?? [];
+  const groupIndex = siblingGroups.findIndex((item) => item.id === group.id);
   const canMoveGroupUp = groupIndex > 0;
-  const canMoveGroupDown = groupIndex >= 0 && groupIndex < (groupActions?.groups.length ?? 0) - 1;
+  const canMoveGroupDown = groupIndex >= 0 && groupIndex < siblingGroups.length - 1;
+  const superGroup = group.superGroupId ? groupActions?.superGroups.find((item) => item.id === group.superGroupId) : undefined;
+  const isFirstVisibleGroup = groupActions?.visibleGroups[0]?.id === group.id;
+  const isFirstGroupInSuperGroup = Boolean(superGroup && groupActions?.visibleGroups.find((item) => item.superGroupId === group.superGroupId)?.id === group.id);
+  const emptySuperGroups = groupActions?.superGroups.filter((item) => !groupActions.groups.some((candidate) => candidate.superGroupId === item.id)) ?? [];
 
   useEffect(() => {
-    if (!isIconPickerOpen) return;
+    if (!isIconPickerOpen && !isSuperGroupPickerOpen) return;
 
     function closeOnOutsidePointerDown(event: PointerEvent) {
-      if (!iconPickerRef.current?.contains(event.target as Node)) setIsIconPickerOpen(false);
+      if (iconPickerRef.current?.contains(event.target as Node) || superGroupPickerRef.current?.contains(event.target as Node)) return;
+      setIsIconPickerOpen(false);
+      setIsSuperGroupPickerOpen(false);
     }
 
     document.addEventListener("pointerdown", closeOnOutsidePointerDown);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
-  }, [isIconPickerOpen]);
+  }, [isIconPickerOpen, isSuperGroupPickerOpen]);
 
   return <>
+    {isFirstVisibleGroup ? <><tr className="border-b border-white/[0.075] bg-[#141716]"><td className="p-0" colSpan={10}><div className="flex h-10 items-center px-5"><Button aria-label="Add upper group" className="h-7 rounded border border-[#8cc8ef]/40 bg-[#16232c] px-2.5 text-xs text-[#c6e5f8] hover:bg-[#1c3340]" onClick={() => groupActions?.addSuperGroup()} type="button"><FolderTree className="size-3.5" />Add upper group</Button></div></td></tr>{emptySuperGroups.map((item) => <SuperGroupHeader key={item.id} memberCount={0} superGroup={item} />)}</> : null}
+    {isFirstGroupInSuperGroup && superGroup ? <SuperGroupHeader memberCount={groupActions?.groups.filter((item) => item.superGroupId === superGroup.id).length ?? 0} superGroup={superGroup} /> : null}
     <tr className={cn("group-header relative border-y border-white/10", tone.header)} onDragOver={onDragOver} onDrop={onDrop} style={headerStyle}>
       <td className="relative p-0" colSpan={10}>
         <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: groupColor }} />
@@ -673,6 +785,11 @@ function GroupRows(props: GroupRowsProps) {
               <Button aria-label="Move group up" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupUp} onClick={() => groupActions?.moveGroup(group.id, -1)} title="Move group up" type="button"><MoveUp className="size-3.5" /></Button>
               <Button aria-label="Move group down" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupDown} onClick={() => groupActions?.moveGroup(group.id, 1)} title="Move group down" type="button"><MoveDown className="size-3.5" /></Button>
               <Button aria-label="Duplicate group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!groupActions} onClick={() => groupActions?.duplicateGroup(group.id)} title="Duplicate group" type="button"><Copy className="size-3.5" /></Button>
+              <div className="relative" ref={superGroupPickerRef}>
+                <Button aria-expanded={isSuperGroupPickerOpen} aria-haspopup="dialog" aria-label="Add group to upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#b9dff6] hover:bg-[#1c3340]" onClick={() => { setIsIconPickerOpen(false); setIsSuperGroupPickerOpen((current) => !current); }} title="Add group to upper group" type="button"><FolderInput className="size-3.5" /></Button>
+                {isSuperGroupPickerOpen ? <div aria-label="Upper groups" className="absolute right-0 top-8 z-40 w-56 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog"><p className="px-1.5 py-1 text-[10px] font-semibold text-[#aab7af]">Move to upper group</p>{groupActions?.superGroups.length ? <div className="space-y-1">{groupActions.superGroups.map((item) => <Button className={cn("flex h-8 w-full justify-start gap-2 rounded px-2 text-xs text-[#e5f4ff] hover:bg-[#1c3340]", group.superGroupId === item.id && "bg-[#1c3340]")} key={item.id} onClick={() => { groupActions.assignGroupToSuperGroup(group.id, item.id); setIsSuperGroupPickerOpen(false); }} type="button"><SuperGroupIcon icon={item.icon} />{item.name}</Button>)}</div> : <p className="px-1.5 py-2 text-xs text-[#8d9b92]">Create an upper group first.</p>}</div> : null}
+              </div>
+              {group.superGroupId ? <Button aria-label="Remove group from upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#ffbdad] hover:bg-[#2c1917]" onClick={() => groupActions?.removeGroupFromSuperGroup(group.id)} title="Remove from upper group" type="button"><Unlink2 className="size-3.5" /></Button> : null}
               <label className="grid size-7 cursor-pointer place-items-center rounded border border-white/10 bg-black/10" title="Group color"><span className="sr-only">Group color</span><input aria-label="Group color" className="size-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => onSetGroupColor(event.target.value)} type="color" value={groupColor} /></label>
               <Button className="h-7 rounded border-white/10 bg-white/[0.05] px-2 text-xs text-[#d7e2da] hover:bg-white/10" onClick={onSaveGroup} type="button"><Save className="size-3.5" />Save group</Button>
               <Button aria-label="Add row to group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={onAddRow} type="button"><Plus className="size-3.5" /></Button>

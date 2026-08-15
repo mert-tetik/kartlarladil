@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { AUTOMATION_GROUP_ICON_IDS } from "@/features/twitter-automation/automation-group-icons";
+import { AUTOMATION_SUPER_GROUP_ICON_IDS } from "@/features/twitter-automation/automation-super-groups";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
@@ -132,9 +133,15 @@ const automationGroupsSchema = z.object({
     tone: z.enum(["emerald", "blue", "amber", "rose"]),
     color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
     icon: z.enum(AUTOMATION_GROUP_ICON_IDS).optional(),
+    superGroupId: z.string().uuid().optional(),
     collapsed: z.boolean(),
     rows: z.array(automationRowSchema).min(1).max(100),
   }).strict()).max(30),
+  superGroups: z.array(z.object({
+    id: z.string().uuid(),
+    name: z.string().trim().min(1).max(120),
+    icon: z.enum(AUTOMATION_SUPER_GROUP_ICON_IDS),
+  }).strict()).max(30).default([]),
 }).strict().superRefine((value, context) => {
   if (new Set(value.groups.map((group) => group.id)).size !== value.groups.length) {
     context.addIssue({ code: "custom", message: "Group ids must be unique.", path: ["groups"] });
@@ -144,7 +151,21 @@ const automationGroupsSchema = z.object({
   if (new Set(rowIds).size !== rowIds.length) {
     context.addIssue({ code: "custom", message: "Row ids must be unique.", path: ["groups"] });
   }
+
+  const superGroupIds = new Set(value.superGroups.map((superGroup) => superGroup.id));
+  if (superGroupIds.size !== value.superGroups.length) {
+    context.addIssue({ code: "custom", message: "Upper group ids must be unique.", path: ["superGroups"] });
+  }
+  for (const group of value.groups) {
+    if (group.superGroupId && !superGroupIds.has(group.superGroupId)) {
+      context.addIssue({ code: "custom", message: "Each group must reference an existing upper group.", path: ["groups"] });
+    }
+  }
 });
+
+function parseStoredAutomationState(value: unknown) {
+  return automationGroupsSchema.safeParse(Array.isArray(value) ? { groups: value, superGroups: [] } : value);
+}
 
 function isAuthorized(request: NextRequest) {
   return hasSocialStudioSession(request.headers.get("cookie"));
@@ -183,9 +204,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
     }
 
-    const parsedGroups = automationGroupsSchema.safeParse({ groups: data?.groups ?? [] });
+    const parsedGroups = parseStoredAutomationState(data?.groups ?? []);
     return NextResponse.json({
       groups: parsedGroups.success ? parsedGroups.data.groups : [],
+      superGroups: parsedGroups.success ? parsedGroups.data.superGroups : [],
       socialAccounts: socialMedia.accounts,
       updatedAt: data?.updated_at ?? null,
     });
@@ -216,12 +238,12 @@ export async function PUT(request: NextRequest) {
       .from(TABLE_NAME)
       .upsert({
         owner_key: ownerKey,
-        groups: parsed.data.groups,
+        groups: parsed.data,
         updated_at: updatedAt,
       }, { onConflict: "owner_key" });
     if (error) return NextResponse.json({ errorCode: "automation_save_failed" }, { status: 503 });
 
-    return NextResponse.json({ groups: parsed.data.groups, updatedAt });
+    return NextResponse.json({ groups: parsed.data.groups, superGroups: parsed.data.superGroups, updatedAt });
   } catch {
     return NextResponse.json({ errorCode: "automation_save_failed" }, { status: 503 });
   }

@@ -87,9 +87,12 @@ describe("automation run creation", () => {
   it("accepts the maximum quantity of twenty outputs", async () => {
     stateMaybeSingleMock.mockResolvedValue({
       data: {
-        groups: [{
+        groups: {
+          superGroups: [{ id: "a9cc2c75-5228-4cdb-bff5-8a0a8e5db7a5", name: "Video campaigns", icon: "video" }],
+          groups: [{
           id: "47c65ced-6664-4cb8-9efd-fbb38de4f158",
           name: "Test campaign",
+          superGroupId: "a9cc2c75-5228-4cdb-bff5-8a0a8e5db7a5",
           rows: [{
             id: "a670283d-1d18-42d8-8463-7f19c280b5bb",
             contentType: "text",
@@ -102,7 +105,8 @@ describe("automation run creation", () => {
             scheduleStart: "09:00",
             scheduleEnd: "18:00",
           }],
-        }],
+          }],
+        },
       },
       error: null,
     });
