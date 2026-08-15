@@ -134,6 +134,7 @@ const automationGroupsSchema = z.object({
     color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
     icon: z.enum(AUTOMATION_GROUP_ICON_IDS).optional(),
     superGroupId: z.string().uuid().optional(),
+    hidden: z.boolean().optional(),
     collapsed: z.boolean(),
     rows: z.array(automationRowSchema).min(1).max(100),
   }).strict()).max(30),
@@ -142,6 +143,7 @@ const automationGroupsSchema = z.object({
     name: z.string().trim().min(1).max(120),
     icon: z.enum(AUTOMATION_SUPER_GROUP_ICON_IDS),
     color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
+    hidden: z.boolean().optional(),
   }).strict()).max(30).default([]),
 }).strict().superRefine((value, context) => {
   if (new Set(value.groups.map((group) => group.id)).size !== value.groups.length) {

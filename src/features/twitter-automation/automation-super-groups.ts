@@ -16,6 +16,7 @@ export interface AutomationSuperGroup {
   name: string;
   icon: AutomationSuperGroupIcon;
   color?: string;
+  hidden?: boolean;
 }
 
 export function normalizeAutomationSuperGroupIcon(value: unknown): AutomationSuperGroupIcon {

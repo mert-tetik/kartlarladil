@@ -174,4 +174,54 @@ describe("automation run creation", () => {
     expect(createdOutputs.every((output) => output.language !== "random" && output.native_language !== "random")).toBe(true);
     expect(createdOutputs.every((output) => output.language !== output.native_language)).toBe(true);
   });
+
+  it("skips hidden groups and groups inside hidden upper groups", async () => {
+    const createdOutputs: Array<{ group_name: string }> = [];
+    const hiddenSuperGroupId = "a9cc2c75-5228-4cdb-bff5-8a0a8e5db7a5";
+    const row = (id: string) => ({
+      id,
+      contentType: "text",
+      generator: "fun-post",
+      quantity: 1,
+      language: "en",
+      nativeLanguage: "tr",
+      tier: "B1",
+      accounts: { instagram: ["1"] },
+      scheduleStart: "09:00",
+      scheduleEnd: "18:00",
+    });
+    stateMaybeSingleMock.mockResolvedValue({
+      data: {
+        groups: {
+          superGroups: [{ id: hiddenSuperGroupId, name: "Paused videos", icon: "video", hidden: true }],
+          groups: [
+            { id: "47c65ced-6664-4cb8-9efd-fbb38de4f158", name: "Hidden campaign", hidden: true, rows: [row("a670283d-1d18-42d8-8463-7f19c280b5bb")] },
+            { id: "a1bc2c75-5228-4cdb-bff5-8a0a8e5db7a5", name: "Paused video campaign", superGroupId: hiddenSuperGroupId, rows: [row("b670283d-1d18-42d8-8463-7f19c280b5bb")] },
+            { id: "c1bc2c75-5228-4cdb-bff5-8a0a8e5db7a5", name: "Visible campaign", rows: [row("d670283d-1d18-42d8-8463-7f19c280b5bb")] },
+          ],
+        },
+      },
+      error: null,
+    });
+    runInsertMock.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: "c77a7440-df76-4050-94c4-282118936152", horizon_days: 1, created_at: "2026-08-13T00:00:00Z" }, error: null }) }) });
+    outputInsertMock.mockImplementation((outputs: Array<{ group_name: string }>) => {
+      createdOutputs.push(...outputs);
+      return Promise.resolve({ error: null });
+    });
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock };
+      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs", {
+      method: "POST",
+      body: JSON.stringify({ horizonDays: 1 }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ outputCount: 1 });
+    expect(createdOutputs).toEqual([expect.objectContaining({ group_name: "Visible campaign" })]);
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Eye, EyeOff, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
 import { createContext, Fragment, useCallback, useContext, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -62,6 +62,7 @@ interface AutomationGroup {
   color?: string;
   icon?: AutomationGroupIcon;
   superGroupId?: string;
+  hidden?: boolean;
   collapsed: boolean;
   rows: AutomationRow[];
 }
@@ -85,6 +86,8 @@ interface GroupActionsContextValue {
   updateSuperGroupIcon: (superGroupId: string, icon: AutomationSuperGroupIcon) => void;
   updateSuperGroupColor: (superGroupId: string, color: string) => void;
   moveSuperGroup: (superGroupId: string, direction: -1 | 1) => void;
+  toggleSuperGroupHidden: (superGroupId: string) => void;
+  toggleGroupHidden: (groupId: string) => void;
   deleteSuperGroup: (superGroupId: string) => void;
 }
 
@@ -152,7 +155,7 @@ function createGroup(name: string, tone: GroupTone, socialAccounts: readonly Soc
 }
 
 function createSuperGroup(name: string): AutomationSuperGroup {
-  return { id: crypto.randomUUID(), name, icon: "social", color: "#16232c" };
+  return { id: crypto.randomUUID(), name, icon: "social", color: "#16232c", hidden: false };
 }
 
 function copyAutomationRow(row: AutomationRow): AutomationRow {
@@ -302,7 +305,7 @@ function getRowColor(color: string) {
 }
 
 function normalizeSuperGroups(superGroups: readonly AutomationSuperGroup[]) {
-  return superGroups.map((superGroup) => ({ ...superGroup, color: getSuperGroupColor(superGroup), icon: normalizeAutomationSuperGroupIcon(superGroup.icon) }));
+  return superGroups.map((superGroup) => ({ ...superGroup, color: getSuperGroupColor(superGroup), hidden: superGroup.hidden === true, icon: normalizeAutomationSuperGroupIcon(superGroup.icon) }));
 }
 
 function orderGroupsBySuperGroup(groups: readonly AutomationGroup[], superGroups: readonly AutomationSuperGroup[]) {
@@ -321,6 +324,7 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
     color: getGroupColor(group),
     icon: getGroupIcon(group),
     superGroupId: group.superGroupId && validSuperGroupIds.has(group.superGroupId) ? group.superGroupId : undefined,
+    hidden: group.hidden === true,
     rows: group.rows.map((row) => {
       const legacyRow = row as Partial<AutomationRow>;
       const contentTypes = (legacyRow.contentTypes ?? []).filter((type): type is SelectableContentType => type === "text" || type === "image" || type === "video");
@@ -402,14 +406,16 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const pendingAutoSaveTimeout = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const platformOptions = getPlatformOptions(socialAccounts);
+  const hiddenSuperGroupIds = new Set(superGroups.filter((superGroup) => superGroup.hidden).map((superGroup) => superGroup.id));
+  const renderableGroups = groups.filter((group) => !group.hidden && (!group.superGroupId || !hiddenSuperGroupIds.has(group.superGroupId)));
   const visibleGroups = orderGroupsBySuperGroup(groups, superGroups).map((group) => ({
     ...group,
     rows: group.rows.filter((row) => !deferredQuery || [group.name, row.contentType, row.generator, row.platforms.join(" "), Object.values(row.accounts).flat().join(" "), row.language, row.nativeLanguage, row.tier].join(" ").toLocaleLowerCase().includes(deferredQuery)),
   })).filter((group) => group.rows.length > 0 || !deferredQuery);
-  const rowCount = groups.reduce((total, group) => total + group.rows.length, 0);
-  const dailyOutputCount = groups.reduce((total, group) => total + group.rows.reduce((groupTotal, row) => groupTotal + row.quantity, 0), 0);
-  const dailyCostEstimate = estimateAutomationGroupCost(groups.flatMap((group) => group.rows));
-  const dailyOutputDistribution = estimateAutomationOutputDistribution(groups.flatMap((group) => group.rows));
+  const rowCount = renderableGroups.reduce((total, group) => total + group.rows.length, 0);
+  const dailyOutputCount = renderableGroups.reduce((total, group) => total + group.rows.reduce((groupTotal, row) => groupTotal + row.quantity, 0), 0);
+  const dailyCostEstimate = estimateAutomationGroupCost(renderableGroups.flatMap((group) => group.rows));
+  const dailyOutputDistribution = estimateAutomationOutputDistribution(renderableGroups.flatMap((group) => group.rows));
   const dailyOutputMix = describeExpectedOutputSourceMix(dailyOutputDistribution);
   const superGroupSections = superGroups.map((superGroup) => ({
     superGroup,
@@ -624,6 +630,14 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     });
   }
 
+  function toggleSuperGroupHidden(superGroupId: string) {
+    setSuperGroups((current) => current.map((superGroup) => superGroup.id === superGroupId ? { ...superGroup, hidden: !superGroup.hidden } : superGroup));
+  }
+
+  function toggleGroupHidden(groupId: string) {
+    setGroups((current) => current.map((group) => group.id === groupId ? { ...group, hidden: !group.hidden } : group));
+  }
+
   function deleteSuperGroup(superGroupId: string) {
     setSuperGroups((current) => current.filter((superGroup) => superGroup.id !== superGroupId));
     setGroups((current) => current.map((group) => group.superGroupId === superGroupId ? { ...group, superGroupId: undefined } : group));
@@ -660,13 +674,13 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     return <GroupRows group={group} groupColor={getGroupColor(group)} isRenaming={renamingGroupId === group.id} key={group.id} onAddRow={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, collapsed: false, rows: [...item.rows, createRow(socialAccounts)] } : item))} onDeleteGroup={() => setGroups((current) => current.length === 1 ? current : current.filter((item) => item.id !== group.id))} onDragOver={(event) => event.preventDefault()} onDrop={() => moveRow(group.id)} onRename={(name) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name } : item))} onRenameFinish={() => setRenamingGroupId(null)} onRenameStart={() => setRenamingGroupId(group.id)} onSetGroupColor={(color) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, color } : item))} onSetGroupIcon={(icon) => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, icon } : item))} onToggle={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, collapsed: !item.collapsed } : item))} onUpdateRow={updateRow} onSaveGroup={() => setGroups((current) => current.map((item) => item.id === group.id ? { ...item, rows: item.rows.map((row) => ({ ...row, saved: true })) } : item))} onSaveRow={saveRow} onSelectGenerator={selectGenerator} onToggleContentType={toggleContentType} onToggleRandomInclude={toggleRandomInclude} onToggleAccount={toggleAccount} onTogglePlatform={togglePlatform} onDeleteRow={(rowId) => setGroups((current) => current.map((item) => item.id !== group.id ? item : group.rows.length === 1 ? item : { ...item, rows: item.rows.filter((row) => row.id !== rowId) }))} onDragStart={(rowId) => setDraggedRow({ groupId: group.id, rowId })} platformOptions={platformOptions} socialAccounts={socialAccounts} tone={GROUP_TONES[group.tone]} />;
   }
 
-  return <GroupActionsContext.Provider value={{ groups, visibleGroups, superGroups, addSuperGroup, duplicateGroup, moveGroup, assignGroupToSuperGroup, removeGroupFromSuperGroup, renameSuperGroup, updateSuperGroupIcon, updateSuperGroupColor, moveSuperGroup, deleteSuperGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
+  return <GroupActionsContext.Provider value={{ groups, visibleGroups, superGroups, addSuperGroup, duplicateGroup, moveGroup, assignGroupToSuperGroup, removeGroupFromSuperGroup, renameSuperGroup, updateSuperGroupIcon, updateSuperGroupColor, moveSuperGroup, toggleSuperGroupHidden, toggleGroupHidden, deleteSuperGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
     <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 py-1.5 sm:px-5">
       <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to content studio" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "saving" || syncState === "loading" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{syncState === "loading" ? "Loading automation" : syncState === "saving" ? "Saving to Supabase" : syncState === "error" ? "Supabase unavailable" : "Saved to Supabase"}</div>
       <div className="flex shrink-0 gap-1.5"><Button aria-label="Refresh automation table" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={syncState === "loading" || syncState === "saving"} onClick={() => void loadAutomation()} title="Refresh automation table" type="button"><RefreshCw className={cn("size-3.5", syncState === "loading" && "animate-spin")} /></Button><Button aria-label="Save entire automation table" className="h-7 rounded border-[#299d6d] bg-[#299d6d] px-2.5 text-xs text-white hover:bg-[#36ad79] disabled:cursor-not-allowed disabled:opacity-45" disabled={!isHydrated || syncState === "loading" || syncState === "saving"} onClick={saveAllAutomation} title="Save entire automation table" type="button"><Save className="size-3.5" />Save</Button><Button className="h-7 rounded border-white/10 bg-white/[0.045] px-2.5 text-xs text-[#d7e2da] hover:bg-white/[0.09]" onClick={onOpenAlternateAutomation} type="button">{isTestAutomation ? "Main table" : "Test table"}</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" onClick={onOpenSocialMedias} type="button">Social medias</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73] disabled:cursor-not-allowed disabled:opacity-45" disabled={!activeRunId} onClick={() => setIsGeneratedPostsOpen(true)} type="button"><Sparkles className="size-3.5" />Generated posts</Button><Button aria-label="New group" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => [...current, createGroup(`New campaign ${current.length + 1}`, TONE_ORDER[current.length % TONE_ORDER.length], socialAccounts)])} title="New group" type="button"><FolderPlus className="size-3.5" /></Button><Button aria-label="New upper group" className="size-7 rounded border-[#8cc8ef]/40 bg-[#16232c] p-0 text-[#c6e5f8] hover:bg-[#1c3340]" disabled={!isHydrated} onClick={addSuperGroup} title="New upper group" type="button"><FolderTree className="size-3.5" /></Button><Button aria-label="Insert row" className="size-7 rounded border-[#299d6d] bg-[#299d6d] p-0 text-white hover:bg-[#36ad79]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => current.map((group, index) => index === 0 ? { ...group, rows: [...group.rows, createRow(socialAccounts)] } : group))} title="Insert row" type="button"><Plus className="size-3.5" /></Button></div>
     </header>
-    <div className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#141716] px-3 sm:px-5"><label className="flex h-8 w-64 shrink-0 items-center gap-2 border border-white/10 bg-[#101212] px-2.5 text-[#8d9b92] focus-within:border-[#55c39a] sm:w-80"><Search className="size-3.5 shrink-0" /><input className="min-w-0 flex-1 bg-transparent text-xs text-[#f7f3ed] outline-none placeholder:text-[#718077]" onChange={(event) => setQuery(event.target.value)} placeholder="Filter automations..." value={query} /></label><span className="inline-flex h-7 shrink-0 items-center gap-1.5 px-1 text-xs text-[#a9b8ae]" title={`Expected source mix: ${dailyOutputMix}`}><Filter className="size-3.5" />{rowCount} rows · {dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day · {groups.length} groups</span><span className="ml-auto shrink-0 text-xs text-[#829287]">Generate:</span>{([{ days: 1 as const, label: "1 day" }, { days: 3 as const, label: "3 days" }, { days: 7 as const, label: "1 week" }]).map((option) => <Button className="h-7 shrink-0 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" disabled={!hasSocialAccounts || !isHydrated || schedulingHorizon !== null} key={option.days} onClick={() => void scheduleAutomation(option.days)} type="button"><CalendarPlus className="size-3.5" />{schedulingHorizon === option.days ? "Preparing..." : option.label}</Button>)}{scheduleError ? <span className="shrink-0 text-xs text-[#ff9c8b]">{scheduleError}</span> : null}</div>
+    <div className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#141716] px-3 sm:px-5"><label className="flex h-8 w-64 shrink-0 items-center gap-2 border border-white/10 bg-[#101212] px-2.5 text-[#8d9b92] focus-within:border-[#55c39a] sm:w-80"><Search className="size-3.5 shrink-0" /><input className="min-w-0 flex-1 bg-transparent text-xs text-[#f7f3ed] outline-none placeholder:text-[#718077]" onChange={(event) => setQuery(event.target.value)} placeholder="Filter automations..." value={query} /></label><span className="inline-flex h-7 shrink-0 items-center gap-1.5 px-1 text-xs text-[#a9b8ae]" title={`Expected source mix: ${dailyOutputMix}`}><Filter className="size-3.5" />{rowCount} active rows · {dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day · {groups.length} groups</span><span className="ml-auto shrink-0 text-xs text-[#829287]">Generate:</span>{([{ days: 1 as const, label: "1 day" }, { days: 3 as const, label: "3 days" }, { days: 7 as const, label: "1 week" }]).map((option) => <Button className="h-7 shrink-0 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" disabled={!hasSocialAccounts || !isHydrated || !dailyOutputCount || schedulingHorizon !== null} key={option.days} onClick={() => void scheduleAutomation(option.days)} type="button"><CalendarPlus className="size-3.5" />{schedulingHorizon === option.days ? "Preparing..." : option.label}</Button>)}{scheduleError ? <span className="shrink-0 text-xs text-[#ff9c8b]">{scheduleError}</span> : null}</div>
     <div className="min-h-0 flex-1 overflow-auto overscroll-contain"><table className="min-w-[1620px] w-full border-collapse text-left"><thead className="sticky top-0 z-20"><tr><th className="w-11 border-b border-r border-white/10 bg-[#171a19] px-3 py-2"><input aria-label="Select all rows" className="accent-[#55c39a]" type="checkbox" /></th><ColumnHeader label="content_type" type="enum" /><ColumnHeader label="generator_mode" type="text" /><ColumnHeader label="quantity" type="integer" /><ColumnHeader label="parameters" type="json" /><ColumnHeader label="social_networks" type="array" /><ColumnHeader label="social_accounts" type="array" /><ColumnHeader label="schedule_window" type="time range" /><ColumnHeader label="state" type="text" /><th className="w-24 border-b border-white/10 bg-[#171a19] px-3 py-2" /></tr></thead><tbody>{superGroupSections.map((section) => <Fragment key={section.superGroup.id}><SuperGroupHeader memberCount={section.groups.length} superGroup={section.superGroup} />{section.groups.map(renderGroupRows)}</Fragment>)}{ungroupedVisibleGroups.map(renderGroupRows)}</tbody></table>{!isHydrated ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">Loading social media accounts...</div> : !hasSocialAccounts ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#ffb9c1]">No non-email social media accounts are available.</div> : !visibleGroups.length ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">No automation rows match this filter.</div> : null}</div>
     <footer className="flex min-h-10 shrink-0 items-center justify-between border-t border-white/10 bg-[#171a19] px-3 text-xs text-[#829287] sm:px-5"><span>{isTestAutomation ? "TEST table: content can be generated and reviewed, but it can never be scheduled to production." : "Buttons prepare the selected output quantity from each row for every future day. Each output gets its own random mode selection and time within the saved range."}</span><span title={`Expected source mix: ${dailyOutputMix}`}>{dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day</span></footer>
     {isGeneratedPostsOpen && activeRunId ? createPortal(<div aria-label="Generated posts" aria-modal="true" className="fixed inset-0 z-[9999] grid place-items-center p-4" role="dialog"><GeneratedPostsTable onClose={() => setIsGeneratedPostsOpen(false)} runId={activeRunId} scope={scope} /></div>, document.body) : null}
@@ -725,7 +739,7 @@ function SuperGroupHeader({ superGroup, memberCount }: { superGroup: AutomationS
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
   }, [isIconPickerOpen]);
 
-  return <tr className="super-group-header border-y border-white/20" data-super-group-id={superGroup.id} style={{ backgroundColor: superGroupColor }}>
+  return <tr className={cn("super-group-header border-y border-white/20", superGroup.hidden && "opacity-60")} data-super-group-id={superGroup.id} style={{ backgroundColor: superGroupColor }}>
     <td className="p-0" colSpan={10}>
       <div className="flex h-11 items-center justify-between gap-3 px-4 pl-5">
         <div className="flex min-w-0 items-center gap-2">
@@ -741,6 +755,7 @@ function SuperGroupHeader({ superGroup, memberCount }: { superGroup: AutomationS
         <div className="flex shrink-0 items-center gap-1">
           <Button aria-label="Move upper group up" className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupUp} onClick={() => groupActions?.moveSuperGroup(superGroup.id, -1)} title="Move upper group up" type="button"><MoveUp className="size-3.5" /></Button>
           <Button aria-label="Move upper group down" className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupDown} onClick={() => groupActions?.moveSuperGroup(superGroup.id, 1)} title="Move upper group down" type="button"><MoveDown className="size-3.5" /></Button>
+          <Button aria-label={superGroup.hidden ? "Show upper group" : "Hide upper group"} className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15" onClick={() => groupActions?.toggleSuperGroupHidden(superGroup.id)} title={superGroup.hidden ? "Show upper group in daily generation" : "Hide upper group from daily generation"} type="button">{superGroup.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button>
           <label className="grid size-7 cursor-pointer place-items-center rounded border border-white/20 bg-black/15" title="Upper group color"><span className="sr-only">Upper group color</span><input aria-label="Upper group color" className="size-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => groupActions?.updateSuperGroupColor(superGroup.id, event.target.value)} type="color" value={superGroupColor} /></label>
           <Button aria-label="Delete upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#ffb1aa] hover:bg-[#2c1917]" onClick={() => groupActions?.deleteSuperGroup(superGroup.id)} title="Delete upper group and ungroup its campaigns" type="button"><Trash2 className="size-3.5" /></Button>
         </div>
@@ -781,6 +796,8 @@ function GroupRows(props: GroupRowsProps) {
   const groupIndex = siblingGroups.findIndex((item) => item.id === group.id);
   const canMoveGroupUp = groupIndex > 0;
   const canMoveGroupDown = groupIndex >= 0 && groupIndex < siblingGroups.length - 1;
+  const isHiddenBySuperGroup = Boolean(group.superGroupId && groupActions?.superGroups.find((superGroup) => superGroup.id === group.superGroupId)?.hidden);
+  const isEffectivelyHidden = group.hidden || isHiddenBySuperGroup;
 
   useEffect(() => {
     if (!isIconPickerOpen && !isSuperGroupPickerOpen) return;
@@ -796,7 +813,7 @@ function GroupRows(props: GroupRowsProps) {
   }, [isIconPickerOpen, isSuperGroupPickerOpen]);
 
   return <>
-    <tr className={cn("group-header relative border-y border-white/10", tone.header)} onDragOver={onDragOver} onDrop={onDrop} style={headerStyle}>
+    <tr className={cn("group-header relative border-y border-white/10", tone.header, isEffectivelyHidden && "opacity-60")} onDragOver={onDragOver} onDrop={onDrop} style={headerStyle}>
       <td className="relative p-0" colSpan={10}>
         <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: groupColor }} />
         <div className="flex h-14 items-center justify-between gap-3 px-4 pl-5">
@@ -818,6 +835,7 @@ function GroupRows(props: GroupRowsProps) {
             <div className="flex shrink-0 items-center gap-1">
               <Button aria-label="Move group up" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupUp} onClick={() => groupActions?.moveGroup(group.id, -1)} title="Move group up" type="button"><MoveUp className="size-3.5" /></Button>
               <Button aria-label="Move group down" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveGroupDown} onClick={() => groupActions?.moveGroup(group.id, 1)} title="Move group down" type="button"><MoveDown className="size-3.5" /></Button>
+              <Button aria-label={group.hidden ? "Show group" : "Hide group"} className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={() => groupActions?.toggleGroupHidden(group.id)} title={group.hidden ? "Show group in daily generation" : "Hide group from daily generation"} type="button">{group.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button>
               <Button aria-label="Duplicate group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!groupActions} onClick={() => groupActions?.duplicateGroup(group.id)} title="Duplicate group" type="button"><Copy className="size-3.5" /></Button>
               <div className="relative" ref={superGroupPickerRef}>
                 <Button aria-expanded={isSuperGroupPickerOpen} aria-haspopup="dialog" aria-label="Add group to upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#b9dff6] hover:bg-[#1c3340]" onClick={() => { setIsIconPickerOpen(false); setIsSuperGroupPickerOpen((current) => !current); }} title="Add group to upper group" type="button"><FolderInput className="size-3.5" /></Button>
@@ -837,7 +855,7 @@ function GroupRows(props: GroupRowsProps) {
       const outputDistribution = estimateAutomationOutputDistribution([row]);
       const outputMix = describeExpectedOutputSourceMix(outputDistribution);
       const outputCostEstimate = estimateAutomationGroupCost([row]);
-      return <tr className={cn("group cursor-grab border-b border-white/[0.075]", tone.row)} draggable key={row.id} onDragStart={() => onDragStart(row.id)} style={rowStyle}>
+      return <tr className={cn("group cursor-grab border-b border-white/[0.075]", tone.row, isEffectivelyHidden && "opacity-60")} draggable key={row.id} onDragStart={() => onDragStart(row.id)} style={rowStyle}>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex items-center gap-1"><GripVertical className="size-3.5 text-[#617168]" /><input aria-label="Select automation row" className="accent-[#55c39a]" type="checkbox" /></div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-28 space-y-1.5">{CONTENT_TYPES.map((option) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={option.value}><input aria-label={`${option.label} content type`} checked={row.contentTypes.includes(option.value)} className="accent-[#55c39a]" onChange={() => onToggleContentType(group.id, row, option.value)} type="checkbox" />{option.label}</label>)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-52 space-y-3">{row.contentTypes.map((contentType) => <GeneratorModeSelector contentType={contentType} generator={row.generators[contentType] ?? RANDOM_GENERATOR} key={contentType} onSelect={(generator) => onSelectGenerator(group.id, row, contentType, generator)} onToggleInclude={(include) => onToggleRandomInclude(group.id, row, contentType, include)} randomIncludes={row.randomIncludes[contentType]} />)}</div></td>

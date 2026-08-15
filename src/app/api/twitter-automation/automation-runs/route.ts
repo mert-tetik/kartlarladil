@@ -42,9 +42,15 @@ const rowSchema = z.object({
 const groupsSchema = z.array(z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(120),
+  superGroupId: z.string().uuid().optional(),
+  hidden: z.boolean().optional(),
   rows: z.array(rowSchema).min(1).max(100),
 }).passthrough()).min(1).max(30);
-const storedAutomationStateSchema = z.union([groupsSchema, z.object({ groups: groupsSchema }).passthrough()]);
+const superGroupsSchema = z.array(z.object({
+  id: z.string().uuid(),
+  hidden: z.boolean().optional(),
+}).passthrough()).max(30).default([]);
+const storedAutomationStateSchema = z.union([groupsSchema, z.object({ groups: groupsSchema, superGroups: superGroupsSchema }).passthrough()]);
 const requestSchema = z.object({
   horizonDays: z.union([z.literal(1), z.literal(3), z.literal(7)]),
   scope: z.enum(["production", "test"]).optional(),
@@ -172,8 +178,9 @@ export async function POST(request: NextRequest) {
     const parsedState = storedAutomationStateSchema.safeParse(state?.groups);
     if (!parsedState.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
     const parsedGroups = Array.isArray(parsedState.data) ? parsedState.data : parsedState.data.groups;
+    const hiddenSuperGroupIds = new Set(Array.isArray(parsedState.data) ? [] : parsedState.data.superGroups.filter((superGroup) => superGroup.hidden).map((superGroup) => superGroup.id));
 
-    const sourceRows = parsedGroups.flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
+    const sourceRows = parsedGroups.filter((group) => !group.hidden && (!group.superGroupId || !hiddenSuperGroupIds.has(group.superGroupId))).flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
     if (!sourceRows.length) return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
 
     const outputsPerDay = sourceRows.reduce((total, item) => total + item.row.quantity, 0);
