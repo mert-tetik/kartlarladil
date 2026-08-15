@@ -33,7 +33,9 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     pathname === "/learned" ||
     pathname === "/leaderboard" ||
     pathname.startsWith("/games/");
-  const isAutomationTable = pathname === "/content-automation/automations";
+  const isAutomationTable =
+    pathname === "/content-automation/automations" ||
+    pathname === "/content-automation/test-automations";
   const [transitionPhase, setTransitionPhase] = useState<RouteTransitionPhase>("idle");
   const transitionStartedAtRef = useRef<number | null>(null);
   const coverTimerRef = useRef<number | null>(null);

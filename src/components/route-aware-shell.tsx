@@ -9,7 +9,9 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAccountPage = pathname === "/profile" || pathname.startsWith("/account/");
   const hidesMobileBottomNav = pathname === "/pricing" || pathname === "/content-automation" || pathname.startsWith("/content-automation/");
-  const isAutomationTable = pathname === "/content-automation/automations";
+  const isAutomationTable =
+    pathname === "/content-automation/automations" ||
+    pathname === "/content-automation/test-automations";
   const isFullScreenStudy =
     pathname === "/learn" ||
     pathname === "/learned" ||
