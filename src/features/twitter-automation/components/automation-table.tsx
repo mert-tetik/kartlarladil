@@ -97,6 +97,7 @@ const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
 const CONTENT_QUANTITY_OPTIONS = Array.from({ length: 20 }, (_, index) => index + 1);
 const cellControlClassName = "h-8 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 text-xs text-[#f7f3ed] outline-none transition-colors hover:bg-white/[0.045] focus:border-[#55c39a] focus:bg-[#111715]";
 const flagSelectClassName = "h-8 w-full min-w-0 appearance-none rounded border border-transparent bg-transparent px-1.5 text-transparent outline-none transition-colors hover:bg-white/[0.045] focus:border-[#55c39a] focus:bg-[#111715]";
+const flagSelectOptionStyle = { backgroundColor: "#171a19", color: "#f7f3ed" } as const;
 
 function getPlatformOptions(accounts: readonly SocialMediaAccount[]) {
   const platforms = new Map<Platform, PlatformOption>();
@@ -228,8 +229,8 @@ function AutomationLanguageSelect({ label, onChange, value }: { label: string; o
     <span className="block text-[10px] font-semibold text-[#8d9b92]">{label}</span>
     <div className="relative" title={selectedLanguageLabel}>
       <select aria-label={label} className={flagSelectClassName} onChange={(event) => onChange(event.target.value as LanguageSelection)} value={value}>
-        <option className="text-[#101212]" value="random">Random</option>
-        {LANGUAGE_OPTIONS.map((option) => <option className="text-[#101212]" key={option.code} value={option.code}>{option.name}</option>)}
+        <option style={flagSelectOptionStyle} value="random">Random</option>
+        {LANGUAGE_OPTIONS.map((option) => <option key={option.code} style={flagSelectOptionStyle} value={option.code}>{option.name}</option>)}
       </select>
       <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1.5 flex items-center">
         {selectedLanguage ? <LanguageFlag language={selectedLanguage} /> : <Shuffle className="size-3.5 text-[#b2c0b7]" />}
