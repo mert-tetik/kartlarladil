@@ -141,6 +141,7 @@ const automationGroupsSchema = z.object({
     id: z.string().uuid(),
     name: z.string().trim().min(1).max(120),
     icon: z.enum(AUTOMATION_SUPER_GROUP_ICON_IDS),
+    color: z.string().regex(/^#[\da-f]{6}$/iu).optional(),
   }).strict()).max(30).default([]),
 }).strict().superRefine((value, context) => {
   if (new Set(value.groups.map((group) => group.id)).size !== value.groups.length) {
