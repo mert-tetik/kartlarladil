@@ -1045,7 +1045,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       // This is intentionally created directly from the button interaction so browsers permit audio capture.
-      audioContext = prepareMusicVideoAudio();
+      audioContext = await prepareMusicVideoAudio();
       let imageUrl = "";
       let nextCaption = "";
 
@@ -1183,7 +1183,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       // Create this during the button interaction so Chrome permits audio capture later.
-      audioContext = prepareMusicVideoAudio();
+      audioContext = await prepareMusicVideoAudio();
       const response = await fetch("/api/twitter-automation/confused-words-video", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1246,7 +1246,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       // Create this during the button interaction so Chrome permits audio capture later.
-      audioContext = prepareMusicVideoAudio();
+      audioContext = await prepareMusicVideoAudio();
       const response = await fetch("/api/twitter-automation/dialogue-video", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1312,7 +1312,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     try {
       // Construct the context in the button gesture so browser audio capture remains allowed.
-      audioContext = prepareMusicVideoAudio();
+      audioContext = await prepareMusicVideoAudio();
       const response = await fetch("/api/twitter-automation/original-mascot-learning-video", {
         method: "POST",
         headers: { "content-type": "application/json" },

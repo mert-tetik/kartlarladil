@@ -2,7 +2,7 @@
 
 import { CalendarClock, Check, CircleAlert, ImageIcon, LoaderCircle, MessageSquareText, RefreshCw, Video, X } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
@@ -112,11 +112,16 @@ function isReadyForSchedule(output: AutomationOutput) {
   return output.status === "ready_to_schedule";
 }
 
+function browserVideoFailureCode(error: unknown) {
+  if (error instanceof Error && /^[a-z\d_]{3,120}$/iu.test(error.message)) return error.message;
+  return "browser_video_render_failed";
+}
+
 function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   if (isProcessing || output.status === "processing") return `${getOutputLabel(output)} üretiliyor`;
   if (output.status === "generating_video") return `${getOutputLabel(output)} renderlanıyor`;
   if (isBrowserRenderedImage(output) || output.status === "awaiting_browser_image") return `${getOutputLabel(output)} Studio tasarımıyla renderlanıyor`;
-  if (output.status === "awaiting_browser_video") return `${getOutputLabel(output)} için ses ekleme onayı bekleniyor`;
+  if (output.status === "awaiting_browser_video") return `${getOutputLabel(output)} için ses ekleniyor`;
   if (output.status === "ready_to_schedule") return `${getOutputLabel(output)} hazır`;
   if (output.status === "scheduled") return `${getOutputLabel(output)} schedule edildi`;
   if (output.status === "failed") return `${getOutputLabel(output)} üretilemedi`;
@@ -147,6 +152,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [isSchedulingAll, setIsSchedulingAll] = useState(false);
   const [message, setMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const autoStartedBrowserVideoIds = useRef(new Set<string>());
 
   const load = useCallback(async (showLoading = false) => {
     if (showLoading) setState("loading");
@@ -270,8 +276,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     setMessage("");
     let audioContext: AudioContext | null = null;
     try {
-      // This is deliberately created from the explicit continuation click. Browsers require it before recording audio tracks.
-      audioContext = prepareMusicVideoAudio();
+      audioContext = await prepareMusicVideoAudio();
       let blob: Blob;
       let caption: string | undefined;
       if (isConfusedWords) {
@@ -351,8 +356,19 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
-    } catch {
-      setMessage(isConfusedWords || isDialogue || isOriginalLearning ? "Sesli video renderlanamadı. Chrome’da tekrar dene." : "Müzikli videoya ses eklenemedi. Chrome’da tekrar dene.");
+    } catch (error) {
+      const errorCode = browserVideoFailureCode(error);
+      try {
+        const failureResponse = await fetch("/api/twitter-automation/automation-runs/process", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ outputId: output.id, browserVideoError: errorCode, scope }),
+        });
+        if (!failureResponse.ok) throw new Error("automation_video_failure_update_failed");
+        setMessage(`${getOutputLabel(output)} sesli olarak renderlanamadı; kuyruk sonraki içerikle devam ediyor.`);
+      } catch {
+        setMessage(`${getOutputLabel(output)} renderlanamadı ve hata durumu kaydedilemedi.`);
+      }
     } finally {
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       await load();
@@ -401,13 +417,23 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [load, nextOutput, processingOutputId]);
 
   useEffect(() => {
-    if (isReviewReady || browserVideoOutputs.length) return;
+    if (state !== "ready" || processingOutputId) return;
+    const nextBrowserVideo = browserVideoOutputs.find((output) => !autoStartedBrowserVideoIds.current.has(output.id));
+    if (!nextBrowserVideo) return;
+
+    autoStartedBrowserVideoIds.current.add(nextBrowserVideo.id);
+    const timer = window.setTimeout(() => void renderBrowserVideo(nextBrowserVideo), 0);
+    return () => window.clearTimeout(timer);
+  }, [browserVideoOutputs, processingOutputId, renderBrowserVideo, state]);
+
+  useEffect(() => {
+    if (isReviewReady) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
-  }, [browserVideoOutputs.length, isReviewReady]);
+  }, [isReviewReady]);
 
   const progressStatus = browserVideoOutputs.length
-    ? "Ses eklemek için onay bekleniyor"
+    ? "Sesli videolar sırayla renderlanıyor"
     : activeOutput
       ? generationStatusText(activeOutput, Boolean(processingOutputId))
       : state === "loading"
@@ -430,12 +456,11 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     {!isReviewReady ? <main className="grid min-h-[27rem] place-items-center p-6 text-center">
       <div className="w-full max-w-xl">
         {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : browserImageOutputs.length ? <ImageIcon className="mx-auto size-8 animate-pulse text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
-        <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Video sesi için devam et" : browserImageOutputs.length ? "Studio görseli renderlanıyor" : "İçerikler sırayla üretiliyor"}</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Tarayıcının sesli video kaydına izin vermesi için bu adımı sen başlatmalısın.` : browserImageOutputs.length ? "Bu görsel, Social Content Studio ile aynı tasarım bileşenlerinden hazırlanıyor." : progressStatus}</p>
+        <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Sesli videolar renderlanıyor" : browserImageOutputs.length ? "Studio görseli renderlanıyor" : "İçerikler sırayla üretiliyor"}</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Ses ekleme otomatik olarak devam ediyor; hata alan içerik işaretlenip kuyruk korunur.` : browserImageOutputs.length ? "Bu görsel, Social Content Studio ile aynı tasarım bileşenlerinden hazırlanıyor." : progressStatus}</p>
         <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
-        <p className="mt-2 text-xs text-[#a9b8ae]">{browserVideoOutputs.length ? "Tahmini kalan süre: devam etme onayından sonra hesaplanacak" : `Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
-        {browserVideoOutputs.length ? <Button className="mt-7 h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(processingOutputId)} onClick={() => void renderBrowserVideo(browserVideoOutputs[0]!)} type="button">{processingOutputId ? <LoaderCircle className="size-4 animate-spin" /> : <Video className="size-4" />}{isConfusedWordsVideo(browserVideoOutputs[0]!) ? "Devam et ve açıklama videosunu renderla" : isDialogueVideo(browserVideoOutputs[0]!) || isOriginalMascotLearningVideo(browserVideoOutputs[0]!) ? "Devam et ve sesli videoyu renderla" : "Devam et ve videoya ses ekle"}</Button> : null}
+        <p className="mt-2 text-xs text-[#a9b8ae]">{`Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
         {message ? <p className="mt-5 text-sm text-[#ffb9c1]">{message}</p> : null}
       </div>
     </main> : <main className="min-h-0 flex-1 overflow-y-auto p-4">

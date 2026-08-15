@@ -57,13 +57,39 @@ async function scheduleMusicTrack(context: AudioContext, destination: MediaStrea
   source.stop(endTime);
 }
 
-export function prepareMusicVideoAudio() {
+function createMusicVideoAudioContext() {
   const AudioContextConstructor = window.AudioContext ?? window.webkitAudioContext;
   if (!AudioContextConstructor) throw new Error("audio_not_supported");
 
-  const audioContext = new AudioContextConstructor();
-  void audioContext.resume();
-  return audioContext;
+  return new AudioContextConstructor();
+}
+
+/**
+ * Invoke this synchronously from the original Generate click. That one gesture
+ * gives browsers a document-level audio activation for the automated queue.
+ */
+export function unlockMusicVideoAudio() {
+  try {
+    const audioContext = createMusicVideoAudioContext();
+    void audioContext.resume()
+      .catch(() => undefined)
+      .then(() => audioContext.state !== "closed" ? audioContext.close() : undefined)
+      .catch(() => undefined);
+  } catch {
+    // The queued renderer records the concrete failure against its output.
+  }
+}
+
+export async function prepareMusicVideoAudio() {
+  const audioContext = createMusicVideoAudioContext();
+  try {
+    await audioContext.resume();
+    if (audioContext.state !== "running") throw new Error("audio_activation_required");
+    return audioContext;
+  } catch (error) {
+    if (audioContext.state !== "closed") await audioContext.close();
+    throw error;
+  }
 }
 
 async function decodeMusic(audioContext: AudioContext, musicUrl: string) {

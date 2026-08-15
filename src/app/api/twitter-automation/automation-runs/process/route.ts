@@ -29,11 +29,14 @@ const requestSchema = z.object({
   stagedMediaPaths: z.array(stagedMediaPathSchema).min(1).max(7).optional(),
   caption: z.string().trim().min(1).max(400).optional(),
   browserImageError: z.string().trim().min(1).max(120).optional(),
+  browserVideoError: z.string().trim().min(1).max(120).optional(),
 }).strict().superRefine((value, context) => {
   const stagedPaths = value.stagedMediaPaths ?? (value.stagedMediaPath ? [value.stagedMediaPath] : []);
-  if ((stagedPaths.length || value.browserImageError) && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
+  const browserError = value.browserImageError ?? value.browserVideoError;
+  if ((stagedPaths.length || browserError) && !value.outputId) context.addIssue({ code: "custom", path: ["outputId"], message: "Output id is required." });
   if (value.stagedMediaPaths && value.stagedMediaPath) context.addIssue({ code: "custom", path: ["stagedMediaPaths"], message: "Only one staged media field can be used." });
-  if (value.browserImageError && stagedPaths.length) context.addIssue({ code: "custom", path: ["browserImageError"], message: "A browser image cannot be both completed and failed." });
+  if (browserError && stagedPaths.length) context.addIssue({ code: "custom", path: ["browserError"], message: "A browser render cannot be both completed and failed." });
+  if (value.browserImageError && value.browserVideoError) context.addIssue({ code: "custom", path: ["browserVideoError"], message: "Only one browser error can be supplied." });
   if (value.caption && !stagedPaths.length) context.addIssue({ code: "custom", path: ["caption"], message: "Staged media is required." });
 });
 
@@ -54,13 +57,14 @@ export async function POST(request: NextRequest) {
   const stagedPaths = parsed.data.stagedMediaPaths ?? (parsed.data.stagedMediaPath ? [parsed.data.stagedMediaPath] : []);
   const stagedImagePaths = stagedPaths.filter((path) => path.endsWith(".png"));
   const stagedVideoPath = stagedPaths.find((path) => path.endsWith(".webm"));
+  const browserError = parsed.data.browserImageError ?? parsed.data.browserVideoError;
 
   try {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
       .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
-      .in("status", stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image", "awaiting_browser_video"] : stagedVideoPath ? ["awaiting_browser_video"] : ["queued", "generating_video"])
+      .in("status", stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image", "awaiting_browser_video"] : stagedVideoPath || parsed.data.browserVideoError ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .order("scheduled_at", { ascending: true })
       .limit(1);
     if (parsed.data.outputId) query = query.eq("id", parsed.data.outputId);
@@ -79,9 +83,12 @@ export async function POST(request: NextRequest) {
     if ((stagedImagePaths.length || parsed.data.browserImageError) && !isBrowserImageOutput(candidate.generator, candidate.media_type)) {
       return NextResponse.json({ errorCode: "automation_browser_image_not_expected" }, { status: 409 });
     }
+    if (parsed.data.browserVideoError && isBrowserImageOutput(candidate.generator, candidate.media_type)) {
+      return NextResponse.json({ errorCode: "automation_browser_video_not_expected" }, { status: 409 });
+    }
 
-    const update = parsed.data.browserImageError
-      ? { status: "failed", error_code: parsed.data.browserImageError, updated_at: new Date().toISOString() }
+    const update = browserError
+      ? { status: "failed", error_code: browserError, updated_at: new Date().toISOString() }
       : stagedImagePaths.length
       ? {
         status: candidate.generator.startsWith("music-") ? "awaiting_browser_video" : "ready_to_schedule",
@@ -110,9 +117,9 @@ export async function POST(request: NextRequest) {
       if (removeError) throw new Error("automation_media_cleanup_failed");
     }
 
-    if (stagedPaths.length || parsed.data.browserImageError) {
+    if (stagedPaths.length || browserError) {
       await refreshAutomationRunStatus(candidate.run_id);
-      return NextResponse.json({ processed: true, outputId: candidate.id, outcome: parsed.data.browserImageError ? "failed" : candidate.generator.startsWith("music-") ? "browser_video_required" : "content_ready" });
+      return NextResponse.json({ processed: true, outputId: candidate.id, outcome: browserError ? "failed" : candidate.generator.startsWith("music-") ? "browser_video_required" : "content_ready" });
     }
 
     const result = await processAutomationOutput(candidate);
