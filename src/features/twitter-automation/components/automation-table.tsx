@@ -237,9 +237,9 @@ function getGroupIconOption(icon: AutomationGroupIcon) {
   return AUTOMATION_GROUP_ICON_OPTIONS.find((option) => option.value === icon)!;
 }
 
-function SuperGroupIcon({ icon, size = "trigger" }: { icon: AutomationSuperGroupIcon; size?: "trigger" | "picker" }) {
+function SuperGroupIcon({ icon, size = "trigger" }: { icon: AutomationSuperGroupIcon; size?: "trigger" | "header" | "picker" }) {
   const Icon = icon === "video" ? Video : icon === "image" ? ImageIcon : icon === "text" ? FileText : Share2;
-  return <Icon aria-hidden="true" className={size === "picker" ? "size-6" : "size-4"} />;
+  return <Icon aria-hidden="true" className={size === "picker" ? "size-6" : size === "header" ? "size-10" : "size-4"} />;
 }
 
 function GroupIcon({ icon, size }: { icon: AutomationGroupIcon; size: "trigger" | "picker" }) {
@@ -740,13 +740,14 @@ function SuperGroupHeader({ superGroup, memberCount }: { superGroup: AutomationS
   }, [isIconPickerOpen]);
 
   return <tr className={cn("super-group-header border-y border-white/20", superGroup.hidden && "opacity-60")} data-super-group-id={superGroup.id} style={{ backgroundColor: superGroupColor }}>
-    <td className="p-0" colSpan={10}>
-      <div className="flex h-11 items-center justify-between gap-3 px-4 pl-5">
+    <td className="relative p-0" colSpan={10}>
+      <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: superGroupColor }} />
+      <div className="flex h-14 items-center justify-between gap-3 px-4 pl-6">
         <div className="flex min-w-0 items-center gap-2">
-          <FolderTree aria-hidden="true" className="size-3.5 shrink-0 text-[#8cc8ef]" />
+          <FolderTree aria-hidden="true" className="size-5 shrink-0 text-white" />
           <div className="relative" ref={iconPickerRef}>
-            <Button aria-expanded={isIconPickerOpen} aria-haspopup="dialog" aria-label={`Choose visual for ${superGroup.name}`} className="size-8 shrink-0 rounded border border-[#8cc8ef]/35 bg-[#0e181f] p-0 text-[#8cc8ef] hover:bg-[#1c3340]" onClick={() => setIsIconPickerOpen((current) => !current)} title="Choose upper group visual" type="button"><SuperGroupIcon icon={superGroup.icon} /></Button>
-            {isIconPickerOpen ? <div aria-label="Upper group visual choices" className="absolute left-0 top-9 z-40 grid w-56 grid-cols-4 gap-1.5 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog">{AUTOMATION_SUPER_GROUP_ICON_OPTIONS.map((option) => <Button aria-label={`Use ${option.label} upper group icon`} aria-pressed={superGroup.icon === option.value} className={cn("flex h-12 rounded border p-0 text-[#b9dff6] hover:bg-[#1c3340]", superGroup.icon === option.value ? "border-[#8cc8ef] bg-[#1c3340]" : "border-transparent bg-transparent")} key={option.value} onClick={() => { groupActions?.updateSuperGroupIcon(superGroup.id, option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><SuperGroupIcon icon={option.value} size="picker" /></Button>)}</div> : null}
+            <Button aria-expanded={isIconPickerOpen} aria-haspopup="dialog" aria-label={`Choose visual for ${superGroup.name}`} className="size-12 shrink-0 rounded bg-transparent p-0 text-white hover:bg-black/10" onClick={() => setIsIconPickerOpen((current) => !current)} title="Choose upper group visual" type="button"><SuperGroupIcon icon={superGroup.icon} size="header" /></Button>
+            {isIconPickerOpen ? <div aria-label="Upper group visual choices" className="absolute left-0 top-12 z-40 grid w-56 grid-cols-4 gap-1.5 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog">{AUTOMATION_SUPER_GROUP_ICON_OPTIONS.map((option) => <Button aria-label={`Use ${option.label} upper group icon`} aria-pressed={superGroup.icon === option.value} className={cn("flex h-12 rounded border p-0 text-white hover:bg-[#1c3340]", superGroup.icon === option.value ? "border-white bg-white/10" : "border-transparent bg-transparent")} key={option.value} onClick={() => { groupActions?.updateSuperGroupIcon(superGroup.id, option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><SuperGroupIcon icon={option.value} size="picker" /></Button>)}</div> : null}
           </div>
           {isRenaming ? <input autoFocus aria-label="Upper group name" className="min-w-0 max-w-64 border-b border-[#8cc8ef] bg-transparent text-sm font-semibold text-[#e7f5ff] outline-none" onBlur={() => setIsRenaming(false)} onChange={(event) => groupActions?.renameSuperGroup(superGroup.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur(); }} value={superGroup.name} /> : <button className="max-w-64 truncate text-left text-sm font-semibold text-[#e7f5ff]" onClick={() => setIsRenaming(true)} type="button">{superGroup.name}</button>}
           <Button aria-label="Rename upper group" className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-[#9dbbcf] hover:bg-white/10 hover:text-white" onClick={() => setIsRenaming(true)} type="button"><Pencil className="size-3.5" /></Button>
@@ -796,8 +797,10 @@ function GroupRows(props: GroupRowsProps) {
   const groupIndex = siblingGroups.findIndex((item) => item.id === group.id);
   const canMoveGroupUp = groupIndex > 0;
   const canMoveGroupDown = groupIndex >= 0 && groupIndex < siblingGroups.length - 1;
-  const isHiddenBySuperGroup = Boolean(group.superGroupId && groupActions?.superGroups.find((superGroup) => superGroup.id === group.superGroupId)?.hidden);
+  const superGroup = group.superGroupId ? groupActions?.superGroups.find((item) => item.id === group.superGroupId) : undefined;
+  const isHiddenBySuperGroup = Boolean(superGroup?.hidden);
   const isEffectivelyHidden = group.hidden || isHiddenBySuperGroup;
+  const groupAccentColor = superGroup ? getSuperGroupColor(superGroup) : groupColor;
 
   useEffect(() => {
     if (!isIconPickerOpen && !isSuperGroupPickerOpen) return;
@@ -815,7 +818,7 @@ function GroupRows(props: GroupRowsProps) {
   return <>
     <tr className={cn("group-header relative border-y border-white/10", tone.header, isEffectivelyHidden && "opacity-60")} onDragOver={onDragOver} onDrop={onDrop} style={headerStyle}>
       <td className="relative p-0" colSpan={10}>
-        <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: groupColor }} />
+        <span className={cn("absolute inset-y-0 left-0", superGroup ? "w-1.5" : "w-1")} style={{ backgroundColor: groupAccentColor }} />
         <div className="flex h-14 items-center justify-between gap-3 px-4 pl-5">
           <div className="flex min-w-0 items-center gap-2">
             <Button aria-label={group.collapsed ? "Expand group" : "Collapse group"} className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={onToggle} type="button">{group.collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}</Button>
@@ -856,7 +859,7 @@ function GroupRows(props: GroupRowsProps) {
       const outputMix = describeExpectedOutputSourceMix(outputDistribution);
       const outputCostEstimate = estimateAutomationGroupCost([row]);
       return <tr className={cn("group cursor-grab border-b border-white/[0.075]", tone.row, isEffectivelyHidden && "opacity-60")} draggable key={row.id} onDragStart={() => onDragStart(row.id)} style={rowStyle}>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex items-center gap-1"><GripVertical className="size-3.5 text-[#617168]" /><input aria-label="Select automation row" className="accent-[#55c39a]" type="checkbox" /></div></td>
+      <td className="relative border-r border-white/[0.075] px-2 py-2">{superGroup ? <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: groupAccentColor }} /> : null}<div className="flex items-center gap-1"><GripVertical className="size-3.5 text-[#617168]" /><input aria-label="Select automation row" className="accent-[#55c39a]" type="checkbox" /></div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-28 space-y-1.5">{CONTENT_TYPES.map((option) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={option.value}><input aria-label={`${option.label} content type`} checked={row.contentTypes.includes(option.value)} className="accent-[#55c39a]" onChange={() => onToggleContentType(group.id, row, option.value)} type="checkbox" />{option.label}</label>)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-52 space-y-3">{row.contentTypes.map((contentType) => <GeneratorModeSelector contentType={contentType} generator={row.generators[contentType] ?? RANDOM_GENERATOR} key={contentType} onSelect={(generator) => onSelectGenerator(group.id, row, contentType, generator)} onToggleInclude={(include) => onToggleRandomInclude(group.id, row, contentType, include)} randomIncludes={row.randomIncludes[contentType]} />)}</div></td>
       <td className="border-r border-white/[0.075] px-2 py-2"><label className="block min-w-24"><span className="mb-1 block text-[10px] font-semibold text-[#8d9b92]">Outputs per day</span><select aria-label="Outputs per automation row" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { quantity: Number(event.target.value) })} value={row.quantity}>{CONTENT_QUANTITY_OPTIONS.map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select><span className="mt-1 block text-[10px] text-[#7f9086]">Expected: {outputMix}</span><span className="mt-0.5 block text-[10px] text-[#a9b8ae]">Est. {formatAutomationCostTry(outputCostEstimate.oneOffTry)}/day</span></label></td>
