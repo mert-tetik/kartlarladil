@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
+import { aiGenerationBoundaryIndex, prioritizeAutomationGenerations } from "@/features/twitter-automation/automation-generation-priority";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { browserVideoTimeoutMs, formatBrowserVideoTimeout, shouldRetryBrowserVideo } from "@/features/twitter-automation/browser-video-retry";
 import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
@@ -41,6 +42,7 @@ type AutomationOutput = {
 type LoadState = "loading" | "ready" | "error";
 
 const FLOW_REFRESH_ERROR_MESSAGE = "İçerik üretim akışı yenilenemedi.";
+const AUTO_RESUME_COOLDOWN_MS = 30_000;
 
 const BROWSER_IMAGE_GENERATORS = new Set([
   "word-of-the-day",
@@ -171,6 +173,16 @@ function MediaStatusHint({ errorCode, pendingMessage }: { errorCode: string | nu
   </div>;
 }
 
+function ResumeAutomationControl({ cooldownSeconds, disabled, onCancelCooldown, onResume }: {
+  cooldownSeconds: number | null;
+  disabled: boolean;
+  onCancelCooldown: () => void;
+  onResume: () => void;
+}) {
+  const cooldownActive = cooldownSeconds !== null;
+  return <div className="flex items-center gap-1.5"><Button className="h-9 bg-[#c7f05d] px-3 text-xs text-[#152006] hover:bg-[#d7fa78]" disabled={disabled || cooldownActive} onClick={onResume} type="button"><RefreshCw className="size-3.5" />{cooldownActive ? `Devam etmeye çalış (${cooldownSeconds} sn)` : "Devam etmeye çalış"}</Button>{cooldownActive ? <Button aria-label="Otomatik devam denemesini iptal et" className="size-9 border border-white/15 bg-white/[0.06] p-0 text-[#d7e2da] hover:bg-white/[0.12]" onClick={onCancelCooldown} title="Otomatik devam denemesini iptal et" type="button"><X className="size-3.5" /></Button> : null}</div>;
+}
+
 export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { runId: string; onClose: () => void; scope?: AutomationScope }) {
   const isTestAutomation = scope === "test";
   const scopeSearchParams = automationScopeSearchParams(scope);
@@ -184,9 +196,18 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [isInterruptedReview, setIsInterruptedReview] = useState(false);
   const [retryingOutputId, setRetryingOutputId] = useState<string | null>(null);
   const [browserVideoRetryToken, setBrowserVideoRetryToken] = useState(0);
+  const [resumeCooldownEndsAt, setResumeCooldownEndsAt] = useState<number | null>(null);
+  const [isResumeCooldownCancelled, setIsResumeCooldownCancelled] = useState(false);
   const autoStartedBrowserVideoIds = useRef(new Set<string>());
+  const automaticResumeAttempted = useRef(false);
   const browserVideoAttempts = useRef(new Map<string, number>());
   const browserVideoRetryTimers = useRef(new Set<number>());
+
+  const startResumeCooldown = useCallback(() => {
+    const startedAt = Date.now();
+    setNow(startedAt);
+    setResumeCooldownEndsAt(startedAt + AUTO_RESUME_COOLDOWN_MS);
+  }, []);
 
   const load = useCallback(async (showLoading = false): Promise<AutomationOutput[] | null> => {
     if (showLoading) setState("loading");
@@ -195,28 +216,39 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       const payload = await response.json().catch(() => null) as { outputs?: AutomationOutput[]; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_runs_unavailable");
       const nextOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
+      automaticResumeAttempted.current = false;
+      setResumeCooldownEndsAt(null);
+      setIsResumeCooldownCancelled(false);
       setOutputs(nextOutputs);
       setState("ready");
       return nextOutputs;
     } catch {
+      automaticResumeAttempted.current = false;
+      setIsResumeCooldownCancelled(false);
+      startResumeCooldown();
       setState("error");
       setMessage(FLOW_REFRESH_ERROR_MESSAGE);
       return null;
     }
-  }, [runId, scopeSearchParams]);
+  }, [runId, scopeSearchParams, startResumeCooldown]);
 
   const browserImageOutputs = useMemo(() => outputs.filter(isBrowserRenderedImage), [outputs]);
   const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video" && !isBrowserRenderedImage(output)), [outputs]);
   const browserImageOutput = browserImageOutputs[0] ?? null;
+  const generationQueue = useMemo(() => prioritizeAutomationGenerations(outputs.filter((output) => output.status === "queued" || output.status === "generating_video")), [outputs]);
   const nextOutput = useMemo(() => {
     if (browserImageOutputs.length || browserVideoOutputs.length) return null;
-    return outputs.find((output) => output.status === "queued" || output.status === "generating_video") ?? null;
-  }, [browserImageOutputs.length, browserVideoOutputs.length, outputs]);
+    return generationQueue[0] ?? null;
+  }, [browserImageOutputs.length, browserVideoOutputs.length, generationQueue]);
   const completeCount = useMemo(() => outputs.filter(isGenerationComplete).length, [outputs]);
   const readyOutputs = useMemo(() => outputs.filter(isReadyForSchedule), [outputs]);
   const failedOutputs = useMemo(() => outputs.filter((output) => output.status === "failed"), [outputs]);
   const unverifiedOutputs = useMemo(() => isInterruptedReview ? outputs.filter(needsGeneration) : [], [isInterruptedReview, outputs]);
   const progress = outputs.length ? Math.round((completeCount / outputs.length) * 100) : 0;
+  const aiGenerationDividerPercent = useMemo(() => {
+    const boundaryIndex = aiGenerationBoundaryIndex(outputs);
+    return boundaryIndex > 0 && boundaryIndex < outputs.length ? (boundaryIndex / outputs.length) * 100 : null;
+  }, [outputs]);
   const isReviewReady = state === "ready" && outputs.length > 0 && !nextOutput && !browserImageOutputs.length && !browserVideoOutputs.length && !processingOutputId;
   const isResultScreen = isReviewReady || isInterruptedReview;
   const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : browserImageOutputs[0] ?? nextOutput;
@@ -225,6 +257,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     activeOutputId: processingOutputId,
     outputs: outputs.map((output) => ({ contentType: output.content_type, generator: output.generator, id: output.id, status: output.status })),
   }), [now, outputs, processingOutputId, processingStartedAt]);
+  const resumeCooldownSeconds = state === "error" && !isResumeCooldownCancelled
+    ? resumeCooldownEndsAt === null ? AUTO_RESUME_COOLDOWN_MS / 1_000 : Math.max(0, Math.ceil((resumeCooldownEndsAt - now) / 1_000))
+    : null;
 
   const processNext = useCallback(async () => {
     if (!nextOutput || processingOutputId) return;
@@ -470,6 +505,11 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     if (refreshedOutputs.some(needsGeneration)) setMessage("Bağlantı geri geldi. Üretim kuyruğu kaldığı yerden devam ediyor.");
   }, [load, processingOutputId, retryingOutputId]);
 
+  const cancelResumeCooldown = useCallback(() => {
+    setIsResumeCooldownCancelled(true);
+    setResumeCooldownEndsAt(null);
+  }, []);
+
   const retryOutput = useCallback(async (output: AutomationOutput) => {
     if (processingOutputId || retryingOutputId) return;
     if (output.status !== "failed") {
@@ -490,6 +530,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
       autoStartedBrowserVideoIds.current.delete(output.id);
       browserVideoAttempts.current.delete(output.id);
+      automaticResumeAttempted.current = false;
+      setResumeCooldownEndsAt(null);
+      setIsResumeCooldownCancelled(false);
       setOutputs((current) => current.map((item) => item.id === output.id ? {
         ...item,
         status: payload.status!,
@@ -509,6 +552,17 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     const timer = window.setTimeout(() => void load(true), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+
+  useEffect(() => {
+    if (state !== "error" || isResumeCooldownCancelled || resumeCooldownEndsAt === null) return;
+    const timer = window.setTimeout(() => {
+      if (processingOutputId || retryingOutputId || automaticResumeAttempted.current) return;
+      automaticResumeAttempted.current = true;
+      setResumeCooldownEndsAt(null);
+      void resumeAutomation();
+    }, Math.max(0, resumeCooldownEndsAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [isResumeCooldownCancelled, processingOutputId, resumeAutomation, resumeCooldownEndsAt, retryingOutputId, state]);
 
   useEffect(() => {
     if (!nextOutput || processingOutputId || state !== "ready") return;
@@ -575,14 +629,14 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         </div>
         <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Sesli videolar renderlanıyor" : browserImageOutputs.length ? "Studio görseli renderlanıyor" : "İçerikler sırayla üretiliyor"}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Ses ekleme otomatik olarak devam ediyor; hata alan içerik işaretlenip kuyruk korunur.` : browserImageOutputs.length ? "Bu görsel, Social Content Studio ile aynı tasarım bileşenlerinden hazırlanıyor." : progressStatus}</p>
-        <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
+        <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{aiGenerationDividerPercent !== null ? <span aria-label="AI üretim sırasının başlangıcı" className="absolute inset-y-0 z-10 border-l-2 border-[#171a19]" data-testid="automation-ai-generation-divider" style={{ left: `${aiGenerationDividerPercent}%` }} title="Bu çizgiden sonra AI üretimleri başlar" /> : null}{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
         <AutomationGenerationStatusSummary labelForGenerator={(generator) => getOutputLabel({ generator })} outputs={outputs} />
         <p className="mt-2 text-xs text-[#a9b8ae]">{`Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
         {message ? <p className="mt-5 text-sm text-[#ffb9c1]">{message}</p> : null}
         {state === "error" ? <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Button className="h-9 border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" onClick={() => setIsInterruptedReview(true)} type="button">Sonuç ekranına git</Button>
-          <Button className="h-9 bg-[#c7f05d] px-3 text-xs text-[#152006] hover:bg-[#d7fa78]" disabled={Boolean(retryingOutputId)} onClick={() => void resumeAutomation()} type="button"><RefreshCw className="size-3.5" />Devam etmeye çalış</Button>
+          <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} />
         </div> : null}
       </div>
     </main> : <main className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -604,6 +658,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       })}</div>
     </main>}
 
-    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview ? <Button className="h-10 border border-white/15 bg-white/[0.06] px-3 text-xs text-[#d7e2da] hover:bg-white/[0.12]" disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void resumeAutomation()} type="button"><RefreshCw className="size-3.5" />Devam etmeye çalış</Button> : null}<Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78] disabled:cursor-not-allowed disabled:opacity-45" disabled={isInterruptedReview || state !== "ready" || isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId)} onClick={() => void scheduleAll()} title={isInterruptedReview ? "Önce bekleyen içeriklerin durumunu doğrula" : isTestAutomation ? "TEST modunda production scheduling kapalıdır" : undefined} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button></div></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || progressStatus}</footer>}
+    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78] disabled:cursor-not-allowed disabled:opacity-45" disabled={isInterruptedReview || state !== "ready" || isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId)} onClick={() => void scheduleAll()} title={isInterruptedReview ? "Önce bekleyen içeriklerin durumunu doğrula" : isTestAutomation ? "TEST modunda production scheduling kapalıdır" : undefined} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button></div></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{message || progressStatus}</footer>}
   </section>;
 }

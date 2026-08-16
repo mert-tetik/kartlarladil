@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ImgHTMLAttributes } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GeneratedPostsTable } from "./generated-posts-table";
@@ -39,6 +39,7 @@ vi.mock("@/features/twitter-automation/original-mascot-learning-video-renderer",
 describe("GeneratedPostsTable", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("keeps a failed output's error detail on the media preview tooltip", async () => {
@@ -113,6 +114,9 @@ describe("GeneratedPostsTable", () => {
     render(<GeneratedPostsTable onClose={vi.fn()} runId="5d13ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
 
     const reviewButton = await screen.findByRole("button", { name: "Sonuç ekranına git" });
+    expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Otomatik devam denemesini iptal et" }));
+    expect(screen.getByRole("button", { name: "Devam etmeye çalış" })).toBeEnabled();
     expect(screen.getAllByText("İçerik üretim akışı yenilenemedi.").length).toBeGreaterThan(0);
     fireEvent.click(reviewButton);
 
@@ -121,6 +125,49 @@ describe("GeneratedPostsTable", () => {
     const statusHint = screen.getByRole("button", { name: "İçerik durumu ayrıntısını göster" });
     expect(screen.getByRole("tooltip")).toHaveTextContent("İçerik üretim akışı yenilenemedi.");
     expect(statusHint).toHaveClass("text-[#f1c75b]");
+  });
+
+  it("automatically tries the interrupted flow again after the 30-second cooldown", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ errorCode: "automation_runs_unavailable" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="5d13ccca-d537-4a5a-9a08-20df9c391008" scope="test" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+      await Promise.resolve();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels the automatic retry when the cooldown close button is used", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ errorCode: "automation_runs_unavailable" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="5d13ccca-d537-4a5a-9a08-20df9c391009" scope="test" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Otomatik devam denemesini iptal et" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("restores a failed output as successful when its retry returns a ready result", async () => {
@@ -191,6 +238,55 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getByTestId("automation-loading-indicator")).toHaveClass("size-12", "animate-spin");
     expect(screen.getByTestId("automation-current-content-icon")).toHaveClass("size-4");
     expect(screen.queryByRole("button", { name: /Devam et ve videoya ses ekle/u })).not.toBeInTheDocument();
+  });
+
+  it("marks the point where deferred AI generations begin in the progress bar", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        outputs: [
+          {
+            id: "b090f621-90eb-448b-b6d5-6631c1506b71",
+            day_offset: 1,
+            group_name: "Test kampanyası",
+            content_type: "image",
+            generator: "self-mini-quiz",
+            language: "en",
+            native_language: "tr",
+            tier: "A1",
+            scheduled_at: "2026-08-14T10:00:00+03:00",
+            status: "awaiting_browser_video",
+            caption: null,
+            mediaUrl: null,
+            mediaUrls: [],
+            media_type: null,
+            error_code: null,
+          },
+          {
+            id: "b090f621-90eb-448b-b6d5-6631c1506b72",
+            day_offset: 1,
+            group_name: "Test kampanyası",
+            content_type: "image",
+            generator: "ai-mini-quiz",
+            language: "en",
+            native_language: "tr",
+            tier: "A1",
+            scheduled_at: "2026-08-14T11:00:00+03:00",
+            status: "queued",
+            caption: null,
+            mediaUrl: null,
+            mediaUrls: [],
+            media_type: null,
+            error_code: null,
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="b090f621-90eb-448b-b6d5-6631c1506b70" scope="test" />);
+
+    expect(await screen.findByTestId("automation-ai-generation-divider")).toHaveStyle({ left: "50%" });
   });
 
   it("automatically renders a browser video without requesting a second click", async () => {

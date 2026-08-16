@@ -13,7 +13,7 @@ describe("AutomationGenerationStatusSummary", () => {
       outputs={[
         { generator: "self-mini-quiz", status: "ready_to_schedule" },
         { generator: "self-mini-quiz", status: "scheduled" },
-        { generator: "fun-post", status: "failed" },
+        { error_code: "caption_generation_failed", generator: "fun-post", status: "failed" },
         { generator: "music-ai-word-of-the-day", status: "awaiting_browser_video" },
         { generator: "self-mini-quiz", status: "queued" },
       ]}
@@ -24,6 +24,7 @@ describe("AutomationGenerationStatusSummary", () => {
     expect(screen.getByRole("button", { name: "Bekleyen: 2 içerik" })).toBeVisible();
     expect(screen.getAllByRole("tooltip")[0]).toHaveTextContent("Mini Quiz (Self) görseli");
     expect(screen.getAllByRole("tooltip")[1]).toHaveTextContent("Fun FoxiesDeck postu");
+    expect(screen.getAllByRole("tooltip")[1]).toHaveTextContent("caption_generation_failed");
     expect(screen.getAllByRole("tooltip")[2]).toHaveTextContent("Word of the Day videosu");
     expect(screen.getAllByRole("tooltip")[2]).toHaveTextContent("Mini Quiz (Self) görseli");
   });

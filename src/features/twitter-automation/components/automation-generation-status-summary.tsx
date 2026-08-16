@@ -3,8 +3,15 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AutomationGenerationStatusSummaryOutput = {
+  error_code?: string | null;
   generator: string;
   status: string;
+};
+
+type GeneratorCount = {
+  count: number;
+  errorCodes: string[];
+  generator: string;
 };
 
 type StatusDefinition = {
@@ -48,12 +55,19 @@ const STATUS_DEFINITIONS: StatusDefinition[] = [
 ];
 
 function generatorCounts(outputs: readonly AutomationGenerationStatusSummaryOutput[], definition: StatusDefinition) {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { count: number; errorCodes: Set<string> }>();
   for (const output of outputs) {
     if (!definition.matches(output.status)) continue;
-    counts.set(output.generator, (counts.get(output.generator) ?? 0) + 1);
+    const current = counts.get(output.generator) ?? { count: 0, errorCodes: new Set<string>() };
+    current.count += 1;
+    if (definition.id === "failed" && output.error_code) current.errorCodes.add(output.error_code);
+    counts.set(output.generator, current);
   }
-  return [...counts.entries()].map(([generator, count]) => ({ generator, count }));
+  return [...counts.entries()].map(([generator, { count, errorCodes }]): GeneratorCount => ({
+    generator,
+    count,
+    errorCodes: [...errorCodes],
+  }));
 }
 
 export function AutomationGenerationStatusSummary({ labelForGenerator, outputs }: {
@@ -72,7 +86,7 @@ export function AutomationGenerationStatusSummary({ labelForGenerator, outputs }
         </button>
         <div className={cn("pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 rounded border p-2 text-left text-[11px] leading-4 opacity-0 shadow-sm transition-opacity duration-150 delay-500 group-hover:opacity-100 group-focus-within:opacity-100 group-focus-within:delay-0", definition.tooltipClassName)} role="tooltip">
           <p className="font-semibold">{definition.label} içerikler</p>
-          {generators.length ? <ul className="mt-1.5 space-y-1">{generators.map(({ generator, count: generatorCount }) => <li className="flex items-start justify-between gap-3" key={generator}><span className="min-w-0 leading-4">{labelForGenerator(generator)}</span><span className="shrink-0 font-semibold">{generatorCount} adet</span></li>)}</ul> : <p className="mt-1 text-current/75">Bu statüde içerik yok.</p>}
+          {generators.length ? <ul className="mt-1.5 space-y-1.5">{generators.map(({ generator, count: generatorCount, errorCodes }) => <li className="flex items-start justify-between gap-3" key={generator}><div className="min-w-0"><p className="leading-4">{labelForGenerator(generator)}</p>{definition.id === "failed" && errorCodes.length ? <p className="mt-0.5 break-words text-current/75">Hata: {errorCodes.join(" · ")}</p> : null}</div><span className="shrink-0 font-semibold">{generatorCount} adet</span></li>)}</ul> : <p className="mt-1 text-current/75">Bu statüde içerik yok.</p>}
         </div>
       </div>;
     })}
