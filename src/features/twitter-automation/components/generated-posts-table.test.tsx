@@ -188,6 +188,8 @@ describe("GeneratedPostsTable", () => {
     render(<GeneratedPostsTable onClose={vi.fn()} runId="b090f621-90eb-448b-b6d5-6631c1506b62" scope="test" />);
 
     expect(await screen.findByTestId("automation-browser-image-renderer")).toHaveAttribute("data-output-id", "b090f621-90eb-448b-b6d5-6631c1506b62");
+    expect(screen.getByTestId("automation-loading-indicator")).toHaveClass("size-12", "animate-spin");
+    expect(screen.getByTestId("automation-current-content-icon")).toHaveClass("size-4");
     expect(screen.queryByRole("button", { name: /Devam et ve videoya ses ekle/u })).not.toBeInTheDocument();
   });
 

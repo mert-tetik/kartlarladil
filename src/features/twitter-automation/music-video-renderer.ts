@@ -80,10 +80,30 @@ export function unlockMusicVideoAudio() {
   }
 }
 
-export async function prepareMusicVideoAudio() {
+function waitForAudioResume(audioContext: AudioContext, signal?: AbortSignal) {
+  if (!signal) return audioContext.resume();
+  if (signal.aborted) return Promise.reject(new Error("browser_video_render_timeout"));
+
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(new Error("browser_video_render_timeout"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    void audioContext.resume().then(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, (error: unknown) => {
+      signal.removeEventListener("abort", onAbort);
+      reject(error);
+    });
+  });
+}
+
+export async function prepareMusicVideoAudio(signal?: AbortSignal) {
   const audioContext = createMusicVideoAudioContext();
   try {
-    await audioContext.resume();
+    await waitForAudioResume(audioContext, signal);
     if (audioContext.state !== "running") throw new Error("audio_activation_required");
     return audioContext;
   } catch (error) {

@@ -6,7 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/features/twitter-automation/automation-generation-estimates";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
+import { browserVideoTimeoutMs, formatBrowserVideoTimeout, shouldRetryBrowserVideo } from "@/features/twitter-automation/browser-video-retry";
 import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
+import { AutomationGenerationStatusSummary } from "@/features/twitter-automation/components/automation-generation-status-summary";
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
@@ -84,7 +86,7 @@ function formatScheduledAt(value: string) {
   return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Istanbul" }).format(date);
 }
 
-function getOutputLabel(output: AutomationOutput) {
+function getOutputLabel(output: Pick<AutomationOutput, "generator">) {
   if (GENERATOR_LABELS[output.generator]) return GENERATOR_LABELS[output.generator];
   return output.generator.replace(/^music-/u, "Müzikli ").replaceAll("-", " ");
 }
@@ -121,6 +123,24 @@ function needsGeneration(output: AutomationOutput) {
 function browserVideoFailureCode(error: unknown) {
   if (error instanceof Error && /^[a-z\d_]{3,120}$/iu.test(error.message)) return error.message;
   return "browser_video_render_failed";
+}
+
+function abortableBrowserVideoTask<T>(task: Promise<T>, signal: AbortSignal) {
+  if (signal.aborted) return Promise.reject(new Error("browser_video_render_timeout"));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(new Error("browser_video_render_timeout"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    void task.then((value) => {
+      signal.removeEventListener("abort", onAbort);
+      resolve(value);
+    }, (error: unknown) => {
+      signal.removeEventListener("abort", onAbort);
+      reject(error);
+    });
+  });
 }
 
 function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
@@ -163,7 +183,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [now, setNow] = useState(() => Date.now());
   const [isInterruptedReview, setIsInterruptedReview] = useState(false);
   const [retryingOutputId, setRetryingOutputId] = useState<string | null>(null);
+  const [browserVideoRetryToken, setBrowserVideoRetryToken] = useState(0);
   const autoStartedBrowserVideoIds = useRef(new Set<string>());
+  const browserVideoAttempts = useRef(new Map<string, number>());
+  const browserVideoRetryTimers = useRef(new Set<number>());
 
   const load = useCallback(async (showLoading = false): Promise<AutomationOutput[] | null> => {
     if (showLoading) setState("loading");
@@ -282,17 +305,21 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     if (browserImageOutput) void failBrowserImageRender(browserImageOutput);
   }, [browserImageOutput, failBrowserImageRender]);
 
-  const renderBrowserVideo = useCallback(async (output: AutomationOutput) => {
+  const renderBrowserVideo = useCallback(async (output: AutomationOutput, attempt: number) => {
     const isConfusedWords = isConfusedWordsVideo(output);
     const isDialogue = isDialogueVideo(output);
     const isOriginalLearning = isOriginalMascotLearningVideo(output);
-    if ((!output.mediaUrl && !isConfusedWords && !isDialogue && !isOriginalLearning) || processingOutputId || output.tier === "random") return;
+    if (processingOutputId) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), browserVideoTimeoutMs(attempt));
+    let shouldRetry = false;
     setProcessingOutputId(output.id);
     setProcessingStartedAt(Date.now());
     setMessage("");
     let audioContext: AudioContext | null = null;
     try {
-      audioContext = await prepareMusicVideoAudio();
+      if ((!output.mediaUrl && !isConfusedWords && !isDialogue && !isOriginalLearning) || output.tier === "random") throw new Error("browser_video_source_unavailable");
+      audioContext = await prepareMusicVideoAudio(controller.signal);
       let blob: Blob;
       let caption: string | undefined;
       if (isConfusedWords) {
@@ -300,6 +327,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, tier: output.tier }),
+          signal: controller.signal,
         });
         const plan = await planResponse.json().catch(() => null) as {
           caption?: string;
@@ -313,17 +341,18 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         if (!planResponse.ok || !plan?.caption || !Array.isArray(plan.phases) || plan.phases.length !== 3 || plan.phases.some((phase) => !phase.first || !phase.second) || !Array.isArray(plan.scenes)) {
           throw new Error(plan?.errorCode ?? "confused_words_video_prepare_failed");
         }
-        blob = await renderConfusedWordsVideo({
+        blob = await abortableBrowserVideoTask(renderConfusedWordsVideo({
           audioContext,
           phases: plan.phases.map((phase) => ({ first: phase.first!, second: phase.second! })),
           scenes: plan.scenes,
-        });
+        }), controller.signal);
         caption = plan.caption;
       } else if (isDialogue) {
         const planResponse = await fetch("/api/twitter-automation/dialogue-video", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ mode: output.generator, language: output.language, nativeLanguage: output.native_language }),
+          signal: controller.signal,
         });
         const plan = await planResponse.json().catch(() => null) as {
           caption?: string;
@@ -337,59 +366,77 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         if (!planResponse.ok || !plan?.caption || !plan.backgroundVideoUrl || !plan.firstCharacter || !plan.secondCharacter || !Array.isArray(plan.scenes) || !plan.scenes.length) {
           throw new Error(plan?.errorCode ?? "dialogue_video_prepare_failed");
         }
-        blob = await renderDialogueVideo({
+        blob = await abortableBrowserVideoTask(renderDialogueVideo({
           audioContext,
           backgroundVideoUrl: plan.backgroundVideoUrl,
           backgroundVideoPath: plan.backgroundVideoPath,
           firstCharacter: plan.firstCharacter,
           secondCharacter: plan.secondCharacter,
           scenes: plan.scenes,
-        });
+        }), controller.signal);
         caption = plan.caption;
       } else if (isOriginalLearning) {
         const planResponse = await fetch("/api/twitter-automation/original-mascot-learning-video", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ mode: output.generator, language: output.language, nativeLanguage: output.native_language }),
+          signal: controller.signal,
         });
         const plan = await planResponse.json().catch(() => null) as (OriginalMascotLearningVideoPayload & { errorCode?: string }) | null;
         if (!planResponse.ok || !plan?.caption || !Array.isArray(plan.scenes) || !plan.scenes.length || plan.mode !== output.generator) {
           throw new Error(plan?.errorCode ?? "original_mascot_learning_video_prepare_failed");
         }
-        blob = await renderOriginalMascotLearningVideo({ audioContext, scenes: plan.scenes, language: output.language as LanguageCode, nativeLanguage: output.native_language as LanguageCode });
+        blob = await abortableBrowserVideoTask(renderOriginalMascotLearningVideo({ audioContext, scenes: plan.scenes, language: output.language as LanguageCode, nativeLanguage: output.native_language as LanguageCode }), controller.signal);
         caption = plan.caption;
       } else {
         const tracks = ["/social-audio/music1.mp3", "/social-audio/music2.mp3", "/social-audio/music3.mp3", "/social-audio/music4.mp3", "/social-audio/music5.mp3", "/social-audio/music6.mp3", "/social-audio/music7.mp3"];
         const musicUrl = tracks[Math.floor(Math.random() * tracks.length)]!;
-        blob = await renderMusicVideo({ audioContext, imageUrl: output.mediaUrl!, musicUrl });
+        blob = await abortableBrowserVideoTask(renderMusicVideo({ audioContext, imageUrl: output.mediaUrl!, musicUrl }), controller.signal);
       }
       audioContext = null;
-      const staged = await stageBrowserVideo(blob, "automation-video", output.id);
+      const staged = await abortableBrowserVideoTask(stageBrowserVideo(blob, "automation-video", output.id), controller.signal);
       const response = await fetch("/api/twitter-automation/automation-runs/process", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path, ...(caption ? { caption } : {}), scope }),
+        signal: controller.signal,
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_processing_failed");
     } catch (error) {
-      const errorCode = browserVideoFailureCode(error);
-      try {
-        const failureResponse = await fetch("/api/twitter-automation/automation-runs/process", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ outputId: output.id, browserVideoError: errorCode, scope }),
-        });
-        if (!failureResponse.ok) throw new Error("automation_video_failure_update_failed");
-        setMessage(`${getOutputLabel(output)} sesli olarak renderlanamadı; kuyruk sonraki içerikle devam ediyor.`);
-      } catch {
-        setMessage(`${getOutputLabel(output)} renderlanamadı ve hata durumu kaydedilemedi.`);
+      const errorCode = controller.signal.aborted ? "browser_video_render_timeout" : browserVideoFailureCode(error);
+      if (errorCode === "browser_video_render_timeout" && shouldRetryBrowserVideo(attempt)) {
+        shouldRetry = true;
+        setMessage(`${getOutputLabel(output)} ${formatBrowserVideoTimeout(attempt)} içinde tamamlanamadı. ${formatBrowserVideoTimeout(attempt + 1)} limitli yeniden deneme hazırlanıyor.`);
+      } else {
+        try {
+          const failureResponse = await fetch("/api/twitter-automation/automation-runs/process", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ outputId: output.id, browserVideoError: errorCode, scope }),
+          });
+          if (!failureResponse.ok) throw new Error("automation_video_failure_update_failed");
+          setMessage(errorCode === "browser_video_render_timeout" ? `${getOutputLabel(output)} tüm otomatik denemelerde zaman aşımına uğradı; kuyruk sonraki içerikle devam ediyor.` : `${getOutputLabel(output)} sesli olarak renderlanamadı; kuyruk sonraki içerikle devam ediyor.`);
+        } catch {
+          setMessage(`${getOutputLabel(output)} renderlanamadı ve hata durumu kaydedilemedi.`);
+        }
       }
     } finally {
+      window.clearTimeout(timeout);
       if (audioContext && audioContext.state !== "closed") await audioContext.close();
       await load();
       setProcessingOutputId(null);
       setProcessingStartedAt(null);
+      if (shouldRetry) {
+        const retryTimer = window.setTimeout(() => {
+          browserVideoRetryTimers.current.delete(retryTimer);
+          autoStartedBrowserVideoIds.current.delete(output.id);
+          setBrowserVideoRetryToken((current) => current + 1);
+        }, 1_000);
+        browserVideoRetryTimers.current.add(retryTimer);
+      } else {
+        browserVideoAttempts.current.delete(output.id);
+      }
     }
   }, [load, processingOutputId, scope]);
 
@@ -442,6 +489,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       if (!response.ok || !payload?.status) throw new Error(payload?.errorCode ?? "automation_retry_failed");
 
       autoStartedBrowserVideoIds.current.delete(output.id);
+      browserVideoAttempts.current.delete(output.id);
       setOutputs((current) => current.map((item) => item.id === output.id ? {
         ...item,
         status: payload.status!,
@@ -480,10 +528,17 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     const nextBrowserVideo = browserVideoOutputs.find((output) => !autoStartedBrowserVideoIds.current.has(output.id));
     if (!nextBrowserVideo) return;
 
+    const attempt = (browserVideoAttempts.current.get(nextBrowserVideo.id) ?? 0) + 1;
+    browserVideoAttempts.current.set(nextBrowserVideo.id, attempt);
     autoStartedBrowserVideoIds.current.add(nextBrowserVideo.id);
-    const timer = window.setTimeout(() => void renderBrowserVideo(nextBrowserVideo), 0);
+    const timer = window.setTimeout(() => void renderBrowserVideo(nextBrowserVideo, attempt), 0);
     return () => window.clearTimeout(timer);
-  }, [browserVideoOutputs, isInterruptedReview, processingOutputId, renderBrowserVideo, state]);
+  }, [browserVideoOutputs, browserVideoRetryToken, isInterruptedReview, processingOutputId, renderBrowserVideo, state]);
+
+  useEffect(() => () => {
+    browserVideoRetryTimers.current.forEach((timer) => window.clearTimeout(timer));
+    browserVideoRetryTimers.current.clear();
+  }, []);
 
   useEffect(() => {
     if (isReviewReady) return;
@@ -514,11 +569,15 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
     {!isResultScreen ? <main className="grid min-h-[27rem] place-items-center p-6 text-center">
       <div className="w-full max-w-xl">
-        {browserVideoOutputs.length ? <Video className="mx-auto size-8 text-[#c7f05d]" /> : browserImageOutputs.length ? <ImageIcon className="mx-auto size-8 animate-pulse text-[#c7f05d]" /> : <LoaderCircle className="mx-auto size-8 animate-spin text-[#c7f05d]" />}
+        <div className="relative mx-auto grid size-14 place-items-center">
+          <LoaderCircle aria-label="İçerik üretimi sürüyor" className="size-12 animate-spin text-[#c7f05d]" data-testid="automation-loading-indicator" />
+          {browserVideoOutputs.length ? <Video aria-hidden="true" className="absolute size-4 text-[#f7f3ed]" data-testid="automation-current-content-icon" /> : browserImageOutputs.length ? <ImageIcon aria-hidden="true" className="absolute size-4 text-[#f7f3ed]" data-testid="automation-current-content-icon" /> : null}
+        </div>
         <h2 className="mt-4 font-display text-3xl font-semibold">{browserVideoOutputs.length ? "Sesli videolar renderlanıyor" : browserImageOutputs.length ? "Studio görseli renderlanıyor" : "İçerikler sırayla üretiliyor"}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#a9b8ae]">{browserVideoOutputs.length ? `${browserVideoOutputs.length} video kaynağı hazır. Ses ekleme otomatik olarak devam ediyor; hata alan içerik işaretlenip kuyruk korunur.` : browserImageOutputs.length ? "Bu görsel, Social Content Studio ile aynı tasarım bileşenlerinden hazırlanıyor." : progressStatus}</p>
         <div className="relative mt-7 h-5 overflow-hidden rounded bg-[#0f1411]"><div className="h-full rounded bg-[#c7f05d] transition-[width] duration-500" style={{ width: `${progress}%` }} />{isTestAutomation ? <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tracking-[0.25em] text-white">TEST</span> : null}</div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#829287]"><span>{completeCount} / {outputs.length || "…"} hazır</span><span>{progress}%</span></div>
+        <AutomationGenerationStatusSummary labelForGenerator={(generator) => getOutputLabel({ generator })} outputs={outputs} />
         <p className="mt-2 text-xs text-[#a9b8ae]">{`Tahmini kalan süre: ${formatEstimatedDuration(estimatedSecondsRemaining)}`}</p>
         {message ? <p className="mt-5 text-sm text-[#ffb9c1]">{message}</p> : null}
         {state === "error" ? <div className="mt-5 flex flex-wrap justify-center gap-2">
