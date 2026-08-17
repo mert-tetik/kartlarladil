@@ -75,6 +75,55 @@ describe("Content Automation Responses fallback", () => {
     expect(result).toMatchObject({ provider: "openai", model: "gpt-5.6-terra", output: "healthy" });
   });
 
+  it("retries transient direct OpenAI failures inside the same fallback window", async () => {
+    const calls: Array<{ provider: string; model: string }> = [];
+    const delays: number[] = [];
+
+    const result = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client, model) => {
+        const provider = (client as unknown as { provider: string }).provider;
+        calls.push({ provider, model });
+        if (provider === "poyo") return { code: 503, msg: "PoYo unavailable" };
+        if (calls.filter((call) => call.provider === "openai").length < 3) {
+          throw Object.assign(new Error("OpenAI service unavailable"), { status: 503 });
+        }
+        return { output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] };
+      },
+      () => "healthy",
+      { sleep: async (delayMs) => { delays.push(delayMs); } },
+    );
+
+    expect(calls).toEqual([
+      { provider: "poyo", model: "gpt-5-6-luna" },
+      { provider: "openai", model: "gpt-5.6-luna" },
+      { provider: "openai", model: "gpt-5.6-luna" },
+      { provider: "openai", model: "gpt-5.6-luna" },
+    ]);
+    expect(delays).toEqual([1_000, 3_000]);
+    expect(result).toMatchObject({ provider: "openai", model: "gpt-5.6-luna", output: "healthy" });
+  });
+
+  it("does not retry a non-retryable direct OpenAI fallback failure", async () => {
+    const providers: string[] = [];
+    const sleep = vi.fn(async () => undefined);
+
+    await expect(generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client) => {
+        const provider = (client as unknown as { provider: string }).provider;
+        providers.push(provider);
+        if (provider === "poyo") return { code: 503, msg: "PoYo unavailable" };
+        throw Object.assign(new Error("Unsupported request"), { status: 400 });
+      },
+      () => "",
+      { sleep },
+    )).rejects.toMatchObject({ providerStatus: 400 });
+
+    expect(providers).toEqual(["poyo", "openai"]);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
   it("does not switch providers for a non-retryable PoYo 4xx failure", async () => {
     const calls: string[] = [];
 

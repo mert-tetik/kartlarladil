@@ -8,6 +8,8 @@ export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
 const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 60_000;
 const OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS = 150_000;
+const OPENAI_FALLBACK_MAX_ATTEMPTS = 3;
+const OPENAI_FALLBACK_RETRY_DELAYS_MS = [1_000, 3_000] as const;
 
 const OPENAI_MODEL_BY_POYO_MODEL: Record<string, string> = {
   [SOCIAL_CONTENT_TEXT_MODEL]: "gpt-5.6-luna",
@@ -15,6 +17,16 @@ const OPENAI_MODEL_BY_POYO_MODEL: Record<string, string> = {
 };
 
 type SocialStudioResponsesProvider = "poyo" | "openai";
+
+type SocialStudioGeneration<T> = (
+  client: OpenAI,
+  model: string,
+  signal: AbortSignal,
+) => Promise<T>;
+
+type SocialStudioFallbackOptions = {
+  sleep?: (delayMs: number) => Promise<void>;
+};
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
@@ -84,6 +96,16 @@ function isRetryablePoyoResponsesFailure(error: unknown) {
     || error instanceof TypeError && /(?:fetch|network|socket|connect)/iu.test(message);
 }
 
+function isRetryableOpenAIResponsesFailure(error: unknown) {
+  const status = error instanceof OpenAIResponsesProviderError ? error.providerStatus : getErrorStatus(error);
+  if (typeof status === "number") return status === 408 || status === 409 || status === 429 || status >= 500;
+
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : "";
+  return /^(?:APIConnectionError|APIConnectionTimeoutError|AbortError|TimeoutError|FetchError)$/u.test(name)
+    || error instanceof TypeError && /(?:fetch|network|socket|connect)/iu.test(message);
+}
+
 function providerError(
   provider: SocialStudioResponsesProvider,
   providerStatus: number,
@@ -96,18 +118,22 @@ function providerError(
 }
 
 async function withResponseTimeout<T>(
-  promise: Promise<T>,
+  run: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,
   provider: SocialStudioResponsesProvider,
   model: string,
 ) {
+  const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      promise,
+      run(controller.signal),
       new Promise<T>((_, reject) => {
         timeoutId = setTimeout(
-          () => reject(providerError(provider, 504, model, `${model} did not respond within ${Math.ceil(timeoutMs / 1_000)} seconds.`)),
+          () => {
+            controller.abort();
+            reject(providerError(provider, 504, model, `${model} did not respond within ${Math.ceil(timeoutMs / 1_000)} seconds.`));
+          },
           timeoutMs,
         );
       }),
@@ -115,6 +141,10 @@ async function withResponseTimeout<T>(
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
+}
+
+function sleep(delayMs: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 }
 
 function normalizeProviderFailure(
@@ -140,27 +170,57 @@ function normalizeProviderFailure(
   return providerError(provider, providerStatus, model, message);
 }
 
+async function runOpenAIFallbackWithRetry<T>(
+  model: string,
+  run: (signal: AbortSignal) => Promise<T>,
+  wait: (delayMs: number) => Promise<void>,
+) {
+  const deadline = Date.now() + OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS;
+
+  for (let attempt = 0; attempt < OPENAI_FALLBACK_MAX_ATTEMPTS; attempt += 1) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      throw providerError("openai", 504, model, `${model} did not respond within ${Math.ceil(OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS / 1_000)} seconds.`);
+    }
+
+    try {
+      return await withResponseTimeout(run, remainingMs, "openai", model);
+    } catch (error) {
+      const retryDelayMs = OPENAI_FALLBACK_RETRY_DELAYS_MS[attempt];
+      if (!isRetryableOpenAIResponsesFailure(error) || retryDelayMs === undefined) throw error;
+
+      // Keep every direct OpenAI retry within the existing 150-second budget.
+      if (Date.now() + retryDelayMs >= deadline) throw error;
+      await wait(retryDelayMs);
+    }
+  }
+
+  throw providerError("openai", 502, model, "OpenAI Responses exhausted its retry attempts.");
+}
+
 function resolveOpenAIModel(poyoModel: string) {
   const model = OPENAI_MODEL_BY_POYO_MODEL[poyoModel];
   if (!model) throw new Error(`No direct OpenAI model mapping exists for ${poyoModel}.`);
   return model;
 }
 
-/** Runs a PoYo Responses request first. Temporary PoYo failures make one
- * independent direct OpenAI Responses attempt on the matching Luna or Terra
- * model; malformed model output never switches providers. */
+/** Runs a PoYo Responses request first. Temporary PoYo failures make a
+ * bounded direct OpenAI retry sequence on the matching Luna or Terra model;
+ * malformed model output never switches providers. */
 export async function generateSocialStudioTextWithFallback<T>(
   primaryModel: string,
-  generate: (client: OpenAI, model: string) => Promise<T>,
+  generate: SocialStudioGeneration<T>,
   extractOutput: (response: T) => string,
+  { sleep: wait = sleep }: SocialStudioFallbackOptions = {},
 ) {
   const run = async (
     provider: SocialStudioResponsesProvider,
     client: OpenAI,
     model: string,
+    signal: AbortSignal,
   ) => {
     try {
-      const response = await generate(client, model);
+      const response = await generate(client, model, signal);
       if (provider === "poyo") assertPoyoResponsesOutput(response);
       const output = extractOutput(response);
       if (provider === "poyo") assertPoyoResponsesOutput(output);
@@ -172,16 +232,20 @@ export async function generateSocialStudioTextWithFallback<T>(
 
   try {
     const poyo = createSocialStudioPoyoClient();
-    return await withResponseTimeout(run("poyo", poyo, primaryModel), POYO_PRIMARY_RESPONSE_TIMEOUT_MS, "poyo", primaryModel);
+    return await withResponseTimeout(
+      (signal) => run("poyo", poyo, primaryModel, signal),
+      POYO_PRIMARY_RESPONSE_TIMEOUT_MS,
+      "poyo",
+      primaryModel,
+    );
   } catch (error) {
     if (!isRetryablePoyoResponsesFailure(error)) throw error;
     const openai = createSocialStudioOpenAIClient();
     const openaiModel = resolveOpenAIModel(primaryModel);
-    return await withResponseTimeout(
-      run("openai", openai, openaiModel),
-      OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS,
-      "openai",
+    return await runOpenAIFallbackWithRetry(
       openaiModel,
+      (signal) => run("openai", openai, openaiModel, signal),
+      wait,
     );
   }
 }

@@ -51,7 +51,7 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
       model,
       instructions: `${instructions}${repair ? "\nYour previous response was invalid. Return one valid JSON object with every requested field." : ""}`,
       input: JSON.stringify(input),
@@ -59,7 +59,7 @@ async function createPlan<T>(instructions: string, input: Record<string, unknown
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     return parse(output);

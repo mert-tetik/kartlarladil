@@ -154,7 +154,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
   const generatePlan = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
       model,
       instructions: repair
         ? `${instructions}\nYour previous response was invalid. Return only valid JSON matching the required fields. For False Friends, include two related learning-language words with different nuance, not words that merely look alike or a cross-language translation pair.`
@@ -164,7 +164,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     return parseAiImagePlan(output.trim(), mode);

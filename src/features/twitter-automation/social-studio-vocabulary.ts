@@ -71,7 +71,7 @@ export async function selectSocialStudioVocabularyTerms({
 
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (client, model) => client.responses.create({
+    (client, model, signal) => client.responses.create({
       model,
       instructions: [
         "Select vocabulary for a FoxiesDeck social post. Return one JSON object only: { terms: [string] }.",
@@ -84,7 +84,7 @@ export async function selectSocialStudioVocabularyTerms({
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    }),
+    }, { signal }),
     extractResponseOutputText,
   );
   const terms = parseTerms(output, count);
@@ -118,7 +118,7 @@ export function findSocialStudioCatalogCard(language: LanguageCode, term: string
 export async function createSocialStudioCustomCard(term: string, language: LanguageCode, nativeLanguage: LocaleCode) {
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (client, model) => client.responses.create({
+    (client, model, signal) => client.responses.create({
       model,
       instructions: buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
       input: buildCreateCardInput({ locale: nativeLanguage, term, targetLanguage: language }),
@@ -126,7 +126,7 @@ export async function createSocialStudioCustomCard(term: string, language: Langu
       reasoning: { effort: "minimal" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    }),
+    }, { signal }),
     extractResponseOutputText,
   );
   let raw: unknown;
@@ -143,7 +143,7 @@ export async function createSocialStudioCustomCard(term: string, language: Langu
 export async function createRandomSocialStudioWordOfTheDayPosterCard(language: LanguageCode, nativeLanguage: LocaleCode) {
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (client, model) => client.responses.create({
+    (client, model, signal) => client.responses.create({
       model,
       instructions: [
         buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
@@ -158,7 +158,7 @@ export async function createRandomSocialStudioWordOfTheDayPosterCard(language: L
       reasoning: { effort: "minimal" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-    }),
+    }, { signal }),
     extractResponseOutputText,
   );
 

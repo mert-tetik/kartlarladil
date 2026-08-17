@@ -104,7 +104,7 @@ async function createSelfFalseFriendsContent({
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
         model,
         instructions: repair
           ? `${instructions}\nYour previous answer was invalid or repeated a recent term. Choose a completely different valid pair and return only the required JSON object.`
@@ -119,7 +119,7 @@ async function createSelfFalseFriendsContent({
         reasoning: { effort: "minimal" },
         store: false,
         text: { format: { type: "text" }, verbosity: "low" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     return parseGeneratedPair(output.trim(), recentTermSet);

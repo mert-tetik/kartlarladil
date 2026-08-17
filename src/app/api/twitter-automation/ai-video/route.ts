@@ -122,7 +122,7 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
       model,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return only valid JSON with all four required string fields.` : instructions,
       input: JSON.stringify(input),
@@ -130,7 +130,7 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "medium" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     return parseVideoPlan(output.trim());

@@ -107,7 +107,7 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
       model,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return valid JSON with all exact fields and three phases.` : instructions,
       input: JSON.stringify(input),
@@ -115,7 +115,7 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     return parsePlan(output);

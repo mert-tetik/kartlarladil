@@ -111,7 +111,7 @@ export async function POST(request: Request) {
   try {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_TEXT_MODEL,
-      (client, model) => client.responses.create({
+      (client, model, signal) => client.responses.create({
       model,
       instructions: [...BASE_INSTRUCTIONS, CONTENT_RULES[mode]].join("\n"),
       input: JSON.stringify({
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       reasoning: { effort: "none" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
-      }),
+      }, { signal }),
       extractResponseOutputText,
     );
     const post = output.trim();
