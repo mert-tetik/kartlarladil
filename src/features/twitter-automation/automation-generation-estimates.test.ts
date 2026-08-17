@@ -35,4 +35,16 @@ describe("automation generation estimates", () => {
       outputs: [{ id: "text", contentType: "text", generator: "fun-post", status: "processing" }],
     })).toBe(8);
   });
+
+  it("prefers the saved successful duration for a matching mode", () => {
+    expect(estimateRemainingGenerationSeconds({
+      activeOutputId: "text",
+      activeElapsedSeconds: 4,
+      learnedDurationsMs: { "fun-post": 20_000 },
+      outputs: [
+        { id: "text", contentType: "text", generator: "fun-post", status: "processing" },
+        { id: "image", contentType: "image", generator: "ai-mini-quiz", status: "queued" },
+      ],
+    })).toBe(56);
+  });
 });

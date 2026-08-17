@@ -87,6 +87,8 @@ export type AutomationOutputRecord = {
   lease_renderer_id?: string | null;
   lease_expires_at?: string | null;
   render_plan?: unknown;
+  generation_attempt_started_at?: string | null;
+  duration_recorded_at?: string | null;
 };
 
 type UploadJob = { socialMediaId: number; jobId: string | null; requestId: string | null; postUrl: string | null };
@@ -253,6 +255,21 @@ async function prepareBrowserImage(output: AutomationOutputRecord, tier: Tier) {
   return "browser_image_required";
 }
 
+export async function recordSuccessfulAutomationOutputDuration(output: AutomationOutputRecord) {
+  if ((output.status !== "ready_to_schedule" && output.status !== "scheduled") || output.duration_recorded_at || !output.generation_attempt_started_at) return false;
+  const startedAt = new Date(output.generation_attempt_started_at).getTime();
+  const durationMs = Date.now() - startedAt;
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return false;
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.rpc("record_social_content_automation_mode_duration", {
+    p_output_id: output.id,
+    p_duration_ms: Math.round(durationMs),
+  });
+  if (error) throw new Error("automation_duration_record_failed");
+  return data === true;
+}
+
 function hasNonEmptyCaption(caption: string | null) {
   return Boolean(caption?.trim() && caption.trim().length <= 400);
 }
@@ -304,6 +321,7 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
       next_attempt_at: now,
       lease_renderer_id: null,
       lease_expires_at: null,
+      generation_attempt_started_at: null,
     });
     return { queued: false as const, exhausted: true as const, attemptCount };
   }
@@ -317,6 +335,7 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
     next_attempt_at: nextAutomationAttemptAt(attemptCount),
     lease_renderer_id: null,
     lease_expires_at: null,
+    generation_attempt_started_at: null,
   });
   return { queued: true as const, exhausted: false as const, attemptCount };
 }
@@ -336,6 +355,11 @@ async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: 
     lease_renderer_id: null,
     lease_expires_at: null,
   });
+  try {
+    await recordSuccessfulAutomationOutputDuration({ ...readyOutput, status: "ready_to_schedule" });
+  } catch {
+    // Timing telemetry must never turn an otherwise valid output into a failed generation.
+  }
   return true;
 }
 

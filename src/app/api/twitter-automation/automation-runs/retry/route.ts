@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const status = statusForRetry(output);
     const retryPatch = status === "awaiting_browser_video" || status === "generating_video" || status === "ready_to_schedule"
-      ? { status, error_code: null, retry_exhausted_at: null, next_attempt_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+      ? { status, error_code: null, retry_exhausted_at: null, next_attempt_at: new Date().toISOString(), generation_attempt_started_at: null, updated_at: new Date().toISOString() }
       : {
         status,
         caption: null,
@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
         retry_exhausted_at: null,
         next_attempt_at: new Date().toISOString(),
         generated_at: null,
+        generation_attempt_started_at: null,
         updated_at: new Date().toISOString(),
       };
     const { error: retryError } = await supabase

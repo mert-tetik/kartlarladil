@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
     const outputLimit = runId ? 1_000 : 300;
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
+      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,generation_attempt_started_at,duration_recorded_at,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
       .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
       .limit(outputLimit);
@@ -178,6 +178,14 @@ export async function GET(request: NextRequest) {
     if (activeOnly) query = query.in("run.status", ["queued", "processing", "ready_to_schedule"]);
     const { data, error } = await query;
     if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    const durationProfiles = runId
+      ? await supabase
+        .from("social_content_automation_mode_durations")
+        .select("generator,average_duration_ms")
+        .then(({ data, error: durationError }) => durationError ? {} : Object.fromEntries((data ?? [])
+          .filter((profile): profile is { generator: string; average_duration_ms: number } => typeof profile.generator === "string" && Number.isFinite(profile.average_duration_ms) && profile.average_duration_ms > 0)
+          .map((profile) => [profile.generator, profile.average_duration_ms])))
+      : {};
     const outputs = await Promise.all((data ?? []).map(async (output) => {
       const needsBrowserVideoSource = output.status === "awaiting_browser_video" && typeof output.media_path === "string";
       if (!includeMedia && !needsBrowserVideoSource) return { ...output, mediaUrl: null, mediaUrls: [] };
@@ -189,7 +197,7 @@ export async function GET(request: NextRequest) {
         mediaUrls: mediaUrls.filter((url): url is string => Boolean(url)),
       };
     }));
-    return NextResponse.json({ outputs });
+    return NextResponse.json({ outputs, durationProfiles });
   } catch {
     return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
   }

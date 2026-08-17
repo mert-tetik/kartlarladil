@@ -47,6 +47,7 @@ type AutomationOutput = {
 };
 
 type LoadState = "loading" | "ready" | "error";
+type ModeDurationProfiles = Record<string, number>;
 
 const FLOW_REFRESH_ERROR_MESSAGE = "İçerik üretim akışı yenilenemedi.";
 const AUTO_RESUME_COOLDOWN_MS = 30_000;
@@ -112,6 +113,11 @@ function isAttemptDue(output: Pick<AutomationOutput, "next_attempt_at">, now: nu
   if (!output.next_attempt_at) return true;
   const timestamp = new Date(output.next_attempt_at).getTime();
   return !Number.isFinite(timestamp) || timestamp <= now;
+}
+
+function parseModeDurationProfiles(value: unknown): ModeDurationProfiles {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([, durationMs]) => typeof durationMs === "number" && Number.isFinite(durationMs) && durationMs > 0));
 }
 
 function isGenerationComplete(output: AutomationOutput) {
@@ -254,6 +260,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const isTestAutomation = scope === "test";
   const scopeSearchParams = automationScopeSearchParams(scope);
   const [outputs, setOutputs] = useState<AutomationOutput[]>([]);
+  const [modeDurationProfiles, setModeDurationProfiles] = useState<ModeDurationProfiles>({});
   const [state, setState] = useState<LoadState>("loading");
   const [processingOutputId, setProcessingOutputId] = useState<string | null>(null);
   const [processingStartedAt, setProcessingStartedAt] = useState<number | null>(null);
@@ -287,7 +294,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     if (showLoading) setState("loading");
     try {
       const response = await fetch(`/api/twitter-automation/automation-runs?runId=${encodeURIComponent(runId)}${scopeSearchParams ? "&scope=test" : ""}${includeMedia ? "&includeMedia=1" : ""}`, { cache: "no-store" });
-      const payload = await response.json().catch(() => null) as { outputs?: AutomationOutput[]; errorCode?: string } | null;
+      const payload = await response.json().catch(() => null) as { outputs?: AutomationOutput[]; durationProfiles?: unknown; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_runs_unavailable");
       const nextOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
       automaticResumeAttempts.current = 0;
@@ -295,6 +302,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       setResumeCooldownEndsAt(null);
       setIsResumeCooldownCancelled(false);
       setOutputs(nextOutputs);
+      setModeDurationProfiles(parseModeDurationProfiles(payload?.durationProfiles));
       setState("ready");
       return nextOutputs;
     } catch {
@@ -341,8 +349,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const estimatedSecondsRemaining = useMemo(() => estimateRemainingGenerationSeconds({
     activeElapsedSeconds: processingOutputId && processingStartedAt ? Math.max(0, (now - processingStartedAt) / 1_000) : 0,
     activeOutputId: processingOutputId,
+    learnedDurationsMs: modeDurationProfiles,
     outputs: outputs.map((output) => ({ contentType: output.content_type, generator: output.generator, id: output.id, status: output.status })),
-  }), [now, outputs, processingOutputId, processingStartedAt]);
+  }), [modeDurationProfiles, now, outputs, processingOutputId, processingStartedAt]);
   const resumeCooldownSeconds = state === "error" && !isResumeCooldownCancelled
     ? resumeCooldownEndsAt === null ? AUTO_RESUME_COOLDOWN_MS / 1_000 : Math.max(0, Math.ceil((resumeCooldownEndsAt - now) / 1_000))
     : null;

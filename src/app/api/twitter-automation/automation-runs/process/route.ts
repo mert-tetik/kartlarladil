@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { processAutomationOutput, queueAutomationOutputRecovery, refreshAutomationRunStatus, validateAutomationOutputQuality, type AutomationOutputRecord } from "@/features/twitter-automation/automation-run-service";
+import { processAutomationOutput, queueAutomationOutputRecovery, recordSuccessfulAutomationOutputDuration, refreshAutomationRunStatus, validateAutomationOutputQuality, type AutomationOutputRecord } from "@/features/twitter-automation/automation-run-service";
 import { getAutomationRendererSession, hasSocialStudioAutomationSession } from "@/features/twitter-automation/social-studio-auth";
 import { AUTOMATION_RENDERER_LEASE_MS } from "@/features/twitter-automation/automation-resilience";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan")
+      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at")
       .in("status", browserRenderPlan !== undefined || stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image", "awaiting_browser_video"] : stagedVideoPath || parsed.data.browserVideoError ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .lte("next_attempt_at", new Date().toISOString())
       .order("scheduled_at", { ascending: true })
@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
     }
 
     const browserCompletion = Boolean(stagedPaths.length || browserError);
-    const update = { status: "processing", updated_at: new Date().toISOString(), lease_expires_at: null, lease_renderer_id: null };
+    const attemptStartedAt = candidate.generation_attempt_started_at ?? new Date().toISOString();
+    const update = { status: "processing", updated_at: new Date().toISOString(), lease_expires_at: null, lease_renderer_id: null, generation_attempt_started_at: attemptStartedAt };
     const { data: locked, error: lockError } = await supabase
       .from("social_content_automation_outputs")
       .update(update)
@@ -115,25 +116,26 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (lockError) return NextResponse.json({ errorCode: "automation_output_lock_failed" }, { status: 503 });
     if (!locked) return NextResponse.json({ processed: false, state: "busy" }, { status: 409 });
+    const processingCandidate = { ...candidate, generation_attempt_started_at: attemptStartedAt };
 
     if (browserCompletion) {
       if (browserError) {
         const browserStatus = isBrowserImageOutput(candidate.generator, candidate.media_type) ? "awaiting_browser_image" : "awaiting_browser_video";
-        const recovery = await queueAutomationOutputRecovery({ ...candidate, status: browserStatus }, browserError, browserStatus);
+        const recovery = await queueAutomationOutputRecovery({ ...processingCandidate, status: browserStatus }, browserError, browserStatus);
         await refreshAutomationRunStatus(candidate.run_id);
         return NextResponse.json({ processed: true, outputId: candidate.id, outcome: recovery.queued ? "recovery_queued" : "failed", errorCode: browserError });
       }
 
       const completed = stagedImagePaths.length
         ? {
-          ...candidate,
+          ...processingCandidate,
           caption: parsed.data.caption ?? candidate.caption,
           media_path: stagedImagePaths[0]!,
           media_paths: stagedImagePaths.length > 1 ? stagedImagePaths : [],
           media_type: "image" as const,
         }
         : {
-          ...candidate,
+          ...processingCandidate,
           caption: parsed.data.caption ?? candidate.caption,
           media_path: stagedVideoPath!,
           media_paths: [],
@@ -161,6 +163,14 @@ export async function POST(request: NextRequest) {
       }).eq("id", candidate.id);
       if (completionError) return NextResponse.json({ errorCode: "automation_output_update_failed" }, { status: 503 });
 
+      if (nextStatus === "ready_to_schedule") {
+        try {
+          await recordSuccessfulAutomationOutputDuration({ ...completed, status: "ready_to_schedule" });
+        } catch {
+          // Timing telemetry must never block a successful browser render.
+        }
+      }
+
       if (candidate.media_path?.startsWith("automation/") && !stagedPaths.includes(candidate.media_path)) {
         const { error: removeError } = await supabase.storage.from("social-studio-automation").remove([candidate.media_path]);
         if (removeError) throw new Error("automation_media_cleanup_failed");
@@ -169,7 +179,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ processed: true, outputId: candidate.id, outcome: nextStatus === "awaiting_browser_video" ? "browser_video_required" : "content_ready" });
     }
 
-    const result = await processAutomationOutput(candidate);
+    const result = await processAutomationOutput(processingCandidate);
     if (result.outcome === "video_pending") {
       await supabase.from("social_content_automation_outputs").update({ status: "generating_video", updated_at: new Date().toISOString() }).eq("id", candidate.id);
     }

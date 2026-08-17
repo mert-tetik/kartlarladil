@@ -5,6 +5,8 @@ export type GenerationEstimateOutput = {
   status: string;
 };
 
+export type LearnedGenerationDurations = Readonly<Record<string, number>>;
+
 const TEXT_GENERATORS = new Set(["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"]);
 const AI_IMAGE_GENERATORS = new Set(["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression", "ai-example-sentences"]);
 const SELF_IMAGE_GENERATORS = new Set(["word-of-the-day", "word-of-the-day-poster", "vocabulary-carousel", "tier-progression-carousel", "self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences"]);
@@ -26,14 +28,21 @@ export function estimateGenerationSeconds(output: Pick<GenerationEstimateOutput,
   return 12;
 }
 
-export function estimateRemainingGenerationSeconds({ outputs, activeOutputId, activeElapsedSeconds = 0 }: {
+function learnedGenerationSeconds(generator: string, learnedDurationsMs: LearnedGenerationDurations | undefined) {
+  const durationMs = learnedDurationsMs?.[generator];
+  if (!Number.isFinite(durationMs) || !durationMs || durationMs <= 0) return null;
+  return durationMs / 1_000;
+}
+
+export function estimateRemainingGenerationSeconds({ outputs, activeOutputId, activeElapsedSeconds = 0, learnedDurationsMs }: {
   outputs: readonly GenerationEstimateOutput[];
   activeOutputId: string | null;
   activeElapsedSeconds?: number;
+  learnedDurationsMs?: LearnedGenerationDurations;
 }) {
   return outputs.reduce((total, output) => {
     if (output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed") return total;
-    const estimate = estimateGenerationSeconds(output);
+    const estimate = learnedGenerationSeconds(output.generator, learnedDurationsMs) ?? estimateGenerationSeconds(output);
     return total + (output.id === activeOutputId ? Math.max(0, estimate - Math.max(0, activeElapsedSeconds)) : estimate);
   }, 0);
 }
