@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Eye, EyeOff, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
+import { ArrowLeft, Bell, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Eye, EyeOff, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, KeyRound, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
 import { createContext, Fragment, useCallback, useContext, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -16,6 +16,7 @@ import { AUTOMATION_SUPER_GROUP_ICON_OPTIONS, normalizeAutomationSuperGroupColor
 import { describeExpectedOutputSourceMix, estimateAutomationOutputDistribution } from "@/features/twitter-automation/automation-output-distribution";
 import { AUTOMATION_GENERATOR_OPTIONS, RANDOM_GENERATOR, RANDOM_INCLUDE_OPTIONS, defaultRandomIncludes, normalizeGeneratorMode, normalizeRandomIncludes, resolveRandomIncludes, type AutomationContentType, type RandomInclude, type RandomIncludes } from "@/features/twitter-automation/automation-randomization";
 import { cn } from "@/lib/utils";
+import { ensureBrowserPushSubscription, serializePushSubscription } from "@/features/push/push-client";
 import type { LanguageCode, Tier } from "@/types/domain";
 
 type ContentType = "random" | "text" | "image" | "video";
@@ -403,6 +404,9 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const [scheduleError, setScheduleError] = useState("");
   const [isGeneratedPostsOpen, setIsGeneratedPostsOpen] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [rendererToken, setRendererToken] = useState<string | null>(null);
+  const [isCreatingRendererToken, setIsCreatingRendererToken] = useState(false);
+  const [isSubscribingAutomationPush, setIsSubscribingAutomationPush] = useState(false);
   const saveRequestId = useRef(0);
   const pendingAutoSaveTimeout = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
@@ -670,6 +674,47 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     }
   }
 
+  async function createRendererToken() {
+    if (isCreatingRendererToken) return;
+    setIsCreatingRendererToken(true);
+    try {
+      const response = await fetch(`/api/twitter-automation/renderers${scopeSearchParams}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ label: `Windows renderer ${new Date().toLocaleDateString("tr-TR")}`, scope }),
+      });
+      const payload = await response.json().catch(() => null) as { token?: string; errorCode?: string } | null;
+      if (!response.ok || !payload?.token) throw new Error(payload?.errorCode ?? "automation_renderer_register_failed");
+      setRendererToken(payload.token);
+    } catch {
+      setScheduleError("Renderer tokeni oluşturulamadı.");
+    } finally {
+      setIsCreatingRendererToken(false);
+    }
+  }
+
+  async function subscribeAutomationPush() {
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+    if (!publicKey) { setScheduleError("PWA bildirim anahtarı yapılandırılmamış."); return; }
+    if (isSubscribingAutomationPush) return;
+    setIsSubscribingAutomationPush(true);
+    try {
+      if (Notification.permission === "default") await Notification.requestPermission();
+      if (Notification.permission !== "granted") throw new Error("push_permission_denied");
+      const subscription = await ensureBrowserPushSubscription(publicKey);
+      const response = await fetch(`/api/twitter-automation/automation-notifications${scopeSearchParams}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(serializePushSubscription(subscription)),
+      });
+      if (!response.ok) throw new Error("automation_push_subscription_failed");
+    } catch {
+      setScheduleError("Telefon bildirimi bağlanamadı.");
+    } finally {
+      setIsSubscribingAutomationPush(false);
+    }
+  }
+
   const hasSocialAccounts = socialAccounts.length > 0;
 
   function renderGroupRows(group: AutomationGroup) {
@@ -680,8 +725,9 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 py-1.5 sm:px-5">
       <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to content studio" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "saving" || syncState === "loading" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{syncState === "loading" ? "Loading automation" : syncState === "saving" ? "Saving to Supabase" : syncState === "error" ? "Supabase unavailable" : "Saved to Supabase"}</div>
-      <div className="flex shrink-0 gap-1.5"><Button aria-label="Refresh automation table" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={syncState === "loading" || syncState === "saving"} onClick={() => void loadAutomation()} title="Refresh automation table" type="button"><RefreshCw className={cn("size-3.5", syncState === "loading" && "animate-spin")} /></Button><Button aria-label="Save entire automation table" className="h-7 rounded border-[#299d6d] bg-[#299d6d] px-2.5 text-xs text-white hover:bg-[#36ad79] disabled:cursor-not-allowed disabled:opacity-45" disabled={!isHydrated || syncState === "loading" || syncState === "saving"} onClick={saveAllAutomation} title="Save entire automation table" type="button"><Save className="size-3.5" />Save</Button><Button className="h-7 rounded border-white/10 bg-white/[0.045] px-2.5 text-xs text-[#d7e2da] hover:bg-white/[0.09]" onClick={onOpenAlternateAutomation} type="button">{isTestAutomation ? "Main table" : "Test table"}</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" onClick={onOpenSocialMedias} type="button">Social medias</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73] disabled:cursor-not-allowed disabled:opacity-45" disabled={!activeRunId} onClick={() => { unlockMusicVideoAudio(); setIsGeneratedPostsOpen(true); }} type="button"><Sparkles className="size-3.5" />Generated posts</Button><Button aria-label="New group" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => [...current, createGroup(`New campaign ${current.length + 1}`, TONE_ORDER[current.length % TONE_ORDER.length], socialAccounts)])} title="New group" type="button"><FolderPlus className="size-3.5" /></Button><Button aria-label="New upper group" className="size-7 rounded border-[#8cc8ef]/40 bg-[#16232c] p-0 text-[#c6e5f8] hover:bg-[#1c3340]" disabled={!isHydrated} onClick={addSuperGroup} title="New upper group" type="button"><FolderTree className="size-3.5" /></Button><Button aria-label="Insert row" className="size-7 rounded border-[#299d6d] bg-[#299d6d] p-0 text-white hover:bg-[#36ad79]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => current.map((group, index) => index === 0 ? { ...group, rows: [...group.rows, createRow(socialAccounts)] } : group))} title="Insert row" type="button"><Plus className="size-3.5" /></Button></div>
+      <div className="flex shrink-0 gap-1.5"><Button aria-label="Refresh automation table" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={syncState === "loading" || syncState === "saving"} onClick={() => void loadAutomation()} title="Refresh automation table" type="button"><RefreshCw className={cn("size-3.5", syncState === "loading" && "animate-spin")} /></Button><Button aria-label="Save entire automation table" className="h-7 rounded border-[#299d6d] bg-[#299d6d] px-2.5 text-xs text-white hover:bg-[#36ad79] disabled:cursor-not-allowed disabled:opacity-45" disabled={!isHydrated || syncState === "loading" || syncState === "saving"} onClick={saveAllAutomation} title="Save entire automation table" type="button"><Save className="size-3.5" />Save</Button><Button className="h-7 rounded border-white/10 bg-white/[0.045] px-2.5 text-xs text-[#d7e2da] hover:bg-white/[0.09]" onClick={onOpenAlternateAutomation} type="button">{isTestAutomation ? "Main table" : "Test table"}</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" onClick={onOpenSocialMedias} type="button">Social medias</Button>{!isTestAutomation ? <><Button className="h-7 border border-[#8cc8ef]/35 bg-[#8cc8ef]/10 px-2.5 text-xs text-[#d5efff] hover:bg-[#8cc8ef]/20" disabled={isSubscribingAutomationPush} onClick={() => void subscribeAutomationPush()} title="Batch bittiğinde telefona PWA bildirimi gönder" type="button"><Bell className="size-3.5" />{isSubscribingAutomationPush ? "Bağlanıyor" : "Telefon bildirimi"}</Button><Button className="h-7 border border-[#c7f05d]/35 bg-[#c7f05d]/10 px-2.5 text-xs text-[#dffb99] hover:bg-[#c7f05d]/20" disabled={isCreatingRendererToken} onClick={() => void createRendererToken()} title="Windows renderer için tek kullanımlık eşleştirme tokeni" type="button"><KeyRound className="size-3.5" />{isCreatingRendererToken ? "Hazırlanıyor" : "Renderer token"}</Button></> : null}<Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73] disabled:cursor-not-allowed disabled:opacity-45" disabled={!activeRunId} onClick={() => { unlockMusicVideoAudio(); setIsGeneratedPostsOpen(true); }} type="button"><Sparkles className="size-3.5" />Generated posts</Button><Button aria-label="New group" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => [...current, createGroup(`New campaign ${current.length + 1}`, TONE_ORDER[current.length % TONE_ORDER.length], socialAccounts)])} title="New group" type="button"><FolderPlus className="size-3.5" /></Button><Button aria-label="New upper group" className="size-7 rounded border-[#8cc8ef]/40 bg-[#16232c] p-0 text-[#c6e5f8] hover:bg-[#1c3340]" disabled={!isHydrated} onClick={addSuperGroup} title="New upper group" type="button"><FolderTree className="size-3.5" /></Button><Button aria-label="Insert row" className="size-7 rounded border-[#299d6d] bg-[#299d6d] p-0 text-white hover:bg-[#36ad79]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => current.map((group, index) => index === 0 ? { ...group, rows: [...group.rows, createRow(socialAccounts)] } : group))} title="Insert row" type="button"><Plus className="size-3.5" /></Button></div>
     </header>
+    {rendererToken ? <div className="flex shrink-0 items-center gap-2 border-b border-[#c7f05d]/20 bg-[#182014] px-3 py-2 text-xs text-[#dffb99] sm:px-5"><KeyRound className="size-3.5 shrink-0" /><span className="shrink-0 font-medium">Tek seferlik renderer tokeni:</span><code className="min-w-0 flex-1 truncate rounded bg-black/25 px-2 py-1 font-mono text-[11px]">{rendererToken}</code><Button className="h-7 shrink-0 border border-[#c7f05d]/35 bg-transparent px-2 text-xs text-[#dffb99] hover:bg-[#c7f05d]/10" onClick={() => void navigator.clipboard.writeText(rendererToken)} type="button"><Copy className="size-3.5" />Kopyala</Button><Button aria-label="Renderer tokenini gizle" className="size-7 shrink-0 border border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={() => setRendererToken(null)} type="button"><EyeOff className="size-3.5" /></Button></div> : null}
     <div className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#141716] px-3 sm:px-5"><label className="flex h-8 w-64 shrink-0 items-center gap-2 border border-white/10 bg-[#101212] px-2.5 text-[#8d9b92] focus-within:border-[#55c39a] sm:w-80"><Search className="size-3.5 shrink-0" /><input className="min-w-0 flex-1 bg-transparent text-xs text-[#f7f3ed] outline-none placeholder:text-[#718077]" onChange={(event) => setQuery(event.target.value)} placeholder="Filter automations..." value={query} /></label><span className="inline-flex h-7 shrink-0 items-center gap-1.5 px-1 text-xs text-[#a9b8ae]" title={`Expected source mix: ${dailyOutputMix}`}><Filter className="size-3.5" />{rowCount} active rows · {dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day · {groups.length} groups</span><span className="ml-auto shrink-0 text-xs text-[#829287]">Generate:</span>{([{ days: 1 as const, label: "1 day" }, { days: 3 as const, label: "3 days" }, { days: 7 as const, label: "1 week" }]).map((option) => <Button className="h-7 shrink-0 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" disabled={!hasSocialAccounts || !isHydrated || !dailyOutputCount || schedulingHorizon !== null} key={option.days} onClick={() => void scheduleAutomation(option.days)} type="button"><CalendarPlus className="size-3.5" />{schedulingHorizon === option.days ? "Preparing..." : option.label}</Button>)}{scheduleError ? <span className="shrink-0 text-xs text-[#ff9c8b]">{scheduleError}</span> : null}</div>
     <div className="min-h-0 flex-1 overflow-auto overscroll-contain"><table className="min-w-[1620px] w-full border-collapse text-left"><thead className="sticky top-0 z-20"><tr><th className="w-11 border-b border-r border-white/10 bg-[#171a19] px-3 py-2"><input aria-label="Select all rows" className="accent-[#55c39a]" type="checkbox" /></th><ColumnHeader label="content_type" type="enum" /><ColumnHeader label="generator_mode" type="text" /><ColumnHeader label="quantity" type="integer" /><ColumnHeader label="parameters" type="json" /><ColumnHeader label="social_networks" type="array" /><ColumnHeader label="social_accounts" type="array" /><ColumnHeader label="schedule_window" type="time range" /><ColumnHeader label="state" type="text" /><th className="w-24 border-b border-white/10 bg-[#171a19] px-3 py-2" /></tr></thead><tbody>{superGroupSections.map((section) => <Fragment key={section.superGroup.id}><SuperGroupHeader memberCount={section.groups.length} superGroup={section.superGroup} />{section.groups.map(renderGroupRows)}</Fragment>)}{ungroupedVisibleGroups.map(renderGroupRows)}</tbody></table>{!isHydrated ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">Loading social media accounts...</div> : !hasSocialAccounts ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#ffb9c1]">No non-email social media accounts are available.</div> : !visibleGroups.length ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">No automation rows match this filter.</div> : null}</div>
     <footer className="flex min-h-10 shrink-0 items-center justify-between border-t border-white/10 bg-[#171a19] px-3 text-xs text-[#829287] sm:px-5"><span>{isTestAutomation ? "TEST table: content can be generated and reviewed, but it can never be scheduled to production." : "Buttons prepare the selected output quantity from each row for every future day. Each output gets its own random mode selection and time within the saved range."}</span><span title={`Expected source mix: ${dailyOutputMix}`}>{dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day</span></footer>

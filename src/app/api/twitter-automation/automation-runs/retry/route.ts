@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { refreshAutomationRunStatus } from "@/features/twitter-automation/automation-run-service";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
-import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { hasSocialStudioAutomationSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -56,7 +56,7 @@ function statusForRetry(output: RetryableOutput) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!hasSocialStudioAutomationSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_output" }, { status: 400 });
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const { data: output, error: outputError } = await supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,status,content_type,caption,media_path,media_paths,media_type,generator,error_code,provider_task_id,updated_at")
+      .select("id,run_id,status,content_type,caption,media_path,media_paths,media_type,generator,error_code,provider_task_id,updated_at,attempt_count,next_attempt_at")
       .eq("id", parsed.data.outputId)
       .maybeSingle<RetryableOutput>();
     if (outputError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const status = statusForRetry(output);
     const retryPatch = status === "awaiting_browser_video" || status === "generating_video" || status === "ready_to_schedule"
-      ? { status, error_code: null, updated_at: new Date().toISOString() }
+      ? { status, error_code: null, retry_exhausted_at: null, next_attempt_at: new Date().toISOString(), updated_at: new Date().toISOString() }
       : {
         status,
         caption: null,
@@ -94,6 +94,8 @@ export async function POST(request: NextRequest) {
         media_type: null,
         provider_task_id: null,
         error_code: null,
+        retry_exhausted_at: null,
+        next_attempt_at: new Date().toISOString(),
         generated_at: null,
         updated_at: new Date().toISOString(),
       };

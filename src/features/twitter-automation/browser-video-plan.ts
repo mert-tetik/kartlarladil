@@ -12,6 +12,7 @@ export type BrowserVideoPlanOutput = {
   native_language: LanguageCode;
   tier: Tier | "random";
   mediaUrl: string | null;
+  render_plan?: unknown;
 };
 
 export type BrowserVideoPlan =
@@ -39,6 +40,13 @@ export type BrowserVideoPlan =
     caption: string;
     scenes: OriginalMascotLearningVideoPayload["scenes"];
   };
+
+function isBrowserVideoPlan(value: unknown): value is BrowserVideoPlan {
+  if (!value || typeof value !== "object") return false;
+  const plan = value as { kind?: unknown; caption?: unknown; musicUrl?: unknown; scenes?: unknown };
+  if (plan.kind === "music") return typeof plan.musicUrl === "string";
+  return (plan.kind === "confused" || plan.kind === "dialogue" || plan.kind === "original") && typeof plan.caption === "string" && Array.isArray(plan.scenes);
+}
 
 function isDialogueVideo(generator: string) {
   return generator === "marketing-dialogue-video" || generator === "learning-dialogue-video";
@@ -133,6 +141,10 @@ export async function prepareBrowserVideoPlan(output: BrowserVideoPlanOutput, si
 export async function getOrCreateBrowserVideoPlan(cache: Map<string, BrowserVideoPlan>, output: BrowserVideoPlanOutput, signal: AbortSignal) {
   const existing = cache.get(output.id);
   if (existing) return existing;
+  if (isBrowserVideoPlan(output.render_plan)) {
+    cache.set(output.id, output.render_plan);
+    return output.render_plan;
+  }
   const plan = await prepareBrowserVideoPlan(output, signal);
   cache.set(output.id, plan);
   return plan;

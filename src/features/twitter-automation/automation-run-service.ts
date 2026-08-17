@@ -4,6 +4,13 @@ import { SOCIAL_STUDIO_SESSION_COOKIE, createSocialStudioSession } from "@/featu
 import { publishWithUploadPost, type DataUrlAsset, type RemoteVideoAsset } from "@/features/twitter-automation/upload-post-publishing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier } from "@/types/domain";
+import {
+  classifyAutomationError,
+  isRetryableAutomationError,
+  MAX_AUTOMATION_RECOVERY_ATTEMPTS,
+  nextAutomationAttemptAt,
+} from "@/features/twitter-automation/automation-resilience";
+import { notifyAutomationRunTerminal } from "@/features/twitter-automation/automation-push-service";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -72,6 +79,14 @@ export type AutomationOutputRecord = {
   media_type: "image" | "video" | null;
   provider_task_id: string | null;
   upload_post_jobs: unknown;
+  error_code?: string | null;
+  attempt_count?: number;
+  next_attempt_at?: string;
+  quality_status?: "pending" | "passed" | "failed";
+  quality_error?: string | null;
+  lease_renderer_id?: string | null;
+  lease_expires_at?: string | null;
+  render_plan?: unknown;
 };
 
 type UploadJob = { socialMediaId: number; jobId: string | null; requestId: string | null; postUrl: string | null };
@@ -226,9 +241,7 @@ async function createImage(output: AutomationOutputRecord, generator: ImageGener
 
 async function prepareBrowserImage(output: AutomationOutputRecord, tier: Tier) {
   await updateOutput(output.id, {
-    // The deployed database already recognizes this browser wait state. Using
-    // it keeps Self renders working while schema migrations catch up.
-    status: "awaiting_browser_video",
+    status: "awaiting_browser_image",
     tier,
     caption: null,
     media_path: null,
@@ -238,6 +251,92 @@ async function prepareBrowserImage(output: AutomationOutputRecord, tier: Tier) {
     error_code: null,
   });
   return "browser_image_required";
+}
+
+function hasNonEmptyCaption(caption: string | null) {
+  return Boolean(caption?.trim() && caption.trim().length <= 400);
+}
+
+async function validateStoredMedia(path: string, type: "image" | "video") {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).download(path);
+  if (error || !data) throw new Error("automation_quality_storage_unavailable");
+  const size = data.size;
+  if (!size) throw new Error("automation_quality_media_empty");
+  if (type === "image") {
+    if (!data.type.startsWith("image/") || size > MAX_STAGED_IMAGE_BYTES) throw new Error("automation_quality_image_invalid");
+  } else if (!data.type.startsWith("video/") || size > MAX_STAGED_VIDEO_BYTES) {
+    throw new Error("automation_quality_video_invalid");
+  }
+}
+
+export async function validateAutomationOutputQuality(output: AutomationOutputRecord) {
+  try {
+    if (!hasNonEmptyCaption(output.caption)) throw new Error("automation_quality_caption_invalid");
+    if (output.content_type !== "text") {
+      if (!output.media_type) throw new Error("automation_quality_media_missing");
+      const paths = output.media_type === "image" ? (asMediaPaths(output.media_paths).length ? asMediaPaths(output.media_paths) : output.media_path ? [output.media_path] : []) : output.media_path ? [output.media_path] : [];
+      if (!paths.length) throw new Error("automation_quality_media_missing");
+      await Promise.all(paths.map((path) => validateStoredMedia(path, output.media_type!)));
+    }
+    await updateOutput(output.id, { quality_status: "passed", quality_error: null, quality_checked_at: new Date().toISOString() });
+    return { passed: true as const };
+  } catch (error) {
+    const errorCode = error instanceof Error ? error.message : "automation_quality_failed";
+    await updateOutput(output.id, { quality_status: "failed", quality_error: errorCode, quality_checked_at: new Date().toISOString() });
+    return { passed: false as const, errorCode };
+  }
+}
+
+export async function queueAutomationOutputRecovery(output: AutomationOutputRecord, code: string, fallbackStatus?: OutputStatus) {
+  const attemptCount = (output.attempt_count ?? 0) + 1;
+  const retryable = isRetryableAutomationError(code);
+  const exhausted = !retryable || attemptCount >= MAX_AUTOMATION_RECOVERY_ATTEMPTS;
+  const errorClass = classifyAutomationError(code);
+  const now = new Date().toISOString();
+  if (exhausted) {
+    await updateOutput(output.id, {
+      status: "failed",
+      error_code: code,
+      last_error_class: errorClass,
+      attempt_count: attemptCount,
+      retry_exhausted_at: now,
+      next_attempt_at: now,
+      lease_renderer_id: null,
+      lease_expires_at: null,
+    });
+    return { queued: false as const, exhausted: true as const, attemptCount };
+  }
+
+  const status = fallbackStatus ?? (output.status === "awaiting_browser_image" || output.status === "awaiting_browser_video" ? output.status : output.status === "generating_video" && output.provider_task_id ? "generating_video" : "queued");
+  await updateOutput(output.id, {
+    status,
+    error_code: code,
+    last_error_class: errorClass,
+    attempt_count: attemptCount,
+    next_attempt_at: nextAutomationAttemptAt(attemptCount),
+    lease_renderer_id: null,
+    lease_expires_at: null,
+  });
+  return { queued: true as const, exhausted: false as const, attemptCount };
+}
+
+async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: Record<string, unknown> = {}) {
+  const readyOutput = { ...output, ...patch } as AutomationOutputRecord;
+  const quality = await validateAutomationOutputQuality(readyOutput);
+  if (!quality.passed) {
+    await queueAutomationOutputRecovery(readyOutput, quality.errorCode!);
+    return false;
+  }
+  await updateOutput(output.id, {
+    ...patch,
+    status: "ready_to_schedule",
+    error_code: null,
+    next_attempt_at: new Date().toISOString(),
+    lease_renderer_id: null,
+    lease_expires_at: null,
+  });
+  return true;
 }
 
 async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typeof MUSIC_VIDEO_GENERATORS)[number], tier: Tier) {
@@ -304,7 +403,7 @@ async function resolveVideo(output: AutomationOutputRecord) {
   const payload = await readJson(response);
   if (!response.ok) throw new Error(errorCode(payload, "video_status_failed"));
   if (payload?.status === "failed") throw new Error("video_generation_failed");
-  if (payload?.status !== "finished" || typeof payload.videoUrl !== "string" || !payload.videoUrl.startsWith("https://")) return "video_pending";
+  if (payload?.status !== "finished" || typeof payload.videoUrl !== "string" || !payload.videoUrl.startsWith("https://")) return { state: "video_pending" as const };
   const video = await storeGeneratedVideo(payload.videoUrl, output.id);
   if (output.media_path?.startsWith(AUTOMATION_MEDIA_PREFIX)) {
     const supabase = createSupabaseAdminClient();
@@ -312,7 +411,7 @@ async function resolveVideo(output: AutomationOutputRecord) {
     if (error) throw new Error("automation_media_cleanup_failed");
   }
   await updateOutput(output.id, { media_path: video.path, media_paths: [], media_type: "video", error_code: null });
-  return "video_ready";
+  return { state: "video_ready" as const, path: video.path };
 }
 
 async function scheduleOutput(output: AutomationOutputRecord) {
@@ -368,12 +467,25 @@ function asMediaPaths(value: unknown) {
 
 export async function scheduleReadyAutomationRun(runId: string) {
   const supabase = createSupabaseAdminClient();
+  const { data: allOutputs, error: readinessError } = await supabase
+    .from("social_content_automation_outputs")
+    .select("id,status,quality_status")
+    .eq("run_id", runId);
+  if (readinessError) throw new Error("automation_schedule_readiness_failed");
+  const blockedOutputs = (allOutputs ?? []).filter((output) => output.status !== "ready_to_schedule" && output.status !== "scheduled");
+  const failedQuality = (allOutputs ?? []).filter((output) => output.status === "ready_to_schedule" && output.quality_status !== "passed");
+  if (blockedOutputs.length || failedQuality.length) {
+    return { scheduled: 0, failed: 0, blocked: true, pending: blockedOutputs.length + failedQuality.length };
+  }
+
+  await supabase.from("social_content_automation_runs").update({ auto_schedule_started_at: new Date().toISOString(), auto_schedule_error: null }).eq("id", runId);
   const { data: lockedOutputs, error: lockError } = await supabase
     .from("social_content_automation_outputs")
     .update({ status: "processing", updated_at: new Date().toISOString() })
     .eq("run_id", runId)
     .eq("status", "ready_to_schedule")
-    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs")
+    .eq("quality_status", "passed")
+    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at")
     .returns<AutomationOutputRecord[]>();
   if (lockError) throw new Error("automation_schedule_lock_failed");
 
@@ -403,30 +515,35 @@ export async function scheduleReadyAutomationRun(runId: string) {
   };
   await Promise.all(Array.from({ length: Math.min(SCHEDULE_OUTPUT_CONCURRENCY, outputsToSchedule.length) }, () => worker()));
 
-  await refreshAutomationRunStatus(runId);
-  return { scheduled, failed };
+  if (failed) {
+    await supabase.from("social_content_automation_runs").update({ auto_schedule_error: "automation_schedule_partial_failure" }).eq("id", runId);
+  } else {
+    await supabase.from("social_content_automation_runs").update({ auto_schedule_completed_at: new Date().toISOString(), auto_schedule_error: null }).eq("id", runId);
+  }
+  await refreshAutomationRunStatus(runId, { autoSchedule: false });
+  return { scheduled, failed, blocked: false, pending: 0 };
 }
 
 export async function processAutomationOutput(output: AutomationOutputRecord) {
   try {
     if (output.status === "generating_video") {
       const videoState = await resolveVideo(output);
-      if (videoState === "video_pending") return { outcome: "video_pending" as const };
-      await updateOutput(output.id, { status: "ready_to_schedule", error_code: null });
-      return { outcome: "content_ready" as const };
+      if (videoState.state === "video_pending") return { outcome: "video_pending" as const };
+      const ready = await makeAutomationOutputReady({ ...output, media_path: videoState.path, media_paths: [], media_type: "video" }, { media_path: videoState.path, media_paths: [], media_type: "video" });
+      return ready ? { outcome: "content_ready" as const } : { outcome: "recovery_queued" as const };
     }
 
     const generator = resolveGenerator(output);
     const tier = resolveTier(output.tier);
     if ((TEXT_GENERATORS as readonly string[]).includes(generator)) {
       const caption = await createText(output, generator as TextGenerator);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption, generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: "content_ready" as const };
+      const ready = await makeAutomationOutputReady({ ...output, caption }, { caption, generated_at: new Date().toISOString() });
+      return ready ? { outcome: "content_ready" as const } : { outcome: "recovery_queued" as const };
     }
     if ((IMAGE_GENERATORS as readonly string[]).includes(generator)) {
       const generated = await createImage(output, generator as ImageGenerator, tier);
-      await updateOutput(output.id, { status: "ready_to_schedule", caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString(), error_code: null });
-      return { outcome: "content_ready" as const };
+      const ready = await makeAutomationOutputReady({ ...output, caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image" }, { caption: generated.caption, media_path: generated.mediaPath, media_paths: [], media_type: "image", generated_at: new Date().toISOString() });
+      return ready ? { outcome: "content_ready" as const } : { outcome: "recovery_queued" as const };
     }
     if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(generator) || (SELF_IMAGE_GENERATORS as readonly string[]).includes(generator) || (CAROUSEL_GENERATORS as readonly string[]).includes(generator)) {
       return { outcome: await prepareBrowserImage(output, tier) };
@@ -437,12 +554,12 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
     throw new Error("unsupported_automation_generator");
   } catch (error) {
     const code = error instanceof Error ? error.message : "automation_processing_failed";
-    await updateOutput(output.id, { status: "failed", error_code: code });
-    return { outcome: "failed" as const, errorCode: code };
+    const recovery = await queueAutomationOutputRecovery(output, code);
+    return recovery.queued ? { outcome: "recovery_queued" as const, errorCode: code } : { outcome: "failed" as const, errorCode: code };
   }
 }
 
-export async function refreshAutomationRunStatus(runId: string) {
+export async function refreshAutomationRunStatus(runId: string, options: { autoSchedule?: boolean } = {}) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("social_content_automation_outputs").select("status").eq("run_id", runId);
   if (error) throw new Error("automation_run_status_failed");
@@ -452,13 +569,28 @@ export async function refreshAutomationRunStatus(runId: string) {
     return;
   }
   if (statuses.some((status) => status === "ready_to_schedule")) {
+    const { data: run, error: runError } = await supabase
+      .from("social_content_automation_runs")
+      .select("owner_key,auto_schedule_on_success")
+      .eq("id", runId)
+      .maybeSingle<{ owner_key: string; auto_schedule_on_success: boolean }>();
+    if (runError) throw new Error("automation_run_status_failed");
     await supabase.from("social_content_automation_runs").update({ status: "ready_to_schedule", completed_at: null }).eq("id", runId);
+    const allReady = statuses.every((status) => status === "ready_to_schedule" || status === "scheduled");
+    if (options.autoSchedule !== false && allReady && run?.owner_key === "social-studio" && run.auto_schedule_on_success) {
+      await scheduleReadyAutomationRun(runId);
+    }
     return;
   }
+  const terminalStatus = statuses.some((status) => status === "failed") ? "completed_with_errors" : "completed";
+  const { data: existingRun } = await supabase.from("social_content_automation_runs").select("owner_key,status").eq("id", runId).maybeSingle<{ owner_key: string; status: string }>();
   await supabase.from("social_content_automation_runs").update({
-    status: statuses.some((status) => status === "failed") ? "completed_with_errors" : "completed",
+    status: terminalStatus,
     completed_at: new Date().toISOString(),
   }).eq("id", runId);
+  if (existingRun?.owner_key === "social-studio" && existingRun.status !== terminalStatus) {
+    await notifyAutomationRunTerminal(existingRun.owner_key, terminalStatus).catch(() => undefined);
+  }
 }
 
 export async function cleanupStagedAutomationMedia(now = new Date()) {

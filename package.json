@@ -23,7 +23,9 @@
     "pwa:icons": "node scripts/generate-pwa-icons.mjs",
     "pwa:init": "node scripts/init-twa.mjs",
     "pwa:build": "node scripts/build-twa.mjs",
-    "pwa:doctor": "bubblewrap doctor"
+    "pwa:doctor": "bubblewrap doctor",
+    "renderer:dev": "electron renderer-agent/main.cjs",
+    "renderer:pack": "electron-builder --config renderer-agent/electron-builder.json"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -58,6 +60,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "jsdom": "^29.1.1",

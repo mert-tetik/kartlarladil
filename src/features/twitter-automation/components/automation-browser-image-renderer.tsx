@@ -42,6 +42,7 @@ export type AutomationBrowserImageOutput = {
   language: LanguageCode;
   native_language: LanguageCode;
   tier: Tier;
+  render_plan?: unknown;
 };
 
 type BrowserVisualContent =
@@ -60,6 +61,7 @@ type BrowserVisualContent =
 type AutomationBrowserImageRendererProps = {
   output: AutomationBrowserImageOutput;
   onStart: () => void;
+  onPlan: (plan: BrowserVisualContent) => Promise<void>;
   onComplete: (result: { caption: string; imageDataUrls: string[] }) => void;
   onError: (error: unknown) => void;
 };
@@ -78,6 +80,14 @@ function sourceGenerator(generator: string) {
 
 function isMusicSource(generator: string) {
   return generator.startsWith("music-");
+}
+
+function isBrowserVisualContent(value: unknown): value is BrowserVisualContent {
+  if (!value || typeof value !== "object") return false;
+  const content = value as { kind?: unknown; caption?: unknown; cards?: unknown; card?: unknown };
+  if (typeof content.caption !== "string") return false;
+  if (content.kind === "word") return Boolean(content.card && typeof content.card === "object");
+  return (content.kind === "self" || content.kind === "carousel") && Array.isArray(content.cards);
 }
 
 function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode): ComponentProps<typeof VocabularyCardView> {
@@ -184,7 +194,7 @@ function MusicWordOfTheDaySource({ card, nativeLanguage, mode }: { card: Vocabul
   </div>;
 }
 
-export function AutomationBrowserImageRenderer({ output, onStart, onComplete, onError }: AutomationBrowserImageRendererProps) {
+export function AutomationBrowserImageRenderer({ output, onStart, onPlan, onComplete, onError }: AutomationBrowserImageRendererProps) {
   const [content, setContent] = useState<BrowserVisualContent | null>(null);
   const wordRef = useRef<HTMLDivElement | null>(null);
   const selfRef = useRef<HTMLDivElement | null>(null);
@@ -217,6 +227,7 @@ export function AutomationBrowserImageRenderer({ output, onStart, onComplete, on
     }
 
     async function createContent() {
+      if (isBrowserVisualContent(output.render_plan)) return output.render_plan;
       if (generator === "word-of-the-day" || generator === "word-of-the-day-poster") {
         const card = await fetchCard(output.tier, generator);
         return { kind: "word", card, mode: generator === "word-of-the-day" ? "card" : "poster", caption: createWordOfTheDayCaption(card, output.native_language) } as BrowserVisualContent;
@@ -282,14 +293,15 @@ export function AutomationBrowserImageRenderer({ output, onStart, onComplete, on
       throw new Error("unsupported_browser_image_generator");
     }
 
-    void createContent().then((nextContent) => {
+    void createContent().then(async (nextContent) => {
+      if (!isBrowserVisualContent(output.render_plan)) await onPlan(nextContent);
       if (!cancelled) setContent(nextContent);
     }).catch((error: unknown) => {
       if (!cancelled) onError(browserImageContentError(error));
     });
 
     return () => { cancelled = true; };
-  }, [generator, onError, output.id, output.language, output.native_language, output.tier]);
+  }, [generator, onError, onPlan, output.id, output.language, output.native_language, output.render_plan, output.tier]);
 
   useEffect(() => {
     if (!content || completedForOutputId.current === output.id) return;

@@ -39,6 +39,11 @@ type AutomationOutput = {
   media_type: "image" | "video" | null;
   error_code: string | null;
   updated_at?: string;
+  next_attempt_at?: string;
+  attempt_count?: number;
+  quality_status?: "pending" | "passed" | "failed";
+  quality_error?: string | null;
+  render_plan?: unknown;
 };
 
 type LoadState = "loading" | "ready" | "error";
@@ -100,7 +105,13 @@ function getOutputLabel(output: Pick<AutomationOutput, "generator">) {
 
 function isBrowserRenderedImage(output: AutomationOutput): output is AutomationOutput & AutomationBrowserImageOutput {
   const sourceGenerator = output.generator.startsWith("music-") ? output.generator.slice("music-".length) : output.generator;
-  return output.status === "awaiting_browser_video" && output.media_type === null && output.tier !== "random" && BROWSER_IMAGE_GENERATORS.has(sourceGenerator);
+  return (output.status === "awaiting_browser_image" || output.status === "awaiting_browser_video") && output.media_type === null && output.tier !== "random" && BROWSER_IMAGE_GENERATORS.has(sourceGenerator);
+}
+
+function isAttemptDue(output: Pick<AutomationOutput, "next_attempt_at">, now: number) {
+  if (!output.next_attempt_at) return true;
+  const timestamp = new Date(output.next_attempt_at).getTime();
+  return !Number.isFinite(timestamp) || timestamp <= now;
 }
 
 function isGenerationComplete(output: AutomationOutput) {
@@ -301,10 +312,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     }
   }, [runId, scopeSearchParams, startResumeCooldown]);
 
-  const browserImageOutputs = useMemo(() => outputs.filter(isBrowserRenderedImage), [outputs]);
-  const browserVideoOutputs = useMemo(() => outputs.filter((output) => output.status === "awaiting_browser_video" && !isBrowserRenderedImage(output)), [outputs]);
+  const browserImageOutputs = useMemo(() => outputs.filter((output) => isAttemptDue(output, now)).filter(isBrowserRenderedImage), [now, outputs]);
+  const browserVideoOutputs = useMemo(() => outputs.filter((output) => isAttemptDue(output, now) && output.status === "awaiting_browser_video" && !isBrowserRenderedImage(output)), [now, outputs]);
   const browserImageOutput = browserImageOutputs[0] ?? null;
-  const generationQueue = useMemo(() => prioritizeAutomationGenerations(outputs.filter((output) => output.status === "queued" || output.status === "generating_video")), [outputs]);
+  const generationQueue = useMemo(() => prioritizeAutomationGenerations(outputs.filter((output) => isAttemptDue(output, now) && (output.status === "queued" || output.status === "generating_video"))), [now, outputs]);
   const nextOutput = useMemo(() => {
     if (browserImageOutputs.length || browserVideoOutputs.length) return null;
     return generationQueue[0] ?? null;
@@ -379,6 +390,18 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     }
   }, [scope]);
 
+  const persistBrowserImagePlan = useCallback(async (output: AutomationOutput, browserRenderPlan: unknown) => {
+    const response = await fetch("/api/twitter-automation/automation-runs/process", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ outputId: output.id, browserRenderPlan, scope }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
+      throw new Error(payload?.errorCode ?? "automation_output_plan_save_failed");
+    }
+  }, [scope]);
+
   const completeBrowserImageRender = useCallback(async (output: AutomationOutput, result: { caption: string; imageDataUrls: string[] }) => {
     try {
       const stagedMediaPaths = await Promise.all(result.imageDataUrls.map(async (dataUrl, index) => {
@@ -428,6 +451,11 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     if (browserImageOutput) void completeBrowserImageRender(browserImageOutput, result);
   }, [browserImageOutput, completeBrowserImageRender]);
 
+  const handleBrowserImagePlan = useCallback(async (plan: unknown) => {
+    if (!browserImageOutput || browserImageOutput.render_plan) return;
+    await persistBrowserImagePlan(browserImageOutput, plan);
+  }, [browserImageOutput, persistBrowserImagePlan]);
+
   const handleBrowserImageError = useCallback((error: unknown) => {
     if (browserImageOutput) void failBrowserImageRender(browserImageOutput, error);
   }, [browserImageOutput, failBrowserImageRender]);
@@ -444,6 +472,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     try {
       const plan = await getOrCreateBrowserVideoPlan(browserVideoPlans.current, output, controller.signal);
       hasPreparedPlan = true;
+      if (!output.render_plan) await persistBrowserImagePlan(output, plan);
       await renderPreparedBrowserVideo(output, plan, controller.signal, scope);
     } catch (error) {
       const errorCode = controller.signal.aborted ? "browser_video_render_timeout" : browserVideoFailureCode(error);
@@ -478,11 +507,17 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         }, browserVideoRetryDelayMs(attempt));
         browserVideoRetryTimers.current.add(retryTimer);
       } else {
+        const recoveryTimer = window.setTimeout(() => {
+          browserVideoRetryTimers.current.delete(recoveryTimer);
+          autoStartedBrowserVideoIds.current.delete(output.id);
+          setBrowserVideoRetryToken((current) => current + 1);
+        }, 31_000);
+        browserVideoRetryTimers.current.add(recoveryTimer);
         browserVideoAttempts.current.delete(output.id);
         browserVideoPlans.current.delete(output.id);
       }
     }
-  }, [load, processingOutputId, scope]);
+  }, [load, persistBrowserImagePlan, processingOutputId, scope]);
 
   const scheduleAll = useCallback(async () => {
     if (isTestAutomation || !readyOutputs.length || isSchedulingAll || processingOutputId) return;
@@ -671,7 +706,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
   useEffect(() => {
     const hasPendingServerProcessing = unresolvedOutputs.some((output) => output.status === "processing");
-    if ((!nextOutput && !hasPendingServerProcessing) || processingOutputId || state !== "ready" || isInterruptedReview || isRecoveringFailedOutputs) return;
+    const hasDelayedRecovery = unresolvedOutputs.some((output) => !isAttemptDue(output, Date.now()));
+    if ((!nextOutput && !hasPendingServerProcessing && !hasDelayedRecovery) || processingOutputId || state !== "ready" || isInterruptedReview || isRecoveringFailedOutputs) return;
     const timer = window.setInterval(() => void load(), nextOutput?.status === "generating_video" ? 8_000 : 4_000);
     return () => window.clearInterval(timer);
   }, [isInterruptedReview, isRecoveringFailedOutputs, load, nextOutput, processingOutputId, state, unresolvedOutputs]);
@@ -700,6 +736,18 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     return () => window.clearInterval(timer);
   }, [isReviewReady]);
 
+  useEffect(() => {
+    if (!processingOutputId) return;
+    const heartbeat = () => void fetch("/api/twitter-automation/renderers/heartbeat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ outputId: processingOutputId }),
+    }).catch(() => undefined);
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 15_000);
+    return () => window.clearInterval(timer);
+  }, [processingOutputId]);
+
   const renderRecoveryStatus = isRecoveringFailedOutputs
     ? `${recoveryOutputs.length} tamamlanamayan işlem yeniden deneniyor (${renderRecoveryAttempt}/${MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS}).`
     : renderRecoverySeconds !== null
@@ -720,6 +768,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       key={browserImageOutput.id}
       onComplete={handleBrowserImageComplete}
       onError={handleBrowserImageError}
+      onPlan={handleBrowserImagePlan}
       onStart={handleBrowserImageStart}
       output={browserImageOutput}
     /> : null}

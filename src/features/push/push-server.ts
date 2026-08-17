@@ -266,6 +266,15 @@ async function sendWebPushNotification(subscription: WebPushSubscriptionJson, pa
   });
 }
 
+export async function sendAutomationPushNotification(subscription: WebPushSubscriptionJson, input: { title: string; body: string; targetUrl: string; tag: string }) {
+  const logId = crypto.randomUUID();
+  return sendWebPushNotification(subscription, {
+    ...input,
+    logId,
+    openToken: createPushOpenToken(logId),
+  });
+}
+
 function getVapidDetails() {
   const subject = process.env.VAPID_SUBJECT?.trim();
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();

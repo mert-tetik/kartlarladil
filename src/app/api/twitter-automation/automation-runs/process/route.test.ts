@@ -2,18 +2,22 @@ import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-const { fromMock, refreshAutomationRunStatusMock } = vi.hoisted(() => ({
+const { fromMock, queueAutomationOutputRecoveryMock, refreshAutomationRunStatusMock } = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  queueAutomationOutputRecoveryMock: vi.fn(),
   refreshAutomationRunStatusMock: vi.fn(),
 }));
 
 vi.mock("@/features/twitter-automation/social-studio-auth", () => ({
-  hasSocialStudioSession: () => true,
+  getAutomationRendererSession: () => null,
+  hasSocialStudioAutomationSession: () => true,
 }));
 
 vi.mock("@/features/twitter-automation/automation-run-service", () => ({
   processAutomationOutput: vi.fn(),
+  queueAutomationOutputRecovery: queueAutomationOutputRecoveryMock,
   refreshAutomationRunStatus: refreshAutomationRunStatusMock,
+  validateAutomationOutputQuality: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -47,7 +51,7 @@ describe("automation browser video processing", () => {
       upload_post_jobs: [],
     };
     const candidateQuery = {
-      in: () => ({ order: () => ({ limit: () => ({ eq: () => ({ maybeSingle: async () => ({ data: candidate, error: null }) }) }) }) }),
+      in: () => ({ lte: () => ({ order: () => ({ limit: () => ({ eq: () => ({ maybeSingle: async () => ({ data: candidate, error: null }) }) }) }) }) }),
     };
     const outputLookup = { select: () => candidateQuery };
     const runLookup = { select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: candidate.run_id }, error: null }) }) }) }) };
@@ -67,6 +71,7 @@ describe("automation browser video processing", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
     refreshAutomationRunStatusMock.mockResolvedValue(undefined);
+    queueAutomationOutputRecoveryMock.mockResolvedValue({ queued: true, exhausted: false, attemptCount: 1 });
 
     const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs/process", {
       method: "POST",
@@ -74,8 +79,8 @@ describe("automation browser video processing", () => {
     }));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ outputId, outcome: "failed" });
-    expect(capturedUpdates).toEqual([expect.objectContaining({ status: "failed", error_code: "audio_activation_required" })]);
+    expect(await response.json()).toMatchObject({ outputId, outcome: "recovery_queued", errorCode: "audio_activation_required" });
+    expect(queueAutomationOutputRecoveryMock).toHaveBeenCalledWith(expect.objectContaining({ id: outputId, status: "awaiting_browser_video" }), "audio_activation_required", "awaiting_browser_video");
     expect(refreshAutomationRunStatusMock).toHaveBeenCalledWith(candidate.run_id);
   });
 });

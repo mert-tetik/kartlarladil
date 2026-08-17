@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { hasSocialStudioAutomationSession, hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { RANDOM_GENERATOR, resolveGeneratorSelection } from "@/features/twitter-automation/automation-randomization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
@@ -59,9 +59,20 @@ const requestSchema = z.object({
 type AutomationRow = z.infer<typeof rowSchema>;
 type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
 type OutputLanguage = (typeof LANGUAGE_CODES)[number];
+type PlannedOutput = {
+  dayOffset: number;
+  groupName: string;
+  contentType: SelectableContentType;
+  generator: string;
+  language: OutputLanguage;
+  nativeLanguage: OutputLanguage;
+  tier: AutomationRow["tier"];
+  scheduledAt: string;
+  targetIds: number[];
+};
 
 function isAuthorized(request: NextRequest) {
-  return hasSocialStudioSession(request.headers.get("cookie"));
+  return hasSocialStudioAutomationSession(request.headers.get("cookie"));
 }
 
 function istanbulDateParts(date: Date) {
@@ -91,6 +102,19 @@ function createScheduledAt(dayOffset: number, start: string, end: string) {
 
 function targetAccountIds(row: AutomationRow) {
   return [...new Set(Object.values(row.accounts).flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
+}
+
+function createReservedScheduledAt(dayOffset: number, start: string, end: string, accountIds: number[], reservations: Map<number, number[]>) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const candidate = createScheduledAt(dayOffset, start, end);
+    const candidateTime = new Date(candidate).getTime();
+    if (!Number.isFinite(candidateTime)) continue;
+    const hasConflict = accountIds.some((accountId) => (reservations.get(accountId) ?? []).some((reservedAt) => Math.abs(reservedAt - candidateTime) < 60 * 60_000));
+    if (hasConflict) continue;
+    for (const accountId of accountIds) reservations.set(accountId, [...(reservations.get(accountId) ?? []), candidateTime]);
+    return candidate;
+  }
+  return null;
 }
 
 function pickLanguage(candidates: readonly OutputLanguage[] = LANGUAGE_CODES) {
@@ -138,17 +162,20 @@ export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
   const runId = request.nextUrl.searchParams.get("runId");
+  const activeOnly = request.nextUrl.searchParams.get("active") === "1";
   const includeMedia = request.nextUrl.searchParams.get("includeMedia") === "1";
   if (runId && !z.string().uuid().safeParse(runId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
   try {
     const supabase = createSupabaseAdminClient();
+    const outputLimit = runId ? 1_000 : 300;
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at)")
+      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
       .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
-      .limit(300);
+      .limit(outputLimit);
     if (runId) query = query.eq("run_id", runId);
+    if (activeOnly) query = query.in("run.status", ["queued", "processing", "ready_to_schedule"]);
     const { data, error } = await query;
     if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     const outputs = await Promise.all((data ?? []).map(async (output) => {
@@ -169,7 +196,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsedRequest = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsedRequest.success) return NextResponse.json({ errorCode: "invalid_automation_horizon" }, { status: 400 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(parsedRequest.data.scope));
@@ -186,31 +213,76 @@ export async function POST(request: NextRequest) {
     const sourceRows = parsedGroups.filter((group) => !group.hidden && (!group.superGroupId || !hiddenSuperGroupIds.has(group.superGroupId))).flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
     if (!sourceRows.length) return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
 
+    const selectedAccountIds = [...new Set(sourceRows.flatMap((item) => item.targetIds))];
+    const [{ data: accountRows, error: accountError }, { error: storageError }] = await Promise.all([
+      supabase.from("social_medias").select("id").in("id", selectedAccountIds),
+      supabase.storage.from(AUTOMATION_BUCKET).list("", { limit: 1 }),
+    ]);
+    if (accountError || (accountRows?.length ?? 0) !== selectedAccountIds.length) return NextResponse.json({ errorCode: "automation_preflight_accounts_failed" }, { status: 409 });
+    if (storageError) return NextResponse.json({ errorCode: "automation_preflight_storage_failed" }, { status: 503 });
+
+    const { data: existingSchedules, error: scheduleError } = await supabase
+      .from("social_content_automation_outputs")
+      .select("scheduled_at,target_account_ids,run:social_content_automation_runs!inner(owner_key)")
+      .eq("run.owner_key", ownerKey)
+      .gte("scheduled_at", new Date().toISOString())
+      .in("status", ["queued", "processing", "generating_video", "awaiting_browser_image", "awaiting_browser_video", "ready_to_schedule", "scheduled"])
+      .limit(2_000);
+    if (scheduleError) return NextResponse.json({ errorCode: "automation_preflight_schedule_failed" }, { status: 503 });
+    const reservations = new Map<number, number[]>();
+    for (const schedule of existingSchedules ?? []) {
+      const timestamp = new Date(schedule.scheduled_at).getTime();
+      if (!Number.isFinite(timestamp) || !Array.isArray(schedule.target_account_ids)) continue;
+      for (const accountId of schedule.target_account_ids) {
+        if (typeof accountId !== "number") continue;
+        reservations.set(accountId, [...(reservations.get(accountId) ?? []), timestamp]);
+      }
+    }
+
     const outputsPerDay = sourceRows.reduce((total, item) => total + item.row.quantity, 0);
+    const plannedRows: PlannedOutput[] = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.flatMap(({ group, row, targetIds }) => Array.from({ length: row.quantity }, () => {
+      const scheduledAt = createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, targetIds, reservations);
+      if (!scheduledAt) return null;
+      const { contentType, generator } = resolveContentMode(row);
+      const { language, nativeLanguage } = resolveOutputLanguages(row);
+      return { dayOffset, groupName: group.name, contentType, generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds };
+    }))).filter((row): row is PlannedOutput => row !== null);
+    if (plannedRows.length !== outputsPerDay * parsedRequest.data.horizonDays) {
+      return NextResponse.json({ errorCode: "automation_preflight_schedule_gap_failed" }, { status: 409 });
+    }
+    const needsBrowserRenderer = plannedRows.some((row) => row.generator.startsWith("music-") || ["word-of-the-day", "word-of-the-day-poster", "vocabulary-carousel", "tier-progression-carousel", "self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences", "confused-words-video", "marketing-dialogue-video", "learning-dialogue-video", "tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"].includes(row.generator));
+    const { data: renderer } = await supabase
+      .from("social_content_automation_renderers")
+      .select("last_heartbeat_at")
+      .eq("owner_key", ownerKey)
+      .eq("active", true)
+      .is("revoked_at", null)
+      .order("last_heartbeat_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ last_heartbeat_at: string | null }>();
+    const rendererOnline = Boolean(renderer?.last_heartbeat_at && Date.now() - new Date(renderer.last_heartbeat_at).getTime() <= 45_000);
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: outputsPerDay * parsedRequest.data.horizonDays })
+      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: 60, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
       .select("id,horizon_days,created_at")
       .single();
     if (runError || !run) return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
 
-    const rows = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.flatMap(({ group, row, targetIds }) => Array.from({ length: row.quantity }, () => {
-      const { contentType, generator } = resolveContentMode(row);
-      const { language, nativeLanguage } = resolveOutputLanguages(row);
+    const rows = plannedRows.map((row) => {
       return {
         run_id: run.id,
-        day_offset: dayOffset,
-        group_name: group.name,
-        content_type: contentType,
-        generator,
-        language,
-        native_language: nativeLanguage,
+        day_offset: row.dayOffset,
+        group_name: row.groupName,
+        content_type: row.contentType,
+        generator: row.generator,
+        language: row.language,
+        native_language: row.nativeLanguage,
         tier: row.tier,
-        scheduled_at: createScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd),
-        target_account_ids: targetIds,
+        scheduled_at: row.scheduledAt,
+        target_account_ids: row.targetIds,
         status: "queued",
       };
-    })));
+    });
     const { error: outputsError } = await supabase.from("social_content_automation_outputs").insert(rows);
     if (outputsError) {
       await supabase.from("social_content_automation_runs").delete().eq("id", run.id);

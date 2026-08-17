@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  AUTOMATION_RENDERER_SESSION_COOKIE,
+  createAutomationRendererSession,
   createSocialStudioSession,
+  getAutomationRendererSession,
+  hasSocialStudioAutomationSession,
   hasSocialStudioSession,
   isSocialStudioAdminCredentials,
   SOCIAL_STUDIO_SESSION_COOKIE,
@@ -19,5 +23,15 @@ describe("social studio admin session", () => {
     expect(hasSocialStudioSession(`${SOCIAL_STUDIO_SESSION_COOKIE}=${session}`)).toBe(true);
     expect(hasSocialStudioSession(`${SOCIAL_STUDIO_SESSION_COOKIE}=${session}x`)).toBe(false);
     expect(hasSocialStudioSession(null)).toBe(false);
+  });
+
+  it("accepts a renderer-only session without granting a normal studio session", () => {
+    const rendererId = "7d13ccca-d537-4a5a-9a08-20df9c391007";
+    const session = createAutomationRendererSession(rendererId, "social-studio");
+    const cookie = `${AUTOMATION_RENDERER_SESSION_COOKIE}=${session}`;
+
+    expect(hasSocialStudioSession(cookie)).toBe(false);
+    expect(hasSocialStudioAutomationSession(cookie)).toBe(true);
+    expect(getAutomationRendererSession(cookie)).toMatchObject({ rendererId, ownerKey: "social-studio" });
   });
 });

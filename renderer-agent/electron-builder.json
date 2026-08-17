@@ -1,0 +1,9 @@
+{
+  "appId": "com.foxiesdeck.renderer",
+  "productName": "FoxiesDeck Renderer",
+  "directories": { "output": "dist-renderer" },
+  "files": ["renderer-agent/**"],
+  "extraMetadata": { "main": "renderer-agent/main.cjs" },
+  "win": { "target": ["nsis"] },
+  "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+}

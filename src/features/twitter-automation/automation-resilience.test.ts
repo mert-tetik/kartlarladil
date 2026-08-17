@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { AUTOMATION_RETRY_DELAYS_MS, classifyAutomationError, isRetryableAutomationError, nextAutomationAttemptAt } from "@/features/twitter-automation/automation-resilience";
+
+describe("automation resilience", () => {
+  it("uses the five persistent recovery intervals in order", () => {
+    expect(AUTOMATION_RETRY_DELAYS_MS).toEqual([30_000, 120_000, 300_000, 900_000, 1_800_000]);
+    const start = Date.UTC(2026, 7, 17, 12, 0, 0);
+    expect(new Date(nextAutomationAttemptAt(1, start)).getTime() - start).toBe(30_000);
+    expect(new Date(nextAutomationAttemptAt(5, start)).getTime() - start).toBe(1_800_000);
+  });
+
+  it("retries transient provider, storage and browser failures but not invalid requests", () => {
+    expect(classifyAutomationError("poyo_responses_provider_error")).toBe("provider");
+    expect(classifyAutomationError("automation_media_store_failed")).toBe("storage");
+    expect(classifyAutomationError("browser_video_encode_failed")).toBe("browser");
+    expect(isRetryableAutomationError("invalid_automation_state")).toBe(false);
+    expect(isRetryableAutomationError("browser_image_snapshot_failed")).toBe(true);
+  });
+});
