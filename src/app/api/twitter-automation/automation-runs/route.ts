@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { hasSocialStudioAutomationSession, hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { RANDOM_GENERATOR, resolveGeneratorSelection } from "@/features/twitter-automation/automation-randomization";
+import { AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS } from "@/features/twitter-automation/automation-resilience";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 
@@ -109,7 +110,7 @@ function createReservedScheduledAt(dayOffset: number, start: string, end: string
     const candidate = createScheduledAt(dayOffset, start, end);
     const candidateTime = new Date(candidate).getTime();
     if (!Number.isFinite(candidateTime)) continue;
-    const hasConflict = accountIds.some((accountId) => (reservations.get(accountId) ?? []).some((reservedAt) => Math.abs(reservedAt - candidateTime) < 60 * 60_000));
+    const hasConflict = accountIds.some((accountId) => (reservations.get(accountId) ?? []).some((reservedAt) => Math.abs(reservedAt - candidateTime) < AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS));
     if (hasConflict) continue;
     for (const accountId of accountIds) reservations.set(accountId, [...(reservations.get(accountId) ?? []), candidateTime]);
     return candidate;
@@ -271,7 +272,7 @@ export async function POST(request: NextRequest) {
     const rendererOnline = Boolean(renderer?.last_heartbeat_at && Date.now() - new Date(renderer.last_heartbeat_at).getTime() <= 45_000);
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: 60, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
+      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
       .select("id,horizon_days,created_at")
       .single();
     if (runError || !run) return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });

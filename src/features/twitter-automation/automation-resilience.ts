@@ -2,7 +2,7 @@ export const AUTOMATION_RETRY_DELAYS_MS = [30_000, 2 * 60_000, 5 * 60_000, 15 * 
 export const MAX_AUTOMATION_RECOVERY_ATTEMPTS = AUTOMATION_RETRY_DELAYS_MS.length;
 export const AUTOMATION_RENDERER_HEARTBEAT_MS = 15_000;
 export const AUTOMATION_RENDERER_LEASE_MS = 10 * 60_000;
-export const AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS = 60 * 60_000;
+export const AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS = 60_000;
 
 export type AutomationErrorClass = "provider" | "storage" | "browser" | "network" | "quality" | "configuration" | "unknown";
 
