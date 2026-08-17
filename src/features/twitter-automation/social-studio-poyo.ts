@@ -6,12 +6,24 @@ const POYO_RESPONSES_BASE_URL = "https://api.poyo.ai/v1";
 
 export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
-export const SOCIAL_CONTENT_FALLBACK_MODEL = "gpt-5.5";
-const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 12_000;
-const POYO_FALLBACK_RESPONSE_TIMEOUT_MS = 60_000;
+const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 60_000;
+const OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS = 150_000;
+
+const OPENAI_MODEL_BY_POYO_MODEL: Record<string, string> = {
+  [SOCIAL_CONTENT_TEXT_MODEL]: "gpt-5.6-luna",
+  [SOCIAL_CONTENT_CREATIVE_MODEL]: "gpt-5.6-terra",
+};
+
+type SocialStudioResponsesProvider = "poyo" | "openai";
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
+    super(code);
+  }
+}
+
+export class OpenAIResponsesError extends Error {
+  constructor(public readonly code: "openai_not_configured") {
     super(code);
   }
 }
@@ -22,6 +34,16 @@ export class PoyoResponsesError extends Error {
 export class PoyoResponsesProviderError extends Error {
   constructor(
     public readonly providerStatus: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export class OpenAIResponsesProviderError extends Error {
+  constructor(
+    public readonly providerStatus: number,
+    public readonly model: string,
     message: string,
   ) {
     super(message);
@@ -46,19 +68,48 @@ export function assertPoyoResponsesOutput(source: string | unknown) {
   }
 }
 
-function isRetryablePoyoResponsesFailure(error: unknown) {
-  if (error instanceof PoyoResponsesProviderError) return error.providerStatus >= 500;
-  const status = error && typeof error === "object" && "status" in error ? (error as { status?: unknown }).status : undefined;
-  return typeof status === "number" && status >= 500;
+function getErrorStatus(error: unknown) {
+  return error && typeof error === "object" && "status" in error && typeof (error as { status?: unknown }).status === "number"
+    ? (error as { status: number }).status
+    : undefined;
 }
 
-async function withResponseTimeout<T>(promise: Promise<T>, timeoutMs: number, model: string) {
+function isRetryablePoyoResponsesFailure(error: unknown) {
+  const status = error instanceof PoyoResponsesProviderError ? error.providerStatus : getErrorStatus(error);
+  if (typeof status === "number") return status === 408 || status === 429 || status >= 500;
+
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : "";
+  return /^(?:APIConnectionError|APIConnectionTimeoutError|AbortError|TimeoutError|FetchError)$/u.test(name)
+    || error instanceof TypeError && /(?:fetch|network|socket|connect)/iu.test(message);
+}
+
+function providerError(
+  provider: SocialStudioResponsesProvider,
+  providerStatus: number,
+  model: string,
+  message: string,
+) {
+  return provider === "poyo"
+    ? new PoyoResponsesProviderError(providerStatus, message)
+    : new OpenAIResponsesProviderError(providerStatus, model, message);
+}
+
+async function withResponseTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  provider: SocialStudioResponsesProvider,
+  model: string,
+) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new PoyoResponsesProviderError(504, `${model} did not respond within ${Math.ceil(timeoutMs / 1_000)} seconds.`)), timeoutMs);
+        timeoutId = setTimeout(
+          () => reject(providerError(provider, 504, model, `${model} did not respond within ${Math.ceil(timeoutMs / 1_000)} seconds.`)),
+          timeoutMs,
+        );
       }),
     ]);
   } finally {
@@ -66,27 +117,72 @@ async function withResponseTimeout<T>(promise: Promise<T>, timeoutMs: number, mo
   }
 }
 
-/** Runs a PoYo Responses request on its intended model. Only a provider-side
- * 5xx failure is retried once on GPT-5.5; model-output validation failures do
- * not silently change models. */
+function normalizeProviderFailure(
+  provider: SocialStudioResponsesProvider,
+  model: string,
+  error: unknown,
+) {
+  if (
+    error instanceof PoyoResponsesError
+    || error instanceof OpenAIResponsesError
+    || error instanceof PoyoResponsesProviderError
+    || error instanceof OpenAIResponsesProviderError
+  ) {
+    return error;
+  }
+
+  const providerStatus = getErrorStatus(error) ?? 502;
+  const message = error instanceof Error && error.message !== "Error"
+    ? error.message
+    : provider === "poyo"
+      ? "PoYo Responses returned an unspecified provider error."
+      : "OpenAI Responses returned an unspecified provider error.";
+  return providerError(provider, providerStatus, model, message);
+}
+
+function resolveOpenAIModel(poyoModel: string) {
+  const model = OPENAI_MODEL_BY_POYO_MODEL[poyoModel];
+  if (!model) throw new Error(`No direct OpenAI model mapping exists for ${poyoModel}.`);
+  return model;
+}
+
+/** Runs a PoYo Responses request first. Temporary PoYo failures make one
+ * independent direct OpenAI Responses attempt on the matching Luna or Terra
+ * model; malformed model output never switches providers. */
 export async function generateSocialStudioTextWithFallback<T>(
   primaryModel: string,
-  generate: (model: string) => Promise<T>,
+  generate: (client: OpenAI, model: string) => Promise<T>,
   extractOutput: (response: T) => string,
 ) {
-  const run = async (model: string) => {
-    const response = await generate(model);
-    assertPoyoResponsesOutput(response);
-    const output = extractOutput(response);
-    assertPoyoResponsesOutput(output);
-    return { output, model };
+  const run = async (
+    provider: SocialStudioResponsesProvider,
+    client: OpenAI,
+    model: string,
+  ) => {
+    try {
+      const response = await generate(client, model);
+      if (provider === "poyo") assertPoyoResponsesOutput(response);
+      const output = extractOutput(response);
+      if (provider === "poyo") assertPoyoResponsesOutput(output);
+      return { output, model, provider };
+    } catch (error) {
+      throw normalizeProviderFailure(provider, model, error);
+    }
   };
 
   try {
-    return await withResponseTimeout(run(primaryModel), POYO_PRIMARY_RESPONSE_TIMEOUT_MS, primaryModel);
+    const poyo = createSocialStudioPoyoClient();
+    return await withResponseTimeout(run("poyo", poyo, primaryModel), POYO_PRIMARY_RESPONSE_TIMEOUT_MS, "poyo", primaryModel);
   } catch (error) {
-    if (!isRetryablePoyoResponsesFailure(error) || primaryModel === SOCIAL_CONTENT_FALLBACK_MODEL) throw error;
-    return await withResponseTimeout(run(SOCIAL_CONTENT_FALLBACK_MODEL), POYO_FALLBACK_RESPONSE_TIMEOUT_MS, SOCIAL_CONTENT_FALLBACK_MODEL);
+    if (!isRetryablePoyoResponsesFailure(error)) throw error;
+    const openai = createSocialStudioOpenAIClient();
+    const openaiModel = resolveOpenAIModel(primaryModel);
+    return await withResponseTimeout(
+      run("openai", openai, openaiModel),
+      OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS,
+      "openai",
+      openaiModel,
+    );
   }
 }
 
@@ -100,4 +196,32 @@ export function createSocialStudioPoyoClient() {
     baseURL: POYO_RESPONSES_BASE_URL,
     maxRetries: 0,
   });
+}
+
+/** Direct OpenAI fallback client. Its default base URL intentionally remains
+ * untouched so it never routes back through PoYo. */
+export function createSocialStudioOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) throw new OpenAIResponsesError("openai_not_configured");
+
+  return new OpenAI({
+    apiKey,
+    maxRetries: 0,
+  });
+}
+
+export function getSocialStudioResponsesErrorCode(error: unknown) {
+  if (error instanceof PoyoResponsesError) return error.code;
+  if (error instanceof OpenAIResponsesError) return error.code;
+  if (error instanceof PoyoResponsesProviderError) return "poyo_responses_provider_error";
+  if (error instanceof OpenAIResponsesProviderError) return "openai_responses_provider_error";
+  return null;
+}
+
+export function getSocialStudioResponsesProviderLabel(error: unknown, poyoFallback: string) {
+  if (error instanceof OpenAIResponsesError) return "OpenAI Responses";
+  if (error instanceof OpenAIResponsesProviderError) {
+    return error.model.endsWith("-luna") ? "OpenAI Responses / Luna" : "OpenAI Responses / Terra";
+  }
+  return poyoFallback;
 }

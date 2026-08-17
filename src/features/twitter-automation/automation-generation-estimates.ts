@@ -18,9 +18,9 @@ export function estimateGenerationSeconds(output: Pick<GenerationEstimateOutput,
   if (AI_IMAGE_GENERATORS.has(output.generator)) return 40;
   if (SELF_IMAGE_GENERATORS.has(output.generator)) return 12;
   if (output.generator === "ai-word-of-the-day-video") return 120;
-  if (BROWSER_LEARNING_VIDEO_GENERATORS.has(output.generator)) return 75;
-  if (AI_IMAGE_VIDEO_GENERATORS.has(output.generator)) return 95;
-  if (SELF_IMAGE_VIDEO_GENERATORS.has(output.generator)) return 65;
+  if (BROWSER_LEARNING_VIDEO_GENERATORS.has(output.generator)) return 180;
+  if (AI_IMAGE_VIDEO_GENERATORS.has(output.generator)) return 240;
+  if (SELF_IMAGE_VIDEO_GENERATORS.has(output.generator)) return 180;
   if (output.contentType === "image") return 25;
   if (output.contentType === "video") return 90;
   return 12;
@@ -32,7 +32,7 @@ export function estimateRemainingGenerationSeconds({ outputs, activeOutputId, ac
   activeElapsedSeconds?: number;
 }) {
   return outputs.reduce((total, output) => {
-    if (output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed" || output.status === "awaiting_browser_video") return total;
+    if (output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed") return total;
     const estimate = estimateGenerationSeconds(output);
     return total + (output.id === activeOutputId ? Math.max(0, estimate - Math.max(0, activeElapsedSeconds)) : estimate);
   }, 0);

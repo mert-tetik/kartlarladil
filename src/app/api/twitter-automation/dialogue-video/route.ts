@@ -3,14 +3,14 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { getDialogueBackgroundPublicUrl, pickDialogueBackgroundPath } from "@/features/twitter-automation/dialogue-backgrounds";
 import { FOXIESDECK_MASCOT_VOICE, generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 420;
 
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png", "Panda.png", "Racoon.png", "Tiger.png", "Wolf.png"] as const;
@@ -151,14 +151,13 @@ function instructionsFor(mode: DialogueMode) {
 }
 
 async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLanguage: LanguageCode) {
-  const poyo = createSocialStudioPoyoClient();
   const input = mode === "marketing-dialogue-video"
     ? { nativeLanguage: LANGUAGE_NAMES[nativeLanguage], learningLanguage: LANGUAGE_NAMES[language] }
     : { learningLanguage: LANGUAGE_NAMES[language], nativeLanguage: LANGUAGE_NAMES[nativeLanguage] };
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: `${instructionsFor(mode)}${repair ? "\nThe previous response was invalid. Return valid JSON with every required field." : ""}`,
       input: JSON.stringify(input),
@@ -192,8 +191,8 @@ export async function POST(request: Request) {
     plan = await createPlan(mode, spokenLanguage, nativeLanguage);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "dialogue_plan_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue script plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The dialogue script request failed." }),
+      errorCode: getSocialStudioResponsesErrorCode(error) ?? "dialogue_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Dialogue script plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The dialogue script request failed." }),
     }, { status: 502 });
   }
   if (!plan) return Response.json({

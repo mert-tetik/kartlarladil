@@ -4,7 +4,7 @@ import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createNativeVisualCaption, finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
@@ -12,7 +12,7 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 600;
 
 const IMAGE_MODES = [
   "ai-word-of-the-day",
@@ -151,11 +151,10 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
       selectedTier: tier,
       cards: serializeCards(cards, nativeLanguage),
     };
-  const poyo = createSocialStudioPoyoClient();
   const generatePlan = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: repair
         ? `${instructions}\nYour previous response was invalid. Return only valid JSON matching the required fields. For False Friends, include two related learning-language words with different nuance, not words that merely look alike or a cross-language translation pair.`
@@ -246,10 +245,10 @@ export async function POST(request: Request) {
   try {
     cards = await getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
   } catch (error) {
-    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "card_generation_failed";
     return Response.json({
       errorCode,
-      diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
     }, { status: 502 });
   }
 
@@ -258,8 +257,8 @@ export async function POST(request: Request) {
     imagePlan = await createArtDirection(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, cards);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "art_direction_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The creative plan request failed." }),
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "art_direction_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The creative plan request failed." }),
     }, { status: 502 });
   }
 

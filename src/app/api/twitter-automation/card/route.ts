@@ -3,6 +3,8 @@ import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel } from "@/features/twitter-automation/social-studio-poyo";
 import {
   createRandomSocialStudioWordOfTheDayPosterCard,
   resolveSocialStudioVocabularyCard,
@@ -37,7 +39,15 @@ export async function POST(request: Request) {
     const card = await resolveSocialStudioVocabularyCard(term!, parsed.data.language, parsed.data.nativeLanguage);
     return NextResponse.json({ card }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
-    return NextResponse.json({ errorCode }, { status: 502 });
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "card_generation_failed";
+    return NextResponse.json({
+      errorCode,
+      diagnostic: createSocialStudioDiagnostic({
+        stage: "Vocabulary card generation",
+        provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"),
+        error,
+        fallbackDetail: "The vocabulary card request could not be completed.",
+      }),
+    }, { status: errorCode === "openai_not_configured" || errorCode === "poyo_not_configured" ? 503 : 502 });
   }
 }

@@ -2,12 +2,13 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { randomInt } from "node:crypto";
 import { isLanguageCode } from "@/data/languages";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const BASE_INSTRUCTIONS = [
   "Write one short X post for the selected mode.",
@@ -108,10 +109,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const poyo = createSocialStudioPoyoClient();
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_TEXT_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: [...BASE_INSTRUCTIONS, CONTENT_RULES[mode]].join("\n"),
       input: JSON.stringify({
@@ -143,8 +143,8 @@ export async function POST(request: Request) {
     return Response.json({ post });
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "upstream_error",
-      diagnostic: createSocialStudioDiagnostic({ stage: "Text post generation", provider: "PoYo Responses / Luna", error, fallbackDetail: "The text-generation request failed." }),
+      errorCode: getSocialStudioResponsesErrorCode(error) ?? "upstream_error",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Text post generation", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Luna"), error, fallbackDetail: "The text-generation request failed." }),
     }, { status: 502 });
   }
 }

@@ -5,7 +5,7 @@ import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-op
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-speech";
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
@@ -14,13 +14,13 @@ import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 720;
 
 const POYO_API_URL = "https://api.poyo.ai";
 const VIDEO_MODEL = "kling-avatar-2.0/standard";
 const SPEECH_MODEL = "elevenlabs-tts-turbo-2-5";
-const SPEECH_WAIT_TIMEOUT_MS = 45_000;
-const SPEECH_POLL_INTERVAL_MS = 3_000;
+const SPEECH_WAIT_TIMEOUT_MS = 150_000;
+const SPEECH_POLL_INTERVAL_MS = 5_000;
 const SOCIAL_STUDIO_AUDIO_BUCKET = "social-studio-audio";
 const AVATAR_FRAME_WIDTH = 576;
 const AVATAR_FRAME_HEIGHT = 1024;
@@ -119,11 +119,10 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
       example: card.examples[0]?.sentence ?? card.example,
     },
   };
-  const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return only valid JSON with all four required string fields.` : instructions,
       input: JSON.stringify(input),
@@ -292,10 +291,10 @@ export async function POST(request: Request) {
   try {
     card = await selectCard(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
   } catch (error) {
-    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : "card_generation_failed";
+    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "card_generation_failed";
     return Response.json({
       errorCode,
-      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar vocabulary selection", provider: "PoYo Responses / Terra", error, fallbackDetail: "The video could not select a fresh vocabulary term." }),
+      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar vocabulary selection", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The video could not select a fresh vocabulary term." }),
     }, { status: 502 });
   }
 
@@ -304,8 +303,8 @@ export async function POST(request: Request) {
     plan = await createVideoPlan(card, parsed.data.language, parsed.data.nativeLanguage);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "video_plan_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar video plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The avatar script and first-frame plan request failed." }),
+      errorCode: getSocialStudioResponsesErrorCode(error) ?? "video_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Avatar video plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The avatar script and first-frame plan request failed." }),
     }, { status: 502 });
   }
   if (!plan) return Response.json({

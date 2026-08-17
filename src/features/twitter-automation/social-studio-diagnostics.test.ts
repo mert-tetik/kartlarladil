@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertPoyoResponsesOutput, PoyoResponsesProviderError } from "@/features/twitter-automation/social-studio-poyo";
+import { assertPoyoResponsesOutput, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, OpenAIResponsesProviderError, PoyoResponsesProviderError } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic, formatSocialStudioFailure } from "@/features/twitter-automation/social-studio-diagnostics";
 
 describe("Social Content Studio diagnostics", () => {
@@ -16,5 +16,18 @@ describe("Social Content Studio diagnostics", () => {
       fallbackDetail: "Unused fallback",
     });
     expect(formatSocialStudioFailure({ status: 502 }, { errorCode: "poyo_responses_provider_error", diagnostic }, "Generation failed.")).toContain("Provider: PoYo Responses / Terra 500");
+  });
+
+  it("labels direct OpenAI fallback failures without misreporting them as PoYo", () => {
+    const error = new OpenAIResponsesProviderError(503, "gpt-5.6-terra", "OpenAI service unavailable");
+    const diagnostic = createSocialStudioDiagnostic({
+      stage: "AI image art-direction plan",
+      provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"),
+      error,
+      fallbackDetail: "Unused fallback",
+    });
+
+    expect(getSocialStudioResponsesErrorCode(error)).toBe("openai_responses_provider_error");
+    expect(formatSocialStudioFailure({ status: 502 }, { errorCode: "openai_responses_provider_error", diagnostic }, "Generation failed.")).toContain("Provider: OpenAI Responses / Terra 503");
   });
 });

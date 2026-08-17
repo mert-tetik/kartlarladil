@@ -5,7 +5,7 @@ import type { OriginalMascotLearningVideoPayload, OriginalMascotLearningVideoSce
 import { parseProgressionPlan, parseQuizPlan, parseSentencePlan, parseSentenceTranslationPlan, type SentenceTranslationPlan } from "@/features/twitter-automation/original-mascot-learning-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
@@ -13,7 +13,7 @@ import type { LanguageCode, Tier } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 720;
 
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const CHARACTER_VARIATIONS = ["Animal.png", "Bear.png", "Bunny.png", "Lion.png", "Panda.png", "Racoon.png", "Tiger.png", "Wolf.png"] as const;
@@ -48,11 +48,10 @@ function pick<T>(items: readonly T[]): T {
 }
 
 async function createPlan<T>(instructions: string, input: Record<string, unknown>, parse: (value: string) => T | null) {
-  const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: `${instructions}${repair ? "\nYour previous response was invalid. Return one valid JSON object with every requested field." : ""}`,
       input: JSON.stringify(input),
@@ -419,10 +418,10 @@ export async function POST(request: Request) {
       diagnostic: createSocialStudioDiagnostic({ stage: "PoYo ElevenLabs TTS", provider: "PoYo Generate", error, fallbackDetail: "The voice task could not be completed." }),
     }, { status: error.code === "poyo_not_configured" ? 503 : 502 });
     return Response.json({
-      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "learning_video_generation_failed",
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "learning_video_generation_failed",
       diagnostic: createSocialStudioDiagnostic({
         stage: "A1 to C1 script plan",
-        provider: "PoYo Responses / Terra",
+        provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"),
         error,
         fallbackDetail: "The script-planning request failed before voices could be created.",
       }),

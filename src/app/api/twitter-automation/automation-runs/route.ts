@@ -138,6 +138,7 @@ export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
   const runId = request.nextUrl.searchParams.get("runId");
+  const includeMedia = request.nextUrl.searchParams.get("includeMedia") === "1";
   if (runId && !z.string().uuid().safeParse(runId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
   try {
     const supabase = createSupabaseAdminClient();
@@ -151,6 +152,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     const outputs = await Promise.all((data ?? []).map(async (output) => {
+      const needsBrowserVideoSource = output.status === "awaiting_browser_video" && typeof output.media_path === "string";
+      if (!includeMedia && !needsBrowserVideoSource) return { ...output, mediaUrl: null, mediaUrls: [] };
       const paths = mediaPaths(output.media_paths);
       const mediaUrls = await Promise.all(paths.map((path) => toMediaUrl(path)));
       return {

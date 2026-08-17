@@ -5,7 +5,7 @@ import { LOCALE_CODES } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
 import { generatedCardSchema, matchesRequestedTargetLanguage, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export class SocialStudioVocabularyError extends Error {
@@ -69,10 +69,9 @@ export async function selectSocialStudioVocabularyTerms({
   const catalogTerms = selectFromCatalog(language, tier, count);
   if (catalogTerms) return catalogTerms;
 
-  const poyo = createSocialStudioPoyoClient();
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (model) => poyo.responses.create({
+    (client, model) => client.responses.create({
       model,
       instructions: [
         "Select vocabulary for a FoxiesDeck social post. Return one JSON object only: { terms: [string] }.",
@@ -117,10 +116,9 @@ export function findSocialStudioCatalogCard(language: LanguageCode, term: string
 }
 
 export async function createSocialStudioCustomCard(term: string, language: LanguageCode, nativeLanguage: LocaleCode) {
-  const poyo = createSocialStudioPoyoClient();
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (model) => poyo.responses.create({
+    (client, model) => client.responses.create({
       model,
       instructions: buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
       input: buildCreateCardInput({ locale: nativeLanguage, term, targetLanguage: language }),
@@ -143,10 +141,9 @@ export async function createSocialStudioCustomCard(term: string, language: Langu
 }
 
 export async function createRandomSocialStudioWordOfTheDayPosterCard(language: LanguageCode, nativeLanguage: LocaleCode) {
-  const poyo = createSocialStudioPoyoClient();
   const { output } = await generateSocialStudioTextWithFallback(
     SOCIAL_CONTENT_CREATIVE_MODEL,
-    (model) => poyo.responses.create({
+    (client, model) => client.responses.create({
       model,
       instructions: [
         buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),

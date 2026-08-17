@@ -10,6 +10,7 @@ import { SelfSocialImage, type SelfSocialImageMode } from "@/features/twitter-au
 import { VocabularyCarouselIntro } from "@/features/twitter-automation/components/vocabulary-carousel-intro";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
 import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
+import { BrowserImageRenderError, browserImageFailureCode, retryBrowserImageOperation } from "@/features/twitter-automation/browser-image-retry";
 import {
   isSelfExampleSentencesContent,
   type SelfExampleSentencesContent,
@@ -91,12 +92,39 @@ function randomCarouselTiers() {
 async function waitForImages(source: HTMLElement) {
   const images = Array.from(source.querySelectorAll("img"));
   await Promise.race([
-    Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
-      image.addEventListener("load", () => resolve(), { once: true });
-      image.addEventListener("error", () => resolve(), { once: true });
-    }))),
+    Promise.all(images.map(async (image) => {
+      if (!image.complete) {
+        await new Promise<void>((resolve) => {
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+      await image.decode?.().catch(() => undefined);
+    })),
     new Promise<void>((resolve) => window.setTimeout(resolve, 5_000)),
   ]);
+}
+
+function waitForAnimationFrame() {
+  return new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+async function waitForSnapshotReady(sources: HTMLElement[]) {
+  await document.fonts?.ready;
+  await Promise.all(sources.map(waitForImages));
+  await waitForAnimationFrame();
+  await waitForAnimationFrame();
+}
+
+function requireImageSource(source: HTMLElement | null, errorCode: string) {
+  if (!source || !source.getBoundingClientRect().width || !source.getBoundingClientRect().height) {
+    throw new BrowserImageRenderError(errorCode);
+  }
+  return source;
+}
+
+function browserImageContentError(error: unknown) {
+  return new BrowserImageRenderError(browserImageFailureCode(error, "browser_image_content_failed"));
 }
 
 function captionForSelfImage(mode: SelfSocialImageMode, learningLanguage: LanguageCode, nativeLanguage: LanguageCode) {
@@ -257,7 +285,7 @@ export function AutomationBrowserImageRenderer({ output, onStart, onComplete, on
     void createContent().then((nextContent) => {
       if (!cancelled) setContent(nextContent);
     }).catch((error: unknown) => {
-      if (!cancelled) onError(error);
+      if (!cancelled) onError(browserImageContentError(error));
     });
 
     return () => { cancelled = true; };
@@ -269,38 +297,48 @@ export function AutomationBrowserImageRenderer({ output, onStart, onComplete, on
     const frame = window.requestAnimationFrame(() => {
       void (async () => {
         try {
-          await document.fonts?.ready;
           let imageDataUrls: string[];
           if (content.kind === "word") {
-            if (!wordRef.current) throw new Error("browser_word_image_unavailable");
-            await waitForImages(wordRef.current);
-            imageDataUrls = [await toPng(wordRef.current, {
+            const source = requireImageSource(wordRef.current, "browser_word_image_unavailable");
+            imageDataUrls = [await retryBrowserImageOperation(() => toPng(source, {
               cacheBust: true,
               pixelRatio: musicSource ? 1 : 3,
               backgroundColor: musicSource
                 ? content.mode === "card" ? "#11100f" : POSTER_TIER_PALETTES[content.card.tier].base
                 : content.mode === "card" ? "#ffffff" : POSTER_TIER_PALETTES[content.card.tier].base,
+            }), {
+              beforeAttempt: () => waitForSnapshotReady([source]),
+              failureCode: "browser_image_snapshot_failed",
             })];
           } else if (content.kind === "self") {
-            if (!selfRef.current) throw new Error("browser_self_image_unavailable");
-            await waitForImages(selfRef.current);
-            imageDataUrls = [await toPng(selfRef.current, { cacheBust: true, pixelRatio: 1.5, backgroundColor: "#11100f" })];
+            const source = requireImageSource(selfRef.current, "browser_self_image_unavailable");
+            imageDataUrls = [await retryBrowserImageOperation(() => toPng(source, { cacheBust: true, pixelRatio: 1.5, backgroundColor: "#11100f" }), {
+              beforeAttempt: () => waitForSnapshotReady([source]),
+              failureCode: "browser_image_snapshot_failed",
+            })];
           } else {
             const slides = carouselSlideRefs.current;
-            if (slides.length !== content.cards.length + 1 || slides.some((slide) => !slide)) throw new Error("browser_carousel_image_unavailable");
-            await Promise.all(slides.map((slide) => waitForImages(slide!)));
-            imageDataUrls = await Promise.all(slides.map((slide, index) => toPng(slide!, {
+            if (slides.length !== content.cards.length + 1 || slides.some((slide) => !slide)) {
+              throw new BrowserImageRenderError("browser_carousel_image_unavailable");
+            }
+            const sources = slides.map((slide) => requireImageSource(slide, "browser_carousel_image_unavailable"));
+            imageDataUrls = await retryBrowserImageOperation(() => Promise.all(sources.map((source, index) => toPng(source, {
               cacheBust: true,
               pixelRatio: 1.5,
               backgroundColor: index === 0 ? "#f76808" : "#16120f",
-            })));
+            }))), {
+              beforeAttempt: () => waitForSnapshotReady(sources),
+              failureCode: "browser_image_snapshot_failed",
+            });
           }
           if (!cancelled) {
             completedForOutputId.current = output.id;
             onComplete({ caption: content.caption, imageDataUrls });
           }
         } catch (error) {
-          if (!cancelled) onError(error);
+          if (!cancelled) onError(error instanceof BrowserImageRenderError
+            ? error
+            : new BrowserImageRenderError("browser_image_snapshot_failed"));
         }
       })();
     });

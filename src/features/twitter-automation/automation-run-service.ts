@@ -9,6 +9,7 @@ const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
 const STAGED_MEDIA_URL_SECONDS = 24 * 60 * 60;
 const STAGED_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
+const SCHEDULE_OUTPUT_CONCURRENCY = 3;
 const MAX_STAGED_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression", "ai-example-sentences"] as const;
@@ -378,18 +379,29 @@ export async function scheduleReadyAutomationRun(runId: string) {
 
   let scheduled = 0;
   let failed = 0;
-  for (const output of lockedOutputs ?? []) {
-    try {
-      await scheduleOutput({ ...output, status: "processing" });
-      scheduled += 1;
-    } catch (error) {
-      failed += 1;
-      await updateOutput(output.id, {
-        status: "failed",
-        error_code: error instanceof Error ? error.message : "automation_schedule_failed",
-      });
+  let nextOutputIndex = 0;
+  const outputsToSchedule = lockedOutputs ?? [];
+  const worker = async () => {
+    while (nextOutputIndex < outputsToSchedule.length) {
+      const output = outputsToSchedule[nextOutputIndex++];
+      if (!output) continue;
+      try {
+        await scheduleOutput({ ...output, status: "processing" });
+        scheduled += 1;
+      } catch (error) {
+        failed += 1;
+        try {
+          await updateOutput(output.id, {
+            status: "failed",
+            error_code: error instanceof Error ? error.message : "automation_schedule_failed",
+          });
+        } catch {
+          // The stale-processing recovery path will safely return this output to the queue.
+        }
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(SCHEDULE_OUTPUT_CONCURRENCY, outputsToSchedule.length) }, () => worker()));
 
   await refreshAutomationRunStatus(runId);
   return { scheduled, failed };

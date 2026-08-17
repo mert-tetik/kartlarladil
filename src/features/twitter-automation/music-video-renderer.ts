@@ -9,6 +9,15 @@ type MusicVideoRenderOptions = {
   musicUrl: string;
 };
 
+type MusicVideoRenderOptionsWithImage = Omit<MusicVideoRenderOptions, "imageUrl"> & {
+  image: HTMLImageElement;
+};
+
+export type CanvasSafeImage = {
+  image: HTMLImageElement;
+  release: () => void;
+};
+
 const FRAME_RATE = 30;
 const VIDEO_BITRATE = 4_000_000;
 const AUDIO_BITRATE = 128_000;
@@ -62,6 +71,29 @@ function createMusicVideoAudioContext() {
   if (!AudioContextConstructor) throw new Error("audio_not_supported");
 
   return new AudioContextConstructor();
+}
+
+/**
+ * Automation images are delivered from Supabase's signed, cross-origin URLs.
+ * A canvas may display one of those images, but it becomes tainted and cannot
+ * be recorded into a video. Rehydrating the image from a same-origin blob URL
+ * keeps the canvas exportable in both WebCodecs and MediaRecorder paths.
+ */
+export async function loadCanvasSafeImage(source: string): Promise<CanvasSafeImage> {
+  const response = await fetch(source);
+  if (!response.ok) throw new Error("music_image_load_failed");
+
+  const objectUrl = URL.createObjectURL(await response.blob());
+  try {
+    const image = await waitForImage(objectUrl);
+    return {
+      image,
+      release: () => URL.revokeObjectURL(objectUrl),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
 }
 
 /**
@@ -139,8 +171,8 @@ async function canRenderMusicVideoDeterministically(width: number, height: numbe
     && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
 }
 
-async function renderDeterministicMusicVideo({ audioContext, durationSeconds, imageUrl, musicUrl }: Required<MusicVideoRenderOptions>) {
-  const [image, buffer] = await Promise.all([waitForImage(imageUrl), decodeMusic(audioContext, musicUrl)]);
+async function renderDeterministicMusicVideo({ audioContext, durationSeconds, image, musicUrl }: Required<MusicVideoRenderOptionsWithImage>) {
+  const buffer = await decodeMusic(audioContext, musicUrl);
   if (buffer.duration < durationSeconds) throw new Error("music_too_short");
 
   try {
@@ -176,12 +208,11 @@ async function renderDeterministicMusicVideo({ audioContext, durationSeconds, im
   }
 }
 
-async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, imageUrl, musicUrl }: MusicVideoRenderOptions) {
+async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, image, musicUrl }: MusicVideoRenderOptionsWithImage) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") {
     throw new Error("video_not_supported");
   }
 
-  const image = await waitForImage(imageUrl);
   const canvas = document.createElement("canvas");
   // Preserve the exact source-image raster and aspect ratio. Music videos are
   // intentionally a still image with an audio track, not a motion treatment.
@@ -242,16 +273,22 @@ async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_
  * available. Older browsers retain the MediaRecorder implementation above.
  */
 export async function renderMusicVideo(options: MusicVideoRenderOptions) {
-  const image = await waitForImage(options.imageUrl);
-  const width = image.naturalWidth || image.width;
-  const height = image.naturalHeight || image.height;
-  if (await canRenderMusicVideoDeterministically(width, height)) {
-    return await renderDeterministicMusicVideo({
-      ...options,
-      durationSeconds: options.durationSeconds ?? MUSIC_VIDEO_DURATION_SECONDS,
-    });
+  const source = await loadCanvasSafeImage(options.imageUrl);
+  try {
+    const width = source.image.naturalWidth || source.image.width;
+    const height = source.image.naturalHeight || source.image.height;
+    if (await canRenderMusicVideoDeterministically(width, height)) {
+      return await renderDeterministicMusicVideo({
+        audioContext: options.audioContext,
+        durationSeconds: options.durationSeconds ?? MUSIC_VIDEO_DURATION_SECONDS,
+        image: source.image,
+        musicUrl: options.musicUrl,
+      });
+    }
+    return await renderRealtimeMusicVideo({ ...options, image: source.image });
+  } finally {
+    source.release();
   }
-  return await renderRealtimeMusicVideo(options);
 }
 
 declare global {

@@ -6,8 +6,8 @@ const POYO_API_URL = "https://api.poyo.ai";
 const POYO_SPEECH_MODEL = "elevenlabs-tts-turbo-2-5";
 /** The custom ElevenLabs voice used by FoxiesDeck's primary mascot. */
 export const FOXIESDECK_MASCOT_VOICE = "d8WcCpplp8meHt10UhL8";
-const SPEECH_WAIT_TIMEOUT_MS = 60_000;
-const SPEECH_POLL_INTERVAL_MS = 2_500;
+const SPEECH_WAIT_TIMEOUT_MS = 150_000;
+const SPEECH_POLL_INTERVAL_MS = 5_000;
 const MAX_SPEECH_BYTES = 2 * 1024 * 1024;
 
 export type PoyoSpeechSegment = {

@@ -13,7 +13,7 @@ describe("automation generation estimates", () => {
     })).toBe(38);
   });
 
-  it("excludes completed, failed, and user-confirmation video work", () => {
+  it("excludes settled outputs but includes the browser video render estimate", () => {
     expect(estimateRemainingGenerationSeconds({
       activeOutputId: null,
       outputs: [
@@ -21,7 +21,7 @@ describe("automation generation estimates", () => {
         { id: "failed", contentType: "image", generator: "ai-mini-quiz", status: "failed" },
         { id: "audio", contentType: "video", generator: "music-word-of-the-day", status: "awaiting_browser_video" },
       ],
-    })).toBe(0);
+    })).toBe(180);
   });
 
   it("formats a concise Turkish duration", () => {

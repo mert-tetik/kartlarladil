@@ -7,6 +7,7 @@ import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const requestSchema = z.object({ runId: z.string().uuid(), scope: z.enum(["production", "test"]).optional() }).strict();
 

@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const POYO_API_URL = "https://api.poyo.ai";
-const IMAGE_TASK_TIMEOUT_MS = 210_000;
-const IMAGE_TASK_POLL_INTERVAL_MS = 3_000;
+const IMAGE_TASK_TIMEOUT_MS = 300_000;
+const IMAGE_TASK_POLL_INTERVAL_MS = 5_000;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
 const BRAND_REFERENCE_ASSETS = [
@@ -149,7 +149,7 @@ export async function generatePoyoImageEdit({
 }: {
   prompt: string;
   size: PoyoImageSize;
-  /** Internal test seam; production callers use the 90-second default. */
+  /** Internal test seam; production callers use the five-minute default. */
   timeoutMs?: number;
 }) {
   const apiKey = getPoyoApiKey();

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { createSocialStudioPoyoClient, generateSocialStudioTextWithFallback, PoyoResponsesProviderError, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
+import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createNativeVisualCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
@@ -10,7 +10,7 @@ import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/dom
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 720;
 
 const PHASE_COUNT = 3;
 
@@ -104,11 +104,10 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
     nativeLanguage: LANGUAGE_NAMES[nativeLanguage],
     requestedTier: tier,
   };
-  const poyo = createSocialStudioPoyoClient();
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
       model,
       instructions: repair ? `${instructions}\nYour previous response was invalid. Return valid JSON with all exact fields and three phases.` : instructions,
       input: JSON.stringify(input),
@@ -160,8 +159,8 @@ export async function POST(request: Request) {
     plan = await createPlan(parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "confused_words_plan_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words script plan", provider: "PoYo Responses / Terra", error, fallbackDetail: "The three-phase script request failed." }),
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "confused_words_plan_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Confused Words script plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The three-phase script request failed." }),
     }, { status: 502 });
   }
   if (!plan) return Response.json({
@@ -174,8 +173,8 @@ export async function POST(request: Request) {
     cards = await resolveCards(plan, parsed.data.language, parsed.data.nativeLanguage);
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof SocialStudioVocabularyError ? error.code : error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "custom_card_generation_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "Custom vocabulary card generation", provider: "PoYo Responses / Terra", error, fallbackDetail: "A required card was not present in the catalogue and its custom-card request failed." }),
+      errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "custom_card_generation_failed",
+      diagnostic: createSocialStudioDiagnostic({ stage: "Custom vocabulary card generation", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "A required card was not present in the catalogue and its custom-card request failed." }),
     }, { status: 502 });
   }
 

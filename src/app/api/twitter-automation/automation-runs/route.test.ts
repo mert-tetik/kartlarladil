@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 const { fromMock, runInsertMock, outputInsertMock, stateMaybeSingleMock } = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -82,6 +82,36 @@ describe("automation run creation", () => {
     expect(createdOutputs).toHaveLength(5);
     expect(createdOutputs.every((output) => output.generator === "fun-post")).toBe(true);
     expect(new Set(createdOutputs.map((output) => output.scheduled_at)).size).toBe(5);
+  });
+
+  it("does not create storage signed URLs while the progress screen only needs output statuses", async () => {
+    const outputQuery = {
+      select: () => ({
+        eq: () => ({
+          order: () => ({
+            limit: async () => ({
+              data: [{
+                id: "5d13ccca-d537-4a5a-9a08-20df9c391007",
+                status: "ready_to_schedule",
+                media_path: "automation/5d13ccca-d537-4a5a-9a08-20df9c391007.png",
+                media_paths: [],
+              }],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_outputs") return outputQuery;
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await GET(new NextRequest("http://localhost/api/twitter-automation/automation-runs"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ outputs: [expect.objectContaining({ mediaUrl: null, mediaUrls: [] })] });
+    expect(fromMock).toHaveBeenCalledTimes(1);
   });
 
   it("accepts the maximum quantity of twenty outputs", async () => {

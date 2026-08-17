@@ -7,24 +7,52 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+const STALE_PROCESSING_MS = 3 * 60_000;
 
 const requestSchema = z.object({
   outputId: z.string().uuid(),
   scope: z.enum(["production", "test"]).optional(),
 }).strict();
 
-type FailedOutput = {
+type RetryableOutput = {
   id: string;
   run_id: string;
   status: string;
+  content_type: "text" | "image" | "video";
   caption: string | null;
   media_path: string | null;
   media_paths: unknown;
   media_type: "image" | "video" | null;
+  generator: string;
+  error_code: string | null;
+  provider_task_id: string | null;
+  updated_at: string;
 };
 
-function hasReusableMedia(output: FailedOutput) {
+function hasReusableMedia(output: RetryableOutput) {
   return Boolean(output.caption && output.media_type && (output.media_path || (Array.isArray(output.media_paths) && output.media_paths.length)));
+}
+
+function hasReusableContent(output: RetryableOutput) {
+  return output.content_type === "text" ? Boolean(output.caption) : hasReusableMedia(output);
+}
+
+function shouldRetryBrowserVideo(output: RetryableOutput) {
+  return output.generator.startsWith("music-")
+    && output.media_type === "image"
+    && Boolean(output.media_path);
+}
+
+function isStaleProcessing(output: RetryableOutput) {
+  if (output.status !== "processing") return false;
+  const updatedAt = new Date(output.updated_at).getTime();
+  return Number.isFinite(updatedAt) && Date.now() - updatedAt >= STALE_PROCESSING_MS;
+}
+
+function statusForRetry(output: RetryableOutput) {
+  if (shouldRetryBrowserVideo(output)) return "awaiting_browser_video";
+  if (output.status === "processing" && output.provider_task_id && output.media_type !== "video") return "generating_video";
+  return hasReusableContent(output) ? "ready_to_schedule" : "queued";
 }
 
 export async function POST(request: NextRequest) {
@@ -38,9 +66,9 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const { data: output, error: outputError } = await supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,status,caption,media_path,media_paths,media_type")
+      .select("id,run_id,status,content_type,caption,media_path,media_paths,media_type,generator,error_code,provider_task_id,updated_at")
       .eq("id", parsed.data.outputId)
-      .maybeSingle<FailedOutput>();
+      .maybeSingle<RetryableOutput>();
     if (outputError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!output) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
 
@@ -52,10 +80,11 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
-    if (output.status !== "failed") return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });
+    const retryingStaleProcessing = isStaleProcessing(output);
+    if (output.status !== "failed" && !retryingStaleProcessing) return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });
 
-    const status = hasReusableMedia(output) ? "ready_to_schedule" : "queued";
-    const retryPatch = status === "ready_to_schedule"
+    const status = statusForRetry(output);
+    const retryPatch = status === "awaiting_browser_video" || status === "generating_video" || status === "ready_to_schedule"
       ? { status, error_code: null, updated_at: new Date().toISOString() }
       : {
         status,
@@ -72,7 +101,7 @@ export async function POST(request: NextRequest) {
       .from("social_content_automation_outputs")
       .update(retryPatch)
       .eq("id", output.id)
-      .eq("status", "failed");
+      .eq("status", output.status);
     if (retryError) return NextResponse.json({ errorCode: "automation_output_retry_failed" }, { status: 503 });
 
     await refreshAutomationRunStatus(run.id);

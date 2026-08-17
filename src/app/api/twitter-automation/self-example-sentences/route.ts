@@ -9,15 +9,16 @@ import {
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import {
-  createSocialStudioPoyoClient,
   generateSocialStudioTextWithFallback,
-  PoyoResponsesProviderError,
+  getSocialStudioResponsesErrorCode,
+  getSocialStudioResponsesProviderLabel,
   SOCIAL_CONTENT_CREATIVE_MODEL,
 } from "@/features/twitter-automation/social-studio-poyo";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const requestSchema = z.object({
   language: z.string().refine(isLanguageCode),
@@ -77,7 +78,6 @@ async function createSelfExampleSentences({
   nativeLanguage: LanguageCode;
   recentSentences: string[];
 }) {
-  const poyo = createSocialStudioPoyoClient();
   const recentSentenceSet = new Set(recentSentences.map(normalizeSelfExampleSentence));
   const instructions = [
     "Create content for FoxiesDeck's Example Sentences (Self) social image.",
@@ -94,7 +94,7 @@ async function createSelfExampleSentences({
   const generate = async (repair: boolean) => {
     const { output } = await generateSocialStudioTextWithFallback(
       SOCIAL_CONTENT_CREATIVE_MODEL,
-      (model) => poyo.responses.create({
+      (client, model) => client.responses.create({
         model,
         instructions: repair
           ? `${instructions}\nYour previous answer was invalid or repeated a recent sentence. Create three completely different valid sentence pairs and return only the required JSON object.`
@@ -148,10 +148,10 @@ export async function POST(request: Request) {
     return Response.json({ examples }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({
-      errorCode: error instanceof PoyoResponsesProviderError ? "poyo_responses_provider_error" : "self_example_sentences_generation_failed",
+      errorCode: getSocialStudioResponsesErrorCode(error) ?? "self_example_sentences_generation_failed",
       diagnostic: createSocialStudioDiagnostic({
         stage: "Self example-sentences generation",
-        provider: "PoYo Responses / Terra",
+        provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"),
         error,
         fallbackDetail: "The AI could not create fresh sentence pairs.",
       }),
