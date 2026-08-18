@@ -304,6 +304,34 @@ describe("GeneratedPostsTable", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the progress screen open and retries again when refresh failures continue", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ errorCode: "automation_runs_unavailable" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="5d13ccca-d537-4a5a-9a08-20df9c391010" scope="test" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.getAllByText("İçerikler hazırlanıyor")[0]).toBeVisible();
+    expect(screen.queryByText("Üretilen içerikler")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
+  });
+
   it("cancels the automatic retry when the cooldown close button is used", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue({

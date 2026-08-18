@@ -276,7 +276,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [renderRecoveryEndsAt, setRenderRecoveryEndsAt] = useState<number | null>(null);
   const [isRecoveringFailedOutputs, setIsRecoveringFailedOutputs] = useState(false);
   const autoStartedBrowserVideoIds = useRef(new Set<string>());
-  const automaticResumeAttempts = useRef(0);
   const automaticResumeInFlight = useRef(false);
   const browserVideoAttempts = useRef(new Map<string, number>());
   const browserVideoPlans = useRef(new Map<string, BrowserVideoPlan>());
@@ -297,7 +296,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       const payload = await response.json().catch(() => null) as { outputs?: AutomationOutput[]; durationProfiles?: unknown; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_runs_unavailable");
       const nextOutputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
-      automaticResumeAttempts.current = 0;
       automaticResumeInFlight.current = false;
       setResumeCooldownEndsAt(null);
       setIsResumeCooldownCancelled(false);
@@ -308,12 +306,11 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     } catch {
       automaticResumeInFlight.current = false;
       setIsResumeCooldownCancelled(false);
-      if (automaticResumeAttempts.current < MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS) {
-        startResumeCooldown();
-      } else {
-        setResumeCooldownEndsAt(null);
-        setIsInterruptedReview(true);
-      }
+      // A transient refresh failure must never turn the active run into a result
+      // screen. Keep the queue visible and retry from the same persisted output
+      // state until the user explicitly cancels the cooldown or the API recovers.
+      setIsInterruptedReview(false);
+      startResumeCooldown();
       setState("error");
       setMessage(FLOW_REFRESH_ERROR_MESSAGE);
       return null;
@@ -352,8 +349,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     learnedDurationsMs: modeDurationProfiles,
     outputs: outputs.map((output) => ({ contentType: output.content_type, generator: output.generator, id: output.id, status: output.status })),
   }), [modeDurationProfiles, now, outputs, processingOutputId, processingStartedAt]);
-  const resumeCooldownSeconds = state === "error" && !isResumeCooldownCancelled
-    ? resumeCooldownEndsAt === null ? AUTO_RESUME_COOLDOWN_MS / 1_000 : Math.max(0, Math.ceil((resumeCooldownEndsAt - now) / 1_000))
+  const resumeCooldownSeconds = state === "error" && !isResumeCooldownCancelled && resumeCooldownEndsAt !== null
+    ? Math.max(0, Math.ceil((resumeCooldownEndsAt - now) / 1_000))
     : null;
   const renderRecoverySeconds = renderRecoveryEndsAt === null ? null : Math.max(0, Math.ceil((renderRecoveryEndsAt - now) / 1_000));
 
@@ -549,9 +546,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     }
   }, [isSchedulingAll, isTestAutomation, load, processingOutputId, readyOutputs.length, runId, scope]);
 
-  const resumeAutomation = useCallback(async (isAutomatic = false) => {
+  const resumeAutomation = useCallback(async () => {
     if (processingOutputId || retryingOutputId) return;
-    if (!isAutomatic) automaticResumeAttempts.current = 0;
     setMessage("");
     const refreshedOutputs = await load(true);
     if (!refreshedOutputs) return;
@@ -584,7 +580,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
       autoStartedBrowserVideoIds.current.delete(output.id);
       browserVideoAttempts.current.delete(output.id);
-      automaticResumeAttempts.current = 0;
       automaticResumeInFlight.current = false;
       setResumeCooldownEndsAt(null);
       setIsResumeCooldownCancelled(false);
@@ -679,9 +674,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     const timer = window.setTimeout(() => {
       if (processingOutputId || retryingOutputId || automaticResumeInFlight.current) return;
       automaticResumeInFlight.current = true;
-      automaticResumeAttempts.current += 1;
       setResumeCooldownEndsAt(null);
-      void resumeAutomation(true);
+      void resumeAutomation();
     }, Math.max(0, resumeCooldownEndsAt - Date.now()));
     return () => window.clearTimeout(timer);
   }, [isResumeCooldownCancelled, processingOutputId, resumeAutomation, resumeCooldownEndsAt, retryingOutputId, state]);
