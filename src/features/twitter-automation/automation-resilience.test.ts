@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS, AUTOMATION_RETRY_DELAYS_MS, classifyAutomationError, isRetryableAutomationError, nextAutomationAttemptAt } from "@/features/twitter-automation/automation-resilience";
+import { AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS, AUTOMATION_RETRY_DELAYS_MS, classifyAutomationError, formatAutomationRetryDelay, isRetryableAutomationError, nextAutomationAttemptAt } from "@/features/twitter-automation/automation-resilience";
 
 describe("automation resilience", () => {
   it("uses the five persistent recovery intervals in order", () => {
-    expect(AUTOMATION_RETRY_DELAYS_MS).toEqual([30_000, 120_000, 300_000, 900_000, 1_800_000]);
+    expect(AUTOMATION_RETRY_DELAYS_MS).toEqual([15_000, 45_000, 120_000, 300_000, 600_000]);
     const start = Date.UTC(2026, 7, 17, 12, 0, 0);
-    expect(new Date(nextAutomationAttemptAt(1, start)).getTime() - start).toBe(30_000);
-    expect(new Date(nextAutomationAttemptAt(5, start)).getTime() - start).toBe(1_800_000);
+    expect(new Date(nextAutomationAttemptAt(1, start)).getTime() - start).toBe(15_000);
+    expect(new Date(nextAutomationAttemptAt(5, start)).getTime() - start).toBe(600_000);
+    expect(formatAutomationRetryDelay(1)).toBe("15 sn");
+    expect(formatAutomationRetryDelay(2)).toBe("45 sn");
   });
 
   it("allows the same account to be scheduled one minute apart", () => {

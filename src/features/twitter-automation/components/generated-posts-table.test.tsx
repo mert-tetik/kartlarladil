@@ -350,7 +350,7 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(AUTOMATION_RETRY_DELAYS_MS[0]);
+      await vi.advanceTimersByTimeAsync(30_000);
       await Promise.resolve();
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -601,7 +601,7 @@ describe("GeneratedPostsTable", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(screen.queryByText("Gönderime hazır içerikler")).not.toBeInTheDocument();
-    expect(screen.getAllByText(/30 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/15 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTOMATION_RETRY_DELAYS_MS[0]);
@@ -612,7 +612,7 @@ describe("GeneratedPostsTable", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getAllByText(/120 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/45 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
 
     for (const delay of AUTOMATION_RETRY_DELAYS_MS.slice(1)) {
       await act(async () => {

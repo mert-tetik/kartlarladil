@@ -1,4 +1,6 @@
-export const AUTOMATION_RETRY_DELAYS_MS = [30_000, 2 * 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000] as const;
+// Keep automated recovery responsive while still allowing slow providers and
+// browser renderers enough time to recover without repeating expensive work.
+export const AUTOMATION_RETRY_DELAYS_MS = [15_000, 45_000, 2 * 60_000, 5 * 60_000, 10 * 60_000] as const;
 export const MAX_AUTOMATION_RECOVERY_ATTEMPTS = AUTOMATION_RETRY_DELAYS_MS.length;
 export const AUTOMATION_RENDERER_HEARTBEAT_MS = 15_000;
 export const AUTOMATION_RENDERER_LEASE_MS = 10 * 60_000;
@@ -28,6 +30,6 @@ export function nextAutomationAttemptAt(attemptCount: number, now = Date.now()) 
 
 export function formatAutomationRetryDelay(attemptCount: number) {
   const delay = AUTOMATION_RETRY_DELAYS_MS[Math.max(0, Math.min(attemptCount - 1, AUTOMATION_RETRY_DELAYS_MS.length - 1))]!;
-  const minutes = Math.round(delay / 60_000);
-  return minutes < 1 ? "30 sn" : `${minutes} dk`;
+  if (delay < 60_000) return `${Math.round(delay / 1_000)} sn`;
+  return `${Math.round(delay / 60_000)} dk`;
 }
