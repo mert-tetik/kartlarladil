@@ -3,7 +3,7 @@ import type { ImgHTMLAttributes } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GeneratedPostsTable } from "./generated-posts-table";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
-import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { canRenderMusicVideoDeterministically, createOfflineMusicVideoAudioContext, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
@@ -20,19 +20,27 @@ vi.mock("@/features/twitter-automation/browser-media-stage", () => ({
 }));
 
 vi.mock("@/features/twitter-automation/confused-words-video-renderer", () => ({
+  canRenderConfusedWordsDeterministically: vi.fn().mockResolvedValue(false),
   renderConfusedWordsVideo: vi.fn(),
 }));
 
 vi.mock("@/features/twitter-automation/dialogue-video-renderer", () => ({
+  canRenderDialogueDeterministically: vi.fn().mockResolvedValue(false),
   renderDialogueVideo: vi.fn(),
 }));
 
 vi.mock("@/features/twitter-automation/music-video-renderer", () => ({
+  canRenderMusicVideoDeterministically: vi.fn().mockResolvedValue(false),
+  closeAutomationMusicVideoAudioSession: vi.fn(),
+  createOfflineMusicVideoAudioContext: vi.fn(),
+  isAutomationMusicVideoAudioContext: () => false,
   prepareMusicVideoAudio: vi.fn(),
+  releaseMusicVideoAudioContext: vi.fn(),
   renderMusicVideo: vi.fn(),
 }));
 
 vi.mock("@/features/twitter-automation/original-mascot-learning-video-renderer", () => ({
+  canRenderOriginalMascotDeterministically: vi.fn().mockResolvedValue(false),
   renderOriginalMascotLearningVideo: vi.fn(),
 }));
 
@@ -727,6 +735,8 @@ describe("GeneratedPostsTable", () => {
     vi.mocked(prepareMusicVideoAudio).mockReset();
     vi.mocked(renderMusicVideo).mockReset();
     vi.mocked(stageBrowserVideo).mockReset();
+    vi.mocked(canRenderMusicVideoDeterministically).mockResolvedValueOnce(true);
+    vi.mocked(createOfflineMusicVideoAudioContext).mockReturnValue({ state: "suspended" } as OfflineAudioContext);
     vi.mocked(prepareMusicVideoAudio).mockResolvedValue({ state: "closed" } as AudioContext);
     vi.mocked(renderMusicVideo).mockResolvedValue(new Blob(["video"], { type: "video/webm" }));
     vi.mocked(stageBrowserVideo).mockResolvedValue({ path: "automation/8d13ccca-d537-4a5a-9a08-20df9c391007.webm", sourceUrl: "https://assets.test/automation-video.webm", mimeType: "video/webm" });
@@ -736,6 +746,8 @@ describe("GeneratedPostsTable", () => {
     await waitFor(() => expect(renderMusicVideo).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(stageBrowserVideo).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith("/api/twitter-automation/automation-runs/process", expect.objectContaining({ method: "POST" }));
+    expect(createOfflineMusicVideoAudioContext).toHaveBeenCalledTimes(1);
+    expect(prepareMusicVideoAudio).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /Devam et/u })).not.toBeInTheDocument();
   });
 

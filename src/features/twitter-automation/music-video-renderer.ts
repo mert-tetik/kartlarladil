@@ -1,9 +1,22 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+import {
+  createMusicVideoAudioContext,
+  prepareAutomationMusicVideoAudio,
+  releaseMusicVideoAudioContext,
+  unlockAutomationMusicVideoAudio,
+} from "@/features/twitter-automation/automation-music-video-audio-session";
+
+export {
+  closeAutomationMusicVideoAudioSession,
+  createOfflineMusicVideoAudioContext,
+  isAutomationMusicVideoAudioContext,
+  releaseMusicVideoAudioContext,
+} from "@/features/twitter-automation/automation-music-video-audio-session";
 
 export const MUSIC_VIDEO_DURATION_SECONDS = 30;
 
 type MusicVideoRenderOptions = {
-  audioContext: AudioContext;
+  audioContext: BaseAudioContext;
   durationSeconds?: number;
   imageUrl: string;
   musicUrl: string;
@@ -66,13 +79,6 @@ async function scheduleMusicTrack(context: AudioContext, destination: MediaStrea
   source.stop(endTime);
 }
 
-function createMusicVideoAudioContext() {
-  const AudioContextConstructor = window.AudioContext ?? window.webkitAudioContext;
-  if (!AudioContextConstructor) throw new Error("audio_not_supported");
-
-  return new AudioContextConstructor();
-}
-
 /**
  * Automation images are delivered from Supabase's signed, cross-origin URLs.
  * A canvas may display one of those images, but it becomes tainted and cannot
@@ -101,15 +107,7 @@ export async function loadCanvasSafeImage(source: string): Promise<CanvasSafeIma
  * gives browsers a document-level audio activation for the automated queue.
  */
 export function unlockMusicVideoAudio() {
-  try {
-    const audioContext = createMusicVideoAudioContext();
-    void audioContext.resume()
-      .catch(() => undefined)
-      .then(() => audioContext.state !== "closed" ? audioContext.close() : undefined)
-      .catch(() => undefined);
-  } catch {
-    // The queued renderer records the concrete failure against its output.
-  }
+  try { return unlockAutomationMusicVideoAudio(); } catch { return null; }
 }
 
 function waitForAudioResume(audioContext: AudioContext, signal?: AbortSignal) {
@@ -132,7 +130,8 @@ function waitForAudioResume(audioContext: AudioContext, signal?: AbortSignal) {
   });
 }
 
-export async function prepareMusicVideoAudio(signal?: AbortSignal) {
+export async function prepareMusicVideoAudio(signal?: AbortSignal, options: { reuseAutomationSession?: boolean } = {}) {
+  if (options.reuseAutomationSession) return await prepareAutomationMusicVideoAudio(signal);
   const audioContext = createMusicVideoAudioContext();
   try {
     await waitForAudioResume(audioContext, signal);
@@ -144,7 +143,7 @@ export async function prepareMusicVideoAudio(signal?: AbortSignal) {
   }
 }
 
-async function decodeMusic(audioContext: AudioContext, musicUrl: string) {
+async function decodeMusic(audioContext: BaseAudioContext, musicUrl: string) {
   const response = await fetch(musicUrl);
   if (!response.ok) throw new Error("music_load_failed");
   return await audioContext.decodeAudioData(await response.arrayBuffer());
@@ -165,7 +164,7 @@ async function renderOfflineMusic(buffer: AudioBuffer, offset: number, durationS
   return await offlineContext.startRendering();
 }
 
-async function canRenderMusicVideoDeterministically(width: number, height: number) {
+export async function canRenderMusicVideoDeterministically(width: number, height: number) {
   if (typeof OfflineAudioContext === "undefined") return false;
   return await canEncodeVideo("vp8", { width, height, bitrate: VIDEO_BITRATE })
     && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
@@ -204,11 +203,17 @@ async function renderDeterministicMusicVideo({ audioContext, durationSeconds, im
     if (!target.buffer) throw new Error("deterministic_recording_failed");
     return new Blob([target.buffer], { type: await output.getMimeType() });
   } finally {
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
-async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, image, musicUrl }: MusicVideoRenderOptionsWithImage) {
+type RealtimeMusicVideoRenderOptions = Omit<MusicVideoRenderOptionsWithImage, "audioContext"> & { audioContext: AudioContext };
+
+function isRealtimeAudioContext(audioContext: BaseAudioContext): audioContext is AudioContext {
+  return "createMediaStreamDestination" in audioContext && typeof audioContext.createMediaStreamDestination === "function";
+}
+
+async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_VIDEO_DURATION_SECONDS, image, musicUrl }: RealtimeMusicVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") {
     throw new Error("video_not_supported");
   }
@@ -264,7 +269,7 @@ async function renderRealtimeMusicVideo({ audioContext, durationSeconds = MUSIC_
   } finally {
     stream.getTracks().forEach((track) => track.stop());
     audioDestination.disconnect();
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
@@ -285,14 +290,9 @@ export async function renderMusicVideo(options: MusicVideoRenderOptions) {
         musicUrl: options.musicUrl,
       });
     }
-    return await renderRealtimeMusicVideo({ ...options, image: source.image });
+    if (!isRealtimeAudioContext(options.audioContext)) throw new Error("browser_video_realtime_audio_required");
+    return await renderRealtimeMusicVideo({ ...options, audioContext: options.audioContext, image: source.image });
   } finally {
     source.release();
-  }
-}
-
-declare global {
-  interface Window {
-    webkitAudioContext?: typeof AudioContext;
   }
 }

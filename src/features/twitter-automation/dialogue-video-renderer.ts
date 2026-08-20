@@ -1,3 +1,6 @@
+import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
+import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+
 export type DialogueVideoScene = {
   text: string;
   translation?: string;
@@ -6,7 +9,7 @@ export type DialogueVideoScene = {
 };
 
 type DialogueVideoRenderOptions = {
-  audioContext: AudioContext;
+  audioContext: BaseAudioContext;
   backgroundVideoUrl: string;
   backgroundVideoPath?: string;
   firstCharacter: string;
@@ -80,7 +83,7 @@ function getSubtitleCacheKey(scene: DialogueVideoScene) {
 
 function renderSubtitlesToCache(scene: DialogueVideoScene) {
   const key = getSubtitleCacheKey(scene);
-  let cached = subtitleCache.get(key);
+  const cached = subtitleCache.get(key);
   if (cached) return cached;
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
@@ -237,7 +240,7 @@ function getDialogueTiming(audioBuffers: readonly AudioBuffer[], scenes: readonl
   return { starts, durationSeconds };
 }
 
-async function decodeDialogueAudio(audioContext: AudioContext, scenes: readonly DialogueVideoScene[]) {
+async function decodeDialogueAudio(audioContext: BaseAudioContext, scenes: readonly DialogueVideoScene[]) {
   return await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
     if (!response.ok) throw new Error("speech_load_failed");
@@ -257,7 +260,7 @@ async function renderOfflineDialogueAudio(audioBuffers: readonly AudioBuffer[], 
   return await offlineContext.startRendering();
 }
 
-async function canRenderDialogueDeterministically() {
+export async function canRenderDialogueDeterministically() {
   if (typeof OfflineAudioContext === "undefined") return false;
   try {
     return await canEncodeVideo("vp8", {
@@ -350,7 +353,6 @@ export async function renderDialogueVideo(options: DialogueVideoRenderOptions) {
     if (!(await canRenderDialogueDeterministically())) throw new Error("video_not_supported");
     return await renderDeterministicDialogueVideo(options);
   } finally {
-    if (options.audioContext.state !== "closed") await options.audioContext.close();
+    await releaseMusicVideoAudioContext(options.audioContext);
   }
 }
-import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";

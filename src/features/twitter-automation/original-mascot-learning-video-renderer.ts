@@ -1,10 +1,11 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import type { OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
 import type { LanguageCode } from "@/types/domain";
 
 type OriginalMascotLearningVideoRenderOptions = {
-  audioContext: AudioContext;
+  audioContext: BaseAudioContext;
   scenes: readonly OriginalMascotLearningVideoScene[];
   language?: LanguageCode;
   nativeLanguage?: LanguageCode;
@@ -547,7 +548,7 @@ async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLear
   return { original, mascot4, mascot18, speaker, learningFlag, nativeFlag, splash: prepareSplash(splash) };
 }
 
-async function decodeOriginalMascotAudio(audioContext: AudioContext, scenes: readonly OriginalMascotLearningVideoScene[]) {
+async function decodeOriginalMascotAudio(audioContext: BaseAudioContext, scenes: readonly OriginalMascotLearningVideoScene[]) {
   return await Promise.all(scenes.map(async (scene) => {
     if (!scene.audioDataUrl) return null;
     const response = await fetch(scene.audioDataUrl);
@@ -579,7 +580,7 @@ async function renderOriginalMascotOfflineAudio(
   return await offlineContext.startRendering();
 }
 
-async function canRenderOriginalMascotDeterministically() {
+export async function canRenderOriginalMascotDeterministically() {
   if (typeof OfflineAudioContext === "undefined") return false;
   return await canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE })
     && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
@@ -617,12 +618,18 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
     if (!target.buffer) throw new Error("deterministic_recording_failed");
     return new Blob([target.buffer], { type: await output.getMimeType() });
   } finally {
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
 /** Legacy real-time renderer for browsers without WebCodecs. */
-async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: OriginalMascotLearningVideoRenderOptions) {
+type RealtimeOriginalMascotLearningVideoRenderOptions = Omit<OriginalMascotLearningVideoRenderOptions, "audioContext"> & { audioContext: AudioContext };
+
+function isRealtimeAudioContext(audioContext: BaseAudioContext): audioContext is AudioContext {
+  return "createMediaStreamDestination" in audioContext && typeof audioContext.createMediaStreamDestination === "function";
+}
+
+async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: RealtimeOriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length < 2 || scenes.length > 20) throw new Error("invalid_video_scene_count");
 
@@ -682,7 +689,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes,
   } finally {
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
@@ -692,5 +699,6 @@ export async function renderOriginalMascotLearningVideo(options: OriginalMascotL
   if (await canRenderOriginalMascotDeterministically()) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }
-  return await renderRealtimeOriginalMascotLearningVideo(options);
+  if (!isRealtimeAudioContext(options.audioContext)) throw new Error("browser_video_realtime_audio_required");
+  return await renderRealtimeOriginalMascotLearningVideo({ ...options, audioContext: options.audioContext });
 }

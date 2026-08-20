@@ -12,10 +12,10 @@ import { browserVideoFailureCode, browserVideoRetryDelayMs, browserVideoTimeoutM
 import { getOrCreateBrowserVideoPlan, type BrowserVideoPlan } from "@/features/twitter-automation/browser-video-plan";
 import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
 import { AutomationGenerationStatusSummary } from "@/features/twitter-automation/components/automation-generation-status-summary";
-import { renderConfusedWordsVideo } from "@/features/twitter-automation/confused-words-video-renderer";
-import { renderDialogueVideo } from "@/features/twitter-automation/dialogue-video-renderer";
-import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
-import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
+import { canRenderConfusedWordsDeterministically, renderConfusedWordsVideo } from "@/features/twitter-automation/confused-words-video-renderer";
+import { canRenderDialogueDeterministically, renderDialogueVideo } from "@/features/twitter-automation/dialogue-video-renderer";
+import { canRenderMusicVideoDeterministically, closeAutomationMusicVideoAudioSession, createOfflineMusicVideoAudioContext, isAutomationMusicVideoAudioContext, prepareMusicVideoAudio, releaseMusicVideoAudioContext, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { canRenderOriginalMascotDeterministically, renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
 import { isFailedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
 import { cn } from "@/lib/utils";
@@ -161,45 +161,76 @@ function abortableBrowserVideoTask<T>(task: Promise<T>, signal: AbortSignal) {
   });
 }
 
-async function renderPreparedBrowserVideo(output: AutomationOutput, plan: BrowserVideoPlan, signal: AbortSignal, scope: AutomationScope) {
-  let audioContext: AudioContext | null = null;
+async function canUseOfflineAudioForBrowserVideo(plan: BrowserVideoPlan) {
   try {
+    if (plan.kind === "confused") return await canRenderConfusedWordsDeterministically();
+    if (plan.kind === "dialogue") return await canRenderDialogueDeterministically();
+    if (plan.kind === "original") return await canRenderOriginalMascotDeterministically();
+    // Social image sources are at most this 9:16 raster. A successful probe
+    // means the actual, equal-or-smaller source can use WebCodecs as well.
+    return await canRenderMusicVideoDeterministically(1080, 1920);
+  } catch {
+    return false;
+  }
+}
+
+async function renderBrowserVideoPlan(output: AutomationOutput, plan: BrowserVideoPlan, audioContext: BaseAudioContext, signal: AbortSignal) {
+  if (plan.kind === "confused") {
+    return await abortableBrowserVideoTask(renderConfusedWordsVideo({
+      audioContext,
+      phases: plan.phases,
+      scenes: plan.scenes,
+    }), signal);
+  }
+  if (plan.kind === "dialogue") {
+    return await abortableBrowserVideoTask(renderDialogueVideo({
+      audioContext,
+      backgroundVideoUrl: plan.backgroundVideoUrl,
+      backgroundVideoPath: plan.backgroundVideoPath,
+      firstCharacter: plan.firstCharacter,
+      secondCharacter: plan.secondCharacter,
+      scenes: plan.scenes,
+    }), signal);
+  }
+  if (plan.kind === "original") {
+    return await abortableBrowserVideoTask(renderOriginalMascotLearningVideo({
+      audioContext,
+      scenes: plan.scenes,
+      language: output.language,
+      nativeLanguage: output.native_language,
+    }), signal);
+  }
+  if (!output.mediaUrl) throw new Error("browser_video_source_unavailable");
+  return await abortableBrowserVideoTask(renderMusicVideo({ audioContext, imageUrl: output.mediaUrl, musicUrl: plan.musicUrl }), signal);
+}
+
+async function renderPreparedBrowserVideo(output: AutomationOutput, plan: BrowserVideoPlan, signal: AbortSignal, scope: AutomationScope) {
+  let audioContext: BaseAudioContext | null = null;
+  try {
+    const useOfflineAudio = await canUseOfflineAudioForBrowserVideo(plan);
     try {
-      audioContext = await prepareMusicVideoAudio(signal);
+      audioContext = useOfflineAudio
+        ? createOfflineMusicVideoAudioContext()
+        : await prepareMusicVideoAudio(signal, { reuseAutomationSession: true });
     } catch (error) {
       throw new Error(browserVideoFailureCode(error, "browser_video_audio_prepare_failed"));
     }
 
     let blob: Blob;
     try {
-      if (plan.kind === "confused") {
-        blob = await abortableBrowserVideoTask(renderConfusedWordsVideo({
-          audioContext,
-          phases: plan.phases,
-          scenes: plan.scenes,
-        }), signal);
-      } else if (plan.kind === "dialogue") {
-        blob = await abortableBrowserVideoTask(renderDialogueVideo({
-          audioContext,
-          backgroundVideoUrl: plan.backgroundVideoUrl,
-          backgroundVideoPath: plan.backgroundVideoPath,
-          firstCharacter: plan.firstCharacter,
-          secondCharacter: plan.secondCharacter,
-          scenes: plan.scenes,
-        }), signal);
-      } else if (plan.kind === "original") {
-        blob = await abortableBrowserVideoTask(renderOriginalMascotLearningVideo({
-          audioContext,
-          scenes: plan.scenes,
-          language: output.language,
-          nativeLanguage: output.native_language,
-        }), signal);
+      blob = await renderBrowserVideoPlan(output, plan, audioContext, signal);
+    } catch (error) {
+      if (useOfflineAudio && browserVideoFailureCode(error) === "browser_video_realtime_audio_required") {
+        await releaseMusicVideoAudioContext(audioContext);
+        try {
+          audioContext = await prepareMusicVideoAudio(signal, { reuseAutomationSession: true });
+        } catch (fallbackError) {
+          throw new Error(browserVideoFailureCode(fallbackError, "browser_video_audio_prepare_failed"));
+        }
+        blob = await renderBrowserVideoPlan(output, plan, audioContext, signal);
       } else {
-        if (!output.mediaUrl) throw new Error("browser_video_source_unavailable");
-        blob = await abortableBrowserVideoTask(renderMusicVideo({ audioContext, imageUrl: output.mediaUrl, musicUrl: plan.musicUrl }), signal);
+        throw new Error(browserVideoFailureCode(error, "browser_video_encode_failed"));
       }
-    } catch {
-      throw new Error("browser_video_encode_failed");
     }
 
     try {
@@ -215,7 +246,7 @@ async function renderPreparedBrowserVideo(output: AutomationOutput, plan: Browse
       throw new Error("browser_video_stage_failed");
     }
   } finally {
-    if (audioContext && audioContext.state !== "closed") await audioContext.close();
+    if (!isAutomationMusicVideoAudioContext(audioContext)) await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
@@ -758,6 +789,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     browserVideoRetryTimers.current.forEach((timer) => window.clearTimeout(timer));
     browserVideoRetryTimers.current.clear();
     browserVideoPlans.current.clear();
+    void closeAutomationMusicVideoAudioSession();
   }, []);
 
   useEffect(() => {

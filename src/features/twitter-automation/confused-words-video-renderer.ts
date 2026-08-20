@@ -1,4 +1,5 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
+import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
 import type { VocabularyCard } from "@/types/domain";
 
 export type ConfusedWordsVideoScene = {
@@ -16,7 +17,7 @@ type ConfusedWordsCardPair = {
 };
 
 type ConfusedWordsVideoRenderOptions = {
-  audioContext: AudioContext;
+  audioContext: BaseAudioContext;
   cardImageUrls?: readonly string[];
   phases?: readonly ConfusedWordsCardPair[];
   /** Legacy two-card input retained for Automation Table render requests. */
@@ -291,7 +292,7 @@ function getConfusedWordsTiming(audioBuffers: readonly AudioBuffer[], playbackRa
   return { starts, durationSeconds: elapsedSeconds + 0.28 };
 }
 
-async function decodeConfusedWordsAudio(audioContext: AudioContext, scenes: readonly ConfusedWordsVideoScene[]) {
+async function decodeConfusedWordsAudio(audioContext: BaseAudioContext, scenes: readonly ConfusedWordsVideoScene[]) {
   return await Promise.all(scenes.map(async (scene) => {
     const response = await fetch(scene.audioDataUrl);
     if (!response.ok) throw new Error("speech_load_failed");
@@ -331,7 +332,7 @@ async function renderConfusedWordsOfflineAudio(
   return await offlineContext.startRendering();
 }
 
-async function canRenderConfusedWordsDeterministically() {
+export async function canRenderConfusedWordsDeterministically() {
   if (typeof OfflineAudioContext === "undefined") return false;
   return await canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE })
     && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
@@ -384,12 +385,18 @@ async function renderDeterministicConfusedWordsVideo(options: ConfusedWordsVideo
     if (!target.buffer) throw new Error("deterministic_recording_failed");
     return new Blob([target.buffer], { type: await output.getMimeType() });
   } finally {
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
 /** Legacy real-time renderer for browsers without WebCodecs. */
-async function renderRealtimeConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
+type RealtimeConfusedWordsVideoRenderOptions = Omit<ConfusedWordsVideoRenderOptions, "audioContext"> & { audioContext: AudioContext };
+
+function isRealtimeAudioContext(audioContext: BaseAudioContext): audioContext is AudioContext {
+  return "createMediaStreamDestination" in audioContext && typeof audioContext.createMediaStreamDestination === "function";
+}
+
+async function renderRealtimeConfusedWordsVideo(options: RealtimeConfusedWordsVideoRenderOptions) {
   const { audioContext, cardImageUrls, firstCardImageUrl, secondCardImageUrl, scenes } = options;
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (!scenes.length || scenes.length % 8 !== 0) throw new Error("invalid_video_scene_count");
@@ -473,7 +480,7 @@ async function renderRealtimeConfusedWordsVideo(options: ConfusedWordsVideoRende
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     canvas.remove();
-    await audioContext.close();
+    await releaseMusicVideoAudioContext(audioContext);
   }
 }
 
@@ -488,5 +495,6 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   if (await canRenderConfusedWordsDeterministically()) {
     return await renderDeterministicConfusedWordsVideo(options);
   }
-  return await renderRealtimeConfusedWordsVideo(options);
+  if (!isRealtimeAudioContext(options.audioContext)) throw new Error("browser_video_realtime_audio_required");
+  return await renderRealtimeConfusedWordsVideo({ ...options, audioContext: options.audioContext });
 }
