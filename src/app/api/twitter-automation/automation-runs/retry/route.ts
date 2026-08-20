@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { refreshAutomationRunStatus } from "@/features/twitter-automation/automation-run-service";
+import { finalizeAutomationOutputCheckpoint, refreshAutomationRunStatus, type AutomationOutputRecord } from "@/features/twitter-automation/automation-run-service";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 import { hasSocialStudioAutomationSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -14,23 +14,22 @@ const requestSchema = z.object({
   scope: z.enum(["production", "test"]).optional(),
 }).strict();
 
-type RetryableOutput = {
-  id: string;
-  run_id: string;
-  status: string;
-  content_type: "text" | "image" | "video";
-  caption: string | null;
-  media_path: string | null;
-  media_paths: unknown;
-  media_type: "image" | "video" | null;
-  generator: string;
-  error_code: string | null;
-  provider_task_id: string | null;
-  updated_at: string;
-};
+type RetryableOutput = AutomationOutputRecord & { updated_at: string; render_plan?: unknown };
+
+const BROWSER_IMAGE_GENERATORS = new Set([
+  "word-of-the-day",
+  "word-of-the-day-poster",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+]);
 
 function hasReusableMedia(output: RetryableOutput) {
-  return Boolean(output.caption && output.media_type && (output.media_path || (Array.isArray(output.media_paths) && output.media_paths.length)));
+  return Boolean(output.media_type && (output.media_path || (Array.isArray(output.media_paths) && output.media_paths.length)));
 }
 
 function hasReusableContent(output: RetryableOutput) {
@@ -43,6 +42,11 @@ function shouldRetryBrowserVideo(output: RetryableOutput) {
     && Boolean(output.media_path);
 }
 
+function shouldRetryBrowserImage(output: RetryableOutput) {
+  const sourceGenerator = output.generator.startsWith("music-") ? output.generator.slice("music-".length) : output.generator;
+  return output.media_type === null && output.render_plan !== null && output.render_plan !== undefined && BROWSER_IMAGE_GENERATORS.has(sourceGenerator);
+}
+
 function isStaleProcessing(output: RetryableOutput) {
   if (output.status !== "processing") return false;
   const updatedAt = new Date(output.updated_at).getTime();
@@ -52,7 +56,14 @@ function isStaleProcessing(output: RetryableOutput) {
 function statusForRetry(output: RetryableOutput) {
   if (shouldRetryBrowserVideo(output)) return "awaiting_browser_video";
   if (output.provider_task_id && output.content_type === "video" && output.media_type !== "video") return "generating_video";
+  // A persisted browser plan is a durable checkpoint. Resume the raster step
+  // directly; only a missing plan should return to the normal queued path.
+  if (shouldRetryBrowserImage(output)) return "awaiting_browser_image";
   if (hasReusableContent(output) && !output.error_code?.startsWith("automation_quality_")) return "ready_to_schedule";
+  // Media without a caption is reconciled before this branch. If quality
+  // validation rejected it, keep the media and let the normal checkpoint
+  // finalizer retry validation rather than recreating the visual.
+  if (hasReusableMedia(output)) return "queued";
   return "queued";
 }
 
@@ -67,7 +78,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const { data: output, error: outputError } = await supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,status,content_type,caption,media_path,media_paths,media_type,generator,error_code,provider_task_id,updated_at,attempt_count,next_attempt_at")
+      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at,updated_at")
       .eq("id", parsed.data.outputId)
       .maybeSingle<RetryableOutput>();
     if (outputError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
@@ -82,7 +93,19 @@ export async function POST(request: NextRequest) {
     if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
     const retryingStaleProcessing = isStaleProcessing(output);
-    if (output.status !== "failed" && !retryingStaleProcessing) return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });
+    const retryableWaitingStatus = output.status === "queued" || output.status === "awaiting_browser_image" || output.status === "awaiting_browser_video";
+    if (output.status !== "failed" && !retryingStaleProcessing && !retryableWaitingStatus) return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });
+
+    // Never regenerate media only because its caption failed. The checkpoint
+    // finalizer writes the localized FoxiesDeck fallback caption, validates the
+    // existing staged media, and marks the output ready when it is healthy.
+    if (hasReusableMedia(output) && !output.caption?.trim()) {
+      const ready = await finalizeAutomationOutputCheckpoint(output);
+      if (ready) {
+        await refreshAutomationRunStatus(run.id);
+        return NextResponse.json({ outputId: output.id, status: "ready_to_schedule", resumedFrom: "media_checkpoint" });
+      }
+    }
 
     const status = statusForRetry(output);
     const retryPatch = {

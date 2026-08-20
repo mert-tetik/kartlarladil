@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GeneratedPostsTable } from "./generated-posts-table";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { canRenderMusicVideoDeterministically, createOfflineMusicVideoAudioContext, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
 
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
@@ -84,15 +85,16 @@ describe("GeneratedPostsTable", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
+    for (const delay of AUTOMATION_RETRY_DELAYS_MS) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+        await Promise.resolve();
+      });
+    }
 
     const hint = screen.getByRole("button", { name: "Üretim hata ayrıntısını göster" });
     const tooltip = screen.getByRole("tooltip");
@@ -348,7 +350,7 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(AUTOMATION_RETRY_DELAYS_MS[0]);
       await Promise.resolve();
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -537,15 +539,16 @@ describe("GeneratedPostsTable", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
+    for (const delay of AUTOMATION_RETRY_DELAYS_MS) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+        await Promise.resolve();
+      });
+    }
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Yeniden üret" }));
@@ -558,7 +561,7 @@ describe("GeneratedPostsTable", () => {
     expect(JSON.parse(String(retryCall?.[1]?.body))).toMatchObject({ outputId: failedOutput.id, scope: "test" });
   });
 
-  it("waits 30 seconds and retries unfinished renders twice before opening the results screen", async () => {
+  it("uses staged recovery delays and keeps the progress screen open until all recovery attempts finish", async () => {
     vi.useFakeTimers();
     const failedOutput = {
       id: "1d13ccca-d537-4a5a-9a08-20df9c391007",
@@ -601,7 +604,7 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getAllByText(/30 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(AUTOMATION_RETRY_DELAYS_MS[0]);
       await Promise.resolve();
     });
     expect(retryCalls).toBe(1);
@@ -609,13 +612,19 @@ describe("GeneratedPostsTable", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getAllByText(/30 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/120 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-      await Promise.resolve();
-    });
-    expect(retryCalls).toBe(2);
+    for (const delay of AUTOMATION_RETRY_DELAYS_MS.slice(1)) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+        await Promise.resolve();
+      });
+    }
+    expect(retryCalls).toBe(AUTOMATION_RETRY_DELAYS_MS.length);
     expect(screen.getByText("Gönderime hazır içerikler")).toBeVisible();
   });
 

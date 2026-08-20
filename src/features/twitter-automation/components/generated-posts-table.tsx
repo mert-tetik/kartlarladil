@@ -17,6 +17,7 @@ import { canRenderDialogueDeterministically, renderDialogueVideo } from "@/featu
 import { canRenderMusicVideoDeterministically, closeAutomationMusicVideoAudioSession, createOfflineMusicVideoAudioContext, isAutomationMusicVideoAudioContext, prepareMusicVideoAudio, releaseMusicVideoAudioContext, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { canRenderOriginalMascotDeterministically, renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
+import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
 import { isFailedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
@@ -52,9 +53,11 @@ type ModeDurationProfiles = Record<string, number>;
 
 const FLOW_REFRESH_ERROR_MESSAGE = "İçerik üretim akışı yenilenemedi.";
 const AUTO_RESUME_COOLDOWN_MS = 30_000;
-const MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS = 2;
+const MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS = AUTOMATION_RETRY_DELAYS_MS.length;
 const STALE_PROCESSING_MS = 3 * 60_000;
-const RECOVERY_RETRY_CONCURRENCY = 3;
+// Creative-plan recovery is intentionally serial. Retrying several provider
+// failures in parallel tends to create another rate-limit/error wave.
+const RECOVERY_RETRY_CONCURRENCY = 1;
 
 const BROWSER_IMAGE_GENERATORS = new Set([
   "word-of-the-day",
@@ -135,6 +138,19 @@ function isReadyForSchedule(output: AutomationOutput) {
 
 function needsGeneration(output: AutomationOutput) {
   return !isOutputSettled(output);
+}
+
+function pendingGenerationMessage(output: AutomationOutput, isInterruptedReview: boolean) {
+  if (isInterruptedReview) return FLOW_REFRESH_ERROR_MESSAGE;
+  if (output.status === "queued") return "Kuyrukta: son sağlam aşamadan üretime yeniden alınacak.";
+  if (output.status === "awaiting_browser_image") return output.render_plan
+    ? "Görsel planı hazır: browser PNG renderı bekleniyor."
+    : "Görsel planı hazırlanıp browser renderına geçilecek.";
+  if (output.status === "awaiting_browser_video") return output.media_type === "image" && output.mediaUrl
+    ? "Görsel kaynak hazır: video renderı bekleniyor."
+    : "Video planı hazırlanıp browser renderına geçilecek.";
+  if (output.status === "generating_video") return "Video sağlayıcısının sonucu bekleniyor.";
+  return "İçerik güvenli şekilde işleniyor; renderer heartbeat bekleniyor.";
 }
 
 function isStaleProcessingOutput(output: AutomationOutput, now: number) {
@@ -372,7 +388,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [outputs]);
   const isIdleAfterGeneration = state === "ready" && outputs.length > 0 && !nextOutput && !browserImageOutputs.length && !browserVideoOutputs.length && !processingOutputId;
   const shouldRecoverFailedOutputs = isIdleAfterGeneration && !isInterruptedReview && recoveryOutputs.length > 0 && renderRecoveryAttempt < MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS;
-  const isReviewReady = isIdleAfterGeneration && !isRecoveringFailedOutputs && (!unresolvedOutputs.length || renderRecoveryAttempt >= MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS) && (!failedOutputs.length || renderRecoveryAttempt >= MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS);
+  // Waiting work is not a result. Keep processing visible until each output
+  // reaches a successful or a concrete failed state.
+  const isReviewReady = isIdleAfterGeneration && !isRecoveringFailedOutputs && !unresolvedOutputs.length && (!failedOutputs.length || renderRecoveryAttempt >= MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS);
   const isResultScreen = isReviewReady || isInterruptedReview;
   const hasPendingReviewOutputs = isResultScreen && pendingReviewOutputs.length > 0;
   const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : browserImageOutputs[0] ?? nextOutput;
@@ -386,6 +404,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     ? Math.max(0, Math.ceil((resumeCooldownEndsAt - now) / 1_000))
     : null;
   const renderRecoverySeconds = renderRecoveryEndsAt === null ? null : Math.max(0, Math.ceil((renderRecoveryEndsAt - now) / 1_000));
+  const nextRenderRecoveryDelayMs = AUTOMATION_RETRY_DELAYS_MS[Math.min(renderRecoveryAttempt, AUTOMATION_RETRY_DELAYS_MS.length - 1)]!;
 
   const processNext = useCallback(async () => {
     if (!nextOutput || processingOutputId) return;
@@ -620,10 +639,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
   const retryOutput = useCallback(async (output: AutomationOutput) => {
     if (processingOutputId || retryingOutputId) return;
-    if (output.status !== "failed" && !isStaleProcessingOutput(output, Date.now())) {
-      await resumeAutomation();
-      return;
-    }
 
     setRetryingOutputId(output.id);
     setMessage("");
@@ -656,7 +671,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     } finally {
       setRetryingOutputId(null);
     }
-  }, [processingOutputId, resumeAutomation, retryingOutputId, scope]);
+  }, [processingOutputId, retryingOutputId, scope]);
 
   const retryRecoveryOutputs = useCallback(async (recoverableOutputs: AutomationOutput[]) => {
     if (!recoverableOutputs.length || processingOutputId || retryingOutputId || isRecoveringFailedOutputs) return;
@@ -743,10 +758,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     const timer = window.setTimeout(() => {
       const startedAt = Date.now();
       setNow(startedAt);
-      setRenderRecoveryEndsAt(startedAt + AUTO_RESUME_COOLDOWN_MS);
+      setRenderRecoveryEndsAt(startedAt + nextRenderRecoveryDelayMs);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [isRecoveringFailedOutputs, renderRecoveryEndsAt, shouldRecoverFailedOutputs]);
+  }, [isRecoveringFailedOutputs, nextRenderRecoveryDelayMs, renderRecoveryEndsAt, shouldRecoverFailedOutputs]);
 
   useEffect(() => {
     if (!shouldRecoverFailedOutputs || isRecoveringFailedOutputs || renderRecoveryEndsAt === null) return;
@@ -869,7 +884,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
           <div className="mt-3 flex items-center gap-2 text-xs text-[#d7e2da]"><CalendarClock className="size-3.5 shrink-0 text-[#c7f05d]" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
           <div className="relative mt-3">
             {output.mediaUrls?.length ? <div className="grid grid-cols-3 gap-1 overflow-hidden rounded border border-white/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-sm" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
-            <MediaStatusHint errorCode={output.error_code} pendingMessage={isPendingVerification ? isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : "İçerik üretimi tamamlanmadan kesildi; yeniden denemeye alınabilir." : undefined} />
+            <MediaStatusHint errorCode={output.error_code} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
           </div>
           {canRetry ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
         </article>;

@@ -526,6 +526,17 @@ async function finalizeStoredOutputIfComplete(output: AutomationOutputRecord) {
   return await makeAutomationOutputReady(restored, patch);
 }
 
+/**
+ * Reconcile an output with its durable checkpoint before asking any provider
+ * or browser renderer to do work again. In particular, a staged image/video
+ * with a missing caption gets the deterministic native-language fallback and
+ * is quality-checked instead of being regenerated.
+ */
+export async function finalizeAutomationOutputCheckpoint(output: AutomationOutputRecord) {
+  const finalized = await finalizeStoredOutputIfComplete(output);
+  return finalized === true;
+}
+
 async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typeof MUSIC_VIDEO_GENERATORS)[number], tier: Tier) {
   const sourceGenerator = generator.slice("music-".length);
   if ((NON_AI_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator) || (SELF_IMAGE_GENERATORS as readonly string[]).includes(sourceGenerator)) {
