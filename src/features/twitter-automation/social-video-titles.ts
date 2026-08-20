@@ -44,6 +44,23 @@ const NATIVE_CAPTION_HASHTAGS: Record<LanguageCode, readonly string[]> = {
   "zh-CN": ["#语言学习", "#词汇", "#外语学习", "#语言练习", "#背单词"],
 };
 
+const FOXIESDECK_DOWNLOAD_CAPTIONS: Record<LanguageCode, string> = {
+  tr: "Her g\u00fcn sadece birka\u00e7 dakikada kelime hazneni b\u00fcy\u00fct. FoxiesDeck'i indir ve \u00f6\u011frenmeye ba\u015fla.",
+  en: "Grow your vocabulary in just a few minutes a day. Download FoxiesDeck and start learning.",
+  de: "Erweitere deinen Wortschatz in wenigen Minuten am Tag. Lade FoxiesDeck herunter und starte jetzt.",
+  ru: "\u041f\u043e\u043f\u043e\u043b\u043d\u044f\u0439 \u0441\u043b\u043e\u0432\u0430\u0440\u043d\u044b\u0439 \u0437\u0430\u043f\u0430\u0441 \u0432\u0441\u0435\u0433\u043e \u0437\u0430 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043c\u0438\u043d\u0443\u0442 \u0432 \u0434\u0435\u043d\u044c. \u0421\u043a\u0430\u0447\u0430\u0439 FoxiesDeck \u0438 \u043d\u0430\u0447\u0438\u043d\u0430\u0439 \u0443\u0447\u0438\u0442\u044c\u0441\u044f.",
+  fr: "Enrichis ton vocabulaire en quelques minutes par jour. T\u00e9l\u00e9charge FoxiesDeck et commence \u00e0 apprendre.",
+  es: "Ampl\u00eda tu vocabulario en solo unos minutos al d\u00eda. Descarga FoxiesDeck y empieza a aprender.",
+  it: "Amplia il tuo vocabolario in pochi minuti al giorno. Scarica FoxiesDeck e inizia a imparare.",
+  pt: "Aumente seu vocabul\u00e1rio em poucos minutos por dia. Baixe o FoxiesDeck e comece a aprender.",
+  nl: "Vergroot je woordenschat in een paar minuten per dag. Download FoxiesDeck en begin met leren.",
+  pl: "Rozwijaj s\u0142ownictwo w kilka minut dziennie. Pobierz FoxiesDeck i zacznij nauk\u0119.",
+  ar: "\u0648\u0633\u0651\u0639 \u0645\u0641\u0631\u062f\u0627\u062a\u0643 \u0641\u064a \u062f\u0642\u0627\u0626\u0642 \u0642\u0644\u064a\u0644\u0629 \u064a\u0648\u0645\u064a\u064b\u0627. \u062d\u0645\u0651\u0644 FoxiesDeck \u0648\u0627\u0628\u062f\u0623 \u0627\u0644\u062a\u0639\u0644\u0651\u0645.",
+  ja: "\u6bce\u65e5\u6570\u5206\u3067\u8a9e\u5f59\u3092\u5897\u3084\u305d\u3046\u3002FoxiesDeck\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u3066\u5b66\u7fd2\u3092\u59cb\u3081\u3088\u3046\u3002",
+  ko: "\ub9e4\uc77c \uba87 \ubd84\uc73c\ub85c \uc5b4\ud718\ub825\uc744 \ud0a4\uc6cc \ubcf4\uc138\uc694. FoxiesDeck\uc744 \ub2e4\uc6b4\ub85c\ub4dc\ud558\uace0 \ud559\uc2b5\uc744 \uc2dc\uc791\ud558\uc138\uc694.",
+  "zh-CN": "\u6bcf\u5929\u82b1\u51e0\u5206\u949f\u6269\u5145\u8bcd\u6c47\u91cf\u3002\u4e0b\u8f7d FoxiesDeck\uff0c\u5f00\u59cb\u5b66\u4e60\u5427\u3002",
+};
+
 const NATIVE_VIDEO_CAPTION_HEADINGS: Record<LanguageCode, Record<"marketingDialogue" | "everydayDialogue" | "sentenceCheck" | "sentenceTranslation", string>> = {
   tr: { marketingDialogue: "FoxiesDeck Diyaloğu", everydayDialogue: "Günlük Diyalog", sentenceCheck: "Cümle Kontrolü", sentenceTranslation: "Rastgele Cümleler" },
   en: { marketingDialogue: "FoxiesDeck Dialogue", everydayDialogue: "Everyday Dialogue", sentenceCheck: "Sentence Check", sentenceTranslation: "Random Sentences" },
@@ -155,6 +172,11 @@ export function getWordOfTheDayTitle(language: LanguageCode) {
 
 export function getNativeCaptionHashtags(language: LanguageCode) {
   return NATIVE_CAPTION_HASHTAGS[language];
+}
+
+/** Deterministic native-language caption used only after visual media succeeds without a usable caption. */
+export function createFoxiesDeckDownloadCaption(nativeLanguage: LanguageCode) {
+  return finalizeNativeCaption(FOXIESDECK_DOWNLOAD_CAPTIONS[nativeLanguage], nativeLanguage);
 }
 
 export function getNativeCaptionHeading(language: LanguageCode, kind: SocialCaptionKind) {

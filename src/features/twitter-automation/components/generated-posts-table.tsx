@@ -17,6 +17,7 @@ import { renderDialogueVideo } from "@/features/twitter-automation/dialogue-vide
 import { prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
+import { isFailedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
@@ -121,11 +122,11 @@ function parseModeDurationProfiles(value: unknown): ModeDurationProfiles {
 }
 
 function isGenerationComplete(output: AutomationOutput) {
-  return output.status === "ready_to_schedule" || output.status === "scheduled";
+  return isSuccessfulAutomationOutput(output);
 }
 
 function isOutputSettled(output: AutomationOutput) {
-  return isGenerationComplete(output) || output.status === "failed";
+  return isGenerationComplete(output) || isFailedAutomationOutput(output);
 }
 
 function isReadyForSchedule(output: AutomationOutput) {
@@ -265,6 +266,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [processingOutputId, setProcessingOutputId] = useState<string | null>(null);
   const [processingStartedAt, setProcessingStartedAt] = useState<number | null>(null);
   const [isSchedulingAll, setIsSchedulingAll] = useState(false);
+  const [isRefreshingGeneratedMedia, setIsRefreshingGeneratedMedia] = useState(false);
   const [message, setMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [isInterruptedReview, setIsInterruptedReview] = useState(false);
@@ -327,7 +329,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [browserImageOutputs.length, browserVideoOutputs.length, generationQueue]);
   const completeCount = useMemo(() => outputs.filter(isGenerationComplete).length, [outputs]);
   const readyOutputs = useMemo(() => outputs.filter(isReadyForSchedule), [outputs]);
-  const failedOutputs = useMemo(() => outputs.filter((output) => output.status === "failed"), [outputs]);
+  const failedOutputs = useMemo(() => outputs.filter(isFailedAutomationOutput), [outputs]);
   const unresolvedOutputs = useMemo(() => outputs.filter(needsGeneration), [outputs]);
   const staleProcessingOutputs = useMemo(() => outputs.filter((output) => isStaleProcessingOutput(output, now)), [now, outputs]);
   const recoveryOutputs = useMemo(() => [...failedOutputs, ...staleProcessingOutputs], [failedOutputs, staleProcessingOutputs]);
@@ -535,9 +537,11 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ runId, scope }),
       });
-      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; errorCode?: string } | null;
+      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; skipped?: number; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
-      setMessage(payload?.failed ? `${payload.scheduled ?? 0} içerik schedule edildi; ${payload.failed} içerik schedule edilemedi.` : `${payload?.scheduled ?? 0} içerik belirlenen tarih ve saatlere schedule edildi.`);
+      const scheduledCount = payload?.scheduled ?? 0;
+      const skippedMessage = payload?.skipped ? ` ${payload.skipped} hazır olmayan içerik atlandı.` : "";
+      setMessage(payload?.failed ? `${scheduledCount} içerik schedule edildi; ${payload.failed} içerik schedule edilemedi.${skippedMessage}` : `${scheduledCount} içerik belirlenen tarih ve saatlere schedule edildi.${skippedMessage}`);
     } catch {
       setMessage("İçerikler schedule edilemedi. Review ekranındaki içerikler korunuyor; tekrar deneyebilirsin.");
     } finally {
@@ -545,6 +549,29 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       setIsSchedulingAll(false);
     }
   }, [isSchedulingAll, isTestAutomation, load, processingOutputId, readyOutputs.length, runId, scope]);
+
+  const refreshGeneratedMedia = useCallback(async () => {
+    if (isRefreshingGeneratedMedia || processingOutputId) return;
+    setIsRefreshingGeneratedMedia(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/twitter-automation/automation-runs/refresh-media", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ runId, scope }),
+      });
+      const payload = await response.json().catch(() => null) as { checked?: number; invalid?: number; unavailable?: number; errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_media_refresh_failed");
+      const invalidMessage = payload?.invalid ? ` ${payload.invalid} eksik veya geçersiz medya hatalı olarak işaretlendi.` : "";
+      const unavailableMessage = payload?.unavailable ? ` ${payload.unavailable} medya Storage geçici olarak yanıt vermediği için korunuyor.` : "";
+      setMessage(`${payload?.checked ?? 0} medya önizlemesi Storage’dan yeniden doğrulandı.${invalidMessage}${unavailableMessage}`);
+      await load(false, true);
+    } catch {
+      setMessage("Medya önizlemeleri yenilenemedi. İçerik durumları korunuyor; tekrar deneyebilirsin.");
+    } finally {
+      setIsRefreshingGeneratedMedia(false);
+    }
+  }, [isRefreshingGeneratedMedia, load, processingOutputId, runId, scope]);
 
   const resumeAutomation = useCallback(async () => {
     if (processingOutputId || retryingOutputId) return;
@@ -776,8 +803,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       output={browserImageOutput}
     /> : null}
     <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4">
-      <div className="min-w-0"><p className="truncate text-sm font-semibold">{isResultScreen ? "Üretilen içerikler" : "İçerikler hazırlanıyor"}</p><p className="truncate text-xs text-[#8d9b92]">{outputs.length} içerik · {completeCount} tamamlandı</p></div>
-      <div className="flex items-center gap-2"><Button aria-label="İçerik durumunu yenile" className="size-8 rounded border-transparent bg-white/[0.06] p-0 text-[#d7e2da] hover:bg-white/[0.12]" disabled={state === "loading" || Boolean(processingOutputId) || isSchedulingAll} onClick={() => void load(true)} type="button"><RefreshCw className={cn("size-3.5", state === "loading" && "animate-spin")} /></Button><Button className="h-8 rounded border-white/10 bg-white/[0.06] px-3 text-xs text-[#d7e2da] hover:bg-white/[0.12]" disabled={Boolean(processingOutputId) || isSchedulingAll || (state === "ready" && !isReviewReady)} onClick={onClose} type="button"><X className="size-3.5" />Kapat</Button></div>
+      <div className="min-w-0"><p className="truncate text-sm font-semibold">{isResultScreen ? "Üretilen içerikler" : "İçerikler hazırlanıyor"}</p><p className="truncate text-xs text-[#8d9b92]">{outputs.length} içerik · {completeCount} başarılı</p></div>
+      <div className="flex items-center gap-2"><Button aria-label="İçerik durumunu yenile" className="size-8 rounded border-transparent bg-white/[0.06] p-0 text-[#d7e2da] hover:bg-white/[0.12]" disabled={state === "loading" || Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void load(true)} type="button"><RefreshCw className={cn("size-3.5", (state === "loading" || isRefreshingGeneratedMedia) && "animate-spin")} /></Button><Button className="h-8 rounded border-white/10 bg-white/[0.06] px-3 text-xs text-[#d7e2da] hover:bg-white/[0.12]" disabled={Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia || (state === "ready" && !isReviewReady)} onClick={onClose} type="button"><X className="size-3.5" />Kapat</Button></div>
     </header>
 
     {!isResultScreen ? <main className="grid min-h-[27rem] place-items-center p-6 text-center">
@@ -817,6 +844,6 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       })}</div>
     </main>}
 
-    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78] disabled:cursor-not-allowed disabled:opacity-45" disabled={isInterruptedReview || hasPendingReviewOutputs || state !== "ready" || isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId)} onClick={() => void scheduleAll()} title={isInterruptedReview || hasPendingReviewOutputs ? "Önce bekleyen içeriklerin durumunu doğrula" : isTestAutomation ? "TEST modunda production scheduling kapalıdır" : undefined} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button></div></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{renderRecoveryStatus || message || progressStatus}</footer>}
+    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-[#829287]">{isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<div className="flex flex-col gap-2"><Button className="h-10 bg-[#c7f05d] px-4 text-sm text-[#152006] hover:bg-[#d7fa78] disabled:cursor-not-allowed disabled:opacity-45" disabled={isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId) || isRefreshingGeneratedMedia} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : "Yalnızca hazır içerikler schedule edilir"} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button><Button className="h-9 border border-white/15 bg-white/[0.06] px-4 text-xs text-[#d7e2da] hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-45" disabled={Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void refreshGeneratedMedia()} title="Önizlemeleri Storage’dan yeniden yükle ve medyayı doğrula" type="button">{isRefreshingGeneratedMedia ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Önizlemeleri yenile</Button></div></div></footer> : <footer className="flex min-h-10 shrink-0 items-center border-t border-white/10 px-4 text-xs text-[#829287]">{renderRecoveryStatus || message || progressStatus}</footer>}
   </section>;
 }

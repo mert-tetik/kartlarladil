@@ -51,8 +51,9 @@ function isStaleProcessing(output: RetryableOutput) {
 
 function statusForRetry(output: RetryableOutput) {
   if (shouldRetryBrowserVideo(output)) return "awaiting_browser_video";
-  if (output.status === "processing" && output.provider_task_id && output.media_type !== "video") return "generating_video";
-  return hasReusableContent(output) ? "ready_to_schedule" : "queued";
+  if (output.provider_task_id && output.content_type === "video" && output.media_type !== "video") return "generating_video";
+  if (hasReusableContent(output) && !output.error_code?.startsWith("automation_quality_")) return "ready_to_schedule";
+  return "queued";
 }
 
 export async function POST(request: NextRequest) {
@@ -84,22 +85,14 @@ export async function POST(request: NextRequest) {
     if (output.status !== "failed" && !retryingStaleProcessing) return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });
 
     const status = statusForRetry(output);
-    const retryPatch = status === "awaiting_browser_video" || status === "generating_video" || status === "ready_to_schedule"
-      ? { status, error_code: null, retry_exhausted_at: null, next_attempt_at: new Date().toISOString(), generation_attempt_started_at: null, updated_at: new Date().toISOString() }
-      : {
-        status,
-        caption: null,
-        media_path: null,
-        media_paths: [],
-        media_type: null,
-        provider_task_id: null,
-        error_code: null,
-        retry_exhausted_at: null,
-        next_attempt_at: new Date().toISOString(),
-        generated_at: null,
-        generation_attempt_started_at: null,
-        updated_at: new Date().toISOString(),
-      };
+    const retryPatch = {
+      status,
+      error_code: null,
+      retry_exhausted_at: null,
+      next_attempt_at: new Date().toISOString(),
+      generation_attempt_started_at: null,
+      updated_at: new Date().toISOString(),
+    };
     const { error: retryError } = await supabase
       .from("social_content_automation_outputs")
       .update(retryPatch)

@@ -38,11 +38,29 @@ interface FalseFriendPair {
   secondMeaning: string;
 }
 
+const falseFriendSchema = z.object({
+  firstTerm: z.string().trim().min(1).max(120),
+  secondTerm: z.string().trim().min(1).max(120),
+  firstMeaning: z.string().trim().min(1).max(200),
+  secondMeaning: z.string().trim().min(1).max(200),
+}).strict();
+
+const preparedPlanSchema = z.object({
+  artDirection: z.string().trim().min(40).max(5_000),
+  caption: z.string().trim().min(12).max(400),
+  falseFriend: falseFriendSchema.optional(),
+}).strict();
+
 const requestSchema = z.object({
   mode: z.enum(IMAGE_MODES),
   language: z.string().refine(isLanguageCode),
   nativeLanguage: z.string().refine(isLanguageCode),
   tier: z.enum(["A1", "A2", "B1", "B2", "C1"]),
+  preparedPlan: preparedPlanSchema.optional(),
+}).superRefine((value, context) => {
+  if (value.mode === "ai-false-friends" && value.preparedPlan && !value.preparedPlan.falseFriend) {
+    context.addIssue({ code: "custom", path: ["preparedPlan", "falseFriend"], message: "False Friends plans require their selected pair." });
+  }
 });
 
 const ENGLISH_LANGUAGE_NAMES: Record<LanguageCode, string> = {
@@ -241,25 +259,27 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });
   }
 
-  let cards: VocabularyCard[];
-  try {
-    cards = await getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
-  } catch (error) {
-    const errorCode = error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "card_generation_failed";
-    return Response.json({
-      errorCode,
-      diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
-    }, { status: 502 });
-  }
+  let imagePlan: AiImagePlan | null = parsed.data.preparedPlan ?? null;
+  if (!imagePlan) {
+    let cards: VocabularyCard[];
+    try {
+      cards = await getCardsForMode(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier);
+    } catch (error) {
+      const errorCode = error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "card_generation_failed";
+      return Response.json({
+        errorCode,
+        diagnostic: createSocialStudioDiagnostic({ stage: "AI image vocabulary selection", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The image could not select fresh vocabulary terms." }),
+      }, { status: 502 });
+    }
 
-  let imagePlan: AiImagePlan | null;
-  try {
-    imagePlan = await createArtDirection(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, cards);
-  } catch (error) {
-    return Response.json({
-      errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "art_direction_failed",
-      diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The creative plan request failed." }),
-    }, { status: 502 });
+    try {
+      imagePlan = await createArtDirection(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, parsed.data.tier, cards);
+    } catch (error) {
+      return Response.json({
+        errorCode: error instanceof SocialStudioVocabularyError ? error.code : getSocialStudioResponsesErrorCode(error) ?? "art_direction_failed",
+        diagnostic: createSocialStudioDiagnostic({ stage: "AI image art-direction plan", provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"), error, fallbackDetail: "The creative plan request failed." }),
+      }, { status: 502 });
+    }
   }
 
   if (!imagePlan) {
@@ -279,6 +299,7 @@ export async function POST(request: Request) {
       imageUrl: image.dataUrl,
       artDirection: imagePlan.artDirection,
       caption: createImageCaption(parsed.data.mode, parsed.data.language, parsed.data.nativeLanguage, imagePlan.caption),
+      plan: imagePlan,
     });
   } catch (error) {
     if (error instanceof PoyoImageError) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createNativeVisualCaption, finalizeNativeCaption, getNativeCaptionHashtags, getNativeCaptionHeading, getWordOfTheDayTitle, type SocialVisualCaptionKind } from "./social-video-titles";
+import { createFoxiesDeckDownloadCaption, createNativeVisualCaption, finalizeNativeCaption, getNativeCaptionHashtags, getNativeCaptionHeading, getWordOfTheDayTitle, type SocialVisualCaptionKind } from "./social-video-titles";
 
 describe("social caption localization", () => {
   it("replaces model hashtags with the selected native-language set", () => {
@@ -9,6 +9,18 @@ describe("social caption localization", () => {
 
   it("provides a localized hashtag set for every native language", () => {
     expect(getNativeCaptionHashtags("ja")).toEqual(["#語学学習", "#単語", "#外国語", "#語学練習", "#単語学習"]);
+  });
+
+  it("provides a downloadable-FoxiesDeck fallback caption for every native language", () => {
+    const nativeLanguages = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
+
+    for (const nativeLanguage of nativeLanguages) {
+      const caption = createFoxiesDeckDownloadCaption(nativeLanguage);
+      expect(caption).toContain("FoxiesDeck");
+      expect(caption).toContain(getNativeCaptionHashtags(nativeLanguage)[0]!);
+      expect(caption.match(/#[\p{L}\p{N}_]+/gu)).toHaveLength(5);
+      expect(caption.length).toBeLessThanOrEqual(400);
+    }
   });
 
   it("uses a native-language summary and exactly five hashtags for visual modes", () => {

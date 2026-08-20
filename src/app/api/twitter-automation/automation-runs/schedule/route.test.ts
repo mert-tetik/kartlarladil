@@ -39,7 +39,7 @@ describe("automation run scheduling", () => {
     fromMock.mockReturnValue({
       select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: runId }, error: null }) }) }) }),
     });
-    scheduleRunMock.mockResolvedValue({ scheduled: 4, failed: 1 });
+    scheduleRunMock.mockResolvedValue({ scheduled: 4, failed: 1, skipped: 2 });
 
     const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs/schedule", {
       method: "POST",
@@ -47,7 +47,7 @@ describe("automation run scheduling", () => {
     }));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ scheduled: 4, failed: 1 });
+    expect(await response.json()).toEqual({ scheduled: 4, failed: 1, skipped: 2 });
     expect(scheduleRunMock).toHaveBeenCalledWith(runId);
   });
 });

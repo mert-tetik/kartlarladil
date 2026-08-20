@@ -233,6 +233,48 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getByText("0 / 1 hazır")).toBeVisible();
   });
 
+  it("keeps failed outputs out of the green progress total while showing them in the error summary", async () => {
+    vi.useFakeTimers();
+    const baseOutput = {
+      day_offset: 1,
+      group_name: "Test kampanyası",
+      content_type: "image" as const,
+      generator: "ai-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-08-14T10:00:00+03:00",
+      caption: "Hazır içerik",
+      mediaUrl: "https://assets.test/image.png",
+      mediaUrls: [],
+      media_type: "image" as const,
+      error_code: null,
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        outputs: [
+          { ...baseOutput, id: "a113ccca-d537-4a5a-9a08-20df9c391007", status: "ready_to_schedule" },
+          { ...baseOutput, id: "b113ccca-d537-4a5a-9a08-20df9c391007", status: "scheduled" },
+          { ...baseOutput, caption: null, error_code: "image_generation_failed", id: "c113ccca-d537-4a5a-9a08-20df9c391007", mediaUrl: null, media_type: null, status: "failed" },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="a113ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByText("3 içerik · 2 başarılı")).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "İçerik üretim ilerlemesi" })).toHaveAttribute("aria-valuenow", "2");
+    expect(screen.getByText("2 / 3 hazır")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Başarılı: 2 içerik" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Hatalı: 1 içerik" })).toBeVisible();
+  });
+
   it("moves unverified remaining outputs to a yellow review state after a refresh failure", async () => {
     const pendingOutput = {
       id: "5d13ccca-d537-4a5a-9a08-20df9c391007",
@@ -330,6 +372,98 @@ describe("GeneratedPostsTable", () => {
     expect(screen.getAllByText("İçerikler hazırlanıyor")[0]).toBeVisible();
     expect(screen.queryByText("Üretilen içerikler")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Devam etmeye çalış (30 sn)" })).toBeDisabled();
+  });
+
+  it("keeps manual scheduling available for ready outputs when other outputs are waiting", async () => {
+    vi.useFakeTimers();
+    const readyOutput = {
+      id: "aa13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Test kampanyası",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-08-14T10:00:00+03:00",
+      status: "ready_to_schedule",
+      caption: "Hazır içerik",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const;
+    const waitingOutput = { ...readyOutput, id: "bb13ccca-d537-4a5a-9a08-20df9c391007", caption: null, status: "queued" } as const;
+    let runLoadCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) {
+        runLoadCount += 1;
+        return runLoadCount === 1
+          ? { ok: true, json: async () => ({ outputs: [readyOutput, waitingOutput] }) }
+          : { ok: false, json: async () => ({ errorCode: "automation_runs_unavailable" }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/process") return { ok: true, json: async () => ({ processed: true }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") return { ok: true, json: async () => ({ scheduled: 1, failed: 0, skipped: 1 }) };
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="aa13ccca-d537-4a5a-9a08-20df9c391007" scope="production" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sonuç ekranına git" }));
+
+    const scheduleButton = screen.getByRole("button", { name: "Schedule all (1)" });
+    expect(scheduleButton).toBeEnabled();
+    await act(async () => {
+      fireEvent.click(scheduleButton);
+      await Promise.resolve();
+    });
+    const scheduleCall = fetchMock.mock.calls.find(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule");
+    expect(scheduleCall).toBeDefined();
+  });
+
+  it("refreshes result-screen media and reloads preview URLs", async () => {
+    const readyOutput = {
+      id: "ac13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Test kampanyası",
+      content_type: "image",
+      generator: "ai-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-08-14T10:00:00+03:00",
+      status: "ready_to_schedule",
+      caption: "Hazır içerik",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: "image",
+      error_code: null,
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [readyOutput] }) };
+      if (url === "/api/twitter-automation/automation-runs/refresh-media") return { ok: true, json: async () => ({ checked: 1, invalid: 0 }) };
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={readyOutput.id} scope="production" />);
+
+    const refreshButton = await screen.findByRole("button", { name: "Önizlemeleri yenile" });
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/refresh-media")).toBe(true));
+    expect(fetchMock.mock.calls.filter(([input]) => String(input).startsWith("/api/twitter-automation/automation-runs?")).length).toBeGreaterThanOrEqual(2);
+    expect(await screen.findByText("1 medya önizlemesi Storage’dan yeniden doğrulandı.")).toBeVisible();
   });
 
   it("cancels the automatic retry when the cooldown close button is used", async () => {

@@ -9,6 +9,7 @@ const { fromMock, refreshRunMock } = vi.hoisted(() => ({
 
 vi.mock("@/features/twitter-automation/social-studio-auth", () => ({
   hasSocialStudioSession: () => true,
+  hasSocialStudioAutomationSession: () => true,
 }));
 
 vi.mock("@/features/twitter-automation/automation-run-service", () => ({
@@ -61,8 +62,6 @@ describe("automation output retry", () => {
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
       status: "queued",
       error_code: null,
-      media_path: null,
-      provider_task_id: null,
     }));
     expect(refreshRunMock).toHaveBeenCalledWith("6d13ccca-d537-4a5a-9a08-20df9c391007");
   });
@@ -141,6 +140,86 @@ describe("automation output retry", () => {
     expect(await response.json()).toMatchObject({ status: "awaiting_browser_video" });
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "awaiting_browser_video", error_code: null }));
     expect(updateMock).not.toHaveBeenCalledWith(expect.objectContaining({ media_path: null }));
+  });
+
+  it("keeps a partial AI image caption so its saved plan can render only the missing media", async () => {
+    const outputLookup = {
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: {
+          id: "ad13ccca-d537-4a5a-9a08-20df9c391007",
+          run_id: "bd13ccca-d537-4a5a-9a08-20df9c391007",
+          status: "failed",
+          content_type: "image",
+          caption: "Aynı görsel planının açıklaması",
+          media_path: null,
+          media_paths: [],
+          media_type: null,
+          generator: "ai-mini-quiz",
+          error_code: "automation_media_store_failed",
+          provider_task_id: null,
+        },
+        error: null,
+      }) }) }),
+    };
+    const runLookup = {
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "bd13ccca-d537-4a5a-9a08-20df9c391007" }, error: null }) }) }) }),
+    };
+    const updateMock = vi.fn(() => ({ eq: () => ({ eq: async () => ({ error: null }) }) }));
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_outputs") return { ...outputLookup, update: updateMock };
+      if (table === "social_content_automation_runs") return runLookup;
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs/retry", {
+      method: "POST",
+      body: JSON.stringify({ outputId: "ad13ccca-d537-4a5a-9a08-20df9c391007" }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "queued" });
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", error_code: null }));
+    expect(updateMock).not.toHaveBeenCalledWith(expect.objectContaining({ caption: null }));
+  });
+
+  it("resumes a failed avatar video from its existing provider task", async () => {
+    const outputLookup = {
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: {
+          id: "cd13ccca-d537-4a5a-9a08-20df9c391007",
+          run_id: "dd13ccca-d537-4a5a-9a08-20df9c391007",
+          status: "failed",
+          content_type: "video",
+          caption: "Aynı avatar videosunun açıklaması",
+          media_path: "automation/cd13ccca-d537-4a5a-9a08-20df9c391007-preview.webp",
+          media_paths: [],
+          media_type: "image",
+          generator: "ai-word-of-the-day-video",
+          error_code: "video_status_failed",
+          provider_task_id: "avatar-video-task-1",
+        },
+        error: null,
+      }) }) }),
+    };
+    const runLookup = {
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "dd13ccca-d537-4a5a-9a08-20df9c391007" }, error: null }) }) }) }),
+    };
+    const updateMock = vi.fn(() => ({ eq: () => ({ eq: async () => ({ error: null }) }) }));
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_outputs") return { ...outputLookup, update: updateMock };
+      if (table === "social_content_automation_runs") return runLookup;
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs/retry", {
+      method: "POST",
+      body: JSON.stringify({ outputId: "cd13ccca-d537-4a5a-9a08-20df9c391007" }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "generating_video" });
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "generating_video", error_code: null }));
+    expect(updateMock).not.toHaveBeenCalledWith(expect.objectContaining({ provider_task_id: null }));
   });
 
   it("recovers an expired schedule lock without regenerating its ready text content", async () => {

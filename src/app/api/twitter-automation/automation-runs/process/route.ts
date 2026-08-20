@@ -5,6 +5,7 @@ import { getAutomationRendererSession, hasSocialStudioAutomationSession } from "
 import { AUTOMATION_RENDERER_LEASE_MS } from "@/features/twitter-automation/automation-resilience";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
+import { createFoxiesDeckDownloadCaption } from "@/features/twitter-automation/social-video-titles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -129,14 +130,14 @@ export async function POST(request: NextRequest) {
       const completed = stagedImagePaths.length
         ? {
           ...processingCandidate,
-          caption: parsed.data.caption ?? candidate.caption,
+          caption: parsed.data.caption ?? candidate.caption ?? createFoxiesDeckDownloadCaption(candidate.native_language),
           media_path: stagedImagePaths[0]!,
           media_paths: stagedImagePaths.length > 1 ? stagedImagePaths : [],
           media_type: "image" as const,
         }
         : {
           ...processingCandidate,
-          caption: parsed.data.caption ?? candidate.caption,
+          caption: parsed.data.caption ?? candidate.caption ?? createFoxiesDeckDownloadCaption(candidate.native_language),
           media_path: stagedVideoPath!,
           media_paths: [],
           media_type: "video" as const,
