@@ -19,7 +19,13 @@ describe("Social Content Studio diagnostics", () => {
   });
 
   it("labels direct OpenAI fallback failures without misreporting them as PoYo", () => {
-    const error = new OpenAIResponsesProviderError(503, "gpt-5.6-terra", "OpenAI service unavailable");
+    const error = new OpenAIResponsesProviderError(
+      503,
+      "gpt-5.6-terra",
+      "OpenAI service unavailable",
+      3,
+      "req_12345678abcdefgh",
+    );
     const diagnostic = createSocialStudioDiagnostic({
       stage: "AI image art-direction plan",
       provider: getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra"),
@@ -28,6 +34,20 @@ describe("Social Content Studio diagnostics", () => {
     });
 
     expect(getSocialStudioResponsesErrorCode(error)).toBe("openai_responses_provider_error");
-    expect(formatSocialStudioFailure({ status: 502 }, { errorCode: "openai_responses_provider_error", diagnostic }, "Generation failed.")).toContain("Provider: OpenAI Responses / Terra 503");
+    const message = formatSocialStudioFailure({ status: 502 }, { errorCode: "openai_responses_provider_error", diagnostic }, "Generation failed.");
+    expect(message).toContain("Provider: OpenAI Responses / Terra 503");
+    expect(message).toContain("Attempts: 3");
+    expect(message).toContain("Request ID: req_12345678abcdefgh");
+  });
+
+  it("does not expose arbitrary upstream text as a request ID", () => {
+    const diagnostic = createSocialStudioDiagnostic({
+      stage: "Text post generation",
+      provider: "OpenAI Responses / Luna",
+      error: Object.assign(new Error("Upstream error"), { requestId: "Bearer secret-value" }),
+      fallbackDetail: "Unused fallback",
+    });
+
+    expect(diagnostic.providerRequestId).toBeUndefined();
   });
 });

@@ -12,6 +12,10 @@ import {
   SocialStudioVocabularyError,
 } from "@/features/twitter-automation/social-studio-vocabulary";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 600;
+
 const requestSchema = z.object({
   language: z.enum(LANGUAGE_CODES),
   nativeLanguage: z.enum(LOCALE_CODES),

@@ -8,7 +8,7 @@ import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 600;
 
 const BASE_INSTRUCTIONS = [
   "Write one short X post for the selected mode.",

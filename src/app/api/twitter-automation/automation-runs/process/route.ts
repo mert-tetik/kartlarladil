@@ -9,7 +9,10 @@ import { createFoxiesDeckDownloadCaption } from "@/features/twitter-automation/s
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+// A single output can make a short PoYo attempt and up to three bounded direct
+// OpenAI attempts. Keep the route alive long enough to preserve its staged
+// media/caption checkpoints instead of terminating midway through a fallback.
+export const maxDuration = 600;
 
 const stagedMediaPathSchema = z.string().regex(/^automation\/[\da-f-]+(?:-\d+)?\.(?:png|webm)$/iu);
 const BROWSER_IMAGE_GENERATORS = new Set([

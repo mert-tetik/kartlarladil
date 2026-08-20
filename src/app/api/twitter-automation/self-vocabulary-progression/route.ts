@@ -18,7 +18,7 @@ import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 600;
 
 const requestSchema = z.object({
   language: z.string().refine(isLanguageCode),

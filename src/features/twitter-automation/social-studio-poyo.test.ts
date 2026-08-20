@@ -28,6 +28,7 @@ describe("Content Automation Responses fallback", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
@@ -91,7 +92,10 @@ describe("Content Automation Responses fallback", () => {
         return { output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] };
       },
       () => "healthy",
-      { sleep: async (delayMs) => { delays.push(delayMs); } },
+      {
+        sleep: async (delayMs) => { delays.push(delayMs); },
+        random: () => 0.5,
+      },
     );
 
     expect(calls).toEqual([
@@ -100,8 +104,128 @@ describe("Content Automation Responses fallback", () => {
       { provider: "openai", model: "gpt-5.6-luna" },
       { provider: "openai", model: "gpt-5.6-luna" },
     ]);
-    expect(delays).toEqual([1_000, 3_000]);
+    expect(delays).toEqual([750, 2_000]);
     expect(result).toMatchObject({ provider: "openai", model: "gpt-5.6-luna", output: "healthy" });
+  });
+
+  it("uses a bounded Retry-After backoff for direct OpenAI rate limits", async () => {
+    const delays: number[] = [];
+    let openAIAttempts = 0;
+
+    const result = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client) => {
+        const provider = (client as unknown as { provider: string }).provider;
+        if (provider === "poyo") return { code: 503, msg: "PoYo unavailable" };
+        openAIAttempts += 1;
+        if (openAIAttempts === 1) {
+          throw Object.assign(new Error("Rate limited"), {
+            status: 429,
+            headers: { get: (name: string) => name === "retry-after" ? "3" : null },
+          });
+        }
+        return { output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] };
+      },
+      () => "healthy",
+      {
+        sleep: async (delayMs) => { delays.push(delayMs); },
+        random: () => 0.5,
+      },
+    );
+
+    expect(delays).toEqual([3_000]);
+    expect(result).toMatchObject({ provider: "openai", output: "healthy" });
+  });
+
+  it("opens the PoYo circuit after two transient failures and bypasses PoYo for the next request", async () => {
+    let poyoFailureCount = 0;
+    let circuitOpen = false;
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => circuitOpen),
+      recordPoyoRetryableFailure: vi.fn(async () => {
+        poyoFailureCount += 1;
+        if (poyoFailureCount >= 2) circuitOpen = true;
+      }),
+      recordPoyoSuccess: vi.fn(async () => undefined),
+    };
+    const providers: string[] = [];
+
+    const generate = async (client: unknown) => {
+      const provider = (client as { provider: string }).provider;
+      providers.push(provider);
+      return provider === "poyo"
+        ? { code: 503, msg: "PoYo unavailable" }
+        : { output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] };
+    };
+
+    await generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "healthy", { providerHealth });
+    await generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "healthy", { providerHealth });
+    await generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "healthy", { providerHealth });
+
+    expect(providers).toEqual(["poyo", "openai", "poyo", "openai", "openai"]);
+    expect(providerHealth.recordPoyoRetryableFailure).toHaveBeenCalledTimes(2);
+    expect(providerHealth.isPoyoCircuitOpen).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails open when provider-health storage is unavailable", async () => {
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => { throw new Error("Supabase unavailable"); }),
+      recordPoyoRetryableFailure: vi.fn(async () => { throw new Error("Supabase unavailable"); }),
+      recordPoyoSuccess: vi.fn(async () => { throw new Error("Supabase unavailable"); }),
+    };
+    const providers: string[] = [];
+
+    const result = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client) => {
+        providers.push((client as unknown as { provider: string }).provider);
+        return { output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] };
+      },
+      () => "healthy",
+      { providerHealth },
+    );
+
+    expect(providers).toEqual(["poyo"]);
+    expect(result).toMatchObject({ provider: "poyo", output: "healthy" });
+  });
+
+  it("gives every direct OpenAI attempt its own 45-second timeout", async () => {
+    vi.useFakeTimers();
+    let openAIAttempts = 0;
+    const delays: number[] = [];
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => false),
+      recordPoyoRetryableFailure: vi.fn(async () => undefined),
+      recordPoyoSuccess: vi.fn(async () => undefined),
+    };
+    const generation = generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client) => {
+        if ((client as unknown as { provider: string }).provider === "poyo") {
+          return { code: 503, msg: "PoYo unavailable" };
+        }
+        openAIAttempts += 1;
+        return await new Promise<never>(() => undefined);
+      },
+      () => "",
+      {
+        sleep: async (delayMs) => { delays.push(delayMs); },
+        random: () => 0.5,
+        providerHealth,
+      },
+    );
+    const result = generation.then(
+      () => null,
+      (error: unknown) => error,
+    );
+
+    await vi.advanceTimersByTimeAsync(45_000);
+    await vi.advanceTimersByTimeAsync(45_000);
+    await vi.advanceTimersByTimeAsync(45_000);
+
+    await expect(result).resolves.toMatchObject({ providerStatus: 504, attemptCount: 3 });
+    expect(openAIAttempts).toBe(3);
+    expect(delays).toEqual([750, 2_000]);
   });
 
   it("does not retry a non-retryable direct OpenAI fallback failure", async () => {
