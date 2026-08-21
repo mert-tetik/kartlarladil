@@ -3,6 +3,7 @@ import type { ImgHTMLAttributes } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GeneratedPostsTable } from "./generated-posts-table";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
+import { resolveBrowserMusicVideoSourceUrl } from "@/features/twitter-automation/browser-video-source";
 import { canRenderMusicVideoDeterministically, createOfflineMusicVideoAudioContext, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
 
@@ -18,6 +19,10 @@ vi.mock("@/features/twitter-automation/components/automation-browser-image-rende
 vi.mock("@/features/twitter-automation/browser-media-stage", () => ({
   stageBrowserImage: vi.fn(),
   stageBrowserVideo: vi.fn(),
+}));
+
+vi.mock("@/features/twitter-automation/browser-video-source", () => ({
+  resolveBrowserMusicVideoSourceUrl: vi.fn(async (output: { mediaUrl?: string | null }) => output.mediaUrl ?? null),
 }));
 
 vi.mock("@/features/twitter-automation/confused-words-video-renderer", () => ({
@@ -744,6 +749,7 @@ describe("GeneratedPostsTable", () => {
     vi.mocked(prepareMusicVideoAudio).mockReset();
     vi.mocked(renderMusicVideo).mockReset();
     vi.mocked(stageBrowserVideo).mockReset();
+    vi.mocked(resolveBrowserMusicVideoSourceUrl).mockResolvedValue("https://assets.test/fresh-poster.png");
     vi.mocked(canRenderMusicVideoDeterministically).mockResolvedValueOnce(true);
     vi.mocked(createOfflineMusicVideoAudioContext).mockReturnValue({ state: "suspended" } as OfflineAudioContext);
     vi.mocked(prepareMusicVideoAudio).mockResolvedValue({ state: "closed" } as AudioContext);
@@ -753,6 +759,7 @@ describe("GeneratedPostsTable", () => {
     render(<GeneratedPostsTable onClose={vi.fn()} runId="8d13ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
 
     await waitFor(() => expect(renderMusicVideo).toHaveBeenCalledTimes(1));
+    expect(renderMusicVideo).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: "https://assets.test/fresh-poster.png" }));
     await waitFor(() => expect(stageBrowserVideo).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith("/api/twitter-automation/automation-runs/process", expect.objectContaining({ method: "POST" }));
     expect(createOfflineMusicVideoAudioContext).toHaveBeenCalledTimes(1);

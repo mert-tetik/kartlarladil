@@ -50,4 +50,12 @@ describe("browser video plans", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(endpoint, expect.objectContaining({ method: "POST" }));
   });
+
+  it("does not require a stale progress-poll media URL to prepare a music plan", async () => {
+    await expect(prepareBrowserVideoPlan({
+      ...baseOutput,
+      generator: "music-self-mini-quiz",
+      mediaUrl: null,
+    }, new AbortController().signal)).resolves.toMatchObject({ kind: "music" });
+  });
 });

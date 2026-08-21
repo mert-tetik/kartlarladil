@@ -10,6 +10,7 @@ import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automat
 import { BrowserImageRenderError, browserImageFailureCode, retryBrowserImageOperation } from "@/features/twitter-automation/browser-image-retry";
 import { browserVideoFailureCode, browserVideoRetryDelayMs, browserVideoTimeoutMs, formatBrowserVideoTimeout, shouldRetryBrowserVideo } from "@/features/twitter-automation/browser-video-retry";
 import { getOrCreateBrowserVideoPlan, type BrowserVideoPlan } from "@/features/twitter-automation/browser-video-plan";
+import { resolveBrowserMusicVideoSourceUrl } from "@/features/twitter-automation/browser-video-source";
 import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
 import { AutomationGenerationStatusSummary } from "@/features/twitter-automation/components/automation-generation-status-summary";
 import { canRenderConfusedWordsDeterministically, renderConfusedWordsVideo } from "@/features/twitter-automation/confused-words-video-renderer";
@@ -531,7 +532,8 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       const plan = await getOrCreateBrowserVideoPlan(browserVideoPlans.current, output, controller.signal);
       hasPreparedPlan = true;
       if (!output.render_plan) await persistBrowserImagePlan(output, plan);
-      await renderPreparedBrowserVideo(output, plan, controller.signal, scope);
+      const sourceUrl = await resolveBrowserMusicVideoSourceUrl(output, scope, controller.signal);
+      await renderPreparedBrowserVideo(sourceUrl ? { ...output, mediaUrl: sourceUrl } : output, plan, controller.signal, scope);
     } catch (error) {
       const errorCode = controller.signal.aborted ? "browser_video_render_timeout" : browserVideoFailureCode(error);
       if (hasPreparedPlan && shouldRetryBrowserVideo(attempt)) {

@@ -134,7 +134,8 @@ export async function prepareBrowserVideoPlan(output: BrowserVideoPlanOutput, si
     return { kind: "original", caption: plan.caption, scenes: plan.scenes };
   }
 
-  if (!output.mediaUrl) throw new Error("browser_video_source_unavailable");
+  // Music selection is independent from the raster source. Resolve a fresh
+  // signed image URL only immediately before the browser begins encoding.
   return { kind: "music", musicUrl: randomMusicTrack() };
 }
 
