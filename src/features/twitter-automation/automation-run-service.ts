@@ -12,6 +12,7 @@ import {
 } from "@/features/twitter-automation/automation-resilience";
 import { notifyAutomationRunTerminal } from "@/features/twitter-automation/automation-push-service";
 import { createFoxiesDeckDownloadCaption } from "@/features/twitter-automation/social-video-titles";
+import { getSocialStudioProviderFailureDetails, getSocialStudioResponsesErrorCode } from "@/features/twitter-automation/social-studio-poyo";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -104,6 +105,11 @@ export type AutomationOutputRecord = {
   provider_task_id: string | null;
   upload_post_jobs: unknown;
   error_code?: string | null;
+  last_error_detail?: string | null;
+  last_provider?: "poyo" | "openai" | null;
+  last_provider_status?: number | null;
+  last_provider_attempt_count?: number | null;
+  last_provider_request_id?: string | null;
   attempt_count?: number;
   next_attempt_at?: string;
   quality_status?: "pending" | "passed" | "failed";
@@ -154,6 +160,45 @@ async function readJson(response: Response) {
 
 function errorCode(payload: Record<string, unknown> | null, fallback: string) {
   return typeof payload?.errorCode === "string" ? payload.errorCode : fallback;
+}
+
+type AutomationProviderDiagnostic = {
+  provider: "poyo" | "openai";
+  status: number | null;
+  attemptCount: number | null;
+  requestId: string | null;
+  detail: string;
+};
+
+type AutomationRouteFailure = Error & {
+  providerDiagnostic?: AutomationProviderDiagnostic;
+};
+
+function providerDiagnosticFromPayload(payload: Record<string, unknown> | null): AutomationProviderDiagnostic | null {
+  const diagnostic = payload?.diagnostic;
+  if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return null;
+  const record = diagnostic as Record<string, unknown>;
+  const providerLabel = typeof record.provider === "string" ? record.provider : "";
+  const provider = /openai/iu.test(providerLabel) ? "openai" : /poyo/iu.test(providerLabel) ? "poyo" : null;
+  const detail = typeof record.detail === "string" ? record.detail.trim().slice(0, 320) : "";
+  if (!provider || !detail) return null;
+  const status = typeof record.providerStatus === "number" && Number.isInteger(record.providerStatus) && record.providerStatus >= 100 && record.providerStatus <= 599
+    ? record.providerStatus
+    : null;
+  const attemptCount = typeof record.attemptCount === "number" && Number.isInteger(record.attemptCount) && record.attemptCount >= 1 && record.attemptCount <= 3
+    ? record.attemptCount
+    : null;
+  const requestId = typeof record.providerRequestId === "string" && /^req_[A-Za-z0-9_-]{8,}$/u.test(record.providerRequestId)
+    ? record.providerRequestId
+    : null;
+  return { provider, status, attemptCount, requestId, detail };
+}
+
+function automationRouteFailure(payload: Record<string, unknown> | null, fallback: string): AutomationRouteFailure {
+  const failure = new Error(errorCode(payload, fallback)) as AutomationRouteFailure;
+  const diagnostic = providerDiagnosticFromPayload(payload);
+  if (diagnostic) failure.providerDiagnostic = diagnostic;
+  return failure;
 }
 
 function parseDataUrl(value: string) {
@@ -250,7 +295,7 @@ async function createText(output: AutomationOutputRecord, generator: TextGenerat
     body: JSON.stringify({ mode: generator, language: output.language, nativeLanguage: output.native_language }),
   }));
   const payload = await readJson(response);
-  if (!response.ok || typeof payload?.post !== "string" || !payload.post.trim()) throw new Error(errorCode(payload, "text_generation_failed"));
+  if (!response.ok || typeof payload?.post !== "string" || !payload.post.trim()) throw automationRouteFailure(payload, "text_generation_failed");
   return payload.post.trim();
 }
 
@@ -301,7 +346,7 @@ async function createImage(output: AutomationOutputRecord, generator: ImageGener
     }),
   }));
   const payload = await readJson(response);
-  if (!response.ok || typeof payload?.imageUrl !== "string") throw new Error(errorCode(payload, "image_generation_failed"));
+  if (!response.ok || typeof payload?.imageUrl !== "string") throw automationRouteFailure(payload, "image_generation_failed");
   const responsePlan = parseAiImagePlan(payload.plan) ?? preparedPlan;
   if (!responsePlan || (generator === "ai-false-friends" && !responsePlan.falseFriend)) throw new Error("automation_ai_image_plan_missing");
   const generatedCaption = typeof payload.caption === "string" ? payload.caption.trim() : "";
@@ -427,7 +472,49 @@ export async function validateAutomationOutputQuality(output: AutomationOutputRe
   }
 }
 
-export async function queueAutomationOutputRecovery(output: AutomationOutputRecord, code: string, fallbackStatus?: OutputStatus) {
+function automationFailureCode(error: unknown) {
+  if (typeof error === "string" && error.trim()) return error;
+  const providerCode = getSocialStudioResponsesErrorCode(error);
+  if (providerCode) return providerCode;
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : "automation_processing_failed";
+}
+
+function automationProviderDiagnosticPatch(error: unknown) {
+  const routeDiagnostic = error && typeof error === "object"
+    ? (error as AutomationRouteFailure).providerDiagnostic
+    : null;
+  if (routeDiagnostic) {
+    return {
+      last_error_detail: routeDiagnostic.detail,
+      last_provider: routeDiagnostic.provider,
+      last_provider_status: routeDiagnostic.status,
+      last_provider_attempt_count: routeDiagnostic.attemptCount,
+      last_provider_request_id: routeDiagnostic.requestId,
+    };
+  }
+  const diagnostic = getSocialStudioProviderFailureDetails(error);
+  return diagnostic
+    ? {
+      last_error_detail: diagnostic.detail,
+      last_provider: diagnostic.provider,
+      last_provider_status: diagnostic.status ?? null,
+      last_provider_attempt_count: diagnostic.attemptCount ?? null,
+      last_provider_request_id: diagnostic.requestId ?? null,
+    }
+    : {
+      last_error_detail: null,
+      last_provider: null,
+      last_provider_status: null,
+      last_provider_attempt_count: null,
+      last_provider_request_id: null,
+    };
+}
+
+export async function queueAutomationOutputRecovery(output: AutomationOutputRecord, error: unknown, fallbackStatus?: OutputStatus) {
+  const code = automationFailureCode(error);
+  const providerDiagnostic = automationProviderDiagnosticPatch(error);
   const attemptCount = (output.attempt_count ?? 0) + 1;
   const retryable = isRetryableAutomationError(code);
   const exhausted = !retryable || attemptCount >= MAX_AUTOMATION_RECOVERY_ATTEMPTS;
@@ -444,6 +531,7 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
       lease_renderer_id: null,
       lease_expires_at: null,
       generation_attempt_started_at: null,
+      ...providerDiagnostic,
     });
     return { queued: false as const, exhausted: true as const, attemptCount };
   }
@@ -458,6 +546,7 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
     lease_renderer_id: null,
     lease_expires_at: null,
     generation_attempt_started_at: null,
+    ...providerDiagnostic,
   });
   return { queued: true as const, exhausted: false as const, attemptCount };
 }
@@ -473,6 +562,11 @@ async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: 
     ...patch,
     status: "ready_to_schedule",
     error_code: null,
+    last_error_detail: null,
+    last_provider: null,
+    last_provider_status: null,
+    last_provider_attempt_count: null,
+    last_provider_request_id: null,
     next_attempt_at: new Date().toISOString(),
     lease_renderer_id: null,
     lease_expires_at: null,
@@ -579,7 +673,7 @@ async function startVideo(output: AutomationOutputRecord, tier: Tier) {
     body: JSON.stringify({ language: output.language, nativeLanguage: output.native_language, tier }),
   }));
   const payload = await readJson(response);
-  if (!response.ok || typeof payload?.taskId !== "string") throw new Error(errorCode(payload, "video_generation_failed"));
+  if (!response.ok || typeof payload?.taskId !== "string") throw automationRouteFailure(payload, "video_generation_failed");
   const caption = typeof payload.caption === "string" && payload.caption.trim()
     ? payload.caption.trim()
     : createFoxiesDeckDownloadCaption(output.native_language);
@@ -609,7 +703,7 @@ async function resolveVideo(output: AutomationOutputRecord) {
   const { GET: getAiVideoStatus } = await import("@/app/api/twitter-automation/ai-video/route");
   const response = await getAiVideoStatus(createInternalRequest(`/api/twitter-automation/ai-video?taskId=${encodeURIComponent(output.provider_task_id)}`));
   const payload = await readJson(response);
-  if (!response.ok) throw new Error(errorCode(payload, "video_status_failed"));
+  if (!response.ok) throw automationRouteFailure(payload, "video_status_failed");
   if (payload?.status === "failed") throw new Error("video_generation_failed");
   if (payload?.status !== "finished" || typeof payload.videoUrl !== "string" || !payload.videoUrl.startsWith("https://")) return { state: "video_pending" as const };
   const video = await storeGeneratedVideo(payload.videoUrl, output.id);
@@ -663,6 +757,11 @@ async function scheduleOutput(output: AutomationOutputRecord) {
     upload_post_jobs: jobs,
     scheduled_at_upload_post: new Date().toISOString(),
     error_code: null,
+    last_error_detail: null,
+    last_provider: null,
+    last_provider_status: null,
+    last_provider_attempt_count: null,
+    last_provider_request_id: null,
   });
   return "scheduled";
 }
@@ -823,8 +922,8 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
     if ((MUSIC_VIDEO_GENERATORS as readonly string[]).includes(generator)) return { outcome: await prepareMusicVideo(output, generator as (typeof MUSIC_VIDEO_GENERATORS)[number], tier) };
     throw new Error("unsupported_automation_generator");
   } catch (error) {
-    const code = error instanceof Error ? error.message : "automation_processing_failed";
-    const recovery = await queueAutomationOutputRecovery(output, code);
+    const code = automationFailureCode(error);
+    const recovery = await queueAutomationOutputRecovery(output, error);
     return recovery.queued ? { outcome: "recovery_queued" as const, errorCode: code } : { outcome: "failed" as const, errorCode: code };
   }
 }

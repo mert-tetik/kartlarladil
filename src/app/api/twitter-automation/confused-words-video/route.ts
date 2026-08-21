@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
+import { CONFUSED_WORDS_PLAN_RESPONSE_FORMAT, normalizeConfusedWordsTerm, parseConfusedWordsVideoPlan, type ConfusedWordsPlan } from "@/features/twitter-automation/confused-words-video-plan";
 import { generatePoyoSpeechDataUrls, PoyoSpeechError } from "@/features/twitter-automation/poyo-speech";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { createNativeVisualCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
+import { createNativeVisualCaption } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -20,83 +21,18 @@ const requestSchema = z.object({
   tier: z.enum(["A1", "A2", "B1", "B2", "C1"]),
 });
 
-type ConfusedWordsPhasePlan = {
-  firstTerm: string;
-  secondTerm: string;
-  firstMeaningTail: string;
-  secondMeaningTail: string;
-  connector: string;
-  question: string;
-};
-
-type ConfusedWordsPlan = {
-  phases: ConfusedWordsPhasePlan[];
-  caption: string;
-};
-
 const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   tr: "Turkish", en: "English", de: "German", ru: "Russian", fr: "French", es: "Spanish", it: "Italian",
   pt: "Portuguese", nl: "Dutch", pl: "Polish", ar: "Arabic", ja: "Japanese", ko: "Korean", "zh-CN": "Chinese",
 };
 
-function extractJsonObject(value: string) {
-  const trimmed = value.replace(/^```(?:json)?\s*/iu, "").replace(/\s*```$/u, "").trim();
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  return firstBrace >= 0 && lastBrace > firstBrace ? trimmed.slice(firstBrace, lastBrace + 1) : trimmed;
-}
-
-function parsePhase(value: unknown): ConfusedWordsPhasePlan | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  const field = (name: keyof ConfusedWordsPhasePlan) => typeof record[name] === "string" ? record[name].trim() : "";
-  const firstTerm = field("firstTerm");
-  const secondTerm = field("secondTerm");
-  const connector = field("connector");
-  const question = field("question");
-  const firstMeaningTail = field("firstMeaningTail");
-  const secondMeaningTail = field("secondMeaningTail");
-  if (
-    firstTerm.length < 2 || secondTerm.length < 2 || /\s/u.test(firstTerm) || /\s/u.test(secondTerm) || normalizeTerm(firstTerm) === normalizeTerm(secondTerm)
-    || connector.length < 1 || question.length < 4 || firstMeaningTail.length < 4 || secondMeaningTail.length < 4
-  ) return null;
-  return {
-    firstTerm: firstTerm.slice(0, 80),
-    secondTerm: secondTerm.slice(0, 80),
-    connector: connector.slice(0, 40),
-    question: question.slice(0, 120),
-    firstMeaningTail: firstMeaningTail.slice(0, 180),
-    secondMeaningTail: secondMeaningTail.slice(0, 180),
-  };
-}
-
-function parsePlan(value: string): ConfusedWordsPlan | null {
-  try {
-    const parsed = JSON.parse(extractJsonObject(value)) as { phases?: unknown; caption?: unknown };
-    const phases = Array.isArray(parsed.phases) ? parsed.phases.map(parsePhase) : [];
-    const caption = typeof parsed.caption === "string" ? parsed.caption.trim() : "";
-    if (phases.length !== PHASE_COUNT || phases.some((phase) => !phase) || caption.length < 12) return null;
-    const resolvedPhases = phases as ConfusedWordsPhasePlan[];
-    const terms = resolvedPhases.flatMap((phase) => [normalizeTerm(phase.firstTerm), normalizeTerm(phase.secondTerm)]);
-    if (new Set(terms).size !== terms.length) return null;
-    return { phases: resolvedPhases, caption: caption.slice(0, 400) };
-  } catch {
-    return null;
-  }
-}
-
-function normalizeTerm(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en").trim();
-}
-
 async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, tier: Tier) {
   const instructions = [
     "Create a FoxiesDeck vertical short-video plan with exactly three phases about commonly confused or very-close-in-meaning vocabulary words.",
-    "Return one JSON object only, with exactly: phases, caption. phases must contain exactly three objects. Each phase object must contain exactly: firstTerm, secondTerm, connector, question, firstMeaningTail, secondMeaningTail.",
+    "Return only one JSON object with exactly one field: phases. phases must contain exactly three objects. Each phase object must contain exactly: firstTerm, secondTerm, connector, question, firstMeaningTail, secondMeaningTail.",
     "Every phase needs two real, distinct single words in the requested learning language. All six terms across the plan must be different. Choose them yourself, never from a catalogue. Do not use any previously used terms or example lists. The words must be completely random and must not repeat any term used in previous generations, even when this request runs immediately after another one. Never invent words, use translations, use inflections of the same word, or choose an unrelated pair.",
     "connector is only the native-language equivalent of 'and'. question is the native-language equivalent of 'what is the difference between them?'.",
     "firstMeaningTail is a native-language phrase that follows the first term and means '[its meaning] while,'; do not repeat the first term. secondMeaningTail is a native-language phrase that follows the second term and means '[its meaning].'; do not repeat the second term.",
-    `caption is one ready-to-post native-language caption under 260 characters, with an inviting hook. End with exactly these native-language hashtags: ${getNativeCaptionHashtags(nativeLanguage).join(" ")}. Do not use English hashtags unless English is the selected native language.`,
     "Use natural punctuation for speech. Keep every spoken fragment brief and easy to understand.",
   ].join("\n");
   const input = {
@@ -109,29 +45,33 @@ async function createPlan(language: LanguageCode, nativeLanguage: LanguageCode, 
       SOCIAL_CONTENT_CREATIVE_MODEL,
       (client, model, signal) => client.responses.create({
       model,
-      instructions: repair ? `${instructions}\nYour previous response was invalid. Return valid JSON with all exact fields and three phases.` : instructions,
+      instructions: repair ? `${instructions}\nYour previous response was invalid. Use the supplied JSON schema exactly and return three complete, unique word pairs.` : instructions,
       input: JSON.stringify(input),
       max_output_tokens: 1_200,
       reasoning: { effort: "none" },
       store: false,
-      text: { format: { type: "text" }, verbosity: "low" },
+      text: { format: CONFUSED_WORDS_PLAN_RESPONSE_FORMAT, verbosity: "low" },
       }, { signal }),
       extractResponseOutputText,
     );
-    return parsePlan(output);
+    return parseConfusedWordsVideoPlan(output);
   };
-  return await generate(false) ?? await generate(true);
+  for (const repair of [false, true, true]) {
+    const plan = await generate(repair);
+    if (plan) return plan;
+  }
+  return null;
 }
 
 async function resolveCards(plan: ConfusedWordsPlan, language: LanguageCode, nativeLanguage: LocaleCode) {
   const resolved = new Map<string, VocabularyCard>();
   for (const term of plan.phases.flatMap((phase) => [phase.firstTerm, phase.secondTerm])) {
-    const key = normalizeTerm(term);
+    const key = normalizeConfusedWordsTerm(term);
     resolved.set(key, await resolveSocialStudioVocabularyCard(term, language, nativeLanguage));
   }
   return plan.phases.map((phase) => ({
-    first: resolved.get(normalizeTerm(phase.firstTerm))!,
-    second: resolved.get(normalizeTerm(phase.secondTerm))!,
+    first: resolved.get(normalizeConfusedWordsTerm(phase.firstTerm))!,
+    second: resolved.get(normalizeConfusedWordsTerm(phase.secondTerm))!,
   }));
 }
 

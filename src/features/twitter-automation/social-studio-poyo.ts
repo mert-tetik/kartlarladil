@@ -2,9 +2,14 @@ import "server-only";
 
 import OpenAI from "openai";
 import {
+  acquireSocialStudioOpenAILease,
+  isSocialStudioOpenAICircuitOpen,
   isSocialStudioPoyoCircuitOpen,
+  recordSocialStudioOpenAIRetryableFailure,
+  recordSocialStudioOpenAISuccess,
   recordSocialStudioPoyoRetryableFailure,
   recordSocialStudioPoyoSuccess,
+  type SocialStudioProviderLease,
 } from "@/features/twitter-automation/social-studio-provider-health";
 
 const POYO_RESPONSES_BASE_URL = "https://api.poyo.ai/v1";
@@ -16,6 +21,13 @@ const OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS = 150_000;
 const OPENAI_FALLBACK_ATTEMPT_TIMEOUT_MS = 45_000;
 const OPENAI_FALLBACK_MAX_ATTEMPTS = 3;
 const OPENAI_FALLBACK_RETRY_DELAYS_MS = [750, 2_000] as const;
+const OPENAI_LEASE_WAIT_TIMEOUT_MS = 90_000;
+const OPENAI_LEASE_RETRY_DELAY_MS = 1_250;
+const LOCAL_POYO_FAILURE_WINDOW_MS = 2 * 60_000;
+const LOCAL_POYO_CIRCUIT_MS = 5 * 60_000;
+const LOCAL_OPENAI_FAILURE_WINDOW_MS = 90_000;
+const LOCAL_OPENAI_CIRCUIT_MS = 90_000;
+const LOCAL_OPENAI_MAX_CONCURRENCY = 2;
 
 const OPENAI_MODEL_BY_POYO_MODEL: Record<string, string> = {
   [SOCIAL_CONTENT_TEXT_MODEL]: "gpt-5.6-luna",
@@ -40,13 +52,73 @@ export type SocialStudioProviderHealth = {
   isPoyoCircuitOpen: () => Promise<boolean>;
   recordPoyoRetryableFailure: () => Promise<void>;
   recordPoyoSuccess: () => Promise<void>;
+  isOpenAICircuitOpen?: () => Promise<boolean>;
+  recordOpenAIRetryableFailure?: () => Promise<void>;
+  recordOpenAISuccess?: () => Promise<void>;
+  acquireOpenAILease?: () => Promise<SocialStudioProviderLease | null>;
 };
 
 const defaultProviderHealth: SocialStudioProviderHealth = {
   isPoyoCircuitOpen: isSocialStudioPoyoCircuitOpen,
   recordPoyoRetryableFailure: recordSocialStudioPoyoRetryableFailure,
   recordPoyoSuccess: recordSocialStudioPoyoSuccess,
+  isOpenAICircuitOpen: isSocialStudioOpenAICircuitOpen,
+  recordOpenAIRetryableFailure: recordSocialStudioOpenAIRetryableFailure,
+  recordOpenAISuccess: recordSocialStudioOpenAISuccess,
+  acquireOpenAILease: acquireSocialStudioOpenAILease,
 };
+
+type LocalProviderCircuit = {
+  consecutiveFailures: number;
+  lastFailureAt: number | null;
+  openUntil: number | null;
+};
+
+const localProviderCircuits: Record<SocialStudioResponsesProvider, LocalProviderCircuit> = {
+  poyo: { consecutiveFailures: 0, lastFailureAt: null, openUntil: null },
+  openai: { consecutiveFailures: 0, lastFailureAt: null, openUntil: null },
+};
+let localOpenAIActiveLeases = 0;
+
+function isLocalProviderCircuitOpen(provider: SocialStudioResponsesProvider, now = Date.now()) {
+  return (localProviderCircuits[provider].openUntil ?? 0) > now;
+}
+
+function recordLocalProviderFailure(provider: SocialStudioResponsesProvider, failureWindowMs: number, circuitMs: number) {
+  const circuit = localProviderCircuits[provider];
+  const now = Date.now();
+  circuit.consecutiveFailures = circuit.lastFailureAt !== null && now - circuit.lastFailureAt <= failureWindowMs
+    ? circuit.consecutiveFailures + 1
+    : 1;
+  circuit.lastFailureAt = now;
+  if (circuit.consecutiveFailures >= 2) circuit.openUntil = now + circuitMs;
+}
+
+function recordLocalProviderSuccess(provider: SocialStudioResponsesProvider) {
+  localProviderCircuits[provider] = { consecutiveFailures: 0, lastFailureAt: null, openUntil: null };
+}
+
+function acquireLocalOpenAILease(): SocialStudioProviderLease | null {
+  if (localOpenAIActiveLeases >= LOCAL_OPENAI_MAX_CONCURRENCY) return null;
+  localOpenAIActiveLeases += 1;
+  let released = false;
+  return {
+    id: `local-openai-${crypto.randomUUID()}`,
+    release: async () => {
+      if (released) return;
+      released = true;
+      localOpenAIActiveLeases = Math.max(0, localOpenAIActiveLeases - 1);
+    },
+  };
+}
+
+/** Test-only reset for the process-local fallback guards. Production state is
+ * intentionally retained for the lifetime of the server process. */
+export function resetSocialStudioProviderFallbackGuardsForTests() {
+  localProviderCircuits.poyo = { consecutiveFailures: 0, lastFailureAt: null, openUntil: null };
+  localProviderCircuits.openai = { consecutiveFailures: 0, lastFailureAt: null, openUntil: null };
+  localOpenAIActiveLeases = 0;
+}
 
 export class PoyoResponsesError extends Error {
   constructor(public readonly code: "poyo_not_configured") {
@@ -82,6 +154,18 @@ export class OpenAIResponsesProviderError extends Error {
     public readonly retryAfterMs?: number,
   ) {
     super(message);
+  }
+}
+
+export class OpenAIResponsesCircuitOpenError extends Error {
+  constructor() {
+    super("OpenAI Responses fallback is temporarily paused after repeated transient failures.");
+  }
+}
+
+export class OpenAIResponsesQueueTimeoutError extends Error {
+  constructor() {
+    super("OpenAI Responses fallback is busy. The generation will retry from its saved checkpoint.");
   }
 }
 
@@ -129,6 +213,7 @@ function isRetryablePoyoResponsesFailure(error: unknown) {
 }
 
 function isRetryableOpenAIResponsesFailure(error: unknown) {
+  if (error instanceof OpenAIResponsesCircuitOpenError || error instanceof OpenAIResponsesQueueTimeoutError) return true;
   const status = error instanceof OpenAIResponsesProviderError ? error.providerStatus : getErrorStatus(error);
   if (typeof status === "number") return status === 408 || status === 409 || status === 429 || status >= 500;
 
@@ -286,8 +371,18 @@ async function safelyReadPoyoCircuit(providerHealth: SocialStudioProviderHealth)
   try {
     return await providerHealth.isPoyoCircuitOpen();
   } catch {
-    // Provider-health persistence must never prevent a healthy provider call.
-    return false;
+    // Durable health is preferred; a process-local breaker still prevents an
+    // error storm while a migration or Supabase is temporarily unavailable.
+    return isLocalProviderCircuitOpen("poyo");
+  }
+}
+
+async function safelyReadOpenAICircuit(providerHealth: SocialStudioProviderHealth) {
+  if (!providerHealth.isOpenAICircuitOpen) return false;
+  try {
+    return await providerHealth.isOpenAICircuitOpen();
+  } catch {
+    return isLocalProviderCircuitOpen("openai");
   }
 }
 
@@ -298,6 +393,65 @@ async function safelyRecordProviderHealth(task: () => Promise<void>) {
     // Fail open when Supabase is unavailable; the request still has a provider
     // path and its actual outcome must remain authoritative.
   }
+}
+
+async function recordPoyoFailure(providerHealth: SocialStudioProviderHealth) {
+  try {
+    await providerHealth.recordPoyoRetryableFailure();
+  } catch {
+    recordLocalProviderFailure("poyo", LOCAL_POYO_FAILURE_WINDOW_MS, LOCAL_POYO_CIRCUIT_MS);
+  }
+}
+
+async function recordPoyoSuccess(providerHealth: SocialStudioProviderHealth) {
+  try {
+    await providerHealth.recordPoyoSuccess();
+  } catch {
+    recordLocalProviderSuccess("poyo");
+  }
+}
+
+async function recordOpenAIFailure(providerHealth: SocialStudioProviderHealth) {
+  if (!providerHealth.recordOpenAIRetryableFailure) return;
+  try {
+    await providerHealth.recordOpenAIRetryableFailure();
+  } catch {
+    recordLocalProviderFailure("openai", LOCAL_OPENAI_FAILURE_WINDOW_MS, LOCAL_OPENAI_CIRCUIT_MS);
+  }
+}
+
+async function recordOpenAISuccess(providerHealth: SocialStudioProviderHealth) {
+  if (!providerHealth.recordOpenAISuccess) return;
+  try {
+    await providerHealth.recordOpenAISuccess();
+  } catch {
+    recordLocalProviderSuccess("openai");
+  }
+}
+
+async function acquireOpenAILease(
+  providerHealth: SocialStudioProviderHealth,
+  wait: (delayMs: number) => Promise<void>,
+  random: () => number,
+) {
+  if (!providerHealth.acquireOpenAILease) return undefined;
+
+  const deadline = Date.now() + OPENAI_LEASE_WAIT_TIMEOUT_MS;
+  try {
+    while (Date.now() < deadline) {
+      const lease = await providerHealth.acquireOpenAILease();
+      if (lease) return lease;
+      const jitter = 0.8 + Math.max(0, Math.min(1, random())) * 0.4;
+      await wait(Math.round(OPENAI_LEASE_RETRY_DELAY_MS * jitter));
+    }
+  } catch {
+    // The database lease is global. When it is temporarily unavailable, keep
+    // a per-process semaphore as a safety net rather than unleashing an
+    // unbounded fallback burst.
+    return acquireLocalOpenAILease();
+  }
+
+  throw new OpenAIResponsesQueueTimeoutError();
 }
 
 function resolveOpenAIModel(poyoModel: string) {
@@ -333,14 +487,25 @@ export async function generateSocialStudioTextWithFallback<T>(
   };
 
   const runOpenAIFallback = async () => {
+    if (await safelyReadOpenAICircuit(providerHealth)) throw new OpenAIResponsesCircuitOpenError();
     const openai = createSocialStudioOpenAIClient();
     const openaiModel = resolveOpenAIModel(primaryModel);
-    return await runOpenAIFallbackWithRetry(
-      openaiModel,
-      (signal) => run("openai", openai, openaiModel, signal),
-      wait,
-      random,
-    );
+    const lease = await acquireOpenAILease(providerHealth, wait, random);
+    try {
+      const result = await runOpenAIFallbackWithRetry(
+        openaiModel,
+        (signal) => run("openai", openai, openaiModel, signal),
+        wait,
+        random,
+      );
+      await recordOpenAISuccess(providerHealth);
+      return result;
+    } catch (error) {
+      if (isRetryableOpenAIResponsesFailure(error)) await recordOpenAIFailure(providerHealth);
+      throw error;
+    } finally {
+      if (lease) await safelyRecordProviderHealth(lease.release);
+    }
   };
 
   if (await safelyReadPoyoCircuit(providerHealth)) return await runOpenAIFallback();
@@ -353,11 +518,11 @@ export async function generateSocialStudioTextWithFallback<T>(
       "poyo",
       primaryModel,
     );
-    await safelyRecordProviderHealth(providerHealth.recordPoyoSuccess);
+    await recordPoyoSuccess(providerHealth);
     return result;
   } catch (error) {
     if (!isRetryablePoyoResponsesFailure(error)) throw error;
-    await safelyRecordProviderHealth(providerHealth.recordPoyoRetryableFailure);
+    await recordPoyoFailure(providerHealth);
     return await runOpenAIFallback();
   }
 }
@@ -391,13 +556,45 @@ export function getSocialStudioResponsesErrorCode(error: unknown) {
   if (error instanceof OpenAIResponsesError) return error.code;
   if (error instanceof PoyoResponsesProviderError) return "poyo_responses_provider_error";
   if (error instanceof OpenAIResponsesProviderError) return "openai_responses_provider_error";
+  if (error instanceof OpenAIResponsesCircuitOpenError) return "openai_responses_circuit_open";
+  if (error instanceof OpenAIResponsesQueueTimeoutError) return "openai_responses_queue_timeout";
   return null;
 }
 
 export function getSocialStudioResponsesProviderLabel(error: unknown, poyoFallback: string) {
-  if (error instanceof OpenAIResponsesError) return "OpenAI Responses";
+  if (error instanceof OpenAIResponsesError || error instanceof OpenAIResponsesCircuitOpenError || error instanceof OpenAIResponsesQueueTimeoutError) return "OpenAI Responses";
   if (error instanceof OpenAIResponsesProviderError) {
     return error.model.endsWith("-luna") ? "OpenAI Responses / Luna" : "OpenAI Responses / Terra";
   }
   return poyoFallback;
+}
+
+function safeProviderFailureDetail(message: string) {
+  return message
+    .replace(/(?:bearer|api[_ -]?key|token)\s+[^\s,;]+/giu, "[credential redacted]")
+    .replace(/https?:\/\/[^\s,;]+/giu, "[url omitted]")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 320);
+}
+
+/** A deliberately small, redacted diagnostic payload persisted by automation
+ * recovery. It never contains prompts, request bodies, URLs, or API keys. */
+export function getSocialStudioProviderFailureDetails(error: unknown) {
+  if (error instanceof PoyoResponsesProviderError) {
+    return { provider: "poyo" as const, status: error.providerStatus, detail: safeProviderFailureDetail(error.message) };
+  }
+  if (error instanceof OpenAIResponsesProviderError) {
+    return {
+      provider: "openai" as const,
+      status: error.providerStatus,
+      attemptCount: error.attemptCount,
+      requestId: error.requestId,
+      detail: safeProviderFailureDetail(error.message),
+    };
+  }
+  if (error instanceof OpenAIResponsesCircuitOpenError || error instanceof OpenAIResponsesQueueTimeoutError) {
+    return { provider: "openai" as const, detail: error.message };
+  }
+  return null;
 }

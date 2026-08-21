@@ -13,6 +13,7 @@ import {
   OpenAIResponsesError,
   OpenAIResponsesProviderError,
   PoyoResponsesError,
+  resetSocialStudioProviderFallbackGuardsForTests,
   SOCIAL_CONTENT_CREATIVE_MODEL,
   SOCIAL_CONTENT_TEXT_MODEL,
 } from "@/features/twitter-automation/social-studio-poyo";
@@ -30,6 +31,7 @@ describe("Content Automation Responses fallback", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
+    resetSocialStudioProviderFallbackGuardsForTests();
   });
 
   it("uses Luna only for short social text and Terra for creative plans", () => {
@@ -165,6 +167,66 @@ describe("Content Automation Responses fallback", () => {
     expect(providers).toEqual(["poyo", "openai", "poyo", "openai", "openai"]);
     expect(providerHealth.recordPoyoRetryableFailure).toHaveBeenCalledTimes(2);
     expect(providerHealth.isPoyoCircuitOpen).toHaveBeenCalledTimes(3);
+  });
+
+  it("opens the direct OpenAI circuit after repeated transient fallback failures", async () => {
+    let openAIFailureCount = 0;
+    let openAICircuitOpen = false;
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => true),
+      recordPoyoRetryableFailure: vi.fn(async () => undefined),
+      recordPoyoSuccess: vi.fn(async () => undefined),
+      isOpenAICircuitOpen: vi.fn(async () => openAICircuitOpen),
+      recordOpenAIRetryableFailure: vi.fn(async () => {
+        openAIFailureCount += 1;
+        if (openAIFailureCount >= 2) openAICircuitOpen = true;
+      }),
+      recordOpenAISuccess: vi.fn(async () => undefined),
+    };
+    const providers: string[] = [];
+    const generate = async (client: unknown) => {
+      const provider = (client as { provider: string }).provider;
+      providers.push(provider);
+      throw Object.assign(new Error("OpenAI temporarily unavailable"), { status: 503 });
+    };
+
+    await expect(generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "", { providerHealth, sleep: async () => undefined })).rejects.toMatchObject({ providerStatus: 503 });
+    await expect(generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "", { providerHealth, sleep: async () => undefined })).rejects.toMatchObject({ providerStatus: 503 });
+    await expect(generateSocialStudioTextWithFallback(SOCIAL_CONTENT_TEXT_MODEL, generate, () => "", { providerHealth, sleep: async () => undefined })).rejects.toMatchObject({ message: /temporarily paused/i });
+
+    expect(providers).toEqual(["openai", "openai", "openai", "openai", "openai", "openai"]);
+    expect(providerHealth.recordOpenAIRetryableFailure).toHaveBeenCalledTimes(2);
+    expect(providerHealth.isOpenAICircuitOpen).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits for the shared OpenAI capacity lease instead of starting another fallback request", async () => {
+    const delays: number[] = [];
+    const release = vi.fn(async () => undefined);
+    const acquireOpenAILease = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({ id: "lease-1", release });
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => true),
+      recordPoyoRetryableFailure: vi.fn(async () => undefined),
+      recordPoyoSuccess: vi.fn(async () => undefined),
+      isOpenAICircuitOpen: vi.fn(async () => false),
+      recordOpenAIRetryableFailure: vi.fn(async () => undefined),
+      recordOpenAISuccess: vi.fn(async () => undefined),
+      acquireOpenAILease,
+    };
+
+    const result = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async () => ({ output: [{ type: "message", content: [{ type: "output_text", text: "healthy" }] }] }),
+      () => "healthy",
+      { providerHealth, sleep: async (delayMs) => { delays.push(delayMs); }, random: () => 0.5 },
+    );
+
+    expect(result).toMatchObject({ provider: "openai", output: "healthy" });
+    expect(acquireOpenAILease).toHaveBeenCalledTimes(3);
+    expect(delays).toEqual([1_250, 1_250]);
+    expect(release).toHaveBeenCalledTimes(1);
   });
 
   it("fails open when provider-health storage is unavailable", async () => {

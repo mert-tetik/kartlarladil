@@ -41,6 +41,11 @@ type AutomationOutput = {
   mediaUrls?: string[];
   media_type: "image" | "video" | null;
   error_code: string | null;
+  last_error_detail?: string | null;
+  last_provider?: "poyo" | "openai" | null;
+  last_provider_status?: number | null;
+  last_provider_attempt_count?: number | null;
+  last_provider_request_id?: string | null;
   updated_at?: string;
   next_attempt_at?: string;
   attempt_count?: number;
@@ -278,7 +283,17 @@ function generationStatusText(output: AutomationOutput, isProcessing: boolean) {
   return `${getOutputLabel(output)} üretim sırasını bekliyor`;
 }
 
-function MediaStatusHint({ errorCode, pendingMessage }: { errorCode: string | null; pendingMessage?: string }) {
+function formatProviderFailureDetail(output: Pick<AutomationOutput, "last_error_detail" | "last_provider" | "last_provider_status" | "last_provider_attempt_count" | "last_provider_request_id">) {
+  const context = [
+    output.last_provider === "openai" ? "OpenAI" : output.last_provider === "poyo" ? "PoYo" : null,
+    output.last_provider_status ? `HTTP ${output.last_provider_status}` : null,
+    output.last_provider_attempt_count ? `${output.last_provider_attempt_count}. deneme` : null,
+    output.last_provider_request_id ? `İstek: ${output.last_provider_request_id}` : null,
+  ].filter((value): value is string => Boolean(value));
+  return [context.join(" · "), output.last_error_detail ?? ""].filter(Boolean).join(" — ");
+}
+
+function MediaStatusHint({ errorCode, errorDetail, pendingMessage }: { errorCode: string | null; errorDetail?: string | null; pendingMessage?: string }) {
   const isPending = !errorCode && Boolean(pendingMessage);
   if (!errorCode && !isPending) return null;
 
@@ -291,6 +306,7 @@ function MediaStatusHint({ errorCode, pendingMessage }: { errorCode: string | nu
     <div className={cn("pointer-events-none absolute right-0 top-full mt-2 w-64 rounded border p-2 text-left text-[11px] leading-4 opacity-0 shadow-sm transition-opacity duration-150 delay-500 group-hover:opacity-100 group-focus-within:opacity-100 group-focus-within:delay-0", isPending ? "border-[#f1c75b]/40 bg-[#292214] text-[#ffeaac]" : "border-[#ffb9c1]/35 bg-[#211413] text-[#ffd9de]")} role="tooltip">
       <p className="font-semibold">{isPending ? "Durum beklemede" : "Üretim hatası"}</p>
       <p className={cn("mt-1 break-words", isPending ? "text-[#f1d77c]" : "text-[#ffb9c1]")}>{message}</p>
+      {!isPending && errorDetail ? <p className="mt-1 break-words text-[#e7c8cc]">{errorDetail}</p> : null}
     </div>
   </div>;
 }
@@ -886,7 +902,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
           <div className="mt-3 flex items-center gap-2 text-xs text-[#d7e2da]"><CalendarClock className="size-3.5 shrink-0 text-[#c7f05d]" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
           <div className="relative mt-3">
             {output.mediaUrls?.length ? <div className="grid grid-cols-3 gap-1 overflow-hidden rounded border border-white/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-sm" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="overflow-hidden rounded border border-white/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="flex min-h-28 items-start gap-2 rounded border border-white/10 bg-black/10 p-3 text-xs leading-5 text-[#d7e2da]"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-[#c7f05d]" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="grid aspect-square place-items-center rounded border border-dashed border-white/10 bg-black/10 text-[#718077]">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
-            <MediaStatusHint errorCode={output.error_code} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
+            <MediaStatusHint errorCode={output.error_code} errorDetail={formatProviderFailureDetail(output)} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
           </div>
           {canRetry ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
         </article>;

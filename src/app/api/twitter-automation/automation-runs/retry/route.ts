@@ -111,6 +111,11 @@ export async function POST(request: NextRequest) {
     const retryPatch = {
       status,
       error_code: null,
+      last_error_detail: null,
+      last_provider: null,
+      last_provider_status: null,
+      last_provider_attempt_count: null,
+      last_provider_request_id: null,
       retry_exhausted_at: null,
       next_attempt_at: new Date().toISOString(),
       generation_attempt_started_at: null,

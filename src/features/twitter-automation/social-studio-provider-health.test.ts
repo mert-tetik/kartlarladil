@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { eqMock, fromMock, maybeSingleMock, rpcMock, selectMock, upsertMock } = vi.hoisted(() => ({
+const { deleteMock, eqMock, fromMock, maybeSingleMock, rpcMock, selectMock, upsertMock } = vi.hoisted(() => ({
+  deleteMock: vi.fn(),
   eqMock: vi.fn(),
   fromMock: vi.fn(),
   maybeSingleMock: vi.fn(),
@@ -14,6 +15,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import {
+  acquireSocialStudioOpenAILease,
+  isSocialStudioOpenAICircuitOpen,
+  recordSocialStudioOpenAIRetryableFailure,
+  recordSocialStudioOpenAISuccess,
   isSocialStudioPoyoCircuitOpen,
   recordSocialStudioPoyoRetryableFailure,
   recordSocialStudioPoyoSuccess,
@@ -66,5 +71,50 @@ describe("Social Studio PoYo provider health", () => {
     fromMock.mockReturnValue({ select: selectMock });
 
     await expect(isSocialStudioPoyoCircuitOpen()).rejects.toThrow("social_studio_provider_health_read_failed");
+  });
+
+  it("uses the same protected health table for the direct OpenAI circuit", async () => {
+    maybeSingleMock.mockResolvedValue({ data: { open_until: "2026-08-21T12:01:00.000Z" }, error: null });
+    eqMock.mockReturnValue({ maybeSingle: maybeSingleMock });
+    selectMock.mockReturnValue({ eq: eqMock });
+    fromMock.mockReturnValue({ select: selectMock });
+    rpcMock.mockResolvedValue({ error: null });
+
+    await expect(isSocialStudioOpenAICircuitOpen(Date.parse("2026-08-21T12:00:00.000Z"))).resolves.toBe(true);
+    await expect(recordSocialStudioOpenAIRetryableFailure()).resolves.toBeUndefined();
+
+    expect(eqMock).toHaveBeenCalledWith("provider_name", "openai_responses");
+    expect(rpcMock).toHaveBeenCalledWith("record_social_content_automation_provider_failure", {
+      p_circuit_open_seconds: 90,
+      p_failure_window_seconds: 90,
+      p_provider_name: "openai_responses",
+    });
+  });
+
+  it("acquires and releases an expiring service-role-only OpenAI capacity lease", async () => {
+    rpcMock.mockResolvedValue({ data: "6f392114-e1c4-4c5f-a0c5-181eb01f6b94", error: null });
+    const releaseEqMock = vi.fn().mockResolvedValue({ error: null });
+    deleteMock.mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: releaseEqMock }) });
+    fromMock.mockReturnValue({ delete: deleteMock });
+
+    const lease = await acquireSocialStudioOpenAILease();
+
+    expect(lease?.id).toBe("6f392114-e1c4-4c5f-a0c5-181eb01f6b94");
+    expect(rpcMock).toHaveBeenCalledWith("acquire_social_content_automation_provider_lease", {
+      p_lease_seconds: 90,
+      p_max_concurrency: 2,
+      p_provider_name: "openai_responses",
+    });
+    await expect(lease?.release()).resolves.toBeUndefined();
+    expect(fromMock).toHaveBeenCalledWith("social_content_automation_provider_leases");
+    expect(releaseEqMock).toHaveBeenCalledWith("provider_name", "openai_responses");
+  });
+
+  it("records a direct OpenAI success by resetting only its own health record", async () => {
+    upsertMock.mockResolvedValue({ error: null });
+    fromMock.mockReturnValue({ upsert: upsertMock });
+
+    await expect(recordSocialStudioOpenAISuccess()).resolves.toBeUndefined();
+    expect(upsertMock).toHaveBeenCalledWith(expect.objectContaining({ provider_name: "openai_responses", consecutive_failures: 0 }), { onConflict: "provider_name" });
   });
 });

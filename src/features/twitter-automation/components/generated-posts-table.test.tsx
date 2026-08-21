@@ -77,6 +77,11 @@ describe("GeneratedPostsTable", () => {
           mediaUrls: [],
           media_type: null,
           error_code: "browser_image_render_failed",
+          last_error_detail: "Snapshot denemeleri tamamlandı; kuyruktan yeniden denenecek.",
+          last_provider: "openai",
+          last_provider_status: 503,
+          last_provider_attempt_count: 3,
+          last_provider_request_id: "req_12345678abcdefgh",
         }],
       }),
     });
@@ -105,6 +110,8 @@ describe("GeneratedPostsTable", () => {
     const tooltip = screen.getByRole("tooltip");
 
     expect(tooltip).toHaveTextContent("browser_image_render_failed");
+    expect(tooltip).toHaveTextContent("Snapshot denemeleri tamamlandı; kuyruktan yeniden denenecek.");
+    expect(tooltip).toHaveTextContent("OpenAI · HTTP 503 · 3. deneme · İstek: req_12345678abcdefgh");
     expect(tooltip).toHaveClass("delay-500", "group-hover:opacity-100");
     expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
     expect(hint).toBeVisible();

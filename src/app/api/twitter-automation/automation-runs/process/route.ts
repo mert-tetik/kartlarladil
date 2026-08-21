@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at")
+      .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,last_error_detail,last_provider,last_provider_status,last_provider_attempt_count,last_provider_request_id,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at")
       .in("status", browserRenderPlan !== undefined || stagedImagePaths.length || parsed.data.browserImageError ? ["awaiting_browser_image", "awaiting_browser_video"] : stagedVideoPath || parsed.data.browserVideoError ? ["awaiting_browser_video"] : ["queued", "generating_video"])
       .lte("next_attempt_at", new Date().toISOString())
       .order("scheduled_at", { ascending: true })
@@ -162,6 +162,11 @@ export async function POST(request: NextRequest) {
         media_type: completed.media_type,
         generated_at: new Date().toISOString(),
         error_code: null,
+        last_error_detail: null,
+        last_provider: null,
+        last_provider_status: null,
+        last_provider_attempt_count: null,
+        last_provider_request_id: null,
         next_attempt_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).eq("id", candidate.id);

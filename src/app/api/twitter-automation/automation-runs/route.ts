@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
     const outputLimit = runId ? 1_000 : 300;
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,generation_attempt_started_at,duration_recorded_at,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
+      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,last_error_detail,last_provider,last_provider_status,last_provider_attempt_count,last_provider_request_id,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,generation_attempt_started_at,duration_recorded_at,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
       .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
       .limit(outputLimit);
