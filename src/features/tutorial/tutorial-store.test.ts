@@ -5,6 +5,7 @@ describe("useTutorialStore", () => {
     useTutorialStore.setState({
       active: false,
       completed: false,
+      introSeen: false,
       step: 0,
       testMode: false,
     });
@@ -16,6 +17,7 @@ describe("useTutorialStore", () => {
     expect(state.active).toBe(false);
     expect(state.step).toBe(0);
     expect(state.completed).toBe(false);
+    expect(state.introSeen).toBe(false);
     expect(state.testMode).toBe(false);
   });
 
@@ -27,6 +29,15 @@ describe("useTutorialStore", () => {
 
     advance();
     expect(useTutorialStore.getState().step).toBe(2);
+  });
+
+  it("begins from the welcome screen without skipping the first target", () => {
+    const { begin } = useTutorialStore.getState();
+
+    begin();
+
+    expect(useTutorialStore.getState().introSeen).toBe(true);
+    expect(useTutorialStore.getState().step).toBe(0);
   });
 
   it("marks completed after the final step", () => {
@@ -51,6 +62,7 @@ describe("useTutorialStore", () => {
     expect(useTutorialStore.getState().active).toBe(false);
     expect(useTutorialStore.getState().step).toBe(0);
     expect(useTutorialStore.getState().completed).toBe(false);
+    expect(useTutorialStore.getState().introSeen).toBe(false);
     expect(useTutorialStore.getState().testMode).toBe(false);
   });
 
@@ -74,12 +86,13 @@ describe("useTutorialStore", () => {
     advance();
 
     const stored = JSON.parse(window.localStorage.getItem("foxiesdeck:tutorial") ?? "{}") as {
-      state?: { active?: boolean; completed?: boolean; step?: number };
+      state?: { active?: boolean; completed?: boolean; introSeen?: boolean; step?: number };
     };
 
     expect(stored.state).toMatchObject({
       active: true,
       completed: false,
+      introSeen: false,
       step: 1,
     });
   });

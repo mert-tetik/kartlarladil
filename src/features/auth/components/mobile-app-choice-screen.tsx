@@ -38,7 +38,7 @@ export function MobileAppChoiceScreen({
   const isAndroid = !forceApple && isAndroidMobileDevice();
 
   return (
-    <div className="animate-screen-pop mb-[clamp(3rem,9vh,5.5rem)] flex w-full max-w-sm flex-col items-center text-center">
+    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
       <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
         <Image
           src="/splash.png"

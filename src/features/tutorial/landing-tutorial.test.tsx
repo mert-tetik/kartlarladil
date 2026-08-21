@@ -45,7 +45,7 @@ describe("LandingTutorial", () => {
         } as DOMRect;
       },
     });
-    useTutorialStore.setState({ active: true, completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
   });
 
   afterEach(() => {
@@ -53,17 +53,47 @@ describe("LandingTutorial", () => {
       configurable: true,
       value: originalRect,
     });
-    useTutorialStore.setState({ active: false, completed: false, step: 0, testMode: false });
+    useTutorialStore.setState({ active: false, completed: false, introSeen: false, step: 0, testMode: false });
   });
 
-  function renderTutorial() {
+  function renderTutorial({
+    introSeen = true,
+    subscriptionOfferVisible = false,
+  }: {
+    introSeen?: boolean;
+    subscriptionOfferVisible?: boolean;
+  } = {}) {
+    useTutorialStore.setState({ introSeen });
+
     return render(
       <>
+        {subscriptionOfferVisible ? <div data-mobile-subscription-offer /> : null}
         {TARGETS.map((target) => <button key={target} type="button" data-tutorial-target={target}>{target}</button>)}
         <LandingTutorial />
       </>,
     );
   }
+
+  it("stays behind the subscription offer", async () => {
+    renderTutorial({ introSeen: false, subscriptionOfferVisible: true });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("opens with the mascot welcome screen before the first target", async () => {
+    renderTutorial({ introSeen: false });
+
+    expect(await screen.findByRole("dialog", { name: "tutorial.welcome" })).toHaveAttribute(
+      "data-landing-tutorial-welcome",
+    );
+    expect(document.querySelector("[data-tutorial-welcome-mascot]")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
+
+    await waitFor(() => expect(useTutorialStore.getState().introSeen).toBe(true));
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument());
+    expect(useTutorialStore.getState().step).toBe(0);
+  });
 
   it("shows a blocked circular spotlight and advances only from the next button", async () => {
     renderTutorial();
@@ -73,8 +103,7 @@ describe("LandingTutorial", () => {
     const nextButton = screen.getByRole("button", { name: "tutorial.next" });
 
     expect(message).toHaveTextContent("tutorial.landingDrawRandom");
-    expect(document.querySelector("[data-landing-tutorial-spotlight]")).toHaveClass("rounded-full", "border-red-500");
-    expect(Number.parseFloat(nextButton.style.top)).toBeCloseTo(Number.parseFloat(message.style.top) + 96);
+    expect(document.querySelector("[data-landing-tutorial-spotlight]")).toHaveClass("rounded-full", "border-red-500", "border-[5px]");
 
     fireEvent.click(dialog);
     expect(useTutorialStore.getState().step).toBe(0);
@@ -89,35 +118,37 @@ describe("LandingTutorial", () => {
 
     for (const step of [2, 3, 4]) {
       act(() => {
-        useTutorialStore.setState({ active: true, completed: false, step, testMode: false });
+        useTutorialStore.setState({ active: true, completed: false, introSeen: true, step, testMode: false });
       });
 
       await waitFor(() => {
         const spotlight = document.querySelector("[data-landing-tutorial-spotlight]");
         expect(spotlight).toHaveAttribute("data-spotlight-shape", "rectangle");
-        expect(spotlight).toHaveClass("rounded-lg", "border-red-500");
+        expect(spotlight).toHaveClass("rounded-lg", "border-red-500", "border-[5px]");
       });
     }
 
     expect(document.querySelectorAll("[data-landing-tutorial-rect-mask]")).toHaveLength(4);
   });
 
-  it("uses the required color sequence and finishes with the understood action", async () => {
+  it("uses brand colors for every message and next action", async () => {
     renderTutorial();
 
     const nextButton = await screen.findByRole("button", { name: "tutorial.next" });
-    expect(nextButton).toHaveClass("bg-emerald-500");
-    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-emerald-500");
+    expect(nextButton).toHaveClass("bg-brand");
+    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-brand");
+    expect(document.querySelector("[data-tutorial-callout-mascot]")).toBeInTheDocument();
+    expect(document.querySelector(".tutorial-arrow-path")).toBeInTheDocument();
 
-    useTutorialStore.setState({ active: true, completed: false, step: 1, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 1, testMode: false });
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-blue-500");
-      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-blue-500");
+      expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-brand");
+      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-brand");
     });
 
-    useTutorialStore.setState({ active: true, completed: false, step: 8, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 8, testMode: false });
     const lastButton = await screen.findByRole("button", { name: "tutorial.understood" });
-    expect(lastButton).toHaveClass("bg-emerald-500");
+    expect(lastButton).toHaveClass("bg-brand");
 
     fireEvent.click(lastButton);
     await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true));

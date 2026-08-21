@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -30,6 +30,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
+import { playSoundEffect } from "@/lib/sound-effects";
 import {
   formatCurrency,
   getLocalizedPrice,
@@ -831,6 +832,12 @@ const MOBILE_PERK_ARTWORK = [
   },
 ] as const;
 
+const LOOPED_MOBILE_PERK_ARTWORK = [
+  ...MOBILE_PERK_ARTWORK,
+  ...MOBILE_PERK_ARTWORK,
+  ...MOBILE_PERK_ARTWORK,
+];
+
 function MobilePricingPerkCarousel({
   plan,
   locale,
@@ -839,14 +846,139 @@ function MobilePricingPerkCarousel({
   locale: LocaleCode;
 }) {
   const t = useT();
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef<Array<HTMLElement | null>>([]);
+  const activeRenderIndexRef = useRef(MOBILE_PERK_ARTWORK.length);
+  const activeIndexRef = useRef(0);
+  const initializedRef = useRef(false);
+  const settleTimerRef = useRef<number | null>(null);
+  const [highlightRenderIndex, setHighlightRenderIndex] = useState(MOBILE_PERK_ARTWORK.length);
+
+  const getNearestCardIndex = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return -1;
+
+    const trackRect = track.getBoundingClientRect();
+    const center = trackRect.left + track.clientWidth / 2;
+    let nearestIndex = -1;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      const distance = Math.abs(rect.left + rect.width / 2 - center);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    return nearestIndex;
+  }, []);
+
+  const centerCard = useCallback((index: number, behavior: ScrollBehavior = "smooth") => {
+    const track = trackRef.current;
+    const card = cardRefs.current[index];
+    if (!track || !card) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const targetLeft = track.scrollLeft +
+      (cardRect.left + cardRect.width / 2 - (trackRect.left + track.clientWidth / 2));
+    if (Math.abs(track.scrollLeft - targetLeft) < 1) return;
+
+    const nextScrollLeft = Math.max(0, targetLeft);
+    if (behavior === "auto") {
+      track.scrollLeft = nextScrollLeft;
+      return;
+    }
+
+    track.scrollTo({ left: nextScrollLeft, behavior });
+  }, []);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const initializeCarousel = () => {
+      if (initializedRef.current || track.clientWidth === 0) return;
+
+      const middleIndex = MOBILE_PERK_ARTWORK.length;
+      if (!cardRefs.current[middleIndex]) return;
+
+      centerCard(middleIndex, "auto");
+      activeRenderIndexRef.current = middleIndex;
+      setHighlightRenderIndex(middleIndex);
+      initializedRef.current = true;
+    };
+
+    const initialFrame = window.requestAnimationFrame(initializeCarousel);
+    const initialTimer = window.setTimeout(initializeCarousel, 120);
+
+    const handleScroll = () => {
+      const nearestIndex = getNearestCardIndex();
+      if (nearestIndex < 0) return;
+
+      const normalizedIndex = ((nearestIndex % MOBILE_PERK_ARTWORK.length) + MOBILE_PERK_ARTWORK.length) % MOBILE_PERK_ARTWORK.length;
+      if (activeRenderIndexRef.current !== nearestIndex) {
+        activeRenderIndexRef.current = nearestIndex;
+        setHighlightRenderIndex(nearestIndex);
+      }
+
+      if (activeIndexRef.current !== normalizedIndex) {
+        activeIndexRef.current = normalizedIndex;
+
+        if (initializedRef.current) {
+          vibrate("tap");
+          playSoundEffect("quiz-select");
+        }
+      }
+
+      if (settleTimerRef.current !== null) {
+        window.clearTimeout(settleTimerRef.current);
+      }
+
+      settleTimerRef.current = window.setTimeout(() => {
+        const middleIndex = MOBILE_PERK_ARTWORK.length + activeIndexRef.current;
+        centerCard(middleIndex, "smooth");
+      }, 140);
+    };
+
+    const handleResize = () => {
+      centerCard(MOBILE_PERK_ARTWORK.length + activeIndexRef.current, "auto");
+    };
+
+    track.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(initializeCarousel);
+    resizeObserver?.observe(track);
+
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      window.clearTimeout(initialTimer);
+      track.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      resizeObserver?.disconnect();
+      if (settleTimerRef.current !== null) {
+        window.clearTimeout(settleTimerRef.current);
+      }
+    };
+  }, [centerCard, getNearestCardIndex]);
 
   return (
     <div
+      ref={trackRef}
       className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-full overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-mobile-pricing-perks
+      aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
     >
-      <div className="flex h-full w-max snap-x snap-mandatory gap-3 pr-4">
-        {MOBILE_PERK_ARTWORK.map((perk, index) => {
+      <div className="flex h-full w-max snap-x snap-mandatory gap-3 px-[14vw]">
+        {LOOPED_MOBILE_PERK_ARTWORK.map((perk, renderIndex) => {
+          const index = renderIndex % MOBILE_PERK_ARTWORK.length;
+          const isHighlighted = renderIndex === highlightRenderIndex;
           const description = perk.id === "practice"
             ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
             : perk.id === "monthly-ai"
@@ -855,25 +987,36 @@ function MobilePricingPerkCarousel({
 
           return (
             <article
-              key={perk.id}
-              className="relative h-full w-[72vw] max-w-[19rem] snap-center overflow-hidden rounded-[2rem] bg-[var(--pricing-mobile-surface)]"
+              key={`${perk.id}-${renderIndex}`}
+              ref={(element) => {
+                cardRefs.current[renderIndex] = element;
+              }}
+              data-perk-index={index}
+              data-highlighted={isHighlighted ? "true" : "false"}
+              className={cn(
+                "relative h-full w-[72vw] max-w-[19rem] snap-center snap-always rounded-[2rem] bg-[var(--pricing-mobile-surface)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                isHighlighted ? "z-20 scale-100 opacity-100" : "z-0 scale-[0.86] opacity-55",
+              )}
             >
               <Image
                 src={perk.image}
                 alt=""
                 fill
-                priority={index === 0}
+                priority={renderIndex === MOBILE_PERK_ARTWORK.length}
                 sizes="72vw"
-                className="-translate-y-3 scale-110 object-cover"
+                className={cn(
+                  "-translate-y-3 object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  isHighlighted ? "scale-110 opacity-100" : "scale-[0.94] opacity-45 grayscale-[0.2]",
+                )}
               />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
+                className="pointer-events-none absolute inset-0 rounded-[2rem] [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
               />
-              <div className="absolute inset-x-0 bottom-0 flex min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center">
+              <div className="relative z-10 flex h-full min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
                 <h2
                   className={cn(
-                    "text-xl font-semibold leading-none text-white",
+                    "text-xl font-semibold leading-none text-white transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                     canUseSuperWater(locale) && "font-super-water",
                   )}
                 >
@@ -1042,6 +1185,8 @@ function MobilePricingView({
                 onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
                 className="relative isolate flex h-16 flex-col items-center justify-center overflow-hidden rounded-full border border-transparent px-3 text-center"
                 aria-pressed={isSelected}
+                data-mobile-pricing-plan-button={plan}
+                data-selected={isSelected ? "true" : "false"}
               >
                 <span
                   aria-hidden="true"
@@ -1050,10 +1195,18 @@ function MobilePricingView({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "pointer-events-none absolute inset-0 rounded-full border border-transparent [background:linear-gradient(135deg,#fde047,#f59e0b,#f97316)_padding-box,linear-gradient(180deg,#6a4600,#fff0a6)_border-box] transition-opacity duration-300 ease-out",
+                    "pointer-events-none absolute inset-0 transition-opacity duration-300 ease-in-out",
                     isSelected ? "opacity-100" : "opacity-0",
                   )}
-                />
+                >
+                  <Image
+                    src="/pricing-buttons/pricing-active-button-v2.png"
+                    alt=""
+                    fill
+                    sizes="(max-width: 1023px) 50vw, 0px"
+                    className="object-fill"
+                  />
+                </span>
                 <span
                   className={cn(
                     "relative z-10 font-display text-lg font-semibold leading-none transition-colors duration-300",

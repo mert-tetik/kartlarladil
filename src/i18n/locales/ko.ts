@@ -817,6 +817,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "포인트로 세계 순위에 도전하세요!",
   "tutorial.landingGames": "단어 게임을 하며 배우고 포인트를 얻으세요!",
   "tutorial.landingAiPractice": "대화 연습으로 포인트를 획득하세요!",
+  "tutorial.welcome": "FoxiesDeck에 오신 것을 환영해요!",
   "tutorial.next": "다음",
   "tutorial.understood": "알겠어요",
   "cards.centerTitle": "카드", "cards.all": "모든 카드", "cards.toLearn": "학습할 카드", "cards.listen": "듣기", "cards.addToDeck": "카드에 추가", "cards.swipeHint": "왼쪽으로 밀면 건너뛰고 오른쪽으로 밀면 컬렉션에 추가합니다.", "cards.createCustom": "맞춤 카드 만들기",

@@ -817,6 +817,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "用积分进入世界排行榜！",
   "tutorial.landingGames": "边玩单词游戏边学习并赚取积分！",
   "tutorial.landingAiPractice": "通过练习对话赚取积分！",
+  "tutorial.welcome": "欢迎来到 FoxiesDeck！",
   "tutorial.next": "下一步",
   "tutorial.understood": "明白了",
   "cards.centerTitle": "卡片", "cards.all": "全部卡片", "cards.toLearn": "待学习", "cards.listen": "朗读", "cards.addToDeck": "加入卡片", "cards.swipeHint": "向左滑动跳过，向右滑动加入收藏。", "cards.createCustom": "创建自定义卡片",

@@ -160,7 +160,7 @@ export function MobileSubscriptionOfferScreen({
   const isLoading = isGooglePlayLoading || isCheckoutPending;
 
   return (
-    <div className="animate-screen-pop flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden overflow-y-auto rounded-2xl bg-background-card text-center shadow-xl">
+    <div data-mobile-subscription-offer className="animate-screen-pop flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden overflow-y-auto bg-background-card pb-[env(safe-area-inset-bottom)] text-center">
       <div className="relative isolate h-[42vh] min-h-[260px] w-full overflow-hidden">
         <Image
           src="/onboarding-premium-hero.webp"
@@ -172,7 +172,7 @@ export function MobileSubscriptionOfferScreen({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background-card via-background-card/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-4 top-auto flex flex-col items-center px-4">
-          <span className="font-display text-4xl font-black uppercase tracking-tighter text-yellow-400 drop-shadow-sm sm:text-5xl">
+          <span className="font-display text-4xl font-bold uppercase tracking-tighter text-yellow-400 drop-shadow-sm sm:text-5xl">
             {t("pricing.firstMonthFree")}
           </span>
           <span className="mt-1 text-xs font-semibold uppercase tracking-widest text-foreground-secondary">

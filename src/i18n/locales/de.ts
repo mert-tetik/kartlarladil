@@ -816,6 +816,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "Komm mit deinen Punkten in die Weltrangliste!",
   "tutorial.landingGames": "Lerne und verdiene Punkte beim Spielen von Wortspielen!",
   "tutorial.landingAiPractice": "Sammle Punkte, indem du das Sprechen übst!",
+  "tutorial.welcome": "Willkommen bei FoxiesDeck!",
   "tutorial.next": "Weiter",
   "tutorial.understood": "Verstanden",
   "cards.centerTitle": "Karten",

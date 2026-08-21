@@ -391,7 +391,7 @@ export function MobileLandingDashboard() {
   }
 
   return (
-    <section data-mobile-landing-dashboard className={cn("relative h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-y-hidden")}>
+    <section data-mobile-landing-dashboard className={cn("relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-visible")}>
       {/* Leaderboard badge */}
       <button
         type="button"
@@ -478,22 +478,19 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div data-tutorial-target="rank-info" className="relative -mx-4 flex h-[250px] flex-none flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+      <div data-tutorial-target="rank-info" className="relative -mx-4 flex min-h-0 flex-1 flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"
         />
-        <span className="relative z-10 hidden text-[10px] font-bold uppercase tracking-widest text-white/60">
-          {t("home.mobile.rankLabel")}
-        </span>
-        <div className="relative z-10 flex h-[150px] w-full items-center justify-center self-stretch">
+        <div className="relative z-10 flex min-h-0 flex-1 w-full flex-col items-center justify-center">
           <button
             type="button"
             onClick={() => {
               vibrate("tap");
               setRankInfoOpen(true);
             }}
-            className="inline-flex h-full w-[150px] items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex size-[clamp(1.5rem,calc(100dvh-35rem),20rem)] shrink-0 items-center justify-center transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             aria-label={getRankLabel(stats.rank, locale)}
             data-rank-icon-button
           >
@@ -501,22 +498,24 @@ export function MobileLandingDashboard() {
             <img
               src={RANK_ICON_ASSETS[stats.rank.icon]}
               alt=""
-              className="h-[136px] w-auto object-contain"
+              className="size-full object-contain"
               draggable={false}
             />
           </button>
-        </div>
-        <h1 className={cn("relative z-10 text-center text-lg font-bold text-white", canUseSuperWater(locale) && "font-super-water")}>
-          {formatSuperWaterText(locale, getRankLabel(stats.rank, locale))}
-        </h1>
-        <div
-          className="relative z-10 mt-0.5 flex items-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
-          aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
-        >
-          <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            {formatNumber(locale, stats.totalPoints)}
-          </span>
-          <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
+          <div className="-translate-y-2">
+            <h1 className={cn("mt-1 text-center text-lg font-bold text-white", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, getRankLabel(stats.rank, locale))}
+            </h1>
+            <div
+              className="mt-0.5 flex items-center justify-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
+              aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
+            >
+              <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                {formatNumber(locale, stats.totalPoints)}
+              </span>
+              <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
+            </div>
+          </div>
         </div>
       </div>
 

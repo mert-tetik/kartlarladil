@@ -21,6 +21,7 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
+const MIN_ONBOARDING_VISUAL_HEIGHT_RATIO = 0.72;
 
 type BootstrapPhase = "visible" | "exiting" | "hidden";
 
@@ -49,9 +50,9 @@ function MobileGatewayBootstrap({ phase }: { phase: Exclude<BootstrapPhase, "hid
   );
 }
 
-function OnboardingBackground() {
+function OnboardingBackground({ className }: { className?: string }) {
   return (
-    <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
+    <div className={cn("pointer-events-none overflow-hidden", className)}>
       <div
         className="absolute inset-0 bg-[url('/onboarding-bg.jpg')] bg-cover bg-bottom bg-no-repeat"
         aria-hidden="true"
@@ -69,12 +70,56 @@ function GatewayShell({
   isTestMode,
   centered = false,
   showBackground = true,
+  fullBleed = false,
 }: {
   children: ReactNode;
   isTestMode: boolean;
   centered?: boolean;
   showBackground?: boolean;
+  fullBleed?: boolean;
 }) {
+  const contentPanelRef = useRef<HTMLDivElement | null>(null);
+  const [hideOnboardingVisual, setHideOnboardingVisual] = useState(false);
+
+  useEffect(() => {
+    const contentPanel = contentPanelRef.current;
+    if (!contentPanel) return;
+
+    let frameId: number | undefined;
+    const updateVisualVisibility = () => {
+      const remainingVisualHeight = window.innerHeight - contentPanel.getBoundingClientRect().height;
+      const minimumVisualHeight = window.innerWidth * MIN_ONBOARDING_VISUAL_HEIGHT_RATIO;
+      const shouldHide = showBackground && remainingVisualHeight < minimumVisualHeight;
+
+      setHideOnboardingVisual((current) => (current === shouldHide ? current : shouldHide));
+    };
+    const scheduleVisualVisibilityUpdate = () => {
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(updateVisualVisibility);
+    };
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(scheduleVisualVisibilityUpdate);
+
+    resizeObserver?.observe(contentPanel);
+    window.addEventListener("resize", scheduleVisualVisibilityUpdate);
+    scheduleVisualVisibilityUpdate();
+
+    return () => {
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", scheduleVisualVisibilityUpdate);
+    };
+  }, [children, showBackground]);
+
+  const shouldShowOnboardingVisual = showBackground && !hideOnboardingVisual;
+
   return (
     <div
       data-mobile-auth-gateway
@@ -83,17 +128,41 @@ function GatewayShell({
         !isTestMode && "max-lg:block lg:hidden",
       )}
     >
-      {showBackground ? <OnboardingBackground /> : null}
-      <div className={cn(
-        "relative z-10 flex min-h-full w-full justify-center px-6",
-        centered
-          ? "items-center py-[max(1.5rem,env(safe-area-inset-bottom))]"
-          : "items-end pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8",
-      )}>
-        <div className="flex w-full justify-center">
-          {children}
+      {(centered || fullBleed) && showBackground ? (
+        <OnboardingBackground className="absolute inset-x-0 top-0 z-0 h-1/2" />
+      ) : null}
+      {fullBleed ? (
+        <div className="relative z-10 flex h-full w-full items-stretch justify-center">
+          <div className="flex h-full w-full justify-center">{children}</div>
         </div>
-      </div>
+      ) : centered ? (
+        <div className="relative z-10 flex h-full w-full items-center justify-center px-6 py-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="flex w-full justify-center">{children}</div>
+        </div>
+      ) : (
+        <div className={cn(
+          "relative z-10 grid h-full w-full",
+          shouldShowOnboardingVisual ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-1",
+        )}>
+          {shouldShowOnboardingVisual ? (
+            <OnboardingBackground className="relative h-full w-full" />
+          ) : null}
+          <div className={cn(
+            "flex w-full justify-center",
+            shouldShowOnboardingVisual ? "items-end" : "items-center",
+          )}>
+            <div
+              ref={contentPanelRef}
+              className={cn(
+                "w-full px-6",
+                shouldShowOnboardingVisual && "pb-[max(4rem,env(safe-area-inset-bottom))]",
+              )}
+            >
+              {children}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -273,15 +342,15 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }
 
   function handleOnboardingComplete() {
-    // Start immediately and persist the unfinished flow in case the app closes here.
+    // Prepare a fresh tutorial, but do not display it above the subscription offer.
     resetTutorial();
-    activateTutorial();
     setOnboardingCompletedInSession(true);
     setOfferTriggered(true);
     setOfferActive(true);
   }
 
   function handleContinueFree() {
+    activateTutorial();
     setOfferSeen(true);
     setOfferActive(false);
     setOfferTriggered(false);
@@ -302,7 +371,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       );
     } else if (shouldShowOffer) {
       gateway = (
-      <GatewayShell isTestMode={isTestMode}>
+      <GatewayShell fullBleed isTestMode={isTestMode}>
         <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
       </GatewayShell>
       );

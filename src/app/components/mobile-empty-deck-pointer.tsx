@@ -41,7 +41,7 @@ export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
       aria-hidden="true"
       data-mobile-empty-deck-pointer
       data-testid="mobile-empty-deck-pointer"
-      className="empty-deck-pointer-anchor pointer-events-none absolute z-20"
+      className="empty-deck-pointer-anchor pointer-events-none absolute z-[60]"
     >
       <Image
         alt=""

@@ -817,6 +817,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "Попади в мировой рейтинг благодаря очкам!",
   "tutorial.landingGames": "Учись и зарабатывай очки, играя в словесные игры!",
   "tutorial.landingAiPractice": "Зарабатывай очки, практикуя разговорную речь!",
+  "tutorial.welcome": "Добро пожаловать в FoxiesDeck!",
   "tutorial.next": "Далее",
   "tutorial.understood": "Понятно",
   "cards.centerTitle": "Карточки",

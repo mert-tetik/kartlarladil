@@ -1513,6 +1513,11 @@ body:has([data-mobile-auth-gateway]) #main-content {
   display: none !important;
 }
 
+/* The subscription offer always has priority over the onboarding tutorial. */
+body:has([data-mobile-subscription-offer]) [data-landing-tutorial] {
+  display: none !important;
+}
+
 /* Hide mobile bottom nav during full-screen study flows */
 body:has([data-mobile-hide-bottom-nav]) [data-mobile-main-nav-frame] {
   display: none !important;
@@ -1520,6 +1525,102 @@ body:has([data-mobile-hide-bottom-nav]) [data-mobile-main-nav-frame] {
 
 body:has([data-mobile-hide-bottom-nav]) #main-content {
   padding-bottom: 0 !important;
+}
+
+@keyframes tutorial-welcome-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-welcome-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes tutorial-welcome-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tutorial-callout-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes tutorial-arrow-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tutorial-welcome-enter {
+  animation: tutorial-welcome-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tutorial-welcome-exit {
+  animation: tutorial-welcome-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.tutorial-welcome-enter .tutorial-welcome-content {
+  animation: tutorial-welcome-content-in 460ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.tutorial-welcome-exit .tutorial-welcome-content {
+  opacity: 0;
+  transform: translateY(-8px) scale(1.02);
+  transition: opacity 180ms ease-in, transform 180ms ease-in;
+}
+
+.tutorial-callout-enter {
+  animation: tutorial-callout-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tutorial-arrow-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: tutorial-arrow-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-welcome-enter,
+  .tutorial-welcome-exit,
+  .tutorial-welcome-enter .tutorial-welcome-content,
+  .tutorial-callout-enter,
+  .tutorial-arrow-path {
+    animation: none;
+  }
 }
 
 /* Tutorial pointer overlay */
@@ -1546,7 +1647,7 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 .empty-deck-pointer-anchor {
   /* The fingertip is at 43.9% x / 21.7% y inside the source PNG. */
   left: calc(50% - 24.6px);
-  top: 14px;
+  top: 22px;
   width: 56px;
   height: 56px;
 }
@@ -1557,6 +1658,28 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
   transform-origin: 43.9% 21.7%;
   animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
+}
+
+@media (max-width: 1023px) {
+  /* Only the empty-deck cue crosses the fixed bottom navigation layer. */
+  body:has([data-mobile-empty-deck-pointer])::after {
+    content: "";
+    position: fixed;
+    right: 56px;
+    bottom: 41px;
+    width: 56px;
+    height: 56px;
+    pointer-events: none;
+    z-index: 1000;
+    background: url("/pointer-icon.png") center / 56px 56px no-repeat;
+    filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
+    transform-origin: 43.9% 21.7%;
+    animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
+  }
+
+  body:has([data-mobile-empty-deck-pointer]) [data-mobile-empty-deck-pointer] {
+    visibility: hidden;
+  }
 }
 
 /* Games feature layout rules */

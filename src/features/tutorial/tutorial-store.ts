@@ -6,8 +6,10 @@ import { persist } from "zustand/middleware";
 interface TutorialState {
   active: boolean;
   completed: boolean;
+  introSeen: boolean;
   step: number;
   testMode: boolean;
+  begin: () => void;
   advance: () => void;
   complete: () => void;
   reset: () => void;
@@ -24,8 +26,10 @@ export const useTutorialStore = create<TutorialState>()(
     (set) => ({
       active: false,
       completed: false,
+      introSeen: false,
       step: 0,
       testMode: false,
+      begin: () => set({ introSeen: true }),
       advance: () => {
         set((state) => {
           const nextStep = state.step + 1;
@@ -37,7 +41,7 @@ export const useTutorialStore = create<TutorialState>()(
         });
       },
       complete: () => set({ active: false, completed: true }),
-      reset: () => set({ active: false, completed: false, step: 0 }),
+      reset: () => set({ active: false, completed: false, introSeen: false, step: 0 }),
       activate: () => set({ active: true }),
       deactivate: () => set({ active: false }),
       enableTestMode: () => set({ testMode: true }),
@@ -49,6 +53,7 @@ export const useTutorialStore = create<TutorialState>()(
         // Keep an unfinished onboarding tutorial alive across an app restart.
         active: state.active,
         completed: state.completed,
+        introSeen: state.introSeen,
         step: state.step,
         testMode: state.testMode,
       }),
@@ -58,7 +63,7 @@ export const useTutorialStore = create<TutorialState>()(
         const params = new URLSearchParams(window.location.search);
         const isTestUrl = params.get("tutorial-test") === "1" || params.get("tutorial-debug") === "1";
         if (isTestUrl && state) {
-          useTutorialStore.setState({ completed: false, step: 0, testMode: true });
+          useTutorialStore.setState({ completed: false, introSeen: false, step: 0, testMode: true });
         }
       },
     },

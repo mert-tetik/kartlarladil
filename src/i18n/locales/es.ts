@@ -817,6 +817,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "¡Entra en la clasificación mundial con tus puntos!",
   "tutorial.landingGames": "¡Aprende y gana puntos jugando a juegos de palabras!",
   "tutorial.landingAiPractice": "¡Gana puntos practicando conversación!",
+  "tutorial.welcome": "¡Bienvenido a FoxiesDeck!",
   "tutorial.next": "Siguiente",
   "tutorial.understood": "Entendido",
   "cards.centerTitle": "Cartas", "cards.all": "Todas", "cards.toLearn": "Por aprender", "cards.listen": "Escuchar", "cards.addToDeck": "Añadir a cartas", "cards.swipeHint": "Desliza a la izquierda para omitir o a la derecha para añadir a tu colección.", "cards.createCustom": "Crear carta personalizada",

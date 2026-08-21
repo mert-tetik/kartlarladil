@@ -8,6 +8,8 @@ const outputPath = join(publicDirectory, "image-cache-manifest.json");
 const imageExtension = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
 const CRITICAL_IMAGE_URLS = new Set([
   "/logo.png",
+  "/mascots/mascot1.webp",
+  "/mascots/mascot5.webp",
   "/mission-icon.png",
   "/score-icon.png",
   "/splash.png",

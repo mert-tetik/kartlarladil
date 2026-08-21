@@ -1,5 +1,5 @@
 {
-  "version": "effdc73910f371170aeb7df2719a14776d651ff175110d4707b42b90015f8215",
+  "version": "4df3d0238caf7b46d26532a67ea36e6b51ea611b0b11a0f9ff61985c0afe0dae",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -567,43 +567,43 @@
     },
     {
       "url": "/ranks/rank1.png",
-      "revision": "6d631caf9ceb7ee20771a705b8398f10d9a6bb384beb1634f580aed04c2f18b0"
+      "revision": "6d0d00dfa4f85f991dc8cd0458d0b3a8c0c7819debd57cd2359681582d5400e8"
     },
     {
-      "url": "/ranks/rank10.webp",
-      "revision": "4ba52264226136be97fffe002e39a7e5d8bd553b943bfdb6f754b861846a4306"
+      "url": "/ranks/rank10.png",
+      "revision": "d98687820765535305d94f457c0f10696866816bf15adc9f7c57b587666f0ffc"
     },
     {
       "url": "/ranks/rank2.png",
-      "revision": "35506df31f519ba54d9dd1f525c5701d4fd3bdf1b7518d6ece4a80be3f31ad82"
+      "revision": "8f00089c3a9a44ce04452b68afe3da32170b53cb6c10e2db1707f1e6e442272f"
     },
     {
       "url": "/ranks/rank3.png",
-      "revision": "decb51efe67f30242deee83f2abdcfeb4307ab0d9b7ccc9c21f270c0b2997dcc"
+      "revision": "bc0e860436c29130e4402b180be9eaa52589887b26acd3667573d520790341dc"
     },
     {
       "url": "/ranks/rank4.png",
-      "revision": "59615b823d258a7ffa56b5adb5637d46f8011c8b39ab6b30a4cc70f67d3c92f9"
+      "revision": "7b7afeeb2104abc66dacfe04bbd1a2207830982c8ea6bf9fc7e9ac11d419997b"
     },
     {
-      "url": "/ranks/rank5.webp",
-      "revision": "12bb7cbd37da1c72973a4777e06a09deb291e8aae0c40c825561042f698f4ec3"
+      "url": "/ranks/rank5.png",
+      "revision": "d0c0c8a9356e80e1f8deccc2510cc950fcb1285083903afe75a48eeab25cb6ab"
     },
     {
-      "url": "/ranks/rank6.webp",
-      "revision": "b35176a089ce86c1e8492c4118fb5284fb0b1bf4b5be781e26067469ca2a2091"
+      "url": "/ranks/rank6.png",
+      "revision": "bdb9ba99c8eb1334c0c9669bfb7248bf30118789948afb351758cc08b3ae46e2"
     },
     {
-      "url": "/ranks/rank7.webp",
-      "revision": "78191c6b586391e35146e45dd40f865f3eb8b64cdb76ad5d6f2dd21681b9a56b"
+      "url": "/ranks/rank7.png",
+      "revision": "faed89bd783c176732d51521d63399f28b0e041025c92c49dd433234b6e64b49"
     },
     {
-      "url": "/ranks/rank8.webp",
-      "revision": "2b89b6a7d82c02a56319467292c48745dfb937945cd9db42a538677a1a58330c"
+      "url": "/ranks/rank8.png",
+      "revision": "f3239f2eb0daceae6a1a52fe0f9394ccab69bca03b67b187d24e00efadafb956"
     },
     {
-      "url": "/ranks/rank9.webp",
-      "revision": "d42f63a3bc1cce3a17fd70fda791eb2839da82cad49c418dfedd0a02421c5951"
+      "url": "/ranks/rank9.png",
+      "revision": "1ca5bdcf801f59adc95c15d70d5f0db13c4fb49417d56d4fadabd1382d6cc2d9"
     },
     {
       "url": "/score-icon.webp",
@@ -706,6 +706,14 @@
     {
       "url": "/flags/4x3/tr.svg",
       "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
+    },
+    {
+      "url": "/mascots/mascot1.webp",
+      "revision": "edf301b794fdee3eb4f6279ca3699d479ad1902e0e73dfeaa4bf40e8eb9f8845"
+    },
+    {
+      "url": "/mascots/mascot5.webp",
+      "revision": "af0851bb44745130ff3419a1e5a32ff32b5a6da1e75f484a79273d5dc6f07ae4"
     },
     {
       "url": "/splash.png",

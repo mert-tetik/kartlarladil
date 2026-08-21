@@ -30,7 +30,7 @@ export function MobileAuthScreen() {
   }
 
   return (
-    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center pb-10 text-center">
+    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
       <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
         <Image
           src="/splash.png"
@@ -52,13 +52,11 @@ export function MobileAuthScreen() {
           label={t("auth.google.signIn")}
         />
 
-        <div className="mobile-primary-action-depth mobile-primary-action-depth--emerald w-full rounded-md">
+        <div className="mobile-primary-action-depth mobile-primary-action-depth--emerald w-full rounded-xl">
           <Button
             type="button"
-            variant="secondary"
-            size="lg"
             onClick={() => setMode("email")}
-            className="h-14 w-full gap-2 bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors active:scale-[0.98] hover:bg-emerald-600"
           >
             <Mail className="size-5" aria-hidden="true" />
             {t("auth.mobile.useEmailInstead")}

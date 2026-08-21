@@ -816,6 +816,7 @@ const dictionary = {
   "tutorial.landingLeaderboard": "Puanlarla dünya sıralamasına gir!",
   "tutorial.landingGames": "Kelime oyunları oynayarak öğren ve puan kazan!",
   "tutorial.landingAiPractice": "Konuşma pratiği yaparak puan kazan!",
+  "tutorial.welcome": "FoxiesDeck'e hoş geldin!",
   "tutorial.next": "Sonraki",
   "tutorial.understood": "Anlaşıldı",
   "cards.centerTitle": "Kartlar",
