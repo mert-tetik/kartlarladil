@@ -848,11 +848,11 @@ function MobilePricingPerkCarousel({
   const t = useT();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
-  const activeRenderIndexRef = useRef(MOBILE_PERK_ARTWORK.length);
-  const activeIndexRef = useRef(0);
+  const activeRenderIndexRef = useRef<number>(MOBILE_PERK_ARTWORK.length);
+  const activeIndexRef = useRef<number>(0);
   const initializedRef = useRef(false);
   const settleTimerRef = useRef<number | null>(null);
-  const [highlightRenderIndex, setHighlightRenderIndex] = useState(MOBILE_PERK_ARTWORK.length);
+  const [highlightRenderIndex, setHighlightRenderIndex] = useState<number>(MOBILE_PERK_ARTWORK.length);
 
   const getNearestCardIndex = useCallback(() => {
     const track = trackRef.current;
