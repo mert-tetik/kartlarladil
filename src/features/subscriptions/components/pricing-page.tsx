@@ -62,8 +62,6 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_GRADIENT_TEXT_CLASS =
-  "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent";
 const PRICING_GRADIENT_SURFACE_CLASS =
   "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500";
 const PRICING_GRADIENT_BUTTON_CLASS =
@@ -107,9 +105,18 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
       data-pricing-page
       className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-0 max-lg:overflow-hidden max-lg:p-0 sm:px-6 lg:px-8 lg:pb-10"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-[url('/pricing-page-bg.png')] bg-cover bg-center bg-no-repeat"
+        style={{
+          maskImage: "linear-gradient(to top, transparent 0%, black 82%, black 100%)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 82%, black 100%)",
+        }}
+      />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-80 w-screen -translate-x-1/2 overflow-hidden">
         <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
       </div>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-black/40" />
       <div className="h-full lg:hidden">
         <MobilePricingView
           user={user}
@@ -377,7 +384,7 @@ function PricingCard({
       ) : null}
 
       {showIntroOffer ? (
-        <p className={cn("mt-2 text-sm font-bold uppercase", PRICING_GRADIENT_TEXT_CLASS)}>
+        <p className="mt-2 text-sm font-bold uppercase text-white">
           {t("pricing.firstMonthFree")}
         </p>
       ) : null}
@@ -938,9 +945,12 @@ function MobilePricingPerkCarousel({
         window.clearTimeout(settleTimerRef.current);
       }
 
+      const middleCopyStart = MOBILE_PERK_ARTWORK.length;
+      const middleCopyEnd = middleCopyStart * 2;
+      const needsLoopNormalization = nearestIndex < middleCopyStart || nearestIndex >= middleCopyEnd;
       settleTimerRef.current = window.setTimeout(() => {
         const middleIndex = MOBILE_PERK_ARTWORK.length + activeIndexRef.current;
-        centerCard(middleIndex, "smooth");
+        centerCard(middleIndex, needsLoopNormalization ? "auto" : "smooth");
       }, 140);
     };
 
@@ -971,7 +981,7 @@ function MobilePricingPerkCarousel({
   return (
     <div
       ref={trackRef}
-      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-full overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-[calc(100%+2rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       data-mobile-pricing-perks
       aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
     >
@@ -1005,8 +1015,8 @@ function MobilePricingPerkCarousel({
                 priority={renderIndex === MOBILE_PERK_ARTWORK.length}
                 sizes="72vw"
                 className={cn(
-                  "-translate-y-3 object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  isHighlighted ? "scale-110 opacity-100" : "scale-[0.94] opacity-45 grayscale-[0.2]",
+                  "rounded-[2rem] object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  isHighlighted ? "scale-100 opacity-100" : "scale-[0.9] opacity-45 grayscale-[0.2]",
                 )}
               />
               <div
@@ -1159,18 +1169,20 @@ function MobilePricingView({
   ) : undefined;
 
   return (
-    <div className="relative z-10 flex h-full flex-col overflow-hidden bg-[#080909] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
-      <header className="shrink-0 translate-y-1.5 text-center">
-        <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
-          {formatSuperWaterText(locale, t("pricing.title"))}
-        </h1>
-        <p className={cn("mt-3 text-base font-semibold", PRICING_GRADIENT_TEXT_CLASS)}>
-          {t("pricing.firstMonthFreeBanner")}
-        </p>
-      </header>
+    <div className="relative z-10 flex h-full flex-col overflow-hidden bg-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
+      <div className="flex min-h-0 -translate-y-1.5 flex-1 flex-col items-center justify-center gap-12">
+        <header className="shrink-0 text-center">
+          <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("pricing.title"))}
+          </h1>
+          <p className="mt-3 text-base font-semibold text-white">
+            {t("pricing.firstMonthFreeBanner")}
+          </p>
+        </header>
 
-      <div className="flex min-h-0 flex-1 items-center py-4">
-        <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
+        <div className="flex min-h-0 w-full min-w-0 shrink-0 items-center">
+          <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
+        </div>
       </div>
 
       <div className="shrink-0">
