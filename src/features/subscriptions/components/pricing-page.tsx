@@ -1171,7 +1171,13 @@ function MobilePricingView({
   return (
     <div className="relative z-10 flex h-full flex-col overflow-hidden bg-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
       <div className="flex min-h-0 -translate-y-1.5 flex-1 flex-col items-center justify-center gap-12">
-        <header className="shrink-0 text-center">
+        <header
+          className="shrink-0 text-center"
+          data-mobile-pricing-heading
+          style={{
+            transform: "translateY(clamp(-3rem, calc((26.8125rem - 50dvh) * 0.5), 3rem))",
+          }}
+        >
           <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("pricing.title"))}
           </h1>
