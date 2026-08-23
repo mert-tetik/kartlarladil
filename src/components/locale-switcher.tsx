@@ -153,7 +153,7 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
                         <span className="relative inline-flex">
                           <LanguageFlagWithBrandOutline
                             code={language.code}
-                            flagClassName="size-24"
+                            className="size-24"
                             imageClassName="scale-100"
                             outlineInset="-inset-1.5"
                             selected={selected}
@@ -212,7 +212,7 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
                     <span className="flex min-w-0 items-center gap-3">
                       <LanguageFlagWithBrandOutline
                         code={language.code}
-                        flagClassName="size-8"
+                        className="size-8"
                         imageClassName="scale-125"
                         outlineInset="-inset-0.5"
                         selected={selected}
