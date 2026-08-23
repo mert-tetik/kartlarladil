@@ -1,5 +1,5 @@
 {
-  "version": "4df3d0238caf7b46d26532a67ea36e6b51ea611b0b11a0f9ff61985c0afe0dae",
+  "version": "1364e503f56347623ac5f45d9da98077f52750f582a1293ddd98e7f8aeb21d58",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -266,28 +266,136 @@
       "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
     },
     {
+      "url": "/flags/language/ar.png",
+      "revision": "538180ef751344fca20e9a114e899a955b98f06d29be5ad769ca4cda01d6c0e6"
+    },
+    {
+      "url": "/flags/language/de.png",
+      "revision": "bc4f08025c4c4e9905d39f5859c4578e27028f3e7c032bfd450bd9357e23767c"
+    },
+    {
+      "url": "/flags/language/en.png",
+      "revision": "3967b2fee0e645284df1d50d10a95a3cd758de74a81e049678ccc16edab63863"
+    },
+    {
+      "url": "/flags/language/es.png",
+      "revision": "8fbe5b72ad0d8ec8f0ede9ef250e5a9a0d0ea8caa900589a4b280664c9d7a060"
+    },
+    {
+      "url": "/flags/language/fr.png",
+      "revision": "6a99d385b1637e6a05ef8b77a4a69d42f197dc890be56283b857e93407bedeb9"
+    },
+    {
+      "url": "/flags/language/it.png",
+      "revision": "12103df8d898cfd80a41397abc487a97f48f16b669d99e3edb2ba4caf5bb046d"
+    },
+    {
+      "url": "/flags/language/ja.png",
+      "revision": "d08d717559a5108c58ce28eaf52917c3bc341d121f3882972253e3f46359286f"
+    },
+    {
+      "url": "/flags/language/ko.png",
+      "revision": "ab73894d8008416c1634337bfc43deba3638adb262cd9a0fd7597ba30ac19b38"
+    },
+    {
+      "url": "/flags/language/nl.png",
+      "revision": "5fe5dbc4e48f8f8c387832d36778c61a3519b3fcf309e087d77a05db5a6ae8cf"
+    },
+    {
+      "url": "/flags/language/pl.png",
+      "revision": "ae620475cfdb9e4984e676fea121815b875c141870e27933f12c66c2b6efb832"
+    },
+    {
+      "url": "/flags/language/pt.png",
+      "revision": "4db00f5e8da83296233e0d2bf77a7d74195cc51f2735bab624df14f178416665"
+    },
+    {
+      "url": "/flags/language/ru.png",
+      "revision": "eade1c03da716c0b3785d39d5494252c97821a8fbaa56b5a8ac5b5d0080b5d09"
+    },
+    {
+      "url": "/flags/language/tr.png",
+      "revision": "9f226ed2960cae4b1686840f59d2d7f21db8fb7ec04be20816971b4ef1e0f71b"
+    },
+    {
+      "url": "/flags/language/zh-CN.png",
+      "revision": "80f643fffb4326206fb7fdbb6c1ec98ae1d7e71ff1b3b3cf1dbcb78ca9c87fe2"
+    },
+    {
       "url": "/game-backgrounds/blue-game-bg.jpg",
       "revision": "ee98ae829fa020c7cf1ea916793ab7db0a5302da7b97b8f093214993eee7a1f9"
+    },
+    {
+      "url": "/game-backgrounds/blue-game-bg.png",
+      "revision": "0520accd328c6dc71aa43eb89090f5739e16c229d4bac80f5b8872777d14f773"
     },
     {
       "url": "/game-backgrounds/dark-game-bg.jpg",
       "revision": "378786bf755baa0255d478f939761aed022b8b3c5fa94edae2522073f3f19c4c"
     },
     {
-      "url": "/game-backgrounds/games-page-bg.png",
-      "revision": "356bd8ee6ad04006ed1ad3774f90fc7cd513a75bb1e7ec2cebe1fb03a00b7e85"
+      "url": "/game-backgrounds/dark-game-bg.png",
+      "revision": "5dac986dd4841008b370b2bc3a503faf6d34c874c75a6bb15b6a63be22030945"
+    },
+    {
+      "url": "/game-backgrounds/games-page-colorful-shapes.png",
+      "revision": "2cf7931b7e99e31cb951c679847f698af10f287656829382c0d7859598930dc2"
     },
     {
       "url": "/game-backgrounds/green-game-bg.jpg",
       "revision": "02ec2f6d73624151cfd39d66101eaea7b9beb0bb7f0cf4ece6de4695f54dbc03"
     },
     {
+      "url": "/game-backgrounds/green-game-bg.png",
+      "revision": "78c4885e9e11e5cf98d11fce513c64eacf0727fef48369f43dd69775c105a781"
+    },
+    {
+      "url": "/game-backgrounds/memory-cards/A1.png",
+      "revision": "edac8f85ad52015dc8421c2502dcfe0f13a87f1e9ca8890ffc267ed61db05366"
+    },
+    {
+      "url": "/game-backgrounds/memory-cards/A2.png",
+      "revision": "e3ca5120f189c828de3875ba80dfe44417a3d128b1e21b98d56241b9aef3e3c5"
+    },
+    {
+      "url": "/game-backgrounds/memory-cards/B1.png",
+      "revision": "4f7d617b71fb14a5accb77a3b44fd4a38d0cf835697c0c6dbe640b8085504169"
+    },
+    {
+      "url": "/game-backgrounds/memory-cards/B2.png",
+      "revision": "613b9c3a1ae8bb056a429c1e08d692439b2fa3c79c71b25d763bcce3f7f3e132"
+    },
+    {
+      "url": "/game-backgrounds/memory-cards/C1.png",
+      "revision": "e084f2a7d5c5f323d3158d99874e473fdfad77a27b433c00e865ecc873b49e3e"
+    },
+    {
+      "url": "/game-backgrounds/plank-var-bg-long.png",
+      "revision": "4c67c8a227cee341d73c3259d0cf6289252f9bafae8b7c43e9763203563d4995"
+    },
+    {
+      "url": "/game-backgrounds/plank-var-bg.png",
+      "revision": "f859a1dd64b00e46fb311318197684d1241b49d54412a2a4321d5166af91eaea"
+    },
+    {
+      "url": "/game-backgrounds/plank.png",
+      "revision": "2831d8d8d1b98fea42a762c90ef74ad3325bdfa1fed705e13f8313c66ae1f3f3"
+    },
+    {
       "url": "/game-backgrounds/red-game-bg.jpg",
       "revision": "03b22f8702cd7107dda82dc243d66a58f9700b240cdad36d9b32d4b87827c08d"
     },
     {
+      "url": "/game-backgrounds/red-game-bg.png",
+      "revision": "8339c0c6ea65104714a1edf06c2a1af4236a984f6a8c3242a785e34897411a52"
+    },
+    {
       "url": "/game-backgrounds/yellow-game-bg.jpg",
       "revision": "62995afbb749a30cf4c8f4d51e70e8ec6f315c4a75af9256a45b379fa785bd51"
+    },
+    {
+      "url": "/game-backgrounds/yellow-game-bg.png",
+      "revision": "341c8a450210a489433824e26032b3782aba4fc4ecae38ee8cedf6618c8fad5d"
     },
     {
       "url": "/icon-192.png",
@@ -438,6 +546,30 @@
       "revision": "ea5651e0b418ce05f395673f140c6bdf2f4c4679b1e97d9654038b05bf80a519"
     },
     {
+      "url": "/mobile-nav-icons/color-palette.png",
+      "revision": "e0e199512ba7413c055fef18d098c15827928c340edf4492c897ba49dcab6a1d"
+    },
+    {
+      "url": "/mobile-nav-icons/fire.png",
+      "revision": "8fef754d44f5da3daa88aca077425e368857dc1f6528d67e95a3a02f4ef6c8c1"
+    },
+    {
+      "url": "/mobile-nav-icons/game.png",
+      "revision": "43674c1e8eb7ee952277d2eab551e4d9fd30517d3aa1ed9fd69af17d63afeb90"
+    },
+    {
+      "url": "/mobile-nav-icons/home.png",
+      "revision": "c0baf096723702fb13e06ac5d8d32c3ceb742b59effda3e42a1455269886f635"
+    },
+    {
+      "url": "/mobile-nav-icons/practice.png",
+      "revision": "b6d5201974366b5cac9be037888f553b522676f10711f0393d12c676c438b7eb"
+    },
+    {
+      "url": "/mobile-nav-icons/question-mark.png",
+      "revision": "cd762af6af3c9027bcceec6267dffffd1441b92535e8c10f2f9f7cd117b3aa49"
+    },
+    {
       "url": "/onboarding-bg.jpg",
       "revision": "118c646018d05c708a0c250e9ac2e2e9958e85d175dcfda56b8c53d51f1ac294"
     },
@@ -448,6 +580,22 @@
     {
       "url": "/pointer-icon.png",
       "revision": "119fadd0ba9f41614ea3dd9295e2c7409796728812ceb14b49a4b0dd30b466c0"
+    },
+    {
+      "url": "/pricing-buttons/pricing-active-button-v2.png",
+      "revision": "f0359c5c4c32af7067527a9f2e72816f5cab6ffa970d28faa6c7f5368a2c5287"
+    },
+    {
+      "url": "/pricing-buttons/pricing-active-button.png",
+      "revision": "f0359c5c4c32af7067527a9f2e72816f5cab6ffa970d28faa6c7f5368a2c5287"
+    },
+    {
+      "url": "/pricing-buttons/pricing-notactive-button.png",
+      "revision": "65070c9adcd9b840f13075605da9fd2f53555f2a14d33cb0c71be6ad392c72e9"
+    },
+    {
+      "url": "/pricing-page-bg.png",
+      "revision": "48f7e3b806d22bf8feab6fd8ac0985c60035a2c022f35040d6933a77e093380b"
     },
     {
       "url": "/pricing-perks/collection.png",
@@ -562,6 +710,22 @@
       "revision": "b3e8aa4011e1de2a3a47670d5816dbf760fb74333f478be4d5ebe276c483c3db"
     },
     {
+      "url": "/quiz/result-cards/correct.png",
+      "revision": "b6107e2af0877ddb1c1afdb4df845dd82c9698dddf55e918d42536c9958cdaef"
+    },
+    {
+      "url": "/quiz/result-cards/incorrect.png",
+      "revision": "97e05a65630f72444c54256d37f9ac5e2144e55544f2f6164d46c462c34be781"
+    },
+    {
+      "url": "/quiz/result-cards/learned.png",
+      "revision": "2d30a1accfc30f0929edc8f392242c8e956f6cccbfa28870136a3e1b0a9ed1d0"
+    },
+    {
+      "url": "/quiz/result-cards/star.png",
+      "revision": "5b66b4d93b52791fce3bf3b9242f2edce265c4e6af7e8b195d094a6ae4c3ff46"
+    },
+    {
       "url": "/rank-up-bg.webp",
       "revision": "f66d610f310a439f2e34ba96d27de48d622926cb328354eaf6593268ff33eeca"
     },
@@ -604,6 +768,22 @@
     {
       "url": "/ranks/rank9.png",
       "revision": "1ca5bdcf801f59adc95c15d70d5f0db13c4fb49417d56d4fadabd1382d6cc2d9"
+    },
+    {
+      "url": "/result-buttons/leaderboard_button.png",
+      "revision": "72859e69fe766826b4e5ffb11383413541d8672e68d796cef7fc2b30f01d3d06"
+    },
+    {
+      "url": "/result-buttons/menu_button.png",
+      "revision": "6e4c795b8af3ed1d850f7cf118d712ada81bcc30e05120c8801426dfa2cb3670"
+    },
+    {
+      "url": "/result-buttons/play_button.png",
+      "revision": "46c505184da3ce1a51b54a5087fe086e3ac7daebf78a396adcfbc1448021b86d"
+    },
+    {
+      "url": "/result-buttons/replay_button.png",
+      "revision": "d6072a36e53e5333a6c3a2928c95f1b8d82095c613dd48d776bb7109ce699626"
     },
     {
       "url": "/score-icon.webp",
@@ -708,12 +888,92 @@
       "revision": "256a1d6afbedb9f731566982331a1cd1ad14aba211b8a61d338855879505e74f"
     },
     {
+      "url": "/flags/language/ar.png",
+      "revision": "538180ef751344fca20e9a114e899a955b98f06d29be5ad769ca4cda01d6c0e6"
+    },
+    {
+      "url": "/flags/language/de.png",
+      "revision": "bc4f08025c4c4e9905d39f5859c4578e27028f3e7c032bfd450bd9357e23767c"
+    },
+    {
+      "url": "/flags/language/en.png",
+      "revision": "3967b2fee0e645284df1d50d10a95a3cd758de74a81e049678ccc16edab63863"
+    },
+    {
+      "url": "/flags/language/es.png",
+      "revision": "8fbe5b72ad0d8ec8f0ede9ef250e5a9a0d0ea8caa900589a4b280664c9d7a060"
+    },
+    {
+      "url": "/flags/language/fr.png",
+      "revision": "6a99d385b1637e6a05ef8b77a4a69d42f197dc890be56283b857e93407bedeb9"
+    },
+    {
+      "url": "/flags/language/it.png",
+      "revision": "12103df8d898cfd80a41397abc487a97f48f16b669d99e3edb2ba4caf5bb046d"
+    },
+    {
+      "url": "/flags/language/ja.png",
+      "revision": "d08d717559a5108c58ce28eaf52917c3bc341d121f3882972253e3f46359286f"
+    },
+    {
+      "url": "/flags/language/ko.png",
+      "revision": "ab73894d8008416c1634337bfc43deba3638adb262cd9a0fd7597ba30ac19b38"
+    },
+    {
+      "url": "/flags/language/nl.png",
+      "revision": "5fe5dbc4e48f8f8c387832d36778c61a3519b3fcf309e087d77a05db5a6ae8cf"
+    },
+    {
+      "url": "/flags/language/pl.png",
+      "revision": "ae620475cfdb9e4984e676fea121815b875c141870e27933f12c66c2b6efb832"
+    },
+    {
+      "url": "/flags/language/pt.png",
+      "revision": "4db00f5e8da83296233e0d2bf77a7d74195cc51f2735bab624df14f178416665"
+    },
+    {
+      "url": "/flags/language/ru.png",
+      "revision": "eade1c03da716c0b3785d39d5494252c97821a8fbaa56b5a8ac5b5d0080b5d09"
+    },
+    {
+      "url": "/flags/language/tr.png",
+      "revision": "9f226ed2960cae4b1686840f59d2d7f21db8fb7ec04be20816971b4ef1e0f71b"
+    },
+    {
+      "url": "/flags/language/zh-CN.png",
+      "revision": "80f643fffb4326206fb7fdbb6c1ec98ae1d7e71ff1b3b3cf1dbcb78ca9c87fe2"
+    },
+    {
       "url": "/mascots/mascot1.webp",
       "revision": "edf301b794fdee3eb4f6279ca3699d479ad1902e0e73dfeaa4bf40e8eb9f8845"
     },
     {
       "url": "/mascots/mascot5.webp",
       "revision": "af0851bb44745130ff3419a1e5a32ff32b5a6da1e75f484a79273d5dc6f07ae4"
+    },
+    {
+      "url": "/mobile-nav-icons/color-palette.png",
+      "revision": "e0e199512ba7413c055fef18d098c15827928c340edf4492c897ba49dcab6a1d"
+    },
+    {
+      "url": "/mobile-nav-icons/fire.png",
+      "revision": "8fef754d44f5da3daa88aca077425e368857dc1f6528d67e95a3a02f4ef6c8c1"
+    },
+    {
+      "url": "/mobile-nav-icons/game.png",
+      "revision": "43674c1e8eb7ee952277d2eab551e4d9fd30517d3aa1ed9fd69af17d63afeb90"
+    },
+    {
+      "url": "/mobile-nav-icons/home.png",
+      "revision": "c0baf096723702fb13e06ac5d8d32c3ceb742b59effda3e42a1455269886f635"
+    },
+    {
+      "url": "/mobile-nav-icons/practice.png",
+      "revision": "b6d5201974366b5cac9be037888f553b522676f10711f0393d12c676c438b7eb"
+    },
+    {
+      "url": "/mobile-nav-icons/question-mark.png",
+      "revision": "cd762af6af3c9027bcceec6267dffffd1441b92535e8c10f2f9f7cd117b3aa49"
     },
     {
       "url": "/splash.png",

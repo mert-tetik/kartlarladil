@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -13,11 +13,11 @@ interface QuizStarRatingProps {
 }
 
 const ARC_OFFSETS = [
-  "translate-y-4",
-  "translate-y-1",
-  "-translate-y-5",
-  "translate-y-1",
-  "translate-y-4",
+  "translate-y-2",
+  "translate-y-0",
+  "-translate-y-2",
+  "translate-y-0",
+  "translate-y-2",
 ] as const;
 
 const STAR_SIZES = [
@@ -31,6 +31,7 @@ const STAR_SIZES = [
 const PANEL_REVEAL_DELAY_MS = 260;
 const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
+const STAR_IMAGE_SRC = "/quiz/result-cards/star.png";
 
 export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
@@ -82,11 +83,15 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
         if (filled) {
           return (
             <div key={index} className={cn("flex items-end", offset)}>
-              <Star
+              <Image
+                src={STAR_IMAGE_SRC}
+                alt=""
+                width={64}
+                height={64}
                 className={cn(
                   sizeClass,
                   "origin-bottom",
-                  "fill-amber-400 text-amber-400",
+                  "object-contain",
                   ready ? "animate-star-drop" : "opacity-0",
                 )}
                 style={{
@@ -101,17 +106,39 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
 
         return (
           <div key={index} className={cn("flex items-end", offset)}>
-            <Star
+            <div
               className={cn(
+                "relative origin-bottom",
                 sizeClass,
-                "origin-bottom",
-                "fill-transparent text-foreground-muted",
                 showEmpty ? "opacity-100" : "opacity-0",
                 "transition-none",
               )}
               data-quiz-star="empty"
               data-quiz-star-index={index}
-            />
+            >
+              <Image
+                src={STAR_IMAGE_SRC}
+                alt=""
+                fill
+                sizes="4rem"
+                className="object-contain opacity-20 grayscale"
+                aria-hidden="true"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-foreground-muted"
+                style={{
+                  maskImage: `url("${STAR_IMAGE_SRC}")`,
+                  maskPosition: "center",
+                  maskRepeat: "no-repeat",
+                  maskSize: "contain",
+                  WebkitMaskImage: `url("${STAR_IMAGE_SRC}")`,
+                  WebkitMaskPosition: "center",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskSize: "contain",
+                }}
+              />
+            </div>
           </div>
         );
       })}

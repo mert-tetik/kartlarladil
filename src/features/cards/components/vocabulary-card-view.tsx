@@ -44,6 +44,7 @@ interface VocabularyCardViewProps {
   compact?: boolean;
   translationLocale?: LocaleCode;
   primaryTranslationOnly?: boolean;
+  memoryGame?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
   onClick?: () => void;
@@ -62,6 +63,22 @@ const ADD_BUTTON_TEXT_BY_TIER: Record<Tier, string> = {
   B1: "text-violet-800",
   B2: "text-amber-800",
   C1: "text-rose-800",
+};
+
+const MEMORY_TIER_ACCENTS: Record<Tier, string> = {
+  A1: "bg-emerald-500",
+  A2: "bg-sky-500",
+  B1: "bg-violet-500",
+  B2: "bg-amber-400",
+  C1: "bg-rose-500",
+};
+
+const MEMORY_CARD_BACKGROUNDS: Record<Tier, string> = {
+  A1: "/game-backgrounds/memory-cards/A1.png",
+  A2: "/game-backgrounds/memory-cards/A2.png",
+  B1: "/game-backgrounds/memory-cards/B1.png",
+  B2: "/game-backgrounds/memory-cards/B2.png",
+  C1: "/game-backgrounds/memory-cards/C1.png",
 };
 
 function FittedSingleLineText({ children }: { children: string }) {
@@ -128,6 +145,7 @@ export function VocabularyCardView({
   compact = false,
   translationLocale,
   primaryTranslationOnly = false,
+  memoryGame = false,
   footerMode = "auto",
   footerProgressCount,
   onClick,
@@ -207,7 +225,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
       </article>
     );
   }
@@ -252,6 +270,7 @@ export function VocabularyCardView({
           compact={compact}
           translationLocale={translationLocale}
           primaryTranslationOnly={primaryTranslationOnly}
+          memoryGame={memoryGame}
           footerMode={footerMode}
           footerProgressCount={footerProgressCount}
         />
@@ -261,6 +280,7 @@ export function VocabularyCardView({
           backDisplayTier={backDisplayTier}
           isControlled={isControlled}
           compact={compact}
+          memoryGame={memoryGame}
         />
       </div>
 
@@ -288,6 +308,7 @@ function CardFront({
   compact = false,
   translationLocale,
   primaryTranslationOnly = false,
+  memoryGame = false,
   footerMode = "auto",
   footerProgressCount,
 }: {
@@ -310,6 +331,7 @@ function CardFront({
   compact?: boolean;
   translationLocale?: LocaleCode;
   primaryTranslationOnly?: boolean;
+  memoryGame?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
 }) {
@@ -318,6 +340,7 @@ function CardFront({
   const router = useRouter();
   const requireAuth = useRequireAuthAction();
   const style = TIER_STYLES[card.tier];
+  const accentClass = memoryGame ? MEMORY_TIER_ACCENTS[card.tier] : style.accent;
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
   const visibleProgressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
@@ -368,7 +391,7 @@ function CardFront({
         compact ? "p-1.5 sm:p-2" : "p-2.5 sm:p-4",
         frontFit ? "justify-between" : "max-sm:justify-between",
         "dark:text-white",
-        style.border,
+        memoryGame ? "border-0" : style.border,
       )}
     >
       <div
@@ -377,7 +400,7 @@ function CardFront({
           compact
             ? "-mx-1.5 -mt-1.5 px-2 py-1 sm:-mx-2 sm:-mt-2 sm:px-2.5 sm:py-1.5"
             : "-mx-2.5 -mt-2.5 px-3 py-2 sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
-          style.accent,
+          accentClass,
         )}
       >
         {!frontMinimal ? (
@@ -516,7 +539,7 @@ function CardFront({
           compact
             ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
             : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
-          style.accent,
+          accentClass,
           footerMode === "auto" ? "space-y-2" : "flex min-h-12 items-center",
         )}
         data-card-footer-mode={footerMode}
@@ -595,17 +618,38 @@ function CardBack({
   backDisplayTier,
   isControlled = false,
   compact = false,
+  memoryGame = false,
 }: {
   card: VocabularyCard;
   isFaceUp: boolean;
   backDisplayTier?: Tier;
   isControlled?: boolean;
   compact?: boolean;
+  memoryGame?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
   const style = TIER_STYLES[card.tier];
   const visibleBackTier = backDisplayTier ?? card.tier;
+
+  if (memoryGame) {
+    return (
+      <div
+        aria-hidden={isFaceUp && !isControlled}
+        inert={isFaceUp && !isControlled}
+        className="absolute inset-0 overflow-hidden rounded-lg border-0 bg-transparent shadow-none [backface-visibility:hidden] [transform:rotateY(180deg)]"
+      >
+        <div
+          data-card-back-tier={visibleBackTier}
+          className="h-full overflow-hidden rounded-md border-0 bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('${MEMORY_CARD_BACKGROUNDS[card.tier]}')`,
+            backgroundSize: "cover",
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

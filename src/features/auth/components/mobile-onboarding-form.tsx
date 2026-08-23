@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { LanguageFlag } from "@/components/language-flag";
+import { LanguageFlagWithBrandOutline } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
 import { writeLandingCardLanguage } from "@/app/components/landing-card-language";
 import { completeOnboardingAction } from "@/features/auth/actions";
@@ -164,7 +164,7 @@ export function MobileOnboardingForm({
     <form
       ref={formRef}
       action={formAction}
-      className="animate-screen-pop grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden supports-[height:100dvh]:h-[min(76dvh,44rem)]"
+      className="animate-screen-pop grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
     >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
       <input type="hidden" name="preferredLanguageCode" value={preferredLanguageCode} />
@@ -178,7 +178,10 @@ export function MobileOnboardingForm({
             type="button"
             aria-label={t("common.back")}
             onClick={goBack}
-            className="absolute left-0 top-0 inline-flex size-10 items-center justify-center text-foreground transition-transform active:scale-95"
+            className={cn(
+              "absolute left-2 top-[-3rem] inline-flex size-10 items-center justify-center rounded-full text-white transition-transform active:scale-95",
+              actionButtonClass,
+            )}
           >
             <ChevronLeft className="size-6" aria-hidden="true" />
           </button>
@@ -213,14 +216,15 @@ export function MobileOnboardingForm({
                 >
                   <span
                     data-onboarding-language-flag={language.code}
-                    className={cn(
-                      "inline-flex rounded-md p-[2px] transition-all duration-300",
-                      selected && "scale-110 bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500",
-                    )}
+                    data-selected={selected ? "true" : "false"}
+                    className="inline-flex transition-all duration-300"
                   >
-                    <LanguageFlag
+                    <LanguageFlagWithBrandOutline
                       code={language.code}
-                      className="h-14 w-20 rounded-[4px] border-0"
+                      selected={selected}
+                      className="size-20"
+                      imageClassName="scale-100"
+                      outlineInset="-inset-1.5"
                     />
                   </span>
                   <span className={cn(

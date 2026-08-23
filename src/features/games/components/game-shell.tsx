@@ -11,11 +11,11 @@ interface GameShellProps {
 }
 
 export const GAME_BACKGROUND_SOURCES = {
-  memory: "/game-backgrounds/red-game-bg.jpg",
-  wordChallenge: "/game-backgrounds/green-game-bg.jpg",
-  wordMatch: "/game-backgrounds/blue-game-bg.jpg",
-  levelComplete: "/game-backgrounds/yellow-game-bg.jpg",
-  levelFailed: "/game-backgrounds/dark-game-bg.jpg",
+  memory: "/game-backgrounds/red-game-bg.png",
+  wordChallenge: "/game-backgrounds/green-game-bg.png",
+  wordMatch: "/game-backgrounds/blue-game-bg.png",
+  levelComplete: "/game-backgrounds/yellow-game-bg.png",
+  levelFailed: "/game-backgrounds/dark-game-bg.png",
 } as const;
 
 export function GameShell({ children, className, backgroundSrc, backgroundOverlay = "rgb(15 23 42 / 0.18)" }: GameShellProps) {

@@ -247,14 +247,14 @@ function SuperGroupIcon({ icon, size = "trigger" }: { icon: AutomationSuperGroup
 function GroupIcon({ icon, size }: { icon: AutomationGroupIcon; size: "trigger" | "picker" }) {
   const option = getGroupIconOption(icon);
   const isCountry = option.category === "country";
-  const width = isCountry ? (size === "trigger" ? 36 : 48) : (size === "trigger" ? 30 : 34);
-  const height = isCountry ? (size === "trigger" ? 27 : 36) : (size === "trigger" ? 30 : 34);
-  return <Image alt="" aria-hidden="true" className={isCountry ? "rounded-[2px] object-cover" : "object-contain"} height={height} src={option.src} unoptimized width={width} />;
+  const width = isCountry ? (size === "trigger" ? 44 : 56) : (size === "trigger" ? 30 : 34);
+  const height = isCountry ? (size === "trigger" ? 44 : 56) : (size === "trigger" ? 30 : 34);
+  return <Image alt="" aria-hidden="true" className={isCountry ? "rounded-full object-contain" : "object-contain"} height={height} src={option.src} unoptimized width={width} />;
 }
 
 function LanguageFlag({ language }: { language: LanguageCode }) {
   const selectedLanguage = LANGUAGE_BY_CODE[language];
-  return <Image alt={`${selectedLanguage.name} flag`} className="rounded-[2px] object-cover" height={18} src={`/automation-group-icons/flags/${selectedLanguage.flagCode}.svg`} unoptimized width={24} />;
+  return <Image alt={`${selectedLanguage.name} flag`} className="rounded-full object-contain" height={28} src={`/flags/language/${selectedLanguage.code}.png`} unoptimized width={28} />;
 }
 
 function AutomationLanguageSelect({ label, onChange, value }: { label: string; onChange: (value: LanguageSelection) => void; value: LanguageSelection }) {

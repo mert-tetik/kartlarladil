@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,7 +14,6 @@ import {
   Gamepad2,
   Home,
   MessageCircle,
-  Palette,
   type LucideIcon,
 } from "lucide-react";
 import { CardsIcon } from "@/components/icons/cards-icon";
@@ -31,10 +31,11 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import type { TranslationKey } from "@/i18n/dictionaries";
 
 type NavItem = {
@@ -43,6 +44,7 @@ type NavItem = {
   mobileLabelKey?: TranslationKey;
   mobileLabel?: string;
   icon: LucideIcon | ComponentType<SVGProps<SVGSVGElement>>;
+  mobileImageSrc?: string;
 };
 
 const PREFETCHED_NAV_PATHS = new Set([
@@ -66,25 +68,19 @@ const navItems: readonly NavItem[] = [
 ];
 
 const mobileNavItems: readonly NavItem[] = [
-  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2 },
-  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle },
-  { href: "/", labelKey: "nav.home", icon: Home },
-  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp },
-  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame },
+  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2, mobileImageSrc: "/mobile-nav-icons/game.png" },
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle, mobileImageSrc: "/mobile-nav-icons/practice.png" },
+  { href: "/", labelKey: "nav.home", icon: Home, mobileImageSrc: "/mobile-nav-icons/home.png" },
+  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp, mobileImageSrc: "/mobile-nav-icons/question-mark.png" },
+  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame, mobileImageSrc: "/mobile-nav-icons/fire.png" },
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 
-const MOBILE_NAV_ACTIVE_COLORS: Partial<Record<NavItem["href"], string>> = {
-  "/games": "text-emerald-500",
-  "/ai-practice": "text-blue-500",
-  "/ask": "text-red-500",
-  "/pricing": "text-amber-400",
-};
-
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
+  const { locale } = useLocale();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileBackOverride, setMobileBackOverride] = useState(false);
@@ -100,6 +96,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       pathname === "/create-card" ||
       pathname === "/games" ||
       pathname.startsWith("/games/"));
+  const showNavbarBackButton = mobileBackOverride || showMobileBackButton;
 
   const mobileBackHref = (() => {
     if (mobileBackOverride) return "/";
@@ -162,23 +159,33 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       >
         <div className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">
-          {showMobileBackButton ? (
-            <Link
-              href={mobileBackHref}
-              prefetch
-              onClick={() => {
-                vibrate("tap");
-                if (mobileBackOverride) {
-                  requestMobileNavbarBack();
-                }
-              }}
-              data-tutorial-target={mobileBackTutorialTarget}
-              className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
-            >
-              <ChevronLeft className="size-6" aria-hidden="true" />
-              <span className="sr-only">{t("common.back")}</span>
-            </Link>
-          ) : user ? (
+            {showNavbarBackButton ? (
+              mobileBackOverride ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    vibrate("tap");
+                    requestMobileNavbarBack();
+                  }}
+                  aria-label={t("common.back")}
+                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
+                >
+                  <ChevronLeft className="size-6" aria-hidden="true" />
+                  <span className="sr-only">{t("common.back")}</span>
+                </button>
+              ) : (
+                <Link
+                  href={mobileBackHref}
+                  prefetch
+                  onClick={() => vibrate("tap")}
+                  data-tutorial-target={mobileBackTutorialTarget}
+                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-white transition-colors hover:text-white/80"
+                >
+                  <ChevronLeft className="size-6" aria-hidden="true" />
+                  <span className="sr-only">{t("common.back")}</span>
+                </Link>
+              )
+            ) : user ? (
             <button
               type="button"
               onClick={() => {
@@ -188,7 +195,14 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               aria-label={t("theme.title")}
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 lg:hidden"
             >
-              <Palette className="size-5" aria-hidden="true" />
+              <Image
+                src="/mobile-nav-icons/color-palette.png"
+                alt=""
+                aria-hidden="true"
+                width={128}
+                height={128}
+                className="size-7 object-contain"
+              />
             </button>
           ) : (
             <div className="size-10 shrink-0 lg:hidden" aria-hidden="true" />
@@ -268,37 +282,15 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         >
           <div className="grid h-full grid-cols-5 items-center">
             {mobileNavItems.map((item) => {
-              const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
-              const isHome = item.href === "/";
               const isPremium = item.href === "/pricing";
+              const label = item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey);
               const tutorialTarget = item.href === "/games"
                 ? "games-nav"
                 : item.href === "/ai-practice"
                   ? "ai-practice-nav"
                   : undefined;
-
-              if (isHome) {
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={shouldPrefetch ? true : undefined}
-                    aria-current={active ? "page" : undefined}
-                    className="flex h-full items-center justify-center"
-                  >
-                    <span
-                      className={cn(
-                        "relative -top-4 inline-flex size-14 items-center justify-center rounded-full bg-brand transition-[box-shadow,color,transform] duration-300 hover:scale-105 active:scale-95",
-                        active ? "text-white shadow-[0_0_20px_var(--brand)]" : "text-background shadow-lg",
-                      )}
-                    >
-                      <Icon className="size-5" strokeWidth={2.5} aria-hidden="true" />
-                    </span>
-                  </Link>
-                );
-              }
 
               return (
                 <Link
@@ -309,19 +301,32 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   data-games-nav-target={item.href === "/games" ? "" : undefined}
                   data-tutorial-target={tutorialTarget}
                   className={cn(
-                    "relative flex h-full min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-semibold leading-none text-foreground-muted transition-colors duration-300 hover:text-foreground",
-                    active && MOBILE_NAV_ACTIVE_COLORS[item.href],
+                    "relative z-0 flex h-full min-h-12 flex-col items-center justify-center gap-0.5 overflow-visible px-0.5 py-1 text-[10px] font-semibold leading-none text-white transition-colors duration-300 hover:text-white",
+                    active && "z-10",
                   )}
                 >
-                  <span className="relative inline-flex">
-                    <Icon className="size-[18px]" strokeWidth={active ? 2.25 : 2} aria-hidden="true" />
+                  <span
+                    className={cn(
+                      "relative inline-flex transform-gpu transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      active ? "-translate-y-2 scale-[1.2]" : "translate-y-0 scale-100",
+                    )}
+                  >
+                    <MobileNavIcon item={item} className="size-7" />
                     {isPremium ? (
-                      <span className="pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent">
-                        FREE
+                      <span className={cn(
+                        "pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent",
+                        canUseSuperWater(locale) && "font-super-water",
+                      )}>
+                        {formatSuperWaterText(locale, "FREE")}
                       </span>
                     ) : null}
                   </span>
-                  <span className="max-w-full truncate px-0.5">{item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey)}</span>
+                  <span className={cn(
+                    "max-w-full truncate px-0.5 text-white",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}>
+                    {formatSuperWaterText(locale, label)}
+                  </span>
                 </Link>
               );
             })}
@@ -330,6 +335,24 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       </div>
     </>
   );
+}
+
+function MobileNavIcon({ item, className }: { item: NavItem; className: string }) {
+  if (item.mobileImageSrc) {
+    return (
+      <Image
+        src={item.mobileImageSrc}
+        alt=""
+        aria-hidden="true"
+        width={128}
+        height={128}
+        className={cn(className, "object-contain")}
+      />
+    );
+  }
+
+  const Icon = item.icon;
+  return <Icon className={className} strokeWidth={2} aria-hidden="true" />;
 }
 
 function DesktopNavLink({

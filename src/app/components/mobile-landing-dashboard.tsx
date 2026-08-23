@@ -47,6 +47,7 @@ import {
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
@@ -71,6 +72,7 @@ export function MobileLandingDashboard() {
   const detectedLocale = useDetectedLocale();
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
+  const { openLeaderboard } = useLeaderboardOverlay();
   const { refreshEntitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -400,7 +402,7 @@ export function MobileLandingDashboard() {
           const navigationIntent = beginNavigationIntent();
           requireAuthAction(() => {
             if (!isActiveNavigationIntent(navigationIntent)) return;
-            navigateWithRouteTransition(() => router.push("/leaderboard"));
+            openLeaderboard();
           }, { nextPath: "/leaderboard" });
         }}
         className="absolute left-2 top-2 z-50 inline-flex h-[2.45rem] w-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"

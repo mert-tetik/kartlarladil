@@ -2,6 +2,8 @@
 
 import { GraduationCap, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -9,6 +11,7 @@ import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/locale-provider";
+import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { LanguageCode, PracticeMode } from "@/types/domain";
 
 type LearnShellPhase = QuizPhase | "mode";
@@ -32,7 +35,9 @@ export function LearnQuizShell({
   const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const router = useRouter();
   const t = useT();
+  const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
 
@@ -44,6 +49,15 @@ export function LearnQuizShell({
 
     return () => window.cancelAnimationFrame(frameId);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (hydrated && cards.length === 0 && !redirectStartedRef.current) {
+      if (!window.matchMedia("(max-width: 1023px)").matches) return;
+
+      redirectStartedRef.current = true;
+      navigateWithRouteTransition(() => router.replace("/"));
+    }
+  }, [cards.length, hydrated, router]);
 
   if (!hydrated && !canRenderPersistedPool) {
     return (
@@ -57,7 +71,7 @@ export function LearnQuizShell({
   }
 
   if (cards.length === 0) {
-    return <NoCardsEmptyState variant="learn" />;
+    return <NoCardsEmptyState variant="learn" className="max-lg:hidden" />;
   }
 
   return (

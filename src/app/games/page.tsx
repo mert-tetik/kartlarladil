@@ -8,9 +8,9 @@ export default function GamesPage() {
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[url('/game-backgrounds/games-page-bg.png')] bg-cover bg-center lg:hidden"
+        className="pointer-events-none absolute inset-0 bg-[url('/game-backgrounds/games-page-colorful-shapes.png')] bg-cover bg-center"
       />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/55 lg:hidden" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[#090909]" />
       <div className="relative z-10 flex min-h-0 flex-1">
         <GamesList />
       </div>

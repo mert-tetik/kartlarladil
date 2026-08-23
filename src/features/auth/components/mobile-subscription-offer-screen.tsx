@@ -160,7 +160,7 @@ export function MobileSubscriptionOfferScreen({
   const isLoading = isGooglePlayLoading || isCheckoutPending;
 
   return (
-    <div data-mobile-subscription-offer className="animate-screen-pop flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden overflow-y-auto bg-background-card pb-[env(safe-area-inset-bottom)] text-center">
+    <div data-mobile-subscription-offer className="animate-screen-pop flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden overflow-y-auto bg-[#070707] pb-[env(safe-area-inset-bottom)] text-center text-white">
       <div className="relative isolate h-[42vh] min-h-[260px] w-full overflow-hidden">
         <Image
           src="/onboarding-premium-hero.webp"
@@ -170,7 +170,7 @@ export function MobileSubscriptionOfferScreen({
           sizes="100vw"
           className="object-cover object-top"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background-card via-background-card/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-[#070707]/75 to-black/20" />
         <div className="absolute inset-x-0 bottom-4 top-auto flex flex-col items-center px-4">
           <span className="font-display text-4xl font-bold uppercase tracking-tighter text-yellow-400 drop-shadow-sm sm:text-5xl">
             {t("pricing.firstMonthFree")}
@@ -182,51 +182,17 @@ export function MobileSubscriptionOfferScreen({
       </div>
 
       <div className="flex flex-col px-6 pb-8 pt-2">
-        <h2 className="font-display text-2xl font-semibold text-foreground">
-          Are You A Serious Learner?
-        </h2>
-        <p className="mt-1 text-sm text-foreground-secondary">
-          {t("pricing.description")}
-        </p>
-
-        <div className="mx-auto mt-5 inline-flex rounded-full border border-border bg-background-muted p-1">
-          <button
-            type="button"
-            onClick={() => setCycle("monthly")}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              cycle === "monthly"
-                ? "bg-brand text-brand-foreground shadow-sm"
-                : "text-foreground-secondary hover:text-foreground",
-            )}
-          >
-            {t("pricing.billingMonthly")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCycle("yearly")}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              cycle === "yearly"
-                ? "bg-brand text-brand-foreground shadow-sm"
-                : "text-foreground-secondary hover:text-foreground",
-            )}
-          >
-            {t("pricing.billingYearly")}
-          </button>
-        </div>
-
         <div className="mt-4 flex items-baseline justify-center gap-1">
-          <span className="font-display text-5xl font-semibold text-foreground">
+          <span className="font-display text-5xl font-semibold text-white">
             {priceDisplay.primary}
           </span>
-          <span className="text-sm text-foreground-muted">
+          <span className="text-sm text-white/60">
             {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
           </span>
         </div>
 
         {priceDisplay.original ? (
-          <p className="text-xs text-foreground-muted">{priceDisplay.original}</p>
+          <p className="text-xs text-white/55">{priceDisplay.original}</p>
         ) : null}
 
         {cycle === "yearly" && monthlyEquivalent ? (
@@ -241,7 +207,41 @@ export function MobileSubscriptionOfferScreen({
           </p>
         ) : null}
 
-        <ul className="mt-5 divide-y divide-border/45 text-left">
+        <h2 className="mt-4 font-display text-3xl font-semibold text-white">
+          {t("pricing.seriousLearner")}
+        </h2>
+        <p className="mt-2 text-base leading-6 text-white/75">
+          {t("pricing.description")}
+        </p>
+
+        <div className="mx-auto mt-5 inline-flex rounded-full border border-border bg-background-muted p-1">
+          <button
+            type="button"
+            onClick={() => setCycle("monthly")}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              cycle === "monthly"
+                ? "bg-brand text-brand-foreground shadow-sm"
+                : "text-white/65 hover:text-white",
+            )}
+          >
+            {t("pricing.billingMonthly")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCycle("yearly")}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              cycle === "yearly"
+                ? "bg-brand text-brand-foreground shadow-sm"
+                : "text-white/65 hover:text-white",
+            )}
+          >
+            {t("pricing.billingYearly")}
+          </button>
+        </div>
+
+        <ul className="mt-5 divide-y divide-white/15 text-center">
           <OfferPerk icon={Layers} colorClass="text-blue-500">{t("pricing.featureCards")}</OfferPerk>
           <OfferPerk icon={BookOpen} colorClass="text-emerald-500">{t("pricing.featureLearned")}</OfferPerk>
           <OfferPerk icon={Palette} colorClass="text-violet-500">{t("pricing.featureThemes")}</OfferPerk>
@@ -279,7 +279,7 @@ export function MobileSubscriptionOfferScreen({
           className={buttonClassName(
             "ghost",
             "lg",
-            "mt-3 h-12 w-full text-base font-semibold text-foreground-muted hover:text-foreground",
+            "mt-3 h-12 w-full text-base font-semibold text-white hover:text-white",
           )}
         >
           {t("pricing.ctaSkip")}
@@ -299,7 +299,7 @@ function OfferPerk({
   children: ReactNode;
 }) {
   return (
-    <li className="flex items-start gap-4 py-3 text-[0.95rem] leading-6 text-foreground">
+    <li className="flex items-start justify-center gap-4 py-3 text-[0.95rem] leading-6 text-white">
       <Icon className={cn("mt-0.5 size-5 shrink-0", colorClass)} aria-hidden="true" />
       <span>{children}</span>
     </li>

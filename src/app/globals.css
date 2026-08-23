@@ -212,6 +212,7 @@ button:disabled,
   height: var(--mobile-nav-bar-height);
   left: 0;
   overscroll-behavior: none;
+  overflow: visible;
   position: fixed;
   right: 0;
   touch-action: manipulation;
@@ -227,6 +228,7 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
 
 .mobile-main-nav-bar {
   height: var(--mobile-nav-bar-height);
+  overflow: visible;
 }
 
 ::selection {
@@ -515,6 +517,40 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+@keyframes games-selected-content-out-right {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(110vw, 0, 0);
+  }
+}
+
+@keyframes games-selected-content-in-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-110vw, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-games-selected-content-out-right {
+  animation: games-selected-content-out-right 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-games-selected-content-in-left {
+  animation: games-selected-content-in-left 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
 @media (max-width: 1023px) {
   .navbar-locale-top-sheet {
     animation: navbar-locale-top-sheet-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -601,7 +637,9 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .page-transition-shell,
   .animate-menu-pop,
   .animate-message-pop,
-  .animate-screen-pop {
+  .animate-screen-pop,
+  .animate-games-selected-content-out-right,
+  .animate-games-selected-content-in-left {
     animation: none;
     transform: none;
     will-change: auto;
@@ -1670,7 +1708,8 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
     width: 56px;
     height: 56px;
     pointer-events: none;
-    z-index: 1000;
+    /* Stay above the bottom navigation, but below splash and route-transition covers. */
+    z-index: 60;
     background: url("/pointer-icon.png") center / 56px 56px no-repeat;
     filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
     transform-origin: 43.9% 21.7%;
@@ -1783,12 +1822,10 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 
 @keyframes game-result-overlay-exit {
   from {
-    opacity: 1;
     transform: translate3d(0, 0, 0);
   }
 
   to {
-    opacity: 0;
     transform: translate3d(0, 105%, 0);
   }
 }
@@ -1805,6 +1842,10 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
+  display: none;
+}
+
+body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
   display: none;
 }
 

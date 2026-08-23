@@ -1,6 +1,5 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
 import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
-import { LANGUAGE_BY_CODE } from "@/data/languages";
 import type { OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
 import type { LanguageCode } from "@/types/domain";
 
@@ -523,8 +522,7 @@ function getSpeakerMascotSource(scenes: readonly OriginalMascotLearningVideoScen
 }
 
 function getFlagSource(language?: LanguageCode) {
-  const flagCode = language ? LANGUAGE_BY_CODE[language]?.flagCode : null;
-  return flagCode ? `/flags/4x3/${flagCode}.svg` : null;
+  return language ? `/flags/language/${language}.png` : null;
 }
 
 async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[], language?: LanguageCode, nativeLanguage?: LanguageCode): Promise<OriginalMascotVideoAssets> {

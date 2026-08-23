@@ -44,7 +44,10 @@ const assets = await Promise.all(
 );
 const version = createHash("sha256").update(JSON.stringify(assets)).digest("hex");
 const criticalAssets = assets.filter(
-  (asset) => CRITICAL_IMAGE_URLS.has(asset.url) || asset.url.startsWith("/flags/"),
+  (asset) =>
+    CRITICAL_IMAGE_URLS.has(asset.url) ||
+    asset.url.startsWith("/flags/") ||
+    asset.url.startsWith("/mobile-nav-icons/"),
 );
 
 await writeFile(

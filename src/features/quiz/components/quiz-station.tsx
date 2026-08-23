@@ -18,10 +18,8 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   CheckCircle2,
-  ChartNoAxesColumnIncreasing,
   Loader2,
   Medal,
-  Play,
   Star,
   Trophy,
   Volume2,
@@ -87,6 +85,11 @@ import {
 } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 import { EmptyState } from "@/components/empty-state";
+import {
+  ImageActionButton,
+  RESULT_BUTTON_IMAGES,
+} from "@/components/image-action-button";
+import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { LanguageFlag } from "@/components/language-flag";
 import { ScoreIcon } from "@/components/score-icon";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +105,7 @@ import {
   getRankLabel,
 } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -156,6 +160,12 @@ const CHOICE_OPTION_COLORS = [
   "bg-amber-400",
   "bg-emerald-500",
 ] as const;
+
+const RESULT_CARD_BACKGROUNDS = {
+  correct: "/quiz/result-cards/correct.png",
+  incorrect: "/quiz/result-cards/incorrect.png",
+  learned: "/quiz/result-cards/learned.png",
+} as const;
 
 const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
@@ -392,6 +402,7 @@ export function QuizStation({
   const cardProgressTimeoutIdsRef = useRef<number[]>([]);
   const awardedStreakSessionRef = useRef<string | null>(null);
   const quizStartRankRef = useRef<RankDefinition | null>(null);
+  const redirectStartedRef = useRef(false);
 
   useEffect(() => {
     const isQuizInProgress = phase !== "language" && phase !== "count";
@@ -508,6 +519,22 @@ export function QuizStation({
   }, [cards, mode, selectedLanguage]);
   const canRenderPersistedQuizSetup = cards.length > 0;
   const interactionLocked = !hydrated;
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      mode !== "active" ||
+      languageStats.length > 0 ||
+      redirectStartedRef.current
+    ) {
+      return;
+    }
+
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+
+    redirectStartedRef.current = true;
+    navigateWithRouteTransition(() => router.replace("/"));
+  }, [hydrated, languageStats.length, mode, router]);
 
   const buildDeck = useCallback(
     (language: LanguageCode, count: number | null) => {
@@ -1115,6 +1142,7 @@ export function QuizStation({
   ) {
     return (
       <EmptyState
+        className="max-lg:hidden"
         title={t(
           mode === "active"
             ? "inventory.emptyAnyTitle"
@@ -2936,10 +2964,12 @@ export function CelebrationView({
 
   useLayoutEffect(() => {
     if (hasStartedPointFlight.current) return;
-    hasStartedPointFlight.current = true;
 
     startTimerRef.current = window.setTimeout(() => {
+      if (hasStartedPointFlight.current) return;
       if (!cardRef.current || !scoreRef.current) return;
+
+      hasStartedPointFlight.current = true;
 
       const cardBounds = cardRef.current.getBoundingClientRect();
       const scoreBounds = scoreRef.current.getBoundingClientRect();
@@ -3144,6 +3174,7 @@ export function ResultView({
   const t = useT();
   const { locale } = useLocale();
   const { stats } = useProgressStats();
+  const { openLeaderboard } = useLeaderboardOverlay();
   const router = useRouter();
   const { data: leaderboardData } = useLeaderboardData();
   const [openMenu, setOpenMenu] = useState<
@@ -3169,6 +3200,9 @@ export function ResultView({
         position: formatNumber(locale, leaderboardData.viewer.position),
       })
     : t("leaderboard.positionLoading");
+  const rankLabel = getRankLabel(stats.rank, locale);
+  const formatResultDisplayText = (text: string) =>
+    canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -3279,9 +3313,12 @@ export function ResultView({
           >
             <span
               data-leaderboard-standing
-              className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl"
+              className={cn(
+                "bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
             >
-              {leaderboardStanding}
+              {formatResultDisplayText(leaderboardStanding)}
             </span>
             <span
               data-leaderboard-scope
@@ -3297,8 +3334,13 @@ export function ResultView({
               sizes="(max-width: 640px) 160px, 220px"
             />
           </div>
-          <h2 className="text-xl font-bold text-foreground sm:text-2xl">
-            {getRankLabel(stats.rank, locale)}
+          <h2
+            className={cn(
+              "text-xl font-bold text-foreground sm:text-2xl",
+              canUseSuperWater(locale) && "font-super-water",
+            )}
+          >
+            {formatResultDisplayText(rankLabel)}
           </h2>
         </div>
 
@@ -3319,8 +3361,7 @@ export function ResultView({
 
           <div
             className={cn(
-              "mt-4 grid w-full gap-2 sm:mt-5 sm:gap-3",
-              resultCards.length === 3 ? "grid-cols-3" : "grid-cols-2",
+              "mt-4 flex w-full items-center justify-center gap-2 sm:mt-5",
             )}
           >
             {resultCards.map((card) => (
@@ -3330,7 +3371,6 @@ export function ResultView({
                 icon={card.icon}
                 label={card.label}
                 count={card.count}
-                tone={card.tone}
                 disabled={locked || card.count === 0}
                 onClick={() => setOpenMenu(card.key)}
               />
@@ -3338,35 +3378,38 @@ export function ResultView({
           </div>
 
           <div className="mt-5 flex w-full items-center justify-center gap-5 sm:mt-6">
-            <button
-              type="button"
+            <ImageActionButton
+              imageSrc={RESULT_BUTTON_IMAGES.leaderboard}
+              imageSizes="56px"
               disabled={locked}
-              className="inline-flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
               onClick={() => {
-                navigateWithRouteTransition(() => router.push("/leaderboard"));
+                openLeaderboard();
               }}
               aria-label={t("leaderboard.title")}
+              data-result-action="leaderboard"
+              className="size-14"
             >
-              <ChartNoAxesColumnIncreasing className="size-7" strokeWidth={2.8} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
+            </ImageActionButton>
+            <ImageActionButton
+              imageSrc={RESULT_BUTTON_IMAGES.play}
+              imageSizes="80px"
               disabled={locked}
-              className="inline-flex size-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-emerald-600 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
               onClick={onRestart}
               aria-label={t("quiz.restart")}
+              data-result-action="play"
+              className="size-20"
             >
-              <Play className="size-10 fill-current" strokeWidth={2.5} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
+            </ImageActionButton>
+            <ImageActionButton
+              imageSrc={RESULT_BUTTON_IMAGES.menu}
+              imageSizes="56px"
               disabled={locked}
-              className="inline-flex size-14 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-red-600 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
               onClick={onExit}
               aria-label={t("quiz.exit")}
+              data-result-action="menu"
+              className="size-14"
             >
-              <X className="size-7" strokeWidth={3} aria-hidden="true" />
-            </button>
+            </ImageActionButton>
           </div>
         </div>
       </div>
@@ -3388,7 +3431,6 @@ function ResultCard({
   icon: Icon,
   label,
   count,
-  tone,
   disabled,
   onClick,
 }: {
@@ -3396,15 +3438,13 @@ function ResultCard({
   icon: typeof CheckCircle2;
   label: string;
   count: number;
-  tone: "emerald" | "rose" | "amber";
   disabled?: boolean;
   onClick?: () => void;
 }) {
-  const toneClasses = {
-    emerald: "bg-emerald-500 text-white",
-    rose: "bg-rose-500 text-white",
-    amber: "bg-amber-500 text-white",
-  };
+  const { locale } = useLocale();
+  const displayLabel = canUseSuperWater(locale)
+    ? formatSuperWaterText(locale, label).toLocaleUpperCase("en-US")
+    : label.toLocaleUpperCase(locale);
 
   return (
     <button
@@ -3412,18 +3452,26 @@ function ResultCard({
       disabled={disabled}
       onClick={onClick}
       data-result-card={resultKey}
+      style={{
+        backgroundImage: `url('${RESULT_CARD_BACKGROUNDS[resultKey]}')`,
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+      }}
       className={cn(
-        "flex min-h-[76px] w-full flex-col items-center justify-center rounded-lg p-2 text-center transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-[96px] sm:p-3",
-        toneClasses[tone],
+        "flex aspect-[778/784] w-[98px] shrink-0 flex-col items-center justify-center p-2 text-center text-white transition-[filter,opacity] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:p-3",
         disabled
           ? "cursor-not-allowed opacity-60"
-          : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+          : "cursor-pointer hover:brightness-105 active:brightness-95",
       )}
     >
       <Icon className="mx-auto size-4 sm:size-5" aria-hidden="true" />
       <p className="mt-0.5 text-lg font-bold sm:text-xl">{count}</p>
-      <p className="text-[10px] font-semibold text-white/90 sm:text-xs">
-        {label}
+      <p className={cn(
+        "text-[10px] font-semibold uppercase text-white/90 sm:text-xs",
+        canUseSuperWater(locale) && "font-super-water",
+      )}>
+        {displayLabel}
       </p>
     </button>
   );

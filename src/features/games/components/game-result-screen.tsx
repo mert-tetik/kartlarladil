@@ -3,15 +3,21 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { LayoutGrid, Play, RotateCcw, Star } from "lucide-react";
+import { Star } from "lucide-react";
+import {
+  ImageActionButton,
+  RESULT_BUTTON_IMAGES,
+} from "@/components/image-action-button";
 import { ScoreIcon } from "@/components/score-icon";
+import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
+import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
 } from "@/features/progress/score-flight";
 import { useLocale } from "@/i18n/locale-provider";
-import { formatPoints } from "@/i18n/labels";
+import { formatNumber, formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
@@ -29,6 +35,8 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const { locale, t } = useLocale();
   const router = useRouter();
   const { stats, refreshStats } = useProgressStats();
+  const { openLeaderboard } = useLeaderboardOverlay();
+  const { data: leaderboardData } = useLeaderboardData();
   const basePoints = stats.totalPoints - points;
   const gainedPoints = points;
   const scoreRef = useRef<HTMLSpanElement>(null);
@@ -95,6 +103,11 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const resultTitle = success
     ? t("games.completed", { level })
     : t("games.failed", { level });
+  const leaderboardStanding = leaderboardData
+    ? t("leaderboard.yourStanding", {
+        position: formatNumber(locale, leaderboardData.viewer.position),
+      })
+    : t("leaderboard.positionLoading");
 
   return (
     <div
@@ -116,7 +129,20 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
       />
 
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-7">
-        <div ref={rewardSourceRef} className="flex flex-col items-center">
+        <div ref={rewardSourceRef} className="flex flex-col items-center gap-3">
+          {success ? (
+            <p
+              data-game-result-standing
+              className={cn(
+                "game-result-title-success bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent drop-shadow-[0_2px_3px_rgba(15,23,42,0.55)] sm:text-5xl",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
+            >
+              {canUseSuperWater(locale)
+                ? formatSuperWaterText(locale, leaderboardStanding)
+                : leaderboardStanding}
+            </p>
+          ) : null}
           <h1
             className={cn(
               "game-result-title text-5xl font-bold leading-none sm:text-6xl",
@@ -128,28 +154,33 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
           </h1>
         </div>
 
-        <div className="flex items-center justify-center gap-5">
-          <button
-            type="button"
+        <div className="flex items-center justify-center gap-4">
+          {success ? (
+            <ImageActionButton
+              imageSrc={RESULT_BUTTON_IMAGES.leaderboard}
+              imageSizes="56px"
+              onClick={openLeaderboard}
+              aria-label={t("leaderboard.title")}
+              data-game-result-action="leaderboard"
+              className="game-result-action-leaderboard size-14"
+            />
+          ) : null}
+          <ImageActionButton
+            imageSrc={success ? RESULT_BUTTON_IMAGES.play : RESULT_BUTTON_IMAGES.replay}
+            imageSizes="64px"
             onClick={() => handleExit(onPrimary)}
-            className="game-result-action-primary inline-flex size-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-emerald-600 active:scale-95"
             aria-label={success ? t("games.nextLevel") : t("games.tryAgain")}
-          >
-            {success ? (
-              <Play className="size-10 fill-current" strokeWidth={2.5} aria-hidden="true" />
-            ) : (
-              <RotateCcw className="size-10" strokeWidth={3} aria-hidden="true" />
-            )}
-          </button>
-
-          <button
-            type="button"
+            data-game-result-action={success ? "play" : "replay"}
+            className="game-result-action-primary size-16"
+          />
+          <ImageActionButton
+            imageSrc={RESULT_BUTTON_IMAGES.menu}
+            imageSizes="56px"
             onClick={() => handleExit(() => router.push("/games"))}
-            className="game-result-action-menu inline-flex size-20 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-red-600 active:scale-95"
             aria-label={t("games.menu")}
-          >
-            <LayoutGrid className="size-9 fill-current" strokeWidth={2.5} aria-hidden="true" />
-          </button>
+            data-game-result-action="menu"
+            className="game-result-action-menu size-14"
+          />
         </div>
 
         <div className="game-result-score relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
