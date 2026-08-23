@@ -15,6 +15,17 @@ interface MissionsPanelProps {
   onClose: () => void;
 }
 
+// Missions panel protrusion: edit only these values to tune its size and position.
+const MISSIONS_PANEL_PROTRUSION = {
+  width: 390,
+  scale: 0.75,
+  x: 0,
+  y: 9,
+  circleScale: 1.45,
+  circleY: 8,
+  iconY: 8,
+} as const;
+
 export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -117,29 +128,64 @@ export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
       />
 
       <div
+        data-missions-panel
         className={cn(
-          "relative flex max-h-[calc(100dvh-var(--app-header-height))] w-full flex-col rounded-t-2xl border-t border-border bg-background shadow-sm",
+          "relative z-10 flex max-h-[calc(100dvh-var(--app-header-height)-3rem)] w-full flex-col overflow-visible rounded-t-[2rem] bg-background",
           entered ? "translate-y-0" : "translate-y-full",
           isDragging ? "transition-none" : "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         )}
         style={entered ? { transform: `translateY(${dragY}px)` } : undefined}
       >
         <div
+          data-missions-panel-drag-handle
           onPointerDown={handleDragStart}
           onPointerMove={handleDragMove}
           onPointerUp={handleDragEnd}
           onPointerCancel={handleDragCancel}
-          className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
+          className="relative z-10 flex h-[4.75rem] shrink-0 touch-none select-none items-start justify-center"
         >
-          <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-0 aspect-[654/151]"
+            style={{
+              width: `${MISSIONS_PANEL_PROTRUSION.width}px`,
+              transform: `translate3d(calc(-50% + ${MISSIONS_PANEL_PROTRUSION.x}px), calc(-100% + ${MISSIONS_PANEL_PROTRUSION.y}px), 0) scale(${MISSIONS_PANEL_PROTRUSION.scale})`,
+              transformOrigin: "50% 100%",
+            }}
+          >
+            <span
+              className="absolute inset-0 bg-background"
+              style={{
+                maskImage: "url('/missions/cikinti-v2.png')",
+                WebkitMaskImage: "url('/missions/cikinti-v2.png')",
+                maskPosition: "center",
+                WebkitMaskPosition: "center",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%",
+              }}
+            />
+            <span
+              aria-hidden="true"
+              className="absolute left-1/2 top-[28%] size-16 rounded-full bg-background-card"
+              style={{
+                transform: `translate3d(-50%, ${MISSIONS_PANEL_PROTRUSION.circleY}px, 0) scale(${MISSIONS_PANEL_PROTRUSION.circleScale})`,
+                transformOrigin: "50% 50%",
+              }}
+            />
+            <span
+              className="absolute left-1/2 top-[28%] flex size-16 items-center justify-center"
+              style={{ transform: `translate3d(-50%, ${MISSIONS_PANEL_PROTRUSION.iconY}px, 0)` }}
+            >
+              <MissionIcon size={52} className="size-[3.25rem]" />
+            </span>
+          </span>
         </div>
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <MissionIcon size={24} className="h-6 w-auto" />
-            <h2 className={cn("text-lg font-bold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
-              {formatSuperWaterText(locale, t("missions.title"))}
-            </h2>
-          </div>
+        <div className="relative flex shrink-0 items-center justify-center px-14 pb-3 pt-0">
+          <h2 className={cn("text-lg font-bold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, t("missions.title"))}
+          </h2>
           <Button
             variant="ghost"
             size="icon"
@@ -148,6 +194,7 @@ export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
               closePanel();
             }}
             aria-label={t("common.close")}
+            className="absolute right-3 top-1"
           >
             <X className="size-5" aria-hidden="true" />
           </Button>

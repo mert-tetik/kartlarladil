@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LANGUAGES } from "@/data/languages";
-import { LanguageFlag } from "@/components/language-flag";
+import { LanguageFlag, LanguageFlagWithBrandOutline } from "@/components/language-flag";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
@@ -30,6 +30,7 @@ interface MobileLanguageBottomSheetProps {
   showBackdrop?: boolean;
   sheetClassName?: string;
   visualStyle?: "default" | "light";
+  optionStyle?: "default" | "navbar";
   showCounts?: boolean;
 }
 
@@ -46,6 +47,7 @@ export function MobileLanguageBottomSheet({
   showBackdrop = true,
   sheetClassName,
   visualStyle = "default",
+  optionStyle = "default",
   showCounts = true,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
@@ -59,6 +61,7 @@ export function MobileLanguageBottomSheet({
 
   const visualDragY = isOpen ? Math.max(0, dragY) : 0;
   const isLight = visualStyle === "light";
+  const useNavbarOptionStyle = optionStyle === "navbar";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -169,7 +172,7 @@ export function MobileLanguageBottomSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid gap-2">
+          <div className={cn("grid gap-2", useNavbarOptionStyle && "grid-cols-3 gap-x-2 gap-y-3")}>
             {allowAll ? (
               <button
                 type="button"
@@ -206,28 +209,58 @@ export function MobileLanguageBottomSheet({
                     type="button"
                     onClick={() => handleSelect(option.code)}
                     className={cn(
-                      "flex items-center justify-between rounded-xl border p-3 text-left transition-colors",
+                      useNavbarOptionStyle
+                        ? "relative flex min-h-36 w-full flex-col items-center justify-start gap-1.5 border-0 bg-transparent px-1 pb-1 pt-2 text-center transition-transform duration-200 active:scale-95"
+                        : "flex items-center justify-between rounded-xl border p-3 text-left transition-colors",
                       selected
-                        ? isLight ? "border-slate-950 bg-slate-100" : "border-foreground bg-background-muted"
-                        : isLight ? "border-slate-200 bg-white hover:bg-slate-50" : "border-border bg-background hover:bg-background-muted",
+                        ? useNavbarOptionStyle
+                          ? "text-brand"
+                          : isLight ? "border-slate-950 bg-slate-100" : "border-foreground bg-background-muted"
+                        : useNavbarOptionStyle
+                          ? isLight ? "text-slate-950" : "text-foreground"
+                          : isLight ? "border-slate-200 bg-white hover:bg-slate-50" : "border-border bg-background hover:bg-background-muted",
                     )}
                   >
-                    <span className="flex items-center gap-3">
-                      <LanguageFlag code={option.code} className="h-8 w-12" />
-                      <span className={cn("text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
-                        {getLanguageDisplayName(option.code, locale)}
-                      </span>
-                    </span>
-                    {showCounts ? (
-                      <span className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
-                          {t("home.mobile.cardsLabel")}
+                    {useNavbarOptionStyle ? (
+                      <>
+                        <span className="relative inline-flex size-24 items-center justify-center">
+                          <LanguageFlagWithBrandOutline
+                            code={option.code}
+                            className="size-24"
+                            imageClassName="scale-100"
+                            outlineInset="-inset-1.5"
+                            selected={selected}
+                          />
                         </span>
-                        <span className="text-xl font-bold text-foreground">
-                          {option.count}
+                        <span
+                          className={cn(
+                            "min-h-8 max-w-full px-1 leading-4",
+                            selected ? "text-base font-bold text-brand" : "text-[0.7rem] font-semibold",
+                          )}
+                        >
+                          {language.nativeName}
                         </span>
-                      </span>
-                    ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex items-center gap-3">
+                          <LanguageFlag code={option.code} className="h-8 w-12" />
+                          <span className={cn("text-base font-semibold", isLight ? "text-slate-950" : "text-foreground")}>
+                            {getLanguageDisplayName(option.code, locale)}
+                          </span>
+                        </span>
+                        {showCounts ? (
+                          <span className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                              {t("home.mobile.cardsLabel")}
+                            </span>
+                            <span className="text-xl font-bold text-foreground">
+                              {option.count}
+                            </span>
+                          </span>
+                        ) : null}
+                      </>
+                    )}
                   </button>
                 );
               })

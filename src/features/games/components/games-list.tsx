@@ -371,6 +371,7 @@ export function GamesList() {
         selectedLanguage={displayedLanguage}
         onSelect={handleSelect}
         showCounts={false}
+        optionStyle="navbar"
       />
     </div>
   );

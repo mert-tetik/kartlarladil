@@ -4,13 +4,17 @@ export default function GamesPage() {
   return (
     <div
       data-games-active
-      className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overflow-hidden lg:h-[calc(100dvh-var(--app-header-height))]"
+      className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overflow-hidden bg-[#090909] lg:h-[calc(100dvh-var(--app-header-height))]"
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[url('/game-backgrounds/games-page-colorful-shapes.png')] bg-cover bg-center"
+        className="pointer-events-none absolute inset-0 bg-[url('/game-backgrounds/games-page-colorful-shapes.png')] bg-cover bg-center bg-no-repeat"
+        style={{
+          maskImage: "linear-gradient(to top, transparent 0%, black 72%, black 100%)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 72%, black 100%)",
+        }}
       />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[#090909]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[#090909]/20" />
       <div className="relative z-10 flex min-h-0 flex-1">
         <GamesList />
       </div>

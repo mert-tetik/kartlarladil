@@ -1,5 +1,5 @@
 {
-  "version": "1364e503f56347623ac5f45d9da98077f52750f582a1293ddd98e7f8aeb21d58",
+  "version": "b2c7010ace3448c451a81c6e051d93b058343bd6576d380db485fc2abc3e01f5",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -544,6 +544,14 @@
     {
       "url": "/mission-icon.webp",
       "revision": "ea5651e0b418ce05f395673f140c6bdf2f4c4679b1e97d9654038b05bf80a519"
+    },
+    {
+      "url": "/missions/cikinti-v2.png",
+      "revision": "dfbeaff2168acc339ea25a938b934d4f4249904c7aeb330c83e11652c5df0e7c"
+    },
+    {
+      "url": "/missions/cikinti.png",
+      "revision": "dfbeaff2168acc339ea25a938b934d4f4249904c7aeb330c83e11652c5df0e7c"
     },
     {
       "url": "/mobile-nav-icons/color-palette.png",

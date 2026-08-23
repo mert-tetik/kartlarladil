@@ -102,6 +102,7 @@ export function AiPracticeCharacterSelection({
         showBackdrop
         sheetClassName="max-h-[50dvh]"
         showCounts={false}
+        optionStyle="navbar"
       />
 
       <div
