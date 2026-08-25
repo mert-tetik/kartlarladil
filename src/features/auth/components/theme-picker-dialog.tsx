@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type PointerEvent } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Lock, Palette, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { useTheme } from "@/components/theme-provider";
 import { updateThemeAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -30,10 +31,6 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
-  const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartY = useRef<number | null>(null);
-  const dragOffsetY = useRef(0);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
   const isPaidUser = isPaidPlan(effectivePlan);
@@ -103,47 +100,8 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   }
 
   function handleClose() {
-    dragStartY.current = null;
-    dragOffsetY.current = 0;
-    setDragY(0);
-    setIsDragging(false);
     setShowUpgrade(false);
     onOpenChange(false);
-  }
-
-  function handleDragStart(event: PointerEvent<HTMLDivElement>) {
-    dragStartY.current = event.clientY;
-    dragOffsetY.current = 0;
-    setIsDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handleDragMove(event: PointerEvent<HTMLDivElement>) {
-    if (dragStartY.current === null) return;
-    const nextOffset = Math.max(0, event.clientY - dragStartY.current);
-    dragOffsetY.current = nextOffset;
-    setDragY(nextOffset);
-  }
-
-  function handleDragEnd() {
-    const shouldClose = dragOffsetY.current > 110;
-    dragStartY.current = null;
-    dragOffsetY.current = 0;
-    setIsDragging(false);
-
-    if (shouldClose) {
-      handleClose();
-      return;
-    }
-
-    setDragY(0);
-  }
-
-  function handleDragCancel() {
-    dragStartY.current = null;
-    dragOffsetY.current = 0;
-    setIsDragging(false);
-    setDragY(0);
   }
 
   return createPortal(
@@ -183,55 +141,24 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
         </div>
       </div>
 
-      <div
-        className={cn(
-          "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 lg:hidden",
-          entered ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
-        role="dialog"
-        aria-modal={open}
-        aria-labelledby="mobile-theme-sheet-title"
+      <MobileBottomSheetShell
+        open={open}
+        onClose={handleClose}
+        title={t("theme.title")}
+        titleId="mobile-theme-sheet-title"
+        panelLabel={t("theme.title")}
+        panelClassName="max-h-[82dvh]"
+        visual={<Palette className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
+        contentClassName="overflow-y-auto px-5 pb-5"
       >
-        <div className="absolute inset-0 bg-black/50" onClick={handleClose} aria-hidden="true" />
-        <div
-          className={cn(
-            "relative flex max-h-[82dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl",
-            entered ? "translate-y-0" : "translate-y-full",
-            isDragging ? "transition-none" : "transition-transform duration-300 ease-out",
-          )}
-          style={entered ? { transform: `translateY(${dragY}px)` } : undefined}
-        >
-          <div
-            onPointerDown={handleDragStart}
-            onPointerMove={handleDragMove}
-            onPointerUp={handleDragEnd}
-            onPointerCancel={handleDragCancel}
-            className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
-          >
-            <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
-          </div>
-          <div className="mb-4 flex items-center justify-between">
-            <ThemePickerTitle id="mobile-theme-sheet-title" compact useSuperWater />
-            <button
-              type="button"
-              onClick={handleClose}
-              className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-              aria-label={t("common.close")}
-            >
-              <X className="size-5" aria-hidden="true" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto pb-1">
-            <ThemeGrid
-              selectedThemeId={theme.id}
-              isPaidUser={isPaidUser}
-              pendingId={pendingId}
-              disabled={isPending}
-              onSelect={handleSelect}
-            />
-          </div>
-        </div>
-      </div>
+        <ThemeGrid
+          selectedThemeId={theme.id}
+          isPaidUser={isPaidUser}
+          pendingId={pendingId}
+          disabled={isPending}
+          onSelect={handleSelect}
+        />
+      </MobileBottomSheetShell>
 
       {upgradeMounted || showUpgrade ? (
         <div

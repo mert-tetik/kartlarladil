@@ -69,6 +69,7 @@ import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
+import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
@@ -1850,30 +1851,6 @@ export function LanguageSelection({
   );
 }
 
-function MiniChestIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={cn("size-4 shrink-0", className)}
-      aria-hidden="true"
-    >
-      <path
-        d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z"
-        className="fill-current"
-      />
-      <path
-        d="M3 9c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2M3 9l3-3h12l3 3M12 9v12"
-        className="stroke-current"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="14" r="2" className="fill-current opacity-40" />
-    </svg>
-  );
-}
-
 export function CountSelection({
   mode,
   language,
@@ -2100,7 +2077,7 @@ export function CountSelection({
                       key={tier}
                       className="flex items-center gap-1 text-xs font-semibold"
                     >
-                      <MiniChestIcon className="text-white" />
+                      <ChestIcon tier={tier} className="size-4 shrink-0" />
                       {t(getChestLabelKey(tier))}
                     </span>
                   ))}
@@ -2135,7 +2112,7 @@ export function CountSelection({
                   <div className="mt-1 flex flex-col items-center gap-1">
                     {launch.chestTiers.map((tier) => (
                       <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
-                        <MiniChestIcon className="text-white" />
+                        <ChestIcon tier={tier} className="size-4 shrink-0" />
                         {t(getChestLabelKey(tier))}
                       </span>
                     ))}

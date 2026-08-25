@@ -76,7 +76,16 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const migrationStartedRef = useRef(false);
   const trackedPointsRef = useRef<number | null>(null);
   const trackedPointsOwnerRef = useRef<string>("guest");
-  const [cachedStats, setCachedStats] = useState<ProgressStats | null>(readCachedProgressStats);
+  // Read browser-only cached stats after hydration so the server and the
+  // client's first render use the same initial snapshot.
+  const [cachedStats, setCachedStats] = useState<ProgressStats | null>(null);
+
+  useEffect(() => {
+    const cached = readCachedProgressStats();
+    if (cached) {
+      setCachedStats(cached);
+    }
+  }, []);
 
   useEffect(() => {
     setCloudEnabled(Boolean(user));

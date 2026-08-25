@@ -1,5 +1,5 @@
 {
-  "version": "b2c7010ace3448c451a81c6e051d93b058343bd6576d380db485fc2abc3e01f5",
+  "version": "0fc97dcaae0801c0d3d1f2843a4efea293dfd81fa6368bb61c8114f7f0e20019",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -184,6 +184,54 @@
     {
       "url": "/chests/chest-sprite.png",
       "revision": "0fb076e853d395e01390c8cd541fe7dba01c95540ed3b96b457d65df6dd5875f"
+    },
+    {
+      "url": "/chests/diamond-bottom.png",
+      "revision": "5b2755981e0116d2d7b3137f8431a7f1ee3995b5bb30ef0103945d9cf6dde61b"
+    },
+    {
+      "url": "/chests/diamond-top.png",
+      "revision": "de7a6636ad755fca3e25ea72b2f1ca219142b4832f6d15202da0ed86d24c4c8e"
+    },
+    {
+      "url": "/chests/emerald-bottom.png",
+      "revision": "81dcc203ed63b7d6be29a707e9057f4f2dfd4aef90c054adbdef383da6602d00"
+    },
+    {
+      "url": "/chests/emerald-top.png",
+      "revision": "15e8c8399ed1ce86cbd35af2386d3a0df016c39c5d32fa978b340dc54970c26c"
+    },
+    {
+      "url": "/chests/gold-bottom.png",
+      "revision": "da040cbdfba9a8faf0de33ea425674fd4932525fcf2d9f224a4522b08da592aa"
+    },
+    {
+      "url": "/chests/gold-top.png",
+      "revision": "c68814db7cb5ce0b8f11a81d0c292c321fcf1ce8d4ad52f9f64a38d37921bd56"
+    },
+    {
+      "url": "/chests/iron-bottom.png",
+      "revision": "70de7499416f43a5a4cce8019742ed70e95e37764718567deef41ecfb08761fb"
+    },
+    {
+      "url": "/chests/iron-top.png",
+      "revision": "b2257a04c4faee9944939a0058f75fa07120fc91e18d6ad2b9b9c1c77a83f379"
+    },
+    {
+      "url": "/chests/ruby-bottom.png",
+      "revision": "905ccf55367ef869d70abe2960690d447605a7205f4e20aea7d42ee4ba694357"
+    },
+    {
+      "url": "/chests/ruby-top.png",
+      "revision": "814ac6a4c04387b2b9e20366df9d736ea117634a3ac2240f5ebd8790213e7709"
+    },
+    {
+      "url": "/chests/wood-bottom.png",
+      "revision": "74ab1d46685442318cad9a1725223ac73ae6eb1be72a44ef76812b1f4d21f10c"
+    },
+    {
+      "url": "/chests/wood-top.png",
+      "revision": "c9cc66bd7fd1a4cc238ac039dc768db71f3e70c8e662098d465dfb352465ac3a"
     },
     {
       "url": "/colored-backgrounds/blue.png",
@@ -552,6 +600,22 @@
     {
       "url": "/missions/cikinti.png",
       "revision": "dfbeaff2168acc339ea25a938b934d4f4249904c7aeb330c83e11652c5df0e7c"
+    },
+    {
+      "url": "/missions/mission-button-claimable.png",
+      "revision": "081a1c492f7426e1aff734a5cdb692d1b6a12d812c42f417052de42d899c6ea2"
+    },
+    {
+      "url": "/missions/mission-button-claimed.png",
+      "revision": "5c1406c97c67439f41767810c1eae587b8021b07266418b3500c1f2255f37501"
+    },
+    {
+      "url": "/missions/mission-button-locked-v2.png",
+      "revision": "ce7702394cfc79cacc700ab50c922a503c6ae718bcfc707cc422ac391f9cf437"
+    },
+    {
+      "url": "/missions/mission-lock-icon.png",
+      "revision": "947591907f5b8621ceec173eb4c6b94fcd0e0f14e5ec608f035a3ba463d5ba95"
     },
     {
       "url": "/mobile-nav-icons/color-palette.png",

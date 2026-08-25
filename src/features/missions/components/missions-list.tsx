@@ -45,7 +45,6 @@ export function MissionsList() {
   const pendingClaimOwnerId = useMissionClaimStore((state) => state.pendingClaimOwnerId);
   const setClaimedIds = useMissionClaimStore((state) => state.setClaimedIds);
   const markClaimPending = useMissionClaimStore((state) => state.markClaimPending);
-  const [syncing, setSyncing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [rewardMode, setRewardMode] = useState<
@@ -77,7 +76,6 @@ export function MissionsList() {
   const syncMissions = useCallback(async () => {
     if (!user) return;
 
-    setSyncing(true);
     setLoadError(null);
 
     const result = await listUserMissionsAction(snapshot);
@@ -89,13 +87,10 @@ export function MissionsList() {
       );
     } else if (result.message === "auth_required") {
       navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
-      setSyncing(false);
       return;
     } else {
       setLoadError(result.message ?? t("missions.loadError"));
     }
-
-    setSyncing(false);
   }, [router, snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
@@ -204,12 +199,6 @@ export function MissionsList() {
 
   return (
     <>
-      {syncing && (
-        <div className="flex items-center justify-center gap-2 py-2 text-xs text-foreground-secondary">
-          <div className="size-3 animate-spin rounded-full border border-brand border-t-transparent" />
-          {t("missions.syncing")}
-        </div>
-      )}
       {claimError ? <p role="alert" className="text-sm text-destructive">{claimError}</p> : null}
       <div className={cn("flex flex-col gap-3 pb-8")}>
         {missions.map((mission) => (

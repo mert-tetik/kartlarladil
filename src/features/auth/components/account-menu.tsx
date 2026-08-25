@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { BarChart3, CreditCard, LogOut, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
@@ -11,7 +12,7 @@ import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { ProfilePicturePickerDialog } from "@/features/auth/components/profile-picture-picker-dialog";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { useProgressStats } from "@/features/progress/progress-client";
-import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialog";
 import { formatNumber, getRankLabel, getTierLabel } from "@/i18n/labels";
@@ -22,6 +23,39 @@ import { useVibration } from "@/lib/vibration";
 const MOBILE_LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const MOBILE_LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+
+function AccountSubscriptionPlanImage({ mobile = false, onClose }: { mobile?: boolean; onClose: () => void }) {
+  const { entitlements } = useSubscription();
+  const t = useT();
+  const effectivePlan = entitlements?.effectivePlan ?? "free";
+  const planImage = effectivePlan === "basic"
+    ? { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 }
+    : effectivePlan === "pro"
+      ? { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 }
+      : null;
+
+  if (!planImage) return null;
+
+  return (
+    <Link
+      href="/pricing"
+      onClick={onClose}
+      aria-label={t(`pricing.${effectivePlan}`)}
+      className={cn(
+        "inline-flex cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        mobile && "mt-2",
+      )}
+    >
+      <Image
+        src={planImage.src}
+        alt={t(`pricing.${effectivePlan}`)}
+        width={planImage.width}
+        height={planImage.height}
+        className="block h-6 w-auto -translate-y-0.5 rotate-0 object-contain"
+      />
+    </Link>
+  );
+}
 
 export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -101,13 +135,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 </button>
                 <p className="mt-3 max-w-full truncate font-semibold text-foreground">{getAccountLabel(user)}</p>
                 <p className="mt-1 max-w-full truncate text-foreground-muted">{user.email}</p>
-                <Link
-                  href="/pricing"
-                  onClick={() => setOpen(false)}
-                  className="mt-2 inline-flex rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-                >
-                  <PlanBadge />
-                </Link>
+                <AccountSubscriptionPlanImage mobile onClose={() => setOpen(false)} />
               </div>
               <div className="h-px bg-border" />
               <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
@@ -119,13 +147,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 <p className="font-semibold text-foreground">{getAccountLabel(user)}</p>
                 <p className="mt-1 truncate text-foreground-muted">{user.email}</p>
                 <div className="mt-2">
-                  <Link
-                    href="/pricing"
-                    onClick={() => setOpen(false)}
-                    className="inline-block cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-                  >
-                    <PlanBadge />
-                  </Link>
+                  <AccountSubscriptionPlanImage onClose={() => setOpen(false)} />
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-background p-3">

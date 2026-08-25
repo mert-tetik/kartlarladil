@@ -36,38 +36,38 @@ function renderSheet(overrides: Partial<React.ComponentProps<typeof MobileLocked
 }
 
 describe("MobileLockedActionSheet", () => {
-  it("opens draw and create card actions from the empty learning deck sheet", () => {
+  it("opens draw and create card actions from the empty learning deck sheet", async () => {
     const props = renderSheet();
 
-    fireEvent.click(screen.getByRole("button", { name: "cards.randomDrawTitle" }));
-    fireEvent.click(screen.getByRole("button", { name: "home.mobile.addCard" }));
+    fireEvent.click(await screen.findByRole("button", { name: "cards.randomDrawTitle" }));
+    fireEvent.click(await screen.findByRole("button", { name: "home.mobile.addCard" }));
 
     expect(props.onOpenDraw).toHaveBeenCalledTimes(1);
     expect(props.onOpenCreate).toHaveBeenCalledTimes(1);
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
-  it("uses the landing learning action color for the empty learning deck close button", () => {
+  it("uses the landing learning action color for the empty learning deck close button", async () => {
     renderSheet();
 
-    expect(screen.getByText("common.close")).toHaveClass("bg-emerald-500");
+    expect(await screen.findByText("common.close")).toHaveClass("bg-emerald-500");
     expect(screen.getByText("common.close").closest(".mobile-primary-action-depth")).not.toBeNull();
     expect(screen.getByRole("button", { name: "cards.randomDrawTitle" }).closest(".mobile-primary-action-depth")).not.toBeNull();
     expect(screen.getByRole("button", { name: "home.mobile.addCard" }).closest(".mobile-primary-action-depth")).not.toBeNull();
   });
 
-  it("keeps start learning disabled when the learned deck sheet has no learning cards", () => {
+  it("keeps start learning disabled when the learned deck sheet has no learning cards", async () => {
     const props = renderSheet({
       variant: "learned",
       canStartLearning: false,
     });
 
-    const startLearning = screen.getByRole("button", { name: "home.mobile.startLearning" });
+    const startLearning = await screen.findByRole("button", { name: "home.mobile.startLearning" });
     expect(startLearning).toBeDisabled();
     fireEvent.click(startLearning);
 
     expect(props.onStartLearning).not.toHaveBeenCalled();
-    expect(screen.getByText("common.close")).toHaveClass("bg-sky-500");
+    expect(await screen.findByText("common.close")).toHaveClass("bg-sky-500");
     expect(startLearning.closest(".mobile-primary-action-depth")).toHaveClass("mobile-primary-action-depth--locked");
   });
 });

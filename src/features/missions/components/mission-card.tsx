@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ScoreIcon } from "@/components/score-icon";
 import { Progress } from "@/components/ui/progress";
@@ -10,9 +10,16 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
+
+const MISSION_BUTTON_ASSETS: Record<MissionStatus, string> = {
+  waiting: "/missions/mission-button-claimable.png",
+  claimed: "/missions/mission-button-claimed-v2.png",
+  locked: "/missions/mission-button-locked-v2.png",
+};
 
 interface MissionCardProps {
   missionId: string;
@@ -48,8 +55,11 @@ export function MissionCard({
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
   const isClickable = (isWaiting && !claiming) || isLocked;
-
+  const buttonAsset = MISSION_BUTTON_ASSETS[status];
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
+  const descriptionDisplay = canUseSuperWater(locale)
+    ? formatSuperWaterText(locale, description)
+    : description;
 
   function navigateToMission() {
     const preferredLanguage = user?.profile.preferredLanguageCode ?? "en";
@@ -104,29 +114,33 @@ export function MissionCard({
       aria-label={isWaiting ? t("missions.claim") : description}
       onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect())}
       onKeyDown={handleKeyDown}
+      style={{
+        aspectRatio: "1144 / 290",
+        backgroundImage: `url("${buttonAsset}")`,
+      }}
       className={cn(
-        "relative flex items-center gap-4 rounded-2xl border p-4 shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
-        isLocked && "border-border bg-background-card opacity-70",
-        isWaiting && "border-emerald-500 bg-emerald-500 text-white",
-        isClaimed && "border-emerald-800/80 bg-emerald-800/80 text-white",
+        "relative flex items-center gap-3 rounded-2xl border-0 bg-center bg-[length:100%_100%] bg-no-repeat px-[8%] py-3 shadow-none transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        isLocked && "text-foreground",
+        isWaiting && "text-white",
+        isClaimed && "text-white",
+        canUseSuperWater(locale) && "font-super-water",
         isClickable && "cursor-pointer active:scale-[0.98]",
         claiming && "cursor-wait opacity-90",
       )}
     >
-      <div className="relative flex size-14 shrink-0 items-center justify-center">
+      <div className="relative flex size-12 shrink-0 items-center justify-center">
         {isWaiting && (
-          <div className="absolute -top-7 left-1/2 z-20 animate-mission-claim-bubble-pulse">
-            <div className="relative inline-flex items-center justify-center rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg">
-              {claiming ? (
-                <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-              ) : (
-                t("missions.claim")
+          <div
+            className="pointer-events-none absolute -top-[3.05rem] left-1/2 z-20 -translate-x-1/2 animate-mission-claim-bubble-pulse"
+            style={{ left: "calc(50% + 2.75rem)" }}
+          >
+            <div
+              className={cn(
+                "relative flex aspect-square w-[3.5rem] items-center justify-center bg-contain bg-center bg-no-repeat",
+                canUseSuperWater(locale) && "font-super-water",
               )}
-              <span
-                className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 translate-y-1/2 rotate-45 bg-emerald-600"
-                aria-hidden="true"
-              />
-            </div>
+              style={{ backgroundImage: 'url("/missions/mission-claim-bubble-check-v3.png")' }}
+            />
           </div>
         )}
 
@@ -145,27 +159,34 @@ export function MissionCard({
         </div>
 
         {isLocked ? (
-          <div className="absolute -top-5 left-1/2 z-20 flex size-10 -translate-x-1/2 items-center justify-center rounded-full bg-background-card text-foreground-muted shadow-sm">
-            <Lock className="size-6" aria-hidden="true" />
+          <div className="absolute inset-0 z-20 flex items-center justify-center drop-shadow-sm">
+            <Image
+              src="/missions/mission-lock-icon.png"
+              alt=""
+              width={36}
+              height={50}
+              className="h-10 w-auto object-contain"
+              aria-hidden="true"
+            />
           </div>
         ) : null}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="mx-auto flex w-[94%] items-center justify-between gap-2">
           <p
             className={cn(
               "truncate text-sm font-bold",
-              isLocked ? "text-foreground-muted" : "text-current",
+              isLocked ? "text-white" : "text-current",
             )}
           >
-            {description}
+            {descriptionDisplay}
           </p>
           {reward.kind === "points" ? (
             <div
               className={cn(
                 "shrink-0 flex items-center gap-1.5 text-sm font-bold",
-                isLocked ? "text-foreground-secondary" : "text-white",
+                isLocked ? "text-white/90" : "text-white",
               )}
             >
               <span>{reward.amount}</span>
@@ -174,11 +195,11 @@ export function MissionCard({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="ml-0 mr-auto flex w-[92%] flex-col gap-1">
           <div
             className={cn(
               "flex items-center justify-between text-xs font-semibold",
-              isLocked ? "text-foreground-secondary" : "text-white/90",
+              isLocked ? "text-white/85" : "text-white/90",
             )}
           >
             <span>
@@ -190,7 +211,7 @@ export function MissionCard({
             value={progressPercent}
             className={cn(
               "h-2",
-              !isLocked && "[&>div]:bg-white bg-white/30",
+              isLocked ? "bg-black/45 [&>div]:bg-brand" : "[&>div]:bg-white bg-white/30",
             )}
             aria-label={t("missions.progressLabel", { progress, requirement })}
           />

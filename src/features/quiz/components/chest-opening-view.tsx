@@ -9,7 +9,8 @@ import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
-import { CHEST_TIER_UI_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { ChestArtwork } from "@/features/quiz/components/chest-artwork";
+import { CHEST_TIER_TEXT_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -46,7 +47,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const hasAwarded = useRef(false);
-  const lidRef = useRef<HTMLDivElement | null>(null);
+  const lidRef = useRef<HTMLImageElement | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
   const rewardPointsRef = useRef<HTMLParagraphElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -60,7 +61,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const autoOpenTimeoutRef = useRef<number | null>(null);
   const hasStartedOpeningRef = useRef(false);
 
-  const ui = CHEST_TIER_UI_CLASSES[tier.tier];
+  const tierTextClass = CHEST_TIER_TEXT_CLASSES[tier.tier];
 
   const spawnSparkles = useCallback(() => {
     const next = Array.from({ length: 18 }, (_, index) => ({
@@ -324,7 +325,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
             <p
               className={cn(
                 "mt-1 text-base font-semibold sm:text-lg",
-                CHEST_TIER_UI_CLASSES[tier.tier].base.replace("bg-", "text-"),
+              tierTextClass,
               )}
             >
               {t(tier.labelKey)}
@@ -372,36 +373,18 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                   </div>
                 ) : null}
 
-                <div className="relative h-[160px] w-[160px] sm:h-[194px] sm:w-[194px] md:h-[220px] md:w-[220px]">
-                  <div className={cn("absolute bottom-0 left-[6px] right-[6px] h-[98px] rounded-b-[14px] rounded-t-[10px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[120px] md:left-[10px] md:right-[10px] md:h-[136px]", ui.base)}>
-                    <div className="absolute inset-x-0 top-0 h-3 bg-black/10" />
-                    <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
-                    <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                    <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                  </div>
-
-                  <div
-                    ref={lidRef}
-                    data-chest-lid
-                    className={cn(
-                      "absolute left-[6px] right-[6px] top-0 z-30 h-[52px] rounded-t-[16px] rounded-b-[8px] border-[3px] border-black/15 shadow-sm sm:left-[8px] sm:right-[8px] sm:h-[64px] md:left-[10px] md:right-[10px] md:h-[72px]",
-                      ui.lid,
-                    )}
-                    style={{
-                      transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
-                      transformOrigin: "50% 70%",
-                      willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
-                    }}
-                  >
-                    <div className="absolute inset-x-0 bottom-0 h-2 bg-black/12" />
-                    <div className={cn("absolute left-1/2 top-0 h-full w-8 -translate-x-1/2 opacity-80 sm:w-10", ui.band)} />
-                    <div className={cn("absolute left-[24%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                    <div className={cn("absolute left-[76%] top-0 h-full w-4 -translate-x-1/2 opacity-65 sm:w-5", ui.band)} />
-                    <div className={cn("absolute left-1/2 bottom-0 z-20 h-10 w-10 -translate-x-1/2 translate-y-1/3 rounded-full border-[3px] border-black/15 shadow-sm sm:h-12 sm:w-12", ui.lock)}>
-                      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30 sm:h-3.5 sm:w-3.5" />
-                    </div>
-                  </div>
-                </div>
+                <ChestArtwork
+                  tier={tier.tier}
+                  className="size-[160px] sm:size-[194px] md:size-[220px]"
+                  lidRef={lidRef}
+                  priority
+                  sizes="(max-width: 640px) 160px, (max-width: 768px) 194px, 220px"
+                  lidStyle={{
+                    transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
+                    transformOrigin: "50% 70%",
+                    willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
+                  }}
+                />
               </div>
 
               {sparkles.map((sparkle) => (

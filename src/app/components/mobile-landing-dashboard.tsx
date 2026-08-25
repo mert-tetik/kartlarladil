@@ -602,6 +602,7 @@ export function MobileLandingDashboard() {
         options={languageStats}
         selectedLanguage={selectedLanguage}
         onSelect={handleSelectLanguage}
+        optionStyle="navbar"
       />
 
       <MobileLandingInfoSheet

@@ -8,15 +8,16 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("MobileLandingInfoSheet", () => {
-  it("renders steps on transparent surfaces with theme foreground text", () => {
+  it("renders steps on transparent surfaces with theme foreground text", async () => {
     render(
       <LocaleProvider initialLocale="tr">
         <MobileLandingInfoSheet isOpen onClose={vi.fn()} />
       </LocaleProvider>,
     );
 
-    const firstStepText = screen.getByText("Kart çek butonuyla yeni kelimeler keşfet.");
-    expect(firstStepText).toHaveClass("text-foreground");
-    expect(firstStepText.parentElement).toHaveClass("border-transparent", "bg-transparent");
+    const firstStepText = await screen.findByText("Destene yeni kelimeler ekle ve koleksiyonunu oluştur.");
+    expect(firstStepText).toHaveClass("text-white");
+    expect(firstStepText.parentElement).toHaveClass("bg-emerald-500");
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-mobile-bottom-sheet");
   });
 });

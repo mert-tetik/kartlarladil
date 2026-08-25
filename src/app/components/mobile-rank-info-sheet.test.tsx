@@ -14,7 +14,7 @@ describe("MobileRankInfoSheet", () => {
     const { rerender } = render(
       <LocaleProvider initialLocale="tr">
         <MobileRankInfoSheet
-          isOpen={false}
+          isOpen
           onClose={vi.fn()}
           rank={currentRank}
           totalPoints={currentRank.minPoints}
@@ -22,7 +22,11 @@ describe("MobileRankInfoSheet", () => {
       </LocaleProvider>,
     );
 
-    const scrollViewport = document.querySelector<HTMLElement>("[data-mobile-rank-scroll]");
+    const scrollViewport = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-mobile-rank-scroll]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
     const currentRankElement = document.querySelector<HTMLElement>("[data-current-rank='true']");
     expect(scrollViewport).not.toBeNull();
     expect(currentRankElement).not.toBeNull();
@@ -54,6 +58,17 @@ describe("MobileRankInfoSheet", () => {
       y: 420,
       toJSON: () => ({}),
     });
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen={false}
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
 
     rerender(
       <LocaleProvider initialLocale="tr">

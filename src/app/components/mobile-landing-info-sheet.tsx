@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { useLocale, useT } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { Info } from "lucide-react";
+import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { useIsClient } from "@/lib/use-is-client";
 
 interface MobileLandingInfoSheetProps {
   isOpen: boolean;
@@ -15,123 +12,23 @@ interface MobileLandingInfoSheetProps {
 
 export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoSheetProps) {
   const t = useT();
-  const { locale } = useLocale();
-  const mounted = useIsClient();
-  const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartY = useRef<number | null>(null);
-  const dragOffsetY = useRef(0);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  const content = (
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 lg:hidden",
-        isOpen ? "opacity-100" : "pointer-events-none opacity-0",
-      )}
-      aria-hidden={!isOpen}
-      inert={!isOpen}
-      role="dialog"
-      aria-modal={isOpen}
+  return (
+    <MobileBottomSheetShell
+      open={isOpen}
+      onClose={onClose}
+      title={t("home.mobile.infoTitle")}
+      panelLabel={t("home.mobile.infoTitle")}
+      panelClassName="max-h-[75dvh]"
+      visual={<Info className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
+      contentClassName="space-y-4 overflow-y-auto px-5 pb-6"
     >
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        className={cn(
-          "relative flex max-h-[75dvh] flex-col rounded-t-2xl bg-background-card p-5 shadow-2xl",
-          isOpen ? "translate-y-0" : "translate-y-full",
-          isDragging ? "transition-none" : "transition-transform duration-300 ease-out",
-        )}
-        style={isOpen ? { transform: `translateY(${dragY}px)` } : undefined}
-      >
-        <div
-          onPointerDown={(event) => {
-            if (!isOpen) return;
-            dragStartY.current = event.clientY;
-            dragOffsetY.current = 0;
-            setIsDragging(true);
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-          onPointerMove={(event) => {
-            if (dragStartY.current === null) return;
-            const nextOffset = Math.max(0, event.clientY - dragStartY.current);
-            dragOffsetY.current = nextOffset;
-            setDragY(nextOffset);
-          }}
-          onPointerUp={() => {
-            const shouldClose = dragOffsetY.current > 110;
-            dragStartY.current = null;
-            dragOffsetY.current = 0;
-            setIsDragging(false);
-            if (shouldClose) {
-              setDragY(0);
-              onClose();
-            }
-            else setDragY(0);
-          }}
-          onPointerCancel={() => {
-            dragStartY.current = null;
-            dragOffsetY.current = 0;
-            setIsDragging(false);
-            setDragY(0);
-          }}
-          className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
-        >
-          <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
-        </div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className={cn("text-lg font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
-            {formatSuperWaterText(locale, t("home.mobile.infoTitle"))}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-            className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
-          >
-            <X className="size-5" aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="flex-1 space-y-4 overflow-y-auto">
-          <InfoRow
-            step={1}
-            text={t("home.mobile.infoStep1")}
-          />
-          <InfoRow
-            step={2}
-            text={t("home.mobile.infoStep2")}
-          />
-          <InfoRow
-            step={3}
-            text={t("home.mobile.infoStep3")}
-          />
-          <InfoRow
-            step={4}
-            text={t("home.mobile.infoStep4")}
-          />
-        </div>
-      </div>
-    </div>
+      <InfoRow step={1} text={t("home.mobile.infoStep1")} />
+      <InfoRow step={2} text={t("home.mobile.infoStep2")} />
+      <InfoRow step={3} text={t("home.mobile.infoStep3")} />
+      <InfoRow step={4} text={t("home.mobile.infoStep4")} />
+    </MobileBottomSheetShell>
   );
-
-  if (!mounted || typeof document === "undefined") return null;
-  return createPortal(content, document.body);
 }
 
 const INFO_STEP_STYLES = {

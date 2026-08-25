@@ -31,6 +31,7 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { PlanBadge } from "@/features/subscriptions/components/plan-badge";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -80,6 +81,7 @@ const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
   const { stats } = useProgressStats();
+  const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -97,6 +99,9 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       pathname === "/games" ||
       pathname.startsWith("/games/"));
   const showNavbarBackButton = mobileBackOverride || showMobileBackButton;
+  const paidPlan = entitlements?.effectivePlan === "basic" || entitlements?.effectivePlan === "pro"
+    ? entitlements.effectivePlan
+    : null;
 
   const mobileBackHref = (() => {
     if (mobileBackOverride) return "/";
@@ -285,6 +290,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
               const isPremium = item.href === "/pricing";
+              const showPaidPremiumImage = isPremium && paidPlan !== null;
               const label = item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey);
               const tutorialTarget = item.href === "/games"
                 ? "games-nav"
@@ -311,22 +317,36 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                       active ? "-translate-y-2 scale-[1.2]" : "translate-y-0 scale-100",
                     )}
                   >
-                    <MobileNavIcon item={item} className="size-7" />
+                    {showPaidPremiumImage ? (
+                      <Image
+                        src={`/subscriptions/plan-${paidPlan}-v2.png`}
+                        alt={t(`pricing.${paidPlan}`)}
+                        width={1489}
+                        height={450}
+                        className="h-4 w-10 -translate-y-1 -rotate-[10deg] object-contain"
+                      />
+                    ) : (
+                      <MobileNavIcon item={item} className="size-7" />
+                    )}
                     {isPremium ? (
-                      <span className={cn(
-                        "pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent",
-                        canUseSuperWater(locale) && "font-super-water",
-                      )}>
-                        {formatSuperWaterText(locale, "FREE")}
-                      </span>
+                      showPaidPremiumImage ? null : (
+                        <span className={cn(
+                          "pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent",
+                          canUseSuperWater(locale) && "font-super-water",
+                        )}>
+                          {formatSuperWaterText(locale, "FREE")}
+                        </span>
+                      )
                     ) : null}
                   </span>
-                  <span className={cn(
-                    "max-w-full truncate px-0.5 text-white",
-                    canUseSuperWater(locale) && "font-super-water",
-                  )}>
-                    {formatSuperWaterText(locale, label)}
-                  </span>
+                  {showPaidPremiumImage ? null : (
+                    <span className={cn(
+                      "max-w-full truncate px-0.5 text-white",
+                      canUseSuperWater(locale) && "font-super-water",
+                    )}>
+                      {formatSuperWaterText(locale, label)}
+                    </span>
+                  )}
                 </Link>
               );
             })}

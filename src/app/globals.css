@@ -925,6 +925,7 @@ body:has([data-create-card-page]) [data-create-card-page] {
     overflow: hidden;
     overscroll-behavior-y: none;
   }
+
 }
 
 /* Hide the site footer on Ask pages */
@@ -1847,6 +1848,10 @@ body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
 
 body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
   display: none;
+}
+
+body:has([data-pricing-active-subscription]) [data-mobile-main-nav-frame] {
+  display: block !important;
 }
 
 body:has([data-mobile-hide-bottom-nav="true"]) [data-games-active] {

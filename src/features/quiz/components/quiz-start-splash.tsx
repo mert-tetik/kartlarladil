@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { getChestLabelKey, type ChestTier } from "@/features/quiz/chest-rewards";
 
 interface QuizStartSplashProps {
@@ -79,7 +80,7 @@ export function QuizStartSplash({
               <div className="mt-1 flex flex-col items-center gap-1">
                 {selectedChestTiers.map((tier) => (
                   <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
-                    <StartSplashChestIcon />
+                    <ChestIcon tier={tier} className="size-4 shrink-0" />
                     {t(getChestLabelKey(tier))}
                   </span>
                 ))}
@@ -99,21 +100,5 @@ export function QuizStartSplash({
       </div>
     </>,
     document.body,
-  );
-}
-
-function StartSplashChestIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="size-4 shrink-0" aria-hidden="true">
-      <path d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" className="fill-current" />
-      <path
-        d="M3 9c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2M3 9l3-3h12l3 3M12 9v12"
-        className="stroke-current"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="14" r="2" className="fill-current opacity-40" />
-    </svg>
   );
 }

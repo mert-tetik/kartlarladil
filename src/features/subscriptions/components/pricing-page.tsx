@@ -10,6 +10,7 @@ import {
 import { Button, buttonClassName } from "@/components/ui/button";
 import {
   createCheckoutAction,
+  createCustomerPortalAction,
 } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
@@ -99,6 +100,9 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const plans = isTwa ? TWA_PLANS : PLANS;
+  const paidPlan = entitlements?.effectivePlan === "basic" || entitlements?.effectivePlan === "pro"
+    ? entitlements.effectivePlan
+    : null;
 
   return (
     <div
@@ -117,18 +121,22 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-black/40" />
-      <div className="h-full lg:hidden">
-        <MobilePricingView
-          user={user}
-          isTwa={isTwa}
-          localizedPricing={localizedPricing}
-          googlePlayPricing={googlePlayPricing}
-          entitlements={entitlements}
-          locale={locale}
-        />
-      </div>
+      {paidPlan ? (
+        <ActiveSubscriptionPricingView plan={paidPlan} locale={locale} />
+      ) : (
+        <>
+          <div className="h-full lg:hidden">
+            <MobilePricingView
+              user={user}
+              isTwa={isTwa}
+              localizedPricing={localizedPricing}
+              googlePlayPricing={googlePlayPricing}
+              entitlements={entitlements}
+              locale={locale}
+            />
+          </div>
 
-      <div className="hidden animate-screen-pop lg:block">
+          <div className="hidden animate-screen-pop lg:block">
         <div className="relative z-10 text-center">
           <h1 className={cn("font-display text-4xl font-semibold text-white md:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("pricing.title"))}
@@ -176,8 +184,82 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           {t("pricing.contactEmail")}
         </p>
         <ConsentText />
-      </div>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+function ActiveSubscriptionPricingView({
+  plan,
+  locale,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  locale: LocaleCode;
+}) {
+  const t = useT();
+  const planImage = plan === "basic"
+    ? { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 }
+    : { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 };
+  const usesSuperWater = canUseSuperWater(locale);
+
+  return (
+    <section
+      data-pricing-active-subscription
+      className="relative z-10 flex min-h-[calc(100dvh-var(--app-header-height))] items-center justify-center px-4 pb-[calc(var(--mobile-nav-bar-height)+2.5rem)] pt-10 text-center text-white lg:min-h-[calc(100vh-var(--app-header-height))] lg:py-10"
+    >
+      <div className="flex w-full max-w-xl flex-col items-center">
+        <p className={cn("font-display text-2xl font-semibold sm:text-3xl", usesSuperWater && "font-super-water")}>
+          {formatSuperWaterText(locale, t("pricing.currentSubscription"))}
+        </p>
+        <Image
+          src={planImage.src}
+          alt={t(`pricing.${plan}`)}
+          width={planImage.width}
+          height={planImage.height}
+          className="mt-8 h-28 w-auto max-w-[82vw] object-contain sm:h-36"
+        />
+        <ManageSubscriptionButton locale={locale} />
+      </div>
+    </section>
+  );
+}
+
+function ManageSubscriptionButton({ locale }: { locale: LocaleCode }) {
+  const t = useT();
+  const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
+    status: "idle" as const,
+    message: "",
+  });
+
+  useEffect(() => {
+    if (state.status !== "success" || !state.customerPortalUrl) return;
+
+    const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
+    if (!portalWindow) {
+      window.location.assign(state.customerPortalUrl);
+    }
+  }, [state]);
+
+  const buttonLabel = pending ? t("common.loading") : t("pricing.ctaManage");
+
+  return (
+    <form action={formAction} className="mt-8 flex w-full max-w-xs flex-col items-center gap-2">
+      <Button
+        type="submit"
+        variant="primary"
+        className={cn(
+          "h-14 w-full rounded-full border-0 text-xl",
+          PRICING_GRADIENT_BUTTON_CLASS,
+          canUseSuperWater(locale) && "font-super-water",
+        )}
+        disabled={pending}
+      >
+        {formatSuperWaterText(locale, buttonLabel)}
+      </Button>
+      {state.status === "error" ? <p className="text-xs text-rose-100">{state.message}</p> : null}
+    </form>
   );
 }
 

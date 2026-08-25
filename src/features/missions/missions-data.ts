@@ -7,11 +7,10 @@ const GAME_NAMES: GameName[] = ["memory", "wordChallenge", "wordMatch"];
 const CHEST_REWARD_TIERS = [
   "wood",
   "iron",
-  "bronze",
-  "silver",
   "gold",
   "diamond",
-  "legendary",
+  "emerald",
+  "ruby",
 ] as const;
 
 export const MISSIONS: MissionDefinition[] = Array.from({ length: 50 }, (_, index) => {

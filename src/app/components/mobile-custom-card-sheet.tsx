@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import {
   MobileCustomCardLanguagePicker,
 } from "@/app/components/mobile-custom-card-language-picker";
@@ -37,9 +38,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [preview, setPreview] = useState<VocabularyCard | null>(null);
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
   const [error, setError] = useState("");
-  const [mounted, setMounted] = useState(open);
-  const [entered, setEntered] = useState(false);
-  const [dragY, setDragY] = useState(0);
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
@@ -47,8 +45,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [previewReturnPosition, setPreviewReturnPosition] = useState<LoopSlotOrigin | null>(null);
   const [sheetElement, setSheetElement] = useState<HTMLDivElement | null>(null);
   const [sheetSize, setSheetSize] = useState({ width: 390, height: 660 });
-  const dragStartY = useRef<number | null>(null);
-  const dragOffsetY = useRef(0);
   const returnTimer = useRef<number | null>(null);
   const returnMoveTimer = useRef<number | null>(null);
   const returnFrame = useRef<number | null>(null);
@@ -56,24 +52,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     () => TIERS.flatMap((tier) => localCardRepository.list({ tier }).slice(0, 1)),
     [],
   );
-
-  useEffect(() => {
-    if (open) {
-      const mountTimer = window.setTimeout(() => setMounted(true), 0);
-      const enterTimer = window.setTimeout(() => setEntered(true), 32);
-
-      return () => {
-        window.clearTimeout(mountTimer);
-        window.clearTimeout(enterTimer);
-      };
-    }
-    const exitTimer = window.setTimeout(() => setEntered(false), 0);
-    const timer = window.setTimeout(() => setMounted(false), 320);
-    return () => {
-      window.clearTimeout(exitTimer);
-      window.clearTimeout(timer);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,7 +99,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     onClose();
   }
 
-  if (!mounted) return null;
   const captureLoopOrigin = (tier: VocabularyCard["tier"], slotId?: string): LoopSlotOrigin | null => {
     const sheet = sheetElement;
     if (!sheet) return null;
@@ -283,26 +260,42 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       : { left: previewTarget.left, top: sheetSize.height - 208, width: 92, height: 123 };
   const previewScale = previewPosition.width / previewTarget.width;
   const previewTransform = `translate3d(${previewPosition.left - previewTarget.left}px, ${previewPosition.top - previewTarget.top}px, 0) scale(${previewScale})`;
-  return <div role="dialog" aria-modal="true" onPointerDown={(event) => { if (event.target === event.currentTarget) handleClose(); }} className={`fixed inset-0 z-[71] flex flex-col justify-end bg-black/50 transition-opacity duration-300 lg:hidden ${entered ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-    <div ref={setSheetElement} className={`relative flex h-[78dvh] max-h-[94dvh] flex-col overflow-y-auto rounded-t-xl bg-background-card p-5 shadow-sm transition-transform duration-300 ease-out ${entered ? "translate-y-0" : "translate-y-full"}`} style={{ transform: entered ? `translateY(${dragY}px)` : undefined }}>
-      <div className="relative z-30 mb-4">
-        <div
-          onPointerDown={(event) => { if (entered) { dragStartY.current = event.clientY; dragOffsetY.current = 0; event.currentTarget.setPointerCapture(event.pointerId); } }}
-          onPointerMove={(event) => { if (dragStartY.current !== null) { const nextOffset = Math.max(0, event.clientY - dragStartY.current); dragOffsetY.current = nextOffset; setDragY(nextOffset); } }}
-          onPointerUp={() => { const shouldClose = dragOffsetY.current > 110; dragStartY.current = null; dragOffsetY.current = 0; if (shouldClose) handleClose(); else setDragY(0); }}
-          onPointerCancel={() => { dragStartY.current = null; dragOffsetY.current = 0; setDragY(0); }}
-          className="mx-auto flex h-8 w-16 touch-none items-center justify-center"
-        >
-          <span className="h-1 w-10 rounded-full bg-border" aria-hidden="true" />
-        </div>
-        <button type="button" onClick={handleClose} aria-label={t("common.close")} className="absolute right-0 top-0 inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary"><X className="size-5" /></button>
-      </div>
+  return (
+    <MobileBottomSheetShell
+      open={open}
+      onClose={handleClose}
+      title={t("createCard.term")}
+      panelLabel={t("createCard.term")}
+      panelClassName="h-[78dvh] max-h-[94dvh]"
+      contentRef={setSheetElement}
+      visual={<Plus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
+      contentClassName="relative overflow-y-auto p-5"
+    >
       <CardBackLoop cards={loopCards} extractedSlotId={previewOrigin?.slotId} className="absolute inset-x-0 bottom-[4.5rem] z-0" />
-      <div className={cn("relative z-10 flex flex-1 flex-col pt-12 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}><MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} /><input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="mt-3 h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" /><button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}{loading ? t("createCard.generating") : t("createCard.generate")}</button></div>
-      {preview ? <><div className="absolute z-20 h-[253px] w-[190px]" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}><div className={cn("size-full origin-top-left", !previewReturning && "transition-transform duration-700 ease-out")} style={{ transform: previewTransform }}><VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" /></div></div><div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 16}px` }}><button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button><button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button></div></> : null}
+      <div className={cn("relative z-10 flex flex-1 flex-col pt-4 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}>
+        <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
+        <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="mt-3 h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" />
+        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          {loading ? t("createCard.generating") : t("createCard.generate")}
+        </button>
+      </div>
+      {preview ? (
+        <>
+          <div className="absolute z-20 h-[253px] w-[190px]" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}>
+            <div className={cn("size-full origin-top-left", !previewReturning && "transition-transform duration-700 ease-out")} style={{ transform: previewTransform }}>
+              <VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" />
+            </div>
+          </div>
+          <div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 16}px` }}>
+            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button>
+            <button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button>
+          </div>
+        </>
+      ) : null}
       {error ? <p role="alert" className="relative z-30 mt-3 text-sm text-destructive">{error}</p> : null}
-    </div>
-  </div>;
+    </MobileBottomSheetShell>
+  );
 }
 
 function getSubscriptionLimitError(error: unknown): LimitErrorCode | null {

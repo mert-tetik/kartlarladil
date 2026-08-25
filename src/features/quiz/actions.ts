@@ -9,11 +9,10 @@ import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/q
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
   "iron",
-  "bronze",
-  "silver",
   "gold",
   "diamond",
-  "legendary",
+  "emerald",
+  "ruby",
 ]);
 
 export interface AwardChestResult {
