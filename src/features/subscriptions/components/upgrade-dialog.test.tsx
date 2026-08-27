@@ -61,7 +61,7 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
-    expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-emerald-500");
+    expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
   });
 
   it("navigates to the learn page when the learn cards button is clicked", async () => {
@@ -121,6 +121,15 @@ describe("UpgradeDialog", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Plan/i })).not.toBeInTheDocument();
+  });
+
+  it("uses the games language message without a swap action", () => {
+    renderDialog({ open: true, errorCode: "game_language_match_not_allowed" });
+
+    expect(screen.getByRole("heading")).toHaveTextContent("Oyun dili ve site dili aynı olamaz");
+    expect(screen.getByRole("dialog")).toHaveClass("bg-brand");
+    expect(screen.getByRole("button", { name: "Şimdi değil" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dillerin yerlerini değiştir" })).not.toBeInTheDocument();
   });
 
   it("closes the dialog when Maybe later is clicked", async () => {

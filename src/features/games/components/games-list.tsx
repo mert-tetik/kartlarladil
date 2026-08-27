@@ -21,6 +21,7 @@ import { useGameProgressStore } from "../game-progress-store";
 import { getHighestTierForLevel } from "../game-levels";
 import { GAME_LAUNCH_COLORS, requestGameLaunch } from "../game-launch-transition";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 
 interface GameEntry {
   name: GameName;
@@ -61,11 +62,11 @@ const GAMES: GameEntry[] = [
 ];
 
 const TIER_TEXT_COLORS: Record<Tier, string> = {
-  A1: "text-emerald-400",
-  A2: "text-sky-400",
-  B1: "text-violet-400",
-  B2: "text-amber-300",
-  C1: "text-rose-400",
+  A1: "text-[var(--tier-a1-text)]",
+  A2: "text-[var(--tier-a2-text)]",
+  B1: "text-[var(--tier-b1-text)]",
+  B2: "text-[var(--tier-b2-text)]",
+  C1: "text-[var(--tier-c1-text)]",
 };
 
 const GAME_CONTENT_TRANSITION_DURATION_MS = 700;
@@ -153,6 +154,7 @@ export function GamesList() {
   const [visibleGameName, setVisibleGameName] = useState<GameName>("memory");
   const [exitingGameName, setExitingGameName] = useState<GameName | null>(null);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const contentTransitionTimerRef = useRef<number | null>(null);
 
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
@@ -185,6 +187,13 @@ export function GamesList() {
   }, []);
 
   function handleSelect(language: LanguageCode) {
+    setLanguageSheetOpen(false);
+
+    if (language === locale) {
+      setShowLanguageMatchDialog(true);
+      return;
+    }
+
     setSelectedLanguage(language);
   }
 
@@ -315,7 +324,7 @@ export function GamesList() {
               aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
               data-games-points
             >
-              <span className={cn("text-yellow-300", superWaterFont && "font-super-water")}>
+              <span className={cn("text-[var(--score-start)]", superWaterFont && "font-super-water")}>
                 {formatNumber(locale, stats.totalPoints)}
               </span>
               <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
@@ -372,6 +381,12 @@ export function GamesList() {
         onSelect={handleSelect}
         showCounts={false}
         optionStyle="navbar"
+      />
+
+      <UpgradeDialog
+        open={showLanguageMatchDialog}
+        errorCode="game_language_match_not_allowed"
+        onOpenChange={setShowLanguageMatchDialog}
       />
     </div>
   );
