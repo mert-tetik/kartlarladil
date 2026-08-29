@@ -6,7 +6,6 @@ import {
   getVariantIdForPlan,
 } from "@/features/subscriptions/lemon-squeezy";
 import {
-  expireGooglePlayEntitlementWhenNoPurchase,
   verifyGooglePlaySubscription,
 } from "@/features/subscriptions/google-play-service";
 import {
@@ -284,17 +283,6 @@ export async function syncGooglePlayPurchasesAction(
       return {
         status: "error",
         message: t("pricing.error.authRequired"),
-      };
-    }
-
-    if (purchases.length === 0) {
-      await expireGooglePlayEntitlementWhenNoPurchase(user.id);
-      const entitlements = await getUserEntitlements(user.id);
-
-      return {
-        status: "success",
-        message: "",
-        data: entitlements,
       };
     }
 

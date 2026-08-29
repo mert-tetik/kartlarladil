@@ -250,7 +250,7 @@ export function MobileRankInfoSheet({
               const isLocked = index > currentRankIndex;
               const isCurrentRank = index === currentRankIndex;
               const isCurrentRankHighlight = isHighlighted && isCurrentRank;
-              const rankAccentColor = RANK_ACCENT_COLORS[item.id];
+              const rankAccentColor = RANK_ACCENT_COLORS[item.id as keyof typeof RANK_ACCENT_COLORS];
               const nextRank = RANKS[index + 1] ?? null;
               const connectorProgress = nextRank
                 ? index < currentRankIndex
@@ -326,7 +326,7 @@ export function MobileRankInfoSheet({
                         <span
                           className="absolute inset-0 rounded-full transition-[clip-path] duration-500 ease-out"
                           style={{
-                            backgroundImage: `linear-gradient(to right, ${rankAccentColor}, ${RANK_ACCENT_COLORS[nextRank.id]})`,
+                            backgroundImage: `linear-gradient(to right, ${rankAccentColor}, ${RANK_ACCENT_COLORS[nextRank.id as keyof typeof RANK_ACCENT_COLORS]})`,
                             clipPath: `inset(0 ${100 - connectorProgress}% 0 0 round 9999px)`,
                           }}
                         />

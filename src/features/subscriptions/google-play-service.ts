@@ -54,10 +54,6 @@ export interface GooglePlaySubscriptionVerification {
   linkedPurchaseToken: string | null;
 }
 
-interface GooglePlayPurchaseTokenRow {
-  user_id: string;
-}
-
 interface GooglePlayRtdnEventRow {
   processed_at: string | null;
 }
@@ -187,24 +183,6 @@ async function claimGooglePlayPurchaseToken(
     throw insertError;
   }
 
-  const { data: owner, error: ownerError } = await supabase
-    .from("google_play_purchase_tokens")
-    .select("user_id")
-    .eq("purchase_token", verification.purchaseToken)
-    .maybeSingle<GooglePlayPurchaseTokenRow>();
-
-  if (ownerError) {
-    throw ownerError;
-  }
-
-  if (!owner) {
-    throw new Error("Google Play purchase token ownership could not be resolved.");
-  }
-
-  if (owner.user_id !== userId) {
-    throw new Error("This Google Play purchase belongs to another FoxiesDeck account.");
-  }
-
   const { error: updateTokenError } = await supabase
     .from("google_play_purchase_tokens")
     .update({
@@ -212,11 +190,23 @@ async function claimGooglePlayPurchaseToken(
       order_id: verification.orderId,
       updated_at: new Date().toISOString(),
     })
-    .eq("purchase_token", verification.purchaseToken)
-    .eq("user_id", userId);
+    .eq("purchase_token", verification.purchaseToken);
 
   if (updateTokenError) {
     throw updateTokenError;
+  }
+
+  const { error: accountError } = await supabase.from("google_play_purchase_accounts").upsert(
+    {
+      purchase_token: verification.purchaseToken,
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "purchase_token,user_id" },
+  );
+
+  if (accountError) {
+    throw accountError;
   }
 }
 
@@ -299,59 +289,46 @@ export async function verifyGooglePlaySubscription(
   return verification;
 }
 
-export async function expireGooglePlayEntitlementWhenNoPurchase(userId: string): Promise<void> {
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("user_subscriptions")
-    .update({
-      status: "expired",
-      ends_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("provider", "google_play");
-
-  if (error) {
-    throw error;
-  }
-}
-
-async function resolveGooglePlayPurchaseOwner(
+async function resolveGooglePlayPurchaseOwners(
   purchaseToken: string,
   linkedPurchaseToken: string | null,
-): Promise<string | null> {
+): Promise<string[]> {
   const supabase = createSupabaseAdminClient();
   const tokens = [purchaseToken, linkedPurchaseToken].filter((token): token is string => Boolean(token));
+  const ownerIds = new Set<string>();
 
   for (const token of tokens) {
     const { data, error } = await supabase
-      .from("google_play_purchase_tokens")
+      .from("google_play_purchase_accounts")
       .select("user_id")
-      .eq("purchase_token", token)
-      .maybeSingle<GooglePlayPurchaseTokenRow>();
+      .eq("purchase_token", token);
 
     if (error) throw error;
-    if (data?.user_id) return data.user_id;
+    for (const row of data ?? []) {
+      if (row.user_id) ownerIds.add(row.user_id);
+    }
   }
 
-  return null;
+  return [...ownerIds];
 }
 
 export async function syncGooglePlaySubscriptionFromRtdn(purchaseToken: string): Promise<string | null> {
   const publisher = getAndroidPublisher();
   const verification = await readGooglePlaySubscription(purchaseToken, undefined, publisher);
-  const userId = await resolveGooglePlayPurchaseOwner(
+  const userIds = await resolveGooglePlayPurchaseOwners(
     verification.purchaseToken,
     verification.linkedPurchaseToken,
   );
 
-  if (!userId) {
+  if (userIds.length === 0) {
     return null;
   }
 
-  await persistGooglePlayEntitlement(verification, userId);
+  for (const userId of userIds) {
+    await persistGooglePlayEntitlement(verification, userId);
+  }
   await acknowledgeGooglePlaySubscription(verification, publisher);
-  return userId;
+  return userIds[0] ?? null;
 }
 
 export async function claimGooglePlayRtdnEvent(

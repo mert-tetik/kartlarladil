@@ -5,7 +5,6 @@ vi.hoisted(() => {
 });
 
 import {
-  expireGooglePlayEntitlementWhenNoPurchase,
   verifyGooglePlaySubscription,
   type GooglePlayPublisher,
 } from "@/features/subscriptions/google-play-service";
@@ -106,14 +105,20 @@ describe("verifyGooglePlaySubscription", () => {
     );
   });
 
-  it("rejects a token already bound to another FoxiesDeck account", async () => {
+  it("allows a verified Play purchase to be restored by another FoxiesDeck account", async () => {
     mockInsert.mockResolvedValue({ error: { code: "23505" } });
-    mockMaybeSingle.mockResolvedValue({ data: { user_id: "another-user" }, error: null });
 
     await expect(
       verifyGooglePlaySubscription("token-3", "basic_monthly", "user-1", makePublisher()),
-    ).rejects.toThrow("belongs to another FoxiesDeck account");
-    expect(mockUpsert).not.toHaveBeenCalled();
+    ).resolves.toMatchObject({ plan: "basic", status: "active" });
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ purchase_token: "token-3", user_id: "user-1" }),
+      { onConflict: "purchase_token,user_id" },
+    );
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: "user-1", google_play_purchase_token: "token-3" }),
+      { onConflict: "user_id" },
+    );
   });
 
   it("does not acknowledge an expired subscription", async () => {
@@ -125,13 +130,4 @@ describe("verifyGooglePlaySubscription", () => {
     expect(publisher.purchases.subscriptions.acknowledge).not.toHaveBeenCalled();
   });
 
-  it("expires a locally stored Google entitlement when restore returns no purchases", async () => {
-    const eq = vi.fn(() => ({ eq: vi.fn(() => ({ error: null })) }));
-    mockUpdate.mockReturnValue({ eq });
-
-    await expireGooglePlayEntitlementWhenNoPurchase("user-1");
-
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: "expired" }));
-    expect(eq).toHaveBeenCalledWith("user_id", "user-1");
-  });
 });
