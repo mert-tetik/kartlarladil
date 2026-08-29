@@ -1,12 +1,15 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { TIER_STYLES } from "@/data/tiers";
 import { cn } from "@/lib/utils";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { buildLevelConfig, getHighestTierForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
 import { generateWordChallengeItems } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
@@ -30,6 +33,7 @@ interface WordChallengeGameProps {
 
 export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const t = useT();
+  const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
@@ -49,6 +53,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const [showSplash, setShowSplash] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const currentItem = items[index];
+  const superWaterFont = canUseSuperWater(locale);
 
   const handleTimeExpired = useCallback(() => {
     setPhase("failed");
@@ -123,7 +128,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         setPhase("failed");
       }
     },
-    [phase, currentItem, index, items.length, sounds, completeLevel, addLocalPoints, level, user, refreshProfile],
+    [phase, currentItem, index, items.length, sounds, completeLevel, addLocalPoints, level, user, refreshProfile, updateProfileField],
   );
 
   const handleNextLevel = useCallback(() => {
@@ -172,21 +177,21 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
             <>
               <div
                 className={cn(
-                  "flex w-full max-w-sm flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-background-card p-6 text-center shadow-sm",
-                )}
-              >
-                <span
-                  className={cn(
-                    "rounded-lg px-3 py-1 text-4xl font-black text-white shadow-sm",
+                    "flex w-full max-w-sm flex-col items-center justify-center gap-4 rounded-2xl border border-white/80 bg-white p-6 text-center shadow-sm",
+                  )}
+                >
+                  <span
+                    className={cn(
+                    "rounded-lg px-3 py-1 text-4xl font-bold text-white shadow-sm",
                     TIER_STYLES[currentItem.card.tier].accent,
                   )}
                 >
                   {currentItem.card.tier}
                 </span>
-                <span className="text-sm font-semibold uppercase tracking-wider text-foreground-muted">
-                  {t("games.wordChallenge.question")}
+                <span className={cn("text-sm font-semibold uppercase tracking-wider text-slate-600", superWaterFont && "font-super-water")}>
+                  {formatSuperWaterText(locale, t("games.wordChallenge.question"))}
                 </span>
-                <p className="text-center text-2xl font-semibold leading-snug text-foreground sm:text-3xl">
+                <p className="text-center text-2xl font-semibold leading-snug text-slate-950 sm:text-3xl">
                   {`${currentItem.card.term} = ${currentItem.proposedMeaning}`}
                 </p>
               </div>

@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Gift, Sparkles, Star } from "lucide-react";
+import Image from "next/image";
+import { Sparkles, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { ChestArtwork } from "@/features/quiz/components/chest-artwork";
-import { CHEST_TIER_TEXT_CLASSES, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -31,12 +33,14 @@ type FlightIcon = { id: number; startX: number; startY: number; scatterX: number
 const REWARD_REVEAL_DELAY_MS = 900;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const AUTO_CLOSE_AFTER_FLIGHT_MS = 1000;
-const AUTO_OPEN_DELAY_MS = 500;
-const DISAPPEAR_MS = 420;
+const AUTO_OPEN_DELAY_MS = 700;
+const CHEST_CHARGE_DURATION_MS = 780;
+const DISAPPEAR_MS = 500;
 
 export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
+  const usesSuperWater = canUseSuperWater(locale);
   const stableTotalPointsRef = useRef(totalPoints);
   const stableTotalPoints = stableTotalPointsRef.current;
   const phaseRef = useRef<ChestPhase>("appearing");
@@ -59,9 +63,11 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const closeTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
   const autoOpenTimeoutRef = useRef<number | null>(null);
+  const chargeTimeoutRef = useRef<number | null>(null);
   const hasStartedOpeningRef = useRef(false);
 
-  const tierTextClass = CHEST_TIER_TEXT_CLASSES[tier.tier];
+  const formatRewardText = (text: string) =>
+    usesSuperWater ? formatSuperWaterText(locale, text) : text;
 
   const spawnSparkles = useCallback(() => {
     const next = Array.from({ length: 18 }, (_, index) => ({
@@ -194,13 +200,18 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
 
   useEffect(() => {
     autoOpenTimeoutRef.current = window.setTimeout(() => {
-      setPhase("idle");
-      startOpening();
+      setPhase("shake");
+      chargeTimeoutRef.current = window.setTimeout(() => {
+        startOpening();
+      }, CHEST_CHARGE_DURATION_MS);
     }, AUTO_OPEN_DELAY_MS);
 
     return () => {
       if (autoOpenTimeoutRef.current !== null) {
         window.clearTimeout(autoOpenTimeoutRef.current);
+      }
+      if (chargeTimeoutRef.current !== null) {
+        window.clearTimeout(chargeTimeoutRef.current);
       }
     };
   }, [startOpening]);
@@ -230,6 +241,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       }
       if (autoOpenTimeoutRef.current !== null) {
         window.clearTimeout(autoOpenTimeoutRef.current);
+      }
+      if (chargeTimeoutRef.current !== null) {
+        window.clearTimeout(chargeTimeoutRef.current);
       }
     };
   }, []);
@@ -290,13 +304,33 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     <div
       data-chest-opening-view
       data-chest-opening-layout
-      className="animate-screen-pop relative flex min-h-full w-full items-center justify-center overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8"
+      className={cn(
+        "relative flex min-h-full w-full items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
+        phase === "disappearing" ? "animate-chest-screen-close" : "animate-screen-pop",
+      )}
     >
-      <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
+      <Image
+        src="/chests/chest_background.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        aria-hidden="true"
+        data-chest-opening-background
+        className={cn(
+          "pointer-events-none absolute inset-0 z-0 object-cover opacity-0 transition-opacity duration-300 ease-out",
+          (phase === "opening" || phase === "revealed" || phase === "disappearing") && "opacity-100",
+        )}
+      />
+
+      <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
         <div className="flex justify-center pt-1 sm:pt-2">
           <div
             data-chest-total-points-shell
-            className="rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg sm:px-5"
+            className={cn(
+              "rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg transition-[opacity,transform] duration-300 ease-out sm:px-5",
+              phase !== "opening" && phase !== "revealed" && phase !== "disappearing" && "translate-y-2 opacity-0",
+            )}
           >
             <div className="flex items-center gap-2">
               <Star className="size-5 fill-current" aria-hidden="true" />
@@ -317,74 +351,82 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
         <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
           <div
             className={cn(
-              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-transparent bg-transparent px-6 py-8 shadow-none transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 sm:py-10",
-              phase === "disappearing" && "translate-y-2 scale-[0.94] opacity-0",
+              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-transparent bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10",
             )}
           >
-            <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{t("chest.title")}</h2>
             <p
+              data-chest-tier-name
               className={cn(
-                "mt-1 text-base font-semibold sm:text-lg",
-              tierTextClass,
+                "mt-1 text-center text-4xl font-bold leading-tight text-white transition-[opacity,transform] duration-300 ease-out sm:text-5xl",
+                phase !== "opening" && phase !== "revealed" && phase !== "disappearing" && "translate-y-3 opacity-0",
+                usesSuperWater && "font-super-water",
               )}
             >
-              {t(tier.labelKey)}
+              {formatRewardText(t(tier.labelKey))}
             </p>
 
-            <div className="relative mt-6 sm:mt-8">
+            <div className="relative mt-5 sm:mt-6">
               <div
                 data-chest-auto-open
                 role="img"
                 aria-label={phase === "revealed" ? t("chest.opened") : t("chest.title")}
                 className={cn(
-                  "relative flex size-[204px] items-end justify-center overflow-visible rounded-lg transition-transform sm:size-[244px] md:size-[272px]",
-                  phase === "idle" && "animate-chest-float",
-                  phase === "shake" && "animate-chest-shake",
+                  "relative flex size-[260px] scale-100 items-end justify-center overflow-visible rounded-lg opacity-100 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:size-[320px] md:size-[360px]",
+                  phase === "appearing" && "animate-chest-appear",
                   phase === "revealed" && "scale-[1.03]",
                 )}
                 style={{ perspective: "800px" }}
               >
-                {shouldRenderRewardStack ? (
-                  <div
-                    data-chest-reward-stack
-                    className={cn(
-                      "pointer-events-none absolute left-1/2 top-[12px] z-40 flex w-[88%] -translate-x-1/2 flex-col items-center text-center sm:top-[16px] md:top-[20px]",
-                      pointsPhase === "shown" && "animate-points-pop",
-                    )}
-                  >
-                    <div className="flex items-center gap-2 text-amber-400">
-                      <Gift className="size-5 sm:size-6" aria-hidden="true" />
-                      <span className="text-base font-semibold sm:text-lg">{t("chest.rewardTitle")}</span>
-                    </div>
-                    <p
-                      ref={rewardPointsRef}
-                      data-chest-reward-points
+                <span
+                  data-chest-ground-shadow
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-1 left-1/2 z-0 h-5 w-[72%] -translate-x-1/2 rounded-full bg-black/40 blur-[6px]"
+                />
+
+                <div
+                  className={cn(
+                    "relative flex size-full items-end justify-center",
+                    phase === "idle" && "animate-chest-float",
+                    phase === "shake" && "animate-chest-charge",
+                    phase === "opening" && "animate-chest-pulse",
+                  )}
+                >
+                  {shouldRenderRewardStack ? (
+                    <div
+                      data-chest-reward-stack
                       className={cn(
-                        "mt-1 flex items-center justify-center gap-2 text-4xl font-bold leading-none text-amber-400 sm:text-5xl",
-                        shouldHideRewardSource && "opacity-0",
+                        "pointer-events-none absolute left-1/2 top-[28px] z-40 flex w-[92%] -translate-x-1/2 flex-col items-center text-center sm:top-[32px] md:top-[36px]",
+                        usesSuperWater && "font-super-water",
+                        pointsPhase === "shown" && "animate-points-pop",
                       )}
                     >
-                      <span>{tier.points}</span>
-                      <ScoreIcon size={34} className="size-8 sm:size-10" />
-                    </p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-400 sm:text-sm">
-                      {t("chest.pointsLabel")}
-                    </p>
-                  </div>
-                ) : null}
+                      <p
+                        ref={rewardPointsRef}
+                        data-chest-reward-points
+                        className={cn(
+                          "flex items-center justify-center gap-3 text-6xl font-bold leading-none text-amber-400 sm:text-7xl md:text-8xl",
+                          shouldHideRewardSource && "opacity-0",
+                        )}
+                      >
+                        <span>{tier.points}</span>
+                        <ScoreIcon size={42} className="size-10 sm:size-12" />
+                      </p>
+                    </div>
+                  ) : null}
 
-                <ChestArtwork
-                  tier={tier.tier}
-                  className="size-[160px] sm:size-[194px] md:size-[220px]"
-                  lidRef={lidRef}
-                  priority
-                  sizes="(max-width: 640px) 160px, (max-width: 768px) 194px, 220px"
-                  lidStyle={{
-                    transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
-                    transformOrigin: "50% 70%",
-                    willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
-                  }}
-                />
+                  <ChestArtwork
+                    tier={tier.tier}
+                    className="relative z-10 size-[220px] sm:size-[270px] md:size-[310px]"
+                    lidRef={lidRef}
+                    priority
+                    sizes="(max-width: 640px) 220px, (max-width: 768px) 270px, 310px"
+                    lidStyle={{
+                      transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
+                      transformOrigin: "50% 70%",
+                      willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
+                    }}
+                  />
+                </div>
               </div>
 
               {sparkles.map((sparkle) => (

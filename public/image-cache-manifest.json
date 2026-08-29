@@ -1,5 +1,5 @@
 {
-  "version": "0fc97dcaae0801c0d3d1f2843a4efea293dfd81fa6368bb61c8114f7f0e20019",
+  "version": "176f712fbf1bac5fbb24a3501968990668aedbb55ccec9f98b7d73dedaa80408",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -60,6 +60,46 @@
     {
       "url": "/ai-chat-backgrounds/gothic-calm.webp",
       "revision": "60ababeb602238b5fe7a7d3b325c4eca4dba4d79a43945b2aa41597f0738f84d"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/airport-check-in.jpg",
+      "revision": "605e63a2f79376fe983c0d8a53c1862a08ba2f21b5ee01d074449bdcad4f0c0a"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/apartment-viewing.jpg",
+      "revision": "b4e80cf1bdb0b1540120dc893dcc53c9c3ed42303f4f8f94ecff4441d66bb444"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/asking-directions.jpg",
+      "revision": "3240407b8b230b8ef9b61e64be8ee2eee505b6c9f4ad0c15b4fe439f180a2996"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/doctor-visit.jpg",
+      "revision": "d6bc39ba40790124a4fbb77783f4de3dbd0e2631b5749263533e63e7b4ec3072"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/hotel-check-in.jpg",
+      "revision": "1f11d664a2fae82d42aa4a207804c256f5ca4abac8cb440ca25c2b1f6a019063"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/job-interview.jpg",
+      "revision": "e2273b9d0e6c4588fa77c0b20e80a66fd0ccbf5e41e7f1346d27f55dd71d4ba6"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/party-introduction.jpg",
+      "revision": "1a3060ed651bb65d867910455aecee7260842ef0d9b01f56f736555e33bfb2b9"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/pharmacy-help.jpg",
+      "revision": "f162b4ba66991e7f19a82752f58bc2dd7a2d480e21ee2047c8f065f12b90165f"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/restaurant-order.jpg",
+      "revision": "63a4e4a236a95b84012dad2f44187b48b5477c8aed4bb77642da5e123c8d9bdf"
+    },
+    {
+      "url": "/ai-chat-backgrounds/scenarios/shopping-help.jpg",
+      "revision": "8ea85e7229bfec78e9d60833a70e039411b6c3d07380044ffb37ecd938bea986"
     },
     {
       "url": "/ai-chat-backgrounds/skater-coach.webp",
@@ -182,8 +222,160 @@
       "revision": "7f5156448b9c1b65156e34e4443f0eff8b85f5afa783fc8a8d09f49380fed424"
     },
     {
+      "url": "/card-groups/adjectives.webp",
+      "revision": "b1ea00b4cdeddc04bc8eabcdd890ed5819dd3241e9ae9503e91f4e700f0b123f"
+    },
+    {
+      "url": "/card-groups/animals.webp",
+      "revision": "6777354fd69cff0e4693422c500e0eb395edf0f6bb2ac1d0482f4457bec916e5"
+    },
+    {
+      "url": "/card-groups/body.webp",
+      "revision": "f9f38fbe5bb419f68e960a01b251ac697aae4a9651660a60806613b38e336309"
+    },
+    {
+      "url": "/card-groups/business.webp",
+      "revision": "492f9ee2f7a21000fcc9db122af907a2ff71ad4ab5a0b634371ac8dca2d4825b"
+    },
+    {
+      "url": "/card-groups/clothes.webp",
+      "revision": "a638f552c783b4ddf0efcc20ae3b623fd1b8fb0f57844fb7606f0c93f56ff40f"
+    },
+    {
+      "url": "/card-groups/colorsShapes.webp",
+      "revision": "f1095d1ead03bbbd943bd6ab5ba58c29dfb211818ecb64a4b802873e18fb9a90"
+    },
+    {
+      "url": "/card-groups/commonVerbs.webp",
+      "revision": "5e3cd63fe022c31a2ffe10e7c7794a695cacff90ec6d5d49f1b2bc7a5bc458ba"
+    },
+    {
+      "url": "/card-groups/cooking.webp",
+      "revision": "2b96ab52c4e796bba68ecd37a6212a5b122464caf2cc8c531cffb324d474f8ac"
+    },
+    {
+      "url": "/card-groups/directions.webp",
+      "revision": "d08b918c927ea6c3b0f23ae622aa87b4b31d0f35b19dcbf0fdd07225ddaa4b9f"
+    },
+    {
+      "url": "/card-groups/emergency.webp",
+      "revision": "8da3e31257a034945611cd62bd95de10521ccdd80b4574812ecc2fad65cf29be"
+    },
+    {
+      "url": "/card-groups/emotions.webp",
+      "revision": "2e2a24f6172ae13bc12067e337089fdebd56ab93d3d713dd99c8131bbc3bb0d4"
+    },
+    {
+      "url": "/card-groups/family.webp",
+      "revision": "26a5a7b8bc603e919986a048e696bb0e3e623c88361fa552e0c140c8652cc6ee"
+    },
+    {
+      "url": "/card-groups/fruits.webp",
+      "revision": "f800cfec0bf4fad038df5fbc96470cd9893d85f653e8ca1972dca7e94a570181"
+    },
+    {
+      "url": "/card-groups/health.webp",
+      "revision": "e489d1c7792de68463f4a3978925864092fed550e845c37a69f9693cdfb2e6b9"
+    },
+    {
+      "url": "/card-groups/hobbies.webp",
+      "revision": "4b0d618f4d243ac90f9f6091c6d5586b2446f10b07cccc588e51eeb8bb3b45f9"
+    },
+    {
+      "url": "/card-groups/home.webp",
+      "revision": "2f226e10c0e5bbc7178c1c2e9da696b1885f45c9a23cea9ff11485064c336ac3"
+    },
+    {
+      "url": "/card-groups/jobs.webp",
+      "revision": "b195fdb8316f80a5daf448435dda92915a8a724461be9a04b1e1a3d7ce3eb4ab"
+    },
+    {
+      "url": "/card-groups/months.webp",
+      "revision": "2d2cf5419c4e3249b9051b0533112a076dfd2affbd81a1ebfcc2005f722739aa"
+    },
+    {
+      "url": "/card-groups/musicMovies.webp",
+      "revision": "f3f4c143ade906ec3c9782dd76da298bd3aea64aad5ed15dd1d62b119caa48e9"
+    },
+    {
+      "url": "/card-groups/numbersTime.webp",
+      "revision": "1461563740ce338079d71223821585a70d7480837fae03101f688a64d9cf9d20"
+    },
+    {
+      "url": "/card-groups/restaurant.webp",
+      "revision": "10137799c892dafe032607882658969e42381076348257e377ccc6b1bc44622e"
+    },
+    {
+      "url": "/card-groups/routines.webp",
+      "revision": "4dfa00bb1aeec741e7296420b3989898410b7dc165088621bfa721880ff4f968"
+    },
+    {
+      "url": "/card-groups/school.webp",
+      "revision": "ce111740b3be34a6dff9f6ce072bad846c047e593bb79cfad3328f6eab95c190"
+    },
+    {
+      "url": "/card-groups/shopping.webp",
+      "revision": "a5858500577875a77cd94711a304f3f1b28d68b95e55861d43aa29cc4c93570e"
+    },
+    {
+      "url": "/card-groups/social.webp",
+      "revision": "8afc23ed37c2c3bab477e06ff9d4d959857b794159234cd4516d3b980a19a9bf"
+    },
+    {
+      "url": "/card-groups/sports.webp",
+      "revision": "4ebbc57f6042a6bf6e7f8ed69a0ac6d013173a6f2853c039ab3faa0e1c8c7597"
+    },
+    {
+      "url": "/card-groups/technology.webp",
+      "revision": "c521608541f6c017342423256f9a474d3a5da9b9676bd98b355f748868b34927"
+    },
+    {
+      "url": "/card-groups/transport.webp",
+      "revision": "f2353e53e8392ac6960e2afb26a72f1c6e4d32ecdc73e455ea5fa770affb02ba"
+    },
+    {
+      "url": "/card-groups/travel.webp",
+      "revision": "b08a327b53ad199db65d2179197fa73dac4ae83e372c11b3bb00935704bfd552"
+    },
+    {
+      "url": "/card-groups/weather.webp",
+      "revision": "5c95baca4af93cb852fbc3e53b1113bb45de90eea13730683690292e53889742"
+    },
+    {
+      "url": "/card-icons/add_cards_with_groups.png",
+      "revision": "979e806523a178b40e08cab15f7a24cbc9cfe47e9c0661d199a29af1b9b9d7f4"
+    },
+    {
+      "url": "/card-icons/add_custom_card_button.png",
+      "revision": "e36c75b6127b13a33593825167148ebef7cdb6e4b359426e3c732382526a0051"
+    },
+    {
+      "url": "/card-icons/card-in-deck-tick.png",
+      "revision": "126fd56b2c984c5081510f473b13e66a5f7c0b9f3bc8813a21c7c2bafd70bf31"
+    },
+    {
+      "url": "/card-icons/draw_cards_button.png",
+      "revision": "49cf010e66c158bee7414aa02a778903b5e24d477db010823f4eb6c25bfc63a2"
+    },
+    {
+      "url": "/card-icons/hoporlor.png",
+      "revision": "1cc4f129ac1e130c3bd58b3b073280df942e10520bf45258e75a889cbc76a362"
+    },
+    {
+      "url": "/card-status/ogrenildi_img.png",
+      "revision": "4027d49ee31c34340c96d014392a02338183f72d1e9bff9643f11f2ac7a40aff"
+    },
+    {
+      "url": "/card-status/ogrenilecek_img.png",
+      "revision": "1030bf8c063840458e4869c4803744dca525e47b4f7ef0ff216d53fbba0ed8ec"
+    },
+    {
       "url": "/chests/chest-sprite.png",
       "revision": "0fb076e853d395e01390c8cd541fe7dba01c95540ed3b96b457d65df6dd5875f"
+    },
+    {
+      "url": "/chests/chest_background.png",
+      "revision": "bee82eef4adc486164398fca265b7ebb4d221f0c74c0ba8e10b56706648b2191"
     },
     {
       "url": "/chests/diamond-bottom.png",
@@ -386,6 +578,10 @@
       "revision": "5dac986dd4841008b370b2bc3a503faf6d34c874c75a6bb15b6a63be22030945"
     },
     {
+      "url": "/game-backgrounds/dogru-yanlis.png",
+      "revision": "3e7adb53df62cddab1819f083e7066594b744567fbde3dc9a6470362920eed17"
+    },
+    {
       "url": "/game-backgrounds/games-page-colorful-shapes.png",
       "revision": "2cf7931b7e99e31cb951c679847f698af10f287656829382c0d7859598930dc2"
     },
@@ -396,6 +592,10 @@
     {
       "url": "/game-backgrounds/green-game-bg.png",
       "revision": "78c4885e9e11e5cf98d11fce513c64eacf0727fef48369f43dd69775c105a781"
+    },
+    {
+      "url": "/game-backgrounds/kelime-eslestirme.png",
+      "revision": "dcc3aeff6604f6a86837f79b8b0df13e58e54c63e291b2951e86d58a9de93573"
     },
     {
       "url": "/game-backgrounds/memory-cards/A1.png",
@@ -606,12 +806,36 @@
       "revision": "081a1c492f7426e1aff734a5cdb692d1b6a12d812c42f417052de42d899c6ea2"
     },
     {
+      "url": "/missions/mission-button-claimed-v2.png",
+      "revision": "9ad30714618d8fab32674124f86839a3f68028de72428c4f78b6a89e6e76fde3"
+    },
+    {
       "url": "/missions/mission-button-claimed.png",
       "revision": "5c1406c97c67439f41767810c1eae587b8021b07266418b3500c1f2255f37501"
     },
     {
       "url": "/missions/mission-button-locked-v2.png",
       "revision": "ce7702394cfc79cacc700ab50c922a503c6ae718bcfc707cc422ac391f9cf437"
+    },
+    {
+      "url": "/missions/mission-claim-bubble-check-v2.png",
+      "revision": "b3ca9e585c384065bef5e7fec7402edbc4d35d5c2150a133faa40b6a2fa381ee"
+    },
+    {
+      "url": "/missions/mission-claim-bubble-check-v3.png",
+      "revision": "44b2eb7ef644ec77a9bfb5d390333021a538cb570bde8bcda0c1ae0e13668448"
+    },
+    {
+      "url": "/missions/mission-claim-bubble-check-v4.png",
+      "revision": "9757b70309a6b87f7601ff76bf9606603a354a9a29f81d3073c7d77231937aba"
+    },
+    {
+      "url": "/missions/mission-claim-bubble.png",
+      "revision": "82ac6dc675cfcff1ea3d0fb9e4c8d113f513b39c00a803cb555086a4c5c3ad04"
+    },
+    {
+      "url": "/missions/mission-lock-icon-v3.png",
+      "revision": "6c164a459f8fe1f33c457968ae33d6ab5c4a8c905a826449edb80bbd569553be"
     },
     {
       "url": "/missions/mission-lock-icon.png",
@@ -802,6 +1026,14 @@
       "revision": "f66d610f310a439f2e34ba96d27de48d622926cb328354eaf6593268ff33eeca"
     },
     {
+      "url": "/rank-up/kurdele-v1.png",
+      "revision": "723688b225b34d4a936046966c683faf4ce8923cdba4a493524b39810965783a"
+    },
+    {
+      "url": "/rank-up/rank-up-background-v1.png",
+      "revision": "265f0833237eb79602102e80d8a735b59634d966ef6def39d425ec8ca25d6d1d"
+    },
+    {
       "url": "/ranks/rank1.png",
       "revision": "6d0d00dfa4f85f991dc8cd0458d0b3a8c0c7819debd57cd2359681582d5400e8"
     },
@@ -872,6 +1104,14 @@
     {
       "url": "/subscription-restrictions/subscription-restriction-tr.png",
       "revision": "eb87eddee93aebede76292ca745edd0c0a3dac78dbaf4e9ce8bf9da69bcc44b1"
+    },
+    {
+      "url": "/subscriptions/plan-basic-v2.png",
+      "revision": "32786144bb75c49c06b3b7421d9841f58c5d843d9b81c167c322ea52860a6437"
+    },
+    {
+      "url": "/subscriptions/plan-pro-v2.png",
+      "revision": "daa81113ee7c6ad266fea31d3bb0d20b0f422ae4f3931c78a2b265e69573080a"
     },
     {
       "url": "/tutorial-post-practice/fifth-screen.png",

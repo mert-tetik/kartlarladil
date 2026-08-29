@@ -33,6 +33,11 @@ interface CloudInventoryPayload {
   attempts: PracticeAttempt[];
 }
 
+interface CloudBatchInventoryPayload extends CloudInventoryPayload {
+  addedCardIds: string[];
+  remainingCardIds: string[];
+}
+
 interface CustomCardCreationPayload {
   card: InventoryCard;
   vocabularyCard: VocabularyCard;
@@ -65,6 +70,17 @@ interface AttemptRow {
 
 const CLOUD_AUTH_REQUIRED_ERROR = "inventory_auth_required";
 const CLOUD_LOCAL_CARD_MISSING_ERROR = "inventory_local_card_missing";
+const CLOUD_CARD_NOT_ACTIVE_ERROR = "inventory_card_not_active";
+const MAX_BATCH_CARD_ADD_COUNT = 100;
+
+function normalizeBatchSourceKeys(sourceKeys: string[]): string[] {
+  if (!Array.isArray(sourceKeys)) {
+    throw new Error("invalid_batch_card_request");
+  }
+
+  return [...new Set(sourceKeys.filter((sourceKey): sourceKey is string => typeof sourceKey === "string" && sourceKey.trim().length > 0))]
+    .slice(0, MAX_BATCH_CARD_ADD_COUNT);
+}
 
 async function getCloudActionText() {
   return createTranslator(await getServerLocale());
@@ -132,13 +148,92 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
   }
 }
 
+export async function addCloudInventoryCardsAction(
+  sourceKeys: string[],
+): Promise<CloudActionResult<CloudBatchInventoryPayload>> {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    const requestedKeys = normalizeBatchSourceKeys(sourceKeys);
+    const resolvedCards = await Promise.all(requestedKeys.map((sourceKey) => resolveLocalCard(supabase, sourceKey)));
+    const uniqueCards = [...new Map(resolvedCards.map((card) => [card.sourceKey, card])).values()];
+    const uniqueSourceKeys = uniqueCards.map((card) => card.sourceKey);
+
+    if (uniqueSourceKeys.length === 0) {
+      return {
+        status: "success",
+        message: "",
+        data: {
+          ...(await listCloudInventory(supabase, user)),
+          addedCardIds: [],
+          remainingCardIds: [],
+        },
+      };
+    }
+
+    const { data: existingRows, error: existingError } = await supabase
+      .from("user_cards")
+      .select("card_source_key")
+      .eq("user_id", user.id)
+      .in("card_source_key", uniqueSourceKeys)
+      .returns<Array<{ card_source_key: string }>>();
+
+    if (existingError) {
+      throw existingError;
+    }
+
+    const existingKeys = new Set((existingRows ?? []).map((row) => row.card_source_key));
+    const newSourceKeys = uniqueSourceKeys.filter((sourceKey) => !existingKeys.has(sourceKey));
+    const entitlements = await getUserEntitlements(user.id);
+    let allowedSourceKeys = newSourceKeys;
+
+    if (entitlements.effectivePlan === "free") {
+      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
+      const activeCardLimit = entitlements.limits.activeCards;
+      const availableSlots = activeCardLimit === null
+        ? newSourceKeys.length
+        : Math.max(0, activeCardLimit - activeCount);
+      allowedSourceKeys = newSourceKeys.slice(0, availableSlots);
+    }
+
+    if (allowedSourceKeys.length > 0) {
+      const { error: upsertError } = await supabase.from("user_cards").upsert(
+        allowedSourceKeys.map((cardSourceKey) => ({
+          user_id: user.id,
+          card_source_key: cardSourceKey,
+        })),
+        {
+          ignoreDuplicates: true,
+          onConflict: "user_id,card_source_key",
+        },
+      );
+
+      if (upsertError) {
+        throw upsertError;
+      }
+    }
+
+    revalidateProgressPaths();
+
+    return {
+      status: "success",
+      message: "",
+      data: {
+        ...(await listCloudInventory(supabase, user)),
+        addedCardIds: allowedSourceKeys,
+        remainingCardIds: newSourceKeys.slice(allowedSourceKeys.length),
+      },
+    };
+  } catch (error) {
+    return await cloudError(error);
+  }
+}
+
 export async function recordCloudPracticeAttemptAction(input: {
   cardId: string;
   selectedAnswer: string;
   correctAnswer: string;
   isCorrect: boolean;
   mode: PracticeMode;
-  forceLearned?: boolean;
 }): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
@@ -148,7 +243,7 @@ export async function recordCloudPracticeAttemptAction(input: {
     const nextCard =
       input.mode === "learned"
         ? currentCard
-        : applyAnswerProgress(currentCard, localCard, input.isCorrect, undefined, input.forceLearned);
+        : applyAnswerProgress(currentCard, localCard, input.isCorrect);
 
     const entitlements = await getUserEntitlements(user.id);
 
@@ -298,8 +393,7 @@ export async function migrateLocalInventoryToCloudAction(
       const { data: existingRows, error: existingError } = await supabase
         .from("user_cards")
         .select("card_source_key, status")
-        .eq("user_id", user.id)
-        .in("card_source_key", sourceKeys);
+        .eq("user_id", user.id);
 
       if (existingError) {
         throw existingError;
@@ -471,6 +565,11 @@ export async function createCustomCardAction(input: {
     );
 
     if (inventoryError) {
+      await supabase
+        .from("custom_cards")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("source_key", sourceKey);
       throw inventoryError;
     }
 
@@ -563,22 +662,7 @@ async function readUserCard(
   }
 
   if (!data) {
-    const inserted = {
-      user_id: user.id,
-      card_source_key: sourceKey,
-    };
-    const { error: insertError } = await supabase.from("user_cards").insert(inserted);
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    return {
-      cardId: sourceKey,
-      status: "active",
-      correctCount: 0,
-      addedAt: new Date().toISOString(),
-    };
+    throw new Error(CLOUD_CARD_NOT_ACTIVE_ERROR);
   }
 
   return {
@@ -730,9 +814,31 @@ async function cloudError(
     };
   }
 
-  if (options.exposeSystemMessage) {
-    const systemMessage = getSystemErrorMessage(error);
+  if (error instanceof Error && error.message === CLOUD_CARD_NOT_ACTIVE_ERROR) {
+    return {
+      status: "error",
+      message: t("inventory.error.operationFailed"),
+    };
+  }
 
+  const systemMessage = getSystemErrorMessage(error);
+  if (systemMessage?.includes("free_active_card_limit")) {
+    return {
+      status: "error",
+      message: t("limit.activeCardLimitDescription"),
+      errorCode: "free_active_card_limit",
+    };
+  }
+
+  if (systemMessage?.includes("free_learned_card_limit")) {
+    return {
+      status: "error",
+      message: t("limit.learnedCardLimitDescription"),
+      errorCode: "free_learned_card_limit",
+    };
+  }
+
+  if (options.exposeSystemMessage) {
     if (systemMessage) {
       return {
         status: "error",

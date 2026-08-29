@@ -218,6 +218,7 @@ describe("MobileLandingDashboard language sync", () => {
 
     const dashboard = document.querySelector("[data-mobile-landing-dashboard]");
     expect(dashboard).toHaveClass("overflow-y-hidden");
+    expect(document.querySelector('[data-tutorial-target="rank-info"]')).toHaveClass("isolate", "overflow-hidden");
     expect(screen.queryByRole("button", { name: "T\u00fcm Kartlar" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Kartlar" }));

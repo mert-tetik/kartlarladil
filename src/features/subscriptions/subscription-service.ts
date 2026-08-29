@@ -3,7 +3,7 @@ import "server-only";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   LimitErrorCode,
   SubscriptionPlan,
@@ -39,7 +39,7 @@ export interface UserSubscriptionManagementSource {
 }
 
 export async function getUserEntitlements(userId: string): Promise<UserEntitlements> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("user_subscriptions")
     .select(
@@ -78,7 +78,7 @@ export async function getUserEntitlements(userId: string): Promise<UserEntitleme
 export async function getUserSubscriptionManagementSource(
   userId: string,
 ): Promise<UserSubscriptionManagementSource> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("user_subscriptions")
     .select(
@@ -123,19 +123,31 @@ export async function getUserSubscriptionManagementSource(
 }
 
 export function getEffectivePlan(subscription: UserSubscription): SubscriptionPlan {
+  if (!hasUsableRemainingAccess(subscription.endsAt)) {
+    return "free";
+  }
+
   if (PAID_STATUSES.includes(subscription.status)) {
     return subscription.plan;
   }
 
   if (
     subscription.status === "cancelled" &&
-    subscription.endsAt &&
-    new Date(subscription.endsAt) > new Date()
+    subscription.endsAt
   ) {
     return subscription.plan;
   }
 
   return "free";
+}
+
+function hasUsableRemainingAccess(endsAt: string | null): boolean {
+  if (!endsAt) {
+    return true;
+  }
+
+  const endTime = new Date(endsAt).getTime();
+  return Number.isFinite(endTime) && endTime > Date.now();
 }
 
 export function checkLimit(

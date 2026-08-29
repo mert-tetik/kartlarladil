@@ -1,4 +1,4 @@
-import { deleteAccountAction } from "@/features/auth/actions";
+import { deleteAccountAction, updateLanguagePreferenceAction } from "@/features/auth/actions";
 import { DELETE_ACCOUNT_CONFIRMATION } from "@/features/auth/auth-schemas";
 import { vi } from "vitest";
 
@@ -6,6 +6,9 @@ const mockGetUser = vi.hoisted(() => vi.fn());
 const mockDeleteUser = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
 const mockCreateSupabaseAdminClient = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockUpdate = vi.hoisted(() => vi.fn());
+const mockEq = vi.hoisted(() => vi.fn());
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -32,6 +35,7 @@ vi.mock("@/lib/supabase/server", () => ({
         getUser: mockGetUser,
         signOut: vi.fn(),
       },
+      from: mockFrom,
     }),
   ),
 }));
@@ -86,5 +90,58 @@ describe("deleteAccountAction", () => {
     expect(result.status).toBe("error");
     expect(mockCreateSupabaseAdminClient).not.toHaveBeenCalled();
     expect(mockDeleteUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateLanguagePreferenceAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "test@example.com" } },
+      error: null,
+    });
+    mockEq.mockResolvedValue({ error: null });
+    mockUpdate.mockReturnValue({ eq: mockEq });
+    mockFrom.mockReturnValue({ update: mockUpdate });
+  });
+
+  it("updates only the stored UI locale", async () => {
+    await updateLanguagePreferenceAction({
+      field: "preferred_ui_locale",
+      value: "de",
+    });
+
+    expect(mockFrom).toHaveBeenCalledWith("user_profiles");
+    expect(mockUpdate).toHaveBeenCalledWith({ preferred_ui_locale: "de" });
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("updates only the stored learning language", async () => {
+    await updateLanguagePreferenceAction({
+      field: "preferred_language_code",
+      value: "tr",
+    });
+
+    expect(mockFrom).toHaveBeenCalledWith("user_profiles");
+    expect(mockUpdate).toHaveBeenCalledWith({ preferred_language_code: "tr" });
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("ignores unsupported preference values", async () => {
+    await updateLanguagePreferenceAction({
+      field: "preferred_ui_locale",
+      value: "not-a-locale",
+    });
+
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("ignores unsupported preference fields", async () => {
+    await updateLanguagePreferenceAction({
+      field: "theme",
+      value: "ocean",
+    });
+
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });

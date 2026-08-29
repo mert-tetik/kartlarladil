@@ -62,8 +62,11 @@ import {
   getScoreFlightIconCount,
 } from "@/features/progress/score-flight";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
-import { awardChestPoints } from "@/features/quiz/actions";
-import { awardQuizStreakPoints } from "@/features/quiz/actions";
+import {
+  awardChestPoints,
+  awardQuizResultPoints,
+  awardQuizStreakPoints,
+} from "@/features/quiz/actions";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
@@ -144,16 +147,28 @@ export type { QuizPhase };
 
 const MODE_STYLE = {
   active: {
-    bg: "bg-emerald-500",
-    border: "border-emerald-500",
-    hover: "hover:bg-emerald-600",
+    bg: "bg-action-learn",
+    border: "border-[var(--action-learn)]",
+    hover: "hover:bg-action-learn-hover",
   },
   learned: {
-    bg: "bg-sky-500",
-    border: "border-sky-500",
-    hover: "hover:bg-sky-600",
+    bg: "bg-action-learned",
+    border: "border-[var(--action-learned)]",
+    hover: "hover:bg-action-review-hover",
   },
 } as const;
+
+const QUIZ_COUNT_BUTTON_COLORS = [
+  "bg-yellow-400",
+  "bg-red-500",
+  "bg-green-500",
+  "bg-blue-500",
+] as const;
+
+function getQuizCountButtonColor(count: number) {
+  const index = QUIZ_COUNT_OPTIONS.findIndex((option) => option === count);
+  return QUIZ_COUNT_BUTTON_COLORS[index >= 0 ? index : 0];
+}
 
 const CHOICE_OPTION_COLORS = [
   "bg-red-500",
@@ -162,11 +177,26 @@ const CHOICE_OPTION_COLORS = [
   "bg-emerald-500",
 ] as const;
 
+const SENTENCE_COMPLETION_OPTION_COLORS = [
+  "bg-red-500",
+  "bg-blue-500",
+  "bg-amber-400",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-pink-500",
+] as const;
+
 const RESULT_CARD_BACKGROUNDS = {
   correct: "/quiz/result-cards/correct.png",
   incorrect: "/quiz/result-cards/incorrect.png",
   learned: "/quiz/result-cards/learned.png",
 } as const;
+
+const quizResultRewardPromises = new Map<
+  string,
+  ReturnType<typeof awardQuizResultPoints>
+>();
+const quizResultRewardedSessions = new Set<string>();
 
 const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
@@ -985,6 +1015,19 @@ export function QuizStation({
   }
 
   function handleRestart() {
+    if (selectedLanguage && selectedCount !== null) {
+      setStartSplashSelection({
+        count: selectedCount,
+        colorClass: getQuizCountButtonColor(selectedCount),
+        contentScale: 1,
+        chestTiers: chestRewardsEnabled ? getChestPreviewPairForCount(selectedCount) : undefined,
+      });
+      setChestOpened(false);
+      setAwardedChestTier(null);
+      buildDeck(selectedLanguage, selectedCount);
+      return;
+    }
+
     if (selectedLanguage) {
       const count = filterInventoryCards({
         cards,
@@ -1099,7 +1142,6 @@ export function QuizStation({
 
       if (didRankUp) {
         acknowledgeRankUp(user?.id, stats.rank.id);
-        playSoundEffect("rank-up");
         sendTwaAnalyticsEvent("fd_rank_up", {
           params: {
             rank_id: stats.rank.id,
@@ -1224,7 +1266,7 @@ export function QuizStation({
       <QuizViewportOverlay
         learnPagePhase="result"
         overlay="result"
-        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
+        className="animate-screen-pop fixed inset-x-0 top-0 z-30 flex items-center justify-center bg-background p-4 max-lg:bottom-0 max-lg:top-[var(--app-header-height)] max-lg:p-0 lg:bottom-0 lg:top-16"
       >
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultView
@@ -1232,6 +1274,7 @@ export function QuizStation({
             results={results}
             selectedCount={selectedCount}
             chestOpened={chestOpened}
+            quizSessionId={quizSessionId ?? undefined}
             streakRewardStreak={getRewardableQuizStreak(maxStreak)}
             streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
             locked={false}
@@ -1247,7 +1290,7 @@ export function QuizStation({
     return (
       <RankUpMenu
         rank={pendingRankUp}
-        points={stats.totalPoints}
+        fromRank={quizStartRankRef.current ?? undefined}
         onClose={() => {
           setPendingRankUp(null);
           setPhase("result");
@@ -1375,7 +1418,7 @@ export function QuizStation({
       ) : null}
       <div
         className={cn(
-          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--mobile-nav-bar-height)] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
+          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
           isSplash ? "opacity-0" : "animate-screen-pop",
         )}
         data-learn-quiz-page="quiz"
@@ -1884,13 +1927,6 @@ export function CountSelection({
   const launchTimerRef = useRef<number | null>(null);
   const scatterFrameRef = useRef<number | null>(null);
 
-  const countButtonColors = [
-    "bg-red-500",
-    "bg-blue-500",
-    "bg-amber-400",
-    "bg-emerald-500",
-  ];
-
   useEffect(
     () => () => {
       if (launchTimerRef.current !== null) {
@@ -2034,13 +2070,12 @@ export function CountSelection({
       </div>
 
       <div className="grid flex-1 grid-cols-2">
-        {QUIZ_COUNT_OPTIONS.map((count, index) => {
+        {QUIZ_COUNT_OPTIONS.map((count) => {
           const disabled = locked || Boolean(launch) || count > availableCount;
           const previewPair = showChestTiers
             ? getChestPreviewPairForCount(count)
             : undefined;
-          const colorClass =
-            countButtonColors[index % countButtonColors.length];
+          const colorClass = getQuizCountButtonColor(count);
 
           return (
             <button
@@ -2227,7 +2262,7 @@ function MobileQuizTopBar({
         <Progress
           value={quizProgress}
           className="h-3.5 rounded-full bg-white/15"
-          indicatorClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 transition-[width] duration-300 ease-out"
+          indicatorClassName="bg-gradient-to-r from-[var(--rank-start)] via-[var(--premium-start)] to-[var(--rank-end)] transition-[width] duration-300 ease-out"
         />
       </div>
 
@@ -2237,7 +2272,7 @@ function MobileQuizTopBar({
         data-quiz-total-score
       >
         <ScoreIcon size={22} className="size-[22px]" />
-        <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-base font-bold text-transparent">
+        <span className="bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent">
           {formatNumber(locale, totalPoints)}
         </span>
       </div>
@@ -2372,7 +2407,7 @@ function QuizAnswerButton({
   return (
     <button
       className={cn(
-        "group relative flex overflow-hidden rounded-md text-white transition-[color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none",
+        "group relative flex overflow-hidden rounded-md text-white transition-[background-color,color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none",
         baseClassName,
         interactive &&
           "hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(15,23,42,0.7)] active:translate-y-0 active:scale-[0.99]",
@@ -2463,7 +2498,8 @@ function SentenceCompletionQuestion({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         {question.options.map((option, index) => {
           const isCorrectOption = option === question.correctAnswer;
-          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+          const optionColor =
+            SENTENCE_COMPLETION_OPTION_COLORS[index % SENTENCE_COMPLETION_OPTION_COLORS.length];
           const isSelectedOption = option === selectedAnswer;
           const isValidatingOption = isAiValidating && option === aiValidatingAnswer;
           const feedbackState = !showingAnswer
@@ -2475,6 +2511,7 @@ function SentenceCompletionQuestion({
               : !answerAccepted && isCorrectOption
                 ? "correct"
                 : "idle";
+          const answerStateColor = showingAnswer ? "bg-background-card" : optionColor;
 
           return (
             <QuizAnswerButton
@@ -2484,10 +2521,13 @@ function SentenceCompletionQuestion({
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer || isAiValidating}
               interactive={!showingAnswer && !isAiValidating}
-              baseClassName={optionColor}
+              baseClassName={answerStateColor}
               feedbackState={feedbackState}
-              incorrectOverlayClassName="bg-red-950"
-              className="min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base"
+              incorrectOverlayClassName="bg-red-500"
+              className={cn(
+                "min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base",
+                showingAnswer && feedbackState === "idle" && "text-foreground",
+              )}
             >
               {isValidatingOption ? (
                 <Loader2
@@ -2730,7 +2770,7 @@ function TextQuestion({
         )}
         data-quiz-question-content="text"
       >
-        <p className="text-center text-sm font-semibold text-orange-500">
+        <p className="text-center text-sm font-semibold text-[var(--accent-primary)]">
           {t("quiz.learningPrompt")}
         </p>
         <div className="flex items-center justify-center">
@@ -3007,7 +3047,7 @@ export function CelebrationView({
             className="flex justify-center pt-1 sm:pt-2"
           >
             <div
-              className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"
+              className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"
               data-quiz-celebration-score
             >
               <Star className="size-5 fill-current" aria-hidden="true" />
@@ -3132,6 +3172,7 @@ export function ResultView({
   results,
   selectedCount,
   chestOpened,
+  quizSessionId,
   streakRewardStreak = 0,
   streakRewardPoints = 0,
   locked,
@@ -3142,6 +3183,7 @@ export function ResultView({
   results: QuizResult;
   selectedCount: number | null;
   chestOpened: boolean;
+  quizSessionId?: string;
   streakRewardStreak?: number;
   streakRewardPoints?: number;
   locked?: boolean;
@@ -3150,14 +3192,28 @@ export function ResultView({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const { stats } = useProgressStats();
+  const { stats, refreshStats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
   const router = useRouter();
-  const { data: leaderboardData } = useLeaderboardData();
+  const { data: leaderboardData } = useLeaderboardData({ refreshOnMount: true });
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
   const hasTriggeredResult = useRef(false);
+  const resultRewardPromiseRef = useRef<ReturnType<typeof awardQuizResultPoints> | null>(null);
+  const resultBasePointsRef = useRef(stats.totalPoints);
+  const starSourceRef = useRef<HTMLDivElement | null>(null);
+  const scoreRef = useRef<HTMLSpanElement | null>(null);
+  const flightStartedRef = useRef(false);
+  const flightIconCountRef = useRef(0);
+  const arrivedFlightIconsRef = useRef(new Set<number>());
+  const arrivalTimersRef = useRef<number[]>([]);
+  const handleResultPointFlightEndRef = useRef<(iconId: number) => void>(() => {});
+  const [displayPoints, setDisplayPoints] = useState(stats.totalPoints);
+  const [scorePulse, setScorePulse] = useState(0);
+  const [flightIcons, setFlightIcons] = useState<ScoreFlightIcon[]>([]);
+  const [starsRevealedAt, setStarsRevealedAt] = useState<number | null>(null);
+  const [resultRewardAwarded, setResultRewardAwarded] = useState(false);
   const performance = getQuizPerformanceSummary(
     mode,
     results,
@@ -3180,6 +3236,146 @@ export function ResultView({
   const rankLabel = getRankLabel(stats.rank, locale);
   const formatResultDisplayText = (text: string) =>
     canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
+
+  useEffect(() => {
+    if (mode !== "active" || !quizSessionId || resultRewardPromiseRef.current) {
+      return;
+    }
+
+    const rewardPromise =
+      quizResultRewardPromises.get(quizSessionId) ??
+      awardQuizResultPoints(quizSessionId, starRating);
+    if (!quizResultRewardPromises.has(quizSessionId)) {
+      quizResultRewardPromises.set(quizSessionId, rewardPromise);
+    }
+    resultRewardPromiseRef.current = rewardPromise;
+
+    let active = true;
+    void rewardPromise
+      .then((result) => {
+        if (!result.success) {
+          return;
+        }
+
+        refreshLeaderboardPositions();
+
+        if (result.awarded && !quizResultRewardedSessions.has(quizSessionId)) {
+          quizResultRewardedSessions.add(quizSessionId);
+          if (active) {
+            setResultRewardAwarded(true);
+          }
+        }
+      })
+      .catch(() => {
+        // The result remains usable when the persistent reward cannot be saved.
+        quizResultRewardPromises.delete(quizSessionId);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [mode, quizSessionId, starRating]);
+
+  const startResultPointFlight = useCallback(() => {
+    if (flightStartedRef.current || !starSourceRef.current || !scoreRef.current) {
+      return;
+    }
+
+    flightStartedRef.current = true;
+    const sourceBounds = starSourceRef.current.getBoundingClientRect();
+    const scoreBounds = scoreRef.current.getBoundingClientRect();
+    const targetX = scoreBounds.left + scoreBounds.width / 2;
+    const targetY = scoreBounds.top + scoreBounds.height / 2;
+    const iconCount = getScoreFlightIconCount(starRating);
+    const latestStart = 780;
+
+    flightIconCountRef.current = iconCount;
+    arrivedFlightIconsRef.current.clear();
+    const nextIcons = Array.from({ length: iconCount }, (_, index) => {
+      const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
+      const startX = sourceBounds.left + sourceBounds.width * (0.15 + Math.random() * 0.7);
+      const startY = sourceBounds.top + sourceBounds.height * (0.2 + Math.random() * 0.6);
+
+      return {
+        id: index,
+        startX,
+        startY,
+        scatterX: (Math.random() - 0.5) * 150,
+        scatterY: -35 - Math.random() * 100,
+        targetX,
+        targetY,
+        delay: Math.round(ratio * latestStart),
+      };
+    });
+
+    setFlightIcons(nextIcons);
+    arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    arrivalTimersRef.current = nextIcons.map((icon) =>
+      window.setTimeout(
+        () => handleResultPointFlightEndRef.current(icon.id),
+        icon.delay + 700,
+      ),
+    );
+  }, [starRating]);
+
+  useEffect(() => {
+    if (
+      mode !== "active" ||
+      !resultRewardAwarded ||
+      starsRevealedAt === null ||
+      flightStartedRef.current
+    ) {
+      return;
+    }
+
+    const elapsed = Date.now() - starsRevealedAt;
+    const timer = window.setTimeout(
+      startResultPointFlight,
+      Math.max(0, 1000 - elapsed),
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [mode, resultRewardAwarded, starsRevealedAt, startResultPointFlight]);
+
+  const handleResultPointFlightEnd = useCallback(
+    (iconId: number) => {
+      if (arrivedFlightIconsRef.current.has(iconId)) {
+        return;
+      }
+
+      arrivedFlightIconsRef.current.add(iconId);
+      const arrivalIndex = arrivedFlightIconsRef.current.size;
+      const iconCount = flightIconCountRef.current;
+
+      setDisplayPoints(
+        resultBasePointsRef.current +
+          getScoreFlightAwardAtArrival(starRating, iconCount, arrivalIndex),
+      );
+      setScorePulse(arrivalIndex);
+      playSoundEffect("points");
+      vibrate("tap");
+
+      if (arrivalIndex === iconCount) {
+        arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+        arrivalTimersRef.current = [];
+        void refreshStats();
+        refreshLeaderboardPositions();
+        setFlightIcons([]);
+      }
+    },
+    [refreshStats, starRating],
+  );
+
+  useEffect(() => {
+    handleResultPointFlightEndRef.current = handleResultPointFlightEnd;
+  }, [handleResultPointFlightEnd]);
+
+  useEffect(
+    () => () => {
+      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    },
+    [],
+  );
 
   useEffect(() => {
     if (hasTriggeredResult.current) return;
@@ -3291,7 +3487,7 @@ export function ResultView({
             <span
               data-leaderboard-standing
               className={cn(
-                "bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl",
+                "bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl",
                 canUseSuperWater(locale) && "font-super-water",
               )}
             >
@@ -3325,13 +3521,27 @@ export function ResultView({
           className="flex w-full translate-y-2 flex-col items-center"
           data-result-lower-section
         >
-          <QuizStarRating rating={starRating} className="mt-0.5" />
+          <div ref={starSourceRef} className="relative flex items-center justify-center">
+            <QuizStarRating
+              rating={starRating}
+              className="mt-0.5"
+              onRevealComplete={() => setStarsRevealedAt(Date.now())}
+            />
+          </div>
 
           <div className="mt-3">
-            <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+            <div className="relative inline-flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
               <Star className="size-5 fill-current" aria-hidden="true" />
-              <span className="text-lg font-bold">
-                {formatPoints(locale, stats.totalPoints)}
+              <span
+                ref={scoreRef}
+                className={cn(
+                  "text-lg font-bold",
+                  scorePulse > 0 && "animate-score-bobble",
+                )}
+                key={scorePulse}
+                data-result-score-display
+              >
+                {formatPoints(locale, displayPoints)}
               </span>
             </div>
           </div>
@@ -3390,6 +3600,32 @@ export function ResultView({
           </div>
         </div>
       </div>
+
+      {flightIcons.length > 0
+        ? createPortal(
+            flightIcons.map((icon) => (
+              <span
+                key={icon.id}
+                aria-hidden="true"
+                data-result-score-flight
+                className="pointer-events-none fixed left-0 top-0 z-50 animate-quiz-score-icon-flight"
+                onAnimationEnd={() => handleResultPointFlightEnd(icon.id)}
+                style={{
+                  "--score-flight-start-x": `${icon.startX}px`,
+                  "--score-flight-start-y": `${icon.startY}px`,
+                  "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
+                  "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
+                  "--score-flight-target-x": `${icon.targetX}px`,
+                  "--score-flight-target-y": `${icon.targetY}px`,
+                  animationDelay: `${icon.delay}ms`,
+                } as CSSProperties}
+              >
+                <ScoreIcon size={32} />
+              </span>
+            )),
+            document.body,
+          )
+        : null}
 
       {openMenu ? (
         <ResultMenu

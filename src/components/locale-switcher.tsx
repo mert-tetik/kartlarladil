@@ -11,6 +11,7 @@ import {
 } from "@/app/components/landing-card-language";
 import { LanguageFlag, LanguageFlagWithBrandOutline } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
+import { updateLanguagePreferenceAction } from "@/features/auth/actions";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -70,6 +71,10 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
     }
 
     setLocale(nextLocale);
+    void updateLanguagePreferenceAction({
+      field: "preferred_ui_locale",
+      value: nextLocale,
+    }).catch(() => undefined);
     setOpen(false);
   }
 
@@ -268,6 +273,14 @@ export function LocaleSwitcher({ navbar = false }: { navbar?: boolean }) {
           const previousLocale = locale;
           setLocale(cardLanguage);
           writeLandingCardLanguage(previousLocale);
+          void updateLanguagePreferenceAction({
+            field: "preferred_ui_locale",
+            value: cardLanguage,
+          }).catch(() => undefined);
+          void updateLanguagePreferenceAction({
+            field: "preferred_language_code",
+            value: previousLocale,
+          }).catch(() => undefined);
         }}
       />
     </>

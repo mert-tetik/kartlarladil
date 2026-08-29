@@ -56,7 +56,7 @@ export function MobileAuthScreen() {
           <Button
             type="button"
             onClick={() => setMode("email")}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-emerald-500 text-base font-bold text-white transition-colors active:scale-[0.98] hover:bg-emerald-600"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-action-learn text-base font-bold text-white transition-colors active:scale-[0.98] hover:bg-action-learn-hover"
           >
             <Mail className="size-5" aria-hidden="true" />
             {t("auth.mobile.useEmailInstead")}

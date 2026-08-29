@@ -17,7 +17,7 @@ describe("MobileLandingInfoSheet", () => {
 
     const firstStepText = await screen.findByText("Destene yeni kelimeler ekle ve koleksiyonunu oluştur.");
     expect(firstStepText).toHaveClass("text-white");
-    expect(firstStepText.parentElement).toHaveClass("bg-emerald-500");
+    expect(firstStepText.parentElement).toHaveClass("bg-action-learn");
     expect(screen.getByRole("dialog")).toHaveAttribute("data-mobile-bottom-sheet");
   });
 });

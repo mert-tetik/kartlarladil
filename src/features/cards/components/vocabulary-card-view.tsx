@@ -1,22 +1,22 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
-import { Check, Info, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
+import { Check, Info, LoaderCircle, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
-import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
+import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
+import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import type { InventoryCard, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
@@ -56,6 +56,59 @@ interface CardFaceState {
   initialFace: CardFace;
   isFaceUp: boolean;
 }
+
+const CARD_TIER_STYLES: Record<
+  Tier,
+  {
+    border: string;
+    accent: string;
+    text: string;
+    backPanel: string;
+    backBorder: string;
+    backText: string;
+  }
+> = {
+  A1: {
+    border: "border-emerald-500/70 dark:border-emerald-400/70",
+    accent: "bg-emerald-500 dark:bg-emerald-400",
+    text: "text-emerald-800 dark:text-white",
+    backPanel: "from-emerald-600 via-emerald-500 to-emerald-700",
+    backBorder: "border-emerald-700/50",
+    backText: "text-emerald-700",
+  },
+  A2: {
+    border: "border-sky-500/70 dark:border-sky-400/70",
+    accent: "bg-sky-500 dark:bg-sky-400",
+    text: "text-sky-800 dark:text-white",
+    backPanel: "from-sky-600 via-sky-500 to-blue-700",
+    backBorder: "border-sky-700/50",
+    backText: "text-sky-700",
+  },
+  B1: {
+    border: "border-violet-500/70 dark:border-violet-400/70",
+    accent: "bg-violet-500 dark:bg-violet-400",
+    text: "text-violet-800 dark:text-white",
+    backPanel: "from-violet-600 via-violet-500 to-fuchsia-700",
+    backBorder: "border-violet-700/50",
+    backText: "text-violet-700",
+  },
+  B2: {
+    border: "border-amber-500/70 dark:border-amber-400/70",
+    accent: "bg-amber-500 dark:bg-amber-400",
+    text: "text-amber-800 dark:text-white",
+    backPanel: "from-amber-500 via-yellow-500 to-amber-700",
+    backBorder: "border-amber-700/50",
+    backText: "text-amber-700",
+  },
+  C1: {
+    border: "border-rose-500/70 dark:border-rose-400/70",
+    accent: "bg-rose-500 dark:bg-rose-400",
+    text: "text-rose-800 dark:text-white",
+    backPanel: "from-rose-600 via-rose-500 to-red-700",
+    backBorder: "border-rose-700/50",
+    backText: "text-rose-700",
+  },
+};
 
 const ADD_BUTTON_TEXT_BY_TIER: Record<Tier, string> = {
   A1: "text-emerald-800",
@@ -152,6 +205,11 @@ export function VocabularyCardView({
   staticFace = false,
 }: VocabularyCardViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
+  const displayCard =
+    resolvedPronunciation && resolvedPronunciation !== card.pronunciation
+      ? { ...card, pronunciation: resolvedPronunciation }
+      : card;
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
     cardId: card.id,
     initialFace,
@@ -225,7 +283,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={card} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
       </article>
     );
   }
@@ -251,7 +309,7 @@ export function VocabularyCardView({
         )}
       >
         <CardFront
-          card={card}
+          card={displayCard}
           inventory={inventory}
           owned={owned}
           allowOwnedAdd={allowOwnedAdd}
@@ -275,7 +333,7 @@ export function VocabularyCardView({
           footerProgressCount={footerProgressCount}
         />
         <CardBack
-          card={card}
+          card={displayCard}
           isFaceUp={isFaceUp}
           backDisplayTier={backDisplayTier}
           isControlled={isControlled}
@@ -284,7 +342,7 @@ export function VocabularyCardView({
         />
       </div>
 
-      <CardDetailsDialog card={card} open={detailsOpen} onOpenChange={setDetailsOpen} />
+      <CardDetailsDialog card={displayCard} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </article>
   );
 }
@@ -337,9 +395,10 @@ function CardFront({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const router = useRouter();
+  const { openAsk } = useAskOverlay();
   const requireAuth = useRequireAuthAction();
-  const style = TIER_STYLES[card.tier];
+  const style = CARD_TIER_STYLES[card.tier];
+  const { pronunciation, isLoading: isPronunciationLoading } = useCardPronunciation(card);
   const accentClass = memoryGame ? MEMORY_TIER_ACCENTS[card.tier] : style.accent;
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
@@ -373,7 +432,7 @@ function CardFront({
     event.stopPropagation();
     const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
     requireAuth(() => {
-      navigateWithRouteTransition(() => router.push(askPath));
+      openAsk({ contextLanguage: card.language, initialTerm: card.term });
     }, { nextPath: askPath });
   }
 
@@ -461,7 +520,12 @@ function CardFront({
               >
                 <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
               </button>
-              <span className="text-sm text-foreground-muted dark:text-white/80 max-sm:text-xs">{card.pronunciation}</span>
+              <span className="inline-flex items-center gap-1 text-sm text-foreground-muted dark:text-white/80 max-sm:text-xs">
+                <span>{pronunciation}</span>
+                {isPronunciationLoading ? (
+                  <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+                ) : null}
+              </span>
             </div>
           </>
         ) : null}
@@ -629,7 +693,7 @@ function CardBack({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const style = TIER_STYLES[card.tier];
+  const style = CARD_TIER_STYLES[card.tier];
   const visibleBackTier = backDisplayTier ?? card.tier;
 
   if (memoryGame) {

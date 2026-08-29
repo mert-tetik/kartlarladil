@@ -29,7 +29,7 @@ The JSON object must follow this exact shape:
   "termKind": "word or fixed_phrase",
   "term": "the target-language term (a single ${locale === "en" ? "word or short phrase" : "word or short phrase"})",
   "partOfSpeech": "e.g. noun, verb, adjective, adverb",
-  "pronunciation": "simple IPA or romanization if useful, otherwise empty string",
+  "pronunciation": "one Turkish-style phonetic respelling in lowercase Latin letters, for example English actually becomes ekshılly",
   "translations": {
 ${LOCALE_CODES.map((code) => `    "${code}": "translation in ${code}"`).join(",\n")}
   },
@@ -42,6 +42,10 @@ Rules:
 - ${targetLanguage ? `Set language to exactly "${targetLanguage}". Do not choose another target language.` : "Choose an appropriate target language and CEFR tier for the requested term."}
 - ${targetLanguage && NATIVE_WRITING_SYSTEMS[targetLanguage] ? `When the requested term is written as a Latin-script transliteration, convert term to its canonical ${NATIVE_WRITING_SYSTEMS[targetLanguage]} spelling. Preserve the original meaning; keep the romanization only in pronunciation when useful. For example, Russian "ya ne znayu" becomes term "я не знаю".` : "Keep term in the target language's standard spelling."}
 - The example must use the term naturally.
+- Always provide a pronunciation. It must show how a Turkish speaker should read the term in the selected target language, not in English unless that target language is English.
+- Use lowercase Latin letters, Turkish dotless ı, spaces, apostrophes, and hyphens only. Always write w as v, write the ç sound as ch, and write the ş sound as sh. Never output w, ç, or ş in pronunciation.
+- Do not use IPA, slashes, brackets, stress marks, source-language scripts, accented letters, digits, or punctuation.
+- This pronunciation is a Turkish-style sound guide, not a translation and not a copy of the term's spelling. For example, English "actually" becomes "ekshılly".
 - Provide a translation for every locale key listed (${localeList}).
 - Keep all text concise and suitable for flashcards.
 - Do not include explanations outside the JSON object.`;

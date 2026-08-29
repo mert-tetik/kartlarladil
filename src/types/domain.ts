@@ -186,6 +186,11 @@ export type LimitErrorCode =
   | "ai_daily_limit"
   | "ai_monthly_limit";
 
+export interface ActiveCardLimitDetails {
+  addedCount: number;
+  skippedCount: number;
+}
+
 export type AiUsageEventType = "chat" | "translate" | "ask" | "create_card" | "quiz_validate";
 
 export interface PlanLimits {
@@ -245,6 +250,10 @@ export interface AiPracticeMessage {
 export interface AiPracticeChatRequest {
   language: LanguageCode;
   characterId: string;
+  mode?: "character" | "scenario";
+  scenarioId?: string;
+  requestType?: "message" | "help";
+  uiLocale?: LocaleCode;
   messages: AiPracticeMessage[];
 }
 

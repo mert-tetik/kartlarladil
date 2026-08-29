@@ -24,6 +24,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { THEMES, isThemePaid } from "@/lib/themes";
+import { isLanguageCode, isLocaleCode } from "@/data/languages";
 import type { LocaleCode } from "@/types/domain";
 
 async function getActionText() {
@@ -224,6 +225,7 @@ export async function updatePasswordAction(_state: AuthActionState, formData: Fo
 
 export async function updateProfileAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const { locale, t } = await getActionText();
+  const leaderboardVisible = getFormString(formData, "leaderboardVisible") === "on";
   const parsed = profileSchema.safeParse({
     displayName: getFormString(formData, "displayName"),
     preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
@@ -260,6 +262,7 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
       preferred_language_code: parsed.data.preferredLanguageCode,
       preferred_ui_locale: parsed.data.preferredUiLocale ?? locale,
       preferred_tier: parsed.data.preferredTier,
+      leaderboard_visible: leaderboardVisible,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -279,6 +282,60 @@ export async function updateProfileAction(_state: AuthActionState, formData: For
     status: "success",
     message: t("auth.message.profileSaved"),
   };
+}
+
+export async function updateLanguagePreferenceAction(
+  update: unknown,
+): Promise<void> {
+  if (
+    !update ||
+    typeof update !== "object" ||
+    !("field" in update) ||
+    !("value" in update) ||
+    typeof update.field !== "string" ||
+    typeof update.value !== "string"
+  ) {
+    return;
+  }
+
+  const supabase = await createActionSupabaseClient();
+
+  if (!supabase) {
+    return;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return;
+  }
+
+  if (update.field === "preferred_language_code") {
+    if (!isLanguageCode(update.value)) {
+      return;
+    }
+
+    await supabase
+      .from("user_profiles")
+      .update({ preferred_language_code: update.value })
+      .eq("user_id", user.id);
+    return;
+  }
+
+  if (update.field !== "preferred_ui_locale") {
+    return;
+  }
+
+  if (!isLocaleCode(update.value)) {
+    return;
+  }
+
+  await supabase
+    .from("user_profiles")
+    .update({ preferred_ui_locale: update.value })
+    .eq("user_id", user.id);
 }
 
 export async function updateProfilePictureAction(profilePictureIndex: number): Promise<AuthActionState> {

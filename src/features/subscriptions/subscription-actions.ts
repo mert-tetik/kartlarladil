@@ -5,7 +5,10 @@ import {
   fetchSubscription,
   getVariantIdForPlan,
 } from "@/features/subscriptions/lemon-squeezy";
-import { verifyGooglePlaySubscription } from "@/features/subscriptions/google-play-service";
+import {
+  expireGooglePlayEntitlementWhenNoPurchase,
+  verifyGooglePlaySubscription,
+} from "@/features/subscriptions/google-play-service";
 import {
   getUserEntitlements,
   getUserSubscriptionManagementSource,
@@ -15,6 +18,7 @@ import { getRequestOrigin } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { SubscriptionPlan, UserEntitlements } from "@/types/domain";
 
 interface EntitlementsActionResult {
@@ -34,6 +38,12 @@ interface CustomerPortalActionResult {
   status: "idle" | "success" | "error";
   message: string;
   customerPortalUrl?: string;
+}
+
+interface LemonCheckoutReservation {
+  reservation_id: string;
+  checkout_url: string | null;
+  should_create: boolean;
 }
 
 async function getSubscriptionActionText() {
@@ -128,21 +138,45 @@ export async function createCheckoutAction(
       };
     }
 
-    const origin = await getRequestOrigin();
     const variantId = getVariantIdForPlan(plan, cycle);
-    const checkoutUrl = await createCheckoutUrl({
-      userId: user.id,
-      email: user.email,
-      variantId,
-      returnUrl: `${origin}/?checkout=success`,
-    });
+    const reservation = await reserveLemonCheckout(user.id, variantId);
+
+    if (reservation.checkout_url) {
+      return {
+        status: "success",
+        message: "",
+        checkoutUrl: reservation.checkout_url,
+      };
+    }
+
+    if (!reservation.should_create) {
+      return {
+        status: "error",
+        message: t("pricing.error.checkoutFailed"),
+      };
+    }
+
+    let checkoutUrl: string;
+    try {
+      const origin = await getRequestOrigin();
+      checkoutUrl = await createCheckoutUrl({
+        userId: user.id,
+        email: user.email,
+        variantId,
+        returnUrl: `${origin}/?checkout=success`,
+      });
+      checkoutUrl = await completeLemonCheckoutReservation(user.id, reservation.reservation_id, checkoutUrl);
+    } catch (error) {
+      await clearLemonCheckoutReservation(user.id, reservation.reservation_id).catch(() => undefined);
+      throw error;
+    }
 
     return {
       status: "success",
       message: "",
       checkoutUrl,
     };
-    } catch {
+  } catch {
     const t = await getSubscriptionActionText();
     return {
       status: "error",
@@ -253,18 +287,31 @@ export async function syncGooglePlayPurchasesAction(
       };
     }
 
+    if (purchases.length === 0) {
+      await expireGooglePlayEntitlementWhenNoPurchase(user.id);
+      const entitlements = await getUserEntitlements(user.id);
+
+      return {
+        status: "success",
+        message: "",
+        data: entitlements,
+      };
+    }
+
     let lastError: Error | null = null;
+    let verificationCount = 0;
 
     for (const purchase of purchases) {
       try {
         await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
+        verificationCount += 1;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         // Continue trying the rest; a stale/expired token should not block active ones.
       }
     }
 
-    if (lastError && purchases.length > 0) {
+    if (lastError && verificationCount === 0) {
       return {
         status: "error",
         message: lastError.message,
@@ -285,6 +332,57 @@ export async function syncGooglePlayPurchasesAction(
       message: t("pricing.error.loadFailed"),
     };
   }
+}
+
+async function reserveLemonCheckout(userId: string, variantId: string): Promise<LemonCheckoutReservation> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("reserve_lemon_checkout", {
+    p_user_id: userId,
+    p_variant_id: variantId,
+  });
+
+  if (error) throw error;
+
+  const reservation = Array.isArray(data) ? data[0] : data;
+  if (
+    !reservation ||
+    typeof reservation.reservation_id !== "string" ||
+    typeof reservation.should_create !== "boolean"
+  ) {
+    throw new Error("Invalid Lemon checkout reservation response.");
+  }
+
+  return reservation as LemonCheckoutReservation;
+}
+
+async function completeLemonCheckoutReservation(
+  userId: string,
+  reservationId: string,
+  checkoutUrl: string,
+): Promise<string> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("complete_lemon_checkout_reservation", {
+    p_user_id: userId,
+    p_reservation_id: reservationId,
+    p_checkout_url: checkoutUrl,
+  });
+
+  if (error) throw error;
+  if (typeof data !== "string" || !data) {
+    throw new Error("Invalid Lemon checkout URL response.");
+  }
+
+  return data;
+}
+
+async function clearLemonCheckoutReservation(userId: string, reservationId: string): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.rpc("clear_lemon_checkout_reservation", {
+    p_user_id: userId,
+    p_reservation_id: reservationId,
+  });
+
+  if (error) throw error;
 }
 
 async function getFreshCustomerPortalUrl(userId: string): Promise<string> {

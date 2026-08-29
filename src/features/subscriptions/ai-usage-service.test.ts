@@ -7,11 +7,13 @@ import {
 
 const mockCount = vi.fn();
 const mockInsert = vi.fn(() => Promise.resolve({ error: null }));
-const mockRpc = vi.fn(() => Promise.resolve({ data: "ok", error: null }));
+const mockRpc = vi.fn<(...args: unknown[]) => Promise<{ data: string | null; error: Error | null }>>(
+  () => Promise.resolve({ data: "ok", error: null }),
+);
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(() =>
-    Promise.resolve({
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(() =>
+    ({
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -82,23 +84,27 @@ describe("recordAiUsageEvent", () => {
     mockRpc.mockClear();
   });
 
-  it("inserts an event with the user, plan and event type", async () => {
+  it("records an event through the server-only atomic RPC", async () => {
     await recordAiUsageEvent("user-1", "free", "chat");
 
-    expect(mockInsert).toHaveBeenCalledWith({
-      user_id: "user-1",
-      event_type: "chat",
-      plan: "free",
+    expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
+      p_user_id: "user-1",
+      p_event_type: "chat",
+      p_plan: "free",
+      p_daily_limit: 10,
+      p_monthly_limit: 200,
     });
   });
 
   it("supports the ask event type", async () => {
     await recordAiUsageEvent("user-1", "basic", "ask");
 
-    expect(mockInsert).toHaveBeenCalledWith({
-      user_id: "user-1",
-      event_type: "ask",
-      plan: "basic",
+    expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
+      p_user_id: "user-1",
+      p_event_type: "ask",
+      p_plan: "basic",
+      p_daily_limit: 30,
+      p_monthly_limit: 900,
     });
   });
 });

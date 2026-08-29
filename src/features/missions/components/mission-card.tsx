@@ -15,14 +15,26 @@ import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data"
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
 
-const MISSION_BUTTON_ASSETS: Record<MissionStatus, string> = {
-  waiting: "/missions/mission-button-claimable.png",
-  claimed: "/missions/mission-button-claimed-v2.png",
-  locked: "/missions/mission-button-locked-v2.png",
-};
+const MISSION_CARD_GRADIENTS = [
+  { top: "#008f6a", bottom: "#14d49a" },
+  { top: "#145de0", bottom: "#35baf5" },
+  { top: "#7b1bd1", bottom: "#c05cff" },
+  { top: "#d41448", bottom: "#ff5577" },
+  { top: "#d97900", bottom: "#ffc928" },
+  { top: "#e74a05", bottom: "#ff972f" },
+] as const;
+
+const MISSION_POINT_TIER_LIMITS = [125, 375] as const;
+
+function getMissionPointTier(amount: number) {
+  if (amount <= MISSION_POINT_TIER_LIMITS[0]) return 1;
+  if (amount <= MISSION_POINT_TIER_LIMITS[1]) return 3;
+  return 5;
+}
 
 interface MissionCardProps {
   missionId: string;
+  index: number;
   type: MissionDefinition["type"];
   requirement: number;
   progress: number;
@@ -36,6 +48,7 @@ interface MissionCardProps {
 
 export function MissionCard({
   missionId,
+  index,
   type,
   requirement,
   progress,
@@ -55,7 +68,7 @@ export function MissionCard({
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
   const isClickable = (isWaiting && !claiming) || isLocked;
-  const buttonAsset = MISSION_BUTTON_ASSETS[status];
+  const gradient = MISSION_CARD_GRADIENTS[index % MISSION_CARD_GRADIENTS.length];
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
   const descriptionDisplay = canUseSuperWater(locale)
     ? formatSuperWaterText(locale, description)
@@ -115,93 +128,75 @@ export function MissionCard({
       onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect())}
       onKeyDown={handleKeyDown}
       style={{
-        aspectRatio: "1144 / 290",
-        backgroundImage: `url("${buttonAsset}")`,
+        aspectRatio: "4 / 5",
+        backgroundImage: isClaimed
+          ? "linear-gradient(180deg, #303030 0%, #171717 100%)"
+          : `linear-gradient(180deg, ${gradient.top} 0%, ${gradient.top} 42%, ${gradient.bottom} 100%)`,
       }}
       className={cn(
-        "relative flex items-center gap-3 rounded-2xl border-0 bg-center bg-[length:100%_100%] bg-no-repeat px-[8%] py-3 shadow-none transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand",
-        isLocked && "text-foreground",
-        isWaiting && "text-white",
-        isClaimed && "text-white",
+        "relative flex min-w-0 flex-col overflow-visible border border-white/15 px-3 py-3 text-center text-white shadow-none transition-transform duration-300 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-white",
+        isClaimed && "mission-card--claimed",
         canUseSuperWater(locale) && "font-super-water",
         isClickable && "cursor-pointer active:scale-[0.98]",
         claiming && "cursor-wait opacity-90",
       )}
     >
-      <div className="relative flex size-12 shrink-0 items-center justify-center">
+      {isWaiting ? <span aria-hidden="true" data-mission-card-shine className="mission-card-shine" /> : null}
+
+      <div className="relative z-10 flex min-h-[3.25rem] items-center justify-center px-1 text-center">
+        <p className="line-clamp-2 text-[0.86rem] font-bold leading-tight text-white">
+          {descriptionDisplay}
+        </p>
+      </div>
+
+      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center py-3">
         {isWaiting && (
           <div
-            className="pointer-events-none absolute -top-[3.05rem] left-1/2 z-20 -translate-x-1/2 animate-mission-claim-bubble-pulse"
-            style={{ left: "calc(50% + 2.75rem)" }}
+            className="pointer-events-none absolute -top-1 left-[calc(50%+5rem)] z-30 -translate-x-1/2 animate-mission-claim-bubble-pulse"
           >
             <div
               className={cn(
                 "relative flex aspect-square w-[3.5rem] items-center justify-center bg-contain bg-center bg-no-repeat",
                 canUseSuperWater(locale) && "font-super-water",
               )}
-              style={{ backgroundImage: 'url("/missions/mission-claim-bubble-check-v3.png")' }}
+              style={{ backgroundImage: 'url("/missions/mission-claim-bubble-check-v4.png")' }}
             />
           </div>
         )}
 
         <div
           className={cn(
-            "transition-transform",
+            "flex items-center justify-center transition-transform duration-300",
             isWaiting && !claiming && "animate-mission-reward-wiggle",
-            isLocked && "opacity-50",
           )}
         >
           {reward.kind === "chest" ? (
-            <ChestIcon tier={reward.tier} hideLid={isClaimed} />
+            <ChestIcon tier={reward.tier} hideLid={isClaimed} className="size-[6.25rem] drop-shadow-sm" />
           ) : (
-            <ScoreIcon size={40} className="h-10 w-auto" />
+            <div className="flex flex-col items-center justify-center gap-1">
+              <PointsRewardStack tier={getMissionPointTier(reward.amount)} />
+              <span className="text-xl font-bold leading-none text-white">+{reward.amount}</span>
+            </div>
           )}
         </div>
 
         {isLocked ? (
-          <div className="absolute inset-0 z-20 flex items-center justify-center drop-shadow-sm">
+          <div className="absolute inset-0 z-30 flex items-center justify-center drop-shadow-sm">
             <Image
-              src="/missions/mission-lock-icon.png"
+              src="/missions/mission-lock-icon-v3.png"
               alt=""
-              width={36}
-              height={50}
-              className="h-10 w-auto object-contain"
+              width={128}
+              height={128}
+              className="h-[8rem] w-auto object-contain"
               aria-hidden="true"
             />
           </div>
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="mx-auto flex w-[94%] items-center justify-between gap-2">
-          <p
-            className={cn(
-              "truncate text-sm font-bold",
-              isLocked ? "text-white" : "text-current",
-            )}
-          >
-            {descriptionDisplay}
-          </p>
-          {reward.kind === "points" ? (
-            <div
-              className={cn(
-                "shrink-0 flex items-center gap-1.5 text-sm font-bold",
-                isLocked ? "text-white/90" : "text-white",
-              )}
-            >
-              <span>{reward.amount}</span>
-              <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="ml-0 mr-auto flex w-[92%] flex-col gap-1">
-          <div
-            className={cn(
-              "flex items-center justify-between text-xs font-semibold",
-              isLocked ? "text-white/85" : "text-white/90",
-            )}
-          >
+      <div className="relative z-10 flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-1.5 pt-1">
+          <div className="flex items-center justify-between text-[0.68rem] font-bold text-white/90">
             <span>
               {progress}/{requirement}
             </span>
@@ -210,13 +205,51 @@ export function MissionCard({
           <Progress
             value={progressPercent}
             className={cn(
-              "h-2",
-              isLocked ? "bg-black/45 [&>div]:bg-brand" : "[&>div]:bg-white bg-white/30",
+              "h-2 bg-black/20 [&>div]:bg-white",
+              isLocked && "bg-black/40 [&>div]:bg-white/85",
             )}
             aria-label={t("missions.progressLabel", { progress, requirement })}
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function PointsRewardStack({ tier }: { tier: number }) {
+  return (
+    <div
+      data-mission-point-stack
+      data-mission-point-tier={tier}
+      className="relative h-[6.25rem] w-[9.75rem]"
+      aria-label={`${tier} point tier`}
+    >
+      {Array.from({ length: tier }, (_, index) => {
+        const isFirst = index === 0;
+        const side = index % 2 === 1 ? -1 : 1;
+        const sideLayer = Math.ceil(index / 2);
+        const horizontalSpacing = tier === 5 ? 1.75 : 0.85;
+        const horizontalOffset = isFirst ? 0 : side * (1.35 + (sideLayer - 1) * horizontalSpacing);
+        const verticalOffset = 0.75 - Math.min(index * 0.28, 1.1);
+        const scale = Math.max(0.56, 1 - index * 0.12);
+        const rotation = isFirst ? 0 : side * (5 + sideLayer * 2);
+
+        return (
+          <span
+            key={index}
+            className="absolute size-[4.85rem] drop-shadow-sm"
+            style={{
+              left: `calc(50% + ${horizontalOffset}rem)`,
+              top: `${verticalOffset}rem`,
+              transform: `translateX(-50%) scale(${scale}) rotate(${rotation}deg)`,
+              transformOrigin: "50% 50%",
+              zIndex: tier - index,
+            }}
+          >
+            <ScoreIcon size={78} className="size-full" />
+          </span>
+        );
+      })}
     </div>
   );
 }

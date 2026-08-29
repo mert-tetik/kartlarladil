@@ -53,6 +53,7 @@ function normalizeClientProfile(row: {
   chest_points: number | null;
   streak_points: number | null;
   mission_points: number | null;
+  quiz_result_points: number | null;
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
   profile_picture_index: number | null;
@@ -77,6 +78,7 @@ function normalizeClientProfile(row: {
     chestPoints: row.chest_points ?? 0,
     streakPoints: row.streak_points ?? 0,
     missionPoints: row.mission_points ?? 0,
+    quizResultPoints: row.quiz_result_points ?? 0,
     pushMarketingEnabled: row.push_marketing_enabled ?? false,
     leaderboardVisible: row.leaderboard_visible ?? false,
     profilePictureIndex:
@@ -136,7 +138,7 @@ export function AuthSessionProvider({
 
     const { data, error } = await client
       .from("user_profiles")
-      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, profile_picture_index")
+      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, push_marketing_enabled, leaderboard_visible, profile_picture_index")
       .eq("user_id", session.user.id)
       .maybeSingle();
 

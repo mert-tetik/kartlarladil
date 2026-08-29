@@ -1,7 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LeaderboardPayload } from "@/features/leaderboard/leaderboard-types";
+import {
+  applyLeaderboardConsentTestMode,
+  useLeaderboardConsentTestMode,
+} from "@/features/leaderboard/leaderboard-consent-test-mode";
 import { LEADERBOARD_REFRESH_EVENT } from "@/features/leaderboard/leaderboard-refresh";
 
 let leaderboardCache: LeaderboardPayload | null = null;
@@ -13,6 +17,7 @@ export function useLeaderboardData({
   enabled?: boolean;
   refreshOnMount?: boolean;
 } = {}) {
+  const leaderboardConsentTestMode = useLeaderboardConsentTestMode();
   const [data, setData] = useState<LeaderboardPayload | null>(leaderboardCache);
   const [loading, setLoading] = useState(enabled && !leaderboardCache);
   const [error, setError] = useState("");
@@ -78,8 +83,13 @@ export function useLeaderboardData({
     };
   }, [fetchLeaderboard]);
 
+  const displayedData = useMemo(
+    () => applyLeaderboardConsentTestMode(data, leaderboardConsentTestMode),
+    [data, leaderboardConsentTestMode],
+  );
+
   return {
-    data,
+    data: displayedData,
     loading,
     error,
     refresh,

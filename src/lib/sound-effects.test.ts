@@ -4,7 +4,8 @@ import { playSoundEffect, SOUND_EFFECT_SYNTHESIZERS, type SoundEffectName } from
 const EFFECT_NAMES: SoundEffectName[] = [
   "correct",
   "incorrect",
-  "rank-up",
+  "rank-up-opening",
+  "rank-up-reveal",
   "points",
   "learned",
   "confetti",

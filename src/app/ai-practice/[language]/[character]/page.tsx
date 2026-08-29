@@ -7,6 +7,7 @@ import {
   getCharacterName,
   getRandomOpeningLine,
 } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeScenario, getScenarioOpeningLine, getScenarioTitle } from "@/features/ai-practice/ai-practice-scenarios";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
@@ -26,12 +27,16 @@ export async function generateMetadata({ params }: AiPracticeChatPageProps): Pro
   const t = createTranslator(locale);
   const languageName = isLanguageCode(rawLanguage) ? getLanguageDisplayName(rawLanguage, locale) : undefined;
   const character = getAiPracticeCharacter(characterId);
+  const scenario = character ? null : getAiPracticeScenario(characterId);
+  const resolvedCharacter = character ?? (scenario ? getAiPracticeCharacter(scenario.characterId) : null);
   const characterName =
-    character && isLanguageCode(rawLanguage) ? getCharacterName(character, rawLanguage) : undefined;
+    resolvedCharacter && isLanguageCode(rawLanguage) ? getCharacterName(resolvedCharacter, rawLanguage) : undefined;
 
   return buildMetadata({
     locale,
-    title: characterName
+    title: scenario && characterName
+      ? `${getScenarioTitle(scenario, locale)} - ${languageName ?? t("page.aiPractice.title")}`
+      : characterName
       ? `${characterName} — ${languageName ?? t("page.aiPractice.title")}`
       : t("page.aiPractice.title"),
     description: t("page.aiPractice.description"),
@@ -49,16 +54,27 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
 
   await requireAuthUser(`/ai-practice/${rawLanguage}/${characterId}`);
 
-  const character = getAiPracticeCharacter(characterId);
+  const rawSearchParams = await searchParams;
+  const isScenarioMode = rawSearchParams.mode === "scenario";
+  const scenario = isScenarioMode ? getAiPracticeScenario(characterId) : null;
+  const character = scenario
+    ? getAiPracticeCharacter(scenario.characterId)
+    : getAiPracticeCharacter(characterId);
+
+  if (isScenarioMode && !scenario) {
+    redirect(`/ai-practice/${rawLanguage}`);
+  }
 
   if (!character) {
     redirect(`/ai-practice/${rawLanguage}`);
   }
 
-  const { tier: rawTier } = await searchParams;
+  const { tier: rawTier } = rawSearchParams;
   const tier: Tier =
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
-  const initialOpeningLine = getRandomOpeningLine(character, rawLanguage);
+  const initialOpeningLine = scenario
+    ? getScenarioOpeningLine(scenario, rawLanguage)
+    : getRandomOpeningLine(character, rawLanguage);
 
   return (
     <section className="h-full w-full px-0 py-0" data-ai-practice-chat-page>
@@ -67,6 +83,7 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
         initialOpeningLine={initialOpeningLine}
         language={rawLanguage}
         tier={tier}
+        scenario={scenario ?? undefined}
       />
     </section>
   );

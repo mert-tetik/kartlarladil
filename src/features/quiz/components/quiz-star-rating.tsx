@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
@@ -10,6 +10,7 @@ interface QuizStarRatingProps {
   rating: number;
   max?: number;
   className?: string;
+  onRevealComplete?: () => void;
 }
 
 const ARC_OFFSETS = [
@@ -33,10 +34,20 @@ const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
 const STAR_IMAGE_SRC = "/quiz/result-cards/star.png";
 
-export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingProps) {
+export function QuizStarRating({
+  rating,
+  max = 5,
+  className,
+  onRevealComplete,
+}: QuizStarRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
   const [ready, setReady] = useState(false);
   const [showEmpty, setShowEmpty] = useState(clampedRating === 0);
+  const onRevealCompleteRef = useRef(onRevealComplete);
+
+  useEffect(() => {
+    onRevealCompleteRef.current = onRevealComplete;
+  }, [onRevealComplete]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setReady(true), PANEL_REVEAL_DELAY_MS);
@@ -47,7 +58,10 @@ export function QuizStarRating({ rating, max = 5, className }: QuizStarRatingPro
     if (clampedRating === 0) return;
     const lastFilledIndex = clampedRating - 1;
     const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * STAGGER_MS + DROP_DURATION_MS;
-    const timer = window.setTimeout(() => setShowEmpty(true), revealAt);
+    const timer = window.setTimeout(() => {
+      setShowEmpty(true);
+      onRevealCompleteRef.current?.();
+    }, revealAt);
     return () => window.clearTimeout(timer);
   }, [clampedRating]);
 

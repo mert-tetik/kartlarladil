@@ -49,7 +49,7 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
   return (
     <div
       className={cn(
-        "flex h-full w-full flex-1 items-center justify-center bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 p-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "flex h-full w-full flex-1 items-center justify-center bg-gradient-to-br from-[var(--reward-start)] via-[var(--reward-end)] to-[var(--accent-primary)] p-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
         visible ? "scale-100 opacity-100" : "scale-[1.025] opacity-0",
       )}
       data-chest-celebration-view

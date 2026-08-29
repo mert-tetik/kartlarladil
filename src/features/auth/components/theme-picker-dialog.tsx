@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Lock, Palette, X } from "lucide-react";
+import Image from "next/image";
+import { Palette, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { useTheme } from "@/components/theme-provider";
@@ -13,7 +14,7 @@ import { SubscriptionRestrictionSurface } from "@/features/subscriptions/compone
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import { THEMES, isPaidPlan, isThemePaid, type ThemeDefinition } from "@/lib/themes";
+import { THEME_SWATCH_KEYS, THEMES, isPaidPlan, isThemePaid, type ThemeDefinition } from "@/lib/themes";
 
 interface ThemePickerDialogProps {
   open: boolean;
@@ -28,7 +29,9 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   const [upgradeMounted, setUpgradeMounted] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const themeSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const latestThemeSaveIdRef = useRef(0);
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
 
@@ -87,15 +90,30 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
       return;
     }
 
+    setTheme(themeId);
+    const saveId = latestThemeSaveIdRef.current + 1;
+    latestThemeSaveIdRef.current = saveId;
     setPendingId(themeId);
     startTransition(async () => {
-      const result = await updateThemeAction(themeId);
+      const saveTask = themeSaveQueueRef.current
+        .catch(() => undefined)
+        .then(() => updateThemeAction(themeId))
+        .then(() => undefined);
 
-      if (result.status === "success") {
-        setTheme(themeId);
+      themeSaveQueueRef.current = saveTask;
+
+      try {
+        await Promise.race([
+          saveTask,
+          new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 8_000)),
+        ]);
+      } catch {
+        // Keep the optimistic theme visible even if persistence fails.
+      } finally {
+        if (latestThemeSaveIdRef.current === saveId) {
+          setPendingId(null);
+        }
       }
-
-      setPendingId(null);
     });
   }
 
@@ -134,7 +152,6 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
             selectedThemeId={theme.id}
             isPaidUser={isPaidUser}
             pendingId={pendingId}
-            disabled={isPending}
             onSelect={handleSelect}
             className="mt-6"
           />
@@ -155,7 +172,6 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
           selectedThemeId={theme.id}
           isPaidUser={isPaidUser}
           pendingId={pendingId}
-          disabled={isPending}
           onSelect={handleSelect}
         />
       </MobileBottomSheetShell>
@@ -206,7 +222,6 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
           </SubscriptionRestrictionSurface>
         </div>
       ) : null}
-      <LoadingOverlay show={isPending} />
     </>,
     document.body,
   );
@@ -231,19 +246,17 @@ function ThemeGrid({
   selectedThemeId,
   isPaidUser,
   pendingId,
-  disabled,
   onSelect,
   className,
 }: {
   selectedThemeId: string;
   isPaidUser: boolean;
   pendingId: string | null;
-  disabled: boolean;
   onSelect: (themeId: string) => void;
   className?: string;
 }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3", className)}>
+    <div className={cn("grid grid-cols-2 gap-3", className)}>
       {THEMES.map((item) => (
         <ThemeButton
           key={item.id}
@@ -251,7 +264,6 @@ function ThemeGrid({
           selected={selectedThemeId === item.id}
           locked={isThemePaid(item.id) && !isPaidUser}
           pending={pendingId === item.id}
-          disabled={disabled}
           onSelect={onSelect}
         />
       ))}
@@ -264,56 +276,59 @@ interface ThemeButtonProps {
   selected: boolean;
   locked: boolean;
   pending: boolean;
-  disabled: boolean;
   onSelect: (themeId: string) => void;
 }
 
-function ThemeButton({ item, selected, locked, pending, disabled, onSelect }: ThemeButtonProps) {
-  const t = useT();
-  const isDark = item.mode === "dark";
-
+function ThemeButton({ item, selected, locked, pending, onSelect }: ThemeButtonProps) {
   return (
     <button
       type="button"
+      aria-label={item.name}
       onClick={() => onSelect(item.id)}
-      disabled={disabled}
+      style={{
+        backgroundColor: item.palette.backgroundCard,
+        borderColor: selected ? item.palette.brand : item.palette.border,
+        color: item.palette.foreground,
+      }}
       className={cn(
-        "relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
-        selected ? "border-brand ring-1 ring-brand" : isDark ? "border-slate-800 hover:border-brand" : "border-slate-200 hover:border-brand",
-        isDark ? "bg-black" : "bg-white",
+        "group relative flex min-w-0 w-full aspect-square flex-col overflow-hidden rounded-2xl border p-0 text-left transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        selected ? "ring-2 ring-brand/35" : "hover:-translate-y-0.5 hover:shadow-sm",
         pending && "opacity-70",
       )}
     >
-      <span
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full shadow-sm"
-        style={{ backgroundColor: item.brand, color: item.brandForeground }}
-      >
-        {locked ? <Lock className="size-3.5" aria-hidden="true" /> : null}
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-sm font-semibold", isDark ? "text-white" : "text-slate-900")}>
+      <span className="flex w-full shrink-0 items-center justify-between gap-2 px-3 pt-3">
+        <span className="truncate text-[10px] font-semibold uppercase tracking-wider" style={{ color: item.palette.foregroundSecondary }}>
           {item.name}
         </span>
-        <span className={cn("block text-xs", isDark ? "text-slate-300" : "text-slate-500")}>
-          {isDark ? t("theme.dark") : t("theme.light")}
-        </span>
       </span>
 
-      {selected ? <span className="size-2 shrink-0 rounded-full bg-brand" aria-hidden="true" /> : null}
-    </button>
-  );
-}
+      <span
+        className="mx-2 mt-2 flex min-h-0 flex-[3] w-[calc(100%-1rem)] shrink items-center justify-center shadow-sm transition-[filter,transform] duration-200 group-hover:brightness-105 group-hover:scale-[1.01]"
+        style={{ backgroundColor: item.palette.brand, color: item.palette.brandForeground }}
+      >
+        {locked ? (
+          <Image
+            src="/missions/mission-lock-icon-v3.png"
+            alt=""
+            width={56}
+            height={56}
+            className="h-14 w-auto object-contain"
+            aria-hidden="true"
+          />
+        ) : selected ? (
+          <span className="size-3 rounded-full bg-current" aria-hidden="true" />
+        ) : null}
+      </span>
 
-function LoadingOverlay({ show }: { show: boolean }) {
-  return (
-    <div
-      className={cn(
-        "fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300",
-        show ? "opacity-100" : "pointer-events-none opacity-0",
-      )}
-    >
-      <div className="size-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
-    </div>
+      <span className="mx-2 mb-2 flex min-h-0 w-[calc(100%-1rem)] flex-1 overflow-hidden" aria-hidden="true">
+        {THEME_SWATCH_KEYS.map((key) => (
+          <span
+            key={key}
+            className="min-w-0 flex-1 first:rounded-bl-lg last:rounded-br-lg"
+            style={{ backgroundColor: item.palette[key] }}
+          />
+        ))}
+      </span>
+    </button>
   );
 }

@@ -439,8 +439,8 @@ function MobileSectionBlock({
 }) {
   const t = useT();
   const isActive = variant === "active";
-  const barClass = isActive ? "bg-emerald-500" : "bg-sky-500";
-  const buttonTextClass = isActive ? "text-emerald-500" : "text-sky-500";
+  const barClass = isActive ? "bg-action-learn" : "bg-action-learned";
+  const buttonTextClass = isActive ? "text-action-learn" : "text-action-learned";
 
   return (
     <div

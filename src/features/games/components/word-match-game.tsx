@@ -14,8 +14,9 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { TIER_STYLES } from "@/data/tiers";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import {
   buildLevelConfig,
   getHighestTierForLevel,
@@ -51,6 +52,7 @@ interface LineDef {
 
 export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
   const t = useT();
+  const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const { entitlements } = useSubscription();
   const sounds = useGameSounds();
@@ -289,6 +291,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
     [items],
   );
   const totalPairs = config.cardCount;
+  const superWaterFont = canUseSuperWater(locale);
   const progressLabel = t("games.wordMatch.progress", {
     matched: matchedCount,
     total: totalPairs,
@@ -355,8 +358,8 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               ref={boardRef}
               className="relative z-10 flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4"
             >
-              <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
-                {t("games.wordMatch.termColumn")}
+              <h3 className={cn("text-center text-xs font-bold uppercase tracking-wider text-white", superWaterFont && "font-super-water")}>
+                {formatSuperWaterText(locale, t("games.wordMatch.termColumn")).toLocaleUpperCase("en-US")}
               </h3>
               <div className="flex flex-1 flex-col justify-center gap-2">
                 {termItems.map((item) => (
@@ -373,8 +376,8 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
             </div>
 
             <div className="relative z-10 flex flex-1 flex-col gap-2 overflow-y-auto py-2 max-sm:gap-4">
-              <h3 className="text-center text-xs font-bold uppercase tracking-wider text-foreground-muted">
-                {t("games.wordMatch.meaningColumn")}
+              <h3 className={cn("text-center text-xs font-bold uppercase tracking-wider text-white", superWaterFont && "font-super-water")}>
+                {formatSuperWaterText(locale, t("games.wordMatch.meaningColumn")).toLocaleUpperCase("en-US")}
               </h3>
               <div className="flex flex-1 flex-col justify-center gap-2">
                 {meaningItems.map((item) => (

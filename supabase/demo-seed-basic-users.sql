@@ -222,6 +222,7 @@ upsert_profiles as (
     chest_points,
     streak_points,
     mission_points,
+    quiz_result_points,
     push_marketing_enabled,
     leaderboard_visible,
     theme,
@@ -239,6 +240,7 @@ upsert_profiles as (
     chest_points,
     streak_points,
     mission_points,
+    0,
     false,
     true,
     theme,
@@ -256,6 +258,7 @@ upsert_profiles as (
     chest_points = excluded.chest_points,
     streak_points = excluded.streak_points,
     mission_points = excluded.mission_points,
+    quiz_result_points = excluded.quiz_result_points,
     push_marketing_enabled = excluded.push_marketing_enabled,
     leaderboard_visible = excluded.leaderboard_visible,
     theme = excluded.theme,
@@ -512,6 +515,7 @@ select
   chest_points,
   streak_points,
   mission_points,
+  0 as quiz_result_points,
   learned_budget
 from seed_users
 order by user_index;

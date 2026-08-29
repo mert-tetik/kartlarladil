@@ -4,6 +4,7 @@ import { isLanguageCode } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { AiPracticeCharacterSelection } from "@/features/ai-practice/components/ai-practice-character-selection";
+import type { AiPracticeMode } from "@/features/ai-practice/ai-practice-scenarios";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -47,9 +48,10 @@ export default async function AiPracticeCharacterSelectionPage({
   const locale = await getServerLocale();
   const t = createTranslator(locale);
 
-  const { tier: rawTier } = await searchParams;
+  const { tier: rawTier, mode: rawMode } = await searchParams;
   const tier: Tier =
     typeof rawTier === "string" && (TIERS as readonly string[]).includes(rawTier) ? (rawTier as Tier) : "A1";
+  const initialMode: AiPracticeMode = rawMode === "scenario" ? "scenario" : "character";
 
   return (
     <section className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-7xl flex-col px-4 py-6 max-lg:h-full max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-hidden max-lg:px-0 max-lg:py-4 sm:px-6 lg:px-8">
@@ -61,7 +63,12 @@ export default async function AiPracticeCharacterSelectionPage({
         </div>
 
         <div className="mt-3 flex min-h-0 flex-1 overflow-hidden">
-          <AiPracticeCharacterSelection language={rawLanguage} locale={locale} tier={tier} />
+          <AiPracticeCharacterSelection
+            language={rawLanguage}
+            locale={locale}
+            tier={tier}
+            initialMode={initialMode}
+          />
         </div>
       </div>
     </section>

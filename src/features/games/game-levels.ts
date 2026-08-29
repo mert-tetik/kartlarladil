@@ -83,7 +83,7 @@ export function getLevelTimeLimit(level: number, game: GameName): number {
   if (game === "wordMatch") {
     return 30;
   }
-  return getWordChallengeQuestionCountForLevel(level) * 2;
+  return getWordChallengeQuestionCountForLevel(level) * 3;
 }
 
 export function buildLevelConfig(

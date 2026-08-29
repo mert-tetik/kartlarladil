@@ -36,8 +36,6 @@ export function MobileCustomCardLanguagePicker({
   } | null>(null);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const showTransliterationHint = usesNonLatinWritingSystem(value);
-
   function updateAnchor() {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -52,7 +50,7 @@ export function MobileCustomCardLanguagePicker({
   }
 
   useEffect(() => {
-    if (!open && !showTransliterationHint) return;
+    if (!open) return;
 
     const frame = window.requestAnimationFrame(updateAnchor);
 
@@ -76,7 +74,7 @@ export function MobileCustomCardLanguagePicker({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [open, showTransliterationHint]);
+  }, [open]);
 
   function selectLanguage(nextValue: LanguageCode) {
     onChange(nextValue);
@@ -107,22 +105,6 @@ export function MobileCustomCardLanguagePicker({
     )
     : null;
 
-  const transliterationHint = showTransliterationHint && anchor && typeof document !== "undefined"
-    ? createPortal(
-      <p
-        className="pointer-events-none fixed z-[111] max-w-[calc(100vw-1.5rem)] rounded-lg bg-black/75 px-3 py-2 text-center text-xs leading-5 text-white shadow-lg"
-        style={{
-          bottom: anchor.bottom + (open ? anchor.maxMenuHeight + 10 : 0),
-          left: anchor.left,
-          width: anchor.width,
-        }}
-      >
-        {t("createCard.targetLanguage.transliterationHint", { language: languageName })}
-      </p>,
-      document.body,
-    )
-    : null;
-
   return (
     <div ref={triggerRef} className="relative">
       <button
@@ -140,7 +122,6 @@ export function MobileCustomCardLanguagePicker({
         <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-180")} />
       </button>
       {dropdown}
-      {transliterationHint}
     </div>
   );
 }

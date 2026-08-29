@@ -51,7 +51,7 @@ describe("MissionRewardOverlay", () => {
   it("unmounts the chest reward overlay after the child flow completes", () => {
     const onComplete = vi.fn();
 
-    const { container } = render(
+    render(
       <LocaleProvider initialLocale="en">
         <MissionRewardOverlay
           mode={{ kind: "chest", tier: CHEST_TIERS[0] }}
@@ -60,13 +60,17 @@ describe("MissionRewardOverlay", () => {
       </LocaleProvider>,
     );
 
-    fireEvent.click(container.querySelector("[data-chest-opening-view-mock]")!);
+    const overlay = document.body.querySelector("[data-mission-reward-overlay]");
+    expect(overlay).toHaveClass("fixed", "inset-0", "bg-background");
+    expect(overlay).not.toHaveClass("backdrop-blur-md");
+
+    fireEvent.click(document.body.querySelector("[data-chest-opening-view-mock]")!);
 
     act(() => {
       vi.advanceTimersByTime(600);
     });
 
     expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(container.querySelector("[data-mission-reward-overlay]")).not.toBeInTheDocument();
+    expect(document.body.querySelector("[data-mission-reward-overlay]")).not.toBeInTheDocument();
   });
 });

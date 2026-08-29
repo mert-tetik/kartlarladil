@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
 import { MISSIONS_BY_ID } from "./missions-data";
@@ -8,12 +9,27 @@ import { buildMissionViewModels } from "./mission-progress";
 import type {
   MissionProgressSnapshot,
   MissionReward,
+  MissionRewardOverrides,
   UserMission,
 } from "./mission-types";
 
 interface DbUserMission {
   mission_id: string;
   claimed_at: string | null;
+}
+
+interface DbMissionReward {
+  mission_id: string;
+  reward_type: "chest" | "points";
+  chest_tier: ChestTier | null;
+  points: number;
+  created_at: string;
+}
+
+interface DbMissionClaimResult {
+  claimed: boolean;
+  mission_points: number | null;
+  chest_points: number | null;
 }
 
 export interface ListMissionsResult {
@@ -70,6 +86,45 @@ async function fetchClaimedMissionIds(
   return new Set((data ?? []).map((row) => row.mission_id));
 }
 
+async function fetchMissionRewardOverrides(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  claimedMissionIds: Set<string>,
+): Promise<MissionRewardOverrides> {
+  if (claimedMissionIds.size === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from("mission_rewards")
+    .select("mission_id, reward_type, chest_tier, points, created_at")
+    .eq("user_id", userId)
+    .in("mission_id", Array.from(claimedMissionIds))
+    .order("created_at", { ascending: false })
+    .returns<DbMissionReward[]>();
+
+  if (error) {
+    throw error;
+  }
+
+  const overrides = new Map<string, MissionReward>();
+
+  for (const row of data ?? []) {
+    if (overrides.has(row.mission_id)) continue;
+
+    if (row.reward_type === "points" && Number.isFinite(row.points) && row.points >= 0) {
+      overrides.set(row.mission_id, { kind: "points", amount: row.points });
+      continue;
+    }
+
+    if (row.reward_type === "chest" && row.chest_tier && getChestRewardPoints(row.chest_tier) > 0) {
+      overrides.set(row.mission_id, { kind: "chest", tier: row.chest_tier });
+    }
+  }
+
+  return overrides;
+}
+
 async function fetchCloudMissionSnapshot(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
@@ -91,6 +146,24 @@ async function fetchCloudMissionSnapshot(
   };
 }
 
+async function fetchMissionData(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  clientSnapshot: MissionProgressSnapshot,
+): Promise<{
+  snapshot: MissionProgressSnapshot;
+  claimedIds: Set<string>;
+  rewardOverrides: MissionRewardOverrides;
+}> {
+  const [snapshot, claimedIds] = await Promise.all([
+    fetchCloudMissionSnapshot(supabase, userId, clientSnapshot),
+    fetchClaimedMissionIds(supabase, userId),
+  ]);
+  const rewardOverrides = await fetchMissionRewardOverrides(supabase, userId, claimedIds);
+
+  return { snapshot, claimedIds, rewardOverrides };
+}
+
 export async function listUserMissionsAction(
   clientSnapshot: MissionProgressSnapshot,
 ): Promise<ListMissionsResult> {
@@ -106,14 +179,15 @@ export async function listUserMissionsAction(
     }
 
     const { userId, supabase } = authed;
-    const [snapshot, claimedIds] = await Promise.all([
-      fetchCloudMissionSnapshot(supabase, userId, clientSnapshot),
-      fetchClaimedMissionIds(supabase, userId),
-    ]);
+    const { snapshot, claimedIds, rewardOverrides } = await fetchMissionData(
+      supabase,
+      userId,
+      clientSnapshot,
+    );
 
     return {
       status: "success",
-      missions: buildMissionViewModels(snapshot, claimedIds),
+      missions: buildMissionViewModels(snapshot, claimedIds, rewardOverrides),
     };
   } catch (error) {
     console.error("listUserMissionsAction failed:", error);
@@ -136,7 +210,7 @@ export async function claimMissionRewardAction(
       return { status: "error", message: "auth_required" };
     }
 
-    const { userId, supabase } = authed;
+    const { userId } = authed;
     if (expectedUserId && expectedUserId !== userId) {
       return { status: "error", message: "auth_required" };
     }
@@ -146,122 +220,45 @@ export async function claimMissionRewardAction(
       return { status: "error", message: "invalid_mission" };
     }
 
-    const { data: row, error: fetchError } = await supabase
-      .from("user_missions")
-      .select("status")
-      .eq("user_id", userId)
-      .eq("mission_id", missionId)
-      .maybeSingle<{ status: string }>();
-
-    if (fetchError) {
-      throw fetchError;
-    }
-
-    if (row?.status === "claimed") {
-      return { status: "error", message: "mission_already_claimed" };
-    }
-
     const reward = mission.reward;
-    const now = new Date().toISOString();
-
-    if (reward.kind === "points") {
-      const [{ error: updateError }, { error: rewardError }] = await Promise.all([
-        supabase.rpc("increment_mission_points", {
-          p_user_id: userId,
-          p_points: reward.amount,
-        }),
-        supabase.from("mission_rewards").insert({
-          user_id: userId,
-          mission_id: missionId,
-          reward_type: "points",
-          points: reward.amount,
-        }),
-      ]);
-
-      if (updateError) throw updateError;
-      if (rewardError) throw rewardError;
-    } else {
-      const points = getChestRewardPoints(reward.tier);
-
-      if (points <= 0) {
-        return { status: "error", message: "invalid_chest_reward" };
-      }
-
-      const [
-        { error: chestIncError },
-        { error: chestRewardError },
-        { error: missionRewardError },
-      ] = await Promise.all([
-        supabase.rpc("increment_chest_points", {
-          p_user_id: userId,
-          p_points: points,
-        }),
-        supabase.from("chest_rewards").insert({
-          user_id: userId,
-          tier: reward.tier,
-          points,
-        }),
-        supabase.from("mission_rewards").insert({
-          user_id: userId,
-          mission_id: missionId,
-          reward_type: "chest",
-          chest_tier: reward.tier,
-          points,
-        }),
-      ]);
-
-      if (chestIncError) {
-        console.error("increment_chest_points failed:", chestIncError);
-        throw chestIncError;
-      }
-
-      if (chestRewardError) {
-        console.error("chest_rewards insert failed:", chestRewardError);
-        throw chestRewardError;
-      }
-
-      if (missionRewardError) {
-        console.error("mission_rewards insert failed:", missionRewardError);
-        throw missionRewardError;
-      }
+    const points = reward.kind === "chest" ? getChestRewardPoints(reward.tier) : reward.amount;
+    if (points <= 0) {
+      return { status: "error", message: reward.kind === "chest" ? "invalid_chest_reward" : "invalid_points_reward" };
     }
 
-    const { error: upsertError } = await supabase
-      .from("user_missions")
-      .upsert(
-        {
-          user_id: userId,
-          mission_id: missionId,
-          progress: mission.requirement,
-          status: "claimed",
-          claimed_at: now,
-          updated_at: now,
-        },
-        { onConflict: "user_id,mission_id" },
-      );
+    const adminSupabase = createSupabaseAdminClient();
+    const { data, error } = await adminSupabase
+      .rpc("claim_mission_reward", {
+        p_user_id: userId,
+        p_mission_id: missionId,
+        p_reward_type: reward.kind,
+        p_chest_tier: reward.kind === "chest" ? reward.tier : null,
+        p_points: points,
+        p_progress: mission.requirement,
+      })
+      .maybeSingle<DbMissionClaimResult>();
 
-    if (upsertError) {
-      throw upsertError;
+    if (error) {
+      throw error;
+    }
+
+    const claim = data;
+    if (!claim) {
+      throw new Error("mission_claim_empty");
+    }
+
+    if (!claim.claimed) {
+      return { status: "error", message: "mission_already_claimed" };
     }
 
     revalidateMissionPaths();
 
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
-      .select("mission_points, chest_points")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (profileError) {
-      throw profileError;
-    }
-
     return {
       status: "success",
       reward,
-      points: reward.kind === "chest" ? getChestRewardPoints(reward.tier) : reward.amount,
-      missionPoints: profile?.mission_points ?? 0,
-      chestPoints: profile?.chest_points ?? 0,
+      points,
+      missionPoints: claim.mission_points ?? 0,
+      chestPoints: claim.chest_points ?? 0,
       ...(reward.kind === "chest" ? { chestTier: reward.tier } : {}),
     };
   } catch (error) {
@@ -288,16 +285,17 @@ export async function syncMissionProgressAction(
     }
 
     const { userId, supabase } = authed;
-    const [snapshot, claimedIds] = await Promise.all([
-      fetchCloudMissionSnapshot(supabase, userId, clientSnapshot),
-      fetchClaimedMissionIds(supabase, userId),
-    ]);
+    const { snapshot, claimedIds, rewardOverrides } = await fetchMissionData(
+      supabase,
+      userId,
+      clientSnapshot,
+    );
 
     revalidateMissionPaths();
 
     return {
       status: "success",
-      missions: buildMissionViewModels(snapshot, claimedIds),
+      missions: buildMissionViewModels(snapshot, claimedIds, rewardOverrides),
     };
   } catch (error) {
     console.error("syncMissionProgressAction failed:", error);

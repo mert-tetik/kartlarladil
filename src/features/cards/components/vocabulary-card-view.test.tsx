@@ -7,13 +7,10 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
-const mockPush = vi.fn();
+const mockOpenAsk = vi.fn();
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    refresh: vi.fn(),
-    push: mockPush,
-  }),
+vi.mock("@/features/ask/components/ask-overlay-provider", () => ({
+  useAskOverlay: () => ({ openAsk: mockOpenAsk }),
 }));
 
 vi.mock("@/features/auth/auth-client", () => ({
@@ -24,6 +21,7 @@ const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  mockOpenAsk.mockReset();
 });
 
 describe("VocabularyCardView", () => {
@@ -151,13 +149,16 @@ describe("VocabularyCardView", () => {
     expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
   });
 
-  it("navigates to the ask page when the ask button is pressed", async () => {
+  it("opens the ask overlay with the card language and term", async () => {
     const user = userEvent.setup();
 
     renderCard(<VocabularyCardView card={testCard} />);
     await user.click(screen.getByRole("button", { name: `${testCard.term} Sor` }));
 
-    expect(mockPush).toHaveBeenCalledWith(`/ask/${testCard.language}?term=${encodeURIComponent(testCard.term)}`);
+    expect(mockOpenAsk).toHaveBeenCalledWith({
+      language: testCard.language,
+      initialTerm: testCard.term,
+    });
   });
 
   it("speaks the card term with the card language when the speaker button is pressed", async () => {

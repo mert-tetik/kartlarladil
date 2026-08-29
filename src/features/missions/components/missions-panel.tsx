@@ -20,7 +20,7 @@ export function MissionsPanel({ open, onClose }: MissionsPanelProps) {
       title={t("missions.title")}
       panelLabel={t("missions.title")}
       visual={<MissionIcon size={52} className="size-[3.25rem]" />}
-      contentClassName="overflow-y-auto overscroll-contain px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      contentClassName="overflow-y-auto overscroll-contain px-0 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
       <MissionsList />
     </MobileBottomSheetShell>

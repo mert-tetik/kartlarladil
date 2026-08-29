@@ -54,18 +54,44 @@ describe("ChestOpeningView", () => {
       </LocaleProvider>,
     );
 
+    expect(document.querySelector("h2")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-chest-tier-name]")).toHaveClass("font-super-water", "text-white");
+    expect(document.querySelector("[data-chest-ground-shadow]")).toHaveClass("rounded-full", "blur-[6px]");
+    expect(document.querySelector("[data-chest-opening-view]")).toHaveClass("bg-[#121212]");
+    expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-0");
+    expect(document.querySelector("[data-chest-auto-open]")).toHaveClass("animate-chest-appear");
+
     act(() => {
       vi.advanceTimersByTime(500);
     });
 
     expect(document.querySelector("[data-chest-opening-layout]")).toHaveClass("min-h-full");
     expect(document.querySelector("[data-chest-total-points-shell]")).toBeInTheDocument();
+    expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-0");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-0");
+    expect(document.querySelector(".animate-chest-charge")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(780);
+    });
+
+    expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-100");
+    expect(document.querySelector(".animate-chest-pulse")).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(900);
     });
 
     expect(document.querySelector("[data-chest-reward-points]")).toBeInTheDocument();
+    const rewardStack = document.querySelector("[data-chest-reward-stack]");
+    expect(rewardStack).toHaveClass("font-super-water");
+    expect(rewardStack).not.toHaveTextContent("You won!");
+    expect(rewardStack).not.toHaveTextContent("points");
     expect(onComplete).not.toHaveBeenCalled();
 
     act(() => {

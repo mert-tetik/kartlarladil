@@ -249,7 +249,7 @@ export function MobileBottomSheetShell({
           <h2
             id={titleId}
             className={cn(
-              "text-3xl font-bold leading-none text-brand-foreground",
+              "text-center text-3xl font-bold leading-none text-brand-foreground",
               canUseSuperWater(locale) && "font-super-water",
             )}
           >

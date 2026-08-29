@@ -23,6 +23,27 @@ function extractErrorMessage(error: unknown): string | null {
   return null;
 }
 
+export function isGooglePlayPurchaseCancellation(error: unknown): boolean {
+  const name =
+    error && typeof error === "object" && "name" in error && typeof error.name === "string"
+      ? error.name.toLowerCase()
+      : "";
+
+  if (name === "aborterror" || name === "cancelerror") {
+    return true;
+  }
+
+  const message = extractErrorMessage(error)?.toLowerCase() ?? "";
+  const cancellationWord = "(?:abort(?:ed)?|cancel(?:led|ed))";
+  const source = "(?:user|request|payment|purchase|operation|checkout)";
+
+  return (
+    new RegExp(`\\b${source}\\s+(?:(?:was|has been|is)\\s+)?${cancellationWord}\\b`).test(message) ||
+    new RegExp(`\\b${cancellationWord}\\s+(?:by|at the request of)\\s+(?:the )?user\\b`).test(message) ||
+    /\b(?:user_canceled|user_cancelled|purchase_canceled|purchase_cancelled|billing_canceled|billing_cancelled)\b/.test(message)
+  );
+}
+
 export function getGooglePlayErrorDetail(error: unknown): string | null {
   const message = extractErrorMessage(error);
   if (!message) return null;

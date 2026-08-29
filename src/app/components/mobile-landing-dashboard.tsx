@@ -18,12 +18,14 @@ import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-she
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
+import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
   writeLandingCardLanguage,
 } from "@/app/components/landing-card-language";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
+import { updateLanguagePreferenceAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
@@ -53,14 +55,16 @@ import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
-import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
 }
 
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
-  "whitespace-nowrap text-left font-semibold leading-none text-[#3E82D1]";
+  "whitespace-nowrap text-left font-semibold leading-none text-action-review";
+const MOBILE_RANK_MIN_HEIGHT =
+  "calc(clamp(1.5rem, calc(100dvh - 35rem), 20rem) + 4rem)";
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -108,11 +112,15 @@ export function MobileLandingDashboard() {
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
   const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
+  const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<ActiveCardLimitDetails | null>(null);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
+  const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
+  const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
+  const rankRegionRef = useRef<HTMLDivElement>(null);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
   const hasPendingStoredLandingLanguageRef = useRef(false);
 
@@ -251,6 +259,7 @@ export function MobileLandingDashboard() {
     missionsPanelOpen ||
     swipeDeckOpen ||
     customCardOpen ||
+    groupCardOpen ||
     cardCenterOpen;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
@@ -278,6 +287,13 @@ export function MobileLandingDashboard() {
     vibrate("tap");
     requireAuthAction(() => {
       setCustomCardOpen(true);
+    }, { nextPath: "/" });
+  }
+
+  function handleOpenCardGroups() {
+    vibrate("tap");
+    requireAuthAction(() => {
+      setGroupCardOpen(true);
     }, { nextPath: "/" });
   }
 
@@ -354,6 +370,10 @@ export function MobileLandingDashboard() {
     const nextCardLanguage = resolved.cardLanguage;
 
     writeLandingCardLanguage(nextCardLanguage, { notify: false });
+    void updateLanguagePreferenceAction({
+      field: "preferred_language_code",
+      value: nextCardLanguage,
+    }).catch(() => undefined);
 
     if (resolved.siteLocale !== locale) {
       setLocale(resolved.siteLocale);
@@ -365,6 +385,7 @@ export function MobileLandingDashboard() {
   function openCardCenter(status: "active" | "learned") {
     vibrate("tap");
     setCardCenterStatus(status);
+    setRankLayoutHeight(rankRegionRef.current?.getBoundingClientRect().height ?? null);
     setCardCenterOpen(true);
 
     window.requestAnimationFrame(() => {
@@ -379,6 +400,7 @@ export function MobileLandingDashboard() {
 
   function handleCardCenterOpenChange(nextOpen: boolean) {
     vibrate("tap");
+    setRankLayoutHeight(nextOpen ? rankRegionRef.current?.getBoundingClientRect().height ?? null : null);
     setCardCenterOpen(nextOpen);
 
     window.requestAnimationFrame(() => {
@@ -392,8 +414,13 @@ export function MobileLandingDashboard() {
     });
   }
 
+  function handleCardLimitReached(errorCode: LimitErrorCode, details?: ActiveCardLimitDetails) {
+    setCardLimitError(errorCode);
+    setActiveCardLimitDetails(details ?? null);
+  }
+
   return (
-    <section data-mobile-landing-dashboard className={cn("relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-visible")}>
+    <section data-mobile-landing-dashboard className={cn("relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] touch-pan-y flex-col overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-y-hidden")}>
       {/* Leaderboard badge */}
       <button
         type="button"
@@ -480,7 +507,16 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Rank */}
-      <div data-tutorial-target="rank-info" className="relative -mx-4 flex min-h-0 flex-1 flex-col items-center gap-0.5 rounded-none px-4 pt-2 pb-1 text-white">
+      <div
+        ref={rankRegionRef}
+        data-tutorial-target="rank-info"
+        style={{
+          minHeight: MOBILE_RANK_MIN_HEIGHT,
+          height: rankLayoutHeight ?? undefined,
+          flex: rankLayoutHeight === null ? undefined : "none",
+        }}
+        className="relative isolate z-0 -mx-4 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-hidden rounded-none px-4 pt-2 pb-1 text-white"
+      >
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
           aria-hidden="true"
@@ -512,7 +548,7 @@ export function MobileLandingDashboard() {
               className="mt-0.5 flex items-center justify-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
               aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
             >
-              <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-orange-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[var(--score-start)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-transparent">
                 {formatNumber(locale, stats.totalPoints)}
               </span>
               <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
@@ -543,7 +579,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Active / Learned row */}
-      <div className="relative mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border">
+      <div className="relative mt-2 grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
@@ -563,7 +599,7 @@ export function MobileLandingDashboard() {
       </div>
 
       {/* Action buttons */}
-      <div className="mt-3 flex flex-col gap-3 pb-1">
+      <div className="mt-3 flex shrink-0 flex-col gap-3 pb-1">
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}
@@ -592,6 +628,7 @@ export function MobileLandingDashboard() {
         onOpenChange={handleCardCenterOpenChange}
         onOpenDraw={handleDrawCards}
         onOpenCreate={handleCreateCard}
+        onOpenGroups={handleOpenCardGroups}
         showEmptyDeckPointer={activeCount === 0 && !hasLandingLayerOpen}
       />
 
@@ -631,13 +668,19 @@ export function MobileLandingDashboard() {
         open={swipeDeckOpen}
         language={selectedLanguage}
         onClose={() => setSwipeDeckOpen(false)}
-        onSubscriptionLimitReached={(errorCode) => setCardLimitError(errorCode)}
+        onSubscriptionLimitReached={handleCardLimitReached}
       />
       <MobileCustomCardSheet
         open={customCardOpen}
         onClose={() => setCustomCardOpen(false)}
         landingLanguage={selectedLanguage}
-        onSubscriptionLimitReached={(errorCode) => setCardLimitError(errorCode)}
+        onSubscriptionLimitReached={handleCardLimitReached}
+      />
+      <MobileCardGroupSheet
+        open={groupCardOpen}
+        onClose={() => setGroupCardOpen(false)}
+        language={selectedLanguage}
+        onSubscriptionLimitReached={handleCardLimitReached}
       />
 
       <UpgradeDialog
@@ -646,9 +689,11 @@ export function MobileLandingDashboard() {
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
             setCardLimitError(null);
+            setActiveCardLimitDetails(null);
           }
         }}
         selectedLanguage={selectedLanguage}
+        activeCardLimitDetails={activeCardLimitDetails}
       />
 
       <UpgradeDialog
@@ -660,6 +705,14 @@ export function MobileLandingDashboard() {
           const currentCardLanguage = selectedLanguage;
           setLocale(currentCardLanguage);
           writeLandingCardLanguage(currentLocale, { notify: true });
+          void updateLanguagePreferenceAction({
+            field: "preferred_ui_locale",
+            value: currentCardLanguage,
+          }).catch(() => undefined);
+          void updateLanguagePreferenceAction({
+            field: "preferred_language_code",
+            value: currentLocale,
+          }).catch(() => undefined);
           setSelectedLanguage(currentLocale);
         }}
       />
@@ -697,14 +750,15 @@ function StatusBlock({
     <button
       type="button"
       onClick={onClick}
+      aria-label={title}
       data-tutorial-target={dataTutorialTarget}
       className={cn(
         "flex flex-col items-center justify-center py-2 text-white transition-transform active:scale-[0.98]",
-        isActive ? "bg-emerald-500" : "bg-sky-500",
+        isActive ? "bg-action-learn" : "bg-action-learned",
       )}
     >
-      <span className="text-xs font-semibold">{title}</span>
-      <span className="mt-0.5 text-2xl font-extrabold">{count}</span>
+      <span className="text-xs font-semibold leading-none">{title}</span>
+      <span className="mt-0.5 text-2xl font-bold">{count}</span>
     </button>
   );
 }
@@ -799,8 +853,8 @@ export function TierDetailMenu({
                       "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
                       status === item
                         ? item === "active"
-                          ? "bg-emerald-500 text-white"
-                          : "bg-sky-500 text-white"
+                          ? "bg-action-learn text-white"
+                          : "bg-action-learned text-white"
                         : "text-foreground-secondary hover:bg-background-muted",
                     )}
                   >
@@ -845,7 +899,7 @@ export function TierDetailMenu({
             <div
               className={cn(
                 "px-4 py-2 text-center text-xs font-semibold text-white",
-                status === "active" ? "bg-emerald-500" : "bg-sky-500",
+                status === "active" ? "bg-action-learn" : "bg-action-learned",
               )}
             >
               {t(
@@ -993,8 +1047,8 @@ function ActionButton({
         className={cn(
           "flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 text-base font-bold text-white transition-colors active:scale-[0.98]",
           variant === "active"
-            ? locked ? "bg-emerald-500 hover:bg-emerald-500" : "bg-emerald-500 hover:bg-emerald-600"
-            : locked ? "bg-sky-500 hover:bg-sky-500" : "bg-sky-500 hover:bg-sky-600",
+            ? locked ? "bg-action-learn hover:bg-action-learn" : "bg-action-learn hover:bg-action-learn-hover"
+            : locked ? "bg-action-learned hover:bg-action-learned" : "bg-action-learned hover:bg-action-review-hover",
         )}
       >
         <Icon className="size-5" aria-hidden="true" />

@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { LANDING_CARD_LANGUAGE_KEY } from "@/app/components/landing-card-language";
 import { AiPracticeCharacterSelection } from "@/features/ai-practice/components/ai-practice-character-selection";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeScenarios } from "@/features/ai-practice/ai-practice-scenarios";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 const defaultMatchMedia = window.matchMedia;
@@ -57,5 +59,25 @@ describe("AiPracticeCharacterSelection", () => {
     await waitFor(() => {
       expect(document.querySelector("[data-ai-practice-language-button]")).toHaveTextContent("Spanish");
     });
+  });
+
+  it("switches to situation cards that keep their character portraits", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Situations" }));
+
+    expect(document.querySelector("[data-ai-practice-character-list]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-ai-practice-scenario-list]")).toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(getAiPracticeScenarios().length);
+    expect(screen.getByRole("link", { name: /Order at a restaurant/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mode=scenario"),
+    );
   });
 });

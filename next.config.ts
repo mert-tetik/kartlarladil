@@ -70,4 +70,7 @@ export default withPWA({
     additionalManifestEntries: imageCacheManifest.criticalAssets ?? [],
     runtimeCaching: imageRuntimeCaching,
   },
+  fallbacks: {
+    document: "/~offline",
+  },
 })(nextConfig);

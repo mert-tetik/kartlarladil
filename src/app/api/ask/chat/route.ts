@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ResponseStreamEvent } from "openai/resources/responses/responses";
+import type { Response as OpenAIResponse } from "openai/resources/responses/responses";
 import {
   AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
@@ -7,6 +7,7 @@ import {
 } from "@/features/ai-practice/ai-practice-openai";
 import { askChatRequestSchema } from "@/features/ask/ask-schema";
 import { buildAskInput, buildAskInstructions } from "@/features/ask/ask-prompts";
+import { ASK_RESPONSE_FORMAT, parseAskResponse } from "@/features/ask/ask-response";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
@@ -14,7 +15,7 @@ import { getUserEntitlements } from "@/features/subscriptions/subscription-servi
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_OUTPUT_TOKENS = 420;
+const MAX_OUTPUT_TOKENS = 520;
 
 export async function POST(request: Request) {
   const user = await getCurrentAuthUser();
@@ -45,75 +46,41 @@ export async function POST(request: Request) {
   const openai = new OpenAI({ apiKey });
   const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
   const instructions = buildAskInstructions({
-    language: parsed.data.language,
     locale: parsed.data.locale,
+    previousState: parsed.data.languageState,
+    contextLanguage: parsed.data.contextLanguage,
   });
   const input = buildAskInput({
     messages: parsed.data.messages,
   });
 
-  let responseStream: AsyncIterable<ResponseStreamEvent>;
+  let response: OpenAIResponse;
 
   try {
-    responseStream = (await openai.responses.create({
+    response = await openai.responses.create({
       model,
       instructions,
       input,
       max_output_tokens: MAX_OUTPUT_TOKENS,
       reasoning: { effort: "minimal" },
-      stream: true,
       store: false,
-      text: { format: { type: "text" }, verbosity: "low" },
+      text: { format: ASK_RESPONSE_FORMAT, verbosity: "low" },
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
-    })) as AsyncIterable<ResponseStreamEvent>;
+    });
   } catch {
     return Response.json({ errorCode: "upstream_error" }, { status: 502 });
   }
 
-  const encoder = new TextEncoder();
+  const askResponse = parseAskResponse(response.output_text || extractResponseOutputText(response));
 
-  return new Response(
-    new ReadableStream({
-      async start(controller) {
-        let emittedText = "";
-        let fallbackText = "";
+  if (!askResponse) {
+    return Response.json({ errorCode: "upstream_error" }, { status: 502 });
+  }
 
-        try {
-          for await (const event of responseStream) {
-            if (event.type === "response.output_text.delta" && event.delta) {
-              emittedText += event.delta;
-              controller.enqueue(encoder.encode(event.delta));
-              continue;
-            }
-
-            if (event.type === "response.output_text.done" && event.text) {
-              fallbackText = event.text;
-              continue;
-            }
-
-            if (event.type === "response.completed") {
-              fallbackText ||= extractResponseOutputText(event.response);
-            }
-          }
-
-          if (!emittedText.trim() && fallbackText.trim()) {
-            controller.enqueue(encoder.encode(fallbackText));
-          }
-
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        } finally {
-          // Usage was already atomically reserved before streaming started.
-        }
-      },
-    }),
-    {
-      headers: {
-        "Cache-Control": "no-store",
-        "Content-Type": "text/plain; charset=utf-8",
-      },
+  return Response.json(askResponse, {
+    headers: {
+      "Cache-Control": "no-store",
     },
-  );
+  });
 }

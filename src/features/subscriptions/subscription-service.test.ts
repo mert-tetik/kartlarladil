@@ -17,12 +17,10 @@ const mockFrom = vi.fn(() => ({
   })),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(() =>
-    Promise.resolve({
-      from: mockFrom,
-    }),
-  ),
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(() => ({
+    from: mockFrom,
+  })),
 }));
 
 function makeSubscription(
@@ -78,6 +76,7 @@ describe("getEffectivePlan", () => {
     ["basic", "expired", null, "free"],
     ["pro", "on_trial", null, "pro"],
     ["basic", "past_due", null, "basic"],
+    ["basic", "active", "2000-01-01T00:00:00Z", "free"],
   ] as const)("for plan %s with status %s and endsAt %s returns %s", (plan, status, endsAt, expected) => {
     expect(getEffectivePlan(makeSubscription(plan, status, endsAt))).toBe(expected);
   });

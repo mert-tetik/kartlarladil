@@ -5,6 +5,7 @@ import {
   syncGooglePlayPurchasesAction,
   verifyGooglePlayPurchaseAction,
 } from "@/features/subscriptions/subscription-actions";
+import { isGooglePlayPurchaseCancellation } from "@/features/subscriptions/google-play-errors";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 
 export function useGooglePlayBilling() {
@@ -130,7 +131,7 @@ export function useGooglePlayBilling() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setError(message);
+      setError(isGooglePlayPurchaseCancellation(error) ? null : message);
       throw error;
     } finally {
       setIsLoading(false);

@@ -99,3 +99,17 @@ For billing incidents:
 - Preserve the Lemon event payload and `webhook_events` row.
 - Prefer replay/reconciliation over direct plan edits.
 - After repair, run the smoke test and record the final user state.
+# Subscription production hardening
+
+## Google Play source of truth and RTDN
+
+Google Play entitlements are verified server-side with `purchases.subscriptionsv2.get`; the browser is never trusted to grant a plan. Configure the following production secrets before shipping Android billing:
+
+- `GOOGLE_PLAY_PACKAGE_NAME`
+- `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON`
+- `GOOGLE_PLAY_RTDN_AUDIENCE`
+- `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL`
+
+Create a Google Cloud Pub/Sub push subscription for the Play Console RTDN topic that targets `https://www.foxiesdeck.com/api/google-play/rtdn`. Enable an authenticated OIDC token for the configured service-account email and set the route URL as its audience. The route verifies that token, deduplicates the Pub/Sub message ID, and refreshes the subscription from Google before writing the entitlement.
+
+The Google Play developer service account must have access to the Play Console application and the Android Publisher API. Test active, cancellation, grace-period, hold, expiry and a renewed purchase token before release.

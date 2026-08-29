@@ -15,7 +15,10 @@ import {
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
-import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
+import {
+  getGooglePlayErrorMessage,
+  isGooglePlayPurchaseCancellation,
+} from "@/features/subscriptions/google-play-errors";
 import {
   getGooglePlayPricingDetails,
   getGooglePlaySku,
@@ -64,9 +67,9 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
 const PRICING_GRADIENT_SURFACE_CLASS =
-  "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500";
+  "bg-gradient-to-r from-[var(--premium-start)] via-[var(--reward-start)] to-[var(--premium-end)]";
 const PRICING_GRADIENT_BUTTON_CLASS =
-  "bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 !text-slate-950 hover:brightness-105";
+  "bg-gradient-to-r from-[var(--premium-start)] via-[var(--reward-start)] to-[var(--premium-end)] !text-slate-950 hover:brightness-105";
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.webp" },
@@ -692,6 +695,10 @@ function GooglePlayCheckoutButton({
       await purchase(getGooglePlaySku(plan, cycle));
       presentPurchaseSuccess();
     } catch (error) {
+      if (isGooglePlayPurchaseCancellation(error)) {
+        return;
+      }
+
       console.error("Google Play purchase failed:", error);
       setPurchaseError(
         getGooglePlayErrorMessage(

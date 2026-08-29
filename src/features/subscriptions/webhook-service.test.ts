@@ -28,6 +28,14 @@ function createMockClient(responses: MockResponse[]) {
   const calls: MockCall[] = [];
 
   const client = {
+    rpc: async (fn: string) => {
+      const response = responses[index++];
+      calls.push({ table: "rpc", method: fn });
+      return {
+        data: response?.data ?? null,
+        error: response?.error ?? null,
+      };
+    },
     from(table: string) {
       const response = responses[index++];
       calls.push({ table, method: response?.method ?? "unknown" });
@@ -64,6 +72,14 @@ function createRecordingMockClient(responses: MockResponse[]) {
   const calls: Array<MockCall & { payload?: unknown }> = [];
 
   const client = {
+    rpc: async (fn: string, payload: unknown) => {
+      const response = responses[index++];
+      calls.push({ table: "rpc", method: fn, payload });
+      return {
+        data: response?.data ?? null,
+        error: response?.error ?? null,
+      };
+    },
     from(table: string) {
       const response = responses[index++];
 
@@ -129,6 +145,7 @@ const subscriptionUpdate: SubscriptionUpdate = {
   customerPortalUrl: "https://portal.example.com",
   renewsAt: "2026-07-01T00:00:00Z",
   endsAt: null,
+  updatedAt: "2026-06-01T00:00:00Z",
 };
 
 describe("findWebhookEvent", () => {
@@ -266,7 +283,7 @@ describe("processWebhookEvent", () => {
     const { client, calls } = createMockClient([
       { table: "webhook_events", method: "select", data: null },
       { table: "webhook_events", method: "upsert" },
-      { table: "user_subscriptions", method: "upsert" },
+      { table: "rpc", method: "apply_lemon_subscription_update" },
       { table: "webhook_events", method: "upsert" },
     ]);
 
@@ -276,16 +293,16 @@ describe("processWebhookEvent", () => {
     expect(calls).toEqual([
       { table: "webhook_events", method: "select", column: "webhook_id", value: "evt_123" },
       { table: "webhook_events", method: "upsert" },
-      { table: "user_subscriptions", method: "upsert" },
+      { table: "rpc", method: "apply_lemon_subscription_update" },
       { table: "webhook_events", method: "upsert" },
     ]);
   });
 
-  it("records an error when the subscription upsert fails", async () => {
+  it("records an error when the ordered subscription update fails", async () => {
     const { client, calls } = createMockClient([
       { table: "webhook_events", method: "select", data: null },
       { table: "webhook_events", method: "upsert" },
-      { table: "user_subscriptions", method: "upsert", error: { message: "subscription conflict" } },
+      { table: "rpc", method: "apply_lemon_subscription_update", error: { message: "subscription conflict" } },
       { table: "webhook_events", method: "upsert" },
     ]);
 

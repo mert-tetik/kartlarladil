@@ -1,6 +1,6 @@
 import type { LocaleCode } from "@/types/domain";
 
-export const LEGAL_LAST_UPDATED = "2026-06-17";
+export const LEGAL_LAST_UPDATED = "2026-08-28";
 
 export const legalContent: Record<
   LocaleCode,
@@ -105,3 +105,20 @@ export const legalContent: Record<
     "subscriptions": "<h2>1. 自动续订</h2>\n<p>付费订阅根据您选择的月度或年度计费周期自动续订。每个计费周期开始时，费用将从您注册的支付方式中扣除。该过程由LemonSqueezy管理。</p>\n\n<h2>2. 计费周期</h2>\n<p>对于月度计划，每个计费周期在购买日期的下一个月的同一天结束；对于年度计划，订阅在购买日期一年后续订。费用在每个周期开始时收取。</p>\n\n<h2>3. 取消</h2>\n<p>您可以随时从账户设置或LemonSqueezy客户门户取消您的订阅。取消将在当前计费周期结束时生效；在此之前继续访问，但不提供退款。</p>\n\n<h2>4. 计划变更</h2>\n<p>升级到更高计划立即生效，并根据LemonSqueezy的按比例规则收取当前周期剩余时间的按比例差额。降级到较低计划在当前计费周期结束时生效。</p>\n\n<h2>5. 价格变更</h2>\n<p>如果价格发生变化，新价格将在您下次续订时适用。用户将提前收到重大价格变更的通知。</p>\n\n<h2>6. 联系</h2>\n<p>如有订阅问题，请通过<a href=\"mailto:foxiesdeck@outlook.com\">foxiesdeck@outlook.com</a>与我们联系。</p>"
   }
 };
+
+type LegalSection = "terms" | "privacy" | "refund" | "cookies" | "subscriptions";
+
+/**
+ * Legal pages currently publish Turkish or English. Replace the old
+ * web-only provider wording for the paid-service sections at the display
+ * boundary so Android purchases accurately reference Google Play too.
+ */
+export function getLegalContent(locale: LocaleCode, section: LegalSection): string {
+  const displayLocale = locale === "tr" ? "tr" : "en";
+  const providerLabel =
+    displayLocale === "tr"
+      ? "LemonSqueezy (web) veya Google Play (Android)"
+      : "Lemon Squeezy (web purchases) or Google Play (Android purchases)";
+
+  return legalContent[displayLocale][section].replaceAll("LemonSqueezy", providerLabel);
+}

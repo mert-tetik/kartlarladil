@@ -87,6 +87,17 @@ describe("buildMissionViewModels", () => {
 
     expect(viewModels.every((vm) => vm.status === "claimed")).toBe(true);
   });
+
+  it("uses the historical reward for a claimed mission when provided", () => {
+    const mission = MISSIONS[0];
+    const viewModels = buildMissionViewModels(
+      makeSnapshot(),
+      new Set([mission.id]),
+      new Map([[mission.id, { kind: "chest", tier: "wood" }]]),
+    );
+
+    expect(viewModels[0].definition.reward).toEqual({ kind: "chest", tier: "wood" });
+  });
 });
 
 describe("countWaitingMissions", () => {

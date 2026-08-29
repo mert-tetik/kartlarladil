@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type Ref } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X } from "lucide-react";
-import { ScoreIcon } from "@/components/score-icon";
 import { RANKS } from "@/features/progress/progress-stats";
 import { RankIcon, getRankIconTone } from "@/features/progress/rank-icons";
 import {
@@ -18,10 +17,15 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
 const RANK_UP_TEST_PARAM = "rank-up-test";
+const RANK_UP_TEST_DELAY_MS = 1000;
+const RANK_UP_TEST_REPEAT_DELAY_MS = 2000;
+const RANK_UP_REVEAL_DELAY_MS = 3000;
+const RANK_UP_CLOSE_ANIMATION_MS = 360;
 
 export function RankProgressPopover({
   stats,
@@ -39,7 +43,7 @@ export function RankProgressPopover({
   const [open, setOpen] = useState(false);
   const [forcedRankUpOpen, setForcedRankUpOpen] = useState(Boolean(forceRankUpRank));
   const rootRef = useRef<HTMLDivElement>(null);
-  const { displayStats, scoreGain, rankUpRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
+  const { displayStats, scoreGain, rankUpRank, rankUpPreviousRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
   const tutorialVisible = useTutorialStore((state) => state.testMode || (state.active && !state.completed));
   const pendingRankUp = forceRankUpRank ? (forcedRankUpOpen ? forceRankUpRank : null) : rankUpRank;
   const visibleRankUp = tutorialVisible ? null : pendingRankUp;
@@ -105,7 +109,7 @@ export function RankProgressPopover({
               <span
                 key={scoreGain}
                 aria-live="polite"
-                className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-brand"
+                className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-[var(--score-start)]"
               >
                 +{formatNumber(locale, scoreGain)}
               </span>
@@ -119,7 +123,7 @@ export function RankProgressPopover({
       {visibleRankUp ? (
         <RankUpMenu
           rank={visibleRankUp}
-          points={displayStats.totalPoints}
+          fromRank={rankUpPreviousRank ?? getPreviousRank(visibleRankUp)}
           onClose={forceRankUpRank ? () => setForcedRankUpOpen(false) : dismissRankUp}
         />
       ) : open ? (
@@ -177,7 +181,7 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="px-3 py-1 text-sm font-bold text-brand md:px-4 md:py-1.5 md:text-base">
+              <div className="px-3 py-1 text-sm font-bold text-[var(--score-start)] md:px-4 md:py-1.5 md:text-base">
                 {formatPoints(locale, stats.totalPoints)}
               </div>
               <button
@@ -237,6 +241,8 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   const [displayStats, setDisplayStats] = useState(stats);
   const [scoreGain, setScoreGain] = useState(0);
   const [rankUpRank, setRankUpRank] = useState<RankDefinition | null>(null);
+  const [rankUpPreviousRank, setRankUpPreviousRank] = useState<RankDefinition | null>(null);
+  const rankUpTestRepeatTimerRef = useRef<number | null>(null);
   const displayStatsRef = useRef(stats);
   const hasInitializedRank = useRef(false);
   const forceRankUpTestMode = useRankUpTestMode();
@@ -254,11 +260,23 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
   }, [stats.rank.id, userId]);
 
   useEffect(() => {
+    return () => {
+      if (rankUpTestRepeatTimerRef.current !== null) {
+        window.clearTimeout(rankUpTestRepeatTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!forceRankUpTestMode) {
       return;
     }
 
-    setRankUpRank(stats.rank);
+    const timer = window.setTimeout(() => {
+      setRankUpRank(stats.rank);
+    }, RANK_UP_TEST_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
   }, [forceRankUpTestMode, stats.rank]);
 
   useEffect(() => {
@@ -277,6 +295,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
         setDisplayStats(stats);
         setScoreGain(0);
         setRankUpRank(null);
+        setRankUpPreviousRank(null);
       }, 0);
 
       return () => window.clearTimeout(resetTimer);
@@ -297,7 +316,6 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
 
         const lastAcknowledged = readLastAcknowledgedRank(userId);
         if (lastAcknowledged !== stats.rank.id) {
-          playSoundEffect("rank-up");
           sendTwaAnalyticsEvent("fd_rank_up", {
             params: {
               rank_id: stats.rank.id,
@@ -306,6 +324,7 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
               rank_min_points: stats.rank.minPoints,
             },
           });
+          setRankUpPreviousRank(previousStats.rank);
           setRankUpRank(stats.rank);
           acknowledgeRankUp(userId, stats.rank.id);
         }
@@ -322,49 +341,102 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
     displayStats,
     scoreGain,
     rankUpRank,
-    dismissRankUp: () => setRankUpRank(null),
+    rankUpPreviousRank,
+    dismissRankUp: () => {
+      setRankUpRank(null);
+      setRankUpPreviousRank(null);
+
+      if (!forceRankUpTestMode) {
+        return;
+      }
+
+      if (rankUpTestRepeatTimerRef.current !== null) {
+        window.clearTimeout(rankUpTestRepeatTimerRef.current);
+      }
+
+      rankUpTestRepeatTimerRef.current = window.setTimeout(() => {
+      rankUpTestRepeatTimerRef.current = null;
+        setRankUpRank(stats.rank);
+      }, RANK_UP_TEST_REPEAT_DELAY_MS);
+    },
   };
 }
 
 export function RankUpMenu({
   rank,
-  points,
+  fromRank,
   onClose,
 }: {
   rank: RankDefinition;
-  points: number;
+  fromRank?: RankDefinition;
   onClose: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const usesSuperWater = canUseSuperWater(locale);
+  const continueLabel = t("auth.onboarding.continue");
+  const previousRank = fromRank ?? getPreviousRank(rank);
+  const [revealed, setRevealed] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  function handleClose() {
+    if (closing) {
+      return;
+    }
+
+    setClosing(true);
+    closeTimerRef.current = window.setTimeout(onClose, RANK_UP_CLOSE_ANIMATION_MS);
+  }
+
+  useEffect(() => {
+    playSoundEffect("rank-up-opening");
+
+    const timer = window.setTimeout(() => {
+      playSoundEffect("rank-up-reveal");
+      setRevealed(true);
+    }, RANK_UP_REVEAL_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [rank.id]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   return createPortal(
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className="rank-up-menu fixed inset-0 z-50 flex bg-background"
+      className={cn("rank-up-menu fixed inset-0 z-50 flex bg-black", closing && "rank-up-menu--closing")}
     >
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-1/2 overflow-hidden">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 z-0 overflow-hidden transition-opacity duration-700 ease-out",
+          revealed ? "opacity-100" : "opacity-0",
+        )}
+        aria-hidden="true"
+      >
         <Image
-          src="/rank-up-bg.webp"
+          src="/rank-up/rank-up-background-v1.png"
           alt=""
           fill
           priority
           sizes="100vw"
           className="object-cover object-center"
         />
-        <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(15,23,42,0.08)_0%,rgba(15,23,42,0.22)_38%,rgba(15,23,42,0.54)_100%)]"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/92 via-48% to-transparent" aria-hidden="true" />
+        <div className="absolute inset-0 bg-black/55" />
       </div>
-
+      <RankUpConfetti revealed={revealed} />
       <div
         className="relative z-10 flex min-h-full w-full items-stretch justify-center lg:items-start lg:justify-end lg:p-4"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
-            onClose();
+            handleClose();
           }
         }}
       >
@@ -372,41 +444,190 @@ export function RankUpMenu({
           <button
             type="button"
             aria-label={t("rank.closeUp")}
-            onClick={onClose}
-            className="absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground lg:top-4"
+            onClick={handleClose}
+            className={cn(
+              "absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
+              "rank-up-close-control",
+              revealed && "rank-up-close-control--visible",
+              "lg:top-4",
+            )}
           >
             <X className="size-5" aria-hidden="true" />
           </button>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <RankIcon icon={rank.icon} className={cn("size-44 sm:size-48 lg:size-40", getRankIconTone(rank.icon))} sizes="224px" />
-
-            <p className="mt-7 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">{t("rank.up")}</p>
-            <p className="mt-4 text-3xl font-bold text-foreground sm:text-4xl">{getRankLabel(rank, locale)}</p>
-            <p className="mt-3 text-base font-semibold text-foreground-secondary">{t("rank.current")}</p>
-
-            <div className="mt-7 flex w-full max-w-sm flex-col items-center px-4 py-3">
-              <p className="text-xs font-semibold text-foreground-muted">{t("rank.totalPoints")}</p>
-              <div data-rank-up-total-score className="mt-2 flex origin-center scale-125 items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-2xl font-bold text-transparent">
-                <span>{formatNumber(locale, points)}</span>
-                <ScoreIcon size={28} className="size-7" />
+            <div className={cn("rank-up-sequence-item rank-up-sequence-title w-full", revealed && "rank-up-sequence-item--visible")}>
+              <ConvexRankTitle
+                text={usesSuperWater ? formatSuperWaterText(locale, t("rank.up")) : t("rank.up")}
+                accessibleText={t("rank.up")}
+                usesSuperWater={usesSuperWater}
+              />
+            </div>
+            <div className="relative mt-8 size-44 shrink-0 sm:size-48 lg:size-40">
+              <div className={cn("absolute inset-0 flex items-center justify-center rank-up-old-rank", revealed && "rank-up-old-rank--exit")}>
+                <RankIcon icon={previousRank.icon} className={cn("size-full", getRankIconTone(previousRank.icon))} sizes="224px" />
+              </div>
+              <div className={cn("absolute inset-0 flex items-center justify-center rank-up-new-rank", revealed && "rank-up-new-rank--visible")}>
+                <RankIcon icon={rank.icon} className={cn("size-full", getRankIconTone(rank.icon))} sizes="224px" />
               </div>
             </div>
-          </div>
-
-          <div className="w-full shrink-0 lg:mt-6">
+            <p className={cn("rank-up-sequence-item rank-up-sequence-name mt-6 text-4xl font-bold text-foreground sm:text-5xl", revealed && "rank-up-sequence-item--visible", usesSuperWater && "font-super-water")}>
+              {usesSuperWater ? (
+                <>
+                  <span className="sr-only">{getRankLabel(rank, locale)}</span>
+                  <span aria-hidden="true">{formatSuperWaterText(locale, getRankLabel(rank, locale))}</span>
+                </>
+              ) : (
+                getRankLabel(rank, locale)
+              )}
+            </p>
             <button
               type="button"
-              onClick={onClose}
-              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-4 text-sm font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]"
+              onClick={handleClose}
+              className={cn(
+                "rank-up-sequence-item rank-up-sequence-action relative isolate mt-8 inline-flex h-16 w-[12.38rem] shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-4 text-center text-2xl font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]",
+                revealed && "rank-up-sequence-item--visible",
+                usesSuperWater && "font-super-water",
+              )}
+              style={{ aspectRatio: "1000 / 323" }}
             >
-              {t("auth.onboarding.continue")}
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <Image
+                  src="/pricing-buttons/pricing-active-button-v2.png"
+                  alt=""
+                  fill
+                  sizes="(max-width: 1023px) calc(100vw - 3rem), 420px"
+                  className="object-fill"
+                />
+              </span>
+              <span className="relative z-10">{formatSuperWaterText(locale, continueLabel)}</span>
             </button>
           </div>
         </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+const RANK_UP_CONFETTI = [
+  { x: "-40vw", y: "58vh", rotate: "-430deg", delay: "0ms", size: "0.7rem", color: "#ffd43b" },
+  { x: "-32vw", y: "76vh", rotate: "320deg", delay: "35ms", size: "0.46rem", color: "#ffffff" },
+  { x: "-25vw", y: "48vh", rotate: "-260deg", delay: "80ms", size: "0.58rem", color: "#fff3a6" },
+  { x: "-19vw", y: "88vh", rotate: "390deg", delay: "120ms", size: "0.8rem", color: "#f8c531" },
+  { x: "-14vw", y: "64vh", rotate: "-520deg", delay: "165ms", size: "0.52rem", color: "#ffffff" },
+  { x: "-10vw", y: "40vh", rotate: "280deg", delay: "220ms", size: "0.72rem", color: "#ffd43b" },
+  { x: "-7vw", y: "96vh", rotate: "-350deg", delay: "70ms", size: "0.44rem", color: "#ffffff" },
+  { x: "-4vw", y: "72vh", rotate: "480deg", delay: "250ms", size: "0.6rem", color: "#fff3a6" },
+  { x: "-2vw", y: "52vh", rotate: "-300deg", delay: "105ms", size: "0.82rem", color: "#f8c531" },
+  { x: "3vw", y: "62vh", rotate: "410deg", delay: "45ms", size: "0.5rem", color: "#ffffff" },
+  { x: "6vw", y: "92vh", rotate: "-460deg", delay: "185ms", size: "0.68rem", color: "#ffd43b" },
+  { x: "9vw", y: "44vh", rotate: "290deg", delay: "95ms", size: "0.44rem", color: "#fff3a6" },
+  { x: "13vw", y: "74vh", rotate: "-380deg", delay: "140ms", size: "0.78rem", color: "#ffffff" },
+  { x: "17vw", y: "52vh", rotate: "500deg", delay: "20ms", size: "0.54rem", color: "#f8c531" },
+  { x: "21vw", y: "84vh", rotate: "-300deg", delay: "230ms", size: "0.68rem", color: "#ffd43b" },
+  { x: "26vw", y: "62vh", rotate: "430deg", delay: "60ms", size: "0.48rem", color: "#ffffff" },
+  { x: "31vw", y: "94vh", rotate: "-520deg", delay: "155ms", size: "0.76rem", color: "#fff3a6" },
+  { x: "39vw", y: "70vh", rotate: "340deg", delay: "100ms", size: "0.52rem", color: "#f8c531" },
+  { x: "-47vw", y: "82vh", rotate: "-620deg", delay: "45ms", size: "0.92rem", color: "#ffffff" },
+  { x: "-43vw", y: "38vh", rotate: "360deg", delay: "190ms", size: "0.64rem", color: "#ffd43b" },
+  { x: "-36vw", y: "98vh", rotate: "-470deg", delay: "270ms", size: "0.5rem", color: "#fff8cc" },
+  { x: "-29vw", y: "56vh", rotate: "540deg", delay: "125ms", size: "0.86rem", color: "#f8c531" },
+  { x: "-23vw", y: "90vh", rotate: "-330deg", delay: "210ms", size: "0.62rem", color: "#ffffff" },
+  { x: "-17vw", y: "46vh", rotate: "450deg", delay: "15ms", size: "0.94rem", color: "#ffd43b" },
+  { x: "-11vw", y: "82vh", rotate: "-580deg", delay: "175ms", size: "0.56rem", color: "#fff8cc" },
+  { x: "-6vw", y: "100vh", rotate: "390deg", delay: "300ms", size: "0.9rem", color: "#ffffff" },
+  { x: "7vw", y: "48vh", rotate: "-410deg", delay: "115ms", size: "0.9rem", color: "#ffd43b" },
+  { x: "12vw", y: "100vh", rotate: "570deg", delay: "280ms", size: "0.58rem", color: "#fff8cc" },
+  { x: "18vw", y: "42vh", rotate: "-490deg", delay: "30ms", size: "0.96rem", color: "#ffffff" },
+  { x: "24vw", y: "96vh", rotate: "350deg", delay: "200ms", size: "0.62rem", color: "#ffd43b" },
+  { x: "29vw", y: "54vh", rotate: "-560deg", delay: "135ms", size: "0.88rem", color: "#fff8cc" },
+  { x: "36vw", y: "86vh", rotate: "430deg", delay: "260ms", size: "0.52rem", color: "#ffffff" },
+  { x: "46vw", y: "46vh", rotate: "-390deg", delay: "85ms", size: "0.82rem", color: "#ffd43b" },
+] as const;
+
+function RankUpConfetti({ revealed }: { revealed: boolean }) {
+  return (
+    <div className={cn("rank-up-confetti", revealed && "rank-up-confetti--visible")} aria-hidden="true">
+      {RANK_UP_CONFETTI.map((piece, index) => (
+        <span
+          key={index}
+          className="rank-up-confetti-piece"
+          style={
+            {
+              "--confetti-x": piece.x,
+              "--confetti-y": piece.y,
+              "--confetti-rotate": piece.rotate,
+              "--confetti-delay": piece.delay,
+              "--confetti-size": piece.size,
+              "--confetti-color": piece.color,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function getPreviousRank(rank: RankDefinition) {
+  const rankIndex = RANKS.findIndex((candidate) => candidate.id === rank.id);
+  return rankIndex > 0 ? RANKS[rankIndex - 1] : rank;
+}
+
+function ConvexRankTitle({
+  text,
+  accessibleText,
+  usesSuperWater,
+}: {
+  text: string;
+  accessibleText: string;
+  usesSuperWater: boolean;
+}) {
+  const id = useId().replace(/:/g, "");
+  const curveId = `${id}-rank-up-curve`;
+
+  return (
+    <div className="relative w-full max-w-[22rem]" style={{ aspectRatio: "1325 / 395" }}>
+      <Image
+        src="/rank-up/kurdele-v1.png"
+        alt=""
+        fill
+        sizes="(max-width: 640px) calc(100vw - 3rem), 352px"
+        className="pointer-events-none object-contain"
+        priority
+      />
+      <svg
+        role="heading"
+        aria-level={2}
+        aria-label={accessibleText}
+        viewBox="0 0 360 100"
+        preserveAspectRatio="xMidYMid meet"
+        className="absolute inset-0 h-full w-full overflow-visible"
+      >
+        <defs>
+          <path id={curveId} d="M 18 76 Q 180 14 342 76" fill="none" />
+        </defs>
+        <text
+          aria-hidden="true"
+          className={cn("font-display", usesSuperWater && "font-super-water")}
+          fill="#ffffff"
+          fontSize="32"
+          fontWeight="700"
+          textAnchor="middle"
+          transform="translate(0 -4)"
+        >
+          <textPath
+            href={`#${curveId}`}
+            startOffset="50%"
+            textAnchor="middle"
+            textLength="232"
+            lengthAdjust="spacingAndGlyphs"
+          >
+            {text}
+          </textPath>
+        </text>
+      </svg>
+    </div>
   );
 }
 
@@ -465,7 +686,7 @@ function RankStepDesktop({
       >
         {label}
       </p>
-      <p className={cn("mt-1 text-sm font-semibold md:text-base", current ? "text-brand" : "text-foreground-muted")}>
+      <p className={cn("mt-1 text-sm font-semibold md:text-base", current ? "text-[var(--score-end)]" : "text-foreground-muted")}>
         {formatNumber(locale, rank.minPoints)}
       </p>
     </li>
@@ -512,7 +733,7 @@ function RankStepMobile({
         >
           {label}
         </p>
-        <p className={cn("text-base font-semibold", current ? "text-brand-foreground" : "text-foreground-muted")}>
+        <p className={cn("text-base font-semibold", current ? "text-white" : "text-foreground-muted")}>
           {formatNumber(locale, rank.minPoints)} puan
         </p>
 

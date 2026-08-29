@@ -12,6 +12,7 @@ import type { InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, Prac
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
   addCloudInventoryCardAction,
+  addCloudInventoryCardsAction,
   createCustomCardAction,
   listCloudInventoryAction,
   loadCustomCardsAction,
@@ -39,6 +40,11 @@ interface AddCardResult {
   limitReached?: boolean;
 }
 
+interface AddCardsResult extends AddCardResult {
+  addedCardIds: string[];
+  remainingCardIds: string[];
+}
+
 export class InventoryActionError extends Error {
   constructor(message: string, readonly errorCode?: LimitErrorCode) {
     super(message);
@@ -64,6 +70,7 @@ interface InventoryState {
   loadCloudInventory: () => Promise<void>;
   migrateLocalInventoryToCloud: () => Promise<void>;
   addCard: (cardId: string) => Promise<AddCardResult>;
+  addCards: (cardIds: string[]) => Promise<AddCardsResult>;
   removeCard: (cardId: string) => Promise<void>;
   hasCard: (cardId: string) => boolean;
   recordAnswer: (input: {
@@ -284,6 +291,128 @@ export const useInventoryStore = create<InventoryState>()(
         return { ok: true, firstCardAdded };
       },
 
+      async addCards(cardIds) {
+        const requestedCardIds = [...new Set(cardIds.filter((cardId) => typeof cardId === "string" && cardId.trim().length > 0))];
+        const previousCount = get().cards.length;
+
+        if (requestedCardIds.length === 0) {
+          return {
+            ok: true,
+            firstCardAdded: false,
+            addedCardIds: [],
+            remainingCardIds: [],
+          };
+        }
+
+        if (get().cloudEnabled) {
+          set({ cloudLoading: true, cloudError: "" });
+          const result = await enqueueCloudCardAddition(
+            get().ownerUserId,
+            () => addCloudInventoryCardsAction(requestedCardIds),
+          );
+
+          if (result.status === "error" || !result.data) {
+            set({ cloudLoading: false, cloudError: result.message });
+            return {
+              ok: false,
+              firstCardAdded: false,
+              addedCardIds: [],
+              remainingCardIds: requestedCardIds,
+            };
+          }
+
+          const { addedCardIds, remainingCardIds } = result.data;
+          set({
+            cards: result.data.cards,
+            attempts: result.data.attempts,
+            cloudLoading: false,
+            cloudError: "",
+          });
+
+          for (const cardId of addedCardIds) {
+            const addedCard = localCardRepository.findById(cardId);
+            if (!addedCard) continue;
+
+            sendTwaAnalyticsEvent("fd_card_added", {
+              params: {
+                card_id: addedCard.id,
+                card_language: addedCard.language,
+                card_tier: addedCard.tier,
+                term_kind: addedCard.termKind,
+              },
+            });
+          }
+
+          if (addedCardIds.length > 0) {
+            sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+          }
+
+          const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
+          if (firstCardAdded) {
+            dispatchFirstCardAddedEvent();
+          }
+
+          await syncMissionsFromClientState();
+
+          return {
+            ok: true,
+            firstCardAdded,
+            addedCardIds,
+            remainingCardIds,
+            limitReached: remainingCardIds.length > 0,
+          };
+        }
+
+        const existingIds = new Set(get().cards.map((card) => card.cardId));
+        const newCardIds = requestedCardIds.filter((cardId) => !existingIds.has(cardId));
+        const activeCount = get().cards.filter((card) => card.status === "active").length;
+        const activeCardLimit = get().activeCardLimit;
+        const availableSlots = activeCardLimit === null
+          ? newCardIds.length
+          : Math.max(0, activeCardLimit - activeCount);
+        const addedCardIds = newCardIds.slice(0, availableSlots);
+        const remainingCardIds = newCardIds.slice(addedCardIds.length);
+        const nextCards = addedCardIds.reduce(
+          (cards, cardId) => addCardToInventory(cards, cardId),
+          get().cards,
+        );
+
+        set({ cards: nextCards });
+
+        for (const cardId of addedCardIds) {
+          const addedCard = localCardRepository.findById(cardId);
+          if (!addedCard) continue;
+
+          sendTwaAnalyticsEvent("fd_card_added", {
+            params: {
+              card_id: addedCard.id,
+              card_language: addedCard.language,
+              card_tier: addedCard.tier,
+              term_kind: addedCard.termKind,
+            },
+          });
+        }
+
+        if (addedCardIds.length > 0) {
+          sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+        }
+
+        const firstCardAdded = previousCount === 0 && nextCards.length > 0;
+        if (firstCardAdded) {
+          dispatchFirstCardAddedEvent();
+        }
+
+        void syncMissionsFromClientState();
+
+        return {
+          ok: true,
+          firstCardAdded,
+          addedCardIds,
+          remainingCardIds,
+          limitReached: remainingCardIds.length > 0,
+        };
+      },
+
       async removeCard(cardId) {
         if (get().cloudEnabled) {
           set({ cloudLoading: true, cloudError: "" });
@@ -348,7 +477,6 @@ export const useInventoryStore = create<InventoryState>()(
               vocabularyCard,
               input.isCorrect,
               undefined,
-              input.forceLearned,
             );
             optimisticCards = previousCards.map((card) =>
               card.cardId === input.cardId ? updatedCard : card,
@@ -365,7 +493,8 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
-          const result = await recordCloudPracticeAttemptAction(input);
+          const { forceLearned: _forceLearned, ...serverInput } = input;
+          const result = await recordCloudPracticeAttemptAction(serverInput);
 
           if (result.status === "error" || !result.data) {
             set({

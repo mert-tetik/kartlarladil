@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { isLanguageCode } from "@/data/languages";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { AiPracticeTierSelection } from "@/features/ai-practice/components/ai-practice-tier-selection";
+import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeScenario } from "@/features/ai-practice/ai-practice-scenarios";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { getLanguageDisplayName } from "@/i18n/labels";
@@ -37,16 +39,31 @@ export default async function AiPracticeTierPage({ params, searchParams }: AiPra
 
   await requireAuthUser(`/ai-practice/${rawLanguage}`);
 
-  const { character: rawCharacterId } = await searchParams;
+  const { character: rawCharacterId, mode: rawMode, scenario: rawScenarioId } = await searchParams;
   const characterId = typeof rawCharacterId === "string" ? rawCharacterId : null;
+  const isScenarioMode = rawMode === "scenario";
+  const scenarioId = typeof rawScenarioId === "string" ? rawScenarioId : null;
+  const scenario = isScenarioMode && scenarioId ? getAiPracticeScenario(scenarioId) : null;
 
-  if (!characterId) {
+  if (isScenarioMode && !scenario) {
+    redirect(`/ai-practice/${rawLanguage}/character`);
+  }
+
+  if (!isScenarioMode && !characterId) {
+    redirect(`/ai-practice/${rawLanguage}/character`);
+  }
+
+  if (!isScenarioMode && !getAiPracticeCharacter(characterId!)) {
     redirect(`/ai-practice/${rawLanguage}/character`);
   }
 
   return (
     <section className="animate-screen-pop mx-auto flex min-h-full w-full max-w-7xl flex-col items-center justify-center px-4 py-6 max-lg:py-4 sm:px-6 lg:px-8">
-      <AiPracticeTierSelection language={rawLanguage} characterId={characterId} />
+      <AiPracticeTierSelection
+        language={rawLanguage}
+        characterId={scenario?.characterId ?? characterId!}
+        scenarioId={scenario?.id}
+      />
     </section>
   );
 }

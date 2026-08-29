@@ -2,6 +2,7 @@ import { MISSIONS } from "./missions-data";
 import type {
   MissionDefinition,
   MissionProgressSnapshot,
+  MissionRewardOverrides,
   MissionStatus,
   UserMission,
 } from "./mission-types";
@@ -51,17 +52,23 @@ export function deriveMissionStatus(
 export function buildMissionViewModels(
   snapshot: MissionProgressSnapshot,
   claimedMissionIds: Set<string>,
+  rewardOverrides?: MissionRewardOverrides,
 ): Array<UserMission & { definition: MissionDefinition; requirement: number }> {
   return MISSIONS.map((definition) => {
     const computedProgress = computeMissionProgress(definition, snapshot);
 
     if (claimedMissionIds.has(definition.id)) {
+      const historicalReward = rewardOverrides?.get(definition.id);
+      const displayDefinition = historicalReward
+        ? { ...definition, reward: historicalReward }
+        : definition;
+
       return {
         missionId: definition.id,
         progress: Math.max(computedProgress, definition.requirement),
         status: "claimed" as const,
         claimedAt: null,
-        definition,
+        definition: displayDefinition,
         requirement: definition.requirement,
       };
     }

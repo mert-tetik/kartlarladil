@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import type { ActiveCardLimitDetails } from "@/types/domain";
 
 const mockPush = vi.fn();
 const mockRequireAuthAction = vi.fn((action: () => void) => action());
@@ -32,11 +33,20 @@ vi.mock("@/features/auth/auth-client", () => ({
   useRequireAuthAction: () => mockRequireAuthAction,
 }));
 
-function renderDialog(props: { open: boolean; errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"] }) {
+function renderDialog(props: {
+  open: boolean;
+  errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"];
+  activeCardLimitDetails?: ActiveCardLimitDetails | null;
+}) {
   const onOpenChange = vi.fn();
   const result = render(
     <LocaleProvider initialLocale="tr">
-      <UpgradeDialog open={props.open} errorCode={props.errorCode} onOpenChange={onOpenChange} />
+      <UpgradeDialog
+        open={props.open}
+        errorCode={props.errorCode}
+        onOpenChange={onOpenChange}
+        activeCardLimitDetails={props.activeCardLimitDetails}
+      />
     </LocaleProvider>,
   );
   return { ...result, onOpenChange };
@@ -62,6 +72,16 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
     expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
+  });
+
+  it("shows group addition counts when a group hits the active card limit", () => {
+    renderDialog({
+      open: true,
+      errorCode: "free_active_card_limit",
+      activeCardLimitDetails: { addedCount: 3, skippedCount: 2 },
+    });
+
+    expect(screen.getByText(/3.*2/)).toBeInTheDocument();
   });
 
   it("navigates to the learn page when the learn cards button is clicked", async () => {

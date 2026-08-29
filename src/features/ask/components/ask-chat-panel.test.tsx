@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { AskChatPanel } from "@/features/ask/components/ask-chat-panel";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -84,6 +85,30 @@ describe("AskChatPanel", () => {
     expect(await screen.findByText("answer 1")).toBeVisible();
   });
 
+  it("shows native-language suggestions for the selected landing card language", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("suggestion answer")));
+    window.localStorage.setItem("foxiesdeck:landing-card-language", "de");
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPanel({ initialTerm: "", contextLanguage: undefined, nativeLocale: "tr" });
+
+    expect(screen.getByText("Foxy'e istedigin soruyu sor!")).toBeVisible();
+
+    const suggestion = await screen.findByRole("button", {
+      name: "Almanca dilinde 5 ileri seviye cümle örneği ver.",
+    });
+
+    await user.click(suggestion);
+
+    const request = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/ask/chat"));
+    const requestInit = request?.[1] as RequestInit | undefined;
+    const requestBody = JSON.parse(String(requestInit?.body));
+
+    expect(requestBody.messages[0].content).toBe("Almanca dilinde 5 ileri seviye cümle örneği ver.");
+    expect(requestBody.contextLanguage).toBe("de");
+  });
+
   it("sends an interim microphone transcript when recording stops", async () => {
     const user = userEvent.setup();
     const recognition = installSpeechRecognitionMock();
@@ -124,10 +149,18 @@ describe("AskChatPanel", () => {
   });
 });
 
-function renderPanel({ initialTerm }: { initialTerm: string }) {
+function renderPanel({
+  initialTerm,
+  contextLanguage,
+  nativeLocale,
+}: {
+  initialTerm: string;
+  contextLanguage?: LanguageCode;
+  nativeLocale?: LocaleCode;
+}) {
   return render(
     <LocaleProvider initialLocale="tr">
-      <AskChatPanel language="en" initialTerm={initialTerm} />
+      <AskChatPanel contextLanguage={contextLanguage} initialTerm={initialTerm} nativeLocale={nativeLocale} />
     </LocaleProvider>,
   );
 }

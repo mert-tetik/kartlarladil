@@ -6,13 +6,16 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import {
   MobileCustomCardLanguagePicker,
+  usesNonLatinWritingSystem,
 } from "@/app/components/mobile-custom-card-language-picker";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { TIERS } from "@/data/tiers";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
@@ -24,6 +27,10 @@ type LoopSlotOrigin = {
   width: number;
   height: number;
 };
+
+const PREVIEW_MOVE_DELAY_MS = 400;
+const PREVIEW_MOVE_DURATION_MS = 700;
+const PREVIEW_REVEAL_DELAY_MS = PREVIEW_MOVE_DELAY_MS + PREVIEW_MOVE_DURATION_MS + 70;
 
 export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached, landingLanguage }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; landingLanguage: LanguageCode }) {
   const { locale } = useLocale();
@@ -41,6 +48,8 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
+  const [loopExitActive, setLoopExitActive] = useState(false);
+  const [cardAddedMessageVisible, setCardAddedMessageVisible] = useState(false);
   const [previewOrigin, setPreviewOrigin] = useState<LoopSlotOrigin | null>(null);
   const [previewReturnPosition, setPreviewReturnPosition] = useState<LoopSlotOrigin | null>(null);
   const [sheetElement, setSheetElement] = useState<HTMLDivElement | null>(null);
@@ -48,10 +57,16 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const returnTimer = useRef<number | null>(null);
   const returnMoveTimer = useRef<number | null>(null);
   const returnFrame = useRef<number | null>(null);
+  const cardAddedMessageTimer = useRef<number | null>(null);
   const loopCards = useMemo(
     () => TIERS.flatMap((tier) => localCardRepository.list({ tier }).slice(0, 1)),
     [],
   );
+  const transliterationHint = usesNonLatinWritingSystem(targetLanguage)
+    ? t("createCard.targetLanguage.transliterationHint", {
+        language: getLanguageDisplayName(targetLanguage, locale),
+      })
+    : null;
 
   useEffect(() => {
     if (!open) return;
@@ -63,8 +78,8 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   useEffect(() => {
     if (!preview || previewReturning) return;
 
-    const expandTimer = window.setTimeout(() => setPreviewExpanded(true), 48);
-    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), 820);
+    const expandTimer = window.setTimeout(() => setPreviewExpanded(true), PREVIEW_MOVE_DELAY_MS);
+    const revealTimer = window.setTimeout(() => setPreviewRevealed(true), PREVIEW_REVEAL_DELAY_MS);
 
     return () => {
       window.clearTimeout(expandTimer);
@@ -72,10 +87,18 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     };
   }, [preview, previewReturning]);
 
+  useEffect(() => {
+    if (!preview || previewReturning) return;
+
+    const timer = window.setTimeout(() => setLoopExitActive(true), PREVIEW_MOVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [preview, previewReturning]);
+
   useEffect(() => () => {
     if (returnTimer.current) window.clearTimeout(returnTimer.current);
     if (returnMoveTimer.current) window.clearTimeout(returnMoveTimer.current);
     if (returnFrame.current) window.cancelAnimationFrame(returnFrame.current);
+    if (cardAddedMessageTimer.current) window.clearTimeout(cardAddedMessageTimer.current);
   }, []);
 
   useEffect(() => {
@@ -96,7 +119,27 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   }, [sheetElement]);
 
   function handleClose() {
+    clearCardAddedMessage();
     onClose();
+  }
+
+  function clearCardAddedMessage() {
+    if (cardAddedMessageTimer.current) {
+      window.clearTimeout(cardAddedMessageTimer.current);
+      cardAddedMessageTimer.current = null;
+    }
+    setCardAddedMessageVisible(false);
+  }
+
+  function showCardAddedMessage() {
+    if (cardAddedMessageTimer.current) {
+      window.clearTimeout(cardAddedMessageTimer.current);
+    }
+    setCardAddedMessageVisible(true);
+    cardAddedMessageTimer.current = window.setTimeout(() => {
+      setCardAddedMessageVisible(false);
+      cardAddedMessageTimer.current = null;
+    }, 3000);
   }
 
   const captureLoopOrigin = (tier: VocabularyCard["tier"], slotId?: string): LoopSlotOrigin | null => {
@@ -131,13 +174,15 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     };
   };
   const showPreview = (card: VocabularyCard) => {
+    clearCardAddedMessage();
+    setLoopExitActive(false);
     setPreviewOrigin(captureLoopOrigin(card.tier));
     setPreview(card);
   };
   async function generate() {
     const normalized = normalizeSearch(term);
     if (!normalized) return;
-    setLoading(true); setError(""); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setPreviewOrigin(null); setPreviewReturnPosition(null);
+    setLoading(true); setError(""); clearCardAddedMessage(); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setPreviewOrigin(null); setPreviewReturnPosition(null);
     try {
       const match = localCardRepository
         .list({ language: targetLanguage, query: term })
@@ -185,6 +230,8 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           termKind: aiResponse.termKind,
         },
         optimisticCard,
+      }).then(() => {
+        showCardAddedMessage();
       }).catch((error: unknown) => {
         if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") {
           onSubscriptionLimitReached?.(error.errorCode);
@@ -200,7 +247,9 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       .then((result) => {
         if (result.limitReached) {
           onSubscriptionLimitReached?.("free_active_card_limit");
+          return;
         }
+        if (result.ok) showCardAddedMessage();
       })
       .catch(() => undefined);
     setTerm("");
@@ -209,12 +258,13 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
   const previewTarget = {
     left: Math.max(0, (sheetSize.width - 190) / 2),
-    top: Math.max(48, (sheetSize.height - 253) / 2 - 76),
+    top: Math.max(48, (sheetSize.height - 253) / 2 - 120),
     width: 190,
     height: 253,
   };
   function returnPreviewToLoop() {
     if (!preview || previewReturning) return;
+    setLoopExitActive(false);
     setPreviewRevealed(false);
     setPreviewReturning(true);
     returnMoveTimer.current = window.setTimeout(() => {
@@ -264,18 +314,30 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     <MobileBottomSheetShell
       open={open}
       onClose={handleClose}
-      title={t("createCard.term")}
-      panelLabel={t("createCard.term")}
+      title={t("createCard.mobileTitle")}
+      panelLabel={t("createCard.mobileTitle")}
       panelClassName="h-[78dvh] max-h-[94dvh]"
       contentRef={setSheetElement}
       visual={<Plus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
-      contentClassName="relative overflow-y-auto p-5"
+      contentClassName="relative overflow-hidden p-5"
     >
-      <CardBackLoop cards={loopCards} extractedSlotId={previewOrigin?.slotId} className="absolute inset-x-0 bottom-[4.5rem] z-0" />
+      <CardBackLoop
+        cards={loopCards}
+        extractedSlotId={previewOrigin?.slotId}
+        hint={cardAddedMessageVisible
+          ? formatSuperWaterText(locale, t("createCard.success.added"))
+          : transliterationHint
+          ? formatSuperWaterText(locale, transliterationHint)
+          : null}
+        successMessage={cardAddedMessageVisible}
+        useSuperWater={canUseSuperWater(locale)}
+        previewActive={loopExitActive}
+        className="absolute inset-x-0 bottom-[4.5rem] z-0"
+      />
       <div className={cn("relative z-10 flex flex-1 flex-col pt-4 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}>
         <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
         <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="mt-3 h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" />
-        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-brand-foreground disabled:opacity-50">
+        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-white text-sm font-semibold text-black disabled:opacity-50">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           {loading ? t("createCard.generating") : t("createCard.generate")}
         </button>
@@ -287,9 +349,9 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
               <VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" />
             </div>
           </div>
-          <div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 16}px` }}>
-            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className="h-10 rounded-md bg-red-500 text-sm font-semibold text-white disabled:pointer-events-none">{t("common.back")}</button>
-            <button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold text-white disabled:opacity-50">{alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add")}</button>
+          <div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 24}px` }}>
+            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={returnPreviewToLoop} className={cn("h-12 rounded-md bg-black text-lg font-semibold text-white disabled:pointer-events-none", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, t("common.back"))}</button>
+            <button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-md bg-action-learn text-lg font-semibold text-white disabled:opacity-50", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add"))}</button>
           </div>
         </>
       ) : null}
@@ -312,10 +374,69 @@ function getSubscriptionLimitError(error: unknown): LimitErrorCode | null {
   }
 }
 
-function CardBackLoop({ cards, extractedSlotId, className }: { cards: VocabularyCard[]; extractedSlotId?: string; className?: string }) {
+function CardBackLoop({
+  cards,
+  extractedSlotId,
+  hint,
+  successMessage,
+  useSuperWater,
+  previewActive,
+  className,
+}: {
+  cards: VocabularyCard[];
+  extractedSlotId?: string;
+  hint?: string | null;
+  successMessage: boolean;
+  useSuperWater: boolean;
+  previewActive: boolean;
+  className?: string;
+}) {
   if (!cards.length) return null;
 
   const sequence = [...cards, ...cards];
 
-  return <div className={cn("mobile-custom-card-loop mt-auto pb-24 pt-7", className)} aria-hidden="true"><div className="mobile-custom-card-loop-track">{sequence.map((card, index) => { const slotId = `${card.tier}-${index}`; return <div key={`${card.id}-${index}`} data-mobile-custom-card-loop-slot={slotId} data-loop-tier={card.tier} className="aspect-[3/4] w-[92px] shrink-0">{slotId === extractedSlotId ? null : <VocabularyCardView card={card} initialFace="back" face="back" flippable={false} showActions={false} compact className="aspect-[3/4] !min-h-0 w-full max-sm:!aspect-[3/4] max-sm:!min-h-0" />}</div>; })}</div></div>;
+  return (
+    <>
+      <div className={cn("mobile-custom-card-loop mt-auto pb-24 pt-7 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]", previewActive && "translate-y-[120%]", className)}>
+        <div className="mobile-custom-card-loop-track" aria-hidden="true">
+          {sequence.map((card, index) => {
+            const slotId = `${card.tier}-${index}`;
+
+            return (
+              <div
+                key={`${card.id}-${index}`}
+                data-mobile-custom-card-loop-slot={slotId}
+                data-loop-tier={card.tier}
+                className="aspect-[3/4] w-[92px] shrink-0"
+              >
+                {slotId === extractedSlotId ? null : (
+                  <VocabularyCardView
+                    card={card}
+                    initialFace="back"
+                    face="back"
+                    flippable={false}
+                    showActions={false}
+                    compact
+                    className="aspect-[3/4] !min-h-0 w-full max-sm:!aspect-[3/4] max-sm:!min-h-0"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {hint ? (
+        <p
+          className={cn(
+            "pointer-events-none absolute inset-x-5 bottom-[4.5rem] text-center text-xl font-bold leading-7 text-white transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            successMessage && "rounded-md bg-action-learn px-4 py-2 shadow-sm",
+            previewActive && "translate-y-[180%]",
+            useSuperWater && "font-super-water",
+          )}
+        >
+          {hint}
+        </p>
+      ) : null}
+    </>
+  );
 }

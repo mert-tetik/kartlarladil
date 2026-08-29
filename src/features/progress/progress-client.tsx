@@ -147,10 +147,11 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       (user?.profile.aiPracticePoints ?? 0) +
       (user?.profile.chestPoints ?? 0) +
       (user?.profile.streakPoints ?? 0) +
-      (user?.profile.missionPoints ?? 0);
+      (user?.profile.missionPoints ?? 0) +
+      (user?.profile.quizResultPoints ?? 0);
 
     return mergeBonusPoints(baseStats, bonusPoints);
-  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints, user?.profile.streakPoints, user?.profile.missionPoints]);
+  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints, user?.profile.streakPoints, user?.profile.missionPoints, user?.profile.quizResultPoints]);
 
   const stats = useMemo(() => {
     const isLoading = !hydrated || cloudLoading;

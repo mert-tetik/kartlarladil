@@ -36,7 +36,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const router = useRouter();
   const { stats, refreshStats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
-  const { data: leaderboardData } = useLeaderboardData();
+  const { data: leaderboardData } = useLeaderboardData({ refreshOnMount: true });
   const basePoints = stats.totalPoints - points;
   const gainedPoints = points;
   const scoreRef = useRef<HTMLSpanElement>(null);
@@ -134,7 +134,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
             <p
               data-game-result-standing
               className={cn(
-                "game-result-title-success bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-[2.6rem] font-bold leading-none text-transparent drop-shadow-[0_2px_3px_rgba(15,23,42,0.55)] sm:text-5xl",
+                "game-result-title-success bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-[2.6rem] font-bold leading-none text-transparent drop-shadow-[0_2px_3px_rgba(15,23,42,0.55)] sm:text-5xl",
                 canUseSuperWater(locale) && "font-super-water",
               )}
             >
@@ -183,7 +183,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
           />
         </div>
 
-        <div className="game-result-score relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+        <div className="game-result-score relative flex items-center gap-2 rounded-full border border-[var(--score-highlight)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
           <Star className="size-5 fill-current" aria-hidden="true" />
           <span
             className={cn(

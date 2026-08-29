@@ -9,13 +9,14 @@ const CONCURRENCY = parsePositiveInt(process.env.CARD_PRONUNCIATION_CONCURRENCY)
 const CARD_SEED_LOCALE_ORDER = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
 const PARTIAL_PATH = "scripts/data/card-pronunciations.partial.json";
 const OUTPUT_PATH = "src/data/card-pronunciations.generated.ts";
-const MODEL = process.env.OPENAI_CARD_PRONUNCIATIONS_MODEL?.trim() || "gpt-5-nano";
 const MAX_CARDS = parsePositiveInt(process.env.CARD_PRONUNCIATION_LIMIT);
 const EMIT_ONLY =
   process.env.CARD_PRONUNCIATION_EMIT_ONLY === "1" || process.env.CARD_PRONUNCIATION_EMIT_ONLY === "true";
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
+
+const MODEL = process.env.OPENAI_CARD_PRONUNCIATIONS_MODEL?.trim() || "gpt-5.4-nano";
 
 if (!process.env.OPENAI_API_KEY) {
   console.error("OPENAI_API_KEY required.");
@@ -97,29 +98,7 @@ async function generateBatch(batch) {
 }
 
 async function generateBatchWithRetry(batch, attempt) {
-  const prompt = [
-    "You write one accurate IPA pronunciation for each vocabulary card term.",
-    "Rules:",
-    "1. Pronounce the card term itself in the card language, not the English lemma.",
-    "2. Return exactly one broad IPA transcription per item.",
-    "3. Wrap the IPA in forward slashes, like /.../.",
-    "4. If the term is a phrase, transcribe the whole phrase naturally.",
-    "5. Use the standard/common modern pronunciation for that language.",
-    "6. Do not include explanations, alternate variants, notes, or plain-text respellings.",
-    '7. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","pronunciation":"/.../"}]}',
-    "",
-    "Cards:",
-    ...batch.map((card) =>
-      JSON.stringify({
-        sourceKey: card.sourceKey,
-        language: card.language,
-        term: card.term,
-        englishKey: card.englishKey,
-        partOfSpeech: card.partOfSpeech,
-        termKind: card.termKind,
-      }),
-    ),
-  ].join("\n");
+  const prompt = buildPrompt(batch, "Cards:");
 
   const parsed = await requestBatchJson(prompt, attempt, batch);
 
@@ -151,29 +130,7 @@ async function generateBatchWithRetry(batch, attempt) {
 }
 
 async function generateMissingBatch(batch, attempt) {
-  const prompt = [
-    "You write one accurate IPA pronunciation for each vocabulary card term.",
-    "Rules:",
-    "1. Pronounce the card term itself in the card language, not the English lemma.",
-    "2. Return exactly one broad IPA transcription per item.",
-    "3. Wrap the IPA in forward slashes, like /.../.",
-    "4. If the term is a phrase, transcribe the whole phrase naturally.",
-    "5. Use the standard/common modern pronunciation for that language.",
-    "6. Do not include explanations, alternate variants, notes, or plain-text respellings.",
-    '7. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","pronunciation":"/.../"}]}',
-    "",
-    "Fill only these missing cards:",
-    ...batch.map((card) =>
-      JSON.stringify({
-        sourceKey: card.sourceKey,
-        language: card.language,
-        term: card.term,
-        englishKey: card.englishKey,
-        partOfSpeech: card.partOfSpeech,
-        termKind: card.termKind,
-      }),
-    ),
-  ].join("\n");
+  const prompt = buildPrompt(batch, "Fill only these missing cards:");
 
   const parsed = await requestBatchJson(prompt, attempt, batch);
 
@@ -198,22 +155,50 @@ async function generateMissingBatch(batch, attempt) {
   return { items: batch.map((card) => bySourceKey.get(card.sourceKey)).filter(Boolean) };
 }
 
+function buildPrompt(batch, heading) {
+  return [
+    "You create a simple Turkish-reader pronunciation respelling for each vocabulary card term.",
+    "The pronunciation is written for a Turkish speaker to read aloud, but it must represent the actual pronunciation of the term in its target card language.",
+    "Rules:",
+    "1. Pronounce the card term itself in the target card language, not the English lemma and not a translation.",
+    "2. Return exactly one pronunciation per item using lowercase Latin characters only, plus Turkish dotless ı when needed.",
+    "3. Never use IPA, slashes, brackets, stress marks, diacritics, Cyrillic, Arabic, Greek, Japanese, Korean, or Chinese characters.",
+    "4. Use only a-z, ı, spaces, apostrophes, and hyphens in pronunciation values.",
+    "5. Write every sound so a Turkish reader can pronounce it approximately correctly. Preserve pronounced final consonants and all important sounds.",
+    "6. For a w sound use v, for a Turkish ç-like sound use ch, and for a Turkish ş-like sound use sh. Convert x according to its actual sound; never copy x blindly.",
+    "7. Target-language rules matter: do not force English pronunciation onto German, Russian, French, Spanish, Italian, Portuguese, Dutch, Polish, Arabic, Japanese, Korean, or Chinese terms.",
+    "8. For non-Latin scripts, transliterate the target-language pronunciation into the allowed Latin spelling. For phrases, preserve the word order and pronounce the whole phrase.",
+    "9. Important examples: box -> baks, fox -> faks, socks -> saks, six -> siks, exam -> igzam. The output 'bok' for box is invalid.",
+    "10. Do not include explanations, alternate variants, notes, punctuation, or surrounding quotes in pronunciation values.",
+    '11. Return valid JSON only with this exact shape: {"items":[{"sourceKey":"...","pronunciation":"..."}]}',
+    "",
+    heading,
+    ...batch.map((card) =>
+      JSON.stringify({
+        sourceKey: card.sourceKey,
+        language: card.language,
+        term: card.term,
+        englishKey: card.englishKey,
+        partOfSpeech: card.partOfSpeech,
+        termKind: card.termKind,
+      }),
+    ),
+  ].join("\n");
+}
+
 function normalizePronunciation(value) {
-  const trimmed = String(value ?? "").trim().normalize("NFC");
-
-  if (/^\[.+\]$/u.test(trimmed)) {
-    return `/${trimmed.slice(1, -1)}/`;
-  }
-
-  if (/^\/.+\/$/u.test(trimmed)) {
-    return trimmed;
-  }
-
-  return trimmed;
+  return String(value ?? "")
+    .trim()
+    .normalize("NFC")
+    .toLocaleLowerCase("tr")
+    .replaceAll("w", "v")
+    .replaceAll("ç", "ch")
+    .replaceAll("ş", "sh")
+    .replace(/\s+/gu, " ");
 }
 
 function isValidPronunciation(value) {
-  return /^\/.+\/$/u.test(String(value ?? "").trim());
+  return /^[a-z\u0131]+(?:[ '-][a-z\u0131]+)*$/u.test(String(value ?? "").trim());
 }
 
 function parseBatchContent(content) {

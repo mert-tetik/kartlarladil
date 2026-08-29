@@ -10,7 +10,6 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import {
   Languages,
   Loader2,
@@ -20,13 +19,17 @@ import {
   Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InlineLanguagePicker } from "@/components/inline-language-picker";
+import { TypingIndicator } from "@/components/typing-indicator";
+import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
+import { readLandingCardLanguage, subscribeLandingCardLanguage } from "@/app/components/landing-card-language";
+import { isLanguageCode } from "@/data/languages";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 
+import { translate } from "@/i18n/dictionaries";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { navigateWithRouteTransition } from "@/lib/route-transition";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, createId } from "@/lib/utils";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
@@ -43,6 +46,11 @@ interface ClientMessage {
     requestedLocale?: LocaleCode;
     targetLocale?: LocaleCode;
   };
+}
+
+interface ClientLanguageState {
+  nativeLanguageCode: LanguageCode | null;
+  learningLanguageCode: LanguageCode | null;
 }
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
@@ -73,11 +81,17 @@ interface SpeechRecognitionResultLike {
 }
 
 export function AskChatPanel({
-  language,
+  contextLanguage,
   initialTerm,
+  className,
+  nativeLocale,
+  fallbackLearningLanguage,
 }: {
-  language: LanguageCode;
+  contextLanguage?: LanguageCode;
   initialTerm: string;
+  className?: string;
+  nativeLocale?: LocaleCode;
+  fallbackLearningLanguage?: LanguageCode;
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
@@ -89,6 +103,11 @@ export function AskChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [languageState, setLanguageState] = useState<ClientLanguageState>({
+    nativeLanguageCode: null,
+    learningLanguageCode: null,
+  });
+  const [landingCardLanguage, setLandingCardLanguage] = useState<LanguageCode | null>(contextLanguage ?? null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -100,6 +119,21 @@ export function AskChatPanel({
   const latestTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
   const initialSentRef = useRef(false);
+
+  useAutoResizeTextarea(textareaRef, draft, !isRecording);
+
+  useEffect(() => {
+    if (contextLanguage) {
+      return;
+    }
+
+    const syncLandingCardLanguage = () => {
+      setLandingCardLanguage(readLandingCardLanguage());
+    };
+
+    syncLandingCardLanguage();
+    return subscribeLandingCardLanguage(syncLandingCardLanguage);
+  }, [contextLanguage]);
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -190,8 +224,15 @@ export function AskChatPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          language,
           locale: currentLocale,
+          contextLanguage:
+            messages.length === 0
+              ? contextLanguage ?? landingCardLanguage ?? fallbackLearningLanguage ?? currentLocale
+              : undefined,
+          languageState: {
+            nativeLanguageCode: languageState.nativeLanguageCode ?? "unknown",
+            learningLanguageCode: languageState.learningLanguageCode ?? "unknown",
+          },
           messages: [...requestMessages, { role: userMessage.role, content: userMessage.content }],
         }),
       });
@@ -209,25 +250,46 @@ export function AskChatPanel({
         return;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let streamedText = "";
+      const contentType = response.headers.get("content-type") ?? "";
 
-      while (true) {
-        const { value, done } = await reader.read();
+      if (contentType.includes("application/json")) {
+        const payload = (await response.json()) as {
+          reply?: unknown;
+          nativeLanguageCode?: unknown;
+          learningLanguageCode?: unknown;
+        };
+        const reply = typeof payload.reply === "string" ? payload.reply.trim() : "";
 
-        if (done) {
-          break;
+        if (!reply) {
+          replaceAssistantMessage(assistantMessage.id, t("ask.emptyResponse"));
+        } else {
+          replaceAssistantMessage(assistantMessage.id, reply);
+          setLanguageState({
+            nativeLanguageCode: normalizeDetectedLanguage(payload.nativeLanguageCode),
+            learningLanguageCode: normalizeDetectedLanguage(payload.learningLanguageCode),
+          });
+        }
+      } else if (response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let streamedText = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          streamedText += decoder.decode(value, { stream: true });
+          replaceAssistantMessage(assistantMessage.id, streamedText);
         }
 
-        streamedText += decoder.decode(value, { stream: true });
-        replaceAssistantMessage(assistantMessage.id, streamedText);
-      }
+        streamedText += decoder.decode();
 
-      streamedText += decoder.decode();
-
-      if (streamedText.trim().length === 0) {
-        replaceAssistantMessage(assistantMessage.id, t("ask.emptyResponse"));
+        if (streamedText.trim().length === 0) {
+          replaceAssistantMessage(assistantMessage.id, t("ask.emptyResponse"));
+        }
       }
     } catch {
       replaceAssistantMessage(assistantMessage.id, t("ask.error"));
@@ -258,7 +320,7 @@ export function AskChatPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          language,
+          language: languageState.nativeLanguageCode ?? currentLocale,
           targetLocale: currentLocale,
           text: message.content,
         }),
@@ -302,7 +364,7 @@ export function AskChatPanel({
   }
 
   function handleSpeakMessage(message: ClientMessage) {
-    speakText(message.content, language);
+    speakText(message.content, languageState.nativeLanguageCode ?? currentLocale);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -336,7 +398,7 @@ export function AskChatPanel({
     setDraft("");
     setInterimTranscript("");
 
-    recognition.lang = getSpeechLanguage(language);
+    recognition.lang = getSpeechLanguage(languageState.nativeLanguageCode ?? currentLocale);
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
@@ -431,12 +493,18 @@ export function AskChatPanel({
   }
 
   return (
-    <section className="relative mx-auto flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:max-w-full max-lg:rounded-none max-lg:border-x-0">
-      <ChatHeader language={language} />
+    <section className={cn(
+      "relative mx-auto flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col rounded-lg border border-border bg-background-card max-lg:max-w-full max-lg:rounded-none max-lg:border-x-0",
+      className,
+    )}>
+      <ChatHeader />
       <MessageList
         refObject={listRef}
         messages={messages}
         pending={pending}
+        learningLanguage={contextLanguage ?? landingCardLanguage ?? fallbackLearningLanguage ?? currentLocale}
+        nativeLocale={nativeLocale ?? currentLocale}
+        onSuggestion={submitContent}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
       />
@@ -471,14 +539,9 @@ export function AskChatPanel({
   );
 }
 
-function ChatHeader({
-  language,
-}: {
-  language: LanguageCode;
-}) {
+function ChatHeader() {
   const t = useT();
   const { locale } = useLocale();
-  const router = useRouter();
 
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
@@ -489,14 +552,6 @@ function ChatHeader({
         <h1 className={cn("truncate text-base font-semibold text-foreground sm:text-lg", canUseSuperWater(locale) && "font-super-water")}>
           {formatSuperWaterText(locale, t("page.ask.title"))}
         </h1>
-        <p className="mt-1 flex min-w-0 items-center gap-2 text-sm">
-          <InlineLanguagePicker
-            value={language}
-            onChange={(code) => {
-              navigateWithRouteTransition(() => router.push(`/ask/${code}`));
-            }}
-          />
-        </p>
       </div>
     </header>
   );
@@ -506,17 +561,31 @@ function MessageList({
   refObject,
   messages,
   pending,
+  learningLanguage,
+  nativeLocale,
+  onSuggestion,
   onTranslate,
   onSpeak,
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
   pending: boolean;
+  learningLanguage: LanguageCode;
+  nativeLocale: LocaleCode;
+  onSuggestion: (message: string) => void;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
+  const learningLanguageName = getLanguageDisplayName(learningLanguage, nativeLocale);
+  const suggestionKeys = [
+    "ask.suggestion.examples",
+    "ask.suggestion.conversation",
+    "ask.suggestion.commonExpressions",
+    "ask.suggestion.commonMistakes",
+    "ask.suggestion.quiz",
+  ] as const;
 
   return (
     <div
@@ -530,9 +599,25 @@ function MessageList({
             <Image src="/mascots/mascot16.webp" alt="" fill sizes="96px" className="object-contain" />
           </div>
           <h2 className={cn("mt-5 text-xl font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
-            {formatSuperWaterText(locale, t("page.ask.title"))}
+            {formatSuperWaterText(locale, t("page.ask.emptyTitle"))}
           </h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
+          <div className="mt-5 grid w-full gap-2 text-left">
+            {suggestionKeys.map((key) => {
+              const suggestion = translate(nativeLocale, key, { language: learningLanguageName });
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onSuggestion(suggestion)}
+                  className="w-full rounded-xl border border-border bg-background-card px-4 py-3 text-sm leading-5 text-foreground transition-colors hover:border-brand hover:bg-background-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {suggestion}
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="space-y-5 pb-2">
@@ -563,6 +648,7 @@ function ChatMessage({
   onSpeak: () => void;
 }) {
   const isUser = message.role === "user";
+  const t = useT();
 
   return (
     <article className={cn("flex gap-3 animate-message-pop", isUser && "flex-row-reverse")}>
@@ -581,7 +667,7 @@ function ChatMessage({
                 : "border border-white bg-white text-slate-950 whitespace-pre-wrap",
             )}
           >
-            {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}
+            {pending ? <TypingIndicator label={t("common.loading")} /> : message.content}
           </div>
           {!pending && message.content ? (
             <>
@@ -695,7 +781,7 @@ function ChatComposer({
       <div className="mx-auto w-full max-w-5xl max-lg:max-w-full">
         <div
           className={cn(
-            "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
+            "flex gap-1.5 rounded-[25px] border border-border bg-background p-1.5 focus-within:border-foreground",
             isRecording ? "items-center" : "items-end",
           )}
         >
@@ -713,7 +799,7 @@ function ChatComposer({
               rows={1}
               maxLength={900}
               placeholder={t("ask.placeholder")}
-              className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
+              className="max-h-[7.5rem] min-h-9 flex-1 resize-none overflow-hidden bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
               disabled={pending}
             />
           )}
@@ -774,6 +860,10 @@ function getLocalizedErrorMessage(errorCode: string | null, t: ReturnType<typeof
   }
 
   return t("ask.error");
+}
+
+function normalizeDetectedLanguage(value: unknown): LanguageCode | null {
+  return typeof value === "string" && isLanguageCode(value) ? value : null;
 }
 
 function getSpeechRecognitionConstructor() {

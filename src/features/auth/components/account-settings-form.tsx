@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import { updateProfileAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE, type AuthShellUser } from "@/features/auth/auth-types";
 import { FieldError, FormMessage, inputClassName } from "@/features/auth/components/form-message";
-import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
 
@@ -39,14 +38,42 @@ export function AccountSettingsForm({ user }: { user: AuthShellUser }) {
           <FieldError message={state.fieldErrors?.displayName?.[0]} />
         </label>
 
-        <PreferenceFields
-          defaultLanguage={user.profile.preferredLanguageCode ?? "en"}
-          defaultUiLocale={user.profile.preferredUiLocale ?? "en"}
-          defaultTier={user.profile.preferredTier ?? "A1"}
-          languageError={state.fieldErrors?.preferredLanguageCode?.[0]}
-          uiLocaleError={state.fieldErrors?.preferredUiLocale?.[0]}
-          tierError={state.fieldErrors?.preferredTier?.[0]}
+        <input
+          type="hidden"
+          name="preferredLanguageCode"
+          value={user.profile.preferredLanguageCode ?? ""}
+          readOnly
         />
+        <input
+          type="hidden"
+          name="preferredUiLocale"
+          value={user.profile.preferredUiLocale ?? ""}
+          readOnly
+        />
+        <input
+          type="hidden"
+          name="preferredTier"
+          value={user.profile.preferredTier ?? ""}
+          readOnly
+        />
+
+        <fieldset className="rounded-md border border-border bg-background px-4 py-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            {t("leaderboard.allowTitle")}
+          </legend>
+          <label className="mt-2 flex cursor-pointer items-center justify-between gap-4">
+            <span className="text-sm leading-6 text-foreground-secondary">
+              {t("leaderboard.allowDescription")}
+            </span>
+            <input
+              className="size-5 shrink-0 accent-[var(--brand)]"
+              type="checkbox"
+              name="leaderboardVisible"
+              value="on"
+              defaultChecked={user.profile.leaderboardVisible ?? false}
+            />
+          </label>
+        </fieldset>
 
         <SubmitButton pendingLabel={t("auth.profile.pending")}>{t("auth.profile.save")}</SubmitButton>
       </div>

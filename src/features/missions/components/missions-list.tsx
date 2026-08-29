@@ -23,6 +23,7 @@ import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import type {
   MissionDefinition,
   MissionProgressSnapshot,
+  MissionReward,
   UserMission,
 } from "@/features/missions/mission-types";
 import { MissionCard } from "./mission-card";
@@ -47,6 +48,10 @@ export function MissionsList() {
   const markClaimPending = useMissionClaimStore((state) => state.markClaimPending);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [historicalRewards, setHistoricalRewards] = useState<{
+    userId: string;
+    rewards: Record<string, MissionReward>;
+  } | null>(null);
   const [rewardMode, setRewardMode] = useState<
     | { missionId: string; kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition }
     | { missionId: string; kind: "points"; amount: number; source?: DOMRect }
@@ -69,8 +74,18 @@ export function MissionsList() {
   }, [cards, getGameProgress]);
 
   const missions = useMemo<MissionViewModel[]>(
-    () => buildMissionViewModels(snapshot, claimedIds),
-    [snapshot, claimedIds],
+    () => {
+      const rewardOverrides = new Map<string, MissionReward>();
+      const rewardState = historicalRewards;
+      if (rewardState && rewardState.userId === user?.id) {
+        for (const [missionId, reward] of Object.entries(rewardState.rewards)) {
+          rewardOverrides.set(missionId, reward);
+        }
+      }
+
+      return buildMissionViewModels(snapshot, claimedIds, rewardOverrides);
+    },
+    [historicalRewards, snapshot, claimedIds, user?.id],
   );
 
   const syncMissions = useCallback(async () => {
@@ -81,6 +96,12 @@ export function MissionsList() {
     const result = await listUserMissionsAction(snapshot);
 
     if (result.status === "success") {
+      const rewards = Object.fromEntries(
+        result.missions
+          .filter((item) => item.status === "claimed")
+          .map((item) => [item.missionId, item.definition.reward]),
+      );
+      setHistoricalRewards({ userId: user.id, rewards });
       setClaimedIds(
         result.missions.filter((item) => item.status === "claimed").map((item) => item.missionId),
         user.id,
@@ -200,11 +221,12 @@ export function MissionsList() {
   return (
     <>
       {claimError ? <p role="alert" className="text-sm text-destructive">{claimError}</p> : null}
-      <div className={cn("flex flex-col gap-3 pb-8")}>
+      <div className={cn("grid grid-cols-2 gap-0 pb-8")}>
         {missions.map((mission) => (
           <MissionCard
             key={mission.missionId}
             missionId={mission.missionId}
+            index={mission.definition.index}
             type={mission.definition.type}
             requirement={mission.requirement}
             progress={mission.progress}

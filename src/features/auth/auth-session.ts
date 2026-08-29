@@ -24,6 +24,7 @@ interface ProfileRow {
   chest_points: number | null;
   streak_points: number | null;
   mission_points: number | null;
+  quiz_result_points: number | null;
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
   theme: string | null;
@@ -52,6 +53,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
     chestPoints: row?.chest_points ?? 0,
     streakPoints: row?.streak_points ?? 0,
     missionPoints: row?.mission_points ?? 0,
+    quizResultPoints: row?.quiz_result_points ?? 0,
     pushMarketingEnabled: row?.push_marketing_enabled ?? false,
     leaderboardVisible: row?.leaderboard_visible ?? false,
     theme: row?.theme ?? null,
@@ -66,6 +68,15 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
 }
 
 export async function getRequestOrigin() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configuredOrigin) {
+    try {
+      return new URL(configuredOrigin).origin;
+    } catch {
+      throw new Error("NEXT_PUBLIC_SITE_URL must be a valid absolute URL.");
+    }
+  }
+
   const headerStore = await headers();
 
   const forwardedHost = headerStore.get("x-forwarded-host");
@@ -94,7 +105,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -163,7 +174,7 @@ export async function ensureUserProfile(
         preferences?.preferredTier ?? (isPreferredTier(metadataTier) ? metadataTier : "A1"),
       onboarding_completed: false,
     })
-    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
+    .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index")
     .maybeSingle<ProfileRow>();
 
   if (error) {

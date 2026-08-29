@@ -10,10 +10,31 @@ import {
   type RefObject,
 } from "react";
 import Image from "next/image";
-import { Coins, Languages, Loader2, Mic, Pause, SendHorizonal, Volume2 } from "lucide-react";
+import {
+  Coins,
+  HelpCircle,
+  Languages,
+  Loader2,
+  Mic,
+  Pause,
+  SendHorizonal,
+  Volume2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TypingIndicator } from "@/components/typing-indicator";
+import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
-import { getAiPracticeChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
+import { getAiPracticeChatBackground, getAiPracticeScenarioChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
+import {
+  getScenarioTitle,
+  type AiPracticeScenario,
+} from "@/features/ai-practice/ai-practice-scenarios";
+import {
+  parseAiPracticeScenarioHelpResponse,
+  parseAiPracticeScenarioResponse,
+  type ScenarioEvaluation,
+} from "@/features/ai-practice/ai-practice-scenario-response";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
@@ -36,16 +57,18 @@ import type {
 type TranslationStatus = "idle" | "loading" | "ready" | "error";
 
 const CHAT_TIER_TEXT_CLASSES: Record<Tier, string> = {
-  A1: "text-emerald-600 dark:text-emerald-400",
-  A2: "text-sky-600 dark:text-sky-400",
-  B1: "text-violet-600 dark:text-violet-400",
-  B2: "text-amber-600 dark:text-amber-400",
-  C1: "text-rose-600 dark:text-rose-400",
+  A1: "text-[var(--tier-a1-text)]",
+  A2: "text-[var(--tier-a2-text)]",
+  B1: "text-[var(--tier-b1-text)]",
+  B2: "text-[var(--tier-b2-text)]",
+  C1: "text-[var(--tier-c1-text)]",
 };
 
 interface ClientMessage extends AiPracticeMessage {
   id: string;
   score?: number;
+  evaluation?: ScenarioEvaluation;
+  helpSuggestions?: string[];
   translation?: {
     status: TranslationStatus;
     text?: string;
@@ -86,11 +109,13 @@ export function AiPracticeChatPanel({
   initialOpeningLine,
   language,
   tier = "A1",
+  scenario,
 }: {
   character: AiPracticeCharacter;
   initialOpeningLine: string;
   language: LanguageCode;
   tier?: Tier;
+  scenario?: AiPracticeScenario;
 }) {
   const [messages, setMessages] = useState<ClientMessage[]>(() => [
     {
@@ -105,6 +130,11 @@ export function AiPracticeChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [evaluationFlashMessageId, setEvaluationFlashMessageId] = useState<string | null>(null);
+  const [expandedEvaluationMessageId, setExpandedEvaluationMessageId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpError, setHelpError] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -114,12 +144,16 @@ export function AiPracticeChatPanel({
   const finalTranscriptRef = useRef("");
   const latestTranscriptRef = useRef("");
   const shouldSendTranscriptRef = useRef(false);
+  const evaluationFlashTimerRef = useRef<number | null>(null);
+  useAutoResizeTextarea(textareaRef, draft, !isRecording);
   const { locale } = useLocale();
   const t = useT();
   const { refreshStats } = useProgressStats();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
   const chatBackground = getAiPracticeChatBackground(character.id);
+  const scenarioChatBackground = scenario ? getAiPracticeScenarioChatBackground(scenario.id) : null;
+  const scenarioTitle = scenario ? getScenarioTitle(scenario, locale) : null;
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -159,6 +193,14 @@ export function AiPracticeChatPanel({
     return () => viewport.removeEventListener("resize", handleResize);
   }, [scrollMessageListToBottom]);
 
+  useEffect(() => {
+    return () => {
+      if (evaluationFlashTimerRef.current !== null) {
+        window.clearTimeout(evaluationFlashTimerRef.current);
+      }
+    };
+  }, []);
+
   async function submitMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     await submitContent(draft);
@@ -191,6 +233,8 @@ export function AiPracticeChatPanel({
     setMessages((current) => [...current, userMessage, assistantMessage]);
     setDraft("");
     setInterimTranscript("");
+    setHelpOpen(false);
+    setHelpError(false);
     setPending(true);
 
     try {
@@ -202,6 +246,9 @@ export function AiPracticeChatPanel({
         body: JSON.stringify({
           language,
           characterId: character.id,
+          mode: scenario ? "scenario" : "character",
+          ...(scenario ? { scenarioId: scenario.id } : {}),
+          uiLocale: locale,
           tier,
           messages: [...requestMessages, { role: userMessage.role, content: userMessage.content }],
         }),
@@ -220,27 +267,41 @@ export function AiPracticeChatPanel({
         return;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let streamedText = "";
+      if (scenario) {
+        const payload = parseAiPracticeScenarioResponse(JSON.stringify(await response.json().catch(() => null)));
 
-      while (true) {
-        const { value, done } = await reader.read();
-
-        if (done) {
-          break;
+        if (!payload) {
+          replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.error"));
+          return;
         }
 
-        streamedText += decoder.decode(value, { stream: true });
-        replaceAssistantMessage(assistantMessage.id, streamedText);
-      }
-
-      streamedText += decoder.decode();
-
-      if (streamedText.trim().length === 0) {
-        replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.emptyResponse"));
+        replaceAssistantMessage(assistantMessage.id, payload.reply);
+        updateMessageEvaluation(userMessage.id, payload.evaluation);
+        flashEvaluationLabel(userMessage.id);
+        await scoreUserMessage(userMessage, payload.reply);
       } else {
-        await scoreUserMessage(userMessage, streamedText);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let streamedText = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          streamedText += decoder.decode(value, { stream: true });
+          replaceAssistantMessage(assistantMessage.id, streamedText);
+        }
+
+        streamedText += decoder.decode();
+
+        if (streamedText.trim().length === 0) {
+          replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.emptyResponse"));
+        } else {
+          await scoreUserMessage(userMessage, streamedText);
+        }
       }
     } catch {
       replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.error"));
@@ -288,6 +349,96 @@ export function AiPracticeChatPanel({
 
   function updateMessageScore(messageId: string, score: number) {
     setMessages((current) => current.map((message) => (message.id === messageId ? { ...message, score } : message)));
+  }
+
+  function updateMessageEvaluation(messageId: string, evaluation: ScenarioEvaluation) {
+    setMessages((current) =>
+      current.map((message) => (message.id === messageId ? { ...message, evaluation } : message)),
+    );
+  }
+
+  function flashEvaluationLabel(messageId: string) {
+    setEvaluationFlashMessageId(messageId);
+
+    if (evaluationFlashTimerRef.current !== null) {
+      window.clearTimeout(evaluationFlashTimerRef.current);
+    }
+
+    evaluationFlashTimerRef.current = window.setTimeout(() => {
+      setEvaluationFlashMessageId((current) => (current === messageId ? null : current));
+      evaluationFlashTimerRef.current = null;
+    }, 2_000);
+  }
+
+  function updateMessageHelpSuggestions(messageId: string, suggestions: string[]) {
+    setMessages((current) =>
+      current.map((message) => (message.id === messageId ? { ...message, helpSuggestions: suggestions } : message)),
+    );
+  }
+
+  async function requestScenarioHelp() {
+    if (!scenario || pending) {
+      return;
+    }
+
+    const latestUserMessage = getLatestUserMessage(messages);
+
+    if (!latestUserMessage) {
+      return;
+    }
+
+    setHelpOpen(true);
+    setHelpError(false);
+
+    if (latestUserMessage.helpSuggestions) {
+      return;
+    }
+
+    setHelpLoading(true);
+
+    try {
+      const requestMessages = messages
+        .filter((message) => message.content.trim().length > 0)
+        .map((message) => ({ role: message.role, content: message.content }));
+      const response = await fetch("/api/ai-practice/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language,
+          characterId: character.id,
+          mode: "scenario",
+          scenarioId: scenario.id,
+          requestType: "help",
+          uiLocale: locale,
+          tier,
+          messages: requestMessages,
+        }),
+      });
+
+      if (!response.ok) {
+        setHelpError(true);
+        return;
+      }
+
+      const payload = parseAiPracticeScenarioHelpResponse(JSON.stringify(await response.json().catch(() => null)));
+
+      if (!payload) {
+        setHelpError(true);
+        return;
+      }
+
+      updateMessageHelpSuggestions(latestUserMessage.id, payload.suggestions);
+    } catch {
+      setHelpError(true);
+    } finally {
+      setHelpLoading(false);
+    }
+  }
+
+  function selectHelpSuggestion(suggestion: string) {
+    setDraft(suggestion);
+    setHelpOpen(false);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   async function translateMessage(message: ClientMessage) {
@@ -483,14 +634,24 @@ export function AiPracticeChatPanel({
 
   return (
     <section className="relative flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:rounded-none max-lg:border-x-0">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
-      />
+      {scenario && scenarioChatBackground ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          data-ai-scenario-background={scenario.id}
+          style={{ backgroundImage: `${scenarioChatBackground.overlay}, url(${scenarioChatBackground.imageSrc})` }}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
+        />
+      )}
       <ChatHeader
         character={character}
         characterName={characterName}
+        scenarioTitle={scenarioTitle}
         tier={tier}
       />
       <MessageList
@@ -500,10 +661,32 @@ export function AiPracticeChatPanel({
         characterName={characterName}
         languageName={languageName}
         pending={pending}
+        evaluationFlashMessageId={evaluationFlashMessageId}
+        expandedEvaluationMessageId={expandedEvaluationMessageId}
         onTranslate={translateMessage}
         onSpeak={handleSpeakMessage}
+        onToggleEvaluation={(messageId) => {
+          setExpandedEvaluationMessageId((current) => (current === messageId ? null : messageId));
+        }}
       />
       <div className="relative z-10 shrink-0 bg-background-card/85 backdrop-blur-sm">
+        {scenario ? (
+          <ScenarioHelpMenu
+            latestUserMessage={getLatestUserMessage(messages)}
+            open={helpOpen}
+            loading={helpLoading}
+            error={helpError}
+            pending={pending}
+            onToggle={() => {
+              if (helpOpen) {
+                setHelpOpen(false);
+              } else {
+                void requestScenarioHelp();
+              }
+            }}
+            onSelectSuggestion={selectHelpSuggestion}
+          />
+        ) : null}
         <ChatComposer
           draft={isRecording && interimTranscript ? interimTranscript : draft}
           pending={pending}
@@ -537,10 +720,12 @@ export function AiPracticeChatPanel({
 function ChatHeader({
   character,
   characterName,
+  scenarioTitle,
   tier,
 }: {
   character: AiPracticeCharacter;
   characterName: string;
+  scenarioTitle: string | null;
   tier: Tier;
 }) {
   return (
@@ -555,7 +740,10 @@ function ChatHeader({
           priority
         />
       </div>
-      <h1 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">{characterName}</h1>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-base font-semibold text-foreground">{scenarioTitle ?? characterName}</h1>
+        {scenarioTitle ? <p className="truncate text-[11px] text-foreground-muted">{characterName}</p> : null}
+      </div>
       <span className={cn("shrink-0 text-xs font-bold", CHAT_TIER_TEXT_CLASSES[tier])}>
         {tier}
       </span>
@@ -570,8 +758,11 @@ function MessageList({
   characterName,
   languageName,
   pending,
+  evaluationFlashMessageId,
+  expandedEvaluationMessageId,
   onTranslate,
   onSpeak,
+  onToggleEvaluation,
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
@@ -579,8 +770,11 @@ function MessageList({
   characterName: string;
   languageName: string;
   pending: boolean;
+  evaluationFlashMessageId: string | null;
+  expandedEvaluationMessageId: string | null;
   onTranslate: (message: ClientMessage) => void;
   onSpeak: (message: ClientMessage) => void;
+  onToggleEvaluation: (messageId: string) => void;
 }) {
   const t = useT();
 
@@ -615,8 +809,11 @@ function MessageList({
               key={message.id}
               message={message}
               pending={pending && message.role === "assistant" && !message.content}
+              evaluationFlashVisible={evaluationFlashMessageId === message.id}
+              evaluationExpanded={expandedEvaluationMessageId === message.id}
               onTranslate={() => onTranslate(message)}
               onSpeak={() => onSpeak(message)}
+              onToggleEvaluation={() => onToggleEvaluation(message.id)}
             />
           ))}
         </div>
@@ -628,15 +825,22 @@ function MessageList({
 function ChatMessage({
   message,
   pending,
+  evaluationFlashVisible,
+  evaluationExpanded,
   onTranslate,
   onSpeak,
+  onToggleEvaluation,
 }: {
   message: ClientMessage;
   pending: boolean;
+  evaluationFlashVisible: boolean;
+  evaluationExpanded: boolean;
   onTranslate: () => void;
   onSpeak: () => void;
+  onToggleEvaluation: () => void;
 }) {
   const isUser = message.role === "user";
+  const t = useT();
 
   return (
     <article className={cn("flex animate-message-pop", isUser ? "justify-end" : "justify-start")}>
@@ -650,11 +854,19 @@ function ChatMessage({
                 : "relative bg-white text-slate-950 shadow-sm whitespace-pre-wrap before:absolute before:-left-1.5 before:top-4 before:size-3 before:rotate-45 before:bg-white",
             )}
           >
-            {pending ? <Loader2 className="size-4 animate-spin text-foreground-muted" aria-hidden="true" /> : message.content}
+            {pending ? <TypingIndicator label={t("common.loading")} /> : message.content}
           </div>
           {!pending && message.content ? (
             <>
               {isUser && message.score ? <ScoreBadge score={message.score} /> : null}
+              {isUser && message.evaluation ? (
+                <ScenarioEvaluationIndicator
+                  evaluation={message.evaluation}
+                  flashVisible={evaluationFlashVisible}
+                  expanded={evaluationExpanded}
+                  onToggle={onToggleEvaluation}
+                />
+              ) : null}
               <MessageActions message={message} onTranslate={onTranslate} onSpeak={onSpeak} />
               <TranslationView translation={message.translation} />
             </>
@@ -662,6 +874,79 @@ function ChatMessage({
         </div>
       </div>
     </article>
+  );
+}
+
+const SCENARIO_EVALUATION_DOT_CLASSES: Record<ScenarioEvaluation["tier"], string> = {
+  green: "bg-emerald-500",
+  yellow: "bg-amber-400",
+  red: "bg-rose-500",
+};
+
+const SCENARIO_EVALUATION_PANEL_CLASSES: Record<ScenarioEvaluation["tier"], string> = {
+  green: "border-emerald-400/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100",
+  yellow: "border-amber-400/40 bg-amber-400/10 text-amber-950 dark:text-amber-100",
+  red: "border-rose-400/40 bg-rose-500/10 text-rose-950 dark:text-rose-100",
+};
+
+function ScenarioEvaluationIndicator({
+  evaluation,
+  flashVisible,
+  expanded,
+  onToggle,
+}: {
+  evaluation: ScenarioEvaluation;
+  flashVisible: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useT();
+  const labelKey = {
+    green: "aiPractice.scenario.evaluation.green",
+    yellow: "aiPractice.scenario.evaluation.yellow",
+    red: "aiPractice.scenario.evaluation.red",
+  } as const;
+
+  return (
+    <div className="mt-2 flex flex-col items-end gap-1.5" data-scenario-evaluation={evaluation.tier}>
+      <div className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            "overflow-hidden whitespace-nowrap text-[11px] font-semibold transition-[max-width,opacity,transform] duration-300",
+            flashVisible ? "max-w-40 translate-x-0 opacity-100" : "pointer-events-none max-w-0 translate-x-1 opacity-0",
+            evaluation.tier === "green" && "text-emerald-500",
+            evaluation.tier === "yellow" && "text-amber-500",
+            evaluation.tier === "red" && "text-rose-500",
+          )}
+        >
+          {t(labelKey[evaluation.tier])}
+        </span>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={t("aiPractice.scenario.evaluation.showDetails")}
+          aria-expanded={expanded}
+          className="inline-flex size-6 items-center justify-center rounded-full transition-transform duration-300 hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        >
+          <span className={cn("size-3 rounded-full ring-2 ring-white/60", SCENARIO_EVALUATION_DOT_CLASSES[evaluation.tier])} />
+        </button>
+      </div>
+      <div
+        className={cn(
+          "grid w-full max-w-[19rem] transition-[grid-template-rows,opacity,margin] duration-300",
+          expanded ? "mt-0 grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className={cn("rounded-xl border px-3 py-2 text-left text-xs leading-5", SCENARIO_EVALUATION_PANEL_CLASSES[evaluation.tier])}>
+            <p>{evaluation.explanation}</p>
+            <p className="mt-1.5 font-semibold">
+              {t("aiPractice.scenario.evaluation.suggestedReply")}: <span className="font-normal">{evaluation.suggestedReply}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -707,7 +992,7 @@ function ScoreBadge({ score }: { score: number }) {
   const label = score === 10 ? t("aiPractice.chat.perfectAnswer") : t("aiPractice.chat.niceAnswer");
 
   return (
-    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600">
+    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--score-start)]/10 px-2.5 py-1 text-xs font-bold text-[var(--score-start)]">
       <Coins className="size-3.5" aria-hidden="true" />
       <span>{label}</span>
       <span>+{score}</span>
@@ -734,6 +1019,114 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
     <p className="mt-2 rounded-md border border-border bg-background-card px-3 py-2 text-xs leading-5 text-foreground-secondary">
       {translation.text}
     </p>
+  );
+}
+
+function ScenarioHelpMenu({
+  latestUserMessage,
+  open,
+  loading,
+  error,
+  pending,
+  onToggle,
+  onSelectSuggestion,
+}: {
+  latestUserMessage: ClientMessage | null;
+  open: boolean;
+  loading: boolean;
+  error: boolean;
+  pending: boolean;
+  onToggle: () => void;
+  onSelectSuggestion: (suggestion: string) => void;
+}) {
+  const t = useT();
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const suggestions = latestUserMessage?.helpSuggestions ?? [];
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        onToggle();
+      }
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        onToggle();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onToggle, open]);
+
+  return (
+    <div ref={menuRef} className="pointer-events-none absolute bottom-[calc(100%+0.5rem)] right-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2">
+      {open ? (
+        <div
+          className="pointer-events-auto w-[min(21rem,calc(100vw-1.5rem))] rounded-2xl border border-border bg-background-card/95 p-2.5 shadow-md backdrop-blur-md"
+          data-ai-scenario-help="menu"
+          role="menu"
+        >
+          <div className="flex items-center justify-between gap-2 px-1 pb-2">
+            <p className="text-xs font-semibold text-foreground">{t("aiPractice.scenario.helpTitle")}</p>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={t("aiPractice.scenario.closeHelp")}
+              className="inline-flex size-7 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+          {loading ? (
+            <div className="flex items-center gap-2 rounded-xl bg-background-muted px-3 py-2 text-xs text-foreground-muted">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              <span>{t("aiPractice.scenario.helpLoading")}</span>
+            </div>
+          ) : error ? (
+            <p className="rounded-xl bg-background-muted px-3 py-2 text-xs text-foreground-muted">{t("aiPractice.scenario.helpError")}</p>
+          ) : suggestions.length > 0 ? (
+            <div className="grid gap-1.5">
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onSelectSuggestion(suggestion)}
+                  className="rounded-xl bg-background-muted px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-brand/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl bg-background-muted px-3 py-2 text-xs text-foreground-muted">{t("aiPractice.scenario.helpEmpty")}</p>
+          )}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!latestUserMessage || pending}
+        aria-label={t("aiPractice.scenario.help")}
+        aria-expanded={open}
+        className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border bg-background-card px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-background-muted disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        data-ai-scenario-help="button"
+      >
+        {open ? <X className="size-3.5" aria-hidden="true" /> : <HelpCircle className="size-3.5" aria-hidden="true" />}
+        <span>{open ? t("aiPractice.scenario.closeHelp") : t("aiPractice.scenario.help")}</span>
+      </button>
+    </div>
   );
 }
 
@@ -778,7 +1171,7 @@ function ChatComposer({
       <div className="mx-auto w-full">
         <div
           className={cn(
-            "flex gap-1.5 rounded-full border border-border bg-background p-1.5 focus-within:border-foreground",
+            "flex gap-1.5 rounded-[25px] border border-border bg-background p-1.5 focus-within:border-foreground",
             isRecording ? "items-center" : "items-end",
           )}
         >
@@ -796,7 +1189,7 @@ function ChatComposer({
               rows={1}
               maxLength={900}
               placeholder={t("aiPractice.chat.placeholder")}
-              className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
+              className="max-h-[7.5rem] min-h-9 flex-1 resize-none overflow-hidden bg-transparent px-3 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-foreground-muted"
               disabled={pending}
             />
           )}
@@ -839,6 +1232,18 @@ async function readErrorCode(response: Response) {
   }
 }
 
+function getLatestUserMessage(messages: ClientMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message?.role === "user" && message.content.trim()) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
 function getLocalizedErrorMessage(errorCode: string | null, t: ReturnType<typeof useT>) {
   if (errorCode === "auth_required") {
     return t("aiPractice.chat.loginRequired");
@@ -848,7 +1253,7 @@ function getLocalizedErrorMessage(errorCode: string | null, t: ReturnType<typeof
     return t("aiPractice.chat.notConfigured");
   }
 
-  if (errorCode === "invalid_request" || errorCode === "unknown_character") {
+  if (errorCode === "invalid_request" || errorCode === "unknown_character" || errorCode === "unknown_scenario") {
     return t("aiPractice.chat.invalidRequest");
   }
 

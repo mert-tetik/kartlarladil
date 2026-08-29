@@ -53,7 +53,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   return (
     <div className="space-y-6">
       {loading ? (
-        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-900">
+        <div className="rounded-lg border border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 p-4 text-sm font-semibold text-[var(--accent-secondary)]">
           {t("profile.loadingDescription")}
         </div>
       ) : null}

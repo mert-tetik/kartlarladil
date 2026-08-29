@@ -33,6 +33,7 @@ describe("MobileLandingCardCenter", () => {
           onOpenChange={vi.fn()}
           onOpenDraw={vi.fn()}
           onOpenCreate={vi.fn()}
+          onOpenGroups={vi.fn()}
           showEmptyDeckPointer={false}
         />
       </LocaleProvider>,
@@ -44,7 +45,7 @@ describe("MobileLandingCardCenter", () => {
       throw new Error("Mobile card filters were not rendered.");
     }
 
-    expect(filters).toHaveClass("sticky", "top-0");
+    expect(filters).toHaveClass("sticky", "top-[-0.875rem]");
     expect(filters).not.toHaveClass("fixed");
   });
 });

@@ -3,7 +3,12 @@ import {
   getAiPracticeCharacters,
   getRandomOpeningLine,
 } from "@/features/ai-practice/ai-practice-data";
-import { buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
+import { getAiPracticeScenarios } from "@/features/ai-practice/ai-practice-scenarios";
+import {
+  buildAiPracticeInstructions,
+  buildAiPracticeScenarioEvaluationInstructions,
+  buildAiPracticeScenarioHelpInstructions,
+} from "@/features/ai-practice/ai-practice-prompts";
 
 describe("AI practice characters", () => {
   it("contains exactly 10 characters with clean image paths", () => {
@@ -52,6 +57,42 @@ describe("AI practice characters", () => {
     expect(instructions).toContain("connected sentences");
   });
 
+  it("provides situation role-plays with a character behind each one", () => {
+    const characters = getAiPracticeCharacters();
+
+    expect(getAiPracticeScenarios()).toHaveLength(10);
+    expect(getAiPracticeScenarios().every((scenario) =>
+      characters.some((character) => character.id === scenario.characterId),
+    )).toBe(true);
+    const scenario = getAiPracticeScenarios()[0]!;
+    const instructions = buildAiPracticeInstructions({
+      character: characters.find((character) => character.id === "friendly-worker")!,
+      language: "en",
+      scenario,
+    });
+
+    expect(instructions).toContain("Practice mode: situation role-play.");
+    expect(instructions).toContain("Never become a grammar teacher");
+    expect(instructions).not.toContain("redirect them back to practicing the target language");
+
+    const evaluationInstructions = buildAiPracticeScenarioEvaluationInstructions({
+      character: characters.find((character) => character.id === "friendly-worker")!,
+      language: "en",
+      scenario,
+      uiLocale: "tr",
+    });
+    const helpInstructions = buildAiPracticeScenarioHelpInstructions({
+      character: characters.find((character) => character.id === "friendly-worker")!,
+      language: "en",
+      scenario,
+      uiLocale: "tr",
+    });
+
+    expect(evaluationInstructions).toContain('"green" | "yellow" | "red"');
+    expect(evaluationInstructions).toContain("punctuation, capitalization, street language");
+    expect(helpInstructions).toContain("up to 3 short, distinct");
+  });
+
   it("adds Gen Z behavior rules for young characters", () => {
     const youngCharacter = getAiPracticeCharacters().find((character) => character.id === "sleepy-student");
 
@@ -77,7 +118,7 @@ describe("AI practice characters", () => {
     expect(byId("gentle-companion").summaryByLocale.tr).toBe("Sıcak, pratik, destekleyici");
     expect(byId("gothic-calm").summaryByLocale.en).toBe("Calm, refined, mysterious");
     expect(byId("soft-artist").summaryByLocale.en).toBe("Soft, sensitive, tender");
-    expect(byId("study-buddy").summaryByLocale.tr).toBe("İçe dönük, gotik, mesafeli");
+    expect(byId("study-buddy").summaryByLocale.tr).toBe("İçe dönük, gizemli, mesafeli");
   });
 
   it("uses the revised Raven, Elliot, and Nora prompts", () => {

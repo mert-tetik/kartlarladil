@@ -25,6 +25,18 @@ describe("aiPracticeChatRequestSchema", () => {
     expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, tier: "B2" }).success).toBe(true);
   });
 
+  it("accepts a situation role-play request with a scenario id", () => {
+    expect(aiPracticeChatRequestSchema.safeParse({
+      ...validRequest,
+      mode: "scenario",
+      scenarioId: "restaurant-order",
+    }).success).toBe(true);
+  });
+
+  it("requires a scenario id for situation role-play", () => {
+    expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, mode: "scenario" }).success).toBe(false);
+  });
+
   it("rejects invalid tiers", () => {
     expect(aiPracticeChatRequestSchema.safeParse({ ...validRequest, tier: "C2" }).success).toBe(false);
   });

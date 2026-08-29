@@ -25,7 +25,9 @@ function applyThemeToDocument(themeId: string) {
   if (typeof document === "undefined") {
     return;
   }
-  document.body.setAttribute("data-theme", themeId);
+  if (document.body.getAttribute("data-theme") !== themeId) {
+    document.body.setAttribute("data-theme", themeId);
+  }
 }
 
 export function ThemeProvider({

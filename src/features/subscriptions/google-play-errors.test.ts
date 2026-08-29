@@ -1,4 +1,8 @@
-import { getGooglePlayErrorDetail, getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
+import {
+  getGooglePlayErrorDetail,
+  getGooglePlayErrorMessage,
+  isGooglePlayPurchaseCancellation,
+} from "@/features/subscriptions/google-play-errors";
 
 describe("google play error formatting", () => {
   it("keeps the original Google Play error detail visible", () => {
@@ -30,5 +34,14 @@ describe("google play error formatting", () => {
     );
 
     expect(message).toBe("Please make Chrome your default browser and try again.");
+  });
+
+  it("recognizes a payment overlay closed by the user", () => {
+    expect(isGooglePlayPurchaseCancellation(new DOMException("The user aborted a request.", "AbortError"))).toBe(true);
+    expect(isGooglePlayPurchaseCancellation(new Error("The operation was canceled by the user."))).toBe(true);
+  });
+
+  it("does not hide actual purchase failures", () => {
+    expect(isGooglePlayPurchaseCancellation(new Error("Product basic_monthly is not available on Google Play."))).toBe(false);
   });
 });

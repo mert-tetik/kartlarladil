@@ -26,4 +26,10 @@ describe("score flight awards", () => {
       ),
     ).toEqual([2, 3, 5]);
   });
+
+  it.each([1, 2, 3, 4, 5])("ends at the exact star reward for %i stars", (stars) => {
+    const iconCount = getScoreFlightIconCount(stars);
+
+    expect(getScoreFlightAwardAtArrival(stars, iconCount, iconCount)).toBe(stars);
+  });
 });

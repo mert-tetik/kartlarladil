@@ -18,6 +18,7 @@ export interface AuthProfile {
   chestPoints: number;
   streakPoints?: number;
   missionPoints?: number;
+  quizResultPoints?: number;
   pushMarketingEnabled?: boolean;
   leaderboardVisible?: boolean;
   theme?: string | null;

@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeScenarios } from "@/features/ai-practice/ai-practice-scenarios";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -75,8 +76,92 @@ describe("AiPracticeChatPanel", () => {
     const tier = screen.getByText("A1");
 
     expect(portrait).toHaveClass("scale-[2]", "object-top");
-    expect(tier).toHaveClass("text-emerald-600", "dark:text-emerald-400");
+    expect(tier).toHaveClass("text-[var(--tier-a1-text)]");
     expect(tier).not.toHaveClass("bg-background-muted");
+  });
+
+  it("uses a situation-specific atmosphere while keeping the character identity", () => {
+    const scenario = getAiPracticeScenarios()[0]!;
+    const character = getAiPracticeCharacters().find((item) => item.id === scenario.characterId)!;
+
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeChatPanel
+          character={character}
+          initialOpeningLine="Hi there! Welcome in. Are you ready to order?"
+          language="en"
+          scenario={scenario}
+        />
+      </LocaleProvider>,
+    );
+
+    const atmosphere = container.querySelector(`[data-ai-scenario-background="${scenario.id}"]`);
+
+    expect(atmosphere).toBeInTheDocument();
+    expect(atmosphere).toHaveStyle({ backgroundImage: expect.stringContaining("linear-gradient") });
+    expect(screen.getByRole("heading", { name: "Order at a restaurant" })).toBeVisible();
+    expect(screen.getByAltText("Frank")).toBeVisible();
+  });
+
+  it("shows situation feedback and reuses cached help suggestions without auto-sending", async () => {
+    const user = userEvent.setup();
+    const scenario = getAiPracticeScenarios()[0]!;
+    const character = getAiPracticeCharacters().find((item) => item.id === scenario.characterId)!;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = init?.body ? JSON.parse(String(init.body)) as { requestType?: string } : null;
+
+      if (url.includes("/api/ai-practice/score")) {
+        return Promise.resolve(Response.json({ points: 0 }));
+      }
+
+      if (body?.requestType === "help") {
+        return Promise.resolve(Response.json({ suggestions: ["Could I see the menu, please?", "Do you have a table by the window?"] }));
+      }
+
+      return Promise.resolve(Response.json({
+        reply: "Of course. I can show you a quieter table.",
+        evaluation: {
+          tier: "green",
+          explanation: "Yanıtın duruma uygun ve anlaşılır.",
+          suggestedReply: "Could we sit by the window, please?",
+        },
+      }));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeChatPanel
+          character={character}
+          initialOpeningLine="Good evening. How many people are dining today?"
+          language="en"
+          scenario={scenario}
+        />
+      </LocaleProvider>,
+    );
+
+    await sendMessage(user, "A table for two, please.");
+    expect(await screen.findByText("Of course. I can show you a quieter table.")).toBeVisible();
+    expect(await screen.findByText("On-track reply")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Show reply feedback" }));
+    expect(screen.getByText("Yanıtın duruma uygun ve anlaşılır.")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Ask for help" }));
+    expect(await screen.findByRole("menuitem", { name: "Could I see the menu, please?" })).toBeVisible();
+
+    await user.click(screen.getByRole("menuitem", { name: "Could I see the menu, please?" }));
+    expect(screen.getByPlaceholderText("Write your message...")).toHaveValue("Could I see the menu, please?");
+
+    await user.click(screen.getByRole("button", { name: "Ask for help" }));
+    expect(screen.getByRole("menuitem", { name: "Do you have a table by the window?" })).toBeVisible();
+    expect(fetchMock.mock.calls.filter(([input, init]) => {
+      if (!String(input).includes("/api/ai-practice/chat")) return false;
+      const body = (init as RequestInit | undefined)?.body;
+      return body ? JSON.parse(String(body)).requestType === "help" : false;
+    })).toHaveLength(1);
   });
 
   it("translates a message once and reuses the cached translation", async () => {

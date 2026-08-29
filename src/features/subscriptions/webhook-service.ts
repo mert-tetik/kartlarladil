@@ -29,6 +29,7 @@ export interface LemonSqueezyWebhookEvent {
       };
       renews_at?: string;
       ends_at?: string;
+      updated_at?: string;
     };
   };
 }
@@ -43,6 +44,7 @@ export interface SubscriptionUpdate {
   customerPortalUrl: string | null;
   renewsAt: string | null;
   endsAt: string | null;
+  updatedAt: string | null;
 }
 
 export type WebhookProcessResult =
@@ -129,23 +131,19 @@ export async function processWebhookEvent(
     return { status: "duplicate" };
   }
 
-  const { error } = await client.from("user_subscriptions").upsert(
-    {
-      user_id: userId,
-      plan: subscriptionUpdate.plan,
-      status: subscriptionUpdate.status,
-      lemon_squeezy_customer_id: subscriptionUpdate.customerId,
-      lemon_squeezy_subscription_id: subscriptionUpdate.subscriptionId,
-      lemon_squeezy_variant_id: subscriptionUpdate.variantId,
-      lemon_squeezy_product_id: subscriptionUpdate.productId,
-      customer_portal_url: subscriptionUpdate.customerPortalUrl,
-      renews_at: subscriptionUpdate.renewsAt,
-      ends_at: subscriptionUpdate.endsAt,
-      updated_at: new Date().toISOString(),
-      display_name: null,
-    },
-    { onConflict: "user_id" },
-  );
+  const { error } = await client.rpc("apply_lemon_subscription_update", {
+    p_user_id: userId,
+    p_plan: subscriptionUpdate.plan,
+    p_status: subscriptionUpdate.status,
+    p_customer_id: subscriptionUpdate.customerId,
+    p_subscription_id: subscriptionUpdate.subscriptionId,
+    p_variant_id: subscriptionUpdate.variantId,
+    p_product_id: subscriptionUpdate.productId,
+    p_customer_portal_url: subscriptionUpdate.customerPortalUrl,
+    p_renews_at: subscriptionUpdate.renewsAt,
+    p_ends_at: subscriptionUpdate.endsAt,
+    p_updated_at: subscriptionUpdate.updatedAt,
+  });
 
   if (error) {
     try {

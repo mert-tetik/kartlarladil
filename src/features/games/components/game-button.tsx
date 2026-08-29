@@ -13,9 +13,9 @@ export function GameButton({ variant = "brand", size = "md", className, children
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center rounded-xl font-black uppercase tracking-wide transition-transform active:scale-95 disabled:opacity-50",
-        variant === "blue" && "bg-blue-500 text-white hover:bg-blue-600",
-        variant === "red" && "bg-red-500 text-white hover:bg-red-600",
+        "inline-flex items-center justify-center rounded-xl font-bold uppercase tracking-wide transition-transform active:scale-95 disabled:opacity-50",
+        variant === "blue" && "bg-action-review text-white hover:bg-action-review-hover",
+        variant === "red" && "bg-action-custom text-white hover:brightness-95",
         variant === "brand" && "bg-brand text-brand-foreground hover:bg-brand-hover",
         size === "md" && "min-h-[3.5rem] px-6 text-lg",
         size === "lg" && "min-h-[4.5rem] px-8 text-xl",

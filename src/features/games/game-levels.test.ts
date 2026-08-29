@@ -83,10 +83,10 @@ describe("getLevelTimeLimit", () => {
     expect(getLevelTimeLimit(41, "memory")).toBe(72);
   });
 
-  it("gives two seconds per word challenge question", () => {
-    expect(getLevelTimeLimit(1, "wordChallenge")).toBe(14);
-    expect(getLevelTimeLimit(11, "wordChallenge")).toBe(30);
-    expect(getLevelTimeLimit(31, "wordChallenge")).toBe(50);
+  it("gives three seconds per word challenge question", () => {
+    expect(getLevelTimeLimit(1, "wordChallenge")).toBe(21);
+    expect(getLevelTimeLimit(11, "wordChallenge")).toBe(45);
+    expect(getLevelTimeLimit(31, "wordChallenge")).toBe(75);
   });
 
   it("gives a fixed 30 seconds for word match", () => {

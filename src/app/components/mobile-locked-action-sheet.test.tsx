@@ -50,7 +50,7 @@ describe("MobileLockedActionSheet", () => {
   it("uses the landing learning action color for the empty learning deck close button", async () => {
     renderSheet();
 
-    expect(await screen.findByText("common.close")).toHaveClass("bg-emerald-500");
+    expect(await screen.findByText("common.close")).toHaveClass("bg-action-learn");
     expect(screen.getByText("common.close").closest(".mobile-primary-action-depth")).not.toBeNull();
     expect(screen.getByRole("button", { name: "cards.randomDrawTitle" }).closest(".mobile-primary-action-depth")).not.toBeNull();
     expect(screen.getByRole("button", { name: "home.mobile.addCard" }).closest(".mobile-primary-action-depth")).not.toBeNull();
@@ -67,7 +67,7 @@ describe("MobileLockedActionSheet", () => {
     fireEvent.click(startLearning);
 
     expect(props.onStartLearning).not.toHaveBeenCalled();
-    expect(await screen.findByText("common.close")).toHaveClass("bg-sky-500");
+    expect(await screen.findByText("common.close")).toHaveClass("bg-action-learned");
     expect(startLearning.closest(".mobile-primary-action-depth")).toHaveClass("mobile-primary-action-depth--locked");
   });
 });

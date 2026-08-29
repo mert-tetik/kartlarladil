@@ -32,10 +32,10 @@ export function MobileLandingInfoSheet({ isOpen, onClose }: MobileLandingInfoShe
 }
 
 const INFO_STEP_STYLES = {
-  1: "bg-emerald-500",
-  2: "bg-sky-500",
-  3: "bg-rose-500",
-  4: "bg-gradient-to-r from-amber-400 to-orange-500",
+  1: "bg-action-learn",
+  2: "bg-action-learned",
+  3: "bg-action-custom",
+  4: "bg-gradient-to-r from-[var(--rank-start)] to-[var(--reward-end)]",
 } as const;
 
 function InfoRow({ step, text }: { step: 1 | 2 | 3 | 4; text: string }) {

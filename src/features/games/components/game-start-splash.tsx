@@ -107,12 +107,12 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
       className={isGameLaunchSequence
         ? "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden animate-game-launch-splash"
         : cn(
-          "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-brand",
+          "fixed inset-0 z-[60] flex items-center justify-center overflow-hidden",
           exiting ? "animate-game-start-splash-exit" : "animate-game-start-splash-enter",
         )}
       data-game-start-splash
       aria-hidden="true"
-      style={isGameLaunchSequence ? { backgroundColor: GAME_LAUNCH_COLORS[game] } : undefined}
+      style={{ backgroundColor: GAME_LAUNCH_COLORS[game] }}
     >
       {isGameLaunchSequence ? (
         <div key={stage} className="animate-game-launch-copy px-6 text-center text-white">

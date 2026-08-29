@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
+import { useLeaderboardConsentTestMode } from "@/features/leaderboard/leaderboard-consent-test-mode";
 import {
   POST_PRACTICE_NOTIFICATION_PROMPT_EVENT,
   POST_PRACTICE_TUTORIAL_COMPLETED_EVENT,
@@ -12,6 +13,7 @@ const AUTO_CONSENT_PROMPT_KEY_PREFIX = "foxiesdeck:leaderboard:auto-consent-prom
 
 export function PostPracticeLeaderboardConsentGate() {
   const { user, updateProfileField } = useAuthSession();
+  const leaderboardConsentTestMode = useLeaderboardConsentTestMode();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +35,11 @@ export function PostPracticeLeaderboardConsentGate() {
   }, [dispatchNotificationPrompt]);
 
   const handleConfirm = useCallback(async () => {
+    if (leaderboardConsentTestMode) {
+      closeAndContinue();
+      return;
+    }
+
     setBusy(true);
     setError("");
 
@@ -56,7 +63,7 @@ export function PostPracticeLeaderboardConsentGate() {
     } finally {
       setBusy(false);
     }
-  }, [closeAndContinue, updateProfileField]);
+  }, [closeAndContinue, leaderboardConsentTestMode, updateProfileField]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -69,19 +76,21 @@ export function PostPracticeLeaderboardConsentGate() {
         return;
       }
 
-      if (user.profile.leaderboardVisible) {
+      if (user.profile.leaderboardVisible && !leaderboardConsentTestMode) {
         dispatchNotificationPrompt();
         return;
       }
 
       const storageKey = getAutoConsentPromptKey(user.id);
 
-      if (window.localStorage.getItem(storageKey) === "1") {
+      if (!leaderboardConsentTestMode && window.localStorage.getItem(storageKey) === "1") {
         dispatchNotificationPrompt();
         return;
       }
 
-      window.localStorage.setItem(storageKey, "1");
+      if (!leaderboardConsentTestMode) {
+        window.localStorage.setItem(storageKey, "1");
+      }
       setError("");
       setOpen(true);
     }
@@ -91,7 +100,7 @@ export function PostPracticeLeaderboardConsentGate() {
     return () => {
       window.removeEventListener(POST_PRACTICE_TUTORIAL_COMPLETED_EVENT, handleTutorialCompleted);
     };
-  }, [dispatchNotificationPrompt, user]);
+  }, [dispatchNotificationPrompt, leaderboardConsentTestMode, user]);
 
   return (
     <LeaderboardConsentDialog

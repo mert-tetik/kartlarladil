@@ -29,6 +29,15 @@ export interface AwardQuizStreakResult {
   error?: string;
 }
 
+export interface AwardQuizResultPointsResult {
+  success: boolean;
+  awarded?: boolean;
+  points?: number;
+  error?: string;
+}
+
+const QUIZ_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function awardChestPoints(tier: ChestTier): Promise<AwardChestResult> {
   if (!VALID_TIERS.has(tier)) {
     return { success: false, error: "invalid_tier" };
@@ -77,7 +86,7 @@ export async function awardQuizStreakPoints(sessionId: string, rawStreak: number
   const streak = getRewardableQuizStreak(rawStreak);
   const points = getQuizStreakRewardPoints(rawStreak);
 
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+  if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
     return { success: false, error: "invalid_session" };
   }
 
@@ -111,4 +120,44 @@ export async function awardQuizStreakPoints(sessionId: string, rawStreak: number
   revalidatePath("/profile");
 
   return { success: true, awarded: Boolean(data), points, streak };
+}
+
+export async function awardQuizResultPoints(
+  sessionId: string,
+  rawStars: number,
+): Promise<AwardQuizResultPointsResult> {
+  if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
+    return { success: false, error: "invalid_session" };
+  }
+
+  const stars = Math.round(rawStars);
+  if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+    return { success: false, error: "invalid_points" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const { data, error } = await supabase.rpc("award_quiz_result_points", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_stars: stars,
+  });
+
+  if (error) {
+    return { success: false, error: "database_error" };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/profile");
+
+  return { success: true, awarded: Boolean(data), points: stars };
 }

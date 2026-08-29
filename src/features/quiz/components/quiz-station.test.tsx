@@ -13,6 +13,7 @@ import { vibrate } from "@/lib/vibration";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
+import { awardQuizResultPoints } from "@/features/quiz/actions";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode } from "@/types/domain";
 
@@ -52,6 +53,7 @@ vi.mock("@/features/inventory/cloud-actions", () => ({
 vi.mock("@/features/quiz/actions", () => ({
   awardChestPoints: vi.fn(async () => ({ success: true, points: 20 })),
   awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
+  awardQuizResultPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
 }));
 
 vi.mock("@/lib/sound-effects", () => ({
@@ -289,6 +291,131 @@ describe("ResultView star rating", () => {
 
     expect(playSoundEffect).toHaveBeenCalledWith("points");
     expect(vibrate).toHaveBeenCalledWith("tap");
+  });
+
+  it("starts the persistent result score flight one second after the stars finish", async () => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{
+            correct: VOCABULARY_CARDS.slice(0, 10),
+            incorrect: [],
+            learned: [],
+          }}
+          selectedCount={10}
+          chestOpened={false}
+          quizSessionId="00000000-0000-4000-8000-000000000001"
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_240 + 999);
+    });
+    expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_480);
+    });
+
+    expect(document.querySelector("[data-result-score-display]")).toHaveTextContent("5");
+    expect(awardQuizResultPoints).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).toHaveBeenCalledWith("points");
+    expect(vibrate).toHaveBeenCalledWith("tap");
+  });
+
+  it("does not award result stars for a learned review", async () => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="learned"
+          results={{
+            correct: VOCABULARY_CARDS.slice(0, 10),
+            incorrect: [],
+            learned: [],
+          }}
+          selectedCount={10}
+          chestOpened={false}
+          quizSessionId="00000000-0000-4000-8000-000000000002"
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(awardQuizResultPoints).not.toHaveBeenCalled();
+    expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(0);
+  });
+
+  it("does not request a second reward when the same result session remounts", async () => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    const sessionId = "00000000-0000-4000-8000-000000000006";
+
+    const view = render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{
+            correct: VOCABULARY_CARDS.slice(0, 10),
+            incorrect: [],
+            learned: [],
+          }}
+          selectedCount={10}
+          chestOpened={false}
+          quizSessionId={sessionId}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    view.unmount();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{
+            correct: VOCABULARY_CARDS.slice(0, 10),
+            incorrect: [],
+            learned: [],
+          }}
+          selectedCount={10}
+          chestOpened={false}
+          quizSessionId={sessionId}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(awardQuizResultPoints).toHaveBeenCalledTimes(1);
   });
 
   it("shows the leaderboard standing and worldwide label in the result header", () => {

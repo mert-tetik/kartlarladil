@@ -17,6 +17,8 @@ export interface MissionChestReward {
 
 export type MissionReward = MissionPointsReward | MissionChestReward;
 
+export type MissionRewardOverrides = ReadonlyMap<string, MissionReward>;
+
 export interface MissionDefinition {
   id: string;
   index: number;

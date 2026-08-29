@@ -1,10 +1,11 @@
 {
   "kind": "card-pronunciations",
-  "model": "gpt-5-nano",
+  "model": "gpt-5.4-nano",
   "requestBatchSize": 80,
-  "cardCount": 47094,
-  "requestCount": 589,
-  "batchId": "batch_6a3847eb17888190936ad901375b0916",
-  "inputFileId": "file-L319YTbn3zTDiYpTzvmu2k",
-  "createdAt": "2026-06-21T20:22:03.741Z"
+  "cardCount": 250,
+  "remainingCardCount": 0,
+  "requestCount": 4,
+  "batchId": "batch_6a90c86f8fb88190aa8d392bfdabe843",
+  "inputFileId": "file-VyBCXhSGNJpsrfoTWghVQ4",
+  "createdAt": "2026-08-27T23:29:51.780Z"
 }

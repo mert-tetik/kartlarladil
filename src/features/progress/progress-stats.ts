@@ -30,6 +30,19 @@ export const RANKS: RankDefinition[] = [
   { id: "efsane", label: "Efsane", minPoints: 54000, icon: "flame" },
 ];
 
+export const RANK_ACCENT_COLORS = {
+  baslangic: "#DD661D",
+  "kart-ciragi": "#F9B14C",
+  "kelime-toplayici": "#F26D3E",
+  "dil-yolcusu": "#F2F2F4",
+  "akici-ogrenci": "#FAC13E",
+  "kelime-ustasi": "#7309BF",
+  "cok-dilli": "#7609D1",
+  "seckin-koleksiyoncu": "#0937AB",
+  "dil-bilgesi": "#2492F8",
+  efsane: "#9354F9",
+} satisfies Record<RankDefinition["id"], string>;
+
 export const EMPTY_PROGRESS_STATS = calculateProgressStats([]);
 
 export function getPointsForTier(tier: Tier) {

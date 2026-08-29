@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Info, MessageCircleQuestion, X } from "lucide-react";
 import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { VocabularyCard } from "@/types/domain";
 
 interface MobileCardDisplaySheetProps {
@@ -20,7 +19,7 @@ interface MobileCardDisplaySheetProps {
 
 export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisplaySheetProps) {
   const t = useT();
-  const router = useRouter();
+  const { openAsk } = useAskOverlay();
   const requireAuth = useRequireAuthAction();
   const [face, setFace] = useState<"front" | "back">("back");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -44,7 +43,8 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
   function handleAskClick() {
     const askPath = `/ask/${currentCard.language}?term=${encodeURIComponent(currentCard.term)}`;
     requireAuth(() => {
-      navigateWithRouteTransition(() => router.push(askPath));
+      onClose();
+      openAsk({ contextLanguage: currentCard.language, initialTerm: currentCard.term });
     }, { nextPath: askPath });
   }
 

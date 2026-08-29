@@ -61,6 +61,11 @@ const GAMES: GameEntry[] = [
   },
 ];
 
+const GAME_SELECTION_BACKGROUND_SOURCES: Partial<Record<GameName, string>> = {
+  wordChallenge: "/game-backgrounds/dogru-yanlis.png",
+  wordMatch: "/game-backgrounds/kelime-eslestirme.png",
+};
+
 const TIER_TEXT_COLORS: Record<Tier, string> = {
   A1: "text-[var(--tier-a1-text)]",
   A2: "text-[var(--tier-a2-text)]",
@@ -227,8 +232,24 @@ export function GamesList() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-5 sm:py-8">
-      <div className="flex w-full max-w-3xl flex-col items-center">
+    <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-5 sm:py-8">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        {Object.entries(GAME_SELECTION_BACKGROUND_SOURCES).map(([gameName, source]) => (
+          <div
+            key={gameName}
+            data-game-selection-background={gameName}
+            className={cn(
+              "absolute inset-0 bg-cover bg-center bg-no-repeat opacity-0 transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              selectedGame.name === gameName && "opacity-100",
+            )}
+            style={{
+              backgroundImage: `linear-gradient(rgb(2 6 23 / 0.16), rgb(2 6 23 / 0.16)), url(${source})`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-10 flex w-full max-w-3xl flex-col items-center">
         <h1 className="sr-only">{t("games.title")}</h1>
 
         <div className="flex w-full flex-col items-center">

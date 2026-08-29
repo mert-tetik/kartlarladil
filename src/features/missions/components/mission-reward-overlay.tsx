@@ -72,22 +72,15 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
     return <MissionPointsFlight amount={activeMode.amount} source={activeMode.source} totalPoints={stats.totalPoints} onComplete={handleChildComplete} />;
   }
 
-  return (
+  const overlay = (
     <div
       data-mission-reward-overlay
       data-state={exiting ? "closing" : "open"}
       className={cn(
-        "animate-screen-pop fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-md transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "animate-screen-pop fixed inset-0 z-50 overflow-hidden bg-background transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
         exiting ? "opacity-0" : "opacity-100",
       )}
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-80"
-        aria-hidden="true"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.14),_transparent_34%)]" />
-      </div>
-
       <div
         className={cn(
           "relative flex h-full w-full items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
@@ -98,6 +91,8 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
       </div>
     </div>
   );
+
+  return typeof document === "undefined" ? null : createPortal(overlay, document.body);
 }
 
 function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amount: number; source?: DOMRect; totalPoints: number; onComplete: () => void }) {
@@ -144,7 +139,7 @@ function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amou
 
   return createPortal(<>
     <div className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}>
-      <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg"><Star className="size-5 fill-current" /><span ref={scoreRef} key={pulse} className={cn("text-lg font-bold", pulse > 0 && "animate-score-bobble")}>{formatPoints(locale, displayPoints)}</span></div>
+      <div className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"><Star className="size-5 fill-current" /><span ref={scoreRef} key={pulse} className={cn("text-lg font-bold", pulse > 0 && "animate-score-bobble")}>{formatPoints(locale, displayPoints)}</span></div>
     </div>
     {icons.map((icon) => <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[71] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleArrival(icon.id)}><ScoreIcon size={32} /></span>)}
   </>, document.body);
@@ -210,7 +205,7 @@ function MissionPointsCelebration({
       <div className="relative flex items-center justify-center">
         <div
           data-mission-total-points-shell
-          className="relative flex min-w-[min(76vw,17rem)] items-center justify-center gap-2.5 rounded-full border border-amber-300/30 bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white shadow-[0_16px_40px_rgba(245,158,11,0.22)] sm:min-w-[19rem] sm:px-8 sm:py-5"
+          className="relative flex min-w-[min(76vw,17rem)] items-center justify-center gap-2.5 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-6 py-4 text-white shadow-[0_16px_40px_rgba(245,158,11,0.22)] sm:min-w-[19rem] sm:px-8 sm:py-5"
         >
           <Star className="size-6 fill-current sm:size-7" aria-hidden="true" />
           <span

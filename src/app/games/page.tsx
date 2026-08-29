@@ -9,10 +9,6 @@ export default function GamesPage() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[url('/game-backgrounds/games-page-colorful-shapes.png')] bg-cover bg-center bg-no-repeat"
-        style={{
-          maskImage: "linear-gradient(to top, transparent 0%, black 72%, black 100%)",
-          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 72%, black 100%)",
-        }}
       />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[#090909]/20" />
       <div className="relative z-10 flex min-h-0 flex-1">

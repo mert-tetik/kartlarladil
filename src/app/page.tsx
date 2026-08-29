@@ -307,7 +307,7 @@ export default async function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <Trophy className="size-6 text-amber-300" aria-hidden="true" />
+              <Trophy className="size-6 text-[var(--premium-start)]" aria-hidden="true" />
               <h2 className="font-display text-3xl font-semibold">{t("home.cta.title")}</h2>
             </div>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{t("home.cta.description")}</p>

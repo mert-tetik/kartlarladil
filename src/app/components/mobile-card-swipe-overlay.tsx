@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { Check, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { cancelCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { TIERS } from "@/data/tiers";
-import { useT } from "@/i18n/locale-provider";
-import { playSoundEffect } from "@/lib/sound-effects";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
@@ -21,11 +22,13 @@ const INCOMING_ENTRY_DELAY = 32;
 const INCOMING_ENTRY_DURATION = 520;
 const INCOMING_START_OFFSET = 180;
 const OFFSCREEN_SIDE_OFFSET = 80;
+const PRELOAD_DECK_SIZE = 5;
 
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
 
 export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
+  const { locale } = useLocale();
   const t = useT();
   const inventory = useInventoryStore((state) => state.cards);
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
@@ -50,7 +53,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
-  const card = deck[0] ?? null;
+  const card = deck[0]?.language === language ? deck[0] : null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
 
   useEffect(() => {
@@ -83,18 +86,48 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }, []);
 
   useEffect(() => {
-    if (open) {
-      const resetTimer = window.setTimeout(() => setCompletedSwipes(0), 0);
-      return () => window.clearTimeout(resetTimer);
-    }
-  }, [open]);
+    const resetTimer = window.setTimeout(() => {
+      setDeck([]);
+      setOutgoing(null);
+      setIncoming("idle");
+      setIncomingDirection(null);
+      setSwipeFeedback(null);
+      setLocked(false);
+      setDragging(false);
+      setCompletedSwipes(0);
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
+  }, [language, open]);
 
   const loadDeck = useCallback(() => {
-    const next = TIERS.flatMap((tier) => {
-      const choices = localCardRepository.list({ language, tier }).filter((candidate) => !usedIds.has(candidate.sourceKey) && !usedIds.has(candidate.id));
-      return choices.length ? [choices[Math.floor(Math.random() * choices.length)]] : [];
+    setDeck((current) => {
+      const needed = PRELOAD_DECK_SIZE - current.length;
+      if (needed <= 0) return current;
+
+      const excludedIds = new Set([
+        ...usedIds,
+        ...current.flatMap((candidate) => [candidate.sourceKey, candidate.id]),
+      ]);
+      const additions: VocabularyCard[] = [];
+
+      for (const tier of TIERS) {
+        if (additions.length >= needed) break;
+
+        const choices = localCardRepository
+          .list({ language, tier })
+          .filter((candidate) => !excludedIds.has(candidate.sourceKey) && !excludedIds.has(candidate.id));
+        const choice = choices[Math.floor(Math.random() * choices.length)];
+
+        if (choice) {
+          additions.push(choice);
+          excludedIds.add(choice.sourceKey);
+          excludedIds.add(choice.id);
+        }
+      }
+
+      return additions.length > 0 ? [...current, ...additions] : current;
     });
-    setDeck(next);
   }, [language, usedIds]);
 
   useEffect(() => {
@@ -116,11 +149,13 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       return;
     }
 
+    if (direction === "skip") {
+      cancelCardPronunciation(card.sourceKey);
+    }
+
     const currentPosition = dragPosition.current;
     const currentRotation = currentPosition.x / 18 + currentPosition.y / 90;
 
-    // Match the haptic and audio response to the committed swipe direction.
-    playSoundEffect(direction === "add" ? "correct" : "incorrect");
     vibrate(direction === "add" ? "correct" : "incorrect");
 
     cancelPendingDragFrame();
@@ -161,7 +196,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }
 
   useEffect(() => {
-    if (!open || deck.length !== 0 || locked) return;
+    if (!open || deck.length >= PRELOAD_DECK_SIZE || locked) return;
     const timer = window.setTimeout(loadDeck, 0);
     return () => window.clearTimeout(timer);
   }, [deck.length, open, locked, loadDeck]);
@@ -281,7 +316,18 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     : { transform: `translate3d(${incomingX}px, ${incomingY}px, 0) rotate(0deg)`, opacity: incomingIsHidden ? 0 : 1 };
   const shouldRenderCard = card && incoming !== "waiting" && incoming !== "teleporting";
   return <div role="dialog" aria-modal="true" data-mobile-hide-bottom-nav="true" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
-    <div className="relative z-[60] flex items-center justify-between"><p className="text-sm font-semibold text-foreground-secondary">{t("cards.randomDrawTitle")}</p><button type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button></div>
+    <div className="relative z-[60] flex min-h-10 items-center justify-center">
+      <p
+        data-card-swipe-title
+        className={cn(
+          "pointer-events-none absolute inset-x-0 text-center text-xl font-bold leading-tight text-foreground",
+          canUseSuperWater(locale) && "font-super-water",
+        )}
+      >
+        {formatSuperWaterText(locale, t("cards.randomDrawTitle"))}
+      </p>
+      <button type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button>
+    </div>
     <div className="relative flex flex-1 -translate-y-8 items-center justify-center overflow-hidden">
       <p className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}

@@ -37,7 +37,7 @@ export default async function AskPage({ params, searchParams }: AskPageProps) {
     redirect(`/ask/${locale}`);
   }
 
-  await requireAuthUser(`/ask/${rawLanguage}`);
+  const user = await requireAuthUser(`/ask/${rawLanguage}`);
 
   const { term: rawTerm } = await searchParams;
   const initialTerm = typeof rawTerm === "string" ? rawTerm.trim() : "";
@@ -47,7 +47,12 @@ export default async function AskPage({ params, searchParams }: AskPageProps) {
       className="mx-auto h-full w-full max-w-7xl px-0 py-0 max-lg:max-w-full lg:px-8"
       data-ask-chat-page
     >
-      <AskChatPanel language={rawLanguage} initialTerm={initialTerm} />
+      <AskChatPanel
+        contextLanguage={initialTerm ? rawLanguage : undefined}
+        initialTerm={initialTerm}
+        nativeLocale={user.profile.preferredUiLocale ?? locale}
+        fallbackLearningLanguage={user.profile.preferredLanguageCode ?? locale}
+      />
     </section>
   );
 }

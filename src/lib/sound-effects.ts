@@ -1,13 +1,16 @@
 export type SoundEffectName =
   | "correct"
   | "incorrect"
-  | "rank-up"
+  | "rank-up-opening"
+  | "rank-up-reveal"
   | "points"
   | "learned"
   | "confetti"
   | "quiz-complete"
   | "quiz-start"
   | "quiz-select"
+  | "card-swipe-right"
+  | "card-swipe-left"
   | "chest-tap"
   | "chest-open"
   | "streak-fire"
@@ -26,8 +29,19 @@ interface BrowserAudioWindow extends Window {
 const SOUND_EFFECTS_ENABLED = true;
 const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   incorrect: "/sounds/false.mp3",
+  learned: "/sounds/learned-elevenlabs-v1.mp3",
+  confetti: "/sounds/confetti-elevenlabs-v1.mp3",
+  "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
+  "quiz-start": "/sounds/quiz-start-elevenlabs-v1.mp3",
+  "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
+  "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
+  "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
+  "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
+  "rank-up-reveal": "/sounds/rank-up-reveal-elevenlabs-v4.mp3",
   "chest-open": "/sounds/chest.mp3",
   "streak-fire": "/sounds/streak.mp3",
+  "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
+  "card-ready": "/sounds/card-ready-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
 };
 
@@ -52,6 +66,25 @@ function getAudioContext(): AudioContext | null {
   }
 
   return audioContext;
+}
+
+function playSynthesizedEffect(effect: SoundEffectName) {
+  const context = getAudioContext();
+
+  if (!context) {
+    return;
+  }
+
+  try {
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+
+    const synthesizer = EFFECT_SYNTHESIZERS[effect];
+    synthesizer(context, context.currentTime);
+  } catch {
+    // Audio feedback should never block quiz or navigation interactions.
+  }
 }
 
 function playAudioFile(effect: SoundEffectName) {
@@ -82,7 +115,8 @@ function playAudioFile(effect: SoundEffectName) {
     const playResult = audio.play();
     if (playResult && typeof playResult.catch === "function") {
       void playResult.catch(() => {
-        // Ignore playback promise failures; this should never block the UI.
+        // Autoplay and network failures still get the Web Audio fallback.
+        playSynthesizedEffect(effect);
       });
     }
 
@@ -218,8 +252,44 @@ function learned(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.G6, startTime: now + 0.36, duration: 0.3, gain: 0.025 });
 }
 
-function rankUp(context: AudioContext, now: number) {
-  // Triumphant fanfare.
+function rankUpOpening(context: AudioContext, now: number) {
+  // Fallback for the accelerating pre-reveal drum roll.
+  const hits = [
+    { offset: 0, frequency: 118, gain: 0.105 },
+    { offset: 0.2, frequency: 126, gain: 0.095 },
+    { offset: 0.37, frequency: 134, gain: 0.1 },
+    { offset: 0.51, frequency: 142, gain: 0.11 },
+    { offset: 0.62, frequency: 150, gain: 0.115 },
+    { offset: 0.71, frequency: 158, gain: 0.12 },
+    { offset: 0.79, frequency: 166, gain: 0.125 },
+    { offset: 0.86, frequency: 174, gain: 0.13 },
+    { offset: 0.92, frequency: 182, gain: 0.135 },
+    { offset: 0.98, frequency: 190, gain: 0.14 },
+    { offset: 1.03, frequency: 198, gain: 0.145 },
+    { offset: 1.08, frequency: 206, gain: 0.15 },
+    { offset: 1.13, frequency: 214, gain: 0.155 },
+    { offset: 1.18, frequency: 222, gain: 0.16 },
+    { offset: 1.23, frequency: 230, gain: 0.165 },
+    { offset: 1.28, frequency: 238, gain: 0.17 },
+    { offset: 1.33, frequency: 246, gain: 0.175 },
+    { offset: 1.38, frequency: 254, gain: 0.18 },
+    { offset: 1.43, frequency: 262, gain: 0.185 },
+    { offset: 1.48, frequency: 270, gain: 0.19 },
+    { offset: 1.53, frequency: 278, gain: 0.195 },
+    { offset: 1.58, frequency: 286, gain: 0.2 },
+    { offset: 1.63, frequency: 294, gain: 0.205 },
+    { offset: 1.68, frequency: 302, gain: 0.21 },
+  ];
+
+  for (const hit of hits) {
+    const startTime = now + hit.offset;
+    playNoise(context, { startTime, duration: 0.045, gain: hit.gain, filterFrequency: 900 });
+    playTone(context, { frequency: hit.frequency, startTime, duration: 0.065, gain: hit.gain * 0.55, type: "sine" });
+  }
+}
+
+function rankUpReveal(context: AudioContext, now: number) {
+  // Bright, satisfying reveal fallback.
   const arpeggio = [SCALE.G4, SCALE.C5, SCALE.E5, SCALE.G5];
   arpeggio.forEach((frequency, index) => {
     playTone(context, { frequency, startTime: now + index * 0.09, duration: 0.22, gain: 0.07 });
@@ -370,7 +440,8 @@ function missionClaim(context: AudioContext, now: number) {
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
-  "rank-up": rankUp,
+  "rank-up-opening": rankUpOpening,
+  "rank-up-reveal": rankUpReveal,
   points,
   learned,
   confetti,
@@ -396,22 +467,7 @@ export function playSoundEffect(effect: SoundEffectName) {
     return;
   }
 
-  const context = getAudioContext();
-
-  if (!context) {
-    return;
-  }
-
-  try {
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-
-    const synthesizer = EFFECT_SYNTHESIZERS[effect];
-    synthesizer(context, context.currentTime);
-  } catch {
-    // Audio feedback should never block quiz or navigation interactions.
-  }
+  playSynthesizedEffect(effect);
 }
 
 // Kept for tests and any future introspection.

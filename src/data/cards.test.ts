@@ -23,7 +23,7 @@ import type { VocabularyCard } from "@/types/domain";
 
 const LATIN_SCRIPT_LOCALES = ["tr", "en", "de", "fr", "es", "it", "pt", "nl", "pl"] as const;
 const NON_LATIN_SCRIPT_PATTERN = /[\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/u;
-const IPA_PATTERN = /^\/.+\/$/u;
+const TURKISH_READER_PRONUNCIATION_PATTERN = /^[a-z\u0131]+(?:[ '-][a-z\u0131]+)*$/u;
 
 describe("multilingual card catalog", () => {
   it("contains a non-empty catalog for every supported language and tier", () => {
@@ -97,11 +97,11 @@ describe("multilingual card catalog", () => {
     expect(invalidCards).toEqual([]);
   });
 
-  it("stores valid IPA pronunciations for generated pronunciation overrides", () => {
+  it("stores valid Turkish-reader pronunciations for generated pronunciation overrides", () => {
     expect(Object.keys(CARD_PRONUNCIATIONS).length).toBeGreaterThan(0);
 
     const invalidGeneratedEntries = Object.entries(CARD_PRONUNCIATIONS).filter(([, pronunciation]) => {
-      return !IPA_PATTERN.test(pronunciation.trim());
+      return !TURKISH_READER_PRONUNCIATION_PATTERN.test(pronunciation.trim());
     });
 
     expect(invalidGeneratedEntries).toEqual([]);
@@ -110,9 +110,9 @@ describe("multilingual card catalog", () => {
     const deAbility = VOCABULARY_CARDS.find((card) => card.sourceKey === "de:A2:word:ability:noun");
     const ruAbout = VOCABULARY_CARDS.find((card) => card.sourceKey === "ru:A1:word:about:adverb");
 
-    expect(trAbandon?.pronunciation).toMatch(IPA_PATTERN);
-    expect(deAbility?.pronunciation).toMatch(IPA_PATTERN);
-    expect(ruAbout?.pronunciation).toMatch(IPA_PATTERN);
+    expect(trAbandon?.pronunciation).toMatch(TURKISH_READER_PRONUNCIATION_PATTERN);
+    expect(deAbility?.pronunciation).toMatch(TURKISH_READER_PRONUNCIATION_PATTERN);
+    expect(ruAbout?.pronunciation).toMatch(TURKISH_READER_PRONUNCIATION_PATTERN);
   });
 
   it("uses two unique examples for every card", () => {

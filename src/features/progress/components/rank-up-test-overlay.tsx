@@ -22,6 +22,7 @@ export function RankUpTestOverlay() {
 
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("rank-up-test") === "1" || params.get("rank-up-test") === "true";
+
     setEnabled(requested && window.innerWidth < MOBILE_BREAKPOINT);
   }, []);
 
@@ -29,5 +30,5 @@ export function RankUpTestOverlay() {
     return null;
   }
 
-  return <RankProgressPopover stats={TEST_STATS} hideTrigger forceRankUpRank={TEST_STATS.rank} />;
+  return <RankProgressPopover stats={TEST_STATS} hideTrigger />;
 }

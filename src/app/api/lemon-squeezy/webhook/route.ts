@@ -119,6 +119,7 @@ function mapSubscriptionUpdate(event: LemonSqueezyWebhookEvent): SubscriptionUpd
     customerPortalUrl: urls.customer_portal ?? null,
     renewsAt: attributes.renews_at ? String(attributes.renews_at) : null,
     endsAt: attributes.ends_at ? String(attributes.ends_at) : null,
+    updatedAt: attributes.updated_at ? String(attributes.updated_at) : null,
   };
 }
 

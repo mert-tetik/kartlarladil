@@ -10,7 +10,7 @@ import { useT } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
-import type { LanguageCode, LimitErrorCode } from "@/types/domain";
+import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode } from "@/types/domain";
 import { SubscriptionRestrictionSurface } from "@/features/subscriptions/components/subscription-restriction-surface";
 
 export type UpgradeDialogErrorCode =
@@ -29,9 +29,17 @@ interface UpgradeDialogProps {
   onOpenChange: (open: boolean) => void;
   selectedLanguage?: LanguageCode;
   onSwapLanguages?: () => void;
+  activeCardLimitDetails?: ActiveCardLimitDetails | null;
 }
 
-export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage, onSwapLanguages }: UpgradeDialogProps) {
+export function UpgradeDialog({
+  open,
+  errorCode,
+  onOpenChange,
+  selectedLanguage,
+  onSwapLanguages,
+  activeCardLimitDetails,
+}: UpgradeDialogProps) {
   const t = useT();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
@@ -64,7 +72,7 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
     return null;
   }
 
-  const content = getLimitContent(activeErrorCode, t);
+  const content = getLimitContent(activeErrorCode, t, activeCardLimitDetails);
   const showsUpgradeCta = content.variant === "upgrade";
   const isLanguageMatchDialog =
     activeErrorCode === "language_match_not_allowed" || activeErrorCode === "game_language_match_not_allowed";
@@ -192,12 +200,18 @@ export function UpgradeDialog({ open, errorCode, onOpenChange, selectedLanguage,
 function getLimitContent(
   errorCode: UpgradeDialogErrorCode,
   t: ReturnType<typeof useT>,
+  activeCardLimitDetails?: ActiveCardLimitDetails | null,
 ): { title: string; description: string; variant: "upgrade" | "message" } {
   switch (errorCode) {
     case "free_active_card_limit":
       return {
         title: t("limit.activeCardLimitTitle"),
-        description: t("limit.activeCardLimitDescription"),
+        description: activeCardLimitDetails
+          ? t("limit.activeCardLimitGroupDescription", {
+              addedCount: activeCardLimitDetails.addedCount,
+              skippedCount: activeCardLimitDetails.skippedCount,
+            })
+          : t("limit.activeCardLimitDescription"),
         variant: "upgrade",
       };
     case "free_learned_card_limit":

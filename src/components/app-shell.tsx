@@ -14,12 +14,15 @@ import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
 import { LeaderboardOverlayProvider } from "@/features/leaderboard/components/leaderboard-overlay-provider";
+import { AskOverlayProvider } from "@/features/ask/components/ask-overlay-provider";
 import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
+import { ChestOpeningTestOverlay } from "@/features/quiz/components/chest-opening-test-overlay";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { GameLaunchCover } from "@/features/games/components/game-launch-cover";
+import { CardPronunciationQueue } from "@/features/cards/components/card-pronunciation-queue";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -46,21 +49,25 @@ export function AppShell({
           <SubscriptionProvider>
             <ProgressStatsProvider>
               <ThemeProvider initialTheme={user?.profile.theme}>
+                <CardPronunciationQueue />
                 <PushNotificationsProvider>
                   <RouteTransitionProvider>
                     <LeaderboardOverlayProvider>
-                      <div className="flex min-h-screen flex-col bg-background text-foreground">
-                        <AppNavigation user={user} />
-                        <RankUpTestOverlay />
-                        <MobileAuthGateway countryCode={onboardingCountryCode} />
-                        <PostPracticeLeaderboardConsentGate />
-                        <RouteAwareShell>{children}</RouteAwareShell>
-                        <GameLaunchCover />
-                        <SiteFooter className="max-lg:hidden" />
-                        <CookieNotice />
-                        <LandingTutorial />
-                        <AppImageCacheGate />
-                      </div>
+                      <AskOverlayProvider>
+                        <div className="flex min-h-screen flex-col bg-background text-foreground">
+                          <AppNavigation user={user} />
+                          {user ? null : <RankUpTestOverlay />}
+                          <ChestOpeningTestOverlay />
+                          <MobileAuthGateway countryCode={onboardingCountryCode} />
+                          <PostPracticeLeaderboardConsentGate />
+                          <RouteAwareShell>{children}</RouteAwareShell>
+                          <GameLaunchCover />
+                          <SiteFooter className="max-lg:hidden" />
+                          <CookieNotice />
+                          <LandingTutorial />
+                          <AppImageCacheGate />
+                        </div>
+                      </AskOverlayProvider>
                     </LeaderboardOverlayProvider>
                   </RouteTransitionProvider>
                 </PushNotificationsProvider>

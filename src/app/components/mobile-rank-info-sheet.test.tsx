@@ -9,7 +9,7 @@ describe("MobileRankInfoSheet", () => {
     vi.restoreAllMocks();
   });
 
-  it("centers the current rank every time the sheet opens", async () => {
+  it("centers the current rank horizontally every time the sheet opens", async () => {
     const currentRank = RANKS[5];
     const { rerender } = render(
       <LocaleProvider initialLocale="tr">
@@ -22,21 +22,19 @@ describe("MobileRankInfoSheet", () => {
       </LocaleProvider>,
     );
 
-    const scrollViewport = await waitFor(() => {
-      const element = document.querySelector<HTMLElement>("[data-mobile-rank-scroll]");
+    const track = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-mobile-rank-carousel]");
       expect(element).not.toBeNull();
       return element!;
     });
-    const currentRankElement = document.querySelector<HTMLElement>("[data-current-rank='true']");
-    expect(scrollViewport).not.toBeNull();
-    expect(currentRankElement).not.toBeNull();
+    const currentCard = document.querySelector<HTMLElement>("[data-rank-index='5']");
+    expect(currentCard).not.toBeNull();
 
-    Object.defineProperty(scrollViewport!, "clientHeight", {
+    Object.defineProperty(track, "clientWidth", {
       configurable: true,
-      value: 500,
+      value: 390,
     });
-    scrollViewport!.scrollTop = 50;
-    vi.spyOn(scrollViewport!, "getBoundingClientRect").mockReturnValue({
+    vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
       bottom: 600,
       height: 500,
       left: 0,
@@ -47,16 +45,42 @@ describe("MobileRankInfoSheet", () => {
       y: 100,
       toJSON: () => ({}),
     });
-    const currentRankRect = vi.spyOn(currentRankElement!, "getBoundingClientRect").mockReturnValue({
+    const currentCardRect = vi.spyOn(currentCard!, "getBoundingClientRect").mockImplementation(() => ({
       bottom: 600,
       height: 180,
-      left: 100,
-      right: 290,
+      left: 500 - track.scrollLeft,
+      right: 690 - track.scrollLeft,
       top: 420,
       width: 190,
-      x: 100,
+      x: 500 - track.scrollLeft,
       y: 420,
       toJSON: () => ({}),
+    }));
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen={false}
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+    track.scrollLeft = 0;
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(track.scrollLeft).toBe(400);
     });
 
     rerender(
@@ -69,6 +93,18 @@ describe("MobileRankInfoSheet", () => {
         />
       </LocaleProvider>,
     );
+    track.scrollLeft = 0;
+    currentCardRect.mockImplementation(() => ({
+      bottom: 680,
+      height: 180,
+      left: 600 - track.scrollLeft,
+      right: 790 - track.scrollLeft,
+      top: 500,
+      width: 190,
+      x: 600 - track.scrollLeft,
+      y: 500,
+      toJSON: () => ({}),
+    }));
 
     rerender(
       <LocaleProvider initialLocale="tr">
@@ -82,43 +118,7 @@ describe("MobileRankInfoSheet", () => {
     );
 
     await waitFor(() => {
-      expect(scrollViewport!.scrollTop).toBe(210);
+      expect(track.scrollLeft).toBe(500);
     });
-
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen={false}
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
-    scrollViewport!.scrollTop = 0;
-    currentRankRect.mockReturnValue({
-      bottom: 680,
-      height: 180,
-      left: 100,
-      right: 290,
-      top: 500,
-      width: 190,
-      x: 100,
-      y: 500,
-      toJSON: () => ({}),
-    });
-
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
-
-    expect(scrollViewport!.scrollTop).toBe(240);
   });
 });

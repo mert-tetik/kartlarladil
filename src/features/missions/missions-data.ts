@@ -1,19 +1,34 @@
 import { AI_PRACTICE_CHARACTER_IDS } from "@/features/ai-practice/ai-practice-data";
+import type { ChestTier } from "@/features/quiz/chest-rewards";
 import type { GameName } from "@/features/games/game-types";
 import type { MissionDefinition } from "./mission-types";
 
 const GAME_NAMES: GameName[] = ["memory", "wordChallenge", "wordMatch"];
 
-const CHEST_REWARD_TIERS = [
+export const CHEST_MISSION_REWARD_TIERS: readonly ChestTier[] = [
   "wood",
   "iron",
+  "wood",
+  "iron",
+  "iron",
+  "gold",
+  "iron",
+  "gold",
   "gold",
   "diamond",
+  "gold",
+  "diamond",
+  "diamond",
+  "emerald",
+  "diamond",
+  "emerald",
   "emerald",
   "ruby",
-] as const;
+  "emerald",
+  "ruby",
+];
 
-export const MISSIONS: MissionDefinition[] = Array.from({ length: 50 }, (_, index) => {
+export const MISSIONS: MissionDefinition[] = Array.from({ length: 80 }, (_, index) => {
   const cycle = index % 4;
   const tier = Math.floor(index / 4);
   const basePoints = 50 + tier * 25;
@@ -28,7 +43,7 @@ export const MISSIONS: MissionDefinition[] = Array.from({ length: 50 }, (_, inde
         requirement,
         reward: {
           kind: "chest",
-          tier: CHEST_REWARD_TIERS[Math.min(tier, CHEST_REWARD_TIERS.length - 1)],
+          tier: CHEST_MISSION_REWARD_TIERS[Math.floor(index / 4)],
         },
       };
     }

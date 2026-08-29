@@ -323,7 +323,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                         alt={t(`pricing.${paidPlan}`)}
                         width={1489}
                         height={450}
-                        className="h-4 w-10 -translate-y-1 -rotate-[10deg] object-contain"
+                        className="h-4 w-10 translate-y-0 -rotate-[10deg] object-contain"
                       />
                     ) : (
                       <MobileNavIcon item={item} className="size-7" />
@@ -331,7 +331,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                     {isPremium ? (
                       showPaidPremiumImage ? null : (
                         <span className={cn(
-                          "pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-[9px] font-bold text-transparent",
+                          "pointer-events-none absolute -right-3 -top-1 rotate-[45deg] bg-gradient-to-r from-[var(--premium-start)] via-[var(--reward-end)] to-[var(--premium-end)] bg-clip-text text-[9px] font-bold text-transparent",
                           canUseSuperWater(locale) && "font-super-water",
                         )}>
                           {formatSuperWaterText(locale, "FREE")}

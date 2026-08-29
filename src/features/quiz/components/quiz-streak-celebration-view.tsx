@@ -37,7 +37,7 @@ export function QuizStreakCelebrationView({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-emerald-500",
+        "fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-action-learn",
         exiting ? "animate-streak-celebration-exit" : "animate-streak-celebration-enter",
       )}
       data-streak-celebration-view

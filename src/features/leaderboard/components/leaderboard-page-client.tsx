@@ -6,6 +6,7 @@ import { ScoreIcon } from "@/components/score-icon";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
+import { useLeaderboardConsentTestMode } from "@/features/leaderboard/leaderboard-consent-test-mode";
 import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { formatNumber } from "@/i18n/labels";
@@ -17,6 +18,7 @@ export function LeaderboardPageClient() {
   const { locale } = useLocale();
   const t = useT();
   const { updateProfileField } = useAuthSession();
+  const leaderboardConsentTestMode = useLeaderboardConsentTestMode();
   const { data, loading, error, refresh } = useLeaderboardData({ refreshOnMount: true });
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentBusy, setConsentBusy] = useState(false);
@@ -35,6 +37,11 @@ export function LeaderboardPageClient() {
   }, [data?.canViewLeaderboard, data?.entries]);
 
   async function handleConfirmConsent() {
+    if (leaderboardConsentTestMode) {
+      setConsentOpen(false);
+      return;
+    }
+
     setConsentBusy(true);
     setConsentError("");
 
@@ -133,11 +140,21 @@ export function LeaderboardPageClient() {
               ) : !data?.canViewLeaderboard ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                   <div className="space-y-2">
-                    <p className="text-xl font-semibold text-foreground">
-                      {t("leaderboard.lockedTitle")}
+                    <p
+                      className={cn(
+                        "text-3xl font-semibold leading-tight text-foreground sm:text-4xl",
+                        canUseSuperWater(locale) && "font-super-water",
+                      )}
+                    >
+                      {formatSuperWaterText(locale, t("leaderboard.lockedTitle"))}
                     </p>
-                    <p className="text-sm leading-6 text-foreground-secondary">
-                      {t("leaderboard.lockedDescription")}
+                    <p
+                      className={cn(
+                        "text-lg font-medium leading-7 text-foreground-secondary sm:text-xl",
+                        canUseSuperWater(locale) && "font-super-water",
+                      )}
+                    >
+                      {formatSuperWaterText(locale, t("leaderboard.lockedDescription"))}
                     </p>
                   </div>
                   <button
@@ -146,9 +163,12 @@ export function LeaderboardPageClient() {
                       setConsentError("");
                       setConsentOpen(true);
                     }}
-                    className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-hover"
+                    className={cn(
+                      "inline-flex h-14 items-center justify-center rounded-full bg-black px-9 text-lg font-semibold text-white transition-colors hover:bg-black/85 sm:text-xl",
+                      canUseSuperWater(locale) && "font-super-water",
+                    )}
                   >
-                    {t("leaderboard.allow")}
+                    {formatSuperWaterText(locale, t("leaderboard.allow"))}
                   </button>
                   {consentError ? (
                     <p className="text-xs font-medium text-rose-600">
@@ -199,7 +219,7 @@ export function LeaderboardPageClient() {
                         <span className="truncate text-sm font-semibold text-foreground max-lg:text-brand-foreground">
                           {entry.displayName || t("leaderboard.anonymous")}
                         </span>
-                        <div className="flex items-center gap-1.5 justify-self-end text-sm font-bold text-foreground max-lg:text-brand-foreground">
+                        <div className="flex items-center gap-1.5 justify-self-end text-sm font-bold text-foreground max-lg:text-white">
                           <span>{formatNumber(locale, entry.totalPoints)}</span>
                           <ScoreIcon size={18} className="h-[1.05rem] w-auto" />
                         </div>

@@ -173,7 +173,7 @@ function LearnQuizShellLoading({
                 key={index}
                 className={cn(
                   "min-h-[136px] animate-pulse rounded-2xl border p-5 sm:min-h-[148px] sm:p-6",
-                  index === 0 ? "border-emerald-500/30 bg-emerald-500/15" : "border-sky-500/30 bg-sky-500/15",
+                  index === 0 ? "border-[color:var(--action-learn)]/30 bg-[var(--action-learn)]/15" : "border-[color:var(--action-learned)]/30 bg-[var(--action-learned)]/15",
                 )}
               />
             ))}
@@ -198,14 +198,14 @@ function LearnQuizShellLoading({
 
 export const MODE_STYLE = {
   active: {
-    bg: "bg-emerald-500",
-    border: "border-emerald-500",
-    hover: "hover:bg-emerald-600",
+    bg: "bg-action-learn",
+    border: "border-[var(--action-learn)]",
+    hover: "hover:bg-action-learn-hover",
   },
   learned: {
-    bg: "bg-sky-500",
-    border: "border-sky-500",
-    hover: "hover:bg-sky-600",
+    bg: "bg-action-learned",
+    border: "border-[var(--action-learned)]",
+    hover: "hover:bg-action-review-hover",
   },
 } as const;
 

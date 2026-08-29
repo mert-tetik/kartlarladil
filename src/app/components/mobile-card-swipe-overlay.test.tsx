@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
+const { cancelCardPronunciationMock, enqueueCardPronunciationMock } = vi.hoisted(() => ({
+  cancelCardPronunciationMock: vi.fn(),
+  enqueueCardPronunciationMock: vi.fn(),
+}));
+
 const addCardMock = vi.fn();
 const inventoryState: {
   cards: InventoryCard[];
@@ -28,8 +33,18 @@ vi.mock("@/features/cards/components/vocabulary-card-view", () => ({
   VocabularyCardView: ({ card }: { card: VocabularyCard }) => <div data-vocabulary-card={card.id} />,
 }));
 
+vi.mock("@/features/cards/card-pronunciation-client", () => ({
+  cancelCardPronunciation: cancelCardPronunciationMock,
+  enqueueCardPronunciation: enqueueCardPronunciationMock,
+}));
+
+vi.mock("@/features/auth/auth-client", () => ({
+  useAuthSession: () => ({ user: { id: "user-1" } }),
+}));
+
 vi.mock("@/i18n/locale-provider", () => ({
   useT: () => (key: string) => key,
+  useLocale: () => ({ locale: "tr" }),
 }));
 
 function createCard(tier: string) {
@@ -65,6 +80,8 @@ describe("MobileCardSwipeOverlay", () => {
     HTMLElement.prototype.setPointerCapture = vi.fn();
     addCardMock.mockReset();
     addCardMock.mockResolvedValue({ ok: true, firstCardAdded: false });
+    cancelCardPronunciationMock.mockReset();
+    enqueueCardPronunciationMock.mockReset();
     inventoryState.cards = [];
     inventoryState.activeCardLimit = null;
   });
@@ -138,6 +155,21 @@ describe("MobileCardSwipeOverlay", () => {
     });
 
     expect(addCardMock).toHaveBeenCalledWith("A1");
+  });
+
+  it("cancels pronunciation work when the visible card is skipped", async () => {
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const swipeCard = document.querySelector("[data-card-swipe-card]") as HTMLElement;
+    fireEvent.pointerDown(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
+    fireEvent.pointerMove(swipeCard, { pointerId: 1, clientX: 50, clientY: 100 });
+    fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 50, clientY: 100 });
+
+    expect(cancelCardPronunciationMock).toHaveBeenCalledWith("A1");
   });
 
   it("opens the active card limit popup instead of swiping a card into a full deck", async () => {

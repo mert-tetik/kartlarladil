@@ -5,7 +5,8 @@ import OpenAI from "openai";
 import ts from "typescript";
 
 const COMMAND = (process.argv[2] || "submit").trim().toLowerCase();
-const REQUEST_BATCH_SIZE = parsePositiveInt(process.env.CARD_PRONUNCIATION_REQUEST_BATCH_SIZE) || 60;
+const REQUEST_BATCH_SIZE = parsePositiveInt(process.env.CARD_PRONUNCIATION_REQUEST_BATCH_SIZE) || 80;
+const MAX_REQUESTS_PER_BATCH = parsePositiveInt(process.env.CARD_PRONUNCIATION_MAX_REQUESTS_PER_BATCH) || 200;
 const CARD_SEED_LOCALE_ORDER = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
 const PARTIAL_PATH = "scripts/data/card-pronunciations.partial.json";
 const OUTPUT_PATH = "src/data/card-pronunciations.generated.ts";
@@ -13,10 +14,11 @@ const INPUT_JSONL_PATH = "scripts/data/card-pronunciations.batch-input.jsonl";
 const RESULT_JSONL_PATH = "scripts/data/card-pronunciations.batch-output.jsonl";
 const ERROR_JSONL_PATH = "scripts/data/card-pronunciations.batch-errors.jsonl";
 const MANIFEST_PATH = "scripts/data/card-pronunciations.batch-manifest.json";
-const MODEL = process.env.OPENAI_CARD_PRONUNCIATIONS_MODEL?.trim() || "gpt-5-nano";
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
+
+const MODEL = process.env.OPENAI_CARD_PRONUNCIATIONS_MODEL?.trim() || "gpt-5.4-nano";
 
 if (!process.env.OPENAI_API_KEY) {
   console.error("OPENAI_API_KEY required.");
@@ -68,13 +70,15 @@ async function submitBatch() {
     return;
   }
 
-  const requests = chunk(pending, REQUEST_BATCH_SIZE).map((batch, index) => ({
+  const pendingForBatch = pending.slice(0, REQUEST_BATCH_SIZE * MAX_REQUESTS_PER_BATCH);
+  const requests = chunk(pendingForBatch, REQUEST_BATCH_SIZE).map((batch, index) => ({
     custom_id: `pronunciation-${String(index + 1).padStart(5, "0")}`,
     method: "POST",
     url: "/v1/chat/completions",
-    body: {
+      body: {
       model: MODEL,
       response_format: { type: "json_object" },
+      max_completion_tokens: 4096,
       messages: [{ role: "user", content: buildPrompt(batch) }],
     },
   }));
@@ -105,7 +109,8 @@ async function submitBatch() {
     kind: "card-pronunciations",
     model: MODEL,
     requestBatchSize: REQUEST_BATCH_SIZE,
-    cardCount: pending.length,
+    cardCount: pendingForBatch.length,
+    remainingCardCount: pending.length - pendingForBatch.length,
     requestCount: requests.length,
     batchId: batch.id,
     inputFileId: file.id,
@@ -126,6 +131,8 @@ async function printBatchStatus() {
       {
         batchId: batch.id,
         status: batch.status,
+        errors: batch.errors ?? null,
+        error: batch.error ?? null,
         requestCounts: batch.request_counts ?? null,
         inputFileId: batch.input_file_id,
         outputFileId: batch.output_file_id ?? null,
@@ -148,6 +155,9 @@ async function applyBatchResults() {
   }
 
   const existing = readPartial();
+  const expectedSourceKeys = new Set(
+    cards.filter((card) => !isValidPronunciation(existing[card.sourceKey])).map((card) => card.sourceKey),
+  );
   const outputResponse = await openai.files.content(batch.output_file_id);
   const outputText = await outputResponse.text();
   ensureParentDir(RESULT_JSONL_PATH);
@@ -156,6 +166,7 @@ async function applyBatchResults() {
   let parsedLines = 0;
   let mergedItems = 0;
   let invalidLines = 0;
+  let ignoredItems = 0;
 
   for (const line of outputText.split(/\r?\n/)) {
     const trimmed = line.trim();
@@ -177,14 +188,22 @@ async function applyBatchResults() {
 
     for (const item of parsed.items) {
       if (typeof item?.sourceKey !== "string" || typeof item?.pronunciation !== "string") {
+        ignoredItems += 1;
+        continue;
+      }
+
+      if (!expectedSourceKeys.has(item.sourceKey)) {
+        ignoredItems += 1;
         continue;
       }
 
       const pronunciation = normalizePronunciation(item.pronunciation);
       if (!isValidPronunciation(pronunciation)) {
+        ignoredItems += 1;
         continue;
       }
 
+      if (existing[item.sourceKey] === pronunciation) continue;
       existing[item.sourceKey] = pronunciation;
       mergedItems += 1;
     }
@@ -197,6 +216,8 @@ async function applyBatchResults() {
     fs.writeFileSync(path.resolve(ERROR_JSONL_PATH), errorText, "utf8");
   }
 
+  const missingCount = [...expectedSourceKeys].filter((sourceKey) => !isValidPronunciation(existing[sourceKey])).length;
+
   writePartial(existing);
   writeOutput(existing);
 
@@ -207,7 +228,9 @@ async function applyBatchResults() {
         status: batch.status,
         parsedLines,
         mergedItems,
+        ignoredItems,
         invalidLines,
+        missingCount,
         pronunciationCount: Object.keys(existing).length,
       },
       null,
@@ -218,15 +241,20 @@ async function applyBatchResults() {
 
 function buildPrompt(batch) {
   return [
-    "You write one accurate IPA pronunciation for each vocabulary card term.",
+    "You create a simple Turkish-reader pronunciation respelling for each vocabulary card term.",
+    "The pronunciation is written for a Turkish speaker to read aloud, but it must represent the actual pronunciation of the term in its target card language.",
     "Rules:",
-    "1. Pronounce the card term itself in the card language, not the English lemma.",
-    "2. Return exactly one broad IPA transcription per item.",
-    "3. Wrap the IPA in forward slashes, like /.../.",
-    "4. If the term is a phrase, transcribe the whole phrase naturally.",
-    "5. Use the standard/common modern pronunciation for that language.",
-    "6. Do not include explanations, alternate variants, notes, or plain-text respellings.",
-    '7. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","pronunciation":"/.../"}]}',
+    "1. Pronounce the card term itself in the target card language, not the English lemma and not a translation.",
+    "2. Return exactly one pronunciation per item using lowercase Latin characters only, plus Turkish dotless ı when needed.",
+    "3. Never use IPA, slashes, brackets, stress marks, diacritics, Cyrillic, Arabic, Greek, Japanese, Korean, or Chinese characters.",
+    "4. Use only a-z, ı, spaces, apostrophes, and hyphens in pronunciation values.",
+    "5. Write every sound so a Turkish reader can pronounce it approximately correctly. Preserve pronounced final consonants and all important sounds.",
+    "6. For a w sound use v, for a Turkish ç-like sound use ch, and for a Turkish ş-like sound use sh. Convert x according to its actual sound; never copy x blindly.",
+    "7. Target-language rules matter: do not force English pronunciation onto German, Russian, French, Spanish, Italian, Portuguese, Dutch, Polish, Arabic, Japanese, Korean, or Chinese terms.",
+    "8. For non-Latin scripts, transliterate the target-language pronunciation into the allowed Latin spelling. For phrases, preserve the word order and pronounce the whole phrase.",
+    "9. Important examples: box -> baks, fox -> faks, socks -> saks, six -> siks, exam -> igzam. The output 'bok' for box is invalid.",
+    "10. Do not include explanations, alternate variants, notes, punctuation, or surrounding quotes in pronunciation values.",
+    '11. Return valid JSON only with this exact shape: {"items":[{"sourceKey":"...","pronunciation":"..."}]}',
     "",
     "Cards:",
     ...batch.map((card) =>
@@ -248,21 +276,18 @@ function getLocalizedSeedTerm(row, language) {
 }
 
 function normalizePronunciation(value) {
-  const trimmed = String(value ?? "").trim().normalize("NFC");
-
-  if (/^\[.+\]$/u.test(trimmed)) {
-    return `/${trimmed.slice(1, -1)}/`;
-  }
-
-  if (/^\/.+\/$/u.test(trimmed)) {
-    return trimmed;
-  }
-
-  return trimmed;
+  return String(value ?? "")
+    .trim()
+    .normalize("NFC")
+    .toLocaleLowerCase("tr")
+    .replaceAll("w", "v")
+    .replaceAll("ç", "ch")
+    .replaceAll("ş", "sh")
+    .replace(/\s+/gu, " ");
 }
 
 function isValidPronunciation(value) {
-  return /^\/.+\/$/u.test(String(value ?? "").trim());
+  return /^[a-z\u0131]+(?:[ '-][a-z\u0131]+)*$/u.test(String(value ?? "").trim());
 }
 
 function parseBatchContent(content) {
@@ -300,13 +325,18 @@ function readPartial() {
 
   const parsed = JSON.parse(fs.readFileSync(filename, "utf8"));
   return Object.fromEntries(
-    Object.entries(parsed).map(([sourceKey, value]) => [sourceKey, normalizePronunciation(value)]),
+    Object.entries(parsed)
+      .map(([sourceKey, value]) => [sourceKey, normalizePronunciation(value)])
+      .filter(([, value]) => isValidPronunciation(value)),
   );
 }
 
 function writePartial(data) {
   ensureParentDir(PARTIAL_PATH);
-  fs.writeFileSync(path.resolve(PARTIAL_PATH), JSON.stringify(data, null, 2), "utf8");
+  const validData = Object.fromEntries(
+    Object.entries(data).filter(([, pronunciation]) => isValidPronunciation(pronunciation)),
+  );
+  fs.writeFileSync(path.resolve(PARTIAL_PATH), JSON.stringify(validData, null, 2), "utf8");
 }
 
 function writeOutput(data) {

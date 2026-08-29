@@ -11,6 +11,7 @@ const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
 const mockGetUserSubscriptionManagementSource = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockGetRequestOrigin = vi.hoisted(() => vi.fn());
+const mockAdminRpc = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/subscriptions/lemon-squeezy", () => ({
   createCheckoutUrl: mockCreateCheckoutUrl,
@@ -37,6 +38,10 @@ vi.mock("@/lib/supabase/server", () => ({
   ),
 }));
 
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(() => ({ rpc: mockAdminRpc })),
+}));
+
 vi.mock("@/i18n/server", () => ({
   getServerLocale: vi.fn(() => Promise.resolve("en")),
 }));
@@ -59,6 +64,24 @@ describe("subscription actions", () => {
     mockGetRequestOrigin.mockResolvedValue("https://foxiesdeck.test");
     mockGetVariantIdForPlan.mockReturnValue("variant-basic-monthly");
     mockCreateCheckoutUrl.mockResolvedValue("https://checkout.example.com");
+    mockAdminRpc.mockImplementation((name: string) => {
+      if (name === "reserve_lemon_checkout") {
+        return Promise.resolve({
+          data: {
+            reservation_id: "reservation-1",
+            checkout_url: null,
+            should_create: true,
+          },
+          error: null,
+        });
+      }
+
+      if (name === "complete_lemon_checkout_reservation") {
+        return Promise.resolve({ data: "https://checkout.example.com", error: null });
+      }
+
+      return Promise.resolve({ data: null, error: null });
+    });
   });
 
   it("creates a checkout URL for a free user", async () => {
@@ -134,6 +157,33 @@ describe("subscription actions", () => {
       message: "",
       customerPortalUrl: "https://fresh-portal.example.com",
     });
+    expect(mockCreateCheckoutUrl).not.toHaveBeenCalled();
+  });
+
+  it("reuses an in-flight checkout created by another tab", async () => {
+    mockGetUserEntitlements.mockResolvedValue({
+      plan: "free",
+      effectivePlan: "free",
+      status: "free",
+      provider: "lemon_squeezy",
+      limits: { activeCards: 20, learnedCards: 50, aiDailyMessages: 10, aiMonthlyMessages: 200 },
+      customerPortalUrl: null,
+    });
+    mockAdminRpc.mockResolvedValueOnce({
+      data: {
+        reservation_id: "reservation-1",
+        checkout_url: "https://checkout.example.com/existing",
+        should_create: false,
+      },
+      error: null,
+    });
+
+    const result = await createCheckoutAction(
+      { status: "idle", message: "" },
+      makeFormData({ plan: "basic", cycle: "monthly" }),
+    );
+
+    expect(result.checkoutUrl).toBe("https://checkout.example.com/existing");
     expect(mockCreateCheckoutUrl).not.toHaveBeenCalled();
   });
 

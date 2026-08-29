@@ -1,18 +1,38 @@
 import { askChatRequestSchema } from "@/features/ask/ask-schema";
 
 const validRequest = {
-  language: "en",
   locale: "tr",
   messages: [{ role: "user", content: "Explain the word hello to me." }],
 };
 
 describe("askChatRequestSchema", () => {
-  it("accepts a valid ask request", () => {
+  it("accepts a valid ask request without a selected language", () => {
     expect(askChatRequestSchema.safeParse(validRequest).success).toBe(true);
   });
 
-  it("rejects unsupported languages", () => {
-    expect(askChatRequestSchema.safeParse({ ...validRequest, language: "xx" }).success).toBe(false);
+  it("accepts an optional inferred language state", () => {
+    expect(
+      askChatRequestSchema.safeParse({
+        ...validRequest,
+        languageState: {
+          nativeLanguageCode: "tr",
+          learningLanguageCode: "en",
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects unsupported context languages", () => {
+    expect(askChatRequestSchema.safeParse({ ...validRequest, contextLanguage: "xx" }).success).toBe(false);
+  });
+
+  it("rejects unsupported inferred languages", () => {
+    expect(
+      askChatRequestSchema.safeParse({
+        ...validRequest,
+        languageState: { nativeLanguageCode: "xx", learningLanguageCode: "unknown" },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects unsupported locales", () => {

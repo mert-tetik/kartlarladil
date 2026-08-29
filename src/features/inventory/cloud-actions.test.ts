@@ -5,6 +5,7 @@ import { LOCALE_CODES } from "@/data/languages";
 import type { InventoryCard, UserEntitlements } from "@/types/domain";
 import {
   addCloudInventoryCardAction,
+  addCloudInventoryCardsAction,
   createCustomCardAction,
   listCloudInventoryAction,
   migrateLocalInventoryToCloudAction,
@@ -104,6 +105,11 @@ function createSupabaseMock(state: MockState, userId = "user-1") {
 
     eq(field: string, value: unknown) {
       this.filters.push({ field, value });
+      return this;
+    }
+
+    in(field: string, values: unknown[]) {
+      this.filters.push({ field, value: { __in: values } });
       return this;
     }
 
@@ -324,7 +330,14 @@ function matchesFilters(
   row: UserCardRecord | PracticeAttemptRecord,
   filters: Array<{ field: string; value: unknown }>,
 ) {
-  return filters.every((filter) => row[filter.field as keyof typeof row] === filter.value);
+  return filters.every((filter) => {
+    const rowValue = row[filter.field as keyof typeof row];
+    if (typeof filter.value === "object" && filter.value !== null && "__in" in filter.value) {
+      return (filter.value.__in as unknown[]).includes(rowValue);
+    }
+
+    return rowValue === filter.value;
+  });
 }
 
 function clone<T>(value: T): T {
@@ -381,6 +394,33 @@ describe("cloud-actions", () => {
         attempts: [],
       },
     });
+  });
+
+  it("adds a batch without duplicates and stops at the free active-card limit", async () => {
+    const existingCards = VOCABULARY_CARDS.slice(0, 19);
+    const requestedCards = VOCABULARY_CARDS.slice(18, 22);
+    const state = createState({
+      userCards: existingCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await addCloudInventoryCardsAction(requestedCards.map((card) => card.sourceKey));
+
+    expect(result.status).toBe("success");
+    expect(result.data?.addedCardIds).toEqual([VOCABULARY_CARDS[19]?.sourceKey]);
+    expect(result.data?.remainingCardIds).toEqual([
+      VOCABULARY_CARDS[20]?.sourceKey,
+      VOCABULARY_CARDS[21]?.sourceKey,
+    ]);
+    expect(state.userCards).toHaveLength(20);
   });
 
   it("migrates local inventory directly with card_source_key rows", async () => {
@@ -448,7 +488,7 @@ describe("cloud-actions", () => {
     expect(result.data?.cards[0]?.cardId).toBe(sampleCard.sourceKey);
   });
 
-  it("creates a missing user_cards row before writing the practice attempt", async () => {
+  it("rejects a practice attempt for a card that is not in the user's inventory", async () => {
     const state = createState();
     currentSupabase = createSupabaseMock(state);
 
@@ -460,15 +500,9 @@ describe("cloud-actions", () => {
       mode: "active",
     });
 
-    expect(result.status).toBe("success");
-    expect(state.userCards).toHaveLength(1);
-    expect(state.userCards[0]).toMatchObject({
-      user_id: "user-1",
-      card_source_key: sampleCard.sourceKey,
-      correct_count: 0,
-      status: "active",
-    });
-    expect(state.practiceAttempts).toHaveLength(1);
+    expect(result.status).toBe("error");
+    expect(state.userCards).toHaveLength(0);
+    expect(state.practiceAttempts).toHaveLength(0);
   });
 
   it("lists cloud inventory using card_source_key without catalog joins", async () => {

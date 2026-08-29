@@ -104,15 +104,23 @@ describe("RankProgressPopover", () => {
       vi.advanceTimersByTime(0);
     });
 
-    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(700);
     });
 
-    const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
+    const rankUpDialog = screen.getByRole("dialog", { name: /Rütbe atlad/ });
     expect(rankUpDialog).toBeVisible();
-    expect(playSoundEffect).toHaveBeenCalledWith("rank-up");
+    expect(playSoundEffect).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).toHaveBeenCalledWith("rank-up-opening");
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(playSoundEffect).toHaveBeenCalledTimes(2);
+    expect(playSoundEffect).toHaveBeenLastCalledWith("rank-up-reveal");
     expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_rank_up", {
       params: {
         rank_id: nextStats.rank.id,
@@ -121,18 +129,18 @@ describe("RankProgressPopover", () => {
         rank_min_points: nextStats.rank.minPoints,
       },
     });
-    expect(within(rankUpDialog).getByText("Rank atladın")).toBeVisible();
+    expect(within(rankUpDialog).getByRole("heading", { name: "Rütbe atladın" })).toBeVisible();
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
-    expect(within(rankUpDialog).getByText("200")).toBeVisible();
-    expect(within(rankUpDialog).queryByText("200 puan")).not.toBeInTheDocument();
-    expect(rankUpDialog.querySelector('img[src*="score-icon.webp"]')).toBeInTheDocument();
-    expect(rankUpDialog.querySelector("[data-rank-up-total-score]")).toHaveClass("scale-125");
+    expect(within(rankUpDialog).queryByText("200")).not.toBeInTheDocument();
+    expect(within(rankUpDialog).queryByText("Mevcut")).not.toBeInTheDocument();
 
-    expect(within(rankUpDialog).getByRole("button", { name: "Devam" })).toHaveClass("bg-gradient-to-r", "from-amber-400", "to-orange-500");
+    fireEvent.click(within(rankUpDialog).getByRole("button", { name: "Rütbe atlama menüsünü kapat" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Devam" }));
-
-    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(360);
+    });
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
   });
 
   it("defers the rank-up menu until the landing tutorial has finished", () => {
@@ -147,13 +155,13 @@ describe("RankProgressPopover", () => {
       vi.advanceTimersByTime(700);
     });
 
-    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
 
     act(() => {
       useTutorialStore.setState({ active: false, completed: true });
     });
 
-    expect(screen.getByRole("dialog", { name: /Rank atlad/ })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeVisible();
   });
 
   it("does not open the global rank-up menu while a quiz owns the result sequence", () => {
@@ -168,20 +176,43 @@ describe("RankProgressPopover", () => {
       vi.advanceTimersByTime(700);
     });
 
-    expect(screen.queryByRole("dialog", { name: /Rank atlad/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
   });
 
   it("opens the rank-up overlay in test mode from the URL param", () => {
+    vi.useFakeTimers();
     window.history.replaceState({}, "", "/?rank-up-test=1");
 
     renderRank(<RankProgressPopover stats={makeStats(0)} />);
 
-    const rankUpDialog = screen.getByRole("dialog", { name: /Rank atlad/ });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    const rankUpDialog = screen.getByRole("dialog", { name: /Rütbe atlad/ });
     expect(rankUpDialog).toBeVisible();
 
     const fullScreenSurface = rankUpDialog.querySelector(".relative.z-10 > div");
     expect(fullScreenSurface).toHaveClass("h-full");
     expect(fullScreenSurface).toHaveClass("w-full");
+
+    fireEvent.click(within(rankUpDialog).getByRole("button", { name: "Rütbe atlama menüsünü kapat" }));
+    expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(360);
+    });
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1999);
+    });
+    expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeVisible();
   });
 });
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AiUsageEventType, LimitErrorCode, SubscriptionPlan } from "@/types/domain";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 
@@ -31,7 +31,7 @@ export async function recordAiUsageEvent(
   eventType: AiUsageEventType,
 ): Promise<void> {
   const limits = PLAN_LIMITS[plan];
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data, error } = await supabase.rpc("record_ai_usage_if_within_limit", {
     p_user_id: userId,
@@ -60,7 +60,7 @@ export async function assertAndRecordAiUsage(
   eventType: AiUsageEventType,
 ): Promise<LimitErrorCode | null> {
   const limits = PLAN_LIMITS[plan];
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data: result, error } = await supabase.rpc("record_ai_usage_if_within_limit", {
     p_user_id: userId,
@@ -89,7 +89,7 @@ async function countAiUsage(
   userId: string,
   period: "day" | "month",
 ): Promise<number> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const since = period === "day" ? getDayStartIso() : getMonthStartIso();
 
   const { count, error } = await supabase

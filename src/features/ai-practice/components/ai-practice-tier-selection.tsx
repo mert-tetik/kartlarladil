@@ -20,12 +20,17 @@ const TIER_ICONS: Record<Tier, typeof Sprout> = {
 export function AiPracticeTierSelection({
   language,
   characterId,
+  scenarioId,
 }: {
   language: LanguageCode;
   characterId: string;
+  scenarioId?: string;
 }) {
   const t = useT();
   const { locale } = useLocale();
+  const practicePath = (tier: Tier) => scenarioId
+    ? `/ai-practice/${language}/${scenarioId}?mode=scenario&tier=${tier}`
+    : `/ai-practice/${language}/${characterId}?tier=${tier}`;
 
   return (
     <div className="relative w-full">
@@ -42,7 +47,7 @@ export function AiPracticeTierSelection({
             return (
               <Link
                 key={tier}
-                href={`/ai-practice/${language}/${characterId}?tier=${tier}`}
+                href={practicePath(tier)}
                 className={`group flex flex-col items-center justify-center gap-2 rounded-lg p-4 text-white shadow-sm transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${tierAccent}`}
               >
                 <Icon className="size-7 text-white" aria-hidden="true" />

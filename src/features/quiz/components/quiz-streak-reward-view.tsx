@@ -132,9 +132,9 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   }
 
   return createPortal(
-    <div className={`fixed inset-0 z-[70] overflow-hidden bg-emerald-500 ${exiting ? "animate-streak-reward-exit" : "animate-streak-reward-enter"}`} data-streak-reward-view aria-hidden="true">
+    <div className={`fixed inset-0 z-[70] overflow-hidden bg-action-learn ${exiting ? "animate-streak-reward-exit" : "animate-streak-reward-enter"}`} data-streak-reward-view aria-hidden="true">
       <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
-        <div className="relative flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg">
+        <div className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
           <Star className="size-5 fill-current" aria-hidden="true" />
           <span ref={scoreRef} key={scorePulse} className={cn("text-lg font-bold", scorePulse > 0 && "animate-score-bobble")}>
             {formatPoints(locale, displayPoints)}

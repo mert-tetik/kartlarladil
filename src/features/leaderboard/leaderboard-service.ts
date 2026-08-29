@@ -12,6 +12,7 @@ interface LeaderboardProfileRow {
   chest_points: number | null;
   streak_points: number | null;
   mission_points: number | null;
+  quiz_result_points: number | null;
   leaderboard_visible: boolean | null;
   profile_picture_index: number | null;
 }
@@ -19,6 +20,12 @@ interface LeaderboardProfileRow {
 interface LearnedCardRow {
   user_id: string;
   card_source_key: string;
+}
+
+interface CustomCardTierRow {
+  user_id: string;
+  source_key: string;
+  tier: string;
 }
 
 const TIER_POINT_MAP: Record<Tier, number> = {
@@ -46,20 +53,34 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
   }
 
   const userIds = profiles.map((profile) => profile.user_id);
-  const { data: learnedCards, error: learnedError } = await admin
-    .from("user_cards")
-    .select("user_id, card_source_key")
-    .in("user_id", userIds)
-    .eq("status", "learned");
+  const [
+    { data: learnedCards, error: learnedError },
+    { data: customCards, error: customCardsError },
+  ] = await Promise.all([
+    admin
+      .from("user_cards")
+      .select("user_id, card_source_key")
+      .in("user_id", userIds)
+      .eq("status", "learned"),
+    admin
+      .from("custom_cards")
+      .select("user_id, source_key, tier")
+      .in("user_id", userIds),
+  ]);
 
-  if (learnedError) {
+  if (learnedError || customCardsError) {
     return createEmptyLeaderboardPayload(viewerUserId, viewerProfile);
   }
 
+  const customTierBySourceKey = new Map(
+    ((customCards ?? []) as CustomCardTierRow[]).map((card) => [card.source_key, card.tier]),
+  );
   const learnedPointsByUser = new Map<string, number>();
 
   for (const row of (learnedCards ?? []) as LearnedCardRow[]) {
-    const tier = parseTierFromSourceKey(row.card_source_key);
+    const tier =
+      parseTierFromSourceKey(row.card_source_key) ??
+      parseTier(customTierBySourceKey.get(row.card_source_key));
     if (!tier) {
       continue;
     }
@@ -77,7 +98,8 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
         (profile.ai_practice_points ?? 0) +
         (profile.chest_points ?? 0) +
         (profile.streak_points ?? 0) +
-        (profile.mission_points ?? 0);
+        (profile.mission_points ?? 0) +
+        (profile.quiz_result_points ?? 0);
 
       return {
         userId: profile.user_id,
@@ -148,7 +170,8 @@ function createEmptyLeaderboardPayload(
         (viewerProfile?.ai_practice_points ?? 0) +
         (viewerProfile?.chest_points ?? 0) +
         (viewerProfile?.streak_points ?? 0) +
-        (viewerProfile?.mission_points ?? 0),
+        (viewerProfile?.mission_points ?? 0) +
+        (viewerProfile?.quiz_result_points ?? 0),
       leaderboardVisible: viewerProfile?.leaderboard_visible ?? false,
     },
     entries: [],
@@ -158,6 +181,12 @@ function createEmptyLeaderboardPayload(
 
 function parseTierFromSourceKey(sourceKey: string): Tier | null {
   const tier = sourceKey.split(":")[1];
+
+  return parseTier(tier);
+}
+
+function parseTier(value: string | undefined): Tier | null {
+  const tier = value;
 
   if (
     tier === "A1" ||

@@ -1,12 +1,24 @@
 import OpenAI from "openai";
 import type { ResponseStreamEvent } from "openai/resources/responses/responses";
 import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
+import { getAiPracticeScenario } from "@/features/ai-practice/ai-practice-scenarios";
 import {
   AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
   extractResponseOutputText,
 } from "@/features/ai-practice/ai-practice-openai";
-import { buildAiPracticeInput, buildAiPracticeInstructions } from "@/features/ai-practice/ai-practice-prompts";
+import {
+  buildAiPracticeInput,
+  buildAiPracticeInstructions,
+  buildAiPracticeScenarioEvaluationInstructions,
+  buildAiPracticeScenarioHelpInstructions,
+} from "@/features/ai-practice/ai-practice-prompts";
+import {
+  AI_PRACTICE_SCENARIO_HELP_RESPONSE_FORMAT,
+  AI_PRACTICE_SCENARIO_RESPONSE_FORMAT,
+  parseAiPracticeScenarioHelpResponse,
+  parseAiPracticeScenarioResponse,
+} from "@/features/ai-practice/ai-practice-scenario-response";
 import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
@@ -36,10 +48,17 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  const character = getAiPracticeCharacter(parsed.data.characterId);
+  const scenario = parsed.data.mode === "scenario" && parsed.data.scenarioId
+    ? getAiPracticeScenario(parsed.data.scenarioId)
+    : null;
+  const character = getAiPracticeCharacter(scenario?.characterId ?? parsed.data.characterId);
 
   if (!character) {
-    return Response.json({ errorCode: "unknown_character" }, { status: 404 });
+    return Response.json({ errorCode: scenario ? "unknown_scenario" : "unknown_character" }, { status: 404 });
+  }
+
+  if (parsed.data.mode === "scenario" && !scenario) {
+    return Response.json({ errorCode: "unknown_scenario" }, { status: 404 });
   }
 
   const entitlements = await getUserEntitlements(user.id);
@@ -51,15 +70,69 @@ export async function POST(request: Request) {
 
   const openai = new OpenAI({ apiKey });
   const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
-  const instructions = buildAiPracticeInstructions({
-    character,
-    language: parsed.data.language,
-    tier: parsed.data.tier,
-  });
   const input = buildAiPracticeInput({
     character,
     language: parsed.data.language,
     messages: parsed.data.messages,
+  });
+
+  if (scenario) {
+    const instructions = parsed.data.requestType === "help"
+      ? buildAiPracticeScenarioHelpInstructions({
+          character,
+          language: parsed.data.language,
+          tier: parsed.data.tier,
+          scenario,
+          uiLocale: parsed.data.uiLocale,
+        })
+      : buildAiPracticeScenarioEvaluationInstructions({
+          character,
+          language: parsed.data.language,
+          tier: parsed.data.tier,
+          scenario,
+          uiLocale: parsed.data.uiLocale,
+        });
+
+    try {
+      const response = await openai.responses.create({
+        model,
+        instructions,
+        input,
+        max_output_tokens: parsed.data.requestType === "help" ? 180 : MAX_OUTPUT_TOKENS,
+        reasoning: { effort: "minimal" },
+        store: false,
+        text: {
+          format: parsed.data.requestType === "help"
+            ? AI_PRACTICE_SCENARIO_HELP_RESPONSE_FORMAT
+            : AI_PRACTICE_SCENARIO_RESPONSE_FORMAT,
+          verbosity: "low",
+        },
+        truncation: "auto",
+        safety_identifier: createAiPracticeSafetyIdentifier(user.id),
+      });
+      const rawOutput = response.output_text || extractResponseOutputText(response);
+      const payload = parsed.data.requestType === "help"
+        ? parseAiPracticeScenarioHelpResponse(rawOutput)
+        : parseAiPracticeScenarioResponse(rawOutput);
+
+      if (!payload) {
+        return Response.json({ errorCode: "upstream_error" }, { status: 502 });
+      }
+
+      return Response.json(payload, {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch {
+      return Response.json({ errorCode: "upstream_error" }, { status: 502 });
+    }
+  }
+
+  const instructions = buildAiPracticeInstructions({
+    character,
+    language: parsed.data.language,
+    tier: parsed.data.tier,
   });
 
   let responseStream: AsyncIterable<ResponseStreamEvent>;
