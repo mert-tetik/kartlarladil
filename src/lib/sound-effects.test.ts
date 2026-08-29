@@ -12,6 +12,8 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "quiz-complete",
   "quiz-start",
   "quiz-select",
+  "card-swipe-right",
+  "card-swipe-left",
   "chest-tap",
   "chest-open",
   "streak-fire",

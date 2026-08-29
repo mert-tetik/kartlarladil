@@ -339,6 +339,30 @@ function quizSelect(context: AudioContext, now: number) {
   });
 }
 
+function cardSwipeRight(context: AudioContext, now: number) {
+  // Light rightward swipe cue used when advancing to the next card.
+  playTone(context, {
+    frequency: 260,
+    endFrequency: 620,
+    startTime: now,
+    duration: 0.16,
+    gain: 0.045,
+    type: "sine",
+  });
+}
+
+function cardSwipeLeft(context: AudioContext, now: number) {
+  // Matching descending cue used when moving back to the previous card.
+  playTone(context, {
+    frequency: 620,
+    endFrequency: 260,
+    startTime: now,
+    duration: 0.16,
+    gain: 0.045,
+    type: "sine",
+  });
+}
+
 function confetti(context: AudioContext, now: number) {
   // Rapid cluster of random pentatonic sparkles.
   const notes = [SCALE.C5, SCALE.D5, SCALE.E5, SCALE.G5, SCALE.A5, SCALE.C6];
@@ -448,6 +472,8 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "quiz-start": quizStart,
   "quiz-select": quizSelect,
+  "card-swipe-right": cardSwipeRight,
+  "card-swipe-left": cardSwipeLeft,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
   "streak-fire": streakFire,
