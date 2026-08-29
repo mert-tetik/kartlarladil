@@ -168,7 +168,7 @@ export interface ProgressStats {
 }
 
 export type SubscriptionPlan = "free" | "basic" | "pro";
-export type SubscriptionProvider = "lemon_squeezy" | "google_play";
+export type SubscriptionProvider = "google_play";
 
 export type SubscriptionStatus =
   | "free"

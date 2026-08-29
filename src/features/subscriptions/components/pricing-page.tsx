@@ -8,12 +8,8 @@ import {
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
-import {
-  createCheckoutAction,
-  createCustomerPortalAction,
-} from "@/features/subscriptions/subscription-actions";
+import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import {
   getGooglePlayErrorMessage,
@@ -27,8 +23,8 @@ import {
   type BillingCycle as GooglePlayBillingCycle,
 } from "@/features/subscriptions/use-google-play-pricing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
+import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
-import { SubscriptionMismatchNotice } from "@/features/subscriptions/components/subscription-mismatch";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
@@ -42,7 +38,7 @@ import {
   type LocalizedPricingStatus,
 } from "@/features/subscriptions/components/use-localized-pricing";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { LocaleCode, SubscriptionPlan, SubscriptionProvider } from "@/types/domain";
+import type { LocaleCode, SubscriptionPlan } from "@/types/domain";
 
 type BillingCycle = GooglePlayBillingCycle;
 
@@ -169,7 +165,6 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               mascot={item.mascot}
               cycle={cycle}
               currentPlan={entitlements?.effectivePlan ?? null}
-              provider={entitlements?.provider ?? "lemon_squeezy"}
               user={user}
               localizedPricing={localizedPricing}
               googlePlayPricing={googlePlayPricing}
@@ -315,7 +310,6 @@ function PricingCard({
   mascot,
   cycle,
   currentPlan,
-  provider,
   user,
   localizedPricing,
   googlePlayPricing,
@@ -325,7 +319,6 @@ function PricingCard({
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
-  provider: SubscriptionProvider;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
@@ -504,7 +497,6 @@ function PricingCard({
               plan={plan}
               cycle={cycle}
               currentPlan={currentPlan}
-              provider={provider}
               className={PRICING_CARD_CTA_CLASS}
             />
           </>
@@ -533,83 +525,10 @@ function Feature({
   );
 }
 
-function CheckoutButton({
-  plan,
-  cycle,
-  currentPlan,
-  className,
-  showSubscribeForPaidUser = false,
-  ctaContent,
-}: {
-  plan: Exclude<SubscriptionPlan, "free">;
-  cycle: BillingCycle;
-  currentPlan: SubscriptionPlan | null;
-  className?: string;
-  showSubscribeForPaidUser?: boolean;
-  ctaContent?: React.ReactNode;
-}) {
-  const t = useT();
-  const [state, formAction, pending] = useActionState(createCheckoutAction, {
-    status: "idle" as const,
-    message: "",
-  });
-
-  useEffect(() => {
-    if (state.status !== "success") return;
-
-    if (state.customerPortalUrl) {
-      const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
-      if (!portalWindow) {
-        window.location.assign(state.customerPortalUrl);
-      }
-      return;
-    }
-
-    if (state.checkoutUrl) {
-      markPendingWebSubscriptionCheckout();
-      if (typeof window !== "undefined" && window.LemonSqueezy?.Url?.Open) {
-        window.createLemonSqueezy?.();
-        window.LemonSqueezy.Url.Open(state.checkoutUrl);
-      } else {
-        window.location.href = state.checkoutUrl;
-      }
-    }
-  }, [state]);
-
-  const isPaidUser = currentPlan != null && currentPlan !== "free";
-
-  return (
-    <form action={formAction}>
-      <input type="hidden" name="plan" value={plan} />
-      <input type="hidden" name="cycle" value={cycle} />
-      <Button
-        type="submit"
-        variant="primary"
-        className={cn(
-          "h-12 w-full border-0 whitespace-nowrap text-sm",
-          (plan === "basic" || plan === "pro") && PRICING_GRADIENT_BUTTON_CLASS,
-          className,
-        )}
-        disabled={pending}
-      >
-        {pending
-          ? t("common.loading")
-          : ctaContent
-            ? ctaContent
-          : isPaidUser && !showSubscribeForPaidUser
-            ? t("pricing.ctaManage")
-            : t("pricing.ctaSubscribe")}
-      </Button>
-      {state.status === "error" ? <p className="mt-2 text-center text-xs text-rose-600">{state.message}</p> : null}
-    </form>
-  );
-}
-
 function PurchaseButton({
   plan,
   cycle,
   currentPlan,
-  provider,
   className,
   showSubscribeForPaidUser = false,
   ctaContent,
@@ -617,20 +536,11 @@ function PurchaseButton({
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
-  provider: SubscriptionProvider;
   className?: string;
   showSubscribeForPaidUser?: boolean;
   ctaContent?: React.ReactNode;
 }) {
   const isTwa = useTwaMode();
-  const isPaid = currentPlan != null && currentPlan !== "free";
-  const isMismatch =
-    isPaid &&
-    ((isTwa && provider === "lemon_squeezy") || (!isTwa && provider === "google_play"));
-
-  if (isMismatch) {
-    return <SubscriptionMismatchNotice provider={provider} context="pricing" />;
-  }
 
   if (isTwa) {
     return (
@@ -646,14 +556,53 @@ function PurchaseButton({
   }
 
   return (
-    <CheckoutButton
+    <GooglePlayAppButton
       plan={plan}
-      cycle={cycle}
       currentPlan={currentPlan}
       className={className}
       showSubscribeForPaidUser={showSubscribeForPaidUser}
       ctaContent={ctaContent}
     />
+  );
+}
+
+function GooglePlayAppButton({
+  plan,
+  currentPlan,
+  className,
+  showSubscribeForPaidUser = false,
+  ctaContent,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  currentPlan: SubscriptionPlan | null;
+  className?: string;
+  showSubscribeForPaidUser?: boolean;
+  ctaContent?: React.ReactNode;
+}) {
+  const t = useT();
+  const isPaidUser = currentPlan != null && currentPlan !== "free";
+  const playStoreUrl = `https://play.google.com/store/apps/details?id=${encodeURIComponent(TWA_PACKAGE_NAME)}`;
+  const label = isPaidUser && !showSubscribeForPaidUser ? t("pricing.ctaManage") : t("pricing.ctaSubscribe");
+
+  return (
+    <div className="w-full space-y-2">
+      <a
+        href={isPaidUser ? GOOGLE_PLAY_SUBSCRIPTIONS_URL : playStoreUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={buttonClassName(
+          "primary",
+          "md",
+          cn(
+            "flex h-12 w-full items-center justify-center whitespace-nowrap border-0 text-sm",
+            (plan === "basic" || plan === "pro") && PRICING_GRADIENT_BUTTON_CLASS,
+            className,
+          ),
+        )}
+      >
+        {ctaContent ?? label}
+      </a>
+    </div>
   );
 }
 
@@ -759,11 +708,10 @@ function CurrentPlanButton({ className }: { className?: string }) {
 
 function PaymentProviderNotes() {
   const t = useT();
-  const isTwa = useTwaMode();
 
   return (
     <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-foreground-muted">
-      <p>{isTwa ? "Google Play Billing" : t("pricing.paymentProvider")}</p>
+      <p>{t("pricing.paymentProvider")}</p>
       <p>{t("pricing.cancelAnytime")}</p>
     </div>
   );
@@ -1228,7 +1176,6 @@ function MobilePricingView({
   const t = useT();
   const [selectedOption, setSelectedOption] = useState<MobileOption>(DEFAULT_MOBILE_OPTION);
   const currentPlan = entitlements?.effectivePlan ?? null;
-  const provider = entitlements?.provider ?? "lemon_squeezy";
 
   const handleSelect = (option: MobileOption) => {
     vibrate("tap");
@@ -1360,7 +1307,6 @@ function MobilePricingView({
             plan={selectedOption.plan}
             cycle={selectedOption.cycle}
             currentPlan={currentPlan}
-            provider={provider}
             className="h-14 rounded-2xl text-base"
             showSubscribeForPaidUser={currentPlan === "basic" && selectedOption.plan === "pro"}
             ctaContent={ctaContent}

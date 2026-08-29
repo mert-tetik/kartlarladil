@@ -109,16 +109,15 @@ export const legalContent: Record<
 type LegalSection = "terms" | "privacy" | "refund" | "cookies" | "subscriptions";
 
 /**
- * Legal pages currently publish Turkish or English. Replace the old
- * web-only provider wording for the paid-service sections at the display
- * boundary so Android purchases accurately reference Google Play too.
+ * Legal pages currently publish Turkish or English. Replace legacy provider
+ * wording at the display boundary so all subscription references use Google
+ * Play.
  */
 export function getLegalContent(locale: LocaleCode, section: LegalSection): string {
   const displayLocale = locale === "tr" ? "tr" : "en";
-  const providerLabel =
-    displayLocale === "tr"
-      ? "LemonSqueezy (web) veya Google Play (Android)"
-      : "Lemon Squeezy (web purchases) or Google Play (Android purchases)";
+  const providerLabel = "Google Play";
 
-  return legalContent[displayLocale][section].replaceAll("LemonSqueezy", providerLabel);
+  return legalContent[displayLocale][section]
+    .replaceAll("LemonSqueezy", providerLabel)
+    .replaceAll("Lemon Squeezy", providerLabel);
 }

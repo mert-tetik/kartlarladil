@@ -3,7 +3,6 @@ import {
   checkLimit,
   getEffectivePlan,
   getUserEntitlements,
-  getUserSubscriptionManagementSource,
 } from "@/features/subscriptions/subscription-service";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import type { SubscriptionStatus, UserSubscription } from "@/types/domain";
@@ -31,7 +30,7 @@ function makeSubscription(
   return {
     plan: plan as UserSubscription["plan"],
     status,
-    provider: "lemon_squeezy",
+    provider: "google_play",
     displayName: null,
     customerPortalUrl: null,
     googlePlayPurchaseToken: null,
@@ -113,6 +112,7 @@ describe("getUserEntitlements", () => {
       data: {
         plan: "pro",
         status: "active",
+        provider: "google_play",
         customer_portal_url: "https://portal.example.com",
         renews_at: "2026-07-01T00:00:00Z",
         ends_at: null,
@@ -133,6 +133,7 @@ describe("getUserEntitlements", () => {
       data: {
         plan: "basic",
         status: "cancelled",
+        provider: "google_play",
         customer_portal_url: null,
         renews_at: null,
         ends_at: "2026-06-01T00:00:00Z",
@@ -145,83 +146,5 @@ describe("getUserEntitlements", () => {
     expect(result.plan).toBe("basic");
     expect(result.effectivePlan).toBe("free");
     expect(result.limits).toEqual(PLAN_LIMITS.free);
-  });
-});
-
-describe("getUserSubscriptionManagementSource", () => {
-  it("returns the effective plan and Lemon identifiers for a paid subscription", async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: {
-        plan: "pro",
-        status: "active",
-        customer_portal_url: "https://stale.example.com",
-        lemon_squeezy_customer_id: "customer-1",
-        lemon_squeezy_subscription_id: "subscription-1",
-        renews_at: "2026-07-01T00:00:00Z",
-        ends_at: null,
-      },
-      error: null,
-    });
-
-    const result = await getUserSubscriptionManagementSource("user-4");
-
-    expect(result).toEqual({
-      effectivePlan: "pro",
-      provider: "lemon_squeezy",
-      customerId: "customer-1",
-      subscriptionId: "subscription-1",
-      managementUrl: null,
-    });
-  });
-
-  it("returns the Google Play subscriptions page for an active Google Play subscription", async () => {
-    process.env.GOOGLE_PLAY_PACKAGE_NAME = "com.LigidTools.Glidecore";
-    mockSingle.mockResolvedValueOnce({
-      data: {
-        plan: "basic",
-        status: "active",
-        provider: "google_play",
-        customer_portal_url: null,
-        google_play_subscription_id: "basic_monthly",
-        renews_at: "2026-07-01T00:00:00Z",
-        ends_at: null,
-      },
-      error: null,
-    });
-
-    const result = await getUserSubscriptionManagementSource("user-5");
-
-    expect(result).toEqual({
-      effectivePlan: "basic",
-      provider: "google_play",
-      customerId: null,
-      subscriptionId: "basic_monthly",
-      managementUrl: "https://play.google.com/store/account/subscriptions",
-    });
-  });
-
-  it("returns the Google Play subscriptions page even when no product id was stored", async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: {
-        plan: "basic",
-        status: "active",
-        provider: "google_play",
-        customer_portal_url: null,
-        google_play_subscription_id: null,
-        renews_at: "2026-07-01T00:00:00Z",
-        ends_at: null,
-      },
-      error: null,
-    });
-
-    const result = await getUserSubscriptionManagementSource("user-5");
-
-    expect(result).toEqual({
-      effectivePlan: "basic",
-      provider: "google_play",
-      customerId: null,
-      subscriptionId: null,
-      managementUrl: "https://play.google.com/store/account/subscriptions",
-    });
   });
 });

@@ -12,19 +12,11 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { SubscriptionPurchaseSuccessDialog } from "@/features/subscriptions/components/subscription-purchase-success-dialog";
 import { getUserEntitlementsAction } from "@/features/subscriptions/subscription-actions";
-import {
-  clearPendingWebSubscriptionCheckout,
-  hasCheckoutSuccessParam,
-  hasPendingWebSubscriptionCheckout,
-  removeCheckoutSuccessParam,
-} from "@/features/subscriptions/subscription-purchase-success";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import type { UserEntitlements } from "@/types/domain";
 
 const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
-const WEB_CHECKOUT_VERIFY_ATTEMPTS = 5;
-const WEB_CHECKOUT_VERIFY_DELAY_MS = 3000;
 
 interface SubscriptionContextValue {
   entitlements: UserEntitlements | null;
@@ -117,70 +109,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <GooglePlayBillingSync />
-      <WebCheckoutSuccessObserver onVerified={presentPurchaseSuccess} />
       <SubscriptionPurchaseSuccessDialog
         open={purchaseSuccessOpen}
         onContinue={handlePurchaseSuccessContinue}
       />
     </SubscriptionContext.Provider>
   );
-}
-
-function WebCheckoutSuccessObserver({ onVerified }: { onVerified: () => void }) {
-  const { refreshEntitlements } = useSubscription();
-
-  useEffect(() => {
-    if (!hasCheckoutSuccessParam() || !hasPendingWebSubscriptionCheckout()) {
-      return;
-    }
-
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-    const scheduleRetry = () => {
-      attempts += 1;
-      if (attempts >= WEB_CHECKOUT_VERIFY_ATTEMPTS) {
-        finish();
-        return;
-      }
-
-      timeoutId = setTimeout(() => {
-        void verify();
-      }, WEB_CHECKOUT_VERIFY_DELAY_MS);
-    };
-
-    const finish = () => {
-      clearPendingWebSubscriptionCheckout();
-      removeCheckoutSuccessParam();
-    };
-
-    const verify = async () => {
-      let nextEntitlements: UserEntitlements | null = null;
-      try {
-        nextEntitlements = await refreshEntitlements();
-      } catch {
-        // A temporary connection error must not leave a stale checkout marker behind.
-      }
-      if (cancelled) return;
-
-      if (nextEntitlements?.effectivePlan && nextEntitlements.effectivePlan !== "free") {
-        finish();
-        onVerified();
-        return;
-      }
-
-      scheduleRetry();
-    };
-
-    void verify();
-
-    return () => {
-      cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [onVerified, refreshEntitlements]);
-
-  return null;
 }
 
 function GooglePlayBillingSync() {

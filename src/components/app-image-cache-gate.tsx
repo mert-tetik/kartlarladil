@@ -18,6 +18,8 @@ const CRITICAL_IMAGE_CACHE_CONCURRENCY = 3;
 const BACKGROUND_IMAGE_CACHE_CONCURRENCY = 2;
 const BACKGROUND_CACHE_DELAY_MS = 1_200;
 const EXIT_ANIMATION_DURATION_MS = 320;
+const MAX_CACHE_GATE_DURATION_MS = 1_200;
+const CACHE_REQUEST_TIMEOUT_MS = 2_500;
 
 type CacheGatePhase = "hidden" | "loading" | "exiting";
 
@@ -38,24 +40,39 @@ export function AppImageCacheGate() {
       if (cancelled) return;
 
       setPhase("loading");
-      let manifest: ImageCacheManifest | null = null;
-
-      try {
-        manifest = await prepareCriticalImageCache((nextProgress) => {
-          if (!cancelled) {
-            setProgress(nextProgress);
-          }
-        });
-      } catch {
-        // The app remains usable online if Cache Storage is temporarily unavailable.
-      } finally {
+      const criticalCachePromise = prepareCriticalImageCache((nextProgress) => {
         if (!cancelled) {
-          setPhase("exiting");
-          exitTimer = window.setTimeout(() => setPhase("hidden"), EXIT_ANIMATION_DURATION_MS);
-          if (manifest) {
-            cancelBackgroundCache = scheduleBackgroundImageCache(manifest);
-          }
+          setProgress(nextProgress);
         }
+      });
+      const cacheResultPromise = criticalCachePromise
+        .then((manifest) => ({ kind: "complete" as const, manifest }))
+        .catch(() => ({ kind: "failed" as const, manifest: null }));
+      const gateResult = await Promise.race([
+        cacheResultPromise,
+        wait(MAX_CACHE_GATE_DURATION_MS).then(() => ({
+          kind: "timed-out" as const,
+          manifest: null,
+        })),
+      ]);
+
+      if (cancelled) return;
+
+      setPhase("exiting");
+      exitTimer = window.setTimeout(() => setPhase("hidden"), EXIT_ANIMATION_DURATION_MS);
+
+      if (gateResult.manifest) {
+        cancelBackgroundCache = scheduleBackgroundImageCache(gateResult.manifest);
+      } else if (gateResult.kind === "timed-out") {
+        // Critical caching may still finish after the gate closes. Start the
+        // full cache only then, so the two cache jobs never compete at launch.
+        void criticalCachePromise
+          .then((manifest) => {
+            if (!cancelled && manifest) {
+              cancelBackgroundCache = scheduleBackgroundImageCache(manifest);
+            }
+          })
+          .catch(() => undefined);
       }
     });
 
@@ -197,7 +214,7 @@ async function cacheRemainingImages(manifest: ImageCacheManifest) {
 
 async function readImageManifest(): Promise<ImageCacheManifest | null> {
   try {
-    const response = await fetch(IMAGE_MANIFEST_URL, { cache: "no-store" });
+    const response = await fetchWithTimeout(IMAGE_MANIFEST_URL, { cache: "no-store" });
 
     if (!response.ok) {
       return readStoredManifest();
@@ -297,7 +314,7 @@ async function cacheAssets(
       try {
         const requestUrl = new URL(asset.url, window.location.origin);
         requestUrl.searchParams.set("image-cache-revision", asset.revision);
-        const response = await fetch(requestUrl, { cache: "reload" });
+        const response = await fetchWithTimeout(requestUrl, { cache: "reload" });
 
         if (response.ok) {
           await cache.put(asset.url, response.clone());
@@ -321,4 +338,24 @@ async function cacheAssets(
 
 function toCachePath(value: string): string {
   return new URL(value, window.location.origin).pathname;
+}
+
+function wait(durationMs: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), CACHE_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }

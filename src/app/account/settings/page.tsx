@@ -47,19 +47,7 @@ export default async function AccountSettingsPage() {
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
         <NotificationSettingsCard />
-        <SubscriptionSettings plan={entitlements.effectivePlan} provider={entitlements.provider} />
-        {entitlements.provider !== "google_play" ? (
-          <div className="rounded-lg border border-border bg-background-card p-6">
-            <a
-              href="https://app.lemonsqueezy.com/my-orders/login"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonClassName("secondary", "sm")}
-            >
-              {t("account.subscription.customerDashboard")}
-            </a>
-          </div>
-        ) : null}
+        <SubscriptionSettings plan={entitlements.effectivePlan} />
         <DeleteAccountForm email={user.email} hasActiveSubscription={hasActiveSubscription} />
       </div>
     </section>

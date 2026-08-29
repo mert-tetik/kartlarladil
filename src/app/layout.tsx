@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { LemonSqueezyScript } from "@/components/lemonsqueezy-script";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
@@ -64,7 +63,6 @@ export default async function RootLayout({
         <AppShell locale={locale} user={user} onboardingCountryCode={onboardingCountryCode}>
           {children}
         </AppShell>
-        <LemonSqueezyScript />
       </body>
     </html>
   );

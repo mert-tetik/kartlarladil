@@ -5,8 +5,6 @@ import type { ReactNode } from "react";
 
 const mockRequireAuthUser = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
-const mockCreateSupabaseServerClient = vi.hoisted(() => vi.fn());
-const mockSelect = vi.hoisted(() => vi.fn());
 
 vi.mock("next/link", () => ({
   default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
@@ -30,10 +28,6 @@ vi.mock("@/features/subscriptions/components/subscription-settings", () => ({
   ),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: mockCreateSupabaseServerClient,
-}));
-
 vi.mock("@/i18n/server", () => ({
   getServerLocale: vi.fn(() => Promise.resolve("en")),
 }));
@@ -46,7 +40,7 @@ describe("AccountSubscriptionPage", () => {
       plan: "pro",
       effectivePlan: "pro",
       status: "active",
-      provider: "lemon_squeezy",
+      provider: "google_play",
       limits: {
         activeCards: null,
         learnedCards: null,
@@ -56,39 +50,11 @@ describe("AccountSubscriptionPage", () => {
       customerPortalUrl: null,
     });
 
-    const query = {
-      eq: vi.fn(() => query),
-      order: vi.fn(() => query),
-      limit: vi.fn(() => query),
-      returns: vi.fn(() =>
-        Promise.resolve({
-          data: [
-            {
-              id: "event-row-1",
-              event_name: "subscription_updated",
-              payload: {},
-              processed_at: "2026-06-22T00:00:00Z",
-              error_message: null,
-              created_at: "2026-06-22T00:00:00Z",
-            },
-          ],
-        }),
-      ),
-    };
-
-    mockSelect.mockReturnValue(query);
-    mockCreateSupabaseServerClient.mockResolvedValue({
-      from: vi.fn(() => ({
-        select: mockSelect,
-      })),
-    });
   });
 
-  it("selects webhook events by the real id column and renders them", async () => {
+  it("renders the Google Play subscription settings", async () => {
     render(await AccountSubscriptionPage());
 
-    expect(mockSelect).toHaveBeenCalledWith("id, event_name, payload, processed_at, error_message, created_at");
-    expect(screen.getByText("subscription_updated")).toBeInTheDocument();
     expect(screen.getByTestId("subscription-settings")).toHaveTextContent("pro");
   });
 });

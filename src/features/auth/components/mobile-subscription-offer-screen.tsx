@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
+import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
 import {
@@ -20,9 +21,7 @@ import {
   getGooglePlaySku,
   useGooglePlayPricing,
 } from "@/features/subscriptions/use-google-play-pricing";
-import { createCheckoutAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { markPendingWebSubscriptionCheckout } from "@/features/subscriptions/subscription-purchase-success";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import {
   formatCurrency,
@@ -55,7 +54,6 @@ export function MobileSubscriptionOfferScreen({
   const googlePlayPricing = useGooglePlayPricing();
   const { purchase, isLoading: isGooglePlayLoading, isSupported } = useGooglePlayBilling();
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
-  const [isCheckoutPending, setIsCheckoutPending] = useState(false);
 
   const plans = isTwa ? TWA_PLANS : PLANS;
   const basicPlan = plans.find((item) => item.plan === "basic");
@@ -129,35 +127,12 @@ export function MobileSubscriptionOfferScreen({
       return;
     }
 
-    setIsCheckoutPending(true);
-    try {
-      const formData = new FormData();
-      formData.set("plan", "basic");
-      formData.set("cycle", cycle);
-      const result = await createCheckoutAction({ status: "idle", message: "" }, formData);
-
-      if (result.status === "success" && result.checkoutUrl) {
-        markPendingWebSubscriptionCheckout();
-        onContinueFree();
-        window.location.href = result.checkoutUrl;
-        return;
-      }
-
-      if (result.status === "success" && result.customerPortalUrl) {
-        onContinueFree();
-        window.location.assign(result.customerPortalUrl);
-        return;
-      }
-
-      setPurchaseError(result.message || t("pricing.error.checkoutFailed"));
-    } catch {
-      setPurchaseError(t("pricing.error.checkoutFailed"));
-    } finally {
-      setIsCheckoutPending(false);
-    }
+    window.location.assign(
+      `https://play.google.com/store/apps/details?id=${encodeURIComponent(TWA_PACKAGE_NAME)}`,
+    );
   }
 
-  const isLoading = isGooglePlayLoading || isCheckoutPending;
+  const isLoading = isGooglePlayLoading;
 
   return (
     <div data-mobile-subscription-offer className="animate-screen-pop flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden overflow-y-auto bg-[#070707] pb-[env(safe-area-inset-bottom)] text-center text-white">

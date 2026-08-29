@@ -1,128 +1,49 @@
-import {
-  createCheckoutAction,
-  createCustomerPortalAction,
-} from "@/features/subscriptions/subscription-actions";
 import { vi } from "vitest";
+import {
+  createCustomerPortalAction,
+  verifyGooglePlayPurchaseAction,
+} from "@/features/subscriptions/subscription-actions";
 
-const mockCreateCheckoutUrl = vi.hoisted(() => vi.fn());
-const mockFetchSubscription = vi.hoisted(() => vi.fn());
-const mockGetVariantIdForPlan = vi.hoisted(() => vi.fn());
-const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
-const mockGetUserSubscriptionManagementSource = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
-const mockGetRequestOrigin = vi.hoisted(() => vi.fn());
-const mockAdminRpc = vi.hoisted(() => vi.fn());
+const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
+const mockVerifyGooglePlaySubscription = vi.hoisted(() => vi.fn());
 
-vi.mock("@/features/subscriptions/lemon-squeezy", () => ({
-  createCheckoutUrl: mockCreateCheckoutUrl,
-  fetchSubscription: mockFetchSubscription,
-  getVariantIdForPlan: mockGetVariantIdForPlan,
+vi.mock("@/features/subscriptions/google-play-service", () => ({
+  verifyGooglePlaySubscription: mockVerifyGooglePlaySubscription,
 }));
 
 vi.mock("@/features/subscriptions/subscription-service", () => ({
   getUserEntitlements: mockGetUserEntitlements,
-  getUserSubscriptionManagementSource: mockGetUserSubscriptionManagementSource,
-}));
-
-vi.mock("@/features/auth/auth-session", () => ({
-  getRequestOrigin: mockGetRequestOrigin,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(() =>
     Promise.resolve({
-      auth: {
-        getUser: mockGetUser,
-      },
+      auth: { getUser: mockGetUser },
     }),
   ),
-}));
-
-vi.mock("@/lib/supabase/admin", () => ({
-  createSupabaseAdminClient: vi.fn(() => ({ rpc: mockAdminRpc })),
 }));
 
 vi.mock("@/i18n/server", () => ({
   getServerLocale: vi.fn(() => Promise.resolve("en")),
 }));
 
-function makeFormData(entries: Record<string, string>) {
-  const formData = new FormData();
-  for (const [key, value] of Object.entries(entries)) {
-    formData.set(key, value);
-  }
-  return formData;
-}
+vi.mock("@/i18n/dictionaries", () => ({
+  createTranslator: vi.fn(() => (key: string) => key),
+}));
 
-describe("subscription actions", () => {
+describe("Google Play subscription actions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetUser.mockResolvedValue({
-      data: { user: { id: "user-1", email: "test@example.com" } },
+      data: { user: { id: "user-1" } },
       error: null,
     });
-    mockGetRequestOrigin.mockResolvedValue("https://foxiesdeck.test");
-    mockGetVariantIdForPlan.mockReturnValue("variant-basic-monthly");
-    mockCreateCheckoutUrl.mockResolvedValue("https://checkout.example.com");
-    mockAdminRpc.mockImplementation((name: string) => {
-      if (name === "reserve_lemon_checkout") {
-        return Promise.resolve({
-          data: {
-            reservation_id: "reservation-1",
-            checkout_url: null,
-            should_create: true,
-          },
-          error: null,
-        });
-      }
-
-      if (name === "complete_lemon_checkout_reservation") {
-        return Promise.resolve({ data: "https://checkout.example.com", error: null });
-      }
-
-      return Promise.resolve({ data: null, error: null });
-    });
-  });
-
-  it("creates a checkout URL for a free user", async () => {
-    mockGetUserEntitlements.mockResolvedValue({
-      plan: "free",
-      effectivePlan: "free",
-      status: "free",
-      provider: "lemon_squeezy",
-      limits: {
-        activeCards: 20,
-        learnedCards: 50,
-        aiDailyMessages: 10,
-        aiMonthlyMessages: 200,
-      },
-      customerPortalUrl: null,
-    });
-
-    const result = await createCheckoutAction(
-      { status: "idle", message: "" },
-      makeFormData({ plan: "basic", cycle: "monthly" }),
-    );
-
-    expect(result).toEqual({
-      status: "success",
-      message: "",
-      checkoutUrl: "https://checkout.example.com",
-    });
-    expect(mockCreateCheckoutUrl).toHaveBeenCalledWith({
-      userId: "user-1",
-      email: "test@example.com",
-      variantId: "variant-basic-monthly",
-      returnUrl: "https://foxiesdeck.test/?checkout=success",
-    });
-  });
-
-  it("returns a fresh customer portal URL for an existing paid user instead of creating checkout", async () => {
     mockGetUserEntitlements.mockResolvedValue({
       plan: "pro",
       effectivePlan: "pro",
       status: "active",
-      provider: "lemon_squeezy",
+      provider: "google_play",
       limits: {
         activeCards: null,
         learnedCards: null,
@@ -131,97 +52,9 @@ describe("subscription actions", () => {
       },
       customerPortalUrl: null,
     });
-    mockGetUserSubscriptionManagementSource.mockResolvedValue({
-      effectivePlan: "pro",
-      provider: "lemon_squeezy",
-      subscriptionId: "sub_1",
-      customerId: "customer_1",
-      managementUrl: null,
-    });
-    mockFetchSubscription.mockResolvedValue({
-      id: "sub_1",
-      attributes: {
-        urls: {
-          customer_portal: "https://fresh-portal.example.com",
-        },
-      },
-    });
-
-    const result = await createCheckoutAction(
-      { status: "idle", message: "" },
-      makeFormData({ plan: "pro", cycle: "yearly" }),
-    );
-
-    expect(result).toEqual({
-      status: "success",
-      message: "",
-      customerPortalUrl: "https://fresh-portal.example.com",
-    });
-    expect(mockCreateCheckoutUrl).not.toHaveBeenCalled();
   });
 
-  it("reuses an in-flight checkout created by another tab", async () => {
-    mockGetUserEntitlements.mockResolvedValue({
-      plan: "free",
-      effectivePlan: "free",
-      status: "free",
-      provider: "lemon_squeezy",
-      limits: { activeCards: 20, learnedCards: 50, aiDailyMessages: 10, aiMonthlyMessages: 200 },
-      customerPortalUrl: null,
-    });
-    mockAdminRpc.mockResolvedValueOnce({
-      data: {
-        reservation_id: "reservation-1",
-        checkout_url: "https://checkout.example.com/existing",
-        should_create: false,
-      },
-      error: null,
-    });
-
-    const result = await createCheckoutAction(
-      { status: "idle", message: "" },
-      makeFormData({ plan: "basic", cycle: "monthly" }),
-    );
-
-    expect(result.checkoutUrl).toBe("https://checkout.example.com/existing");
-    expect(mockCreateCheckoutUrl).not.toHaveBeenCalled();
-  });
-
-  it("creates a fresh customer portal URL on demand", async () => {
-    mockGetUserSubscriptionManagementSource.mockResolvedValue({
-      effectivePlan: "basic",
-      provider: "lemon_squeezy",
-      subscriptionId: "sub_2",
-      customerId: "customer_2",
-      managementUrl: null,
-    });
-    mockFetchSubscription.mockResolvedValue({
-      id: "sub_2",
-      attributes: {
-        urls: {
-          customer_portal: "https://fresh-portal.example.com",
-        },
-      },
-    });
-
-    const result = await createCustomerPortalAction({ status: "idle", message: "" });
-
-    expect(result).toEqual({
-      status: "success",
-      message: "",
-      customerPortalUrl: "https://fresh-portal.example.com",
-    });
-  });
-
-  it("returns the Google Play subscriptions page on demand", async () => {
-    mockGetUserSubscriptionManagementSource.mockResolvedValue({
-      effectivePlan: "basic",
-      provider: "google_play",
-      subscriptionId: null,
-      customerId: null,
-      managementUrl: "https://play.google.com/store/account/subscriptions",
-    });
-
+  it("returns the Google Play subscriptions page for paid users", async () => {
     const result = await createCustomerPortalAction({ status: "idle", message: "" });
 
     expect(result).toEqual({
@@ -229,21 +62,29 @@ describe("subscription actions", () => {
       message: "",
       customerPortalUrl: "https://play.google.com/store/account/subscriptions",
     });
-    expect(mockFetchSubscription).not.toHaveBeenCalled();
   });
 
-  it("returns an error when a paid portal URL cannot be refreshed", async () => {
-    mockGetUserSubscriptionManagementSource.mockResolvedValue({
-      effectivePlan: "pro",
-      provider: "lemon_squeezy",
-      subscriptionId: null,
-      customerId: "customer_1",
-      managementUrl: null,
+  it("does not expose a management link for free users", async () => {
+    mockGetUserEntitlements.mockResolvedValueOnce({
+      ...await mockGetUserEntitlements(),
+      effectivePlan: "free",
     });
 
     const result = await createCustomerPortalAction({ status: "idle", message: "" });
 
     expect(result.status).toBe("error");
-    expect(mockFetchSubscription).not.toHaveBeenCalled();
+    expect(result.message).toBe("pricing.error.customerPortalUnavailable");
+  });
+
+  it("verifies a purchase for the authenticated FoxiesDeck account", async () => {
+    const result = await verifyGooglePlayPurchaseAction("purchase-token", "basic_monthly");
+
+    expect(mockVerifyGooglePlaySubscription).toHaveBeenCalledWith(
+      "purchase-token",
+      "basic_monthly",
+      "user-1",
+    );
+    expect(result.status).toBe("success");
+    expect(result.data?.provider).toBe("google_play");
   });
 });

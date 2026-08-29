@@ -57,7 +57,7 @@ function mockAuth() {
     plan: "free",
     effectivePlan: "free",
     status: "free",
-    provider: "lemon_squeezy",
+    provider: "google_play",
     limits: {
       activeCards: 20,
       learnedCards: 50,

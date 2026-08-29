@@ -75,7 +75,7 @@ describe("deleteAccountAction", () => {
       plan: "pro",
       effectivePlan: "pro",
       status: "active",
-      provider: "lemon_squeezy",
+      provider: "google_play",
       limits: {
         activeCards: null,
         learnedCards: null,
