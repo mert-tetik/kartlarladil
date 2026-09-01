@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Darmowy",
   "limit.learnedReviewSubscriptionDescription": "Przejdź na Basic lub Pro, aby powtarzać nauczone karty.",
   "limit.learnedReviewSubscriptionTitle": "Do powtarzania nauczonych kart wymagana jest subskrypcja",
+  "limit.scenarioSubscriptionDescription": "Przejdź na Basic lub Pro, aby rozmawiać z postaciami odgrywającymi role w prawdziwych sytuacjach.",
+  "limit.scenarioSubscriptionTitle": "Ćwiczenia sytuacyjne wymagają subskrypcji",
   "pricing.featureLearnedReview": "Powtórka nauczonych kart",
   "pricing.featureLearnedReviewDescription": "Powtarzaj nauczone karty, kiedy tylko chcesz.",
   "pricing.mobileFeaturesTitle": "Korzyści z subskrypcji {plan}",

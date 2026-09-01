@@ -435,6 +435,8 @@ const dictionary = {
   "pricing.free": "Kostenlos",
   "limit.learnedReviewSubscriptionDescription": "Wechsle zu Basic oder Pro, um deine gelernten Karten zu wiederholen.",
   "limit.learnedReviewSubscriptionTitle": "Zum Wiederholen gelernter Karten ist ein Abonnement erforderlich",
+  "limit.scenarioSubscriptionDescription": "Wechsle zu Basic oder Pro, um in realistischen Situationen mit Rollenspielcharakteren zu chatten.",
+  "limit.scenarioSubscriptionTitle": "Für Situationstraining ist ein Abonnement erforderlich",
   "pricing.featureLearnedReview": "Wiederholung gelernter Karten",
   "pricing.featureLearnedReviewDescription": "Wiederhole gelernte Karten, wann immer du möchtest.",
   "pricing.mobileFeaturesTitle": "{plan}-Abonnementvorteile",

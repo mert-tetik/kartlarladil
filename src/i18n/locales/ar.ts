@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "مجاني",
   "limit.learnedReviewSubscriptionDescription": "انتقل إلى Basic أو Pro لمراجعة بطاقاتك المتعلمة.",
   "limit.learnedReviewSubscriptionTitle": "يلزم اشتراك لمراجعة البطاقات المتعلمة",
+  "limit.scenarioSubscriptionDescription": "قم بالترقية إلى Basic أو Pro للدردشة مع شخصيات تمثّل مواقف من الحياة الواقعية.",
+  "limit.scenarioSubscriptionTitle": "تحتاج ممارسة المواقف إلى اشتراك",
   "pricing.featureLearnedReview": "مراجعة البطاقات المتعلمة",
   "pricing.featureLearnedReviewDescription": "راجع البطاقات التي تعلمتها متى شئت.",
   "pricing.mobileFeaturesTitle": "امتيازات اشتراك {plan}",

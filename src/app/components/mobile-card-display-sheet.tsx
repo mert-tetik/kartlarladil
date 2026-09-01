@@ -15,9 +15,10 @@ interface MobileCardDisplaySheetProps {
   card: VocabularyCard | null;
   isOpen: boolean;
   onClose: () => void;
+  positionClassName?: string;
 }
 
-export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisplaySheetProps) {
+export function MobileCardDisplaySheet({ card, isOpen, onClose, positionClassName }: MobileCardDisplaySheetProps) {
   const t = useT();
   const { openAsk } = useAskOverlay();
   const requireAuth = useRequireAuthAction();
@@ -64,7 +65,7 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose }: MobileCardDisp
       data-mobile-card-display-sheet
     >
       <div
-        className="relative mt-4 w-full max-w-[260px] -translate-y-10"
+        className={cn("relative mt-4 w-full max-w-[260px] -translate-y-10", positionClassName)}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute -top-12 right-0 flex items-center gap-2">

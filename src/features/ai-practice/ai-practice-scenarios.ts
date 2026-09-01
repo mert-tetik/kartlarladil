@@ -17,16 +17,181 @@ export type AiPracticeScenarioId =
 export interface AiPracticeScenario {
   id: AiPracticeScenarioId;
   characterId: string;
+  characterImageSrc: string;
   titleByLocale: Partial<Record<LocaleCode, string>>;
   summaryByLocale: Partial<Record<LocaleCode, string>>;
   openingLinesByLanguage: Partial<Record<LanguageCode, string>>;
   roleplayInstructions: string;
 }
 
+const SCENARIO_PROFESSION_LABELS: Record<AiPracticeScenarioId, Record<LocaleCode, string>> = {
+  "restaurant-order": {
+    tr: "Garson",
+    en: "Restaurant server",
+    de: "Servicekraft",
+    ru: "Официант",
+    fr: "Serveur",
+    es: "Camarero",
+    it: "Cameriere",
+    pt: "Garçom",
+    nl: "Bedieningsmedewerker",
+    pl: "Kelner",
+    ar: "نادل",
+    ja: "ウェイター",
+    ko: "웨이터",
+    "zh-CN": "服务员",
+  },
+  "hotel-check-in": {
+    tr: "Resepsiyonist",
+    en: "Hotel receptionist",
+    de: "Rezeptionist",
+    ru: "Администратор отеля",
+    fr: "Réceptionniste",
+    es: "Recepcionista",
+    it: "Receptionist",
+    pt: "Rececionista",
+    nl: "Receptionist",
+    pl: "Recepcjonista",
+    ar: "موظف استقبال الفندق",
+    ja: "ホテル受付係",
+    ko: "호텔 직원",
+    "zh-CN": "酒店前台",
+  },
+  "shopping-help": {
+    tr: "Satış danışmanı",
+    en: "Sales assistant",
+    de: "Verkaufsberater",
+    ru: "Продавец-консультант",
+    fr: "Conseiller de vente",
+    es: "Asistente de ventas",
+    it: "Commesso",
+    pt: "Vendedor",
+    nl: "Verkoopmedewerker",
+    pl: "Sprzedawca",
+    ar: "مساعد مبيعات",
+    ja: "販売員",
+    ko: "판매원",
+    "zh-CN": "销售助理",
+  },
+  "job-interview": {
+    tr: "Mülakatçı",
+    en: "Interviewer",
+    de: "Interviewer",
+    ru: "Интервьюер",
+    fr: "Recruteur",
+    es: "Entrevistador",
+    it: "Intervistatore",
+    pt: "Entrevistador",
+    nl: "Interviewer",
+    pl: "Rekruter",
+    ar: "المحاور",
+    ja: "面接官",
+    ko: "면접관",
+    "zh-CN": "面试官",
+  },
+  "doctor-visit": {
+    tr: "Doktor",
+    en: "Doctor",
+    de: "Arzt",
+    ru: "Врач",
+    fr: "Médecin",
+    es: "Médico",
+    it: "Medico",
+    pt: "Médico",
+    nl: "Arts",
+    pl: "Lekarz",
+    ar: "طبيب",
+    ja: "医師",
+    ko: "의사",
+    "zh-CN": "医生",
+  },
+  "asking-directions": {
+    tr: "Rastgele vatandaş",
+    en: "Random citizen",
+    de: "Zufälliger Bürger",
+    ru: "Случайный прохожий",
+    fr: "Citoyen au hasard",
+    es: "Ciudadano al azar",
+    it: "Cittadino casuale",
+    pt: "Pessoa aleatória",
+    nl: "Willekeurige voorbijganger",
+    pl: "Losowy przechodzień",
+    ar: "مواطن عشوائي",
+    ja: "通りすがりの人",
+    ko: "지나가던 시민",
+    "zh-CN": "路人",
+  },
+  "apartment-viewing": {
+    tr: "Emlakçı",
+    en: "Real estate agent",
+    de: "Immobilienmakler",
+    ru: "Риелтор",
+    fr: "Agent immobilier",
+    es: "Agente inmobiliario",
+    it: "Agente immobiliare",
+    pt: "Corretor de imóveis",
+    nl: "Makelaar",
+    pl: "Agent nieruchomości",
+    ar: "وكيل عقارات",
+    ja: "不動産業者",
+    ko: "부동산 중개인",
+    "zh-CN": "房产经纪人",
+  },
+  "pharmacy-help": {
+    tr: "Eczacı",
+    en: "Pharmacist",
+    de: "Apotheker",
+    ru: "Фармацевт",
+    fr: "Pharmacien",
+    es: "Farmacéutico",
+    it: "Farmacista",
+    pt: "Farmacêutico",
+    nl: "Apotheker",
+    pl: "Farmaceuta",
+    ar: "صيدلي",
+    ja: "薬剤師",
+    ko: "약사",
+    "zh-CN": "药剂师",
+  },
+  "party-introduction": {
+    tr: "Rastgele bir kız",
+    en: "Random girl",
+    de: "Zufälliges Mädchen",
+    ru: "Случайная девушка",
+    fr: "Fille choisie au hasard",
+    es: "Chica al azar",
+    it: "Ragazza scelta a caso",
+    pt: "Garota aleatória",
+    nl: "Willekeurig meisje",
+    pl: "Losowa dziewczyna",
+    ar: "فتاة عشوائية",
+    ja: "ランダムな女の子",
+    ko: "우연히 만난 여자",
+    "zh-CN": "随机女孩",
+  },
+  "airport-check-in": {
+    tr: "Havaalanı görevlisi",
+    en: "Airport check-in agent",
+    de: "Mitarbeiter am Flughafen-Check-in",
+    ru: "Сотрудник регистрации в аэропорту",
+    fr: "Agent d’enregistrement",
+    es: "Agente de facturación",
+    it: "Addetto al check-in",
+    pt: "Agente de check-in",
+    nl: "Check-inmedewerker",
+    pl: "Pracownik odprawy",
+    ar: "موظف تسجيل الوصول في المطار",
+    ja: "空港チェックイン係",
+    ko: "공항 체크인 직원",
+    "zh-CN": "机场值机员",
+  },
+};
+
 const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "restaurant-order",
     characterId: "friendly-worker",
+    characterImageSrc: "/ai-characters/scenarios/restaurant-order-v2.png",
     titleByLocale: {
       en: "Order at a restaurant",
       tr: "Restoranda sipariş ver",
@@ -66,6 +231,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "hotel-check-in",
     characterId: "gentle-companion",
+    characterImageSrc: "/ai-characters/scenarios/hotel-check-in-v2.png",
     titleByLocale: {
       en: "Check in at a hotel",
       tr: "Otele giriş yap",
@@ -105,6 +271,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "shopping-help",
     characterId: "campus-friend",
+    characterImageSrc: "/ai-characters/scenarios/shopping-help-v2.png",
     titleByLocale: {
       en: "Get help while shopping",
       tr: "Alışverişte yardım iste",
@@ -144,6 +311,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "job-interview",
     characterId: "wise-elder",
+    characterImageSrc: "/ai-characters/scenarios/job-interview-v2.png",
     titleByLocale: {
       en: "Go to a job interview",
       tr: "İş görüşmesine katıl",
@@ -183,6 +351,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "doctor-visit",
     characterId: "warm-grandmother",
+    characterImageSrc: "/ai-characters/scenarios/doctor-visit-v2.png",
     titleByLocale: {
       en: "Talk to a doctor",
       tr: "Doktorla konuş",
@@ -222,6 +391,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "asking-directions",
     characterId: "gothic-calm",
+    characterImageSrc: "/ai-characters/scenarios/asking-directions-v2.png",
     titleByLocale: {
       en: "Ask for directions",
       tr: "Yol tarifi iste",
@@ -261,6 +431,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "apartment-viewing",
     characterId: "wise-elder",
+    characterImageSrc: "/ai-characters/scenarios/apartment-viewing-v2.png",
     titleByLocale: {
       en: "View and rent an apartment",
       tr: "Ev kirala ve evi gör",
@@ -300,6 +471,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "pharmacy-help",
     characterId: "warm-grandmother",
+    characterImageSrc: "/ai-characters/scenarios/pharmacy-help-v2.png",
     titleByLocale: {
       en: "Ask for medicine at a pharmacy",
       tr: "Eczaneden ilaç iste",
@@ -339,6 +511,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "party-introduction",
     characterId: "campus-friend",
+    characterImageSrc: "/ai-characters/scenarios/party-introduction-v2.png",
     titleByLocale: {
       en: "Meet someone at a party",
       tr: "Partide biriyle tanış",
@@ -378,6 +551,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "airport-check-in",
     characterId: "friendly-worker",
+    characterImageSrc: "/ai-characters/scenarios/airport-check-in-v2.png",
     titleByLocale: {
       en: "Check in and pass security at the airport",
       tr: "Havaalanında check-in ve güvenlik",
@@ -432,6 +606,10 @@ export function getScenarioTitle(scenario: AiPracticeScenario, locale: LocaleCod
 
 export function getScenarioSummary(scenario: AiPracticeScenario, locale: LocaleCode) {
   return scenario.summaryByLocale[locale] ?? scenario.summaryByLocale.en ?? "Practice a real-life conversation.";
+}
+
+export function getScenarioProfession(scenario: Pick<AiPracticeScenario, "id">, locale: LocaleCode) {
+  return SCENARIO_PROFESSION_LABELS[scenario.id][locale] ?? SCENARIO_PROFESSION_LABELS[scenario.id].en;
 }
 
 export function getScenarioOpeningLine(scenario: AiPracticeScenario, language: LanguageCode) {

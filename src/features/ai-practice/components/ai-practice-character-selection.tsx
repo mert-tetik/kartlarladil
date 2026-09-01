@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, MapPin, MessageCircle, UsersRound } from "lucide-react";
+import { ArrowRight, MessageCircle, UsersRound } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
 import { setMobileNavbarBackOverride } from "@/components/mobile-navbar-back";
 import { LANGUAGES } from "@/data/languages";
+import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import {
   getAiPracticeChatBackground,
   getAiPracticeScenarioChatBackground,
@@ -17,6 +19,7 @@ import {
 import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import {
   getAiPracticeScenarios,
+  getScenarioProfession,
   getScenarioSummary,
   getScenarioTitle,
   type AiPracticeMode,
@@ -44,8 +47,11 @@ export function AiPracticeCharacterSelection({
   const t = useT();
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(language);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const [upgradeDialogError, setUpgradeDialogError] = useState<UpgradeDialogErrorCode | null>(null);
   const [mode, setMode] = useState<AiPracticeMode>(initialMode);
   const locale = clientLocale ?? serverLocale;
+  const { entitlements } = useSubscription();
+  const scenarioLocked = entitlements?.effectivePlan === "free";
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
 
   useEffect(() => {
@@ -176,15 +182,27 @@ export function AiPracticeCharacterSelection({
               <ScenarioPracticeCard
                 key={scenario.id}
                 scenario={scenario}
-                character={character}
-                selectedLanguage={selectedLanguage}
                 locale={locale}
+                locked={scenarioLocked}
+                onLocked={() => setUpgradeDialogError("scenario_subscription_required")}
                 href={`/ai-practice/${selectedLanguage}?mode=scenario&scenario=${scenario.id}`}
               />
             );
           })}
         </div>
       )}
+
+      {upgradeDialogError ? (
+        <UpgradeDialog
+          open
+          errorCode={upgradeDialogError}
+          onOpenChange={(open) => {
+            if (!open) {
+              setUpgradeDialogError(null);
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -240,25 +258,33 @@ function CharacterPracticeCard({
 
 function ScenarioPracticeCard({
   scenario,
-  character,
-  selectedLanguage,
   locale,
+  locked,
+  onLocked,
   href,
 }: {
   scenario: ReturnType<typeof getAiPracticeScenarios>[number];
-  character: ReturnType<typeof getAiPracticeCharacters>[number];
-  selectedLanguage: LanguageCode;
   locale: LocaleCode;
+  locked: boolean;
+  onLocked: () => void;
   href: string;
 }) {
   const t = useT();
-  const characterName = getCharacterName(character, selectedLanguage);
   const chatBackground = getAiPracticeScenarioChatBackground(scenario.id);
   const title = getScenarioTitle(scenario, locale);
+  const profession = getScenarioProfession(scenario, locale);
 
   return (
     <Link
       href={href}
+      aria-disabled={locked}
+      data-ai-practice-scenario-locked={locked ? "true" : "false"}
+      onClick={(event) => {
+        if (locked) {
+          event.preventDefault();
+          onLocked();
+        }
+      }}
       aria-label={`${title}, ${getScenarioSummary(scenario, locale)}`}
       className="group overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
     >
@@ -267,16 +293,12 @@ function ScenarioPracticeCard({
         style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
       >
         <Image
-          src={character.imageSrc}
+          src={scenario.characterImageSrc}
           alt=""
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
           className="scale-[1.08] object-contain object-bottom transition-transform duration-300 group-hover:scale-[1.11]"
         />
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
-          <MapPin className="size-3" aria-hidden="true" />
-          {t("page.aiPractice.scenarioTag")}
-        </span>
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -286,7 +308,7 @@ function ScenarioPracticeCard({
               {getScenarioSummary(scenario, locale)}
             </p>
             <p className="mt-2 text-xs font-semibold text-foreground-muted">
-              {t("page.aiPractice.scenarioCharacter", { name: characterName })}
+              {t("page.aiPractice.scenarioCharacter", { name: profession })}
             </p>
           </div>
           <ArrowRight

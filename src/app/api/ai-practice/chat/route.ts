@@ -62,6 +62,11 @@ export async function POST(request: Request) {
   }
 
   const entitlements = await getUserEntitlements(user.id);
+
+  if (scenario && entitlements.effectivePlan === "free") {
+    return Response.json({ errorCode: "scenario_subscription_required" }, { status: 403 });
+  }
+
   const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "chat");
 
   if (aiLimitError) {

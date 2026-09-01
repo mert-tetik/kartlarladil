@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Gratis",
   "limit.learnedReviewSubscriptionDescription": "Cambia a Basic o Pro para repasar tus tarjetas aprendidas.",
   "limit.learnedReviewSubscriptionTitle": "Se necesita una suscripción para repasar las tarjetas aprendidas",
+  "limit.scenarioSubscriptionDescription": "Cambia a Basic o Pro para chatear con personajes de rol en situaciones de la vida real.",
+  "limit.scenarioSubscriptionTitle": "La práctica de situaciones requiere una suscripción",
   "pricing.featureLearnedReview": "Repaso de tarjetas aprendidas",
   "pricing.featureLearnedReviewDescription": "Repasa tus tarjetas aprendidas cuando quieras.",
   "pricing.mobileFeaturesTitle": "Ventajas de la suscripción {plan}",

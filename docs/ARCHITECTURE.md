@@ -56,6 +56,13 @@ Katalog dogrulamasi `npm run report:cards` ve `src/data/cards.test.ts` ile yapil
 
 Ogrenme kurali `src/features/quiz/quiz-engine.ts` icindedir. UI kodu esik ve status gecisini tekrar yazmamalis.
 
+General-review interruptions in Learn are documented in
+`docs/QUIZ_BONUS_QUESTIONS.md`. Bonus questions use the full current-language
+inventory, do not write card progress, and are excluded from the regular quiz
+progress count while still affecting streak and result rating outcomes. Their
+slots are planned at quiz start, GPT content is prefetched without blocking,
+and each slot has a local fallback.
+
 Puan ve rank ayri mutable sayac olarak tutulmaz. `ProgressStats` ogrenilmis kartlar ve tier puanlarindan turetilir:
 
 - A1 = 10

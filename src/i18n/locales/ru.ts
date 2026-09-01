@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Бесплатно",
   "limit.learnedReviewSubscriptionDescription": "Перейдите на Basic или Pro, чтобы повторять изученные карточки.",
   "limit.learnedReviewSubscriptionTitle": "Для повторения изученных карточек нужна подписка",
+  "limit.scenarioSubscriptionDescription": "Перейдите на Basic или Pro, чтобы общаться с персонажами в реальных ситуациях.",
+  "limit.scenarioSubscriptionTitle": "Для практики в ситуациях нужна подписка",
   "pricing.featureLearnedReview": "Повторение изученных карточек",
   "pricing.featureLearnedReviewDescription": "Повторяйте изученные карточки в любое время.",
   "pricing.mobileFeaturesTitle": "Преимущества подписки {plan}",

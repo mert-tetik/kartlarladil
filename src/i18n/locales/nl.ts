@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Gratis",
   "limit.learnedReviewSubscriptionDescription": "Stap over op Basic of Pro om je geleerde kaarten te herhalen.",
   "limit.learnedReviewSubscriptionTitle": "Een abonnement is vereist om geleerde kaarten te herhalen",
+  "limit.scenarioSubscriptionDescription": "Stap over op Basic of Pro om met rollenspelpersonages in realistische situaties te chatten.",
+  "limit.scenarioSubscriptionTitle": "Voor situaties oefenen is een abonnement nodig",
   "pricing.featureLearnedReview": "Herhaling van geleerde kaarten",
   "pricing.featureLearnedReviewDescription": "Herhaal je geleerde kaarten wanneer je maar wilt.",
   "pricing.mobileFeaturesTitle": "Voordelen van het {plan}-abonnement",

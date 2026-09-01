@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Gratuit",
   "limit.learnedReviewSubscriptionDescription": "Passe à Basic ou Pro pour réviser tes cartes apprises.",
   "limit.learnedReviewSubscriptionTitle": "Un abonnement est requis pour réviser les cartes apprises",
+  "limit.scenarioSubscriptionDescription": "Passe à Basic ou Pro pour discuter avec des personnages en jeu de rôle dans des situations réelles.",
+  "limit.scenarioSubscriptionTitle": "La pratique par situations nécessite un abonnement",
   "pricing.featureLearnedReview": "Révision des cartes apprises",
   "pricing.featureLearnedReviewDescription": "Révisez vos cartes apprises quand vous le souhaitez.",
   "pricing.mobileFeaturesTitle": "Avantages de l'abonnement {plan}",

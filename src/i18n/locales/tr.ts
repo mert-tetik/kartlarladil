@@ -441,6 +441,8 @@ const dictionary = {
   "pricing.free": "Free",
   "limit.learnedReviewSubscriptionDescription": "Öğrenilmiş kartlarını tekrar etmek için Basic veya Pro aboneliğe geç.",
   "limit.learnedReviewSubscriptionTitle": "Öğrenilenleri tekrar etmek için abonelik gerekli",
+  "limit.scenarioSubscriptionDescription": "Gerçek hayattaki durumlarda rol yapan karakterlerle sohbet etmek için Basic veya Pro'ya geç.",
+  "limit.scenarioSubscriptionTitle": "Durum pratiği için abonelik gerekli",
   "pricing.featureLearnedReview": "Öğrenilmiş kart tekrarı",
   "pricing.featureLearnedReviewDescription": "Öğrendiğin kartları istediğin zaman tekrar et.",
   "pricing.mobileFeaturesTitle": "{plan} abonelik ayrıcalıkları",

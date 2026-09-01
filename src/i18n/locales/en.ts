@@ -439,6 +439,8 @@ const dictionary = {
   "pricing.free": "Free",
   "limit.learnedReviewSubscriptionDescription": "Upgrade to Basic or Pro to review your learned cards.",
   "limit.learnedReviewSubscriptionTitle": "A subscription is required to review learned cards",
+  "limit.scenarioSubscriptionDescription": "Upgrade to Basic or Pro to chat with role-play characters in real-life situations.",
+  "limit.scenarioSubscriptionTitle": "Situation practice requires a subscription",
   "pricing.featureLearnedReview": "Learned card review",
   "pricing.featureLearnedReviewDescription": "Review the cards you have learned whenever you want.",
   "pricing.mobileFeaturesTitle": "{plan} subscription benefits",

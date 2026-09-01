@@ -80,7 +80,7 @@ describe("AiPracticeChatPanel", () => {
     expect(tier).not.toHaveClass("bg-background-muted");
   });
 
-  it("uses a situation-specific atmosphere while keeping the character identity", () => {
+  it("uses a situation-specific atmosphere while showing the profession", () => {
     const scenario = getAiPracticeScenarios()[0]!;
     const character = getAiPracticeCharacters().find((item) => item.id === scenario.characterId)!;
 
@@ -100,7 +100,11 @@ describe("AiPracticeChatPanel", () => {
     expect(atmosphere).toBeInTheDocument();
     expect(atmosphere).toHaveStyle({ backgroundImage: expect.stringContaining("linear-gradient") });
     expect(screen.getByRole("heading", { name: "Order at a restaurant" })).toBeVisible();
-    expect(screen.getByAltText("Frank")).toBeVisible();
+    expect(screen.getByAltText("Restaurant server")).toBeVisible();
+    expect(screen.getByAltText("Restaurant server")).toHaveAttribute(
+      "src",
+      "/ai-characters/scenarios/restaurant-order-v2.png",
+    );
   });
 
   it("shows situation feedback and reuses cached help suggestions without auto-sending", async () => {

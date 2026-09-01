@@ -1,45 +1,85 @@
 {
-  "version": "176f712fbf1bac5fbb24a3501968990668aedbb55ccec9f98b7d73dedaa80408",
+  "version": "2afc34b403fe0a9c2bc67d417ef802ff0d4583a44ce374b28a94a250252db125",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
-      "revision": "019b5c331e6a92be76734ce44cedb635d083fa700ab932cb358df348e774cdaa"
+      "revision": "0c4f4aeca56a247158028dcb6b60dd833933ed3f07e4449079c79068a59c2915"
     },
     {
       "url": "/ai-characters/friendly-worker.webp",
-      "revision": "c191f3f5025c5214abebc22096fb7d44532deb74bcc8905ad4fe5e48b6d7de10"
+      "revision": "db421c7493ba69c961172452a0c20dc9280f79f6d82fc008efb703a055107114"
     },
     {
       "url": "/ai-characters/gentle-companion.webp",
-      "revision": "94671f3b1afc45b3adae7044ada183302219ca9a37787c19233a1510ce24c757"
+      "revision": "c16c60dbe6a2865f62790a89f4fccfe00b182f97deb14fc0aca9c6718a0948bd"
     },
     {
       "url": "/ai-characters/gothic-calm.webp",
-      "revision": "3fb231eadc87b0eb13d987aef207c5fbc7ce87ac34a868af5eca89e5e1041e21"
+      "revision": "1fddbb5f096ffa8dfc0e3ac681cd01e61d46b744496fd66840facae60fdbd721"
+    },
+    {
+      "url": "/ai-characters/scenarios/airport-check-in-v2.png",
+      "revision": "b46a9da397a4474663d437f75eccf9ff8b56cb754be96786fae8e5af72ec495d"
+    },
+    {
+      "url": "/ai-characters/scenarios/apartment-viewing-v2.png",
+      "revision": "0eae99f4633f95ffeca8ba7313fb0a088ac7259a1734dda8770d61a81d5c04ad"
+    },
+    {
+      "url": "/ai-characters/scenarios/asking-directions-v2.png",
+      "revision": "71f8fb4f8a28b076336ec47e2ad1bc7c6cdffa0971954324cf0ffb526644be58"
+    },
+    {
+      "url": "/ai-characters/scenarios/doctor-visit-v2.png",
+      "revision": "cd88f9b5fcd4ae86917bcefbf981782962d9523631cd836658ea3fbd4ca58073"
+    },
+    {
+      "url": "/ai-characters/scenarios/hotel-check-in-v2.png",
+      "revision": "359cefd1981c7d755b9b84b2d5a93184cb26b210b56dee456402d0d67d22ef3a"
+    },
+    {
+      "url": "/ai-characters/scenarios/job-interview-v2.png",
+      "revision": "ad211010387b5d43de13e3515363957c141c567f91d55797b743c3a87e361d9a"
+    },
+    {
+      "url": "/ai-characters/scenarios/party-introduction-v2.png",
+      "revision": "6980b815757eb5f47755f739fb3a6e93e8f0cb265c0b122ef038fb53ba81b1b9"
+    },
+    {
+      "url": "/ai-characters/scenarios/pharmacy-help-v2.png",
+      "revision": "9ef4aa6fce4fd472262d0ce0eafd821083c36aa40b1776047b9a9bca6f63f837"
+    },
+    {
+      "url": "/ai-characters/scenarios/restaurant-order-v2.png",
+      "revision": "10158ee483eaa60b01a308b004b15e36578b19a96d7ca82c59b70e09223a854e"
+    },
+    {
+      "url": "/ai-characters/scenarios/shopping-help-v2.png",
+      "revision": "a9b5d7991546113ec72427c77fffaf026a49044d57b230d4cc3d3b979608cdb2"
     },
     {
       "url": "/ai-characters/skater-coach.webp",
-      "revision": "acf4b429302535d0ac7282d71b7af79391bf965de0fbb8b4a65f68d2c88d8b9e"
+      "revision": "3842fb6f5778a6a5c73785f7990bcd8e5cecd0c100fd9acba682ba242fad84db"
     },
     {
       "url": "/ai-characters/sleepy-student.webp",
-      "revision": "fdf8fc7b20498e22dcc962ea42211a880cb195fdc82253a031fbadd70fb85d2e"
+      "revision": "4ede5e729c8e1dadaf0a743b3d430ee76984d02b02f0ad80efa0393b9ea625f9"
     },
     {
       "url": "/ai-characters/soft-artist.webp",
-      "revision": "d23e9632fd7bdacbdfbf72083edfbc2305666542d92d31ff4c9f00231135eb03"
+      "revision": "16c85c80b7e0c1dff5cce9597a557fe36488803331de269253888c9d616a453a"
     },
     {
       "url": "/ai-characters/study-buddy.webp",
-      "revision": "05c3152ffba80dbec3ecb3630f2e7ed60d23b7c818c8799faba6c53f35b95dac"
+      "revision": "4bfe56db42a38c44e1e5dfc9cff5ffd37ae72cea283d3a59bfa4b192b5138c8d"
     },
     {
       "url": "/ai-characters/warm-grandmother.webp",
-      "revision": "c5a687e6a901fdc329e01642676c18ce54e1ebf522d6d201cd9ad268971450f6"
+      "revision": "12ccef34d3844303af0c73b7c25f324183e5b491f1fa365709239071c80103dd"
     },
     {
       "url": "/ai-characters/wise-elder.webp",
-      "revision": "fba9df95ee073fd2157907578ce8314cb49c05f7eca6d93188b26ed3dece4729"
+      "revision": "2041ca995b50d60d353e7260ff0791ee6521e8e39d6cce2e72fabe3cccf0636c"
     },
     {
       "url": "/ai-chat-backgrounds/campus-friend.webp",

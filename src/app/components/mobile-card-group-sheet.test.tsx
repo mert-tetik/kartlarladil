@@ -23,6 +23,11 @@ vi.mock("@/components/mobile-bottom-sheet-shell", () => ({
     open ? <section aria-label={title}>{children}</section> : null,
 }));
 
+vi.mock("@/app/components/mobile-card-display-sheet", () => ({
+  MobileCardDisplaySheet: ({ card, isOpen }: { card: { term: string } | null; isOpen: boolean }) =>
+    card && isOpen ? <div data-mobile-card-display-sheet>{card.term}</div> : null,
+}));
+
 vi.mock("@/features/inventory/inventory-store", () => ({
   useInventoryStore: (selector: (state: typeof inventoryState) => unknown) => selector(inventoryState),
 }));
@@ -51,6 +56,11 @@ describe("MobileCardGroupSheet", () => {
     expect(schoolToggle).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("school")).toBeInTheDocument();
 
+    await user.click(screen.getByText("school"));
+    const cardDisplay = document.querySelector("[data-mobile-card-display-sheet]");
+    expect(cardDisplay).toBeInTheDocument();
+    expect(cardDisplay?.parentElement).toBe(document.body);
+
     await user.click(screen.getByRole("button", { name: "School Add group" }));
     const confirmationDialog = await screen.findByRole("dialog");
     expect(confirmationDialog.parentElement).toHaveClass("fixed", "inset-0", "z-[100]");
@@ -58,6 +68,7 @@ describe("MobileCardGroupSheet", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("bg-red-600");
     expect(screen.getByRole("button", { name: "Yes, add" })).toHaveClass("bg-blue-600");
     expect(inventoryState.addCards).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "School" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

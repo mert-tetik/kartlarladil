@@ -27,6 +27,7 @@ import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
 import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
 import { getAiPracticeChatBackground, getAiPracticeScenarioChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
 import {
+  getScenarioProfession,
   getScenarioTitle,
   type AiPracticeScenario,
 } from "@/features/ai-practice/ai-practice-scenarios";
@@ -37,7 +38,7 @@ import {
 } from "@/features/ai-practice/ai-practice-scenario-response";
 import { getSpeechLanguage, speakText } from "@/features/cards/card-speech";
 import { AudioVisualizer } from "@/features/ai-practice/components/audio-visualizer";
-import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -49,7 +50,6 @@ import type {
   AiPracticeCharacter,
   AiPracticeMessage,
   LanguageCode,
-  LimitErrorCode,
   LocaleCode,
   Tier,
 } from "@/types/domain";
@@ -129,7 +129,7 @@ export function AiPracticeChatPanel({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [microphoneSupported, setMicrophoneSupported] = useState(false);
-  const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
+  const [limitError, setLimitError] = useState<UpgradeDialogErrorCode | null>(null);
   const [evaluationFlashMessageId, setEvaluationFlashMessageId] = useState<string | null>(null);
   const [expandedEvaluationMessageId, setExpandedEvaluationMessageId] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -153,7 +153,9 @@ export function AiPracticeChatPanel({
   const languageName = getLanguageDisplayName(language, locale);
   const chatBackground = getAiPracticeChatBackground(character.id);
   const scenarioChatBackground = scenario ? getAiPracticeScenarioChatBackground(scenario.id) : null;
+  const characterImageSrc = scenario?.characterImageSrc ?? character.imageSrc;
   const scenarioTitle = scenario ? getScenarioTitle(scenario, locale) : null;
+  const conversationPartnerName = scenario ? getScenarioProfession(scenario, locale) : characterName;
 
   const scrollMessageListToBottom = useCallback(() => {
     const list = listRef.current;
@@ -258,6 +260,12 @@ export function AiPracticeChatPanel({
         const errorCode = await readErrorCode(response);
 
         if (errorCode === "ai_daily_limit" || errorCode === "ai_monthly_limit") {
+          setLimitError(errorCode);
+          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+          return;
+        }
+
+        if (errorCode === "scenario_subscription_required") {
           setLimitError(errorCode);
           setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
           return;
@@ -416,6 +424,14 @@ export function AiPracticeChatPanel({
       });
 
       if (!response.ok) {
+        const errorCode = await readErrorCode(response);
+
+        if (errorCode === "scenario_subscription_required") {
+          setHelpOpen(false);
+          setLimitError(errorCode);
+          return;
+        }
+
         setHelpError(true);
         return;
       }
@@ -649,16 +665,16 @@ export function AiPracticeChatPanel({
         />
       )}
       <ChatHeader
-        character={character}
-        characterName={characterName}
+        characterImageSrc={characterImageSrc}
+        characterName={conversationPartnerName}
         scenarioTitle={scenarioTitle}
         tier={tier}
       />
       <MessageList
         refObject={listRef}
         messages={messages}
-        character={character}
-        characterName={characterName}
+        characterImageSrc={characterImageSrc}
+        characterName={conversationPartnerName}
         languageName={languageName}
         pending={pending}
         evaluationFlashMessageId={evaluationFlashMessageId}
@@ -718,12 +734,12 @@ export function AiPracticeChatPanel({
 }
 
 function ChatHeader({
-  character,
+  characterImageSrc,
   characterName,
   scenarioTitle,
   tier,
 }: {
-  character: AiPracticeCharacter;
+  characterImageSrc: string;
   characterName: string;
   scenarioTitle: string | null;
   tier: Tier;
@@ -732,7 +748,7 @@ function ChatHeader({
     <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-white/15 bg-background-card/85 px-3 py-2 backdrop-blur-sm sm:px-4">
       <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-background-muted">
         <Image
-          src={character.imageSrc}
+          src={characterImageSrc}
           alt={characterName}
           fill
           sizes="36px"
@@ -754,7 +770,7 @@ function ChatHeader({
 function MessageList({
   refObject,
   messages,
-  character,
+  characterImageSrc,
   characterName,
   languageName,
   pending,
@@ -766,7 +782,7 @@ function MessageList({
 }: {
   refObject: RefObject<HTMLDivElement | null>;
   messages: ClientMessage[];
-  character: AiPracticeCharacter;
+  characterImageSrc: string;
   characterName: string;
   languageName: string;
   pending: boolean;
@@ -788,7 +804,7 @@ function MessageList({
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
           <div className="relative size-24 overflow-hidden rounded-full bg-background-muted">
             <Image
-              src={character.imageSrc}
+              src={characterImageSrc}
               alt=""
               fill
               sizes="96px"

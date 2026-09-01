@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "Gratuito",
   "limit.learnedReviewSubscriptionDescription": "Mude para Basic ou Pro para revisar seus cartões aprendidos.",
   "limit.learnedReviewSubscriptionTitle": "É necessária uma assinatura para revisar os cartões aprendidos",
+  "limit.scenarioSubscriptionDescription": "Mude para Basic ou Pro para conversar com personagens em situações da vida real.",
+  "limit.scenarioSubscriptionTitle": "A prática por situações exige uma assinatura",
   "pricing.featureLearnedReview": "Revisão de cartões aprendidos",
   "pricing.featureLearnedReviewDescription": "Revise seus cartões aprendidos quando quiser.",
   "pricing.mobileFeaturesTitle": "Vantagens da assinatura {plan}",

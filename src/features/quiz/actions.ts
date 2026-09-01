@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
+import { BONUS_QUESTION_POINTS } from "@/features/quiz/bonus-question-constants";
 
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
@@ -36,7 +37,15 @@ export interface AwardQuizResultPointsResult {
   error?: string;
 }
 
+export interface AwardQuizBonusPointsResult {
+  success: boolean;
+  awarded?: boolean;
+  points?: number;
+  error?: string;
+}
+
 const QUIZ_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const QUIZ_BONUS_ID_PATTERN = /^[0-9a-f-]{36}-(matching|sentence-order|category-sort|imposter)-(?:[0-9]|[1-4][0-9])$/i;
 
 export async function awardChestPoints(tier: ChestTier): Promise<AwardChestResult> {
   if (!VALID_TIERS.has(tier)) {
@@ -160,4 +169,43 @@ export async function awardQuizResultPoints(
   revalidatePath("/profile");
 
   return { success: true, awarded: Boolean(data), points: stars };
+}
+
+export async function awardQuizBonusPoints(
+  sessionId: string,
+  bonusId: string,
+): Promise<AwardQuizBonusPointsResult> {
+  if (!QUIZ_SESSION_ID_PATTERN.test(sessionId) || !QUIZ_BONUS_ID_PATTERN.test(bonusId) || !bonusId.startsWith(`${sessionId}-`)) {
+    return { success: false, error: "invalid_bonus" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const { data, error } = await supabase.rpc("award_quiz_bonus_points", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_bonus_id: bonusId,
+    p_points: BONUS_QUESTION_POINTS,
+  });
+
+  if (error) {
+    return { success: false, error: "database_error" };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/profile");
+
+  return {
+    success: true,
+    awarded: Boolean(data),
+    points: BONUS_QUESTION_POINTS,
+  };
 }

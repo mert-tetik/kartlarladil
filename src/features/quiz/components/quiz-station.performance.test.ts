@@ -16,6 +16,19 @@ function buildResults(correctCount: number, incorrectCount: number, learnedCount
   };
 }
 
+function buildResultsWithBonus(
+  correctCount: number,
+  incorrectCount: number,
+  bonusCorrect: number,
+  bonusIncorrect: number,
+) {
+  return {
+    ...buildResults(correctCount, incorrectCount),
+    bonusCorrect,
+    bonusIncorrect,
+  };
+}
+
 describe("getQuizPerformanceSummary", () => {
   it("excludes rank-up messaging from the high-score result pool", () => {
     const summary = getQuizPerformanceSummary("active", buildResults(9, 1, 3), 10, false);
@@ -52,5 +65,17 @@ describe("getQuizPerformanceSummary", () => {
     expect(summary.chestUnlocked).toBe(false);
     expect(summary.icon).toBe(XCircle);
     expect(summary.messageKeys).toContain("quiz.resultMessageLow1");
+  });
+
+  it("includes bonus outcomes in the result rating without changing regular card lists", () => {
+    const summary = getQuizPerformanceSummary(
+      "learned",
+      buildResultsWithBonus(5, 5, 2, 0),
+      null,
+      true,
+    );
+
+    expect(summary.accuracy).toBe(58);
+    expect(summary.level).toBe("mediumLow");
   });
 });

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ChevronDown, FolderPlus } from "lucide-react";
 import { createPortal } from "react-dom";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
 import { TIER_STYLES } from "@/data/tiers";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -18,7 +19,7 @@ import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode } from "@/types/domain";
+import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 interface MobileCardGroupSheetProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function MobileCardGroupSheet({
   const [expandedGroupId, setExpandedGroupId] = useState<CardGroupIcon | null>(null);
   const [addedCounts, setAddedCounts] = useState<Partial<Record<CardGroupIcon, number>>>({});
   const [errorGroupId, setErrorGroupId] = useState<CardGroupIcon | null>(null);
+  const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
   const [pendingGroup, setPendingGroup] = useState<{
     groupId: CardGroupIcon;
     cardIds: string[];
@@ -176,10 +178,22 @@ export function MobileCardGroupSheet({
       )
     : null;
 
+  const cardDisplay = selectedCard && typeof document !== "undefined"
+    ? createPortal(
+        <MobileCardDisplaySheet
+          card={selectedCard}
+          isOpen
+          onClose={() => setSelectedCard(null)}
+          positionClassName="-translate-y-6"
+        />,
+        document.body,
+      )
+    : null;
+
   return (
     <>
       <MobileBottomSheetShell
-        open={open && !pendingGroup}
+        open={open}
         onClose={handleClose}
         title={t("cards.groups.title")}
         panelLabel={t("cards.groups.title")}
@@ -271,7 +285,21 @@ export function MobileCardGroupSheet({
                     const tierStyle = TIER_STYLES[card.tier];
 
                     return (
-                      <div key={card.id} className={cn("flex items-center gap-2 rounded-xl px-3 py-2.5 text-white", tierStyle.accent)}>
+                      <div
+                        key={card.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedCard(card)}
+                        onKeyDown={(event) => {
+                          if ((event.target as HTMLElement).closest("button")) return;
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedCard(card);
+                          }
+                        }}
+                        aria-label={`${card.term} ${t("cards.details")}`}
+                        className={cn("flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-white transition-transform duration-200 hover:scale-[1.01]", tierStyle.accent)}
+                      >
                         <span className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white", tierStyle.softAccent)}>
                           {card.tier}
                         </span>
@@ -290,7 +318,10 @@ export function MobileCardGroupSheet({
                         ) : (
                           <button
                             type="button"
-                            onClick={() => void handleAddCard(definition.id, card.sourceKey)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleAddCard(definition.id, card.sourceKey);
+                            }}
                             disabled={isAddingCard || addingCardId !== null || addingGroupId !== null}
                             className={cn(
                               "min-w-[5.5rem] shrink-0 rounded-lg px-2 py-2 text-[10px] font-semibold leading-tight transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
@@ -324,6 +355,7 @@ export function MobileCardGroupSheet({
         </div>
       </MobileBottomSheetShell>
       {confirmationDialog}
+      {cardDisplay}
     </>
   );
 }

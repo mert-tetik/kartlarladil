@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CARD_GROUPS, CARD_GROUP_IMAGE_PATHS, getCardsForGroup } from "@/features/cards/card-groups";
+import { CARD_GROUPS, CARD_GROUP_IMAGE_PATHS, getCardGroupForCard, getCardsForGroup } from "@/features/cards/card-groups";
+import { VOCABULARY_CARDS } from "@/data/cards";
 
 describe("card groups", () => {
   it("keeps stable unique group definitions with available catalog cards", () => {
@@ -25,5 +26,12 @@ describe("card groups", () => {
 
     expect(technologyCards.every((card) => card.language === "en")).toBe(true);
     expect(technologyCards.every((card) => card.sourceKey.startsWith("en:"))).toBe(true);
+  });
+
+  it("resolves a catalog card to its group artwork", () => {
+    const schoolCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.englishKey === "school");
+
+    expect(schoolCard).toBeDefined();
+    expect(getCardGroupForCard(schoolCard!)).toMatchObject({ id: "school" });
   });
 });

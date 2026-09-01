@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "免费",
   "limit.learnedReviewSubscriptionDescription": "升级到 Basic 或 Pro 即可复习已学卡片。",
   "limit.learnedReviewSubscriptionTitle": "复习已学卡片需要订阅",
+  "limit.scenarioSubscriptionDescription": "升级到 Basic 或 Pro，即可与扮演真实生活场景的角色聊天。",
+  "limit.scenarioSubscriptionTitle": "情境练习需要订阅",
   "pricing.featureLearnedReview": "已学卡片复习",
   "pricing.featureLearnedReviewDescription": "随时复习已学会的卡片。",
   "pricing.mobileFeaturesTitle": "{plan} 订阅特权",

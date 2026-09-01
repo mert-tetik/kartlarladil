@@ -54,6 +54,7 @@ vi.mock("@/features/quiz/actions", () => ({
   awardChestPoints: vi.fn(async () => ({ success: true, points: 20 })),
   awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
   awardQuizResultPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
+  awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
 }));
 
 vi.mock("@/lib/sound-effects", () => ({

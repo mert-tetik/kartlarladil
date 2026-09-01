@@ -316,7 +316,7 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
   pointer-events: none;
   position: fixed;
   transform: translate3d(0, -100%, 0);
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 260ms cubic-bezier(0.85, 0, 0.15, 1);
   z-index: 250;
 }
 
@@ -340,7 +340,7 @@ html[data-route-transition="preparing"] [data-route-transition-item] {
 }
 
 html[data-route-transition="entering"] [data-route-transition-item] {
-  animation: route-transition-item-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) var(--route-enter-delay, 0ms) both !important;
+  animation: route-transition-item-enter 480ms cubic-bezier(0.85, 0, 0.15, 1) var(--route-enter-delay, 0ms) both !important;
 }
 
 @keyframes route-transition-item-enter {
@@ -703,7 +703,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .animate-screen-pop {
-  animation: screen-pop-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: screen-pop-in 260ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: opacity, transform;
 }
 
@@ -725,7 +725,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .animate-chest-screen-close {
-  animation: chest-screen-close 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: chest-screen-close 500ms cubic-bezier(0.85, 0, 0.15, 1) both;
   pointer-events: none;
   will-change: opacity, transform;
 }
@@ -1037,6 +1037,15 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-message-pop,
   .typing-indicator-dot,
   .animate-screen-pop,
+  .animate-bonus-intro-enter,
+  .animate-bonus-intro-exit,
+  .animate-bonus-intro-copy,
+  .animate-bonus-intro-copy-exit,
+  .animate-streak-celebration-background-enter,
+  .animate-streak-celebration-copy-enter,
+  .animate-streak-celebration-background-exit,
+  .animate-streak-celebration-number-exit,
+  .animate-streak-celebration-icon-exit,
   .animate-chest-screen-close,
   .mission-card-shine::after,
   .animate-games-selected-content-out-right,
@@ -1390,7 +1399,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-chest-appear {
-  animation: chest-appear 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: chest-appear 500ms cubic-bezier(0.85, 0, 0.15, 1) forwards;
 }
 
 @keyframes chest-shake {
@@ -1610,6 +1619,78 @@ body:has([data-ask-page]) footer {
   will-change: transform, opacity;
 }
 
+@keyframes bonus-intro-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.28) translate3d(0, -18px, 0);
+  }
+  58% {
+    opacity: 0.88;
+    transform: scale(0.985) translate3d(0, 3px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.animate-bonus-intro-enter {
+  animation: bonus-intro-enter 1050ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes bonus-intro-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.78) translate3d(0, 26px, 0);
+  }
+}
+
+.animate-bonus-intro-exit {
+  animation: bonus-intro-exit 410ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes bonus-intro-copy-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.34) translate3d(0, -12px, 0);
+  }
+  70% {
+    opacity: 0.92;
+    transform: scale(0.98) translate3d(0, 2px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.animate-bonus-intro-copy {
+  animation: bonus-intro-copy-enter 900ms 110ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes bonus-intro-copy-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.72) translate3d(0, 34px, 0);
+  }
+}
+
+.animate-bonus-intro-copy-exit {
+  animation: bonus-intro-copy-exit 340ms 55ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform, opacity;
+}
+
 @keyframes quiz-count-cover {
   0% {
     transform: translate3d(0, 0, 0) scale(1, 1);
@@ -1626,7 +1707,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-quiz-count-cover {
-  animation: quiz-count-cover 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: quiz-count-cover 820ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: transform;
 }
@@ -1647,7 +1728,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-quiz-count-cover-copy {
-  animation: quiz-count-cover-copy 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: quiz-count-cover-copy 820ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
 }
 
@@ -1696,7 +1777,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-learning-quiz-splash {
-  animation: learning-quiz-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: learning-quiz-splash 1.2s cubic-bezier(0.85, 0, 0.15, 1) forwards;
 }
 
 @keyframes quiz-start-splash {
@@ -1723,7 +1804,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-quiz-start-splash {
-  animation: quiz-start-splash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: quiz-start-splash 1.2s cubic-bezier(0.85, 0, 0.15, 1) forwards;
 }
 
 @keyframes game-start-splash-enter {
@@ -1747,11 +1828,11 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-game-start-splash-enter {
-  animation: game-start-splash-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: game-start-splash-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .animate-game-start-splash-exit {
-  animation: game-start-splash-exit 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: game-start-splash-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 @keyframes game-launch-splash {
@@ -1778,11 +1859,11 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-game-launch-splash {
-  animation: game-launch-splash 4.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: game-launch-splash 4.3s cubic-bezier(0.85, 0, 0.15, 1) forwards;
 }
 
 .animate-game-launch-copy {
-  animation: game-launch-copy 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: game-launch-copy 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 @keyframes quiz-start-selection-underlay {
@@ -1808,14 +1889,10 @@ body:has([data-ask-page]) footer {
   animation: streak-fire 0.6s ease-in-out infinite;
 }
 
-@keyframes streak-celebration-enter {
+@keyframes streak-celebration-background-enter {
   0% {
     opacity: 0;
-    transform: scale(0.6) translateY(20px);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.04) translateY(-4px);
+    transform: scale(1.28) translateY(-18px);
   }
   100% {
     opacity: 1;
@@ -1823,23 +1900,110 @@ body:has([data-ask-page]) footer {
   }
 }
 
-@keyframes streak-celebration-exit {
+@keyframes streak-celebration-copy-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.2) translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes streak-celebration-background-exit {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  16% {
+    transform: translate3d(var(--streak-background-launch-x), var(--streak-background-launch-y), 0)
+      rotate(var(--streak-background-launch-rotation));
+  }
+  40% {
+    transform: translate3d(var(--streak-background-apex-x), var(--streak-background-apex-y), 0)
+      rotate(var(--streak-background-apex-rotation));
+  }
+  68% {
+    transform: translate3d(var(--streak-background-landing-x), var(--streak-background-landing-y), 0)
+      rotate(var(--streak-background-landing-rotation));
+  }
+  100% {
+    transform: translate3d(var(--streak-background-fall-x), var(--streak-background-fall-y), 0)
+      rotate(var(--streak-background-fall-rotation));
+  }
+}
+
+.animate-streak-celebration-background-enter {
+  animation: streak-celebration-background-enter 720ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-streak-celebration-copy-enter {
+  animation: streak-celebration-copy-enter 520ms 100ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-streak-celebration-background-exit {
+  animation: streak-celebration-background-exit 820ms cubic-bezier(0.18, 0.78, 0.28, 1) both;
+  will-change: transform;
+}
+
+@keyframes streak-celebration-number-exit {
   0% {
     opacity: 1;
-    transform: scale(1);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  16% {
+    transform: translate3d(var(--streak-number-launch-x), var(--streak-number-launch-y), 0)
+      rotate(var(--streak-number-launch-rotation)) scale(1.06);
+  }
+  40% {
+    transform: translate3d(var(--streak-number-apex-x), var(--streak-number-apex-y), 0)
+      rotate(var(--streak-number-apex-rotation)) scale(1.02);
+  }
+  68% {
+    transform: translate3d(var(--streak-number-landing-x), var(--streak-number-landing-y), 0)
+      rotate(var(--streak-number-landing-rotation)) scale(0.98);
   }
   100% {
     opacity: 0;
-    transform: scale(0.96);
+    transform: translate3d(var(--streak-number-fall-x), var(--streak-number-fall-y), 0)
+      rotate(var(--streak-number-fall-rotation)) scale(0.88);
   }
 }
 
-.animate-streak-celebration-enter {
-  animation: streak-celebration-enter 400ms cubic-bezier(0.22, 1.6, 0.36, 1) both;
+@keyframes streak-celebration-icon-exit {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  16% {
+    transform: translate3d(var(--streak-icon-launch-x), var(--streak-icon-launch-y), 0)
+      rotate(var(--streak-icon-launch-rotation)) scale(1.12);
+  }
+  40% {
+    transform: translate3d(var(--streak-icon-apex-x), var(--streak-icon-apex-y), 0)
+      rotate(var(--streak-icon-apex-rotation)) scale(1.04);
+  }
+  68% {
+    transform: translate3d(var(--streak-icon-landing-x), var(--streak-icon-landing-y), 0)
+      rotate(var(--streak-icon-landing-rotation)) scale(0.96);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--streak-icon-fall-x), var(--streak-icon-fall-y), 0)
+      rotate(var(--streak-icon-fall-rotation)) scale(0.82);
+  }
 }
 
-.animate-streak-celebration-exit {
-  animation: streak-celebration-exit 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.animate-streak-celebration-number-exit {
+  animation: streak-celebration-number-exit 820ms cubic-bezier(0.18, 0.78, 0.28, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-streak-celebration-icon-exit {
+  animation: streak-celebration-icon-exit 820ms cubic-bezier(0.18, 0.78, 0.28, 1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes streak-reward-break {
@@ -1863,11 +2027,11 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-streak-reward-enter {
-  animation: streak-reward-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: streak-reward-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .animate-streak-reward-exit {
-  animation: streak-reward-exit 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: streak-reward-exit 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 @keyframes star-drop {
@@ -2081,7 +2245,7 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 .game-result-background {
-  animation: game-result-background-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: game-result-background-enter 280ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
 }
 
@@ -2094,7 +2258,7 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 .game-result-title {
-  animation: game-result-title-drop 400ms cubic-bezier(0.22, 1.35, 0.36, 1) 300ms both;
+  animation: game-result-title-drop 400ms cubic-bezier(0.85, 0, 0.15, 1) 300ms both;
 }
 
 .game-result-title-success {
@@ -2103,23 +2267,23 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 .game-result-action-leaderboard {
-  animation: game-result-action-drop 340ms cubic-bezier(0.22, 1.28, 0.36, 1) 720ms both;
+  animation: game-result-action-drop 340ms cubic-bezier(0.85, 0, 0.15, 1) 720ms both;
 }
 
 .game-result-action-primary {
-  animation: game-result-action-drop 340ms cubic-bezier(0.22, 1.28, 0.36, 1) 790ms both;
+  animation: game-result-action-drop 340ms cubic-bezier(0.85, 0, 0.15, 1) 790ms both;
 }
 
 .game-result-action-menu {
-  animation: game-result-action-drop 340ms cubic-bezier(0.22, 1.28, 0.36, 1) 860ms both;
+  animation: game-result-action-drop 340ms cubic-bezier(0.85, 0, 0.15, 1) 860ms both;
 }
 
 .game-result-score {
-  animation: game-result-score-enter 360ms cubic-bezier(0.22, 1.2, 0.36, 1) 1.17s both;
+  animation: game-result-score-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) 1.17s both;
 }
 
 .game-result-overlay-exit {
-  animation: game-result-overlay-exit 460ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: game-result-overlay-exit 460ms cubic-bezier(0.85, 0, 0.15, 1) forwards;
 }
 
 @keyframes game-result-background-enter {

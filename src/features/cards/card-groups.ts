@@ -219,3 +219,9 @@ export function getCardsForGroup(groupId: CardGroupIcon, language: LanguageCode)
 export function getCardGroup(groupId: CardGroupIcon): CardGroupDefinition | undefined {
   return CARD_GROUPS.find((definition) => definition.id === groupId);
 }
+
+export function getCardGroupForCard(card: Pick<VocabularyCard, "englishKey">): CardGroupDefinition | undefined {
+  const englishKey = card.englishKey.toLowerCase();
+
+  return CARD_GROUPS.find((definition) => definition.englishKeys.some((key) => key.toLowerCase() === englishKey));
+}

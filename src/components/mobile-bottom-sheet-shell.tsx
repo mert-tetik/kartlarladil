@@ -148,7 +148,7 @@ export function MobileBottomSheetShell({
   const content = (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 lg:hidden",
+        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
         entered ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!open}
@@ -162,7 +162,7 @@ export function MobileBottomSheetShell({
         type="button"
         onClick={closeSheet}
         className={cn(
-          "absolute inset-0 transition-opacity duration-300",
+          "absolute inset-0 transition-opacity duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
           showBackdrop ? "bg-black/60" : "bg-transparent",
           entered ? "opacity-100" : "opacity-0",
         )}
@@ -175,7 +175,7 @@ export function MobileBottomSheetShell({
         className={cn(
           "relative z-10 isolate flex max-h-[calc(100dvh-var(--app-header-height)-3rem)] w-full flex-col overflow-visible rounded-t-[2rem] bg-brand text-brand-foreground shadow-sm",
           entered ? "translate-y-0" : "translate-y-full",
-          isDragging ? "transition-none" : "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          isDragging ? "transition-none" : "transition-transform duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
           panelClassName,
         )}
         style={entered ? { transform: `translateY(${dragY}px)` } : undefined}

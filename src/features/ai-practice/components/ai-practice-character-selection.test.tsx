@@ -79,5 +79,9 @@ describe("AiPracticeCharacterSelection", () => {
       "href",
       expect.stringContaining("mode=scenario"),
     );
+    expect(screen.getByText("With Restaurant server")).toBeInTheDocument();
+    expect(screen.queryByText("Role-play")).not.toBeInTheDocument();
+    expect(screen.getByText("With Random citizen")).toBeInTheDocument();
+    expect(screen.getByText("With Random girl")).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import {
   getAiPracticeScenario,
   getAiPracticeScenarios,
   getScenarioOpeningLine,
+  getScenarioProfession,
   getScenarioSummary,
   getScenarioTitle,
 } from "@/features/ai-practice/ai-practice-scenarios";
@@ -33,6 +34,28 @@ describe("AI practice situations", () => {
 
       expect(background.imageSrc).toBe(`/ai-chat-backgrounds/scenarios/${scenario.id}.jpg`);
       expect(background.overlay).toContain("linear-gradient");
+    }
+  });
+
+  it("uses a dedicated profession portrait for every situation", () => {
+    for (const scenario of getAiPracticeScenarios()) {
+      expect(scenario.characterImageSrc).toBe(`/ai-characters/scenarios/${scenario.id}-v2.png`);
+    }
+  });
+
+  it("uses localized profession labels instead of character names", () => {
+    const directions = getAiPracticeScenario("asking-directions");
+    const party = getAiPracticeScenario("party-introduction");
+
+    expect(getScenarioProfession(directions!, "en")).toBe("Random citizen");
+    expect(getScenarioProfession(directions!, "tr")).toBe("Rastgele vatandaş");
+    expect(getScenarioProfession(party!, "en")).toBe("Random girl");
+    expect(getScenarioProfession(party!, "tr")).toBe("Rastgele bir kız");
+
+    for (const scenario of getAiPracticeScenarios()) {
+      for (const locale of ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const) {
+        expect(getScenarioProfession(scenario, locale)).toBeTruthy();
+      }
     }
   });
 });

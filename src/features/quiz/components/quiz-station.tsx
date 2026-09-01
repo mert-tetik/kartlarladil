@@ -49,6 +49,21 @@ import {
   shouldUseSentenceCompletionQuestion,
   shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
+import {
+  buildCategoryBonusFromGenerated,
+  buildFallbackCategoryBonusQuestion,
+  buildFallbackSentenceOrderQuestion,
+  buildImposterBonusQuestion,
+  buildMatchingBonusQuestion,
+  buildSentenceBonusFromGenerated,
+  getBonusCopy,
+  type BonusQuestion,
+  type BonusQuestionKind,
+} from "@/features/quiz/bonus-questions";
+import {
+  requestCategoryBonusQuestion,
+  requestSentenceBonusQuestion,
+} from "@/features/quiz/bonus-question-client";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -64,6 +79,7 @@ import {
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import {
   awardChestPoints,
+  awardQuizBonusPoints,
   awardQuizResultPoints,
   awardQuizStreakPoints,
 } from "@/features/quiz/actions";
@@ -74,6 +90,10 @@ import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view"
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
+import {
+  BonusQuestionIntro,
+  BonusQuestionView,
+} from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
 import { QuizStarRating } from "@/features/quiz/components/quiz-star-rating";
@@ -120,6 +140,7 @@ import type {
   InventoryCard,
   LanguageCode,
   LimitErrorCode,
+  LocaleCode,
   PracticeMode,
   QuizQuestion,
   SentenceCompletionQuizQuestion,
@@ -133,6 +154,7 @@ type QuizPhase =
   | "language"
   | "count"
   | "quiz-start"
+  | "bonus-intro"
   | "quiz"
   | "streak-celebration"
   | "streak-reward"
@@ -211,6 +233,7 @@ interface BaseQuizItem {
   inventoryCard: InventoryCard;
   willLearn: boolean;
   forceLearned?: boolean;
+  isBonus?: false;
 }
 
 interface ChoiceQuizItem extends BaseQuizItem {
@@ -234,7 +257,14 @@ interface SentenceCompletionQuizItem extends BaseQuizItem {
   character: AiPracticeCharacter;
 }
 
-type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
+interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
+  isBonus: true;
+  bonusId: string;
+  questionType: `bonus-${BonusQuestionKind}`;
+  bonusQuestion: BonusQuestion;
+}
+
+type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
 
@@ -250,6 +280,8 @@ interface QuizResult {
   correct: VocabularyCard[];
   incorrect: VocabularyCard[];
   learned: VocabularyCard[];
+  bonusCorrect?: number;
+  bonusIncorrect?: number;
 }
 
 type QuizPerformanceLevel = "high" | "mediumHigh" | "mediumLow" | "low";
@@ -348,6 +380,9 @@ function getQuizResultMessageKey(
     ...results.incorrect.map((card) => card.id),
     "|",
     ...results.learned.map((card) => card.id),
+    "|bonus",
+    String(results.bonusCorrect ?? 0),
+    String(results.bonusIncorrect ?? 0),
   ].join(":");
 
   let hash = 0;
@@ -427,12 +462,19 @@ export function QuizStation({
   const [pendingChestAward, setPendingChestAward] = useState(false);
   const [pendingStreakAward, setPendingStreakAward] = useState(false);
   const [pendingRankUp, setPendingRankUp] = useState<RankDefinition | null>(null);
+  const [bonusFlightActive, setBonusFlightActive] = useState(false);
+  const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
+  const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
   const cardProgressTimeoutIdsRef = useRef<number[]>([]);
   const awardedStreakSessionRef = useRef<string | null>(null);
   const quizStartRankRef = useRef<RankDefinition | null>(null);
+  const quizBasePointsRef = useRef(stats.totalPoints);
+  const bonusFlightBaseRef = useRef(0);
+  const bonusDeckTokenRef = useRef(0);
+  const currentIndexRef = useRef(0);
   const redirectStartedRef = useRef(false);
 
   useEffect(() => {
@@ -578,7 +620,7 @@ export function QuizStation({
       const shuffled = shuffle(limited);
       const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
 
-      const items: QuizItem[] = shuffled.map((card, index) => {
+      const regularItems: QuizItem[] = shuffled.map((card, index) => {
         const inventoryCard = cards.find((item) => item.cardId === card.id)!;
         const requirement = getTierRequirement(card.tier);
         const answerLocale = getStudyLocale(card.language, locale);
@@ -653,8 +695,52 @@ export function QuizStation({
         };
       });
 
+      const bonusCards = filterInventoryCards({
+        cards,
+        language,
+        status: "all",
+      }).map((item) => item.card);
+      const items: QuizItem[] = [];
+      const gptJobs: Array<{
+        bonusId: string;
+        kind: "sentence-order" | "category-sort";
+      }> = [];
+      const sessionId = createQuizSessionId();
+      const deckToken = bonusDeckTokenRef.current + 1;
+      bonusDeckTokenRef.current = deckToken;
+
+      regularItems.forEach((item, index) => {
+        items.push(item);
+
+        if (Math.random() >= 1 / 3) {
+          return;
+        }
+
+        const kind = getBonusKind(index);
+        const bonusId = `${sessionId}-${kind}-${index}`;
+        const fallback = buildFallbackBonusQuestion(kind, bonusCards, language, locale, bonusId);
+
+        if (!fallback) return;
+
+        const anchor = regularItems[0] ?? item;
+        items.push({
+          card: anchor.card,
+          inventoryCard: anchor.inventoryCard,
+          willLearn: false,
+          isBonus: true,
+          bonusId,
+          questionType: `bonus-${kind}`,
+          bonusQuestion: fallback,
+        });
+
+        if (kind === "sentence-order" || kind === "category-sort") {
+          gptJobs.push({ bonusId, kind });
+        }
+      });
+
       setDeck(items);
       clearCardProgressFeedback();
+      currentIndexRef.current = 0;
       setCurrentIndex(0);
       setShowingAnswer(false);
       setTextAnswer("");
@@ -662,21 +748,61 @@ export function QuizStation({
       setLastAnswerCorrect(null);
       setLastAnswer(null);
       setAiValidatingSentenceAnswer(null);
-      setResults({ correct: [], incorrect: [], learned: [] });
+      setResults({ correct: [], incorrect: [], learned: [], bonusCorrect: 0, bonusIncorrect: 0 });
       setChestOpened(false);
       setAwardedChestTier(null);
       setStreak(0);
       setMaxStreak(0);
-      setQuizSessionId(createQuizSessionId());
+      setQuizSessionId(sessionId);
       awardedStreakSessionRef.current = null;
       quizStartRankRef.current = stats.rank;
+      quizBasePointsRef.current = stats.totalPoints;
+      setBonusPointsDisplayed(0);
+      setBonusScorePulse(0);
+      setBonusFlightActive(false);
       setPendingAnswerWrites(0);
       setPendingChestAward(false);
       setPendingStreakAward(false);
       setPendingRankUp(null);
       setPhase("quiz-start");
+
+      void Promise.all(
+        gptJobs.map(async (job) => {
+          if (job.kind === "sentence-order") {
+            const generated = await requestSentenceBonusQuestion({ language, cards: bonusCards });
+            if (!generated || bonusDeckTokenRef.current !== deckToken) return;
+
+            setDeck((current) => current.map((item, itemIndex) => {
+              if (!item.isBonus || item.bonusId !== job.bonusId || itemIndex <= currentIndexRef.current) {
+                return item;
+              }
+              const generatedQuestion = buildSentenceBonusFromGenerated(
+                generated,
+                bonusCards,
+                job.bonusId,
+              );
+              return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
+            }));
+            return;
+          }
+
+          const generated = await requestCategoryBonusQuestion({ language, cards: bonusCards });
+
+          if (!generated || bonusDeckTokenRef.current !== deckToken) return;
+
+          setDeck((current) => current.map((item, itemIndex) => {
+            if (!item.isBonus || item.bonusId !== job.bonusId || itemIndex <= currentIndexRef.current) return item;
+            const generatedQuestion = buildCategoryBonusFromGenerated(
+              generated,
+              bonusCards,
+              job.bonusId,
+            );
+            return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
+          }));
+        }),
+      );
     },
-    [cards, clearCardProgressFeedback, mode, locale, stats.rank],
+    [cards, clearCardProgressFeedback, mode, locale, stats.rank, stats.totalPoints],
   );
 
   useEffect(() => {
@@ -700,6 +826,7 @@ export function QuizStation({
     setLastAnswerCorrect(null);
     setLastAnswer(null);
     setAiValidatingSentenceAnswer(null);
+    setBonusFlightActive(false);
   }, [clearCardProgressFeedback]);
 
   const advanceQuiz = useCallback(
@@ -731,17 +858,24 @@ export function QuizStation({
         return;
       }
 
-      setCurrentIndex((current) => current + 1);
+      const nextIndex = currentIndex + 1;
+      const nextItem = deck[nextIndex];
+      currentIndexRef.current = nextIndex;
+      setCurrentIndex(nextIndex);
       resetQuestionUi();
 
       if (phase === "streak-celebration" || phase === "celebration") {
+        setPhase("quiz");
+      } else if (nextItem && isBonusQuizItem(nextItem)) {
+        setPhase("bonus-intro");
+      } else {
         setPhase("quiz");
       }
     },
     [
       chestOpened,
       currentIndex,
-      deck.length,
+      deck,
       lastLearned,
       maxStreak,
       mode,
@@ -902,10 +1036,58 @@ export function QuizStation({
     }
   }
 
+  function handleBonusAnswer(answer: string, isCorrect: boolean) {
+    if (showingAnswer) return;
+
+    const item = deck[currentIndex];
+    if (!item || !isBonusQuizItem(item)) return;
+
+    requireAuthAction(
+      () => {
+        const nextStreak = isCorrect ? streak + 1 : 0;
+
+        flushSync(() => {
+          setShowingAnswer(true);
+          setTextResult(isCorrect ? "correct" : "incorrect");
+          setLastAnswerCorrect(isCorrect);
+          setLastAnswer(answer);
+        });
+
+        setResults((current) => ({
+          ...current,
+          bonusCorrect: (current.bonusCorrect ?? 0) + (isCorrect ? 1 : 0),
+          bonusIncorrect: (current.bonusIncorrect ?? 0) + (isCorrect ? 0 : 1),
+        }));
+        setStreak(nextStreak);
+        setMaxStreak((current) => Math.max(current, nextStreak));
+
+        if (isCorrect) {
+          setBonusFlightActive(true);
+          if (quizSessionId) {
+            void awardQuizBonusPoints(quizSessionId, item.bonusId);
+          }
+        }
+
+        playSoundEffect(isCorrect ? "correct" : "incorrect");
+        vibrate(isCorrect ? "correct" : "incorrect");
+
+        if (nextStreak > 0 && nextStreak % 5 === 0) {
+          setPendingStreak(true);
+        }
+      },
+      { nextPath: `/learn?mode=${mode}` },
+    );
+  }
+
   async function handleAnswer(answer: string, isCorrect: boolean) {
     if (showingAnswer) return;
 
     const item = deck[currentIndex];
+    if (!item) return;
+    if (isBonusQuizItem(item)) {
+      handleBonusAnswer(answer, isCorrect);
+      return;
+    }
     const correctAnswer = item.question.correctAnswer;
 
     if (item.willLearn && isCorrect) {
@@ -921,6 +1103,8 @@ export function QuizStation({
             correct: [...results.correct, item.card],
             incorrect: results.incorrect,
             learned: results.learned,
+            bonusCorrect: results.bonusCorrect,
+            bonusIncorrect: results.bonusIncorrect,
           };
 
           playSoundEffect("correct");
@@ -1003,7 +1187,7 @@ export function QuizStation({
   }
 
   function handleNext() {
-    if (pendingStreak) return;
+    if (pendingStreak || bonusFlightActive) return;
     clearCardProgressFeedback();
     advanceQuiz();
   }
@@ -1048,6 +1232,10 @@ export function QuizStation({
   function handleExit() {
     navigateWithRouteTransition(() => router.push("/"));
   }
+
+  const handleBonusIntroComplete = useCallback(() => {
+    setPhase("quiz");
+  }, []);
 
   async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
     if (chestOpened) {
@@ -1351,7 +1539,7 @@ export function QuizStation({
     }
   }
 
-  const isQuizPhase = phase === "quiz" || phase === "quiz-start";
+  const isQuizPhase = phase === "quiz" || phase === "quiz-start" || phase === "bonus-intro";
 
   if (!isQuizPhase) {
     return null;
@@ -1380,8 +1568,10 @@ export function QuizStation({
   }
 
   const isSplash = phase === "quiz-start";
+  const isBonusIntro = phase === "bonus-intro";
+  const regularProgress = getRegularQuizProgress(deck, currentIndex);
   const isCardFirstQuestion =
-    item.questionType === "choice" || item.questionType === "true-false";
+    !isBonusQuizItem(item) && (item.questionType === "choice" || item.questionType === "true-false");
   const activeCardFeedback = cardProgressFeedback?.cardId === item.card.id
     ? cardProgressFeedback
     : null;
@@ -1408,18 +1598,20 @@ export function QuizStation({
           selectedChestTiers={startSplashSelection?.chestTiers}
         />
       ) : null}
+      {isBonusIntro ? <BonusQuestionIntro onComplete={handleBonusIntroComplete} /> : null}
       {!isSplash ? (
         <MobileQuizTopBar
-          currentIndex={currentIndex}
-          total={deck.length}
-          totalPoints={stats.totalPoints}
+          currentIndex={regularProgress.current - 1}
+          total={regularProgress.total}
+          totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
+          scorePulse={bonusScorePulse}
           onExit={handleExit}
         />
       ) : null}
       <div
         className={cn(
           "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
-          isSplash ? "opacity-0" : "animate-screen-pop",
+          isSplash || isBonusIntro ? "opacity-0" : "animate-screen-pop",
         )}
         data-learn-quiz-page="quiz"
       >
@@ -1445,10 +1637,38 @@ export function QuizStation({
             )}
             data-quiz-mobile-question
           >
-            <QuizCounter currentIndex={currentIndex} total={deck.length} />
+            <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
             <QuizProgressHeader mode={mode} item={item} />
             <div className="flex flex-1 flex-col justify-center">
-              {item.questionType === "choice" ? (
+              {isBonusQuizItem(item) ? (
+                <BonusQuestionView
+                  key={currentIndex}
+                  question={item.bonusQuestion}
+                  showingAnswer={showingAnswer}
+                  answerAccepted={lastAnswerCorrect}
+                  canAdvance={!pendingStreak && !bonusFlightActive}
+                  onSubmit={handleBonusAnswer}
+                  onNext={handleNext}
+                  onFlightStart={() => {
+                    bonusFlightBaseRef.current = bonusPointsDisplayed;
+                  }}
+                  onPointArrive={(points) => {
+                    setBonusPointsDisplayed((current) =>
+                      Math.max(current, bonusFlightBaseRef.current + points),
+                    );
+                    setBonusScorePulse((current) => current + 1);
+                  }}
+                  onFlightComplete={() => {
+                    setBonusFlightActive(false);
+                    void refreshStats();
+                    refreshLeaderboardPositions();
+                    if (pendingStreak) {
+                      setPendingStreak(false);
+                      setPhase("streak-celebration");
+                    }
+                  }}
+                />
+              ) : item.questionType === "choice" ? (
                 <ChoiceQuestion
                   key={currentIndex}
                   item={item}
@@ -1499,23 +1719,25 @@ export function QuizStation({
             </div>
           </div>
 
-          <div
-            className={cn(
-              "order-2 flex items-center justify-center lg:hidden",
-              item.questionType === "sentence-completion" && "max-lg:-translate-y-2",
-            )}
-            data-quiz-mobile-card-slot
-          >
-            <MobileQuizCard
-              item={item}
-              face={showingAnswer ? "front" : "back"}
-              feedbackStage={cardFeedbackStage}
-              footerMode={cardFooterMode}
-              footerProgressCount={cardFooterProgressCount}
-            />
-          </div>
+          {!isBonusQuizItem(item) ? (
+            <div
+              className={cn(
+                "order-2 flex items-center justify-center lg:hidden",
+                item.questionType === "sentence-completion" && "max-lg:-translate-y-2",
+              )}
+              data-quiz-mobile-card-slot
+            >
+              <MobileQuizCard
+                item={item}
+                face={showingAnswer ? "front" : "back"}
+                feedbackStage={cardFeedbackStage}
+                footerMode={cardFooterMode}
+                footerProgressCount={cardFooterProgressCount}
+              />
+            </div>
+          ) : null}
 
-          <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
+          {!isBonusQuizItem(item) ? <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
             <div
               className={cn(
                 "relative h-[440px] w-auto transform-gpu transition-transform duration-200 ease-out will-change-transform focus:outline-none",
@@ -1536,7 +1758,7 @@ export function QuizStation({
                 className="h-full w-auto min-h-0 max-w-full"
               />
             </div>
-          </div>
+          </div> : null}
         </div>
       </div>
 
@@ -1544,14 +1766,16 @@ export function QuizStation({
           isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
           isCorrect={lastAnswerCorrect ?? false}
           correctAnswer={
-            item.questionType === "text" || item.questionType === "sentence-completion"
+            isBonusQuizItem(item)
+              ? undefined
+              : item.questionType === "text" || item.questionType === "sentence-completion"
               ? item.question.correctAnswer
               : item.questionType === "true-false"
                 ? item.question.actualMeaning
                 : undefined
           }
           onNext={handleNext}
-          showNextButton={!pendingStreak}
+          showNextButton={!pendingStreak && !bonusFlightActive}
         />
 
       <CardDetailsDialog
@@ -1767,6 +1991,56 @@ function MobileQuizCard({
 
 function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+const BONUS_QUESTION_KINDS: readonly BonusQuestionKind[] = [
+  "matching",
+  "sentence-order",
+  "category-sort",
+  "imposter",
+];
+
+function getBonusKind(index: number): BonusQuestionKind {
+  const randomOffset = Math.floor(Math.random() * BONUS_QUESTION_KINDS.length);
+  return BONUS_QUESTION_KINDS[(index + randomOffset) % BONUS_QUESTION_KINDS.length] ?? "matching";
+}
+
+function buildFallbackBonusQuestion(
+  kind: BonusQuestionKind,
+  cards: VocabularyCard[],
+  language: LanguageCode,
+  locale: LocaleCode,
+  seed: string,
+): BonusQuestion | null {
+  if (kind === "matching") {
+    return buildMatchingBonusQuestion(cards, locale, seed);
+  }
+
+  if (kind === "sentence-order") {
+    return buildFallbackSentenceOrderQuestion(cards, seed);
+  }
+
+  if (kind === "category-sort") {
+    return buildFallbackCategoryBonusQuestion(language, seed);
+  }
+
+  return buildImposterBonusQuestion(language, seed);
+}
+
+function isBonusQuizItem(item: QuizItem): item is BonusQuizItem {
+  return item.isBonus === true;
+}
+
+function getRegularQuizProgress(deck: QuizItem[], currentIndex: number) {
+  const regularItems = deck.filter((item) => !isBonusQuizItem(item));
+  const currentRegularCount = deck
+    .slice(0, currentIndex + 1)
+    .filter((item) => !isBonusQuizItem(item)).length;
+
+  return {
+    current: Math.max(1, currentRegularCount),
+    total: Math.max(1, regularItems.length),
+  };
 }
 
 function completeSentence(sentenceWithBlank: string, answer: string) {
@@ -2200,21 +2474,32 @@ function QuizProgressHeader({
   item: QuizItem;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const style = TIER_STYLES[item.card.tier];
+  const bonusCopy = getBonusCopy(locale);
+  const bonusLabel = item.isBonus
+    ? item.bonusQuestion.kind === "matching"
+      ? `${bonusCopy.intro} · ${bonusCopy.matchingTitle}`
+      : item.bonusQuestion.kind === "sentence-order"
+        ? `${bonusCopy.intro} · ${bonusCopy.sentenceTitle}`
+        : item.bonusQuestion.kind === "category-sort"
+          ? `${bonusCopy.intro} · ${bonusCopy.categoryTitle}`
+          : `${bonusCopy.intro} · ${bonusCopy.imposterTitle}`
+    : null;
 
   return (
     <div className="rounded-lg border border-transparent bg-transparent p-3 max-sm:p-2 sm:p-5 max-lg:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className={cn("border-transparent", style.text)}>
-          {item.questionType === "text"
+          {bonusLabel ?? (item.questionType === "text"
             ? t("quiz.learningQuizBadge")
             : item.questionType === "sentence-completion"
               ? t("quiz.sentenceCompletionBadge")
             : item.questionType === "true-false"
               ? t("games.wordChallenge.title")
-            : mode === "learned"
+              : mode === "learned"
               ? t("quiz.reviewBadge")
-              : t("quiz.activeBadgeWithTier", { tier: item.card.tier })}
+              : t("quiz.activeBadgeWithTier", { tier: item.card.tier }))}
         </Badge>
       </div>
     </div>
@@ -2225,11 +2510,13 @@ function MobileQuizTopBar({
   currentIndex,
   total,
   totalPoints,
+  scorePulse,
   onExit,
 }: {
   currentIndex: number;
   total: number;
   totalPoints: number;
+  scorePulse: number;
   onExit: () => void;
 }) {
   const { locale } = useLocale();
@@ -2272,7 +2559,7 @@ function MobileQuizTopBar({
         data-quiz-total-score
       >
         <ScoreIcon size={22} className="size-[22px]" />
-        <span className="bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent">
+        <span className={cn("bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent", scorePulse > 0 && "animate-score-bobble")} key={scorePulse}>
           {formatNumber(locale, totalPoints)}
         </span>
       </div>
@@ -2698,7 +2985,7 @@ function TextQuestion({
   showNextButton = true,
   isFirstQuestion = false,
 }: {
-  item: QuizItem;
+  item: TextQuizItem;
   textAnswer: string;
   textResult: "idle" | "correct" | "incorrect";
   showingAnswer: boolean;
@@ -3708,10 +3995,12 @@ export function getQuizPerformanceSummary(
   selectedCount: number | null,
   chestOpened: boolean,
 ): QuizPerformanceSummary {
-  const totalAnswered = results.correct.length + results.incorrect.length;
+  const bonusCorrect = results.bonusCorrect ?? 0;
+  const bonusIncorrect = results.bonusIncorrect ?? 0;
+  const totalAnswered = results.correct.length + results.incorrect.length + bonusCorrect + bonusIncorrect;
   const accuracy =
     totalAnswered > 0
-      ? Math.round((results.correct.length / totalAnswered) * 100)
+      ? Math.round(((results.correct.length + bonusCorrect) / totalAnswered) * 100)
       : 0;
   const previewPair =
     mode === "active" && selectedCount

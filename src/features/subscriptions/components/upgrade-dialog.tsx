@@ -21,7 +21,8 @@ export type UpgradeDialogErrorCode =
   | "language_match_not_allowed"
   | "game_language_match_not_allowed"
   | "learned_review_subscription_required"
-  | "game_level_locked";
+  | "game_level_locked"
+  | "scenario_subscription_required";
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -272,6 +273,12 @@ function getLimitContent(
       return {
         title: t("limit.learnedReviewSubscriptionTitle"),
         description: t("limit.learnedReviewSubscriptionDescription"),
+        variant: "upgrade",
+      };
+    case "scenario_subscription_required":
+      return {
+        title: t("limit.scenarioSubscriptionTitle"),
+        description: t("limit.scenarioSubscriptionDescription"),
         variant: "upgrade",
       };
     default:

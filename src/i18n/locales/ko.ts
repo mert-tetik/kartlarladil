@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "무료",
   "limit.learnedReviewSubscriptionDescription": "학습한 카드를 복습하려면 Basic 또는 Pro로 업그레이드하세요.",
   "limit.learnedReviewSubscriptionTitle": "학습한 카드 복습에는 구독이 필요합니다",
+  "limit.scenarioSubscriptionDescription": "Basic 또는 Pro로 업그레이드하면 실제 상황을 연기하는 캐릭터와 대화할 수 있습니다.",
+  "limit.scenarioSubscriptionTitle": "상황 연습에는 구독이 필요합니다",
   "pricing.featureLearnedReview": "학습한 카드 복습",
   "pricing.featureLearnedReviewDescription": "배운 카드를 원할 때 언제든 복습하세요.",
   "pricing.mobileFeaturesTitle": "{plan} 구독 혜택",

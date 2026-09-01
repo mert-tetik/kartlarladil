@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.free": "無料",
   "limit.learnedReviewSubscriptionDescription": "学習済みカードを復習するには、BasicまたはProにアップグレードしてください。",
   "limit.learnedReviewSubscriptionTitle": "学習済みカードの復習にはサブスクリプションが必要です",
+  "limit.scenarioSubscriptionDescription": "BasicまたはProにアップグレードすると、実生活の場面を演じるキャラクターとチャットできます。",
+  "limit.scenarioSubscriptionTitle": "シチュエーション練習にはサブスクリプションが必要です",
   "pricing.featureLearnedReview": "学習済みカードの復習",
   "pricing.featureLearnedReviewDescription": "学習済みカードを好きなときに復習できます。",
   "pricing.mobileFeaturesTitle": "{plan}サブスクリプションの特典",
