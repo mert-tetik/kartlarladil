@@ -33,6 +33,7 @@ describe("BonusQuestionView", () => {
           showingAnswer={false}
           answerAccepted={null}
           onSubmit={onSubmit}
+          onSkip={vi.fn()}
           onNext={vi.fn()}
         />
       </LocaleProvider>,
@@ -73,6 +74,7 @@ describe("BonusQuestionView", () => {
           showingAnswer={false}
           answerAccepted={null}
           onSubmit={onSubmit}
+          onSkip={vi.fn()}
           onNext={vi.fn()}
         />
       </LocaleProvider>,
@@ -88,5 +90,44 @@ describe("BonusQuestionView", () => {
     fireEvent.click(token("two"));
     fireEvent.click(container.querySelector<HTMLButtonElement>("[data-bonus-check]")!);
     expect(onSubmit).toHaveBeenCalledWith("sentence-order", true);
+  });
+
+  it("exposes a skip action alongside bonus question checks", () => {
+    const onSkip = vi.fn();
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={{
+            kind: "matching",
+            pairs: [
+              { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+              { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+              { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+              { id: "d", cardId: "card-d", term: "door", meaning: "kapÄ±" },
+            ],
+            terms: [
+              { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+              { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+              { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+              { id: "d", cardId: "card-d", term: "door", meaning: "kapÄ±" },
+            ],
+            meanings: [
+              { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+              { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+              { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+              { id: "d", cardId: "card-d", term: "door", meaning: "kapÄ±" },
+            ],
+          }}
+          showingAnswer={false}
+          answerAccepted={null}
+          onSubmit={vi.fn()}
+          onSkip={onSkip}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>("[data-quiz-skip]")!);
+    expect(onSkip).toHaveBeenCalledTimes(1);
   });
 });

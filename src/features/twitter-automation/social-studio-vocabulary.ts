@@ -106,6 +106,7 @@ function toStudioCustomCard(generated: GeneratedCardResponse): VocabularyCard {
       id: `${sourceKey}:example:0`, context: "natural", label: "Natural", sentence: generated.example, translation: generated.exampleTranslation,
       translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, generated.exampleTranslation])) as VocabularyCard["examples"][number]["translations"],
     }],
+    definitionsByLocale: generated.definitions,
     grammar, grammarByLocale,
   };
 }
@@ -122,7 +123,7 @@ export async function createSocialStudioCustomCard(term: string, language: Langu
       model,
       instructions: buildCreateCardInstructions({ locale: nativeLanguage, targetLanguage: language }),
       input: buildCreateCardInput({ locale: nativeLanguage, term, targetLanguage: language }),
-      max_output_tokens: 700,
+      max_output_tokens: 1200,
       reasoning: { effort: "minimal" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },
@@ -154,7 +155,7 @@ export async function createRandomSocialStudioWordOfTheDayPosterCard(language: L
         "Return a complete, accurate card with every translation field, a natural example sentence, and concise grammar notes.",
       ].join("\n"),
       input: JSON.stringify({ generator: "word-of-the-day-poster", learningLanguage: language, nativeLanguage }),
-      max_output_tokens: 900,
+      max_output_tokens: 1200,
       reasoning: { effort: "minimal" },
       store: false,
       text: { format: { type: "text" }, verbosity: "low" },

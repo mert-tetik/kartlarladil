@@ -29,8 +29,8 @@ import {
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LANGUAGES } from "@/data/languages";
 import { TIER_STYLES } from "@/data/tiers";
-import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import {
   getCardTranslation,
   getCardTranslationMeanings,
@@ -42,11 +42,15 @@ import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   buildQuizQuestion,
+  buildListeningQuizQuestion,
+  buildDefinitionQuizQuestion,
   buildSentenceCompletionQuizQuestion,
   buildTrueFalseQuizQuestion,
   getTierRequirement,
   isAnswerSimilarEnough,
   shouldUseSentenceCompletionQuestion,
+  shouldUseListeningQuestion,
+  shouldUseDefinitionQuestion,
   shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import {
@@ -120,6 +124,7 @@ import { Badge } from "@/components/ui/badge";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 
 import {
   formatCards,
@@ -137,7 +142,9 @@ import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import confetti from "canvas-confetti";
 import type {
+  DefinitionQuizQuestion,
   InventoryCard,
+  ListeningQuizQuestion,
   LanguageCode,
   LimitErrorCode,
   LocaleCode,
@@ -241,6 +248,16 @@ interface ChoiceQuizItem extends BaseQuizItem {
   question: QuizQuestion;
 }
 
+interface ListeningQuizItem extends BaseQuizItem {
+  questionType: "listening";
+  question: ListeningQuizQuestion;
+}
+
+interface DefinitionQuizItem extends BaseQuizItem {
+  questionType: "definition";
+  question: DefinitionQuizQuestion;
+}
+
 interface TextQuizItem extends BaseQuizItem {
   questionType: "text";
   question: { correctAnswer: string };
@@ -264,7 +281,7 @@ interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
   bonusQuestion: BonusQuestion;
 }
 
-type QuizItem = ChoiceQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
+type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
 
@@ -450,7 +467,6 @@ export function QuizStation({
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [chestOpened, setChestOpened] = useState(false);
   const [celebrationBasePoints, setCelebrationBasePoints] = useState<number | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAiValidating, setIsAiValidating] = useState(false);
   const [aiValidatingSentenceAnswer, setAiValidatingSentenceAnswer] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
@@ -644,6 +660,24 @@ export function QuizStation({
         const isLearningQuestion = mode === "active" && willLearn;
 
         if (isLearningQuestion) {
+          if (shouldUseDefinitionQuestion()) {
+            const definitionQuestion = buildDefinitionQuizQuestion(
+              card,
+              VOCABULARY_CARDS,
+              answerLocale,
+            );
+
+            if (definitionQuestion) {
+              return {
+                card,
+                inventoryCard,
+                questionType: "definition",
+                question: definitionQuestion,
+                willLearn: true,
+              };
+            }
+          }
+
           return {
             card,
             inventoryCard,
@@ -680,6 +714,23 @@ export function QuizStation({
             ),
             willLearn: false,
           };
+        }
+
+        if (shouldUseListeningQuestion()) {
+          const listeningQuestion = buildListeningQuizQuestion(
+            card,
+            [...VOCABULARY_CARDS, ...source],
+          );
+
+          if (listeningQuestion) {
+            return {
+              card,
+              inventoryCard,
+              questionType: "listening",
+              question: listeningQuestion,
+              willLearn: false,
+            };
+          }
         }
 
         return {
@@ -1077,6 +1128,17 @@ export function QuizStation({
       },
       { nextPath: `/learn?mode=${mode}` },
     );
+  }
+
+  function handleSkip() {
+    if (showingAnswer || isAiValidating) return;
+
+    const item = deck[currentIndex];
+    if (!item) return;
+
+    // Skipping follows the normal incorrect-answer path but deliberately
+    // bypasses text/sentence AI validation.
+    handleAnswer("", false);
   }
 
   async function handleAnswer(answer: string, isCorrect: boolean) {
@@ -1571,7 +1633,11 @@ export function QuizStation({
   const isBonusIntro = phase === "bonus-intro";
   const regularProgress = getRegularQuizProgress(deck, currentIndex);
   const isCardFirstQuestion =
-    !isBonusQuizItem(item) && (item.questionType === "choice" || item.questionType === "true-false");
+    !isBonusQuizItem(item) &&
+    (item.questionType === "choice" ||
+      item.questionType === "listening" ||
+      item.questionType === "definition" ||
+      item.questionType === "true-false");
   const activeCardFeedback = cardProgressFeedback?.cardId === item.card.id
     ? cardProgressFeedback
     : null;
@@ -1648,6 +1714,7 @@ export function QuizStation({
                   answerAccepted={lastAnswerCorrect}
                   canAdvance={!pendingStreak && !bonusFlightActive}
                   onSubmit={handleBonusAnswer}
+                  onSkip={handleSkip}
                   onNext={handleNext}
                   onFlightStart={() => {
                     bonusFlightBaseRef.current = bonusPointsDisplayed;
@@ -1675,6 +1742,27 @@ export function QuizStation({
                   showingAnswer={showingAnswer}
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
+                  onSkip={handleSkip}
+                  onNext={handleNext}
+                  showNextButton={!pendingStreak}
+                />
+              ) : item.questionType === "listening" ? (
+                <ListeningQuestion
+                  key={currentIndex}
+                  item={item}
+                  showingAnswer={showingAnswer}
+                  onAnswer={handleAnswer}
+                  onSkip={handleSkip}
+                  onNext={handleNext}
+                  showNextButton={!pendingStreak}
+                />
+              ) : item.questionType === "definition" ? (
+                <DefinitionQuestion
+                  key={currentIndex}
+                  item={item}
+                  showingAnswer={showingAnswer}
+                  onAnswer={handleAnswer}
+                  onSkip={handleSkip}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1685,6 +1773,7 @@ export function QuizStation({
                   showingAnswer={showingAnswer}
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
+                  onSkip={handleSkip}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1698,6 +1787,7 @@ export function QuizStation({
                   selectedAnswer={lastAnswer}
                   answerAccepted={lastAnswerCorrect}
                   onAnswer={handleSentenceCompletionAnswer}
+                  onSkip={handleSkip}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1711,6 +1801,7 @@ export function QuizStation({
                   isAiValidating={isAiValidating}
                   onChange={setTextAnswer}
                   onSubmitText={handleTextSubmit}
+                  onSkip={handleSkip}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                   isFirstQuestion={currentIndex === 0}
@@ -1769,20 +1860,16 @@ export function QuizStation({
             isBonusQuizItem(item)
               ? undefined
               : item.questionType === "text" || item.questionType === "sentence-completion"
-              ? item.question.correctAnswer
-              : item.questionType === "true-false"
-                ? item.question.actualMeaning
-                : undefined
+                ? item.question.correctAnswer
+                : item.questionType === "listening"
+                  ? item.question.correctAnswer
+                  : item.questionType === "true-false"
+                    ? item.question.actualMeaning
+                    : undefined
           }
           onNext={handleNext}
           showNextButton={!pendingStreak && !bonusFlightActive}
         />
-
-      <CardDetailsDialog
-        card={item.card}
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-      />
 
       <UpgradeDialog
         open={limitError !== null}
@@ -2493,13 +2580,17 @@ function QuizProgressHeader({
         <Badge className={cn("border-transparent", style.text)}>
           {bonusLabel ?? (item.questionType === "text"
             ? t("quiz.learningQuizBadge")
+            : item.questionType === "definition"
+              ? t("quiz.definitionBadge")
             : item.questionType === "sentence-completion"
               ? t("quiz.sentenceCompletionBadge")
-            : item.questionType === "true-false"
-              ? t("games.wordChallenge.title")
-              : mode === "learned"
-              ? t("quiz.reviewBadge")
-              : t("quiz.activeBadgeWithTier", { tier: item.card.tier }))}
+              : item.questionType === "listening"
+                ? t("quiz.listeningBadge")
+                : item.questionType === "true-false"
+                  ? t("games.wordChallenge.title")
+                  : mode === "learned"
+                    ? t("quiz.reviewBadge")
+                    : t("quiz.activeBadgeWithTier", { tier: item.card.tier }))}
         </Badge>
       </div>
     </div>
@@ -2583,12 +2674,120 @@ function QuizCounter({
   );
 }
 
+function ListeningQuestion({
+  item,
+  showingAnswer,
+  onAnswer,
+  onSkip,
+  onNext,
+  showNextButton = true,
+}: {
+  item: ListeningQuizItem;
+  showingAnswer: boolean;
+  onAnswer: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
+  onNext: () => void;
+  showNextButton?: boolean;
+}) {
+  const t = useT();
+  const { pronunciation, isLoading } = useCardPronunciation(item.card);
+
+  useEffect(() => {
+    speakCardTerm(item.card.term, item.card.language);
+  }, [item.card.id, item.card.language, item.card.term]);
+
+  return (
+    <div
+      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      data-quiz-question-content="listening"
+    >
+      <p className="text-center text-sm font-semibold text-foreground-muted">
+        {t("quiz.listeningPrompt")}
+      </p>
+
+      <div className="flex w-full flex-col items-center gap-3 rounded-xl border border-border bg-background-card px-4 py-5 text-center sm:px-6 sm:py-6">
+        <button
+          type="button"
+          onClick={() => speakCardTerm(item.card.term, item.card.language)}
+          className="inline-flex size-14 items-center justify-center rounded-full bg-brand text-brand-foreground transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-95"
+          aria-label={t("quiz.listeningAgain")}
+          title={t("quiz.listeningAgain")}
+        >
+          <Volume2 className="size-7" aria-hidden="true" />
+        </button>
+        <div className="flex min-h-8 items-center justify-center gap-2">
+          <span
+            className="text-xl font-semibold text-foreground sm:text-2xl"
+            data-quiz-listening-pronunciation
+          >
+            {pronunciation || "..."}
+          </span>
+          {isLoading ? (
+            <Loader2
+              className="size-4 animate-spin text-foreground-muted"
+              aria-hidden="true"
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {item.question.options.map((option, index) => {
+          const isCorrectOption = option === item.question.correctAnswer;
+          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+
+          return (
+            <QuizAnswerButton
+              key={option}
+              type="button"
+              data-quiz-listening-option={option}
+              onClick={() => onAnswer(option, isCorrectOption)}
+              disabled={showingAnswer}
+              interactive={!showingAnswer}
+              baseClassName={optionColor}
+              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
+              incorrectOverlayClassName="bg-red-950"
+              className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem]"
+            >
+              {option}
+            </QuizAnswerButton>
+          );
+        })}
+      </div>
+
+      <QuizSkipButton
+        className={cn(
+          "mt-1 w-full sm:mt-2",
+          showingAnswer && "invisible pointer-events-none",
+        )}
+        disabled={showingAnswer}
+        onClick={onSkip}
+      />
+
+      <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
+        <Button
+          className={cn(
+            "w-full bg-brand hover:bg-brand-hover max-lg:hidden",
+            (!showingAnswer || !showNextButton) && "invisible pointer-events-none",
+          )}
+          data-quiz-next-button
+          disabled={!showingAnswer || !showNextButton}
+          onClick={onNext}
+        >
+          {t("quiz.nextCard")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ChoiceQuestion({
   item,
   showingAnswer,
   showPrompt = true,
   promptClassName,
   onAnswer,
+  onSkip,
   onNext,
   showNextButton = true,
 }: {
@@ -2597,6 +2796,7 @@ function ChoiceQuestion({
   showPrompt?: boolean;
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -2659,6 +2859,107 @@ function ChoiceQuestion({
           );
         })}
       </div>
+
+      <QuizSkipButton
+        className={cn(
+          "mt-1 w-full sm:mt-2",
+          showingAnswer && "invisible pointer-events-none",
+        )}
+        disabled={showingAnswer}
+        onClick={onSkip}
+      />
+
+      <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
+        <Button
+          className={cn(
+            "w-full bg-brand hover:bg-brand-hover max-lg:hidden",
+            (!showingAnswer || !showNextButton) && "invisible pointer-events-none",
+          )}
+          data-quiz-next-button
+          disabled={!showingAnswer || !showNextButton}
+          onClick={onNext}
+        >
+          {t("quiz.nextCard")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DefinitionQuestion({
+  item,
+  showingAnswer,
+  onAnswer,
+  onSkip,
+  onNext,
+  showNextButton = true,
+}: {
+  item: DefinitionQuizItem;
+  showingAnswer: boolean;
+  onAnswer: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
+  onNext: () => void;
+  showNextButton?: boolean;
+}) {
+  const t = useT();
+  const question = item.question;
+
+  return (
+    <div
+      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      data-quiz-question-content="definition"
+    >
+      <p className="text-center text-sm font-semibold text-foreground-muted">
+        {t("quiz.definitionPrompt")}
+      </p>
+
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => speakCardTerm(item.card.term, item.card.language)}
+          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
+          aria-label={`${item.card.term} ${t("cards.speak")}`}
+          title={t("cards.speak")}
+        >
+          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
+        </button>
+        <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
+          {item.card.term}
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {question.options.map((option, index) => {
+          const isCorrectOption = option === question.correctAnswer;
+          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
+
+          return (
+            <QuizAnswerButton
+              key={option}
+              type="button"
+              data-quiz-definition-option={option}
+              onClick={() => onAnswer(option, isCorrectOption)}
+              disabled={showingAnswer}
+              interactive={!showingAnswer}
+              baseClassName={optionColor}
+              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
+              incorrectOverlayClassName="bg-red-950"
+              className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-sm font-semibold disabled:cursor-default sm:min-h-[5.25rem] sm:text-base"
+            >
+              {option}
+            </QuizAnswerButton>
+          );
+        })}
+      </div>
+
+      <QuizSkipButton
+        className={cn(
+          "mt-1 w-full sm:mt-2",
+          showingAnswer && "invisible pointer-events-none",
+        )}
+        disabled={showingAnswer}
+        onClick={onSkip}
+      />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
         <Button
@@ -2735,6 +3036,7 @@ function SentenceCompletionQuestion({
   selectedAnswer,
   answerAccepted,
   onAnswer,
+  onSkip,
   onNext,
   showNextButton = true,
 }: {
@@ -2745,6 +3047,7 @@ function SentenceCompletionQuestion({
   selectedAnswer: string | null;
   answerAccepted: boolean | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -2830,6 +3133,15 @@ function SentenceCompletionQuestion({
         })}
       </div>
 
+      <QuizSkipButton
+        className={cn(
+          "mt-1 w-full sm:mt-2",
+          showingAnswer && "invisible pointer-events-none",
+        )}
+        disabled={showingAnswer || isAiValidating}
+        onClick={onSkip}
+      />
+
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
         <Button
           className={cn(
@@ -2853,6 +3165,7 @@ function TrueFalseQuestion({
   showPrompt = true,
   promptClassName,
   onAnswer,
+  onSkip,
   onNext,
   showNextButton = true,
 }: {
@@ -2861,6 +3174,7 @@ function TrueFalseQuestion({
   showPrompt?: boolean;
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -2932,6 +3246,15 @@ function TrueFalseQuestion({
         ))}
       </div>
 
+      <QuizSkipButton
+        className={cn(
+          "mt-1 w-full sm:mt-2",
+          showingAnswer && "invisible pointer-events-none",
+        )}
+        disabled={showingAnswer}
+        onClick={onSkip}
+      />
+
       <div className="mt-1 flex min-h-10 w-full items-start justify-center sm:mt-2" data-quiz-next-slot>
         {showingAnswer ? (
           <div className="hidden w-full space-y-3 lg:block lg:mt-2">
@@ -2981,6 +3304,7 @@ function TextQuestion({
   isAiValidating,
   onChange,
   onSubmitText,
+  onSkip,
   onNext,
   showNextButton = true,
   isFirstQuestion = false,
@@ -2992,6 +3316,7 @@ function TextQuestion({
   isAiValidating: boolean;
   onChange: (value: string) => void;
   onSubmitText: (answer: string) => Promise<void>;
+  onSkip: () => void;
   onNext: () => void;
   showNextButton?: boolean;
   isFirstQuestion?: boolean;
@@ -3123,20 +3448,27 @@ function TextQuestion({
               </Button>
             </div>
           ) : (
-            <Button
-              className="mt-1 w-full sm:mt-2 lg:mt-4"
-              onClick={handleSubmit}
-              disabled={textAnswer.trim().length === 0 || isAiValidating}
-            >
-              {isAiValidating ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                  {t("quiz.aiValidating")}
-                </>
-              ) : (
-                t("quiz.submitAnswer")
-              )}
-            </Button>
+            <div className="mt-1 flex gap-2 sm:mt-2 lg:mt-4">
+              <QuizSkipButton
+                className="min-w-0 flex-1"
+                disabled={isAiValidating}
+                onClick={onSkip}
+              />
+              <Button
+                className="min-w-0 flex-[1.45]"
+                onClick={handleSubmit}
+                disabled={textAnswer.trim().length === 0 || isAiValidating}
+              >
+                {isAiValidating ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                    {t("quiz.aiValidating")}
+                  </>
+                ) : (
+                  t("quiz.submitAnswer")
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </div>

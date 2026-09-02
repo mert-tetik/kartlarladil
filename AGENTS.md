@@ -63,7 +63,7 @@ src/
 
 Her modül kendi veri mantığını, bileşenlerini ve testlerini içerir:
 
-- `cards/` — katalog, kart localization, kart çekme ve filtreleme, `VocabularyCardView`, `CardDetailsDialog`, `FilterControls`, `CardGrid`, `CardDrawWorkbench`; ayrıca `/create-card` için GPT destekli özel kart üretimi (`custom-card-registry.ts`, `custom-card-mapper.ts`, `create-card-prompts.ts`, `create-card-schema.ts`) ve önizleme.
+- `cards/` — katalog, kart localization, kart çekme ve filtreleme, `VocabularyCardView`, `FilterControls`, `CardGrid`, `CardDrawWorkbench`; ayrıca `/create-card` için GPT destekli özel kart üretimi (`custom-card-registry.ts`, `custom-card-mapper.ts`, `create-card-prompts.ts`, `create-card-schema.ts`) ve önizleme.
 - `inventory/` — yerel ve cloud envanter yönetimi, cloud Server Actions (`loadCustomCardsAction`, `createCustomCardAction` dahil), envanter seçicileri.
 - `quiz/` — quiz motoru (`quiz-engine.ts`), quiz istasyonu, cevap / eşik kuralları.
 - `auth/` — login, register, reset password, profile update, logout, hesap silme, onboarding, auth şemaları ve session yardımcıları.
@@ -171,8 +171,7 @@ Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse
 ### UI Sorumlulukları
 
 - `VocabularyCardView` kartın tüm fiziksel/3D görünümünü sahiplenir.
-- `CardDetailsDialog` 2 örnek ve gramer detayını gösterir.
-- Quiz sırasında detaylar cevap verilmeden gösterilmez; cevap sonrası öğrenme desteği olarak açılır.
+- Kart detayları ayrı bir dialog olarak sunulmaz; kart görünümü yalnızca çevirme, konuşma ve Ask aksiyonlarını barındırır.
 - `FilterControls` öğrenme dili/tier seçimini yapar; mobilde dil dropdown kullanır.
 - `CardDrawWorkbench` kart çekme arayüzünü sahiplenir; mobil alt barda "Draw Cards" ve kırmızı "Create Card" butonları yan yana bulunur.
 - `QuizStation` tüm quiz akışını sahiplenir (dil/tier seçimi, soru tipleri, sonuçlar).
@@ -236,7 +235,7 @@ Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse
 - Web sunucusu: `npm run start -- --hostname 127.0.0.1 --port 3000`.
 - `pretest:e2e` script'i önce `next build` çalıştırır.
 - Test dosyaları:
-  - `tests/e2e/app.spec.ts` — landing, auth formları, card-draw filtreleri, misafir yönlendirmeleri, kart detayları, mobil navigasyon.
+  - `tests/e2e/app.spec.ts` — landing, auth formları, card-draw filtreleri, misafir yönlendirmeleri ve mobil navigasyon.
   - `tests/e2e/card-dark-preview.spec.ts` — dark tema kart ekran görüntüsü.
   - `tests/e2e/themes.spec.ts` — tema görsel regresyon matrisi (`/card-draw` ve `/pricing` üzerinde 20 tema).
 

@@ -17,7 +17,7 @@ import { getUserEntitlements } from "@/features/subscriptions/subscription-servi
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_OUTPUT_TOKENS = 600;
+const MAX_OUTPUT_TOKENS = 1200;
 
 export async function POST(request: Request) {
   const user = await getCurrentAuthUser();

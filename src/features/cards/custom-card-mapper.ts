@@ -90,6 +90,14 @@ export function mapDbCustomCardToVocabularyCard(db: DbCustomCard): VocabularyCar
   const firstExample = examples[0];
   const example = firstExample?.sentence ?? "";
   const exampleTranslation = firstExample?.translation ?? "";
+  const rawDefinitions = (db.definitions as Record<string, unknown> | undefined) ?? {};
+  const definitionsByLocale: Partial<Record<LanguageCode, string>> = {};
+  for (const locale of LOCALE_CODES) {
+    const definition = rawDefinitions[locale];
+    if (typeof definition === "string" && definition.trim()) {
+      definitionsByLocale[locale] = definition.trim();
+    }
+  }
 
   return {
     id,
@@ -107,6 +115,7 @@ export function mapDbCustomCardToVocabularyCard(db: DbCustomCard): VocabularyCar
     example,
     exampleTranslation,
     examples,
+    definitionsByLocale,
     grammar,
     grammarByLocale,
   };

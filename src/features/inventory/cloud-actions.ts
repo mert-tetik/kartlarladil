@@ -530,6 +530,7 @@ export async function createCustomCardAction(input: {
       part_of_speech: input.draft.partOfSpeech,
       pronunciation: input.draft.pronunciation,
       examples: [{ example: input.draft.example, translation: input.draft.exampleTranslation }],
+      definitions: input.draft.definitions ?? {},
       grammar: { notes: input.draft.grammar },
       created_at: now,
     };
@@ -546,6 +547,7 @@ export async function createCustomCardAction(input: {
       part_of_speech: dbCustomCard.part_of_speech,
       pronunciation: dbCustomCard.pronunciation,
       examples: dbCustomCard.examples,
+      definitions: dbCustomCard.definitions,
       grammar: dbCustomCard.grammar,
     });
 

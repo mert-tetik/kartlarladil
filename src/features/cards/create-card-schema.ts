@@ -34,6 +34,12 @@ export const generatedCardSchema = z.object({
     ),
   example: z.string().min(1).max(300),
   exampleTranslation: z.string().min(1).max(300),
+  definitions: z
+    .record(z.string(), z.string().min(1).max(240))
+    .refine(
+      (record) => LOCALE_CODES.every((code) => record[code]?.trim().length > 0),
+      { message: "A definition is required for every supported locale" },
+    ),
   grammar: z.array(z.string().min(1).max(200)).max(4),
 });
 

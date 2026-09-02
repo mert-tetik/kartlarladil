@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
 const E2E_CARD = {
-  detailsName: "from Card details",
   flipName: "from: Click to flip",
   id: "en:A1:word:from:kelime",
   searchTerm: "from",
@@ -280,25 +279,6 @@ test("guest quiz start redirects to register with learn path", async ({ page }) 
   await page.getByRole("button", { name: "Start practice" }).click();
 
   await expect(page).toHaveURL(/\/register\?next=%2Flearn/);
-});
-
-test("card details show examples and grammar without auth", async ({ page }) => {
-  await page.goto("/card-draw", { waitUntil: "domcontentloaded" });
-
-  await page.getByPlaceholder(/Search word/).fill(E2E_CARD.searchTerm);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page.getByText("Click to flip").first()).toBeVisible();
-  await page.getByRole("button", { name: E2E_CARD.flipName }).click();
-  await page.getByRole("button", { name: E2E_CARD.detailsName, exact: true }).click();
-
-  const detailsDialog = page.getByRole("dialog", { name: /from Card details/ });
-
-  await expect(detailsDialog).toBeVisible();
-  await expect(page.getByRole("heading", { name: "5 example uses" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Grammar guide" })).toBeVisible();
-  await expect(detailsDialog.locator("article").first()).toContainText(E2E_CARD.term);
-  await expect(page.getByText(/is useful in a clear sentence/)).toHaveCount(0);
-  await expect(detailsDialog.getByText('What does "from" mean in this sentence?').first()).toBeVisible();
 });
 
 test("mobile navigation exposes the main sections", async ({ page, isMobile }) => {

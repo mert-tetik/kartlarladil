@@ -24,6 +24,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 
 export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const { locale } = useLocale();
@@ -76,6 +77,7 @@ export function BonusQuestionView({
   answerAccepted,
   canAdvance = true,
   onSubmit,
+  onSkip,
   onNext,
   onFlightStart,
   onPointArrive,
@@ -86,6 +88,7 @@ export function BonusQuestionView({
   answerAccepted: boolean | null;
   canAdvance?: boolean;
   onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
   onNext: () => void;
   onFlightStart?: () => void;
   onPointArrive?: (points: number) => void;
@@ -120,13 +123,13 @@ export function BonusQuestionView({
 
       <div ref={sourceRef} className="flex w-full flex-col items-center">
         {question.kind === "matching" ? (
-          <MatchingBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} />
+          <MatchingBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "sentence-order" ? (
-          <SentenceOrderBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} />
+          <SentenceOrderBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "category-sort" ? (
-          <CategorySortBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} />
+          <CategorySortBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : (
-          <ImposterBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} />
+          <ImposterBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         )}
       </div>
 
@@ -168,11 +171,13 @@ function MatchingBonus({
   showingAnswer,
   answerAccepted,
   onSubmit,
+  onSkip,
 }: {
   question: MatchingBonusQuestion;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
   onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
 }) {
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
@@ -252,6 +257,7 @@ function MatchingBonus({
         disabled={!canCheck || showingAnswer}
         onClick={() => onSubmit("matching", isCorrect)}
         showingAnswer={showingAnswer}
+        onSkip={onSkip}
       />
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{matchedMeaningIds.size}</span>
@@ -264,11 +270,13 @@ function SentenceOrderBonus({
   showingAnswer,
   answerAccepted,
   onSubmit,
+  onSkip,
 }: {
   question: SentenceOrderBonusQuestion;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
   onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedSet = new Set(selectedIds);
@@ -324,6 +332,7 @@ function SentenceOrderBonus({
         disabled={!canCheck || showingAnswer}
         onClick={() => onSubmit("sentence-order", isCorrect)}
         showingAnswer={showingAnswer}
+        onSkip={onSkip}
       />
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
     </div>
@@ -335,11 +344,13 @@ function CategorySortBonus({
   showingAnswer,
   answerAccepted,
   onSubmit,
+  onSkip,
 }: {
   question: CategorySortBonusQuestion;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
   onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
 }) {
   const { t } = useLocale();
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
@@ -419,6 +430,7 @@ function CategorySortBonus({
         disabled={!canCheck || showingAnswer}
         onClick={() => onSubmit("category-sort", isCorrect)}
         showingAnswer={showingAnswer}
+        onSkip={onSkip}
       />
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
     </div>
@@ -430,11 +442,13 @@ function ImposterBonus({
   showingAnswer,
   answerAccepted,
   onSubmit,
+  onSkip,
 }: {
   question: ImposterBonusQuestion;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
   onSubmit: (answer: string, isCorrect: boolean) => void;
+  onSkip: () => void;
 }) {
   const { locale, t } = useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -471,6 +485,7 @@ function ImposterBonus({
         disabled={!selectedId || showingAnswer}
         onClick={() => onSubmit("imposter", isCorrect)}
         showingAnswer={showingAnswer}
+        onSkip={onSkip}
       />
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{copy.imposterTitle}</span>
@@ -481,24 +496,33 @@ function ImposterBonus({
 function BonusCheckButton({
   disabled,
   onClick,
+  onSkip,
   showingAnswer,
 }: {
   disabled: boolean;
   onClick: () => void;
+  onSkip: () => void;
   showingAnswer: boolean;
 }) {
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
   return (
-    <Button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn("col-span-2 mt-1 w-full bg-brand text-brand-foreground hover:bg-brand-hover sm:col-span-3", showingAnswer && "invisible pointer-events-none")}
-      data-bonus-check
-    >
-      {copy.check}
-    </Button>
+    <div className={cn("mt-1 flex w-full gap-2", showingAnswer && "invisible pointer-events-none")}>
+      <QuizSkipButton
+        className="min-w-0 flex-1"
+        disabled={showingAnswer}
+        onClick={onSkip}
+      />
+      <Button
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className="min-w-0 flex-[1.45] bg-brand text-brand-foreground hover:bg-brand-hover"
+        data-bonus-check
+      >
+        {copy.check}
+      </Button>
+    </div>
   );
 }
 

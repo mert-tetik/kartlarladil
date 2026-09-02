@@ -1,20 +1,27 @@
+import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
+import { getCardDefinitionKey } from "@/data/card-definitions";
+import type { CardDefinitionMap } from "@/data/card-definitions";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import {
   addCardToInventory,
   applyAnswerProgress,
+  buildDefinitionQuizQuestion,
   buildQuizQuestion,
+  buildListeningQuizQuestion,
   buildSentenceCompletionQuizQuestion,
   buildTrueFalseQuizQuestion,
   createInventoryCard,
   getTierRequirement,
   isAnswerSimilarEnough,
   shouldUseSentenceCompletionQuestion,
+  shouldUseDefinitionQuestion,
+  shouldUseListeningQuestion,
   shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
-import type { InventoryCard } from "@/types/domain";
+import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 describe("quiz engine", () => {
   it("exposes the planned tier requirements", () => {
@@ -122,6 +129,141 @@ describe("quiz engine", () => {
     expect(question.options).toContain(question.correctAnswer);
   });
 
+  it("builds a four-option listening question from the target language", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.language === "en")!;
+    const question = buildListeningQuizQuestion(card, VOCABULARY_CARDS);
+
+    expect(question).not.toBeNull();
+    expect(question?.options).toHaveLength(4);
+    expect(question?.correctAnswer).toBe(card.term);
+    expect(question?.options).toContain(card.term);
+    expect(question?.options.every((option) =>
+      VOCABULARY_CARDS.some(
+        (candidate) => candidate.language === card.language && candidate.term === option,
+      ),
+    )).toBe(true);
+  });
+
+  it("uses a one-in-five probability for listening questions", () => {
+    const randomSpy = vi.spyOn(Math, "random");
+
+    randomSpy.mockReturnValue(0.19);
+    expect(shouldUseListeningQuestion()).toBe(true);
+
+    randomSpy.mockReturnValue(0.2);
+    expect(shouldUseListeningQuestion()).toBe(false);
+
+    randomSpy.mockRestore();
+  });
+
+  it("builds a definition question with one answer and three unique imposters", () => {
+    const cards = VOCABULARY_CARDS
+      .filter((item) => item.language === "en" && item.tier === "A1")
+      .slice(0, 4);
+    const [card, ...imposterCards] = cards;
+    expect(card).toBeDefined();
+    expect(imposterCards).toHaveLength(3);
+
+    const definitions = Object.fromEntries([
+      [card, "Bir şeyi geri vermek üzere geçici olarak almak."],
+      ...imposterCards.map((candidate, index) => [candidate, `Test definition ${index + 1}.`]),
+    ].map(([candidate, definition]) => [
+      getCardDefinitionKey(candidate as VocabularyCard),
+      { tr: definition },
+    ]));
+    const randomSpy = vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0.01)
+      .mockReturnValueOnce(0.34)
+      .mockReturnValueOnce(0.67)
+      .mockReturnValue(0.75);
+
+    const question = buildDefinitionQuizQuestion(card!, cards, "tr", definitions as CardDefinitionMap);
+
+    expect(question).not.toBeNull();
+    expect(question?.correctAnswer).toBe(question?.definition);
+    expect(question?.options).toHaveLength(4);
+    expect(new Set(question?.options).size).toBe(4);
+    expect(question?.options).toContain(question?.definition);
+
+    randomSpy.mockRestore();
+  });
+
+  it("uses the definition stored on a custom card", () => {
+    const baseCard = VOCABULARY_CARDS.find((item) => item.language === "en" && item.tier === "A1");
+    const candidateCards = VOCABULARY_CARDS
+      .filter((item) => item.language === "en" && item.tier === "A1")
+      .slice(0, 4);
+    expect(baseCard).toBeDefined();
+    expect(candidateCards).toHaveLength(4);
+
+    const customCard = {
+      ...baseCard!,
+      id: "custom:user-1:definition-card",
+      sourceKey: "custom:user-1:definition-card",
+      englishKey: "custom-definition-card",
+      term: "custom definition card",
+      definitionsByLocale: { tr: "Öğrenci tarafından oluşturulmuş özel bir kart." },
+    };
+    const definitions = Object.fromEntries(
+      candidateCards.map((candidate, index) => [
+        getCardDefinitionKey(candidate),
+        { tr: `Catalog definition ${index + 1}.` },
+      ]),
+    ) as CardDefinitionMap;
+    const randomSpy = vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.25)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValue(0);
+
+    const question = buildDefinitionQuizQuestion(customCard, candidateCards, "tr", definitions);
+
+    expect(question?.definition).toBe("Öğrenci tarafından oluşturulmuş özel bir kart.");
+    expect(question?.options).toContain(question?.definition);
+    expect(new Set(question?.options).size).toBe(4);
+
+    randomSpy.mockRestore();
+  });
+
+  it("does not build a definition question when the card definition is missing", () => {
+    const card = VOCABULARY_CARDS.find((item) => item.language === "en" && item.tier === "A1");
+    expect(card).toBeDefined();
+
+    const question = buildDefinitionQuizQuestion(card!, VOCABULARY_CARDS, "tr", {});
+
+    expect(question).toBeNull();
+  });
+
+  it("stops definition imposter selection after twenty unsuccessful attempts", () => {
+    const cards = VOCABULARY_CARDS
+      .filter((item) => item.language === "en" && item.tier === "A1")
+      .slice(0, 2);
+    const [card, imposter] = cards;
+    const definitions = {
+      [getCardDefinitionKey(card!)]: { tr: "Gerçek tanım." },
+      [getCardDefinitionKey(imposter!)]: { tr: "Tek imposter tanım." },
+    };
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const question = buildDefinitionQuizQuestion(card!, cards, "tr", definitions);
+
+    expect(question).toBeNull();
+    expect(randomSpy).toHaveBeenCalledTimes(20);
+    randomSpy.mockRestore();
+  });
+
+  it("uses definition questions exactly below the fifty percent cutoff", () => {
+    const randomSpy = vi.spyOn(Math, "random");
+
+    randomSpy.mockReturnValue(0.49);
+    expect(shouldUseDefinitionQuestion()).toBe(true);
+
+    randomSpy.mockReturnValue(0.5);
+    expect(shouldUseDefinitionQuestion()).toBe(false);
+
+    randomSpy.mockRestore();
+  });
+
   it("uses only the primary meaning for multiple choice answers", () => {
     const card = VOCABULARY_CARDS.find(
       (item) => item.language !== "tr" && item.translationMeaningsByLocale.tr.length > 1,
@@ -203,6 +345,32 @@ describe("quiz engine", () => {
     expect(question?.options).toHaveLength(6);
     expect(question?.options).toContain(card!.term);
     expect(question?.correctAnswer).toBe(card!.term);
+
+    randomSpy.mockRestore();
+  });
+
+  it("randomly selects between the card's usable example sentences", () => {
+    const baseCard = VOCABULARY_CARDS.find((item) => item.language === "en" && item.termKind === "word");
+    expect(baseCard).toBeDefined();
+
+    const card = {
+      ...baseCard!,
+      examples: [
+        { ...baseCard!.examples[0], sentence: `${baseCard!.term} appears in the first example.` },
+        { ...baseCard!.examples[1], sentence: `I used ${baseCard!.term} in the second example.` },
+      ],
+    };
+    const randomSpy = vi.spyOn(Math, "random");
+
+    randomSpy.mockReturnValue(0);
+    const firstQuestion = buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS);
+
+    randomSpy.mockReturnValue(0.999999);
+    const secondQuestion = buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS);
+
+    expect(firstQuestion?.sentenceWithBlank).toBe("_____ appears in the first example.");
+    expect(secondQuestion?.sentenceWithBlank).toBe("I used _____ in the second example.");
+    expect(firstQuestion?.sentenceWithBlank).not.toBe(secondQuestion?.sentenceWithBlank);
 
     randomSpy.mockRestore();
   });

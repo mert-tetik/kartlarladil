@@ -59,6 +59,7 @@ export function buildPreviewVocabularyCard(generated: GeneratedCardResponse): Vo
     example: generated.example,
     exampleTranslation: generated.exampleTranslation,
     examples,
+    definitionsByLocale: generated.definitions,
     grammar,
     grammarByLocale,
   };

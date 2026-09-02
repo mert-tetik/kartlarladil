@@ -17,6 +17,8 @@ describe("mobile custom card target language", () => {
     const instructions = buildCreateCardInstructions({ locale: "en", targetLanguage: "ru" });
 
     expect(instructions).toContain('Set language to exactly "ru"');
+    expect(instructions).toContain('"definitions"');
+    expect(instructions).toContain("definition for every locale key");
     expect(instructions).toContain('Russian "ya ne znayu" becomes term "я не знаю"');
     expect(buildCreateCardInput({ locale: "en", term: "ya ne znayu", targetLanguage: "ru" })).toContain("Generate a ru vocabulary card");
   });

@@ -76,8 +76,7 @@ Navbar, account menu ve `/profile` ayni progress kaynagini kullanir.
 ## UI Boundaries
 
 - `VocabularyCardView` kartin tum fiziksel/3D gorunumunu sahiplenir.
-- `CardDetailsDialog` 2 ornek ve gramer detayini gosterir.
-- Quiz cevap verilmeden detay acmaz; cevap sonrasi detay butonu gosterir.
+- Kart detaylari ayri bir dialog olarak sunulmaz; kart gorunumu cevirme, konusma ve Ask aksiyonlarini sahiplenir.
 - `FilterControls` ogrenme dili/tier secimini yapar; mobilde dil dropdown kullanir.
 
 ## Auth Boundary

@@ -29,6 +29,7 @@ describe("card pronunciation helpers", () => {
       translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "actually"])),
       example: "Actually, I agree.",
       exampleTranslation: "Aslında, katılıyorum.",
+      definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "A test definition."])),
       grammar: ["An adverb."],
     };
 

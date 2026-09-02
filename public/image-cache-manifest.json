@@ -1,5 +1,5 @@
 {
-  "version": "2afc34b403fe0a9c2bc67d417ef802ff0d4583a44ce374b28a94a250252db125",
+  "version": "edf2126d2e2a5021ac85dcd53465600c6294f0dcc52e18c2b665ce449975e344",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -938,16 +938,16 @@
       "revision": "2a0546a163e767d0ea160bd03f4a4ff2269d1c0bc26942bcb2f2d47a85a55d80"
     },
     {
+      "url": "/pricing-perks/durum-ai-practice.png",
+      "revision": "6055dfb39e952998fb98419a40622d6f04c4ce946e55486668f7629e088147c3"
+    },
+    {
       "url": "/pricing-perks/games.png",
       "revision": "856db67d5886c3083f6e51089c769fb3fc55027272e6476292659a139b612765"
     },
     {
       "url": "/pricing-perks/learn-cards.png",
       "revision": "d6672096618d4543570ea9468e749de00f3b7ddb82b860d6d45c22db96b5bd13"
-    },
-    {
-      "url": "/pricing-perks/monthly-ai.png",
-      "revision": "4626036572aff9a887fb2d94a60aab9d144ddfa03853e96ff6bfe79be96f7bf9"
     },
     {
       "url": "/pricing-perks/new-cards.png",
@@ -962,12 +962,12 @@
       "revision": "247b02811c7eb81cd78dd9b889c7beecd0f17caf5fa403c0d7049bd1f1382312"
     },
     {
-      "url": "/pricing-perks/review-cards.png",
-      "revision": "f7a61f1cfb1d77588735a82615be07f62755a9b42c40da165fc664f20e323a25"
+      "url": "/pricing-perks/review-cards2.png",
+      "revision": "d74bb34598cba7172d0b39d587f4a98ab8b2ba757049fb181d6570a50b0179d3"
     },
     {
-      "url": "/pricing-perks/themes.png",
-      "revision": "e331c980c9444675f14f82cf50734bed4ad5b049200433e1c3ff9000e4500dda"
+      "url": "/pricing-perks/themes2.png",
+      "revision": "a1c219b4f95257e6e3018ad180c9191bde4fb1be2c2c547bbb87445503a93d95"
     },
     {
       "url": "/profile-pictures/pp_1.webp",

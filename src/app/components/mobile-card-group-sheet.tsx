@@ -297,7 +297,7 @@ export function MobileCardGroupSheet({
                             setSelectedCard(card);
                           }
                         }}
-                        aria-label={`${card.term} ${t("cards.details")}`}
+                        aria-label={card.term}
                         className={cn("flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-white transition-transform duration-200 hover:scale-[1.01]", tierStyle.accent)}
                       >
                         <span className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white", tierStyle.softAccent)}>

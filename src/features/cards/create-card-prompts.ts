@@ -35,6 +35,9 @@ ${LOCALE_CODES.map((code) => `    "${code}": "translation in ${code}"`).join(",\
   },
   "example": "one natural example sentence in the target language",
   "exampleTranslation": "English translation of the example sentence",
+  "definitions": {
+${LOCALE_CODES.map((code) => `    "${code}": "a short, clear definition of the target term written in ${code}"`).join(",\n")}
+  },
   "grammar": ["1-2 short grammar or usage notes in English"]
 }
 
@@ -42,6 +45,8 @@ Rules:
 - ${targetLanguage ? `Set language to exactly "${targetLanguage}". Do not choose another target language.` : "Choose an appropriate target language and CEFR tier for the requested term."}
 - ${targetLanguage && NATIVE_WRITING_SYSTEMS[targetLanguage] ? `When the requested term is written as a Latin-script transliteration, convert term to its canonical ${NATIVE_WRITING_SYSTEMS[targetLanguage]} spelling. Preserve the original meaning; keep the romanization only in pronunciation when useful. For example, Russian "ya ne znayu" becomes term "я не знаю".` : "Keep term in the target language's standard spelling."}
 - The example must use the term naturally.
+- Provide one short, clear, single-meaning definition for every locale key in definitions. Write each definition in that locale's language; explain the term rather than translating it.
+- Definitions must not include examples, synonyms, numbering, labels, notes, or meta commentary.
 - Always provide a pronunciation. It must show how a Turkish speaker should read the term in the selected target language, not in English unless that target language is English.
 - Use lowercase Latin letters, Turkish dotless ı, spaces, apostrophes, and hyphens only. Always write w as v, write the ç sound as ch, and write the ş sound as sh. Never output w, ç, or ş in pronunciation.
 - Do not use IPA, slashes, brackets, stress marks, source-language scripts, accented letters, digits, or punctuation.

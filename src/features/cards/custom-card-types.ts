@@ -13,6 +13,7 @@ export interface DbCustomCard {
   part_of_speech: string;
   pronunciation: string;
   examples: unknown;
+  definitions?: unknown;
   grammar: unknown;
   created_at: string;
 }
@@ -24,6 +25,7 @@ export interface GeneratedCardDraft {
   translations: Record<string, string>;
   example: string;
   exampleTranslation: string;
+  definitions?: Record<string, string>;
   grammar: string[];
   termKind: TermKind;
 }

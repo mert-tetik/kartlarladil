@@ -840,7 +840,7 @@ const MOBILE_PERK_ARTWORK = [
   },
   {
     id: "review-cards",
-    image: "/pricing-perks/review-cards.png",
+    image: "/pricing-perks/review-cards2.png",
     titleKey: "pricing.featureLearnedReview",
     descriptionKey: "pricing.featureLearnedReviewDescription",
   },
@@ -858,7 +858,7 @@ const MOBILE_PERK_ARTWORK = [
   },
   {
     id: "themes",
-    image: "/pricing-perks/themes.png",
+    image: "/pricing-perks/themes2.png",
     titleKey: "pricing.featureThemes",
     descriptionKey: "pricing.featureThemesDescription",
   },
@@ -869,10 +869,10 @@ const MOBILE_PERK_ARTWORK = [
     descriptionKey: "pricing.featurePrioritySupportDescription",
   },
   {
-    id: "monthly-ai",
-    image: "/pricing-perks/monthly-ai.png",
-    titleKey: "nav.aiPractice",
-    descriptionKey: "pricing.featureAiMonthly",
+    id: "scenario-ai",
+    image: "/pricing-perks/durum-ai-practice.png",
+    titleKey: "pricing.featureAiScenarios",
+    descriptionKey: "pricing.featureAiScenariosDescription",
   },
 ] as const;
 
@@ -1028,9 +1028,9 @@ function MobilePricingPerkCarousel({
           const isHighlighted = renderIndex === highlightRenderIndex;
           const description = perk.id === "practice"
             ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
-            : perk.id === "monthly-ai"
-              ? t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
-              : t(perk.descriptionKey);
+            : perk.id === "scenario-ai"
+              ? t("pricing.featureAiScenariosDescription", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
+            : t(perk.descriptionKey);
 
           return (
             <article

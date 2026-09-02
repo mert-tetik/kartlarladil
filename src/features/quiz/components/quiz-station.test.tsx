@@ -57,6 +57,15 @@ vi.mock("@/features/quiz/actions", () => ({
   awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
 }));
 
+vi.mock("@/data/card-definitions.generated", () => ({
+  CARD_DEFINITIONS: {
+    "en:A1:word:about:adverb": { tr: "Bir konu hakkında veya yaklaşık olarak." },
+    "en:A1:word:above:adverb": { tr: "Daha yüksek bir yerde veya konumda." },
+    "en:A1:word:across:adverb": { tr: "Bir taraftan diğer tarafa geçerek." },
+    "en:A1:word:action:noun": { tr: "Bir şeyi yapmak için gerçekleştirilen hareket." },
+  },
+}));
+
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
 }));
@@ -639,6 +648,93 @@ describe("QuizStation sound feedback", () => {
     expect(wrongOption).toBeDefined();
     fireEvent.click(wrongOption!);
 
+    expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+  });
+
+  it("renders a listening question with pronunciation options and a skip action", async () => {
+    mathRandomSpy
+      .mockReset()
+      .mockReturnValueOnce(0.75)
+      .mockReturnValueOnce(0.75)
+      .mockReturnValueOnce(0.1)
+      .mockReturnValue(0.75);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="listening"]')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector("[data-quiz-listening-pronunciation]")).toHaveTextContent(
+      testCard.pronunciation,
+    );
+    expect(document.querySelectorAll("[data-quiz-listening-option]")).toHaveLength(4);
+
+    fireEvent.click(document.querySelector<HTMLButtonElement>("[data-quiz-skip]")!);
+    expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
+  });
+
+  it("renders a definition question instead of the final card-learning text question", async () => {
+    mathRandomSpy
+      .mockReset()
+      .mockReturnValueOnce(0.1)
+      .mockReturnValueOnce(0.01)
+      .mockReturnValueOnce(0.34)
+      .mockReturnValueOnce(0.67)
+      .mockReturnValue(0.75);
+
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="definition"]')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Bu kelimenin doğru tanımı hangisi?")).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-quiz-definition-option]")).toHaveLength(4);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-quiz-definition-option="Bir konu hakkında veya yaklaşık olarak."]',
+      )!,
+    );
+
+    expect(playSoundEffect).toHaveBeenCalledWith("correct");
+  });
+
+  it("skips a text question without calling AI validation", async () => {
+    const fetchSpy = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }),
+    );
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr");
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await screen.findByRole("textbox");
+    fireEvent.click(document.querySelector<HTMLButtonElement>("[data-quiz-skip]")!);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
   });
 

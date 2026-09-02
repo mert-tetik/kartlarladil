@@ -206,6 +206,7 @@ describe("custom card mapper", () => {
       part_of_speech: "noun",
       pronunciation: "/ˈkʌstəm/",
       examples: [{ example: "This is a custom card.", translation: "Bu özel bir kart." }],
+      definitions: { en: "A card created by the learner.", tr: "Öğrenci tarafından oluşturulan kart." },
       grammar: { notes: ["Often used as an adjective."] },
       created_at: "2026-01-01T00:00:00Z",
     };
@@ -214,6 +215,8 @@ describe("custom card mapper", () => {
     expect(card.id).toBe(db.source_key);
     expect(card.term).toBe("custom");
     expect(card.example).toBe("This is a custom card.");
+    expect(card.definitionsByLocale?.en).toBe("A card created by the learner.");
+    expect(card.definitionsByLocale?.tr).toBe("Öğrenci tarafından oluşturulan kart.");
     expect(card.grammar.rules).toContain("Often used as an adjective.");
   });
 
@@ -251,6 +254,7 @@ describe("custom card preview", () => {
       translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, locale === "en" ? "journey" : "x"])),
       example: "The journey was long.",
       exampleTranslation: "Yolculuk uzundu.",
+      definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "A journey from one place to another."])),
       grammar: ["Countable noun"],
     });
 

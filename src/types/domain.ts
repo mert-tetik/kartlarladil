@@ -76,6 +76,7 @@ export interface VocabularyCard {
   example: string;
   exampleTranslation: string;
   examples: CardExample[];
+  definitionsByLocale?: Partial<Record<LocaleCode, string>>;
   grammar: GrammarGuide;
   grammarByLocale: Record<LocaleCode, GrammarGuide>;
 }
@@ -100,6 +101,19 @@ export interface PracticeAttempt {
 
 export interface QuizQuestion {
   card: VocabularyCard;
+  options: string[];
+  correctAnswer: string;
+}
+
+export interface ListeningQuizQuestion {
+  card: VocabularyCard;
+  options: string[];
+  correctAnswer: string;
+}
+
+export interface DefinitionQuizQuestion {
+  card: VocabularyCard;
+  definition: string;
   options: string[];
   correctAnswer: string;
 }

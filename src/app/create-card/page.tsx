@@ -147,6 +147,7 @@ export default function CreateCardPage() {
           translations: aiResponse.translations,
           example: aiResponse.example,
           exampleTranslation: aiResponse.exampleTranslation,
+          definitions: aiResponse.definitions,
           grammar: aiResponse.grammar,
           termKind: aiResponse.termKind,
         },

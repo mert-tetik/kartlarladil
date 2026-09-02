@@ -20,6 +20,8 @@ const MOBILE_BOTTOM_SHEET_PROTRUSION = {
 
 const MOBILE_BOTTOM_SHEET_GRADIENT_START = "color-mix(in srgb, var(--brand) 92%, white)";
 const MOBILE_BOTTOM_SHEET_CIRCLE_COLOR = "color-mix(in srgb, var(--brand) 62%, white)";
+const MOBILE_BOTTOM_SHEET_ANIMATION_MS = 360;
+const MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS = 32;
 
 export interface MobileBottomSheetShellProps {
   open: boolean;
@@ -60,32 +62,43 @@ export function MobileBottomSheetShell({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
   const dragOffsetY = useRef(0);
+  const onEnteredRef = useRef(onEntered);
+  onEnteredRef.current = onEntered;
 
   useEffect(() => {
     if (open) {
       let enterFrame: number | null = null;
+      let enterTimer: number | null = null;
+      setEntered(false);
       const mountFrame = window.requestAnimationFrame(() => {
         setMounted(true);
-        enterFrame = window.requestAnimationFrame(() => {
-          setEntered(true);
-          onEntered?.();
-        });
+        // Give the browser a painted, off-screen state before changing the
+        // transform. Without this separation the first frame is skipped and
+        // the sheet appears to teleport into place.
+        enterTimer = window.setTimeout(() => {
+          enterFrame = window.requestAnimationFrame(() => {
+            void document.body.offsetHeight;
+            setEntered(true);
+            onEnteredRef.current?.();
+          });
+        }, MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS);
       });
 
       return () => {
         window.cancelAnimationFrame(mountFrame);
-        if (enterFrame) window.cancelAnimationFrame(enterFrame);
+        if (enterFrame !== null) window.cancelAnimationFrame(enterFrame);
+        if (enterTimer !== null) window.clearTimeout(enterTimer);
       };
     }
 
     const exitFrame = window.requestAnimationFrame(() => setEntered(false));
-    const timer = window.setTimeout(() => setMounted(false), 300);
+    const timer = window.setTimeout(() => setMounted(false), MOBILE_BOTTOM_SHEET_ANIMATION_MS);
 
     return () => {
       window.cancelAnimationFrame(exitFrame);
       window.clearTimeout(timer);
     };
-  }, [onEntered, open]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -148,7 +161,7 @@ export function MobileBottomSheetShell({
   const content = (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
+        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
         entered ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!open}
@@ -162,7 +175,7 @@ export function MobileBottomSheetShell({
         type="button"
         onClick={closeSheet}
         className={cn(
-          "absolute inset-0 transition-opacity duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
+          "absolute inset-0 transition-opacity duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           showBackdrop ? "bg-black/60" : "bg-transparent",
           entered ? "opacity-100" : "opacity-0",
         )}
@@ -174,11 +187,10 @@ export function MobileBottomSheetShell({
         data-mobile-bottom-sheet-panel
         className={cn(
           "relative z-10 isolate flex max-h-[calc(100dvh-var(--app-header-height)-3rem)] w-full flex-col overflow-visible rounded-t-[2rem] bg-brand text-brand-foreground shadow-sm",
-          entered ? "translate-y-0" : "translate-y-full",
-          isDragging ? "transition-none" : "transition-transform duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
+          isDragging ? "transition-none" : "transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           panelClassName,
         )}
-        style={entered ? { transform: `translateY(${dragY}px)` } : undefined}
+        style={{ transform: entered ? `translateY(${dragY}px)` : "translateY(100%)" }}
       >
         <div
           aria-hidden="true"

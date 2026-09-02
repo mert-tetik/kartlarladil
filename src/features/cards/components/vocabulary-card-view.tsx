@@ -1,14 +1,13 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Check, Info, LoaderCircle, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
+import { Check, LoaderCircle, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
-import { CardDetailsDialog } from "@/features/cards/components/card-details-dialog";
 import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
@@ -204,7 +203,6 @@ export function VocabularyCardView({
   onClick,
   staticFace = false,
 }: VocabularyCardViewProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
   const displayCard =
     resolvedPronunciation && resolvedPronunciation !== card.pronunciation
@@ -232,12 +230,6 @@ export function VocabularyCardView({
     }
   }
 
-  function openDetails() {
-    if (!isControlled && flippable && isFaceUp) {
-      setDetailsOpen(true);
-    }
-  }
-
   function handleCardClick() {
     if (isControlled) {
       onClick?.();
@@ -250,8 +242,6 @@ export function VocabularyCardView({
 
     if (!isFaceUp) {
       revealFront();
-    } else {
-      openDetails();
     }
   }
 
@@ -264,8 +254,6 @@ export function VocabularyCardView({
 
     if (!isFaceUp) {
       revealFront();
-    } else {
-      openDetails();
     }
   }
 
@@ -283,7 +271,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onShowDetails={() => setDetailsOpen(true)} onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
       </article>
     );
   }
@@ -314,7 +302,6 @@ export function VocabularyCardView({
           owned={owned}
           allowOwnedAdd={allowOwnedAdd}
           isFaceUp={isFaceUp}
-          onShowDetails={() => setDetailsOpen(true)}
           onAdd={onAdd}
           onSkip={onSkip}
           showActions={showActions}
@@ -342,7 +329,6 @@ export function VocabularyCardView({
         />
       </div>
 
-      <CardDetailsDialog card={displayCard} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </article>
   );
 }
@@ -353,7 +339,6 @@ function CardFront({
   owned,
   allowOwnedAdd = false,
   isFaceUp,
-  onShowDetails,
   onAdd,
   onSkip,
   showActions = true,
@@ -375,7 +360,6 @@ function CardFront({
   owned?: boolean;
   allowOwnedAdd?: boolean;
   isFaceUp: boolean;
-  onShowDetails: () => void;
   onAdd?: () => void;
   onSkip?: () => void;
   showActions?: boolean;
@@ -412,11 +396,6 @@ function CardFront({
     : translationLocale
       ? getCardTranslationMeanings(card, translationLocale).slice(0, 3).join(", ")
       : getCardTranslation(card, locale);
-
-  function handleDetailsClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    onShowDetails();
-  }
 
   function handleSkipClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
@@ -469,17 +448,6 @@ function CardFront({
         ) : null}
         {showActions && !frontMinimal ? (
           <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              aria-label={`${card.term} ${t("cards.details")}`}
-              title={t("cards.details")}
-              onClick={handleDetailsClick}
-              className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
-            >
-              <Info className="size-4" aria-hidden="true" />
-            </Button>
             <Button
               type="button"
               variant="secondary"

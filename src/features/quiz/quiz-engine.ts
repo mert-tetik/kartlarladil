@@ -1,8 +1,13 @@
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
+import {
+  buildDefinitionQuizQuestion,
+  shouldUseDefinitionQuestion,
+} from "@/features/quiz/definition-quiz";
 import { createId } from "@/lib/utils";
 import type {
   InventoryCard,
+  ListeningQuizQuestion,
   LocaleCode,
   PracticeAttempt,
   PracticeMode,
@@ -15,6 +20,9 @@ import type {
 
 export const TRUE_FALSE_FIRST_LEARN_PROBABILITY = 0.5;
 export const SENTENCE_COMPLETION_PROBABILITY = 1 / 3;
+export const LISTENING_QUESTION_PROBABILITY = 1 / 5;
+
+export { buildDefinitionQuizQuestion, shouldUseDefinitionQuestion };
 
 export function getTierRequirement(tier: Tier) {
   return TIER_REQUIREMENTS[tier];
@@ -91,6 +99,39 @@ export function buildQuizQuestion(card: VocabularyCard, allCards: VocabularyCard
   };
 }
 
+export function buildListeningQuizQuestion(
+  card: VocabularyCard,
+  allCards: VocabularyCard[],
+): ListeningQuizQuestion | null {
+  const distractors = Array.from(
+    new Set(
+      allCards
+        .filter(
+          (candidate) =>
+            candidate.id !== card.id &&
+            candidate.language === card.language &&
+            candidate.termKind === card.termKind,
+        )
+        .map((candidate) => candidate.term.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (distractors.length < 3 || !card.term.trim()) {
+    return null;
+  }
+
+  return {
+    card,
+    options: shuffle([card.term, ...shuffle(distractors).slice(0, 3)]),
+    correctAnswer: card.term,
+  };
+}
+
+export function shouldUseListeningQuestion() {
+  return Math.random() < LISTENING_QUESTION_PROBABILITY;
+}
+
 export function buildTrueFalseQuizQuestion(
   card: VocabularyCard,
   allCards: VocabularyCard[],
@@ -135,9 +176,12 @@ export function buildSentenceCompletionQuizQuestion(
     return null;
   }
 
-  const sentenceWithBlank = card.examples
+  const sentenceCandidates = card.examples
     .map((example) => replaceTermWithBlank(example.sentence, card.term))
-    .find((sentence): sentence is string => sentence !== null);
+    .filter((sentence): sentence is string => sentence !== null);
+  const sentenceWithBlank = sentenceCandidates.length
+    ? sentenceCandidates[Math.floor(Math.random() * sentenceCandidates.length)] ?? null
+    : null;
 
   if (!sentenceWithBlank) {
     return null;
