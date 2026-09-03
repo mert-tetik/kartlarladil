@@ -290,6 +290,12 @@ type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQu
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
 
+interface QuizRerollAction {
+  onReroll: () => void;
+  disabled: boolean;
+  loading: boolean;
+}
+
 interface QuizCardProgressFeedback {
   id: string;
   cardId: string;
@@ -1710,6 +1716,18 @@ export function QuizStation({
   const cardFooterProgressCount = cardFeedbackStage === "updating"
     ? activeCardFeedback?.targetCount
     : activeCardFeedback?.baseCount;
+  const rerollAction: QuizRerollAction | undefined = !isBonusQuizItem(item)
+    ? {
+        onReroll: () => void handleRerollQuestion(),
+        disabled:
+          !user ||
+          rerollingQuestion ||
+          showingAnswer ||
+          isAiValidating ||
+          (user.profile.greenGems ?? 0) < GEM_COSTS.rerollQuestion.amount,
+        loading: rerollingQuestion,
+      }
+    : undefined;
 
   return (
     <>
@@ -1767,25 +1785,6 @@ export function QuizStation({
           >
             <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
             <QuizProgressHeader mode={mode} item={item} />
-            {!isBonusQuizItem(item) ? (
-              <div className="flex w-full justify-end max-lg:pr-1 lg:px-5" data-quiz-reroll-action>
-                <button
-                  type="button"
-                  onClick={() => void handleRerollQuestion()}
-                  disabled={!user || rerollingQuestion || showingAnswer || isAiValidating || (user?.profile.greenGems ?? 0) < GEM_COSTS.rerollQuestion.amount}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
-                  aria-label={t("quiz.rerollQuestion")}
-                  data-quiz-reroll
-                >
-                  {rerollingQuestion ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
-                  <span>{t("quiz.rerollQuestion")}</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    {GEM_COSTS.rerollQuestion.amount}
-                    <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
-                  </span>
-                </button>
-              </div>
-            ) : null}
             <div className="flex flex-1 flex-col justify-center">
               {isBonusQuizItem(item) ? (
                 <BonusQuestionView
@@ -1824,6 +1823,7 @@ export function QuizStation({
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1834,6 +1834,7 @@ export function QuizStation({
                   showingAnswer={showingAnswer}
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1844,6 +1845,7 @@ export function QuizStation({
                   showingAnswer={showingAnswer}
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1855,6 +1857,7 @@ export function QuizStation({
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1869,6 +1872,7 @@ export function QuizStation({
                   answerAccepted={lastAnswerCorrect}
                   onAnswer={handleSentenceCompletionAnswer}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                 />
@@ -1883,6 +1887,7 @@ export function QuizStation({
                   onChange={setTextAnswer}
                   onSubmitText={handleTextSubmit}
                   onSkip={handleSkip}
+                  rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                   isFirstQuestion={currentIndex === 0}
@@ -2755,11 +2760,66 @@ function QuizCounter({
   );
 }
 
+function QuizRerollButton({
+  action,
+  hidden = false,
+}: {
+  action: QuizRerollAction;
+  hidden?: boolean;
+}) {
+  const t = useT();
+
+  return (
+    <button
+      type="button"
+      onClick={action.onReroll}
+      disabled={action.disabled || hidden}
+      className={cn(
+        "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+        hidden && "invisible pointer-events-none",
+      )}
+      aria-label={t("quiz.rerollQuestion")}
+      data-quiz-reroll
+    >
+      {action.loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
+      <span className="min-w-0">{t("quiz.rerollQuestion")}</span>
+      <span className="inline-flex shrink-0 items-center gap-0.5">
+        {GEM_COSTS.rerollQuestion.amount}
+        <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
+      </span>
+    </button>
+  );
+}
+
+function QuizQuestionActionRow({
+  onSkip,
+  skipDisabled,
+  rerollAction,
+  hidden = false,
+}: {
+  onSkip: () => void;
+  skipDisabled: boolean;
+  rerollAction?: QuizRerollAction;
+  hidden?: boolean;
+}) {
+  return (
+    <div className="mt-1 flex w-full gap-2 sm:mt-2" data-quiz-question-actions data-quiz-reroll-action>
+      <QuizSkipButton
+        className={cn("min-w-0 flex-1", hidden && "invisible pointer-events-none")}
+        disabled={skipDisabled || hidden}
+        onClick={onSkip}
+      />
+      {rerollAction ? <QuizRerollButton action={rerollAction} hidden={hidden} /> : null}
+    </div>
+  );
+}
+
 function ListeningQuestion({
   item,
   showingAnswer,
   onAnswer,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
 }: {
@@ -2767,6 +2827,7 @@ function ListeningQuestion({
   showingAnswer: boolean;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -2836,13 +2897,11 @@ function ListeningQuestion({
         })}
       </div>
 
-      <QuizSkipButton
-        className={cn(
-          "mt-1 w-full sm:mt-2",
-          showingAnswer && "invisible pointer-events-none",
-        )}
-        disabled={showingAnswer}
-        onClick={onSkip}
+      <QuizQuestionActionRow
+        skipDisabled={showingAnswer}
+        rerollAction={rerollAction}
+        hidden={showingAnswer}
+        onSkip={onSkip}
       />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
@@ -2869,6 +2928,7 @@ function ChoiceQuestion({
   promptClassName,
   onAnswer,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
 }: {
@@ -2878,6 +2938,7 @@ function ChoiceQuestion({
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -2941,13 +3002,11 @@ function ChoiceQuestion({
         })}
       </div>
 
-      <QuizSkipButton
-        className={cn(
-          "mt-1 w-full sm:mt-2",
-          showingAnswer && "invisible pointer-events-none",
-        )}
-        disabled={showingAnswer}
-        onClick={onSkip}
+      <QuizQuestionActionRow
+        skipDisabled={showingAnswer}
+        rerollAction={rerollAction}
+        hidden={showingAnswer}
+        onSkip={onSkip}
       />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
@@ -2972,6 +3031,7 @@ function DefinitionQuestion({
   showingAnswer,
   onAnswer,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
 }: {
@@ -2979,6 +3039,7 @@ function DefinitionQuestion({
   showingAnswer: boolean;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -3033,13 +3094,11 @@ function DefinitionQuestion({
         })}
       </div>
 
-      <QuizSkipButton
-        className={cn(
-          "mt-1 w-full sm:mt-2",
-          showingAnswer && "invisible pointer-events-none",
-        )}
-        disabled={showingAnswer}
-        onClick={onSkip}
+      <QuizQuestionActionRow
+        skipDisabled={showingAnswer}
+        rerollAction={rerollAction}
+        hidden={showingAnswer}
+        onSkip={onSkip}
       />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
@@ -3118,6 +3177,7 @@ function SentenceCompletionQuestion({
   answerAccepted,
   onAnswer,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
 }: {
@@ -3129,6 +3189,7 @@ function SentenceCompletionQuestion({
   answerAccepted: boolean | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -3214,13 +3275,11 @@ function SentenceCompletionQuestion({
         })}
       </div>
 
-      <QuizSkipButton
-        className={cn(
-          "mt-1 w-full sm:mt-2",
-          showingAnswer && "invisible pointer-events-none",
-        )}
-        disabled={showingAnswer || isAiValidating}
-        onClick={onSkip}
+      <QuizQuestionActionRow
+        skipDisabled={showingAnswer || isAiValidating}
+        rerollAction={rerollAction}
+        hidden={showingAnswer}
+        onSkip={onSkip}
       />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
@@ -3247,6 +3306,7 @@ function TrueFalseQuestion({
   promptClassName,
   onAnswer,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
 }: {
@@ -3256,6 +3316,7 @@ function TrueFalseQuestion({
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
 }) {
@@ -3327,13 +3388,11 @@ function TrueFalseQuestion({
         ))}
       </div>
 
-      <QuizSkipButton
-        className={cn(
-          "mt-1 w-full sm:mt-2",
-          showingAnswer && "invisible pointer-events-none",
-        )}
-        disabled={showingAnswer}
-        onClick={onSkip}
+      <QuizQuestionActionRow
+        skipDisabled={showingAnswer}
+        rerollAction={rerollAction}
+        hidden={showingAnswer}
+        onSkip={onSkip}
       />
 
       <div className="mt-1 flex min-h-10 w-full items-start justify-center sm:mt-2" data-quiz-next-slot>
@@ -3386,6 +3445,7 @@ function TextQuestion({
   onChange,
   onSubmitText,
   onSkip,
+  rerollAction,
   onNext,
   showNextButton = true,
   isFirstQuestion = false,
@@ -3398,6 +3458,7 @@ function TextQuestion({
   onChange: (value: string) => void;
   onSubmitText: (answer: string) => Promise<void>;
   onSkip: () => void;
+  rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
   isFirstQuestion?: boolean;
@@ -3529,12 +3590,13 @@ function TextQuestion({
               </Button>
             </div>
           ) : (
-            <div className="mt-1 flex gap-2 sm:mt-2 lg:mt-4">
+            <div className="mt-1 flex w-full gap-2 sm:mt-2 lg:mt-4" data-quiz-question-actions data-quiz-reroll-action>
               <QuizSkipButton
                 className="min-w-0 flex-1"
                 disabled={isAiValidating}
                 onClick={onSkip}
               />
+              {rerollAction ? <QuizRerollButton action={rerollAction} /> : null}
               <Button
                 className="min-w-0 flex-[1.45]"
                 onClick={handleSubmit}

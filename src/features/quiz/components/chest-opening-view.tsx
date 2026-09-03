@@ -341,6 +341,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
 
   const shouldRenderRewardStack = phase === "revealed" || pointsPhase !== "hidden";
   const shouldHideRewardSource = pointsPhase === "added" || pointsPhase === "flying";
+  const isRewardHeaderVisible = phase === "opening" || phase === "revealed" || phase === "disappearing";
 
   return (
     <div
@@ -388,7 +389,13 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-2 lg:hidden" data-reward-gem-hud>
+          <div
+            className={cn(
+              "flex items-center justify-center gap-2 transition-[opacity,transform] duration-300 ease-out lg:hidden",
+              !isRewardHeaderVisible && "translate-y-2 opacity-0",
+            )}
+            data-reward-gem-hud
+          >
             {(["blue", "green", "purple"] as const).map((type) => (
               <span key={type} className="inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white">
                 <Image src={GEM_ASSETS[type]} alt="" width={20} height={20} className="size-5 object-contain" />

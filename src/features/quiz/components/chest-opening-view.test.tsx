@@ -67,6 +67,7 @@ describe("ChestOpeningView", () => {
 
     expect(document.querySelector("[data-chest-opening-layout]")).toHaveClass("min-h-full");
     expect(document.querySelector("[data-chest-total-points-shell]")).toBeInTheDocument();
+    expect(document.querySelector("[data-reward-gem-hud]")).toHaveClass("opacity-0", "translate-y-2");
     expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-0");
 
     act(() => {
@@ -82,6 +83,7 @@ describe("ChestOpeningView", () => {
 
     expect(document.querySelector("[data-chest-opening-background]")).toHaveClass("opacity-100");
     expect(document.querySelector(".animate-chest-pulse")).toBeInTheDocument();
+    expect(document.querySelector("[data-reward-gem-hud]")).not.toHaveClass("opacity-0", "translate-y-2");
 
     act(() => {
       vi.advanceTimersByTime(900);

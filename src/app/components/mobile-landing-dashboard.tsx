@@ -468,7 +468,7 @@ export function MobileLandingDashboard() {
       </button>
 
       <div
-        className="absolute left-2 top-[3.35rem] z-40 flex flex-col items-center gap-0.5"
+        className="absolute left-2 top-[4.75rem] z-40 flex flex-col items-center gap-2"
         aria-label="Gem counters"
         data-mobile-gem-counters
       >
