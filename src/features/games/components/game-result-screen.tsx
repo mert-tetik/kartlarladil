@@ -12,6 +12,7 @@ import { ScoreIcon } from "@/components/score-icon";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -196,6 +197,7 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
             {formatPoints(locale, displayPoints)}
           </span>
         </div>
+        <RewardGemHud animate />
       </div>
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
         <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon.id)}><ScoreIcon size={32} /></span>

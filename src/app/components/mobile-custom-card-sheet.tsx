@@ -317,6 +317,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       onClose={handleClose}
       title={t("createCard.mobileTitle")}
       panelLabel={t("createCard.mobileTitle")}
+      tutorialLayer="custom-card"
       panelClassName="h-[78dvh] max-h-[94dvh]"
       contentRef={setSheetElement}
       visual={<Plus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}

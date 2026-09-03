@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Loader2,
   Medal,
+  RefreshCw,
   Star,
   Trophy,
   Volume2,
@@ -91,6 +92,8 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
+import type { ChestRewardOutcome } from "@/features/gems/gem-types";
+import { spendGemAction } from "@/features/gems/gem-actions";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
@@ -125,6 +128,8 @@ import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
+import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
+import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 
 import {
   formatCards,
@@ -477,6 +482,7 @@ export function QuizStation({
   const [pendingAnswerWrites, setPendingAnswerWrites] = useState(0);
   const [pendingChestAward, setPendingChestAward] = useState(false);
   const [pendingStreakAward, setPendingStreakAward] = useState(false);
+  const [rerollingQuestion, setRerollingQuestion] = useState(false);
   const [pendingRankUp, setPendingRankUp] = useState<RankDefinition | null>(null);
   const [bonusFlightActive, setBonusFlightActive] = useState(false);
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
@@ -879,6 +885,55 @@ export function QuizStation({
     setAiValidatingSentenceAnswer(null);
     setBonusFlightActive(false);
   }, [clearCardProgressFeedback]);
+
+  async function handleRerollQuestion() {
+    const item = deck[currentIndex];
+    const cost = GEM_COSTS.rerollQuestion.amount;
+
+    if (
+      !user ||
+      !item ||
+      isBonusQuizItem(item) ||
+      showingAnswer ||
+      isAiValidating ||
+      rerollingQuestion ||
+      (user.profile.greenGems ?? 0) < cost
+    ) {
+      return;
+    }
+
+    setRerollingQuestion(true);
+    try {
+      const result = await spendGemAction("green", cost, "reroll-question");
+      if (!result.success || !result.balances) {
+        return;
+      }
+
+      const answerLocale = getStudyLocale(item.card.language, locale);
+      const replacement: ChoiceQuizItem = {
+        card: item.card,
+        inventoryCard: item.inventoryCard,
+        questionType: "choice",
+        question: buildQuizQuestion(item.card, VOCABULARY_CARDS, answerLocale),
+        willLearn: item.willLearn,
+        forceLearned: item.forceLearned,
+      };
+
+      setDeck((current) => current.map((candidate, index) => index === currentIndex ? replacement : candidate));
+      resetQuestionUi();
+      updateProfileField({
+        greenGems: result.balances.green,
+        blueGems: result.balances.blue,
+        purpleGems: result.balances.purple,
+      });
+      playSoundEffect("gem-spend");
+      vibrate("tap");
+      await refreshStats();
+      refreshLeaderboardPositions();
+    } finally {
+      setRerollingQuestion(false);
+    }
+  }
 
   const advanceQuiz = useCallback(
     ({
@@ -1299,30 +1354,36 @@ export function QuizStation({
     setPhase("quiz");
   }, []);
 
-  async function handleChestComplete(tier: ChestTierDefinition["tier"]) {
+  function handleChestComplete() {
     if (chestOpened) {
       setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
       return;
     }
 
     setChestOpened(true);
-    setPendingChestAward(true);
     setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
+  }
 
-    const chestPoints = getChestRewardPoints(tier);
-    if (user && chestPoints > 0) {
-      updateProfileField({
-        chestPoints: (user.profile.chestPoints ?? 0) + chestPoints,
-      });
-    }
-
+  async function prepareChestReward(tier: ChestTierDefinition["tier"]): Promise<ChestRewardOutcome | null> {
+    if (!user || !quizSessionId) return null;
+    setPendingChestAward(true);
     try {
-      const result = await awardChestPoints(tier);
+      const result = await awardChestPoints(tier, quizSessionId);
+      if (!result.success) return null;
 
-      if (result.success) {
-        await refreshStats();
-        refreshLeaderboardPositions();
-      }
+      updateProfileField({
+        chestPoints: result.awarded === false
+          ? user.profile.chestPoints ?? 0
+          : (user.profile.chestPoints ?? 0) + (result.points ?? 0),
+        blueGems: result.balances?.blue,
+        greenGems: result.balances?.green,
+        purpleGems: result.balances?.purple,
+      });
+      await refreshStats();
+      refreshLeaderboardPositions();
+      return result.gemType && result.gemAmount
+        ? { points: result.points ?? getChestRewardPoints(tier), gem: { type: result.gemType, amount: result.gemAmount }, balances: result.balances }
+        : null;
     } finally {
       setPendingChestAward(false);
     }
@@ -1594,7 +1655,8 @@ export function QuizStation({
           <ChestOpeningView
             tier={tier}
             totalPoints={stats.totalPoints}
-            onComplete={() => handleChestComplete(tier.tier)}
+            onComplete={handleChestComplete}
+            onRewardReady={() => prepareChestReward(tier.tier)}
           />
         </QuizViewportOverlay>
       );
@@ -1705,6 +1767,25 @@ export function QuizStation({
           >
             <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
             <QuizProgressHeader mode={mode} item={item} />
+            {!isBonusQuizItem(item) ? (
+              <div className="flex w-full justify-end max-lg:pr-1 lg:px-5" data-quiz-reroll-action>
+                <button
+                  type="button"
+                  onClick={() => void handleRerollQuestion()}
+                  disabled={!user || rerollingQuestion || showingAnswer || isAiValidating || (user?.profile.greenGems ?? 0) < GEM_COSTS.rerollQuestion.amount}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                  aria-label={t("quiz.rerollQuestion")}
+                  data-quiz-reroll
+                >
+                  {rerollingQuestion ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
+                  <span>{t("quiz.rerollQuestion")}</span>
+                  <span className="inline-flex items-center gap-0.5">
+                    {GEM_COSTS.rerollQuestion.amount}
+                    <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
+                  </span>
+                </button>
+              </div>
+            ) : null}
             <div className="flex flex-1 flex-col justify-center">
               {isBonusQuizItem(item) ? (
                 <BonusQuestionView
@@ -3681,6 +3762,7 @@ export function CelebrationView({
                 {formatPoints(locale, displayPoints)}
               </span>
             </div>
+            <RewardGemHud className="mt-2" animate />
           </div>
 
           <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
@@ -4164,6 +4246,7 @@ export function ResultView({
               </span>
             </div>
           </div>
+          <RewardGemHud className="mt-2" animate />
 
           <div
             className={cn(

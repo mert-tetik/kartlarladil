@@ -18,7 +18,9 @@ export type SoundEffectName =
   | "clock-tick-high"
   | "level-fail"
   | "card-ready"
-  | "mission-claim";
+  | "mission-claim"
+  | "gem-loot"
+  | "gem-spend";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -461,6 +463,16 @@ function missionClaim(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.C5, startTime: now + 0.1, duration: 0.18, gain: 0.028, type: "triangle" });
 }
 
+function gemLoot(context: AudioContext, now: number) {
+  playTone(context, { frequency: SCALE.C6, endFrequency: 2093, startTime: now, duration: 0.16, gain: 0.08, type: "triangle" });
+  playTone(context, { frequency: SCALE.E6, endFrequency: 3136, startTime: now + 0.07, duration: 0.2, gain: 0.06, type: "sine" });
+}
+
+function gemSpend(context: AudioContext, now: number) {
+  playTone(context, { frequency: 880, endFrequency: 1320, startTime: now, duration: 0.08, gain: 0.07, type: "sine" });
+  playTone(context, { frequency: 1320, endFrequency: 1760, startTime: now + 0.06, duration: 0.16, gain: 0.06, type: "triangle" });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -482,6 +494,8 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "level-fail": levelFail,
   "card-ready": cardReady,
   "mission-claim": missionClaim,
+  "gem-loot": gemLoot,
+  "gem-spend": gemSpend,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {

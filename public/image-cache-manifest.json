@@ -1,5 +1,5 @@
 {
-  "version": "edf2126d2e2a5021ac85dcd53465600c6294f0dcc52e18c2b665ce449975e344",
+  "version": "77ef68716a9e165b1efb0a0e377b4f2b459196e1c2481664c9b9077538054c81",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -684,6 +684,18 @@
     {
       "url": "/game-backgrounds/yellow-game-bg.png",
       "revision": "341c8a450210a489433824e26032b3782aba4fc4ecae38ee8cedf6618c8fad5d"
+    },
+    {
+      "url": "/gems/blue-gem.png",
+      "revision": "4403ed46160352858009105a87d1cd18f497c4afdd64f8ee529ac9a3f38eb601"
+    },
+    {
+      "url": "/gems/green-gem.png",
+      "revision": "afaf418a7909c521ad243d86c25cc325b3e482ddae09e301b59bb4ae13ba5b9e"
+    },
+    {
+      "url": "/gems/purple-gem.png",
+      "revision": "044a01c658904e8669555f86c7190fdd12130f7c65d5dbad66ccc809b3ee1725"
     },
     {
       "url": "/icon-192.png",

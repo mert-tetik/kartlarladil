@@ -19,6 +19,7 @@ import {
   calculateProgressStats,
   mergeBonusPoints,
 } from "@/features/progress/progress-stats";
+import { getProfilePointTotal } from "@/features/progress/point-sources";
 import { trackPointMilestones } from "@/lib/twa-analytics-events";
 import type { ProgressStats } from "@/types/domain";
 
@@ -143,15 +144,10 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     }
 
     const baseStats = calculateProgressStats(joinInventoryCards(cards));
-    const bonusPoints =
-      (user?.profile.aiPracticePoints ?? 0) +
-      (user?.profile.chestPoints ?? 0) +
-      (user?.profile.streakPoints ?? 0) +
-      (user?.profile.missionPoints ?? 0) +
-      (user?.profile.quizResultPoints ?? 0);
+    const bonusPoints = getProfilePointTotal(user?.profile);
 
     return mergeBonusPoints(baseStats, bonusPoints);
-  }, [cards, hydrated, user?.profile.aiPracticePoints, user?.profile.chestPoints, user?.profile.streakPoints, user?.profile.missionPoints, user?.profile.quizResultPoints]);
+  }, [cards, hydrated, user?.profile]);
 
   const stats = useMemo(() => {
     const isLoading = !hydrated || cloudLoading;

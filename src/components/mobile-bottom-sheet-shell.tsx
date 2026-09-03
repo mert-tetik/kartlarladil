@@ -36,6 +36,7 @@ export interface MobileBottomSheetShellProps {
   showBackdrop?: boolean;
   titleId?: string;
   panelLabel?: string;
+  tutorialLayer?: string;
 }
 
 export function MobileBottomSheetShell({
@@ -51,12 +52,14 @@ export function MobileBottomSheetShell({
   showBackdrop = true,
   titleId,
   panelLabel,
+  tutorialLayer,
 }: MobileBottomSheetShellProps) {
   const t = useT();
   const { locale } = useLocale();
   // Keep the first client render identical to the server render. The portal is
   // mounted on the next frame so opening a sheet cannot cause a hydration mismatch.
   const [mounted, setMounted] = useState(false);
+  const [hasPresented, setHasPresented] = useState(false);
   const [entered, setEntered] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +72,7 @@ export function MobileBottomSheetShell({
     if (open) {
       let enterFrame: number | null = null;
       let enterTimer: number | null = null;
+      setHasPresented(false);
       setEntered(false);
       const mountFrame = window.requestAnimationFrame(() => {
         setMounted(true);
@@ -77,9 +81,12 @@ export function MobileBottomSheetShell({
         // the sheet appears to teleport into place.
         enterTimer = window.setTimeout(() => {
           enterFrame = window.requestAnimationFrame(() => {
+            setHasPresented(true);
             void document.body.offsetHeight;
-            setEntered(true);
-            onEnteredRef.current?.();
+            enterFrame = window.requestAnimationFrame(() => {
+              setEntered(true);
+              onEnteredRef.current?.();
+            });
           });
         }, MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS);
       });
@@ -160,25 +167,19 @@ export function MobileBottomSheetShell({
 
   const content = (
     <div
-      className={cn(
-        "fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
-        entered ? "opacity-100" : "pointer-events-none opacity-0",
-      )}
+      className={cn("fixed inset-0 z-50 flex flex-col justify-end lg:hidden", hasPresented ? "visible" : "invisible pointer-events-none")}
       aria-hidden={!open}
       inert={!open}
       role="dialog"
       aria-modal={open}
       aria-label={panelLabel ?? title}
       data-mobile-bottom-sheet
+      data-tutorial-layer={tutorialLayer}
     >
       <button
         type="button"
         onClick={closeSheet}
-        className={cn(
-          "absolute inset-0 transition-opacity duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-          showBackdrop ? "bg-black/60" : "bg-transparent",
-          entered ? "opacity-100" : "opacity-0",
-        )}
+        className={cn("absolute inset-0", showBackdrop ? "bg-black/60" : "bg-transparent")}
         aria-label={t("common.close")}
       />
 

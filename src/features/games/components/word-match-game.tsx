@@ -198,7 +198,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
       addLocalPoints("wordMatch", points);
       if (user) {
         updateProfileField({
-          aiPracticePoints: (user.profile.aiPracticePoints ?? 0) + points,
+          gamePoints: (user.profile.gamePoints ?? 0) + points,
         });
         void addGamePointsAction(points).then(async (result) => {
           if (result.status !== "success") return;

@@ -19,7 +19,7 @@ interface TutorialState {
   disableTestMode: () => void;
 }
 
-const TOTAL_STEPS = 9;
+export const TUTORIAL_STEP_COUNT = 4;
 
 export const useTutorialStore = create<TutorialState>()(
   persist(
@@ -35,8 +35,8 @@ export const useTutorialStore = create<TutorialState>()(
           const nextStep = state.step + 1;
           return {
             step: nextStep,
-            completed: nextStep >= TOTAL_STEPS,
-            active: nextStep >= TOTAL_STEPS ? false : state.active,
+            completed: nextStep >= TUTORIAL_STEP_COUNT,
+            active: nextStep >= TUTORIAL_STEP_COUNT ? false : state.active,
           };
         });
       },
@@ -49,14 +49,38 @@ export const useTutorialStore = create<TutorialState>()(
     }),
     {
       name: "foxiesdeck:tutorial",
+      version: 2,
       partialize: (state) => ({
         // Keep an unfinished onboarding tutorial alive across an app restart.
         active: state.active,
         completed: state.completed,
         introSeen: state.introSeen,
         step: state.step,
-        testMode: state.testMode,
       }),
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<TutorialState> | undefined;
+
+        // The old tutorial had nine unrelated targets. An unfinished old
+        // flow must restart at the new welcome/choice flow; a completed one
+        // must stay completed for existing users.
+        if (state?.completed) {
+          return {
+            active: false,
+            completed: true,
+            introSeen: true,
+            step: TUTORIAL_STEP_COUNT,
+            testMode: false,
+          };
+        }
+
+        return {
+          active: Boolean(state?.active),
+          completed: false,
+          introSeen: false,
+          step: 0,
+          testMode: false,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (typeof window === "undefined") return;
 

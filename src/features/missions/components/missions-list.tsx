@@ -53,7 +53,7 @@ export function MissionsList() {
     rewards: Record<string, MissionReward>;
   } | null>(null);
   const [rewardMode, setRewardMode] = useState<
-    | { missionId: string; kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition }
+    | { missionId: string; kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition; gemReward?: import("@/features/gems/gem-types").ChestRewardOutcome }
     | { missionId: string; kind: "points"; amount: number; source?: DOMRect }
     | null
   >(null);
@@ -180,7 +180,15 @@ export function MissionsList() {
           updateProfileField({
             missionPoints: result.missionPoints,
             chestPoints: result.chestPoints,
+            ...(result.blueGems !== undefined ? { blueGems: result.blueGems } : {}),
+            ...(result.greenGems !== undefined ? { greenGems: result.greenGems } : {}),
+            ...(result.purpleGems !== undefined ? { purpleGems: result.purpleGems } : {}),
           });
+        }
+        if (result.gemType && result.gemAmount && reward.kind === "chest") {
+          setRewardMode((current) => current?.missionId === missionId && current.kind === "chest"
+            ? { ...current, gemReward: { points: result.points ?? 0, gem: { type: result.gemType!, amount: result.gemAmount! } } }
+            : current);
         }
       } else if (result.message === "auth_required") {
         setRewardMode((current) => current?.missionId === missionId ? null : current);

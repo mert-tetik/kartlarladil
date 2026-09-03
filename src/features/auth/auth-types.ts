@@ -19,6 +19,11 @@ export interface AuthProfile {
   streakPoints?: number;
   missionPoints?: number;
   quizResultPoints?: number;
+  gamePoints?: number;
+  gemPoints?: number;
+  blueGems?: number;
+  greenGems?: number;
+  purpleGems?: number;
   pushMarketingEnabled?: boolean;
   leaderboardVisible?: boolean;
   theme?: string | null;

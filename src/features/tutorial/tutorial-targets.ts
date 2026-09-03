@@ -1,64 +1,58 @@
-export interface TutorialTarget {
+export type TutorialMode = "choice" | "target" | "message";
+
+export interface TutorialStep {
   step: number;
   key: string;
+  mode: TutorialMode;
+  selector?: string;
+  messageKey?: string;
+}
+
+export interface TutorialTarget extends TutorialStep {
   selector: string;
 }
 
-export const TUTORIAL_TARGETS: readonly TutorialTarget[] = [
+export const TUTORIAL_FLOW: readonly TutorialStep[] = [
   {
     step: 0,
-    key: "landing-draw-cards",
-    selector: '[data-tutorial-target="landing-draw-cards"]',
+    key: "card-modes",
+    mode: "choice",
   },
   {
     step: 1,
-    key: "landing-create-card",
-    selector: '[data-tutorial-target="landing-create-card"]',
+    key: "landing-card-center",
+    mode: "target",
+    selector: '[data-tutorial-target="landing-card-center"]',
+    messageKey: "tutorial.landingCardsAction",
   },
   {
     step: 2,
-    key: "landing-card-center",
-    selector: '[data-tutorial-target="landing-card-center"]',
+    key: "card-collection-message",
+    mode: "message",
+    messageKey: "tutorial.landingCardsMessage",
   },
   {
     step: 3,
     key: "start-learning",
+    mode: "target",
     selector: '[data-tutorial-target="start-learning"]',
-  },
-  {
-    step: 4,
-    key: "repeat-learned",
-    selector: '[data-tutorial-target="repeat-learned"]',
-  },
-  {
-    step: 5,
-    key: "rank-info",
-    selector: '[data-tutorial-target="rank-info"]',
-  },
-  {
-    step: 6,
-    key: "leaderboard",
-    selector: '[data-tutorial-target="leaderboard"]',
-  },
-  {
-    step: 7,
-    key: "games-nav",
-    selector: '[data-tutorial-target="games-nav"]',
-  },
-  {
-    step: 8,
-    key: "ai-practice-nav",
-    selector: '[data-tutorial-target="ai-practice-nav"]',
+    messageKey: "tutorial.landingStartLearningAction",
   },
 ];
 
-export function getTargetForStep(step: number, pathname: string): TutorialTarget | null {
-  if (step < 0) return null;
+export const TUTORIAL_TARGETS: readonly TutorialTarget[] = TUTORIAL_FLOW.filter(
+  (item): item is TutorialTarget => item.mode === "target" && typeof item.selector === "string",
+);
 
+export function getTutorialStep(step: number): TutorialStep | null {
+  return TUTORIAL_FLOW.find((item) => item.step === step) ?? null;
+}
+
+export function getTargetForStep(step: number, pathname: string): TutorialTarget | null {
   if (pathname !== "/") return null;
 
-  const target = TUTORIAL_TARGETS.find((item) => item.step === step);
-  return target ?? null;
+  const item = getTutorialStep(step);
+  return item?.mode === "target" && item.selector ? item as TutorialTarget : null;
 }
 
 export function isTargetPage(pathname: string): boolean {

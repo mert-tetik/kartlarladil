@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Flame, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
+import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
 import { formatPoints } from "@/i18n/labels";
 import { useLocale } from "@/i18n/locale-provider";
 import {
@@ -140,6 +141,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
             {formatPoints(locale, displayPoints)}
           </span>
         </div>
+        <RewardGemHud className="mt-2" animate />
       </div>
       <div ref={rewardRef} className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 ${breaking ? "animate-streak-reward-break" : ""}`}>
         <span className="text-7xl font-black text-white sm:text-8xl lg:text-9xl">{streak}</span>

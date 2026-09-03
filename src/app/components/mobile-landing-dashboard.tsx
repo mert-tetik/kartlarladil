@@ -19,6 +19,7 @@ import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-ce
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
+import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
 import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
@@ -56,6 +57,7 @@ import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigatio
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
+import type { GemType } from "@/features/gems/gem-types";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
@@ -65,6 +67,11 @@ const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
   "whitespace-nowrap text-left font-semibold leading-none text-action-review";
 const MOBILE_RANK_MIN_HEIGHT =
   "calc(clamp(1.5rem, calc(100dvh - 35rem), 20rem) + 4rem)";
+const MOBILE_GEM_COUNTERS = [
+  { type: "blue", src: "/gems/blue-gem.png", alt: "Blue gems" },
+  { type: "green", src: "/gems/green-gem.png", alt: "Green gems" },
+  { type: "purple", src: "/gems/purple-gem.png", alt: "Purple gems" },
+] as const;
 
 export function MobileLandingDashboard() {
   const router = useRouter();
@@ -117,6 +124,7 @@ export function MobileLandingDashboard() {
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
   const [groupCardOpen, setGroupCardOpen] = useState(false);
+  const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
@@ -260,6 +268,7 @@ export function MobileLandingDashboard() {
     swipeDeckOpen ||
     customCardOpen ||
     groupCardOpen ||
+    selectedGem !== null ||
     cardCenterOpen;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
@@ -458,6 +467,32 @@ export function MobileLandingDashboard() {
         ) : null}
       </button>
 
+      <div
+        className="absolute left-2 top-[3.35rem] z-40 flex flex-col items-center gap-0.5"
+        aria-label="Gem counters"
+        data-mobile-gem-counters
+      >
+        {MOBILE_GEM_COUNTERS.map((gem) => (
+          <button key={gem.src} type="button" onClick={() => setSelectedGem(gem.type)} className="flex h-7 items-center justify-center gap-0.5 rounded-md px-0.5 transition-transform active:scale-95" aria-label={gem.alt}>
+            <Image
+              src={gem.src}
+              alt={gem.alt}
+              width={28}
+              height={28}
+              className="size-7 object-contain"
+            />
+            <span
+              className={cn(
+                "text-sm font-bold leading-none text-white",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
+            >
+              {formatSuperWaterText(locale, String(gem.type === "blue" ? user?.profile.blueGems ?? 0 : gem.type === "green" ? user?.profile.greenGems ?? 0 : user?.profile.purpleGems ?? 0))}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Missions action */}
       <button
         type="button"
@@ -547,6 +582,7 @@ export function MobileLandingDashboard() {
             <div
               className="mt-0.5 flex items-center justify-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
               aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
+              data-mobile-main-points
             >
               <span className="bg-gradient-to-r from-[var(--score-start)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-transparent">
                 {formatNumber(locale, stats.totalPoints)}
@@ -681,6 +717,12 @@ export function MobileLandingDashboard() {
         onClose={() => setGroupCardOpen(false)}
         language={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
+      />
+
+      <MobileGemDetailsSheet
+        type={selectedGem}
+        open={selectedGem !== null}
+        onClose={() => setSelectedGem(null)}
       />
 
       <UpgradeDialog

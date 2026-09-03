@@ -315,7 +315,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     ? demoActive ? { transform: getCardTransform(demoX, 0) } : undefined
     : { transform: `translate3d(${incomingX}px, ${incomingY}px, 0) rotate(0deg)`, opacity: incomingIsHidden ? 0 : 1 };
   const shouldRenderCard = card && incoming !== "waiting" && incoming !== "teleporting";
-  return <div role="dialog" aria-modal="true" data-mobile-hide-bottom-nav="true" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
+  return <div role="dialog" aria-modal="true" data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
     <div className="relative z-[60] flex min-h-10 items-center justify-center">
       <p
         data-card-swipe-title

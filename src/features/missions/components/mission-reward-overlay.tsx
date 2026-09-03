@@ -13,12 +13,14 @@ import {
 import { useLocale } from "@/i18n/locale-provider";
 import { formatPoints } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
+import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import type { ChestRewardOutcome } from "@/features/gems/gem-types";
 
 interface MissionRewardOverlayProps {
-  mode: { kind: "chest"; tier: ChestTierDefinition } | { kind: "points"; amount: number; source?: DOMRect } | null;
+  mode: { kind: "chest"; tier: ChestTierDefinition; gemReward?: ChestRewardOutcome } | { kind: "points"; amount: number; source?: DOMRect } | null;
   onComplete: () => void;
 }
 
@@ -87,7 +89,7 @@ export function MissionRewardOverlay({ mode, onComplete }: MissionRewardOverlayP
           exiting ? "scale-[0.985] opacity-0" : "scale-100 opacity-100",
         )}
       >
-        <ChestOpeningView tier={activeMode.tier} totalPoints={stats.totalPoints} onComplete={handleChildComplete} />
+        <ChestOpeningView tier={activeMode.tier} totalPoints={stats.totalPoints} reward={activeMode.gemReward} onComplete={handleChildComplete} />
       </div>
     </div>
   );
@@ -140,6 +142,7 @@ function MissionPointsFlight({ amount, source, totalPoints, onComplete }: { amou
   return createPortal(<>
     <div className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}>
       <div className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"><Star className="size-5 fill-current" /><span ref={scoreRef} key={pulse} className={cn("text-lg font-bold", pulse > 0 && "animate-score-bobble")}>{formatPoints(locale, displayPoints)}</span></div>
+      <RewardGemHud className="mt-2" animate />
     </div>
     {icons.map((icon) => <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[71] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleArrival(icon.id)}><ScoreIcon size={32} /></span>)}
   </>, document.body);

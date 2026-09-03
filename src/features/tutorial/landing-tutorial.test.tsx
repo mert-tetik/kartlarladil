@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
@@ -7,17 +8,27 @@ vi.mock("@/i18n/locale-provider", () => ({
   useT: () => (key: string) => key,
 }));
 
-const TARGETS = [
-  "landing-draw-cards",
-  "landing-create-card",
-  "landing-card-center",
-  "start-learning",
-  "repeat-learned",
-  "rank-info",
-  "leaderboard",
-  "games-nav",
-  "ai-practice-nav",
-] as const;
+function TutorialFixture() {
+  const [layer, setLayer] = useState<string | null>(null);
+  const [cardsOpen, setCardsOpen] = useState(false);
+  const [started, setStarted] = useState(false);
+
+  return (
+    <>
+      <section data-mobile-landing-dashboard>
+        <button type="button" data-tutorial-target="landing-draw-cards" onClick={() => setLayer("draw-cards")}>draw</button>
+        <button type="button" data-tutorial-target="landing-create-card" onClick={() => setLayer("custom-card")}>custom</button>
+        <button type="button" data-tutorial-target="landing-card-groups" onClick={() => setLayer("card-groups")}>groups</button>
+        <button type="button" data-tutorial-target="landing-card-center" onClick={() => setCardsOpen(true)}>cards</button>
+        <button type="button" data-tutorial-target="start-learning" onClick={() => setStarted(true)}>start</button>
+        {cardsOpen ? <div id="mobile-card-center-content">card collection</div> : null}
+      </section>
+      {layer ? <div data-tutorial-layer={layer} aria-hidden="false"><button type="button" onClick={() => setLayer(null)}>close layer</button></div> : null}
+      {started ? <p>started</p> : null}
+      <LandingTutorial />
+    </>
+  );
+}
 
 describe("LandingTutorial", () => {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
@@ -29,135 +40,77 @@ describe("LandingTutorial", () => {
       configurable: true,
       value: function getBoundingClientRect(this: HTMLElement) {
         const target = this.getAttribute("data-tutorial-target");
-        const lowerTarget = target === "games-nav" || target === "landing-card-center";
-        const top = lowerTarget ? 680 : 80;
-
-        return {
-          x: 32,
-          y: top,
-          top,
-          left: 32,
-          bottom: top + 48,
-          right: 358,
-          width: 326,
-          height: 48,
-          toJSON: () => ({}),
-        } as DOMRect;
+        const top = target === "landing-card-center" || target === "start-learning" ? 680 : 120;
+        return { x: 32, y: top, top, left: 32, bottom: top + 48, right: 358, width: 326, height: 48, toJSON: () => ({}) } as DOMRect;
       },
     });
-    useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 0, testMode: false });
   });
 
   afterEach(() => {
-    Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
-      configurable: true,
-      value: originalRect,
-    });
+    Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", { configurable: true, value: originalRect });
     useTutorialStore.setState({ active: false, completed: false, introSeen: false, step: 0, testMode: false });
   });
 
-  function renderTutorial({
-    introSeen = true,
-    subscriptionOfferVisible = false,
-  }: {
-    introSeen?: boolean;
-    subscriptionOfferVisible?: boolean;
-  } = {}) {
-    useTutorialStore.setState({ introSeen });
+  it("shows the new welcome explanation before the choice screen", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
+    render(<TutorialFixture />);
 
-    return render(
-      <>
-        {subscriptionOfferVisible ? <div data-mobile-subscription-offer /> : null}
-        {TARGETS.map((target) => <button key={target} type="button" data-tutorial-target={target}>{target}</button>)}
-        <LandingTutorial />
-      </>,
-    );
-  }
-
-  it("stays behind the subscription offer", async () => {
-    renderTutorial({ introSeen: false, subscriptionOfferVisible: true });
-
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByRole("status", { name: "Starting tutorial" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "tutorial.welcome" })).toBeInTheDocument();
   });
 
-  it("opens with the mascot welcome screen before the first target", async () => {
-    renderTutorial({ introSeen: false });
+  it("renders exactly three card mode choices and blocks the landing below them", async () => {
+    render(<TutorialFixture />);
+    expect(await screen.findByRole("dialog", { name: "tutorial.cardModes.title" })).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-landing-tutorial-choice]")).toHaveLength(3);
 
-    expect(await screen.findByRole("dialog", { name: "tutorial.welcome" })).toHaveAttribute(
-      "data-landing-tutorial-welcome",
-    );
-    expect(document.querySelector("[data-tutorial-welcome-mascot]")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
-
-    await waitFor(() => expect(useTutorialStore.getState().introSeen).toBe(true));
-    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument());
-    expect(useTutorialStore.getState().step).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "cards" }));
+    expect(document.querySelector("#mobile-card-center-content")).not.toBeInTheDocument();
   });
 
-  it("shows a blocked circular spotlight and advances only from the next button", async () => {
-    renderTutorial();
+  it("opens the selected real layer and continues one second after it closes", async () => {
+    render(<TutorialFixture />);
+    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ });
+    fireEvent.click(choice);
+    expect(await screen.findByText("close layer")).toBeInTheDocument();
+    expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
 
-    const dialog = await screen.findByRole("dialog");
-    const message = document.querySelector("[data-landing-tutorial-message]") as HTMLElement;
-    const nextButton = screen.getByRole("button", { name: "tutorial.next" });
-
-    expect(message).toHaveTextContent("tutorial.landingDrawRandom");
-    expect(document.querySelector("[data-landing-tutorial-spotlight]")).toHaveClass("rounded-full", "border-red-500", "border-[5px]");
-
-    fireEvent.click(dialog);
-    expect(useTutorialStore.getState().step).toBe(0);
-
-    fireEvent.click(nextButton);
-    await waitFor(() => expect(useTutorialStore.getState().step).toBe(1));
-    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveTextContent("tutorial.landingCreateCustom");
+    fireEvent.click(screen.getByRole("button", { name: "close layer" }));
+    await waitFor(() => expect(useTutorialStore.getState().step).toBe(1), { timeout: 2_000 });
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_000 });
   });
 
-  it("uses rectangular spotlights for the card center and learning actions", async () => {
-    renderTutorial();
-
-    for (const step of [2, 3, 4]) {
-      act(() => {
-        useTutorialStore.setState({ active: true, completed: false, introSeen: true, step, testMode: false });
-      });
-
-      await waitFor(() => {
-        const spotlight = document.querySelector("[data-landing-tutorial-spotlight]");
-        expect(spotlight).toHaveAttribute("data-spotlight-shape", "rectangle");
-        expect(spotlight).toHaveClass("rounded-lg", "border-red-500", "border-[5px]");
-      });
-    }
-
-    expect(document.querySelectorAll("[data-landing-tutorial-rect-mask]")).toHaveLength(4);
-  });
-
-  it("uses brand colors for every message and next action", async () => {
-    renderTutorial();
-
-    const nextButton = await screen.findByRole("button", { name: "tutorial.next" });
-    expect(nextButton).toHaveClass("bg-brand");
-    expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-brand");
-    expect(document.querySelector("[data-tutorial-callout-mascot]")).toBeInTheDocument();
-    expect(document.querySelector(".tutorial-arrow-path")).toBeInTheDocument();
-
+  it("keeps the cards target restricted and then shows a message-only screen", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 1, testMode: false });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "tutorial.next" })).toHaveClass("bg-brand");
-      expect(document.querySelector("[data-landing-tutorial-message]")).toHaveClass("bg-white", "text-brand");
-    });
+    render(<TutorialFixture />);
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
 
-    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 8, testMode: false });
-    const lastButton = await screen.findByRole("button", { name: "tutorial.understood" });
-    expect(lastButton).toHaveClass("bg-brand");
-
-    fireEvent.click(lastButton);
-    await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "cards" }));
+    await waitFor(() => expect(useTutorialStore.getState().step).toBe(2), { timeout: 2_500 });
+    expect(document.querySelector("[data-landing-tutorial-spotlight]")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "tutorial.next" })).toBeInTheDocument();
+    expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
   });
 
-  it("does not render on desktop widths", async () => {
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
-    renderTutorial();
+  it("scrolls at 400ms and reaches the learning target after message continue", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 2, testMode: false });
+    render(<TutorialFixture />);
+    const dashboard = document.querySelector("[data-mobile-landing-dashboard]") as HTMLElement;
+    dashboard.scrollTo = vi.fn();
+    const continueButton = await screen.findByRole("button", { name: "tutorial.next" });
+    fireEvent.click(continueButton);
+    await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 800 });
+    await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 1_500 });
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_000 });
+  });
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  it("completes when the real start-learning target is clicked", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: false });
+    render(<TutorialFixture />);
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
+    fireEvent.click(screen.getByRole("button", { name: "start" }));
+    await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true), { timeout: 1_000 });
+    expect(screen.getByText("started")).toBeInTheDocument();
   });
 });

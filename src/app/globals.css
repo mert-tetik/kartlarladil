@@ -2141,15 +2141,15 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 .tutorial-welcome-enter {
-  animation: tutorial-welcome-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tutorial-welcome-in 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .tutorial-welcome-exit {
-  animation: tutorial-welcome-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: tutorial-welcome-out 220ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .tutorial-welcome-enter .tutorial-welcome-content {
-  animation: tutorial-welcome-content-in 460ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  animation: tutorial-welcome-content-in 520ms cubic-bezier(0.85, 0, 0.15, 1) 80ms both;
 }
 
 .tutorial-welcome-exit .tutorial-welcome-content {
@@ -2159,13 +2159,45 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
 }
 
 .tutorial-callout-enter {
-  animation: tutorial-callout-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tutorial-callout-in 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .tutorial-arrow-path {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
-  animation: tutorial-arrow-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tutorial-arrow-draw 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+@keyframes tutorial-choice-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tutorial-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tutorial-choice-enter {
+  animation: tutorial-choice-in 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+.tutorial-message-enter {
+  animation: tutorial-message-in 440ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2173,7 +2205,9 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   .tutorial-welcome-exit,
   .tutorial-welcome-enter .tutorial-welcome-content,
   .tutorial-callout-enter,
-  .tutorial-arrow-path {
+  .tutorial-arrow-path,
+  .tutorial-choice-enter,
+  .tutorial-message-enter {
     animation: none;
   }
 }

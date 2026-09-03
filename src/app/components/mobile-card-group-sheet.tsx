@@ -140,7 +140,7 @@ export function MobileCardGroupSheet({
         <div className={cn(
           "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-5 py-6",
           usesSuperWater && "font-super-water",
-        )}>
+        )} data-tutorial-layer="card-groups">
           <div
             role="dialog"
             aria-modal="true"
@@ -185,6 +185,7 @@ export function MobileCardGroupSheet({
           isOpen
           onClose={() => setSelectedCard(null)}
           positionClassName="-translate-y-6"
+          tutorialLayer="card-groups"
         />,
         document.body,
       )
@@ -197,6 +198,7 @@ export function MobileCardGroupSheet({
         onClose={handleClose}
         title={t("cards.groups.title")}
         panelLabel={t("cards.groups.title")}
+        tutorialLayer="card-groups"
         visual={<FolderPlus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
         contentClassName={cn(
           "overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3",

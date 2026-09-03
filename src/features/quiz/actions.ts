@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { randomUUID } from "node:crypto";
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 import { BONUS_QUESTION_POINTS } from "@/features/quiz/bonus-question-constants";
+import type { GemType } from "@/features/gems/gem-types";
 
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
@@ -18,7 +21,11 @@ const VALID_TIERS = new Set<ChestTier>([
 
 export interface AwardChestResult {
   success: boolean;
+  awarded?: boolean;
   points?: number;
+  gemType?: GemType;
+  gemAmount?: number;
+  balances?: { blue: number; green: number; purple: number };
   error?: string;
 }
 
@@ -47,7 +54,7 @@ export interface AwardQuizBonusPointsResult {
 const QUIZ_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const QUIZ_BONUS_ID_PATTERN = /^[0-9a-f-]{36}-(matching|sentence-order|category-sort|imposter)-(?:[0-9]|[1-4][0-9])$/i;
 
-export async function awardChestPoints(tier: ChestTier): Promise<AwardChestResult> {
+export async function awardChestPoints(tier: ChestTier, sessionId?: string): Promise<AwardChestResult> {
   if (!VALID_TIERS.has(tier)) {
     return { success: false, error: "invalid_tier" };
   }
@@ -69,26 +76,30 @@ export async function awardChestPoints(tier: ChestTier): Promise<AwardChestResul
     return { success: false, error: "invalid_points" };
   }
 
-  const [{ error: rewardError }, { error: incrementError }] = await Promise.all([
-    supabase.from("chest_rewards").insert({
-      user_id: user.id,
-      tier,
-      points,
-    }),
-    supabase.rpc("increment_chest_points", {
-      p_user_id: user.id,
-      p_points: points,
-    }),
-  ]);
+  const claimKey = sessionId && QUIZ_SESSION_ID_PATTERN.test(sessionId)
+    ? `quiz:${sessionId}`
+    : `quiz:${randomUUID()}`;
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("award_chest_reward", {
+    p_user_id: user.id,
+    p_claim_key: claimKey,
+    p_tier: tier,
+    p_points: points,
+  }).maybeSingle<{ awarded: boolean; points: number; gem_type: GemType; amount: number; blue_gems: number; green_gems: number; purple_gems: number }>();
 
-  if (rewardError || incrementError) {
-    return { success: false, error: "database_error" };
-  }
+  if (error || !data) return { success: false, error: "database_error" };
 
   revalidatePath("/my-cards");
   revalidatePath("/profile");
 
-  return { success: true, points };
+  return {
+    success: true,
+    awarded: data.awarded,
+    points: data.points,
+    gemType: data.gem_type,
+    gemAmount: data.amount,
+    balances: { blue: data.blue_gems, green: data.green_gems, purple: data.purple_gems },
+  };
 }
 
 export async function awardQuizStreakPoints(sessionId: string, rawStreak: number): Promise<AwardQuizStreakResult> {

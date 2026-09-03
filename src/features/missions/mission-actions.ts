@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
+import type { GemType } from "@/features/gems/gem-types";
 import { MISSIONS_BY_ID } from "./missions-data";
 import { buildMissionViewModels } from "./mission-progress";
 import type {
@@ -30,6 +31,11 @@ interface DbMissionClaimResult {
   claimed: boolean;
   mission_points: number | null;
   chest_points: number | null;
+  gem_type: GemType | null;
+  amount: number | null;
+  blue_gems: number | null;
+  green_gems: number | null;
+  purple_gems: number | null;
 }
 
 export interface ListMissionsResult {
@@ -45,6 +51,11 @@ export interface ClaimMissionResult {
   chestTier?: ChestTier;
   missionPoints?: number;
   chestPoints?: number;
+  gemType?: GemType;
+  gemAmount?: number;
+  blueGems?: number;
+  greenGems?: number;
+  purpleGems?: number;
   message?: string;
 }
 
@@ -228,7 +239,7 @@ export async function claimMissionRewardAction(
 
     const adminSupabase = createSupabaseAdminClient();
     const { data, error } = await adminSupabase
-      .rpc("claim_mission_reward", {
+      .rpc("claim_mission_reward_with_gems", {
         p_user_id: userId,
         p_mission_id: missionId,
         p_reward_type: reward.kind,
@@ -259,6 +270,15 @@ export async function claimMissionRewardAction(
       points,
       missionPoints: claim.mission_points ?? 0,
       chestPoints: claim.chest_points ?? 0,
+      ...(reward.kind === "chest" && claim.gem_type && claim.amount
+        ? {
+            gemType: claim.gem_type,
+            gemAmount: claim.amount,
+            blueGems: claim.blue_gems ?? 0,
+            greenGems: claim.green_gems ?? 0,
+            purpleGems: claim.purple_gems ?? 0,
+          }
+        : {}),
       ...(reward.kind === "chest" ? { chestTier: reward.tier } : {}),
     };
   } catch (error) {

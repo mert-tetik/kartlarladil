@@ -2,6 +2,7 @@ import "server-only";
 
 import { getRankForPoints } from "@/features/progress/progress-stats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getProfilePointTotal } from "@/features/progress/point-sources";
 import type { Tier } from "@/types/domain";
 import type { LeaderboardEntry, LeaderboardPayload } from "@/features/leaderboard/leaderboard-types";
 
@@ -13,6 +14,8 @@ interface LeaderboardProfileRow {
   streak_points: number | null;
   mission_points: number | null;
   quiz_result_points: number | null;
+  game_points: number | null;
+  gem_points: number | null;
   leaderboard_visible: boolean | null;
   profile_picture_index: number | null;
 }
@@ -93,13 +96,15 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
 
   const scoredProfiles = profiles
     .map((profile) => {
-      const totalPoints =
-        (learnedPointsByUser.get(profile.user_id) ?? 0) +
-        (profile.ai_practice_points ?? 0) +
-        (profile.chest_points ?? 0) +
-        (profile.streak_points ?? 0) +
-        (profile.mission_points ?? 0) +
-        (profile.quiz_result_points ?? 0);
+      const totalPoints = (learnedPointsByUser.get(profile.user_id) ?? 0) + getProfilePointTotal({
+        aiPracticePoints: profile.ai_practice_points,
+        chestPoints: profile.chest_points,
+        streakPoints: profile.streak_points,
+        missionPoints: profile.mission_points,
+        quizResultPoints: profile.quiz_result_points,
+        gamePoints: profile.game_points,
+        gemPoints: profile.gem_points,
+      });
 
       return {
         userId: profile.user_id,
@@ -166,12 +171,15 @@ function createEmptyLeaderboardPayload(
       userId: viewerUserId,
       position: 1,
       displayName: viewerProfile?.display_name?.trim() || "",
-      totalPoints:
-        (viewerProfile?.ai_practice_points ?? 0) +
-        (viewerProfile?.chest_points ?? 0) +
-        (viewerProfile?.streak_points ?? 0) +
-        (viewerProfile?.mission_points ?? 0) +
-        (viewerProfile?.quiz_result_points ?? 0),
+      totalPoints: getProfilePointTotal({
+        aiPracticePoints: viewerProfile?.ai_practice_points ?? 0,
+        chestPoints: viewerProfile?.chest_points ?? 0,
+        streakPoints: viewerProfile?.streak_points ?? 0,
+        missionPoints: viewerProfile?.mission_points ?? 0,
+        quizResultPoints: viewerProfile?.quiz_result_points ?? 0,
+        gamePoints: viewerProfile?.game_points ?? 0,
+        gemPoints: viewerProfile?.gem_points ?? 0,
+      }),
       leaderboardVisible: viewerProfile?.leaderboard_visible ?? false,
     },
     entries: [],

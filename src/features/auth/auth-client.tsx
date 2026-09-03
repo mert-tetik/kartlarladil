@@ -54,6 +54,11 @@ function normalizeClientProfile(row: {
   streak_points: number | null;
   mission_points: number | null;
   quiz_result_points: number | null;
+  game_points?: number | null;
+  gem_points?: number | null;
+  blue_gems?: number | null;
+  green_gems?: number | null;
+  purple_gems?: number | null;
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
   profile_picture_index: number | null;
@@ -79,6 +84,11 @@ function normalizeClientProfile(row: {
     streakPoints: row.streak_points ?? 0,
     missionPoints: row.mission_points ?? 0,
     quizResultPoints: row.quiz_result_points ?? 0,
+    gamePoints: row.game_points ?? 0,
+    gemPoints: row.gem_points ?? 0,
+    blueGems: row.blue_gems ?? 0,
+    greenGems: row.green_gems ?? 0,
+    purpleGems: row.purple_gems ?? 0,
     pushMarketingEnabled: row.push_marketing_enabled ?? false,
     leaderboardVisible: row.leaderboard_visible ?? false,
     profilePictureIndex:
@@ -138,7 +148,7 @@ export function AuthSessionProvider({
 
     const { data, error } = await client
       .from("user_profiles")
-      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, push_marketing_enabled, leaderboard_visible, profile_picture_index")
+      .select("display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, profile_picture_index")
       .eq("user_id", session.user.id)
       .maybeSingle();
 
@@ -194,6 +204,11 @@ export function useAuthSession() {
   }
 
   return context;
+}
+
+/** Read session data for passive UI that can also render in isolated previews/tests. */
+export function useOptionalAuthSession() {
+  return useContext(AuthSessionContext);
 }
 
 export function useRequireAuthAction() {

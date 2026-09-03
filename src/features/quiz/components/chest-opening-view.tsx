@@ -13,6 +13,7 @@ import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { ChestArtwork } from "@/features/quiz/components/chest-artwork";
 import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { GEM_ASSETS, type ChestRewardOutcome, type GemType } from "@/features/gems/gem-types";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -23,6 +24,8 @@ interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
   totalPoints: number;
   onComplete: () => void;
+  onRewardReady?: () => Promise<ChestRewardOutcome | null>;
+  reward?: ChestRewardOutcome | null;
 }
 
 type ChestPhase = "appearing" | "idle" | "shake" | "opening" | "revealed" | "disappearing";
@@ -37,12 +40,11 @@ const AUTO_OPEN_DELAY_MS = 700;
 const CHEST_CHARGE_DURATION_MS = 780;
 const DISAPPEAR_MS = 500;
 
-export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpeningViewProps) {
+export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady, reward }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
   const usesSuperWater = canUseSuperWater(locale);
-  const stableTotalPointsRef = useRef(totalPoints);
-  const stableTotalPoints = stableTotalPointsRef.current;
+  const [stableTotalPoints] = useState(totalPoints);
   const phaseRef = useRef<ChestPhase>("appearing");
   const [phase, setPhase] = useState<ChestPhase>("appearing");
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
@@ -50,21 +52,25 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
   const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
+  const [gemFlightIcons, setGemFlightIcons] = useState<FlightIcon[]>([]);
+  const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
   const hasAwarded = useRef(false);
   const lidRef = useRef<HTMLImageElement | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
   const rewardPointsRef = useRef<HTMLParagraphElement | null>(null);
+  const rewardGemRef = useRef<HTMLParagraphElement | null>(null);
+  const gemTargetRefs = useRef<Partial<Record<GemType, HTMLSpanElement | null>>>({});
   const animationFrameRef = useRef<number | null>(null);
   const revealTimeoutRef = useRef<number | null>(null);
   const pointsTimeoutRef = useRef<number | null>(null);
   const pointsSoundTimeoutRef = useRef<number | null>(null);
-  const flyTimeoutRef = useRef<number | null>(null);
   const arrivalTimersRef = useRef<number[]>([]);
   const closeTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
   const autoOpenTimeoutRef = useRef<number | null>(null);
   const chargeTimeoutRef = useRef<number | null>(null);
   const hasStartedOpeningRef = useRef(false);
+  const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
 
   const formatRewardText = (text: string) =>
     usesSuperWater ? formatSuperWaterText(locale, text) : text;
@@ -167,11 +173,20 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     animationFrameRef.current = window.requestAnimationFrame(tick);
 
     revealTimeoutRef.current = window.setTimeout(() => {
-      setPhase("revealed");
-      setPointsPhase("shown");
-      pointsTimeoutRef.current = window.setTimeout(() => {
-        setPointsPhase("flying");
-      }, REWARD_HOLD_BEFORE_FLIGHT_MS);
+      const reveal = (outcome: ChestRewardOutcome | null) => {
+        setRewardOutcome(outcome);
+        setPhase("revealed");
+        setPointsPhase("shown");
+        pointsTimeoutRef.current = window.setTimeout(() => {
+          setPointsPhase("flying");
+        }, REWARD_HOLD_BEFORE_FLIGHT_MS);
+      };
+
+      if (rewardPromiseRef.current) {
+        void rewardPromiseRef.current.then(reveal);
+      } else {
+        reveal(null);
+      }
     }, REWARD_REVEAL_DELAY_MS);
 
     try {
@@ -197,6 +212,16 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       }
     }, REWARD_REVEAL_DELAY_MS);
   }, [spawnSparkles]);
+
+  useEffect(() => {
+    if (reward) {
+      rewardPromiseRef.current = Promise.resolve(reward);
+    } else if (onRewardReady) {
+      rewardPromiseRef.current ??= onRewardReady().catch(() => null);
+    }
+    if (!rewardPromiseRef.current) return;
+    void rewardPromiseRef.current.then(setRewardOutcome);
+  }, [onRewardReady, reward]);
 
   useEffect(() => {
     autoOpenTimeoutRef.current = window.setTimeout(() => {
@@ -229,9 +254,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       }
       if (pointsSoundTimeoutRef.current !== null) {
         window.clearTimeout(pointsSoundTimeoutRef.current);
-      }
-      if (flyTimeoutRef.current !== null) {
-        window.clearTimeout(flyTimeoutRef.current);
       }
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
@@ -276,12 +298,32 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
     }, icon.delay + 700));
 
     return () => {
-      if (flyTimeoutRef.current !== null) {
-        window.clearTimeout(flyTimeoutRef.current);
-      }
       arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     };
   }, [pointsPhase, stableTotalPoints, tier.points]);
+
+  useLayoutEffect(() => {
+    if (pointsPhase !== "flying" || !rewardOutcome?.gem || !rewardGemRef.current) return;
+    const target = gemTargetRefs.current[rewardOutcome.gem.type];
+    if (!target) return;
+    const start = rewardGemRef.current.getBoundingClientRect();
+    const end = target.getBoundingClientRect();
+    const startX = start.left + start.width / 2;
+    const startY = start.top + start.height / 2;
+    const targetX = end.left + end.width / 2;
+    const targetY = end.top + end.height / 2;
+    const count = Math.max(1, rewardOutcome.gem.amount);
+    setGemFlightIcons(Array.from({ length: count }, (_, index) => ({
+      id: index,
+      startX: startX + (Math.random() - 0.5) * 40,
+      startY: startY + (Math.random() - 0.5) * 24,
+      scatterX: (Math.random() - 0.5) * 120,
+      scatterY: -25 - Math.random() * 80,
+      targetX,
+      targetY,
+      delay: Math.round((count === 1 ? 0 : index / (count - 1)) * 640),
+    })));
+  }, [pointsPhase, rewardOutcome]);
 
   useEffect(() => {
     if (pointsPhase !== "added") return;
@@ -324,7 +366,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
       />
 
       <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
-        <div className="flex justify-center pt-1 sm:pt-2">
+        <div className="flex flex-col items-center gap-2 pt-1 sm:pt-2">
           <div
             data-chest-total-points-shell
             className={cn(
@@ -345,6 +387,14 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                 {formatPoints(locale, displayPoints)}
               </span>
             </div>
+          </div>
+          <div className="flex items-center justify-center gap-2 lg:hidden" data-reward-gem-hud>
+            {(["blue", "green", "purple"] as const).map((type) => (
+              <span key={type} className="inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white">
+                <Image src={GEM_ASSETS[type]} alt="" width={20} height={20} className="size-5 object-contain" />
+                <span ref={(element) => { gemTargetRefs.current[type] = element; }}>{rewardOutcome?.balances?.[type] ?? 0}</span>
+              </span>
+            ))}
           </div>
         </div>
 
@@ -411,6 +461,12 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
                         <span>{tier.points}</span>
                         <ScoreIcon size={42} className="size-10 sm:size-12" />
                       </p>
+                      {rewardOutcome?.gem ? (
+                        <p ref={rewardGemRef} data-chest-reward-gem className={cn("mt-2 inline-flex items-center justify-center gap-2 text-3xl font-bold text-white lg:hidden", shouldHideRewardSource && "opacity-0")}>
+                          <span>{rewardOutcome.gem.amount}</span>
+                          <Image src={GEM_ASSETS[rewardOutcome.gem.type]} alt="" width={36} height={36} className="size-9 object-contain" />
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -445,6 +501,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete }: ChestOpening
 
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
         <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" aria-hidden="true" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties}><ScoreIcon size={32} /></span>
+      )), document.body) : null}
+      {gemFlightIcons.length > 0 ? createPortal(gemFlightIcons.map((icon) => (
+        <span key={`gem-${icon.id}`} className="pointer-events-none fixed left-0 top-0 z-[61] animate-quiz-score-icon-flight lg:hidden" aria-hidden="true" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => playSoundEffect("gem-loot")}><Image src={rewardOutcome ? GEM_ASSETS[rewardOutcome.gem.type] : GEM_ASSETS.blue} alt="" width={28} height={28} className="size-7 object-contain" /></span>
       )), document.body) : null}
     </div>
   );
