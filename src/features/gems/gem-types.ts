@@ -11,6 +11,8 @@ export interface GemReward {
   amount: number;
 }
 
+export type GemRewards = GemReward[];
+
 export interface ChestRewardOutcome {
   points: number;
   gem: GemReward;
