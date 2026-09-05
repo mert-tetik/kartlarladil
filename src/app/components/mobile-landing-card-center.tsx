@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, Languages } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
@@ -50,6 +50,7 @@ export function MobileLandingCardCenter({
   const t = useT();
   const [tier, setTier] = useState<Tier | "all">("all");
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
+  const drawActionRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
       const sourceCards = status === "active" ? activeCards : status === "learned" ? learnedCards : [...activeCards, ...learnedCards];
@@ -73,12 +74,12 @@ export function MobileLandingCardCenter({
           <span>{t("cards.centerTitle")}</span>
           <ChevronDown className={cn("size-5 transition-transform duration-300", isOpen && "rotate-180")} aria-hidden="true" />
         </button>
-        <div className="absolute inset-y-0 right-2 z-10 flex items-center gap-2">
-          <div className="relative">
+        <div className="absolute inset-y-0 right-2 z-50 flex items-center gap-2">
+          <div ref={drawActionRef} className="relative">
             <button type="button" onClick={onOpenDraw} aria-label={t("nav.cardDraw")} data-tutorial-target="landing-draw-cards" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
               <Image src="/card-icons/draw_cards_button.png" alt="" width={40} height={40} className="size-10 translate-y-0.5 object-contain" aria-hidden="true" />
             </button>
-            <MobileEmptyDeckPointer enabled={showEmptyDeckPointer} />
+            <MobileEmptyDeckPointer enabled={showEmptyDeckPointer} anchorRef={drawActionRef} />
           </div>
           <button type="button" onClick={onOpenCreate} aria-label={t("cards.createCustom")} data-tutorial-target="landing-create-card" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
             <Image src="/card-icons/add_custom_card_button.png" alt="" width={40} height={40} className="size-10 object-contain" aria-hidden="true" />

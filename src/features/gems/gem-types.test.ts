@@ -25,6 +25,6 @@ describe("gem reward payloads", () => {
   });
 
   it("keeps the intended conversion values", () => {
-    expect(GEM_POINTS).toEqual({ blue: 1, green: 5, purple: 20 });
+    expect(GEM_POINTS).toEqual({ blue: 5, green: 20, purple: 40 });
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 
 const BLOCKING_LAYER_SELECTOR = [
   "[data-landing-tutorial]",
@@ -11,10 +12,19 @@ const BLOCKING_LAYER_SELECTOR = [
   '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
   '[data-cookie-notice]:not([aria-hidden="true"]):not([inert])',
   "[data-app-image-cache-gate]",
+  "[data-mobile-gateway-bootstrap]",
 ].join(", ");
 
-export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
+export function MobileEmptyDeckPointer({
+  enabled,
+  anchorRef,
+}: {
+  enabled: boolean;
+  anchorRef?: RefObject<HTMLElement | null>;
+}) {
   const [blocked, setBlocked] = useState(false);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const markerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     function updateBlockedState() {
@@ -33,16 +43,97 @@ export function MobileEmptyDeckPointer({ enabled }: { enabled: boolean }) {
     return () => observer.disconnect();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!anchorRef || !enabled || blocked) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (hasBlockingLayer()) {
+        setPosition(null);
+        return;
+      }
+
+      const anchor = anchorRef.current ?? markerRef.current?.parentElement;
+      const rect = anchor?.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        setPosition(null);
+        return;
+      }
+
+      setPosition({
+        left: rect.left + rect.width / 2 - 24.6,
+        top: rect.top + 22,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updatePosition);
+    if (anchorRef.current) {
+      resizeObserver?.observe(anchorRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      resizeObserver?.disconnect();
+    };
+  }, [anchorRef, blocked, enabled]);
+
+  const marker = (
+    <span
+      ref={markerRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute size-px opacity-0"
+    />
+  );
+
   if (!enabled || blocked) {
     return null;
   }
 
+  if (!anchorRef) {
+    return <PointerImage className="empty-deck-pointer-anchor pointer-events-none absolute z-[60]" />;
+  }
+
+  if (!position || typeof document === "undefined") {
+    return marker;
+  }
+
+  return (
+    <>
+      {marker}
+      {createPortal(
+        <PointerImage
+          className="empty-deck-pointer-anchor pointer-events-none fixed z-[80]"
+          style={{ left: position.left, top: position.top }}
+        />,
+        document.body,
+      )}
+    </>
+  );
+}
+
+function PointerImage({
+  className,
+  style,
+}: {
+  className: string;
+  style?: CSSProperties;
+}) {
   return (
     <span
       aria-hidden="true"
       data-mobile-empty-deck-pointer
       data-testid="mobile-empty-deck-pointer"
-      className="empty-deck-pointer-anchor pointer-events-none absolute z-[60]"
+      className={className}
+      style={style}
     >
       <Image
         alt=""

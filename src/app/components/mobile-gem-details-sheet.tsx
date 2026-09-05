@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { convertGemToPointsAction } from "@/features/gems/gem-actions";
 import { GEM_ASSETS, GEM_POINTS, type GemType } from "@/features/gems/gem-types";
@@ -25,6 +25,16 @@ const GEM_DESCRIPTION_KEYS = {
   blue: "gems.blueDescription",
   green: "gems.greenDescription",
   purple: "gems.purpleDescription",
+} as const;
+const GEM_BUTTON_CLASSES = {
+  blue: "bg-sky-500 shadow-[0_8px_0_rgb(2_132_199)]",
+  green: "bg-emerald-500 shadow-[0_8px_0_rgb(4_120_87)]",
+  purple: "bg-violet-500 shadow-[0_8px_0_rgb(109_40_217)]",
+} as const;
+const GEM_TEXT_CLASSES = {
+  blue: "text-sky-400",
+  green: "text-emerald-400",
+  purple: "text-violet-400",
 } as const;
 
 export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType | null; open: boolean; onClose: () => void }) {
@@ -195,7 +205,7 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
         )}
       >
         <div className={cn(
-          "relative flex max-h-[calc(100dvh-2rem)] flex-col items-center overflow-y-auto rounded-[1.75rem] bg-background-card px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 text-center text-foreground shadow-[0_24px_70px_rgb(0_0_0_/_0.45)] ring-1 ring-black/10",
+          "relative flex min-h-[22rem] max-h-[calc(100dvh-2rem)] flex-col items-center justify-center overflow-y-auto rounded-[1.75rem] bg-background-card px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-24 text-center text-foreground shadow-[0_24px_70px_rgb(0_0_0_/_0.45)] ring-1 ring-black/10",
           "transition-transform duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           closing || !entered ? "translate-y-5 scale-[0.96]" : "translate-y-0 scale-100",
         )}>
@@ -208,13 +218,16 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
             <X className="size-6 stroke-[3]" aria-hidden="true" />
           </button>
 
-          <h2 className={cn("mt-1 text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>
+          <h2 className={cn("mt-1 w-full text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>
             {gemName}
           </h2>
-          <p className={cn("mt-2 text-xl font-bold text-[var(--brand)]", useSuperWater && "font-super-water")}>
-            {formatNumber(locale, balance)}
+          <p className={cn("mt-2 w-full text-3xl font-bold leading-none", GEM_TEXT_CLASSES[selectedType], useSuperWater && "font-super-water")}>
+            <span className="inline-flex items-center justify-center gap-1.5">
+              {formatNumber(locale, balance)}
+              <Image src={GEM_ASSETS[selectedType]} alt="" width={22} height={22} className="size-[22px] object-contain" />
+            </span>
           </p>
-          <p className={cn("mt-4 max-w-[18rem] text-sm leading-6 text-foreground-secondary", useSuperWater && "font-super-water")}>
+          <p className={cn("mx-auto mt-4 w-full max-w-[18rem] text-sm leading-6 text-white", useSuperWater && "font-super-water")}>
             {gemDescription}
           </p>
           <button
@@ -224,12 +237,12 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
             disabled={!user || availableToQueue < 1}
             onClick={handleConvert}
             className={cn(
-              "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-5 py-3 text-base font-bold text-[var(--brand-foreground)] shadow-[0_8px_0_color-mix(in_srgb,var(--brand)_72%,black)] transition-transform active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45",
+              "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-bold text-[var(--brand-foreground)] transition-transform active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45",
+              GEM_BUTTON_CLASSES[selectedType],
               useSuperWater && "font-super-water",
               converting && "animate-pulse",
             )}
           >
-            <Sparkles className="size-5" aria-hidden="true" />
             <span>{convertLabel}</span>
             <span className="inline-flex items-center gap-1 text-yellow-300">
               {points}

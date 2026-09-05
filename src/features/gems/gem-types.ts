@@ -20,7 +20,7 @@ export interface ChestRewardOutcome {
   balances?: GemBalances;
 }
 
-export const GEM_POINTS: Record<GemType, number> = { blue: 1, green: 5, purple: 20 };
+export const GEM_POINTS: Record<GemType, number> = { blue: 5, green: 20, purple: 40 };
 export const GEM_ASSETS: Record<GemType, string> = {
   blue: "/gems/blue-gem.png",
   green: "/gems/green-gem.png",

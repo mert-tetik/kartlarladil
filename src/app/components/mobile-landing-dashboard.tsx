@@ -268,8 +268,7 @@ export function MobileLandingDashboard() {
     swipeDeckOpen ||
     customCardOpen ||
     groupCardOpen ||
-    selectedGem !== null ||
-    cardCenterOpen;
+    selectedGem !== null;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
     leaderboardViewer && leaderboardViewer.userId === user?.id ? leaderboardViewer.position : null;

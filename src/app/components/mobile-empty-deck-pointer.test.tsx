@@ -72,4 +72,19 @@ describe("MobileEmptyDeckPointer", () => {
       expect(screen.queryByTestId("mobile-empty-deck-pointer")).not.toBeInTheDocument();
     });
   });
+
+  it("portals the production pointer above the mobile bottom bar", async () => {
+    const anchor = document.createElement("div");
+    setRect(anchor, { left: 230, top: 722, width: 40, height: 46 });
+    document.body.append(anchor);
+
+    const { unmount } = render(<MobileEmptyDeckPointer enabled anchorRef={{ current: anchor }} />);
+
+    const pointer = await screen.findByTestId("mobile-empty-deck-pointer");
+    expect(pointer.parentElement).toBe(document.body);
+    expect(pointer).toHaveClass("fixed", "z-[80]");
+    expect(pointer).toHaveStyle({ left: "225.4px", top: "744px" });
+
+    unmount();
+  });
 });
