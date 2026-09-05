@@ -84,4 +84,20 @@ describe("AiPracticeCharacterSelection", () => {
     expect(screen.getByText("With Random citizen")).toBeInTheDocument();
     expect(screen.getByText("With Random girl")).toBeInTheDocument();
   });
+
+  it("keeps situation cards from navigating while subscription access is unknown", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Situations" }));
+
+    const scenarioLinks = screen.getAllByRole("link");
+    expect(scenarioLinks).toHaveLength(getAiPracticeScenarios().length);
+    expect(scenarioLinks.every((link) => link.getAttribute("aria-disabled") === "true")).toBe(true);
+  });
 });

@@ -5,15 +5,99 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
-import type { ChestRewardOutcome, GemBalances, GemType } from "./gem-types";
+import { QUIZ_COUNT_OPTIONS } from "@/features/quiz/chest-rewards";
+import { normalizeGemRewards, type ChestRewardOutcome, type GemBalances, type GemReward, type GemRewards, type GemType, type ProgressGemRewardSource } from "./gem-types";
 
 const GEM_TYPES = new Set<GemType>(["blue", "green", "purple"]);
 const CHEST_TIERS = new Set<ChestTier>(["wood", "iron", "gold", "diamond", "emerald", "ruby"]);
 const KEY_PATTERN = /^[a-z0-9:_-]{1,160}$/i;
 const SOURCE_KEY_PATTERN = /^[^\u0000-\u001f\u007f\s]{1,240}$/;
+const PROGRESS_GEM_CLAIM_PATTERN = /^[a-z0-9:_-]{1,160}$/i;
+const PROGRESS_GEM_SOURCES = new Set<ProgressGemRewardSource>(["game-level", "quiz-streak", "quiz-result"]);
 
 function readBalances(row: { blue_gems?: number | null; green_gems?: number | null; purple_gems?: number | null }): GemBalances {
   return { blue: row.blue_gems ?? 0, green: row.green_gems ?? 0, purple: row.purple_gems ?? 0 };
+}
+
+export interface AwardProgressGemRewardInput {
+  source: ProgressGemRewardSource;
+  claimKey: string;
+  level?: number;
+  streak?: number;
+  stars?: number;
+  cardCount?: number;
+}
+
+export interface AwardProgressGemRewardResult {
+  success: boolean;
+  awarded?: boolean;
+  rewards?: GemRewards;
+  /** @deprecated Use rewards. Kept for callers that still display one reward. */
+  reward?: GemReward;
+  balances?: GemBalances;
+  error?: string;
+}
+
+export async function awardProgressGemRewardAction(
+  input: AwardProgressGemRewardInput,
+): Promise<AwardProgressGemRewardResult> {
+  const { source, claimKey, level, streak, stars, cardCount } = input;
+  if (
+    !PROGRESS_GEM_SOURCES.has(source) ||
+    !PROGRESS_GEM_CLAIM_PATTERN.test(claimKey) ||
+    (source === "game-level" && (!Number.isInteger(level) || level! < 1 || level! > 1000)) ||
+    (source === "quiz-streak" && (!Number.isInteger(streak) || streak! < 5 || streak! > 10000)) ||
+    (source === "quiz-result" && (
+      !Number.isInteger(stars) ||
+      stars! < 1 ||
+      stars! > 5 ||
+      !Number.isInteger(cardCount) ||
+      !QUIZ_COUNT_OPTIONS.includes(cardCount as (typeof QUIZ_COUNT_OPTIONS)[number])
+    ))
+  ) {
+    return { success: false, error: "invalid_gem_reward" };
+  }
+
+  try {
+    const user = await requireAuthUser("/");
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.rpc("award_progress_gem_rewards", {
+      p_user_id: user.id,
+      p_claim_key: claimKey,
+      p_source: source,
+      p_level: level ?? null,
+      p_streak: streak ?? null,
+      p_stars: stars ?? null,
+      p_card_count: cardCount ?? null,
+    }).maybeSingle<{
+      awarded: boolean;
+      rewards: unknown;
+      blue_gems: number;
+      green_gems: number;
+      purple_gems: number;
+    }>();
+
+    if (error || !data) {
+      return { success: false, error: error?.message ?? "database_error" };
+    }
+
+    const rewards = normalizeGemRewards(data.rewards);
+
+    revalidatePath("/");
+    revalidatePath("/games");
+    revalidatePath("/learn");
+    revalidatePath("/profile");
+
+    return {
+      success: true,
+      awarded: data.awarded,
+      rewards,
+      reward: rewards[0],
+      balances: readBalances(data),
+    };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "database_error" };
+  }
 }
 
 export async function awardChestGemRewardAction(
@@ -24,12 +108,13 @@ export async function awardChestGemRewardAction(
   try {
     const user = await requireAuthUser("/");
     const admin = createSupabaseAdminClient();
-    const { data, error } = await admin.rpc("award_chest_gem_reward", {
+    const { data, error } = await admin.rpc("award_chest_gem_rewards", {
       p_user_id: user.id,
       p_claim_key: claimKey,
       p_tier: tier,
-    }).maybeSingle<{ awarded: boolean; gem_type: GemType; amount: number; blue_gems: number; green_gems: number; purple_gems: number }>();
-    if (error || !data || !GEM_TYPES.has(data.gem_type)) return { success: false, error: "database_error" };
+    }).maybeSingle<{ awarded: boolean; rewards: unknown; blue_gems: number; green_gems: number; purple_gems: number }>();
+    if (error || !data) return { success: false, error: error?.message ?? "database_error" };
+    const rewards = normalizeGemRewards(data.rewards);
     revalidatePath("/");
     revalidatePath("/profile");
     return {
@@ -37,7 +122,7 @@ export async function awardChestGemRewardAction(
       awarded: data.awarded,
       outcome: {
         points: getChestRewardPoints(tier),
-        gem: { type: data.gem_type, amount: data.amount },
+        rewards,
         balances: readBalances(data),
       },
     };

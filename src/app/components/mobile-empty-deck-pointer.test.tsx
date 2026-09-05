@@ -58,4 +58,18 @@ describe("MobileEmptyDeckPointer", () => {
       expect(screen.queryByTestId("mobile-empty-deck-pointer")).not.toBeInTheDocument();
     });
   });
+
+  it("hides while any visible modal dialog is open", async () => {
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    setRect(dialog, { height: 200, width: 200 });
+    document.body.append(dialog);
+
+    render(<MobileEmptyDeckPointer enabled />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("mobile-empty-deck-pointer")).not.toBeInTheDocument();
+    });
+  });
 });

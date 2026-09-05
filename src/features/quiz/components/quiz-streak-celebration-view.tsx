@@ -24,6 +24,9 @@ type RigidBodyMotion = {
   landingX: string;
   landingY: string;
   landingRotation: string;
+  fallStartX: string;
+  fallStartY: string;
+  fallStartRotation: string;
   fallX: string;
   fallY: string;
   fallRotation: string;
@@ -51,6 +54,9 @@ function createRigidBodyMotion(horizontalSpread: number, verticalSpread: number)
     landingX: `${distance}px`,
     landingY: `${Math.round(28 + Math.random() * 18)}vh`,
     landingRotation: `${fallRotation * 0.7}deg`,
+    fallStartX: `${distance + direction * Math.round(12 + Math.random() * 35)}px`,
+    fallStartY: `${Math.round(62 + Math.random() * 12)}vh`,
+    fallStartRotation: `${fallRotation * 0.82}deg`,
     fallX: `${distance + direction * Math.round(24 + Math.random() * 70)}px`,
     fallY: `${Math.round(112 + Math.random() * 18)}vh`,
     fallRotation: `${fallRotation}deg`,
@@ -76,6 +82,9 @@ function motionStyle(prefix: "background" | "number" | "icon", motion: RigidBody
     [`--streak-${prefix}-landing-x`]: motion.landingX,
     [`--streak-${prefix}-landing-y`]: motion.landingY,
     [`--streak-${prefix}-landing-rotation`]: motion.landingRotation,
+    [`--streak-${prefix}-fall-start-x`]: motion.fallStartX,
+    [`--streak-${prefix}-fall-start-y`]: motion.fallStartY,
+    [`--streak-${prefix}-fall-start-rotation`]: motion.fallStartRotation,
     [`--streak-${prefix}-fall-x`]: motion.fallX,
     [`--streak-${prefix}-fall-y`]: motion.fallY,
     [`--streak-${prefix}-fall-rotation`]: motion.fallRotation,
@@ -90,10 +99,9 @@ export function QuizStreakCelebrationView({
   const [exitMotion, setExitMotion] = useState<StreakExitMotion | null>(null);
 
   useEffect(() => {
-    playSoundEffect("streak-fire");
-
     const timer = window.setTimeout(() => {
       setExitMotion(createStreakExitMotion());
+      playSoundEffect("streak-break");
       setExiting(true);
     }, VISIBLE_DURATION_MS);
     return () => window.clearTimeout(timer);
@@ -143,7 +151,8 @@ export function QuizStreakCelebrationView({
         </span>
         <Flame
           className={cn(
-            "size-16 text-red-500 animate-streak-fire sm:size-20",
+            "size-16 text-red-500 sm:size-20",
+            !exiting && "animate-streak-fire",
             exiting && "animate-streak-celebration-icon-exit",
           )}
           fill="currentColor"

@@ -7,8 +7,12 @@ import { randomUUID } from "node:crypto";
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
-import { BONUS_QUESTION_POINTS } from "@/features/quiz/bonus-question-constants";
-import type { GemType } from "@/features/gems/gem-types";
+import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
+import {
+  getBonusQuestionPoints,
+  type BonusQuestionKind,
+} from "@/features/quiz/bonus-question-constants";
+import { normalizeGemRewards, type GemRewards, type GemType } from "@/features/gems/gem-types";
 
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
@@ -23,7 +27,10 @@ export interface AwardChestResult {
   success: boolean;
   awarded?: boolean;
   points?: number;
+  gemRewards?: GemRewards;
+  /** @deprecated Use gemRewards. */
   gemType?: GemType;
+  /** @deprecated Use gemRewards. */
   gemAmount?: number;
   balances?: { blue: number; green: number; purple: number };
   error?: string;
@@ -53,6 +60,15 @@ export interface AwardQuizBonusPointsResult {
 
 const QUIZ_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const QUIZ_BONUS_ID_PATTERN = /^[0-9a-f-]{36}-(matching|sentence-order|category-sort|imposter)-(?:[0-9]|[1-4][0-9])$/i;
+const BONUS_QUESTION_KIND_PATTERN = /^[0-9a-f-]{36}-(matching|sentence-order|category-sort|imposter)-/i;
+
+function getBonusQuestionKind(bonusId: string): BonusQuestionKind | null {
+  const kind = bonusId.match(BONUS_QUESTION_KIND_PATTERN)?.[1]?.toLowerCase();
+  if (kind === "matching" || kind === "sentence-order" || kind === "category-sort" || kind === "imposter") {
+    return kind;
+  }
+  return null;
+}
 
 export async function awardChestPoints(tier: ChestTier, sessionId?: string): Promise<AwardChestResult> {
   if (!VALID_TIERS.has(tier)) {
@@ -80,24 +96,27 @@ export async function awardChestPoints(tier: ChestTier, sessionId?: string): Pro
     ? `quiz:${sessionId}`
     : `quiz:${randomUUID()}`;
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin.rpc("award_chest_reward", {
+  const { data, error } = await admin.rpc("award_chest_rewards", {
     p_user_id: user.id,
     p_claim_key: claimKey,
     p_tier: tier,
     p_points: points,
-  }).maybeSingle<{ awarded: boolean; points: number; gem_type: GemType; amount: number; blue_gems: number; green_gems: number; purple_gems: number }>();
+  }).maybeSingle<{ awarded: boolean; points: number; rewards: unknown; blue_gems: number; green_gems: number; purple_gems: number }>();
 
   if (error || !data) return { success: false, error: "database_error" };
 
   revalidatePath("/my-cards");
   revalidatePath("/profile");
 
+  const gemRewards = normalizeGemRewards(data.rewards);
+
   return {
     success: true,
     awarded: data.awarded,
     points: data.points,
-    gemType: data.gem_type,
-    gemAmount: data.amount,
+    gemRewards,
+    gemType: gemRewards[0]?.type,
+    gemAmount: gemRewards[0]?.amount,
     balances: { blue: data.blue_gems, green: data.green_gems, purple: data.purple_gems },
   };
 }
@@ -145,13 +164,16 @@ export async function awardQuizStreakPoints(sessionId: string, rawStreak: number
 export async function awardQuizResultPoints(
   sessionId: string,
   rawStars: number,
+  rawCardCount = 10,
 ): Promise<AwardQuizResultPointsResult> {
   if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
     return { success: false, error: "invalid_session" };
   }
 
   const stars = Math.round(rawStars);
-  if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+  const cardCount = Math.round(rawCardCount);
+  const points = getQuizResultRewardPoints(stars, cardCount);
+  if (points === null) {
     return { success: false, error: "invalid_points" };
   }
 
@@ -170,6 +192,7 @@ export async function awardQuizResultPoints(
     p_user_id: user.id,
     p_session_id: sessionId,
     p_stars: stars,
+    p_card_count: cardCount,
   });
 
   if (error) {
@@ -179,7 +202,7 @@ export async function awardQuizResultPoints(
   revalidatePath("/learn");
   revalidatePath("/profile");
 
-  return { success: true, awarded: Boolean(data), points: stars };
+  return { success: true, awarded: Boolean(data), points };
 }
 
 export async function awardQuizBonusPoints(
@@ -189,6 +212,12 @@ export async function awardQuizBonusPoints(
   if (!QUIZ_SESSION_ID_PATTERN.test(sessionId) || !QUIZ_BONUS_ID_PATTERN.test(bonusId) || !bonusId.startsWith(`${sessionId}-`)) {
     return { success: false, error: "invalid_bonus" };
   }
+
+  const bonusKind = getBonusQuestionKind(bonusId);
+  if (!bonusKind) {
+    return { success: false, error: "invalid_bonus" };
+  }
+  const points = getBonusQuestionPoints(bonusKind);
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -204,7 +233,7 @@ export async function awardQuizBonusPoints(
     p_user_id: user.id,
     p_session_id: sessionId,
     p_bonus_id: bonusId,
-    p_points: BONUS_QUESTION_POINTS,
+    p_points: points,
   });
 
   if (error) {
@@ -217,6 +246,6 @@ export async function awardQuizBonusPoints(
   return {
     success: true,
     awarded: Boolean(data),
-    points: BONUS_QUESTION_POINTS,
+    points,
   };
 }

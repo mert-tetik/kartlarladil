@@ -414,7 +414,7 @@ const dictionary = {
   "pricing.ctaManage": "サブスクリプションを管理",
   "pricing.ctaSubscribe": "購読する",
   "pricing.ctaPriceWithPeriod": "{price} {period}",
-  "pricing.ctaStartFirstMonthFreeTrial": "1か月の無料トライアルを始める",
+  "pricing.ctaStartFirstMonthFreeTrial": "初月無料",
   "pricing.ctaTrialAfter": "その後 {price} {period}",
   "pricing.ctaCurrentAndManage": "現在のプラン（サブスクリプションを管理）",
   "pricing.description": "カードの制限を解除し、より多くのAI Practiceメッセージを取得します。",

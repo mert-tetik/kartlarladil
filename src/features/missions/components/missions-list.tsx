@@ -185,9 +185,9 @@ export function MissionsList() {
             ...(result.purpleGems !== undefined ? { purpleGems: result.purpleGems } : {}),
           });
         }
-        if (result.gemType && result.gemAmount && reward.kind === "chest") {
+        if (result.gemRewards?.length && reward.kind === "chest") {
           setRewardMode((current) => current?.missionId === missionId && current.kind === "chest"
-            ? { ...current, gemReward: { points: result.points ?? 0, gem: { type: result.gemType!, amount: result.gemAmount! } } }
+            ? { ...current, gemReward: { points: result.points ?? 0, rewards: result.gemRewards! } }
             : current);
         }
       } else if (result.message === "auth_required") {

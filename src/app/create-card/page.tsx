@@ -15,7 +15,6 @@ import type { GeneratedCardResponse } from "@/features/cards/create-card-schema"
 import type { TranslationKey } from "@/i18n/types";
 import type { VocabularyCard } from "@/types/domain";
 import { cn, normalizeSearch } from "@/lib/utils";
-import { playSoundEffect } from "@/lib/sound-effects";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
@@ -104,14 +103,12 @@ export default function CreateCardPage() {
 
       if (selectedCard) {
         setFoundCard(selectedCard);
-        playSoundEffect("card-ready");
         return;
       }
 
       const result = await generateCardRequest({ locale, term: trimmedTerm });
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
-      playSoundEffect("card-ready");
     } catch (error) {
       setErrorCode(getThrownErrorMessage(error));
     } finally {

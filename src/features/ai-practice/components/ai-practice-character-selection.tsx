@@ -51,7 +51,10 @@ export function AiPracticeCharacterSelection({
   const [mode, setMode] = useState<AiPracticeMode>(initialMode);
   const locale = clientLocale ?? serverLocale;
   const { entitlements } = useSubscription();
-  const scenarioLocked = entitlements?.effectivePlan === "free";
+  // Subscription data starts as null while it is being refreshed. Fail closed
+  // here so a scenario card cannot navigate to tier selection before access is
+  // known. Once a paid entitlement arrives, the cards unlock normally.
+  const scenarioLocked = entitlements == null || entitlements.effectivePlan === "free";
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
 
   useEffect(() => {

@@ -5,6 +5,10 @@ import { createPortal } from "react-dom";
 import { Flame, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
+import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { useAuthSession } from "@/features/auth/auth-client";
+import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
+import type { GemRewards } from "@/features/gems/gem-types";
 import { formatPoints } from "@/i18n/labels";
 import { useLocale } from "@/i18n/locale-provider";
 import {
@@ -19,6 +23,7 @@ interface QuizStreakRewardViewProps {
   streak: number;
   points: number;
   totalPoints: number;
+  quizSessionId?: string;
   onComplete: () => void;
 }
 
@@ -36,8 +41,9 @@ type FlightIcon = {
 const BREAK_DELAY_MS = 1000;
 const LAST_START_MS = 780;
 
-export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }: QuizStreakRewardViewProps) {
+export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionId, onComplete }: QuizStreakRewardViewProps) {
   const { locale } = useLocale();
+  const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<number[]>([]);
@@ -48,6 +54,32 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
+  const [gemRewards, setGemRewards] = useState<GemRewards>([]);
+
+  useEffect(() => {
+    if (!user || !quizSessionId || streak <= 0) return;
+    let active = true;
+
+    void awardProgressGemRewardAction({
+      source: "quiz-streak",
+      claimKey: `quiz-streak:${quizSessionId}`,
+      streak,
+    }).then((result) => {
+      if (!active || !result.success) return;
+      if (result.balances) {
+        updateProfileField({
+          blueGems: result.balances.blue,
+          greenGems: result.balances.green,
+          purpleGems: result.balances.purple,
+        });
+      }
+      if (result.awarded && result.rewards?.length) setGemRewards(result.rewards);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [quizSessionId, streak, updateProfileField, user]);
 
   useEffect(() => {
     const timers = timersRef.current;
@@ -68,7 +100,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
       }
 
       setBreaking(true);
-      playSoundEffect("card-ready");
+      playSoundEffect("streak-break");
 
       const source = rewardRef.current.getBoundingClientRect();
       const target = scoreRef.current.getBoundingClientRect();
@@ -155,6 +187,13 @@ export function QuizStreakRewardView({ streak, points, totalPoints, onComplete }
           animationDelay: `${icon.delay}ms`,
         } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon)}><ScoreIcon size={32} /></span>
       ))}
+      <GemRewardFlight
+        key={gemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
+        rewards={gemRewards}
+        sourceRef={rewardRef}
+        startDelayMs={BREAK_DELAY_MS}
+        onComplete={() => void refreshProfile()}
+      />
     </div>,
     document.body,
   );

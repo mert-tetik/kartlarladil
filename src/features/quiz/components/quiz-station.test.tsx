@@ -5,7 +5,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { EMPTY_PROGRESS_STATS } from "@/features/progress/progress-stats";
+import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -15,7 +15,12 @@ import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { InventoryCard, LocaleCode } from "@/types/domain";
+import type { InventoryCard, LocaleCode, ProgressStats } from "@/types/domain";
+
+const progressStatsMock = vi.hoisted(() => ({
+  stats: null as ProgressStats | null,
+  refreshStats: vi.fn(async () => undefined),
+}));
 
 const mathRandomSpy = vi.spyOn(Math, "random");
 
@@ -24,6 +29,9 @@ beforeEach(() => {
   document.cookie = `${LOCALE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
   mathRandomSpy.mockReset();
   mathRandomSpy.mockReturnValue(0.75);
+  progressStatsMock.stats = null;
+  progressStatsMock.refreshStats.mockReset();
+  progressStatsMock.refreshStats.mockResolvedValue(undefined);
 });
 
 afterAll(() => {
@@ -88,7 +96,10 @@ vi.mock("canvas-confetti", () => ({
 }));
 
 vi.mock("@/features/progress/progress-client", () => ({
-  useProgressStats: () => ({ refreshStats: vi.fn(), stats: EMPTY_PROGRESS_STATS }),
+  useProgressStats: () => ({
+    refreshStats: progressStatsMock.refreshStats,
+    stats: progressStatsMock.stats ?? EMPTY_PROGRESS_STATS,
+  }),
 }));
 
 vi.mock("@/features/leaderboard/use-leaderboard", () => ({
@@ -598,6 +609,75 @@ describe("QuizStation streak celebration", () => {
   });
 });
 
+describe("QuizStation rank-up flow", () => {
+  it("opens rank-up between questions and resumes at the next question after closing", async () => {
+    const englishCards = VOCABULARY_CARDS
+      .filter((card) => card.language === "en" && card.tier === "A1")
+      .slice(0, 2);
+    const statsAt = (totalPoints: number): ProgressStats => ({
+      ...EMPTY_PROGRESS_STATS,
+      totalPoints,
+      ...getNextRankProgress(totalPoints),
+    });
+
+    progressStatsMock.stats = statsAt(190);
+    progressStatsMock.refreshStats.mockImplementation(async () => {
+      progressStatsMock.stats = statsAt(200);
+      useInventoryStore.setState((state) => ({ cards: [...state.cards] }));
+    });
+
+    useInventoryStore.setState({
+      cards: [
+        { cardId: englishCards[0]!.id, status: "active", correctCount: 3, addedAt: "2026-06-09T00:00:00.000Z" },
+        { cardId: englishCards[1]!.id, status: "active", correctCount: 3, addedAt: "2026-06-09T00:00:00.000Z" },
+        learnedInventoryCard,
+      ],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-card-term="' + englishCards[0]!.term + '"]')).toBeInTheDocument();
+    });
+
+    const answerInput = await screen.findByRole("textbox");
+    const firstTerm = document.querySelector("[data-quiz-card-term]")?.getAttribute("data-quiz-card-term");
+    expect(firstTerm).toBeTruthy();
+    const nextTerm = englishCards.find((card) => card.term !== firstTerm)?.term;
+    expect(nextTerm).toBeTruthy();
+    fireEvent.change(answerInput, { target: { value: firstTerm } });
+    fireEvent.keyDown(answerInput, { key: "Enter" });
+    const nextButton = await waitFor(() => {
+      const button = screen.getAllByRole("button", { name: /Sonraki|next/i })[0];
+      expect(button).toBeEnabled();
+      return button;
+    });
+    fireEvent.click(nextButton);
+
+    await waitFor(
+      () => expect(screen.getByRole("dialog", { name: /Rütbe|rank/i })).toBeInTheDocument(),
+      { timeout: 6_000 },
+    );
+    expect(document.querySelector('[data-quiz-card-term="' + nextTerm + '"]')).not.toBeInTheDocument();
+
+    const continueButton = await screen.findByRole("button", { name: /Devam|continue/i }, { timeout: 5_000 });
+    fireEvent.click(continueButton);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByRole("dialog", { name: /Rütbe|rank/i })).not.toBeInTheDocument();
+        expect(document.querySelector('[data-quiz-card-term="' + nextTerm + '"]')).toBeInTheDocument();
+      },
+      { timeout: 2_000 },
+    );
+  });
+});
+
 describe("QuizStation hydration fallback", () => {
   it("renders the language picker from persisted cards before hydration finishes", () => {
     useInventoryStore.setState({
@@ -1039,7 +1119,6 @@ describe("QuizStation sound feedback", () => {
     });
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "growing");
-    expect(playSoundEffect).toHaveBeenCalledWith("card-ready");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(480);

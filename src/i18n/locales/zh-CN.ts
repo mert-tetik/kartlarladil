@@ -414,7 +414,7 @@ const dictionary = {
   "pricing.ctaManage": "管理订阅",
   "pricing.ctaSubscribe": "立即订阅",
   "pricing.ctaPriceWithPeriod": "{price} {period}",
-  "pricing.ctaStartFirstMonthFreeTrial": "开始 1 个月免费试用",
+  "pricing.ctaStartFirstMonthFreeTrial": "首月免费",
   "pricing.ctaTrialAfter": "之后 {price} {period}",
   "pricing.ctaCurrentAndManage": "当前计划（管理订阅）",
   "pricing.description": "移除卡片限制并获得更多AI Practice消息。",

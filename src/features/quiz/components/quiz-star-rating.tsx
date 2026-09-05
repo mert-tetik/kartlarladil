@@ -60,6 +60,7 @@ export function QuizStarRating({
     const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * STAGGER_MS + DROP_DURATION_MS;
     const timer = window.setTimeout(() => {
       setShowEmpty(true);
+      playSoundEffect("quiz-stars-complete");
       onRevealCompleteRef.current?.();
     }, revealAt);
     return () => window.clearTimeout(timer);

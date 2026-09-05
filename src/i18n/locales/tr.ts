@@ -419,7 +419,7 @@ const dictionary = {
   "pricing.ctaManage": "Aboneliği yönet",
   "pricing.ctaSubscribe": "Abone Ol",
   "pricing.ctaPriceWithPeriod": "{price} {period}",
-  "pricing.ctaStartFirstMonthFreeTrial": "1 aylık ücretsiz denemeyi başlat",
+  "pricing.ctaStartFirstMonthFreeTrial": "İLK AY ÜCRETSİZ",
   "pricing.ctaTrialAfter": "Sonrasında {price} {period}",
   "pricing.ctaCurrentAndManage": "Mevcut Plan (Aboneliği Yönet)",
   "pricing.description": "Kart limitlerini kaldır ve AI Practice'te daha fazla mesaj hakkı kazan.",

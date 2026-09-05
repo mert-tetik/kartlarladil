@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
+import { playSoundEffect } from "@/lib/sound-effects";
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
@@ -27,6 +28,7 @@ describe("QuizStreakCelebrationView animations", () => {
     expect(background).toHaveClass("animate-streak-celebration-background-enter");
     expect(number?.parentElement).toHaveClass("animate-streak-celebration-copy-enter");
     expect(onComplete).not.toHaveBeenCalled();
+    expect(playSoundEffect).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(1300);
@@ -35,6 +37,7 @@ describe("QuizStreakCelebrationView animations", () => {
     expect(background).toHaveClass("animate-streak-celebration-background-exit");
     expect(number).toHaveClass("animate-streak-celebration-number-exit");
     expect(icon).toHaveClass("animate-streak-celebration-icon-exit");
+    expect(playSoundEffect).toHaveBeenCalledWith("streak-break");
     expect(background?.getAttribute("style")).toContain("--streak-background-fall-y");
     expect(number?.getAttribute("style")).toContain("--streak-number-fall-rotation");
     expect(icon?.getAttribute("style")).toContain("--streak-icon-fall-rotation");

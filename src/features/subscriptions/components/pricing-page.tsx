@@ -974,7 +974,7 @@ function MobilePricingPerkCarousel({
 
         if (initializedRef.current) {
           vibrate("tap");
-          playSoundEffect("quiz-select");
+          playSoundEffect("pricing-perk-select");
         }
       }
 

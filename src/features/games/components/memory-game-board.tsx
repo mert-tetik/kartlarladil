@@ -204,6 +204,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
+          game="memory"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}

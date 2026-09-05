@@ -7,17 +7,17 @@ export type SoundEffectName =
   | "learned"
   | "confetti"
   | "quiz-complete"
-  | "quiz-start"
+  | "quiz-stars-complete"
   | "quiz-select"
+  | "pricing-perk-select"
   | "card-swipe-right"
   | "card-swipe-left"
   | "chest-tap"
   | "chest-open"
-  | "streak-fire"
+  | "streak-break"
   | "clock-tick-low"
   | "clock-tick-high"
   | "level-fail"
-  | "card-ready"
   | "mission-claim"
   | "gem-loot"
   | "gem-spend";
@@ -34,17 +34,16 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   learned: "/sounds/learned-elevenlabs-v1.mp3",
   confetti: "/sounds/confetti-elevenlabs-v1.mp3",
   "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
-  "quiz-start": "/sounds/quiz-start-elevenlabs-v1.mp3",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
   "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
   "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
   "rank-up-reveal": "/sounds/rank-up-reveal-elevenlabs-v4.mp3",
   "chest-open": "/sounds/chest.mp3",
-  "streak-fire": "/sounds/streak.mp3",
+  "streak-break": "/sounds/streak-break-ice-shatter-v1.mp3",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
-  "card-ready": "/sounds/card-ready-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
+  "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
 };
 
 let audioContext: AudioContext | null = null;
@@ -315,17 +314,19 @@ function quizComplete(context: AudioContext, now: number) {
   });
 }
 
-function quizStart(context: AudioContext, now: number) {
-  // Short ascending cue that leads into the first question.
-  [SCALE.C5, SCALE.E5, SCALE.G5].forEach((frequency, index) => {
+function quizStarsComplete(context: AudioContext, now: number) {
+  // Short, bright confirmation jingle after the earned stars finish revealing.
+  const notes = [SCALE.G5, SCALE.C6, SCALE.E6, SCALE.G6];
+  notes.forEach((frequency, index) => {
     playTone(context, {
       frequency,
-      startTime: now + index * 0.09,
-      duration: 0.16,
-      gain: 0.055,
+      startTime: now + index * 0.065,
+      duration: 0.2,
+      gain: 0.045 - index * 0.004,
       type: "triangle",
     });
   });
+  playChord(context, [SCALE.C6, SCALE.E6, SCALE.G6], now + 0.18, 0.34, 0.025);
 }
 
 function quizSelect(context: AudioContext, now: number) {
@@ -337,6 +338,25 @@ function quizSelect(context: AudioContext, now: number) {
     startTime: now + 0.04,
     duration: 0.34,
     gain: 0.05,
+    type: "sine",
+  });
+}
+
+function pricingPerkSelect(context: AudioContext, now: number) {
+  // Very short, soft sparkle for moving between subscription benefits.
+  playTone(context, {
+    frequency: SCALE.E5,
+    endFrequency: SCALE.G5,
+    startTime: now,
+    duration: 0.07,
+    gain: 0.035,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.C6,
+    startTime: now + 0.025,
+    duration: 0.075,
+    gain: 0.025,
     type: "sine",
   });
 }
@@ -402,27 +422,6 @@ function chestOpen(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.C6, startTime: now + 0.45, duration: 0.35, gain: 0.04 });
 }
 
-function streakFire(context: AudioContext, now: number) {
-  // Punchy, fast fire burst: low sawtooth thump + filtered noise + crackles.
-  playTone(context, {
-    frequency: 120,
-    startTime: now,
-    duration: 0.12,
-    gain: 0.14,
-    type: "sawtooth",
-  });
-  playNoise(context, { startTime: now, duration: 0.18, gain: 0.16, filterFrequency: 450 });
-
-  for (let i = 0; i < 6; i++) {
-    playNoise(context, {
-      startTime: now + 0.02 + i * 0.025,
-      duration: 0.02,
-      gain: 0.07,
-      filterFrequency: 2800,
-    });
-  }
-}
-
 function clockTickLow(context: AudioContext, now: number) {
   // Soft, short tick for the last 10 seconds.
   playTone(context, { frequency: 800, startTime: now, duration: 0.04, gain: 0.025 });
@@ -438,13 +437,6 @@ function levelFail(context: AudioContext, now: number) {
   playTone(context, { frequency: 220, startTime: now, duration: 0.18, gain: 0.1, type: "sawtooth" });
   playTone(context, { frequency: 165, startTime: now + 0.14, duration: 0.28, gain: 0.1, type: "sawtooth" });
   playNoise(context, { startTime: now, duration: 0.35, gain: 0.06, filterFrequency: 220 });
-}
-
-function cardReady(context: AudioContext, now: number) {
-  // Bright chime: "çiling".
-  playTone(context, { frequency: SCALE.C6, startTime: now, duration: 0.14, gain: 0.08 });
-  playTone(context, { frequency: SCALE.E6, startTime: now + 0.04, duration: 0.18, gain: 0.06 });
-  playTone(context, { frequency: SCALE.G6, startTime: now + 0.08, duration: 0.22, gain: 0.045 });
 }
 
 function missionClaim(context: AudioContext, now: number) {
@@ -482,17 +474,22 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   learned,
   confetti,
   "quiz-complete": quizComplete,
-  "quiz-start": quizStart,
+  "quiz-stars-complete": quizStarsComplete,
   "quiz-select": quizSelect,
+  "pricing-perk-select": pricingPerkSelect,
   "card-swipe-right": cardSwipeRight,
   "card-swipe-left": cardSwipeLeft,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
-  "streak-fire": streakFire,
+  "streak-break": (context, now) => {
+    // The streak-break file is the primary effect; this fallback is a crisp ice-like shatter.
+    playNoise(context, { startTime: now, duration: 0.18, gain: 0.12, filterFrequency: 3200 });
+    playTone(context, { frequency: 1460, endFrequency: 520, startTime: now, duration: 0.22, gain: 0.07, type: "triangle" });
+    playTone(context, { frequency: 2349, endFrequency: 1175, startTime: now + 0.03, duration: 0.16, gain: 0.045, type: "sine" });
+  },
   "clock-tick-low": clockTickLow,
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,
-  "card-ready": cardReady,
   "mission-claim": missionClaim,
   "gem-loot": gemLoot,
   "gem-spend": gemSpend,

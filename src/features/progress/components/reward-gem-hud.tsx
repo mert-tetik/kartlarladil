@@ -17,7 +17,7 @@ export function RewardGemHud({ className, animate = false }: { className?: strin
   return (
     <div className={cn("flex items-center justify-center gap-1.5 lg:hidden", animate && "animate-points-pop", className)} data-reward-gem-hud>
       {(["blue", "green", "purple"] as const).map((type) => (
-        <span key={type} className="inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white">
+        <span key={type} data-reward-gem-target={type} className="inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white">
           <Image src={GEM_ASSETS[type]} alt="" width={20} height={20} className="size-5 object-contain" />
           <span>{balances[type]}</span>
         </span>

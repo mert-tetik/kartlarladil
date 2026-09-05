@@ -72,7 +72,11 @@ import {
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
+import {
+  useAuthSession,
+  useOptionalAuthSession,
+  useRequireAuthAction,
+} from "@/features/auth/auth-client";
 import { getPointsForTier } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RankUpMenu } from "@/features/progress/components/rank-progress-popover";
@@ -81,6 +85,7 @@ import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
 } from "@/features/progress/score-flight";
+import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import {
   awardChestPoints,
@@ -92,8 +97,9 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import type { ChestRewardOutcome } from "@/features/gems/gem-types";
-import { spendGemAction } from "@/features/gems/gem-actions";
+import type { ChestRewardOutcome, GemRewards } from "@/features/gems/gem-types";
+import { awardProgressGemRewardAction, spendGemAction } from "@/features/gems/gem-actions";
+import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
@@ -178,6 +184,12 @@ type QuizPhase =
   | "chest";
 
 export type { QuizPhase };
+
+type AdvanceQuizOptions = {
+  bypassCelebration?: boolean;
+  resultsOverride?: QuizResult;
+  skipRankUpCheck?: boolean;
+};
 
 const MODE_STYLE = {
   active: {
@@ -490,6 +502,8 @@ export function QuizStation({
   const [pendingStreakAward, setPendingStreakAward] = useState(false);
   const [rerollingQuestion, setRerollingQuestion] = useState(false);
   const [pendingRankUp, setPendingRankUp] = useState<RankDefinition | null>(null);
+  const [pendingRankUpFromRank, setPendingRankUpFromRank] = useState<RankDefinition | null>(null);
+  const [rankUpReturn, setRankUpReturn] = useState<"quiz" | "result" | null>(null);
   const [bonusFlightActive, setBonusFlightActive] = useState(false);
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
@@ -500,10 +514,18 @@ export function QuizStation({
   const awardedStreakSessionRef = useRef<string | null>(null);
   const quizStartRankRef = useRef<RankDefinition | null>(null);
   const quizBasePointsRef = useRef(stats.totalPoints);
+  const statsRef = useRef(stats);
+  const pendingAdvanceRef = useRef<AdvanceQuizOptions | null>(null);
+  const rankCheckInFlightRef = useRef(false);
+  const rankCheckNeededRef = useRef(false);
   const bonusFlightBaseRef = useRef(0);
   const bonusDeckTokenRef = useRef(0);
   const currentIndexRef = useRef(0);
   const redirectStartedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
 
   useEffect(() => {
     const isQuizInProgress = phase !== "language" && phase !== "count";
@@ -534,7 +556,6 @@ export function QuizStation({
     const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"] | null) => {
       const timeoutId = window.setTimeout(() => {
         if (stage === "growing") {
-          playSoundEffect("card-ready");
           vibrate("flip");
         }
 
@@ -827,6 +848,10 @@ export function QuizStation({
       setPendingChestAward(false);
       setPendingStreakAward(false);
       setPendingRankUp(null);
+      setPendingRankUpFromRank(null);
+      setRankUpReturn(null);
+      rankCheckNeededRef.current = false;
+      pendingAdvanceRef.current = null;
       setPhase("quiz-start");
 
       void Promise.all(
@@ -941,16 +966,92 @@ export function QuizStation({
     }
   }
 
+  const announceQuizRankUp = useCallback((rank: RankDefinition) => {
+    acknowledgeRankUp(user?.id, rank.id);
+    sendTwaAnalyticsEvent("fd_rank_up", {
+      params: {
+        rank_id: rank.id,
+        rank_icon: rank.icon,
+        total_points: statsRef.current.totalPoints,
+        rank_min_points: rank.minPoints,
+      },
+    });
+  }, [user?.id]);
+
   const advanceQuiz = useCallback(
     ({
       bypassCelebration = false,
       resultsOverride,
-    }: {
-      bypassCelebration?: boolean;
-      resultsOverride?: QuizResult;
-    } = {}) => {
+      skipRankUpCheck = false,
+    }: AdvanceQuizOptions = {}) => {
       if (!bypassCelebration && lastLearned) {
         setPhase("celebration");
+        return;
+      }
+
+      const hasNextQuestion = currentIndex + 1 < deck.length;
+
+      // A card answer is persisted asynchronously. Wait for that write to
+      // settle before comparing ranks, otherwise the quiz could advance with
+      // stale progress and the global rank popover could win the race.
+      if (
+        !skipRankUpCheck &&
+        rankCheckNeededRef.current &&
+        hasNextQuestion &&
+        quizStartRankRef.current
+      ) {
+        if (pendingAnswerWrites > 0) {
+          pendingAdvanceRef.current = { bypassCelebration, resultsOverride };
+          return;
+        }
+
+        if (rankCheckInFlightRef.current) {
+          return;
+        }
+
+        rankCheckInFlightRef.current = true;
+        void (async () => {
+          let shouldResumeQuiz = true;
+
+          try {
+            await refreshStats();
+            // ProgressStatsProvider updates its snapshot after inventory/profile
+            // writes. Give React one task to commit that snapshot before reading
+            // the rank through the ref.
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+
+            const previousRank = quizStartRankRef.current;
+            const currentRank = statsRef.current.rank;
+
+            if (previousRank && currentRank.minPoints > previousRank.minPoints) {
+              announceQuizRankUp(currentRank);
+              setPendingRankUpFromRank(previousRank);
+              setPendingRankUp(currentRank);
+              setRankUpReturn("quiz");
+              setPhase("rank-up");
+              shouldResumeQuiz = false;
+            } else {
+              rankCheckNeededRef.current = false;
+            }
+          } catch {
+            // A stats refresh failure must never strand the learner between
+            // questions. The regular quiz flow remains the safe fallback.
+          } finally {
+            rankCheckInFlightRef.current = false;
+          }
+
+          if (shouldResumeQuiz) {
+            advanceQuizRef.current({
+              bypassCelebration,
+              resultsOverride,
+              skipRankUpCheck: true,
+            });
+          }
+        })();
+        return;
+      }
+
+      if (!skipRankUpCheck && rankCheckNeededRef.current && hasNextQuestion && rankCheckInFlightRef.current) {
         return;
       }
 
@@ -991,10 +1092,13 @@ export function QuizStation({
       lastLearned,
       maxStreak,
       mode,
+      pendingAnswerWrites,
       phase,
+      refreshStats,
       resetQuestionUi,
       results,
       selectedCount,
+      announceQuizRankUp,
     ],
   );
 
@@ -1033,6 +1137,16 @@ export function QuizStation({
   useEffect(() => {
     advanceQuizRef.current = advanceQuiz;
   });
+
+  useEffect(() => {
+    if (pendingAnswerWrites > 0 || !pendingAdvanceRef.current || rankCheckInFlightRef.current) {
+      return;
+    }
+
+    const pendingAdvance = pendingAdvanceRef.current;
+    pendingAdvanceRef.current = null;
+    advanceQuizRef.current(pendingAdvance);
+  }, [pendingAnswerWrites]);
 
 
   function handleSelectLanguage(language: LanguageCode) {
@@ -1174,6 +1288,7 @@ export function QuizStation({
         setMaxStreak((current) => Math.max(current, nextStreak));
 
         if (isCorrect) {
+          rankCheckNeededRef.current = true;
           setBonusFlightActive(true);
           if (quizSessionId) {
             void awardQuizBonusPoints(quizSessionId, item.bonusId);
@@ -1270,6 +1385,7 @@ export function QuizStation({
         }));
 
         if (willLearn) {
+          rankCheckNeededRef.current = true;
           setLastLearned(item.card);
           setCelebrationBasePoints(stats.totalPoints);
         }
@@ -1387,8 +1503,8 @@ export function QuizStation({
       });
       await refreshStats();
       refreshLeaderboardPositions();
-      return result.gemType && result.gemAmount
-        ? { points: result.points ?? getChestRewardPoints(tier), gem: { type: result.gemType, amount: result.gemAmount }, balances: result.balances }
+      return result.gemRewards?.length
+        ? { points: result.points ?? getChestRewardPoints(tier), rewards: result.gemRewards, balances: result.balances }
         : null;
     } finally {
       setPendingChestAward(false);
@@ -1458,16 +1574,10 @@ export function QuizStation({
       const didRankUp = startRank !== null && stats.rank.minPoints > startRank.minPoints;
 
       if (didRankUp) {
-        acknowledgeRankUp(user?.id, stats.rank.id);
-        sendTwaAnalyticsEvent("fd_rank_up", {
-          params: {
-            rank_id: stats.rank.id,
-            rank_icon: stats.rank.icon,
-            total_points: stats.totalPoints,
-            rank_min_points: stats.rank.minPoints,
-          },
-        });
+        announceQuizRankUp(stats.rank);
+        setPendingRankUpFromRank(startRank);
         setPendingRankUp(stats.rank);
+        setRankUpReturn("result");
         setPhase("rank-up");
         return;
       }
@@ -1482,6 +1592,7 @@ export function QuizStation({
     pendingStreakAward,
     phase,
     requiresStreakAward,
+    announceQuizRankUp,
     stats.rank,
     stats.totalPoints,
     user?.id,
@@ -1607,9 +1718,33 @@ export function QuizStation({
     return (
       <RankUpMenu
         rank={pendingRankUp}
-        fromRank={quizStartRankRef.current ?? undefined}
+        fromRank={pendingRankUpFromRank ?? undefined}
         onClose={() => {
+          const completedRank = pendingRankUp;
+          const returnTo = rankUpReturn;
+
           setPendingRankUp(null);
+          setPendingRankUpFromRank(null);
+          setRankUpReturn(null);
+
+          if (completedRank) {
+            // The next rank check must start from the rank the user just saw.
+            // This also allows a later question to present another rank-up in
+            // the same quiz without replaying the same one.
+            quizStartRankRef.current = completedRank;
+            rankCheckNeededRef.current = false;
+          }
+
+          if (returnTo === "quiz") {
+            setLastLearned(null);
+            setCelebrationBasePoints(null);
+            advanceQuizRef.current({
+              bypassCelebration: true,
+              skipRankUpCheck: true,
+            });
+            return;
+          }
+
           setPhase("result");
         }}
       />
@@ -1631,6 +1766,7 @@ export function QuizStation({
         streak={getRewardableQuizStreak(maxStreak)}
         points={getQuizStreakRewardPoints(maxStreak)}
         totalPoints={stats.totalPoints}
+        quizSessionId={quizSessionId ?? undefined}
         onComplete={() => setPhase("result-pending")}
       />
     );
@@ -1767,7 +1903,7 @@ export function QuizStation({
         >
           {isCardFirstQuestion ? (
             <p
-              className="order-1 mt-6 text-center text-sm font-semibold text-foreground-muted lg:hidden"
+              className="order-1 mt-6 text-center text-sm font-semibold text-foreground-muted max-lg:text-white lg:hidden"
               data-quiz-mobile-prompt
             >
               {item.questionType === "true-false"
@@ -1900,7 +2036,7 @@ export function QuizStation({
             <div
               className={cn(
                 "order-2 flex items-center justify-center lg:hidden",
-                item.questionType === "sentence-completion" && "max-lg:-translate-y-2",
+                item.questionType === "sentence-completion" && "max-lg:-translate-y-4",
               )}
               data-quiz-mobile-card-slot
             >
@@ -2484,7 +2620,6 @@ export function CountSelection({
     playSoundEffect("quiz-select");
 
     launchTimerRef.current = window.setTimeout(() => {
-      playSoundEffect("card-ready");
       onSelect(count, { count, colorClass, contentScale, chestTiers });
       launchTimerRef.current = null;
     }, 1180);
@@ -2763,9 +2898,11 @@ function QuizCounter({
 function QuizRerollButton({
   action,
   hidden = false,
+  className,
 }: {
   action: QuizRerollAction;
   hidden?: boolean;
+  className?: string;
 }) {
   const t = useT();
 
@@ -2775,7 +2912,8 @@ function QuizRerollButton({
       onClick={action.onReroll}
       disabled={action.disabled || hidden}
       className={cn(
-        "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+        "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+        className,
         hidden && "invisible pointer-events-none",
       )}
       aria-label={t("quiz.rerollQuestion")}
@@ -2843,7 +2981,7 @@ function ListeningQuestion({
       className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
       data-quiz-question-content="listening"
     >
-      <p className="text-center text-sm font-semibold text-foreground-muted">
+      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
         {t("quiz.listeningPrompt")}
       </p>
 
@@ -2859,14 +2997,14 @@ function ListeningQuestion({
         </button>
         <div className="flex min-h-8 items-center justify-center gap-2">
           <span
-            className="text-xl font-semibold text-foreground sm:text-2xl"
+            className="text-xl font-semibold text-foreground max-lg:text-white sm:text-2xl"
             data-quiz-listening-pronunciation
           >
             {pronunciation || "..."}
           </span>
           {isLoading ? (
             <Loader2
-              className="size-4 animate-spin text-foreground-muted"
+              className="size-4 animate-spin text-foreground-muted max-lg:text-white/70"
               aria-hidden="true"
             />
           ) : null}
@@ -2953,7 +3091,7 @@ function ChoiceQuestion({
       {showPrompt ? (
         <p
           className={cn(
-            "text-center text-sm font-semibold text-foreground-muted",
+            "text-center text-sm font-semibold text-foreground-muted max-lg:text-white",
             promptClassName,
           )}
         >
@@ -2970,7 +3108,7 @@ function ChoiceQuestion({
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
         </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
+        <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
           {item.card.term}
         </h2>
       </div>
@@ -3051,7 +3189,7 @@ function DefinitionQuestion({
       className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
       data-quiz-question-content="definition"
     >
-      <p className="text-center text-sm font-semibold text-foreground-muted">
+      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
         {t("quiz.definitionPrompt")}
       </p>
 
@@ -3065,7 +3203,7 @@ function DefinitionQuestion({
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
         </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
+        <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
           {item.card.term}
         </h2>
       </div>
@@ -3202,7 +3340,7 @@ function SentenceCompletionQuestion({
       className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 max-lg:translate-y-3 lg:gap-4 lg:p-8"
       data-quiz-question-content="sentence-completion"
     >
-      <p className="text-center text-sm font-semibold text-foreground-muted">
+      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
         {t("quiz.sentenceCompletionPrompt")}
       </p>
 
@@ -3217,9 +3355,9 @@ function SentenceCompletionQuestion({
           />
         </div>
         <div className="relative min-h-20 flex-1 rounded-lg bg-background-card px-4 py-3 text-left before:absolute before:-left-1.5 before:top-5 before:size-3 before:rotate-45 before:bg-background-card">
-          <p className="relative text-xs font-semibold text-foreground-muted">{characterName}</p>
+          <p className="relative text-xs font-semibold text-foreground-muted max-lg:text-white/80">{characterName}</p>
           <p
-            className="relative mt-1 text-lg font-semibold leading-relaxed text-foreground sm:text-xl"
+            className="relative mt-1 text-lg font-semibold leading-relaxed text-foreground max-lg:text-white sm:text-xl"
             data-quiz-sentence
           >
             {question.sentenceWithBlank}
@@ -3345,7 +3483,7 @@ function TrueFalseQuestion({
       {showPrompt ? (
         <p
           className={cn(
-            "text-center text-sm font-semibold text-foreground-muted",
+            "text-center text-sm font-semibold text-foreground-muted max-lg:text-white",
             promptClassName,
           )}
         >
@@ -3354,12 +3492,12 @@ function TrueFalseQuestion({
       ) : null}
 
       <div className="flex w-full max-w-md flex-col items-center gap-3">
-        <p className="text-sm font-semibold text-foreground-muted">
+        <p className="text-sm font-semibold text-foreground-muted max-lg:text-white">
           {t("games.wordChallenge.question")}
         </p>
         <div className="flex w-full items-center justify-center rounded-lg border border-border bg-background-card px-4 py-5 sm:px-5 sm:py-6">
           <p
-            className="text-center text-2xl font-semibold leading-snug text-foreground sm:text-3xl lg:text-4xl"
+            className="text-center text-2xl font-semibold leading-snug text-foreground max-lg:text-white sm:text-3xl lg:text-4xl"
             data-quiz-true-false-meaning
           >
             {`${item.card.term} = ${question.proposedMeaning}`}
@@ -3524,11 +3662,11 @@ function TextQuestion({
         )}
         data-quiz-question-content="text"
       >
-        <p className="text-center text-sm font-semibold text-[var(--accent-primary)]">
+        <p className="text-center text-sm font-semibold text-[var(--accent-primary)] max-lg:text-white">
           {t("quiz.learningPrompt")}
         </p>
         <div className="flex items-center justify-center">
-          <h2 className="font-display text-3xl font-semibold leading-none text-foreground sm:text-4xl lg:text-6xl">
+          <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
             {getCardTranslation(item.card, locale)}
           </h2>
         </div>
@@ -3592,11 +3730,11 @@ function TextQuestion({
           ) : (
             <div className="mt-1 flex w-full gap-2 sm:mt-2 lg:mt-4" data-quiz-question-actions data-quiz-reroll-action>
               <QuizSkipButton
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-[0.8]"
                 disabled={isAiValidating}
                 onClick={onSkip}
               />
-              {rerollAction ? <QuizRerollButton action={rerollAction} /> : null}
+              {rerollAction ? <QuizRerollButton action={rerollAction} className="flex-[1.2]" /> : null}
               <Button
                 className="min-w-0 flex-[1.45]"
                 onClick={handleSubmit}
@@ -3955,6 +4093,10 @@ export function ResultView({
 }) {
   const t = useT();
   const { locale } = useLocale();
+  const session = useOptionalAuthSession();
+  const user = session?.user ?? null;
+  const refreshProfile = session?.refreshProfile;
+  const updateProfileField = session?.updateProfileField;
   const { stats, refreshStats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
   const router = useRouter();
@@ -3964,6 +4106,7 @@ export function ResultView({
   >(null);
   const hasTriggeredResult = useRef(false);
   const resultRewardPromiseRef = useRef<ReturnType<typeof awardQuizResultPoints> | null>(null);
+  const resultGemRewardStartedRef = useRef(false);
   const resultBasePointsRef = useRef(stats.totalPoints);
   const starSourceRef = useRef<HTMLDivElement | null>(null);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
@@ -3977,6 +4120,7 @@ export function ResultView({
   const [flightIcons, setFlightIcons] = useState<ScoreFlightIcon[]>([]);
   const [starsRevealedAt, setStarsRevealedAt] = useState<number | null>(null);
   const [resultRewardAwarded, setResultRewardAwarded] = useState(false);
+  const [resultGemRewards, setResultGemRewards] = useState<GemRewards>([]);
   const performance = getQuizPerformanceSummary(
     mode,
     results,
@@ -3991,6 +4135,8 @@ export function ResultView({
     if (accuracy >= 40) return 2;
     return 1;
   }, [performance.accuracy]);
+  const resultCardCount = selectedCount ?? 10;
+  const resultRewardPoints = getQuizResultRewardPoints(starRating, resultCardCount) ?? 0;
   const leaderboardStanding = leaderboardData
     ? t("leaderboard.yourStanding", {
         position: formatNumber(locale, leaderboardData.viewer.position),
@@ -4007,7 +4153,7 @@ export function ResultView({
 
     const rewardPromise =
       quizResultRewardPromises.get(quizSessionId) ??
-      awardQuizResultPoints(quizSessionId, starRating);
+      awardQuizResultPoints(quizSessionId, starRating, resultCardCount);
     if (!quizResultRewardPromises.has(quizSessionId)) {
       quizResultRewardPromises.set(quizSessionId, rewardPromise);
     }
@@ -4037,7 +4183,53 @@ export function ResultView({
     return () => {
       active = false;
     };
-  }, [mode, quizSessionId, starRating]);
+  }, [mode, quizSessionId, resultCardCount, starRating]);
+
+  useEffect(() => {
+    if (
+      mode !== "active" ||
+      !quizSessionId ||
+      !user ||
+      !updateProfileField ||
+      resultGemRewardStartedRef.current
+    ) {
+      return;
+    }
+
+    resultGemRewardStartedRef.current = true;
+    let active = true;
+
+    void awardProgressGemRewardAction({
+      source: "quiz-result",
+      claimKey: `quiz-result:${quizSessionId}`,
+      stars: starRating,
+      cardCount: resultCardCount,
+    }).then((result) => {
+      if (!active || !result.success) return;
+
+      if (result.balances) {
+        updateProfileField({
+          blueGems: result.balances.blue,
+          greenGems: result.balances.green,
+          purpleGems: result.balances.purple,
+        });
+      }
+      if (result.awarded && result.rewards?.length) {
+        setResultGemRewards(result.rewards);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    mode,
+    quizSessionId,
+    resultCardCount,
+    starRating,
+    updateProfileField,
+    user,
+  ]);
 
   const startResultPointFlight = useCallback(() => {
     if (flightStartedRef.current || !starSourceRef.current || !scoreRef.current) {
@@ -4049,7 +4241,7 @@ export function ResultView({
     const scoreBounds = scoreRef.current.getBoundingClientRect();
     const targetX = scoreBounds.left + scoreBounds.width / 2;
     const targetY = scoreBounds.top + scoreBounds.height / 2;
-    const iconCount = getScoreFlightIconCount(starRating);
+    const iconCount = getScoreFlightIconCount(resultRewardPoints);
     const latestStart = 780;
 
     flightIconCountRef.current = iconCount;
@@ -4079,7 +4271,7 @@ export function ResultView({
         icon.delay + 700,
       ),
     );
-  }, [starRating]);
+  }, [resultRewardPoints]);
 
   useEffect(() => {
     if (
@@ -4112,7 +4304,7 @@ export function ResultView({
 
       setDisplayPoints(
         resultBasePointsRef.current +
-          getScoreFlightAwardAtArrival(starRating, iconCount, arrivalIndex),
+          getScoreFlightAwardAtArrival(resultRewardPoints, iconCount, arrivalIndex),
       );
       setScorePulse(arrivalIndex);
       playSoundEffect("points");
@@ -4126,7 +4318,7 @@ export function ResultView({
         setFlightIcons([]);
       }
     },
-    [refreshStats, starRating],
+    [refreshStats, resultRewardPoints],
   );
 
   useEffect(() => {
@@ -4390,6 +4582,18 @@ export function ResultView({
             document.body,
           )
         : null}
+
+      <GemRewardFlight
+        key={resultGemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
+        rewards={starsRevealedAt !== null ? resultGemRewards : null}
+        sourceRef={starSourceRef}
+        startDelayMs={
+          starsRevealedAt === null
+            ? 1000
+            : Math.max(0, 1000 - (Date.now() - starsRevealedAt))
+        }
+        onComplete={() => void refreshProfile?.()}
+      />
 
       {openMenu ? (
         <ResultMenu

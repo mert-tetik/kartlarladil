@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 const BLOCKING_LAYER_SELECTOR = [
   "[data-landing-tutorial]",
   "[data-subscription-purchase-success-dialog]",
+  '[role="dialog"][aria-modal="true"]',
   '[data-mobile-auth-gateway]:not([aria-hidden="true"]):not([inert])',
   '[data-mobile-tier-selector]:not([aria-hidden="true"]):not([inert])',
   '[data-cookie-notice]:not([aria-hidden="true"]):not([inert])',

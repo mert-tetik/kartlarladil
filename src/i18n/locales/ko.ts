@@ -414,7 +414,7 @@ const dictionary = {
   "pricing.ctaManage": "구독 관리",
   "pricing.ctaSubscribe": "구독하기",
   "pricing.ctaPriceWithPeriod": "{price} {period}",
-  "pricing.ctaStartFirstMonthFreeTrial": "1개월 무료 체험 시작",
+  "pricing.ctaStartFirstMonthFreeTrial": "첫 달 무료",
   "pricing.ctaTrialAfter": "이후 {price} {period}",
   "pricing.ctaCurrentAndManage": "현재 요금제 (구독 관리)",
   "pricing.description": "카드 한도를 제거하고 더 많은 AI Practice 메시지를 받으세요.",

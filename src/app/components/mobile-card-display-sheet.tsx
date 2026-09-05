@@ -186,9 +186,16 @@ export function MobileCardDisplaySheet({ card, isOpen, onClose, positionClassNam
 
 function GemCardAction({ type, cost, balance, disabled, label, onClick }: { type: GemType; cost: number; balance: number; disabled: boolean; label: string; onClick: () => void }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-11 items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40", type === "blue" ? "bg-[#268cff]" : "bg-[#9b31dc]")}>
-      <span className="inline-flex items-center gap-2"><Image src={GEM_ASSETS[type]} alt="" width={24} height={24} className="size-6 object-contain" /><span>{cost} · {label}</span></span>
-      <span className="text-xs text-white/80">{balance}</span>
+    <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40", type === "blue" ? "bg-[#268cff]" : "bg-[#9b31dc]")}>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label={`${cost}`}>
+        <span>{cost}</span>
+        <Image src={GEM_ASSETS[type]} alt="" width={24} height={24} className="size-6 object-contain" />
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs text-white/80">
+        <span>{balance}/{cost}</span>
+        <Image src={GEM_ASSETS[type]} alt="" width={16} height={16} className="size-4 object-contain" />
+      </span>
     </button>
   );
 }

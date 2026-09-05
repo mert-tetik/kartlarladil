@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, CircleHelp, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import {
   getBonusCopy,
   type BonusQuestion,
@@ -12,7 +12,7 @@ import {
   type MatchingBonusQuestion,
   type SentenceOrderBonusQuestion,
 } from "@/features/quiz/bonus-questions";
-import { BONUS_QUESTION_POINTS } from "@/features/quiz/bonus-question-constants";
+import { getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
+
+const SENTENCE_TOKEN_ANIMATION_MS = 360;
 
 export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const { locale } = useLocale();
@@ -97,6 +99,7 @@ export function BonusQuestionView({
   const { locale, t } = useLocale();
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
+  const points = getBonusQuestionPoints(question.kind);
 
   return (
     <div
@@ -104,8 +107,7 @@ export function BonusQuestionView({
       data-bonus-question={question.kind}
     >
       <div className="flex flex-col items-center gap-1 text-center">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--brand)]">
-          <CircleHelp className="size-4" aria-hidden="true" />
+        <span className="inline-flex items-center bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-xs font-semibold uppercase tracking-wider text-transparent">
           {formatSuperWaterText(locale, copy.bonusPoints)}
         </span>
         <h2
@@ -156,6 +158,7 @@ export function BonusQuestionView({
 
       {showingAnswer && answerAccepted
         ? <BonusPointFlight
+            points={points}
             sourceRef={sourceRef}
             onFlightStart={onFlightStart}
             onPointArrive={onPointArrive}
@@ -179,22 +182,28 @@ function MatchingBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
-  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
+  const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const termRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const meaningRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [connections, setConnections] = useState<Array<{ id: string; x1: number; y1: number; x2: number; y2: number; color: string }>>([]);
   const matchedMeaningIds = new Set(Object.values(matches));
   const canCheck = Object.keys(matches).length === question.pairs.length;
   const isCorrect = question.pairs.every((pair) => matches[pair.id] === pair.id);
 
   function selectTerm(id: string) {
-    if (showingAnswer) return;
-    if (matches[id]) {
-      setMatches((current) => {
-        const next = { ...current };
-        delete next[id];
-        return next;
+    if (showingAnswer || !selectedMeaningId) return;
+
+    setMatches((current) => {
+      const next = { ...current };
+      Object.entries(next).forEach(([termId, meaningId]) => {
+        if (termId === id || meaningId === selectedMeaningId) delete next[termId];
       });
-    }
-    setSelectedTermId(id);
+      next[id] = selectedMeaningId;
+      return next;
+    });
+    setSelectedMeaningId(null);
   }
 
   function selectMeaning(id: string) {
@@ -203,28 +212,88 @@ function MatchingBonus({
     setMatches((current) => {
       const next = { ...current };
       Object.entries(next).forEach(([termId, meaningId]) => {
-        if (meaningId === id || termId === selectedTermId) delete next[termId];
+        if (meaningId === id) delete next[termId];
       });
-      if (selectedTermId) next[selectedTermId] = id;
       return next;
     });
-    setSelectedTermId(null);
+    setSelectedMeaningId(id);
   }
 
+  useEffect(() => {
+    function updateConnections() {
+      const board = boardRef.current;
+      if (!board) return;
+
+      const boardRect = board.getBoundingClientRect();
+      const nextConnections = Object.entries(matches).flatMap(([termId, meaningId]) => {
+        const term = termRefs.current[termId];
+        const meaning = meaningRefs.current[meaningId];
+        if (!term || !meaning) return [];
+
+        const termRect = term.getBoundingClientRect();
+        const meaningRect = meaning.getBoundingClientRect();
+        const colorIndex = question.pairs.findIndex((pair) => pair.id === termId);
+        const color = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length]?.background ?? MATCHING_PAIR_COLORS[0].background;
+
+        return [{
+          id: `${termId}-${meaningId}`,
+          x1: termRect.right - boardRect.left,
+          y1: termRect.top + termRect.height / 2 - boardRect.top,
+          x2: meaningRect.left - boardRect.left,
+          y2: meaningRect.top + meaningRect.height / 2 - boardRect.top,
+          color,
+        }];
+      });
+
+      setConnections(nextConnections);
+    }
+
+    updateConnections();
+    window.addEventListener("resize", updateConnections);
+    const resizeObserver = typeof ResizeObserver === "undefined" || !boardRef.current
+      ? null
+      : new ResizeObserver(updateConnections);
+    if (resizeObserver && boardRef.current) resizeObserver.observe(boardRef.current);
+
+    return () => {
+      window.removeEventListener("resize", updateConnections);
+      resizeObserver?.disconnect();
+    };
+  }, [matches, question.pairs]);
+
   return (
-    <div className="grid w-full grid-cols-2 gap-3 sm:gap-4" data-bonus-matching-board>
-      <div className="flex flex-col gap-2">
+    <div ref={boardRef} className="relative grid w-full grid-cols-2 gap-3 sm:gap-4" data-bonus-matching-board>
+      <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" aria-hidden="true" data-bonus-matching-connections>
+        {connections.map((connection) => (
+          <line
+            key={connection.id}
+            x1={connection.x1}
+            y1={connection.y1}
+            x2={connection.x2}
+            y2={connection.y2}
+            stroke={connection.color}
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        ))}
+      </svg>
+
+      <div className="relative z-10 flex flex-col gap-2">
         {question.terms.map((pair) => {
           const matched = Boolean(matches[pair.id]);
           const correct = showingAnswer && matches[pair.id] === pair.id;
-          const wrong = showingAnswer && matches[pair.id] !== pair.id;
+          const wrong = showingAnswer && matched && matches[pair.id] !== pair.id;
+          const colorIndex = question.pairs.findIndex((candidate) => candidate.id === pair.id);
+          const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
           return (
             <button
               key={`term-${pair.id}`}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectTerm(pair.id)}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", matched && "bg-brand/15 border-brand", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", correct && "bg-emerald-500 text-white border-emerald-500", wrong && "bg-rose-500 text-white border-rose-500", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
+              style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
+              ref={(element) => { termRefs.current[pair.id] = element; }}
+              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", selectedMeaningId && "cursor-pointer", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
               data-bonus-term={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -233,18 +302,23 @@ function MatchingBonus({
           );
         })}
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="relative z-10 flex flex-col gap-2">
         {question.meanings.map((pair) => {
           const pairedTermId = Object.entries(matches).find(([, meaningId]) => meaningId === pair.id)?.[0];
           const correct = showingAnswer && pairedTermId === pair.id;
           const wrong = showingAnswer && pairedTermId !== undefined && pairedTermId !== pair.id;
+          const colorIndex = pairedTermId ? question.pairs.findIndex((candidate) => candidate.id === pairedTermId) : -1;
+          const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
+          const selected = selectedMeaningId === pair.id;
           return (
             <button
               key={`meaning-${pair.id}`}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectMeaning(pair.id)}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", pairedTermId && "bg-brand/15 border-brand", correct && "bg-emerald-500 text-white border-emerald-500", wrong && "bg-rose-500 text-white border-rose-500", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
+              style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
+              ref={(element) => { meaningRefs.current[pair.id] = element; }}
+              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", selected && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
               data-bonus-meaning={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -253,12 +327,14 @@ function MatchingBonus({
           );
         })}
       </div>
-      <BonusCheckButton
-        disabled={!canCheck || showingAnswer}
-        onClick={() => onSubmit("matching", isCorrect)}
-        showingAnswer={showingAnswer}
-        onSkip={onSkip}
-      />
+      <div className="relative z-10 col-span-2">
+        <BonusCheckButton
+          disabled={!canCheck || showingAnswer}
+          onClick={() => onSubmit("matching", isCorrect)}
+          showingAnswer={showingAnswer}
+          onSkip={onSkip}
+        />
+      </div>
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{matchedMeaningIds.size}</span>
     </div>
@@ -279,15 +355,39 @@ function SentenceOrderBonus({
   onSkip: () => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [displayTokens] = useState(() => shuffleSentenceTokens(question.tokens));
+  const [returningTokenId, setReturningTokenId] = useState<string | null>(null);
+  const returnAnimationTimerRef = useRef<number | null>(null);
   const selectedSet = new Set(selectedIds);
   const canCheck = selectedIds.length === question.tokens.length;
   const isCorrect = selectedIds.every((id, index) => id === question.tokens[index]?.id);
 
+  useEffect(() => () => {
+    if (returnAnimationTimerRef.current !== null) {
+      window.clearTimeout(returnAnimationTimerRef.current);
+    }
+  }, []);
+
   function toggleToken(id: string) {
     if (showingAnswer) return;
-    setSelectedIds((current) => current.includes(id)
-      ? current.filter((tokenId) => tokenId !== id)
-      : [...current, id]);
+
+    if (returnAnimationTimerRef.current !== null) {
+      window.clearTimeout(returnAnimationTimerRef.current);
+      returnAnimationTimerRef.current = null;
+    }
+
+    if (selectedIds.includes(id)) {
+      setReturningTokenId(id);
+      setSelectedIds((current) => current.filter((tokenId) => tokenId !== id));
+      returnAnimationTimerRef.current = window.setTimeout(() => {
+        setReturningTokenId((current) => current === id ? null : current);
+        returnAnimationTimerRef.current = null;
+      }, SENTENCE_TOKEN_ANIMATION_MS);
+      return;
+    }
+
+    setReturningTokenId(null);
+    setSelectedIds((current) => current.includes(id) ? current : [...current, id]);
   }
 
   return (
@@ -304,7 +404,11 @@ function SentenceOrderBonus({
                   type="button"
                   disabled={showingAnswer}
                   onClick={() => toggleToken(id)}
-                  className={cn("rounded-md border px-2.5 py-1.5 text-sm font-semibold transition-colors", correct ? "border-emerald-500 bg-emerald-500 text-white" : showingAnswer ? "border-rose-500 bg-rose-500 text-white" : "border-brand bg-brand/15 text-foreground")}
+                  className={cn(
+                    "rounded-md border px-2.5 py-1.5 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    "animate-bonus-sentence-token-enter",
+                    correct ? "border-emerald-500 bg-emerald-500 text-white" : showingAnswer ? "border-rose-500 bg-rose-500 text-white" : "border-brand bg-brand/15 text-foreground",
+                  )}
                   data-bonus-sentence-selected={id}
                 >
                   {token.text}
@@ -315,13 +419,18 @@ function SentenceOrderBonus({
         ) : <span className="text-sm text-foreground-muted">…</span>}
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        {question.tokens.map((token) => (
+        {displayTokens.map((token) => (
           <button
             key={token.id}
             type="button"
             disabled={showingAnswer}
             onClick={() => toggleToken(token.id)}
-            className={cn("rounded-md border border-border bg-background-card px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-300 hover:-translate-y-0.5", selectedSet.has(token.id) && "opacity-35", showingAnswer && "opacity-60")}
+            className={cn(
+              "rounded-md border border-border bg-background-card px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] hover:-translate-y-0.5",
+              selectedSet.has(token.id) && "opacity-35",
+              returningTokenId === token.id && "animate-bonus-sentence-token-return",
+              showingAnswer && "opacity-60",
+            )}
             data-bonus-sentence-token={token.id}
           >
             {token.text}
@@ -337,6 +446,26 @@ function SentenceOrderBonus({
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
     </div>
   );
+}
+
+function shuffleSentenceTokens<T extends { id: string }>(tokens: T[]) {
+  const shuffled = [...tokens];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  // Keep a sentence with two or more words from accidentally rendering in its
+  // answer order, while still keeping the order random for every new question.
+  if (
+    shuffled.length > 1 &&
+    shuffled.every((token, index) => token.id === tokens[index]?.id)
+  ) {
+    [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+  }
+
+  return shuffled;
 }
 
 function CategorySortBonus({
@@ -527,11 +656,13 @@ function BonusCheckButton({
 }
 
 function BonusPointFlight({
+  points,
   sourceRef,
   onFlightStart,
   onPointArrive,
   onComplete,
 }: {
+  points: number;
   sourceRef: RefObject<HTMLDivElement | null>;
   onFlightStart?: () => void;
   onPointArrive?: (points: number) => void;
@@ -568,7 +699,7 @@ function BonusPointFlight({
 
       const targetX = target.left + target.width / 2;
       const targetY = target.top + target.height / 2;
-      const iconCount = getScoreFlightIconCount(BONUS_QUESTION_POINTS);
+      const iconCount = getScoreFlightIconCount(points);
       const nextIcons = Array.from({ length: iconCount }, (_, index) => {
         const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
         return {
@@ -591,7 +722,7 @@ function BonusPointFlight({
       window.cancelAnimationFrame(frame);
       activeTimers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [sourceRef]);
+  }, [points, sourceRef]);
 
   function finishFlight(iconCount: number) {
     if (completedRef.current) return;
@@ -605,7 +736,7 @@ function BonusPointFlight({
     if (arrivedRef.current.has(iconId)) return;
     arrivedRef.current.add(iconId);
     const arrivalIndex = arrivedRef.current.size;
-    onPointArriveRef.current?.(getScoreFlightAwardAtArrival(BONUS_QUESTION_POINTS, icons.length, arrivalIndex));
+    onPointArriveRef.current?.(getScoreFlightAwardAtArrival(points, icons.length, arrivalIndex));
     playSoundEffect("points");
     vibrate("tap");
 
@@ -652,6 +783,13 @@ type FlightIcon = {
   targetY: number;
   delay: number;
 };
+
+const MATCHING_PAIR_COLORS = [
+  { background: "#22c55e", foreground: "#ffffff" },
+  { background: "#3b82f6", foreground: "#ffffff" },
+  { background: "#ef4444", foreground: "#ffffff" },
+  { background: "#eab308", foreground: "#111827" },
+] as const;
 
 function getBonusTitle(copy: ReturnType<typeof getBonusCopy>, kind: BonusQuestion["kind"]) {
   if (kind === "matching") return copy.matchingTitle;

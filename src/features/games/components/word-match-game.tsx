@@ -321,6 +321,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
       {phase === "completed" || phase === "failed" ? (
         <GameResultScreen
+          game="wordMatch"
           level={level}
           success={phase === "completed"}
           points={phase === "completed" ? getPointsForLevel(level) : undefined}

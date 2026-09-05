@@ -8,14 +8,8 @@ import {
 } from "@/features/cards/card-groups";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import type { LanguageCode, LocaleCode, VocabularyCard } from "@/types/domain";
-
-export { BONUS_QUESTION_POINTS } from "@/features/quiz/bonus-question-constants";
-
-export type BonusQuestionKind =
-  | "matching"
-  | "sentence-order"
-  | "category-sort"
-  | "imposter";
+export { BONUS_QUESTION_POINTS, getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
+export type { BonusQuestionKind } from "@/features/quiz/bonus-question-constants";
 
 export interface BonusPair {
   id: string;

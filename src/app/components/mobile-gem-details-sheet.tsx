@@ -1,9 +1,9 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
-import { Gem, Sparkles } from "lucide-react";
-import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { Sparkles, X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { convertGemToPointsAction } from "@/features/gems/gem-actions";
 import { GEM_ASSETS, GEM_POINTS, type GemType } from "@/features/gems/gem-types";
@@ -11,8 +11,10 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
+import { ScoreIcon } from "@/components/score-icon";
 
 const GEM_LABEL_KEYS = {
   blue: "gems.blueName",
@@ -30,6 +32,11 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
   const t = useT();
   const { user, updateProfileField, refreshProfile } = useAuthSession();
   const { refreshStats } = useProgressStats();
+  const [mounted, setMounted] = useState(false);
+  const [displayedType, setDisplayedType] = useState<GemType | null>(type);
+  const [presented, setPresented] = useState(Boolean(open && type));
+  const [entered, setEntered] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [converting, setConverting] = useState(false);
   const [queuedConversions, setQueuedConversions] = useState(0);
   const [flights, setFlights] = useState<Array<{ id: number; startX: number; startY: number; targetX: number; targetY: number }>>([]);
@@ -39,24 +46,73 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
   const balanceRef = useRef(0);
   const gemPointsRef = useRef(0);
   const flightIdRef = useRef(0);
-  const balanceForType = type === "blue"
+  const selectedType = type ?? displayedType;
+  const balanceForType = selectedType === "blue"
     ? user?.profile.blueGems ?? 0
-    : type === "green"
+    : selectedType === "green"
       ? user?.profile.greenGems ?? 0
-      : type === "purple"
+      : selectedType === "purple"
         ? user?.profile.purpleGems ?? 0
         : 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (open && type) {
+      setDisplayedType(type);
+      setPresented(true);
+      setClosing(false);
+      setEntered(false);
+      const frame = window.requestAnimationFrame(() => setEntered(true));
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    if (!presented) return;
+
+    setClosing(true);
+    setEntered(false);
+    const timer = window.setTimeout(() => {
+      setPresented(false);
+      setClosing(false);
+      setDisplayedType(null);
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, [open, presented, type]);
+
+  useEffect(() => {
+    if (!presented) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, presented]);
 
   useEffect(() => {
     balanceRef.current = balanceForType;
     gemPointsRef.current = user?.profile.gemPoints ?? 0;
   }, [balanceForType, user?.profile.gemPoints]);
 
-  if (!type) return null;
-  const selectedType = type;
+  if (!mounted || !presented || !selectedType || typeof document === "undefined") return null;
   const balance = balanceForType;
   const points = GEM_POINTS[selectedType];
   const availableToQueue = Math.max(0, balance - queuedConversions);
+  const useSuperWater = canUseSuperWater(locale);
+  const gemName = formatSuperWaterText(locale, t(GEM_LABEL_KEYS[selectedType]));
+  const gemDescription = formatSuperWaterText(locale, t(GEM_DESCRIPTION_KEYS[selectedType]));
+  const convertLabel = formatSuperWaterText(locale, t("gems.convert"));
+  const conversionType = selectedType;
 
   async function drainConversionQueue() {
     if (conversionRunningRef.current) return;
@@ -71,7 +127,7 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
           break;
         }
 
-        const result = await convertGemToPointsAction(selectedType);
+        const result = await convertGemToPointsAction(conversionType);
         if (!result.success || !result.balances || !result.points) {
           conversionQueueRef.current = 0;
           setQueuedConversions(0);
@@ -112,43 +168,87 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
   }
 
   function handleConvert() {
-    if (!user || availableToQueue < 1) return;
+    if (closing || !user || availableToQueue < 1) return;
     conversionQueueRef.current += 1;
     setQueuedConversions((current) => current + 1);
     vibrate("tap");
     void drainConversionQueue();
   }
 
-  return (
-    <MobileBottomSheetShell
-      open={open}
-      onClose={onClose}
-      title={t(GEM_LABEL_KEYS[selectedType])}
-      panelLabel={t("gems.detailsTitle")}
-      visual={<Image src={GEM_ASSETS[selectedType]} alt="" width={64} height={64} className="size-16 object-contain" />}
-      panelClassName="bg-background-card text-foreground"
-      contentClassName="pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+  const content = (
+    <div
+      className={cn(
+        "fixed inset-0 z-[90] flex items-center justify-center bg-black/65 px-5 transition-opacity duration-[260ms] lg:hidden",
+        closing ? "opacity-0" : "opacity-100",
+      )}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("gems.detailsTitle")}
+      data-mobile-gem-details
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <div className="flex flex-col items-center gap-4 px-5 pb-5 text-center">
-        <Image src={GEM_ASSETS[selectedType]} alt="" width={128} height={128} className="-mt-2 size-28 object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.28)]" />
-        <div>
-          <h3 className="text-2xl font-bold text-foreground">{t(GEM_LABEL_KEYS[selectedType])}</h3>
-          <p className="mt-1 text-lg font-semibold text-[var(--brand)]">{formatNumber(locale, balance)}</p>
+      <div
+        className={cn(
+          "relative w-full max-w-[22rem] -translate-y-[2.25rem] pt-20",
+        )}
+      >
+        <div className={cn(
+          "relative flex max-h-[calc(100dvh-2rem)] flex-col items-center overflow-y-auto rounded-[1.75rem] bg-background-card px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 text-center text-foreground shadow-[0_24px_70px_rgb(0_0_0_/_0.45)] ring-1 ring-black/10",
+          "transition-transform duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          closing || !entered ? "translate-y-5 scale-[0.96]" : "translate-y-0 scale-100",
+        )}>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("common.close")}
+            className="absolute right-3 top-3 z-10 inline-flex size-10 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
+          >
+            <X className="size-6 stroke-[3]" aria-hidden="true" />
+          </button>
+
+          <h2 className={cn("mt-1 text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>
+            {gemName}
+          </h2>
+          <p className={cn("mt-2 text-xl font-bold text-[var(--brand)]", useSuperWater && "font-super-water")}>
+            {formatNumber(locale, balance)}
+          </p>
+          <p className={cn("mt-4 max-w-[18rem] text-sm leading-6 text-foreground-secondary", useSuperWater && "font-super-water")}>
+            {gemDescription}
+          </p>
+          <button
+            type="button"
+            ref={convertButtonRef}
+            data-gem-convert
+            disabled={!user || availableToQueue < 1}
+            onClick={handleConvert}
+            className={cn(
+              "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-5 py-3 text-base font-bold text-[var(--brand-foreground)] shadow-[0_8px_0_color-mix(in_srgb,var(--brand)_72%,black)] transition-transform active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45",
+              useSuperWater && "font-super-water",
+              converting && "animate-pulse",
+            )}
+          >
+            <Sparkles className="size-5" aria-hidden="true" />
+            <span>{convertLabel}</span>
+            <span className="inline-flex items-center gap-1 text-yellow-300">
+              {points}
+              <ScoreIcon size={18} />
+            </span>
+          </button>
         </div>
-        <p className="max-w-sm text-sm leading-5 text-foreground-secondary">{t(GEM_DESCRIPTION_KEYS[selectedType])}</p>
-        <button
-          type="button"
-          ref={convertButtonRef}
-          data-gem-convert
-          disabled={!user || availableToQueue < 1}
-          onClick={handleConvert}
-          className={cn("inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-5 py-3 text-base font-bold text-[var(--brand-foreground)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45", converting && "animate-pulse")}
-        >
-          <Sparkles className="size-5" aria-hidden="true" />
-          <span>{t("gems.convert")}</span>
-          <span className="inline-flex items-center gap-1 text-yellow-300">{points}<Gem className="size-4" aria-hidden="true" /></span>
-        </button>
+
+        <div className="pointer-events-none absolute left-1/2 top-0 z-20 size-40 -translate-x-1/2">
+          <Image
+            src={GEM_ASSETS[selectedType]}
+            alt=""
+            width={160}
+            height={160}
+            className="size-40 object-contain drop-shadow-[0_16px_24px_rgb(0_0_0_/_0.35)]"
+          />
+        </div>
       </div>
+
       {flights.map((flight) => (
         <span
           key={flight.id}
@@ -163,6 +263,8 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
           <Image src={GEM_ASSETS[selectedType]} alt="" width={32} height={32} className="size-8 object-contain" />
         </span>
       ))}
-    </MobileBottomSheetShell>
+    </div>
   );
+
+  return createPortal(content, document.body);
 }

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/i18n/locale-provider";
-import { playSoundEffect } from "@/lib/sound-effects";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { getChestLabelKey, type ChestTier } from "@/features/quiz/chest-rewards";
 
@@ -41,8 +40,6 @@ export function QuizStartSplash({
   });
 
   useEffect(() => {
-    playSoundEffect("quiz-start");
-
     const completeTimer = window.setTimeout(() => {
       onCompleteRef.current();
     }, SPLASH_REVEAL_DURATION_MS);

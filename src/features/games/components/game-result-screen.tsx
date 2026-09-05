@@ -13,6 +13,11 @@ import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderb
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
+import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { useAuthSession } from "@/features/auth/auth-client";
+import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
+import type { GameName } from "../game-types";
+import type { GemRewards } from "@/features/gems/gem-types";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -26,14 +31,16 @@ import { vibrate } from "@/lib/vibration";
 import { GAME_BACKGROUND_SOURCES } from "./game-shell";
 
 interface GameResultScreenProps {
+  game: GameName;
   level: number;
   success: boolean;
   points?: number;
   onPrimary: () => void;
 }
 
-export function GameResultScreen({ level, success, points = 0, onPrimary }: GameResultScreenProps) {
+export function GameResultScreen({ game, level, success, points = 0, onPrimary }: GameResultScreenProps) {
   const { locale, t } = useLocale();
+  const { user, refreshProfile, updateProfileField } = useAuthSession();
   const router = useRouter();
   const { stats, refreshStats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
@@ -46,7 +53,36 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
   const [scorePulse, setScorePulse] = useState(0);
   const [flightIcons, setFlightIcons] = useState<Array<{ id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number }>>([]);
   const [isExiting, setIsExiting] = useState(false);
+  const [gemRewards, setGemRewards] = useState<GemRewards>([]);
+  const [gemClaimKey] = useState(
+    () => `game-level:${game}:${level}:${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
+  );
   const exitTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!success || !user) return;
+    let active = true;
+
+    void awardProgressGemRewardAction({
+      source: "game-level",
+      claimKey: gemClaimKey,
+      level,
+    }).then((result) => {
+      if (!active || !result.success) return;
+      if (result.balances) {
+        updateProfileField({
+          blueGems: result.balances.blue,
+          greenGems: result.balances.green,
+          purpleGems: result.balances.purple,
+        });
+      }
+      if (result.awarded && result.rewards?.length) setGemRewards(result.rewards);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [gemClaimKey, level, success, updateProfileField, user]);
 
   useLayoutEffect(() => {
     if (!success || gainedPoints <= 0 || !scoreRef.current || !rewardSourceRef.current) return;
@@ -202,6 +238,13 @@ export function GameResultScreen({ level, success, points = 0, onPrimary }: Game
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
         <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon.id)}><ScoreIcon size={32} /></span>
       )), document.body) : null}
+      <GemRewardFlight
+        key={gemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
+        rewards={gemRewards}
+        sourceRef={rewardSourceRef}
+        startDelayMs={1_550}
+        onComplete={() => void refreshProfile()}
+      />
     </div>
   );
 }

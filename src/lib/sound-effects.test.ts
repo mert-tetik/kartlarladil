@@ -10,18 +10,20 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "learned",
   "confetti",
   "quiz-complete",
-  "quiz-start",
+  "quiz-stars-complete",
   "quiz-select",
+  "pricing-perk-select",
   "card-swipe-right",
   "card-swipe-left",
   "chest-tap",
   "chest-open",
-  "streak-fire",
+  "streak-break",
   "clock-tick-low",
   "clock-tick-high",
   "level-fail",
-  "card-ready",
   "mission-claim",
+  "gem-loot",
+  "gem-spend",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {
