@@ -71,7 +71,10 @@ describe("MobileCardGroupSheet", () => {
     expect(screen.getByRole("heading", { name: "School" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(
+      () => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      { timeout: 1_500 },
+    );
 
     await user.click(screen.getByRole("button", { name: "School Add group" }));
     await user.click(screen.getByRole("button", { name: "Yes, add" }));

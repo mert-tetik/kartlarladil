@@ -28,13 +28,18 @@ import type {
 } from "@/features/missions/mission-types";
 import { MissionCard } from "./mission-card";
 import { MissionRewardOverlay } from "./mission-reward-overlay";
+import { MissionDetailsOverlay, type MissionDetailsData } from "./mission-details-overlay";
+import {
+  getMissionNavigationHref,
+  type MissionNavigationTarget,
+} from "../mission-navigation";
 
 export interface MissionViewModel extends UserMission {
   definition: MissionDefinition;
   requirement: number;
 }
 
-export function MissionsList() {
+export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (target: MissionNavigationTarget) => void }) {
   const t = useT();
   const router = useRouter();
   const { user, updateProfileField } = useAuthSession();
@@ -57,7 +62,21 @@ export function MissionsList() {
     | { missionId: string; kind: "points"; amount: number; source?: DOMRect }
     | null
   >(null);
+  const [missionDetails, setMissionDetails] = useState<{
+    mission: MissionDetailsData;
+    sourceRect: DOMRect;
+  } | null>(null);
   const hasResumedPendingClaimsRef = useRef(false);
+
+  function handleMissionNavigate(target: MissionNavigationTarget) {
+    if (onMissionNavigate) {
+      onMissionNavigate(target);
+      return;
+    }
+
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+    navigateWithRouteTransition(() => router.push(getMissionNavigationHref(target, isMobile)));
+  }
 
   const snapshot = useMemo<MissionProgressSnapshot>(() => {
     const totalCards = cards.length;
@@ -187,7 +206,14 @@ export function MissionsList() {
         }
         if (result.gemRewards?.length && reward.kind === "chest") {
           setRewardMode((current) => current?.missionId === missionId && current.kind === "chest"
-            ? { ...current, gemReward: { points: result.points ?? 0, rewards: result.gemRewards! } }
+            ? {
+                ...current,
+                gemReward: {
+                  points: result.points ?? 0,
+                  rewards: result.gemRewards!,
+                  balances: result.balances,
+                },
+              }
             : current);
         }
       } else if (result.message === "auth_required") {
@@ -243,12 +269,32 @@ export function MissionsList() {
             game={mission.definition.game}
             characterId={mission.definition.characterId}
             onClaim={(source) => void handleClaim(mission.missionId, source)}
+            onOpenDetails={(source) => setMissionDetails({
+              mission: {
+                missionId: mission.missionId,
+                index: mission.definition.index,
+                type: mission.definition.type,
+                requirement: mission.requirement,
+                progress: mission.progress,
+                status: mission.status,
+                reward: mission.definition.reward,
+                game: mission.definition.game,
+                characterId: mission.definition.characterId,
+              },
+              sourceRect: source,
+            })}
             claiming={pendingClaimOwnerId === user.id && pendingClaimIds.has(mission.missionId)}
           />
         ))}
       </div>
 
       <MissionRewardOverlay mode={rewardMode} onComplete={handleRewardComplete} />
+      <MissionDetailsOverlay
+        mission={missionDetails?.mission ?? null}
+        sourceRect={missionDetails?.sourceRect ?? null}
+        onClose={() => setMissionDetails(null)}
+        onNavigate={handleMissionNavigate}
+      />
     </>
   );
 }

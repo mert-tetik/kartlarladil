@@ -14,6 +14,24 @@ export interface GemReward {
 
 export type GemRewards = GemReward[];
 
+export function getGemBalancesBeforeRewards(
+  balances: GemBalances | null | undefined,
+  rewards: GemRewards | null | undefined,
+): GemBalances | null {
+  if (!balances) return null;
+
+  const rewardByType = new Map<GemType, number>();
+  for (const reward of rewards ?? []) {
+    rewardByType.set(reward.type, (rewardByType.get(reward.type) ?? 0) + reward.amount);
+  }
+
+  return {
+    blue: Math.max(0, balances.blue - (rewardByType.get("blue") ?? 0)),
+    green: Math.max(0, balances.green - (rewardByType.get("green") ?? 0)),
+    purple: Math.max(0, balances.purple - (rewardByType.get("purple") ?? 0)),
+  };
+}
+
 export interface ChestRewardOutcome {
   points: number;
   rewards: GemRewards;

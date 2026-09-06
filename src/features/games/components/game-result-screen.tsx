@@ -12,12 +12,12 @@ import { ScoreIcon } from "@/components/score-icon";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
-import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
+import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
 import type { GameName } from "../game-types";
-import type { GemRewards } from "@/features/gems/gem-types";
+import type { GemBalances, GemRewards } from "@/features/gems/gem-types";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -54,6 +54,14 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
   const [flightIcons, setFlightIcons] = useState<Array<{ id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number }>>([]);
   const [isExiting, setIsExiting] = useState(false);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
+  const gemFinalBalancesRef = useRef<GemBalances | null>(null);
+  const {
+    balances: gemDisplayBalances,
+    pulse: gemPulse,
+    prepare: prepareGemRewardDisplay,
+    handleGemArrive,
+    finish: finishGemRewardDisplay,
+  } = useGemRewardDisplay();
   const [gemClaimKey] = useState(
     () => `game-level:${game}:${level}:${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
   );
@@ -69,7 +77,10 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
       level,
     }).then((result) => {
       if (!active || !result.success) return;
+      const rewards = result.awarded ? result.rewards ?? [] : [];
       if (result.balances) {
+        gemFinalBalancesRef.current = result.balances;
+        prepareGemRewardDisplay(result.balances, rewards);
         updateProfileField({
           blueGems: result.balances.blue,
           greenGems: result.balances.green,
@@ -82,7 +93,7 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
     return () => {
       active = false;
     };
-  }, [gemClaimKey, level, success, updateProfileField, user]);
+  }, [gemClaimKey, level, prepareGemRewardDisplay, success, updateProfileField, user]);
 
   useLayoutEffect(() => {
     if (!success || gainedPoints <= 0 || !scoreRef.current || !rewardSourceRef.current) return;
@@ -233,7 +244,7 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
             {formatPoints(locale, displayPoints)}
           </span>
         </div>
-        <RewardGemHud animate />
+        <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate />
       </div>
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
         <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon.id)}><ScoreIcon size={32} /></span>
@@ -243,7 +254,11 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
         rewards={gemRewards}
         sourceRef={rewardSourceRef}
         startDelayMs={1_550}
-        onComplete={() => void refreshProfile()}
+        onGemArrive={handleGemArrive}
+        onComplete={() => {
+          finishGemRewardDisplay(gemFinalBalancesRef.current);
+          void refreshProfile();
+        }}
       />
     </div>
   );

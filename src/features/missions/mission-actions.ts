@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
-import { normalizeGemRewards, type GemRewards, type GemType } from "@/features/gems/gem-types";
+import { normalizeGemRewards, type GemBalances, type GemRewards, type GemType } from "@/features/gems/gem-types";
 import { MISSIONS_BY_ID } from "./missions-data";
 import { buildMissionViewModels } from "./mission-progress";
 import type {
@@ -53,6 +53,7 @@ export interface ClaimMissionResult {
   gemType?: GemType;
   gemAmount?: number;
   gemRewards?: GemRewards;
+  balances?: GemBalances;
   blueGems?: number;
   greenGems?: number;
   purpleGems?: number;
@@ -277,6 +278,11 @@ export async function claimMissionRewardAction(
             gemRewards,
             gemType: gemRewards[0]?.type,
             gemAmount: gemRewards[0]?.amount,
+            balances: {
+              blue: claim.blue_gems ?? 0,
+              green: claim.green_gems ?? 0,
+              purple: claim.purple_gems ?? 0,
+            },
             blueGems: claim.blue_gems ?? 0,
             greenGems: claim.green_gems ?? 0,
             purpleGems: claim.purple_gems ?? 0,

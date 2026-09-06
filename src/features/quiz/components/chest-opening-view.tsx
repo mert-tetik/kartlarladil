@@ -13,8 +13,9 @@ import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { ChestArtwork } from "@/features/quiz/components/chest-artwork";
 import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
-import { GEM_ASSETS, type ChestRewardOutcome } from "@/features/gems/gem-types";
+import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances } from "@/features/gems/gem-types";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import {
   getScoreFlightAwardAtArrival,
   getScoreFlightIconCount,
@@ -54,6 +55,14 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
+  const gemFinalBalancesRef = useRef<GemBalances | null>(null);
+  const {
+    balances: gemDisplayBalances,
+    pulse: gemPulse,
+    prepare: prepareGemRewardDisplay,
+    handleGemArrive,
+    finish: finishGemRewardDisplay,
+  } = useGemRewardDisplay();
   const hasAwarded = useRef(false);
   const lidRef = useRef<HTMLImageElement | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
@@ -173,6 +182,10 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
 
     revealTimeoutRef.current = window.setTimeout(() => {
       const reveal = (outcome: ChestRewardOutcome | null) => {
+        if (outcome?.balances) {
+          gemFinalBalancesRef.current = outcome.balances;
+          prepareGemRewardDisplay(outcome.balances, outcome.rewards);
+        }
         setRewardOutcome(outcome);
         setPhase("revealed");
         setPointsPhase("shown");
@@ -210,7 +223,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
         // Ignore effect failures; the reward flow should keep running.
       }
     }, REWARD_REVEAL_DELAY_MS);
-  }, [spawnSparkles]);
+  }, [prepareGemRewardDisplay, spawnSparkles]);
 
   useEffect(() => {
     if (reward) {
@@ -221,6 +234,13 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     if (!rewardPromiseRef.current) return;
     void rewardPromiseRef.current.then(setRewardOutcome);
   }, [onRewardReady, reward]);
+
+  useEffect(() => {
+    if (!rewardOutcome?.balances) return;
+
+    gemFinalBalancesRef.current = rewardOutcome.balances;
+    prepareGemRewardDisplay(rewardOutcome.balances, rewardOutcome.rewards);
+  }, [prepareGemRewardDisplay, rewardOutcome]);
 
   useEffect(() => {
     autoOpenTimeoutRef.current = window.setTimeout(() => {
@@ -365,20 +385,14 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
               </span>
             </div>
           </div>
-          <div
+          <RewardGemHud
             className={cn(
-              "flex items-center justify-center gap-2 transition-[opacity,transform] duration-300 ease-out lg:hidden",
+              "transition-[opacity,transform] duration-300 ease-out",
               !isRewardHeaderVisible && "translate-y-2 opacity-0",
             )}
-            data-reward-gem-hud
-          >
-            {(["blue", "green", "purple"] as const).map((type) => (
-              <span key={type} data-reward-gem-target={type} data-chest-reward-gem-target className="inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white">
-                <Image src={GEM_ASSETS[type]} alt="" width={20} height={20} className="size-5 object-contain" />
-                <span>{rewardOutcome?.balances?.[type] ?? 0}</span>
-              </span>
-            ))}
-          </div>
+            balances={gemDisplayBalances}
+            pulse={gemPulse}
+          />
         </div>
 
         <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
@@ -492,8 +506,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
       <GemRewardFlight
         rewards={pointsPhase === "flying" ? rewardOutcome?.rewards : null}
         sourceRef={rewardGemRef}
-        targetSelector="[data-chest-reward-gem-target]"
-        onComplete={() => undefined}
+        onGemArrive={handleGemArrive}
+        onComplete={() => finishGemRewardDisplay(gemFinalBalancesRef.current)}
       />
     </div>
   );

@@ -1,21 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { ScoreIcon } from "@/components/score-icon";
 import { Progress } from "@/components/ui/progress";
-import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
-import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { vibrate } from "@/lib/vibration";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import {
+  canUseSuperWater,
+  formatSuperWaterText,
+  formatSuperWaterUppercaseText,
+} from "@/lib/super-water";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
 
-const MISSION_CARD_GRADIENTS = [
+export const MISSION_CARD_GRADIENTS = [
   { top: "#008f6a", bottom: "#14d49a" },
   { top: "#145de0", bottom: "#35baf5" },
   { top: "#7b1bd1", bottom: "#c05cff" },
@@ -26,7 +27,16 @@ const MISSION_CARD_GRADIENTS = [
 
 const MISSION_POINT_TIER_LIMITS = [125, 375] as const;
 
-function getMissionPointTier(amount: number) {
+export function getMissionCardBackground(index: number, isClaimed: boolean) {
+  if (isClaimed) {
+    return "linear-gradient(180deg, #303030 0%, #171717 100%)";
+  }
+
+  const gradient = MISSION_CARD_GRADIENTS[index % MISSION_CARD_GRADIENTS.length];
+  return `linear-gradient(180deg, ${gradient.top} 0%, ${gradient.top} 42%, ${gradient.bottom} 100%)`;
+}
+
+export function getMissionPointTier(amount: number) {
   if (amount <= MISSION_POINT_TIER_LIMITS[0]) return 1;
   if (amount <= MISSION_POINT_TIER_LIMITS[1]) return 3;
   return 5;
@@ -43,6 +53,7 @@ interface MissionCardProps {
   game?: MissionDefinition["game"];
   characterId?: MissionDefinition["characterId"];
   onClaim: (source?: DOMRect) => void;
+  onOpenDetails: (source: DOMRect) => void;
   claiming: boolean;
 }
 
@@ -57,43 +68,20 @@ export function MissionCard({
   game,
   characterId,
   onClaim,
+  onOpenDetails,
   claiming,
 }: MissionCardProps) {
   const t = useT();
-  const router = useRouter();
-  const { user } = useAuthSession();
   const { locale } = useLocale();
   const progressPercent = Math.min(100, Math.round((progress / requirement) * 100));
   const isWaiting = status === "waiting";
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
-  const isClickable = (isWaiting && !claiming) || isLocked;
-  const gradient = MISSION_CARD_GRADIENTS[index % MISSION_CARD_GRADIENTS.length];
+  const isClickable = (isWaiting && !claiming) || isLocked || isClaimed;
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
   const descriptionDisplay = canUseSuperWater(locale)
     ? formatSuperWaterText(locale, description)
     : description;
-
-  function navigateToMission() {
-    const preferredLanguage = user?.profile.preferredLanguageCode ?? "en";
-
-    switch (type) {
-      case "add_cards":
-        navigateWithRouteTransition(() => router.push("/card-draw"));
-        break;
-      case "learn_cards":
-        navigateWithRouteTransition(() => router.push(`/learn?mode=active&language=${encodeURIComponent(preferredLanguage)}`));
-        break;
-      case "game_level":
-        navigateWithRouteTransition(() => router.push("/games"));
-        break;
-      case "ai_practice":
-        navigateWithRouteTransition(() => router.push("/ai-practice"));
-        break;
-      default:
-        break;
-    }
-  }
 
   function handleClick(source?: DOMRect) {
     if (claiming) return;
@@ -107,7 +95,13 @@ export function MissionCard({
 
     if (isLocked) {
       vibrate("tap");
-      navigateToMission();
+      onOpenDetails(source ?? new DOMRect());
+      return;
+    }
+
+    if (isClaimed) {
+      vibrate("tap");
+      onOpenDetails(source ?? new DOMRect());
     }
   }
 
@@ -129,9 +123,7 @@ export function MissionCard({
       onKeyDown={handleKeyDown}
       style={{
         aspectRatio: "4 / 5",
-        backgroundImage: isClaimed
-          ? "linear-gradient(180deg, #303030 0%, #171717 100%)"
-          : `linear-gradient(180deg, ${gradient.top} 0%, ${gradient.top} 42%, ${gradient.bottom} 100%)`,
+        backgroundImage: getMissionCardBackground(index, isClaimed),
       }}
       className={cn(
         "relative flex min-w-0 flex-col overflow-visible border border-white/15 px-3 py-3 text-center text-white shadow-none transition-transform duration-300 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-white",
@@ -171,14 +163,27 @@ export function MissionCard({
           )}
         >
           {reward.kind === "chest" ? (
-            <ChestIcon tier={reward.tier} hideLid={isClaimed} className="size-[6.25rem] drop-shadow-sm" />
+            <ChestIcon tier={reward.tier} hideLid={isClaimed} className="relative -top-6 size-[6.25rem] drop-shadow-sm" />
           ) : (
             <div className="flex flex-col items-center justify-center gap-1">
               <PointsRewardStack tier={getMissionPointTier(reward.amount)} />
-              <span className="text-xl font-bold leading-none text-white">+{reward.amount}</span>
+              <span className="relative -top-2 text-xl font-bold leading-none text-white">+{reward.amount}</span>
             </div>
           )}
         </div>
+
+        {isClaimed ? (
+          <span
+            data-mission-claimed-label
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 z-20 flex items-center justify-center break-words px-2 text-center text-[clamp(1.45rem,7vw,2.35rem)] font-bold uppercase leading-none text-white drop-shadow-sm",
+              canUseSuperWater(locale) && "font-super-water",
+            )}
+          >
+            {formatSuperWaterUppercaseText(locale, t("missions.claimed"))}
+          </span>
+        ) : null}
 
         {isLocked ? (
           <div className="absolute inset-0 z-30 flex items-center justify-center drop-shadow-sm">
@@ -187,7 +192,7 @@ export function MissionCard({
               alt=""
               width={128}
               height={128}
-              className="h-[8rem] w-auto object-contain"
+              className="h-[6rem] w-auto object-contain"
               aria-hidden="true"
             />
           </div>
@@ -216,12 +221,12 @@ export function MissionCard({
   );
 }
 
-function PointsRewardStack({ tier }: { tier: number }) {
+export function PointsRewardStack({ tier, className }: { tier: number; className?: string }) {
   return (
     <div
       data-mission-point-stack
       data-mission-point-tier={tier}
-      className="relative h-[6.25rem] w-[9.75rem]"
+      className={cn("relative h-[6.25rem] w-[9.75rem]", className)}
       aria-label={`${tier} point tier`}
     >
       {Array.from({ length: tier }, (_, index) => {
@@ -254,7 +259,7 @@ function PointsRewardStack({ tier }: { tier: number }) {
   );
 }
 
-function getMissionDescription(
+export function getMissionDescription(
   t: ReturnType<typeof useT>,
   type: MissionDefinition["type"],
   requirement: number,

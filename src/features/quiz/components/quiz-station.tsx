@@ -97,7 +97,7 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
-import type { ChestRewardOutcome, GemRewards } from "@/features/gems/gem-types";
+import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { awardProgressGemRewardAction, spendGemAction } from "@/features/gems/gem-actions";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
@@ -134,7 +134,7 @@ import { RankIcon } from "@/features/progress/rank-icons";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
-import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
+import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 
 import {
@@ -2011,6 +2011,17 @@ export function QuizStation({
                   rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
+                  mobileCard={(
+                    <div className="flex items-center justify-center lg:hidden" data-quiz-mobile-card-slot>
+                      <MobileQuizCard
+                        item={item}
+                        face={showingAnswer ? "front" : "back"}
+                        feedbackStage={cardFeedbackStage}
+                        footerMode={cardFooterMode}
+                        footerProgressCount={cardFooterProgressCount}
+                      />
+                    </div>
+                  )}
                 />
               ) : (
                 <TextQuestion
@@ -2032,12 +2043,9 @@ export function QuizStation({
             </div>
           </div>
 
-          {!isBonusQuizItem(item) ? (
+          {!isBonusQuizItem(item) && item.questionType !== "sentence-completion" ? (
             <div
-              className={cn(
-                "order-2 flex items-center justify-center lg:hidden",
-                item.questionType === "sentence-completion" && "max-lg:-translate-y-4",
-              )}
+              className="order-2 flex items-center justify-center lg:hidden"
               data-quiz-mobile-card-slot
             >
               <MobileQuizCard
@@ -2617,8 +2625,6 @@ export function CountSelection({
         floorY: 180 + Math.random() * 85,
       })),
     });
-    playSoundEffect("quiz-select");
-
     launchTimerRef.current = window.setTimeout(() => {
       onSelect(count, { count, colorClass, contentScale, chestTiers });
       launchTimerRef.current = null;
@@ -2912,7 +2918,7 @@ function QuizRerollButton({
       onClick={action.onReroll}
       disabled={action.disabled || hidden}
       className={cn(
-        "inline-flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+        "inline-flex h-10 min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
         className,
         hidden && "invisible pointer-events-none",
       )}
@@ -2934,14 +2940,16 @@ function QuizQuestionActionRow({
   skipDisabled,
   rerollAction,
   hidden = false,
+  className,
 }: {
   onSkip: () => void;
   skipDisabled: boolean;
   rerollAction?: QuizRerollAction;
   hidden?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="mt-1 flex w-full gap-2 sm:mt-2" data-quiz-question-actions data-quiz-reroll-action>
+    <div className={cn("mt-1 flex w-full gap-2 sm:mt-2", className)} data-quiz-question-actions data-quiz-reroll-action>
       <QuizSkipButton
         className={cn("min-w-0 flex-1", hidden && "invisible pointer-events-none")}
         disabled={skipDisabled || hidden}
@@ -3318,6 +3326,7 @@ function SentenceCompletionQuestion({
   rerollAction,
   onNext,
   showNextButton = true,
+  mobileCard,
 }: {
   item: SentenceCompletionQuizItem;
   showingAnswer: boolean;
@@ -3330,6 +3339,7 @@ function SentenceCompletionQuestion({
   rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
+  mobileCard?: ReactNode;
 }) {
   const t = useT();
   const { question, character } = item;
@@ -3413,11 +3423,14 @@ function SentenceCompletionQuestion({
         })}
       </div>
 
+      {mobileCard ? <div className="-my-1 flex items-center justify-center lg:hidden">{mobileCard}</div> : null}
+
       <QuizQuestionActionRow
         skipDisabled={showingAnswer || isAiValidating}
         rerollAction={rerollAction}
         hidden={showingAnswer}
         onSkip={onSkip}
+        className="max-lg:-mt-1"
       />
 
       <div className="mt-1 min-h-10 sm:mt-2" data-quiz-next-slot>
@@ -3728,7 +3741,7 @@ function TextQuestion({
               </Button>
             </div>
           ) : (
-            <div className="mt-1 flex w-full gap-2 sm:mt-2 lg:mt-4" data-quiz-question-actions data-quiz-reroll-action>
+            <div className="mt-4 flex w-full gap-2 sm:mt-4 lg:mt-5" data-quiz-question-actions data-quiz-reroll-action>
               <QuizSkipButton
                 className="min-w-0 flex-[0.8]"
                 disabled={isAiValidating}
@@ -4121,6 +4134,14 @@ export function ResultView({
   const [starsRevealedAt, setStarsRevealedAt] = useState<number | null>(null);
   const [resultRewardAwarded, setResultRewardAwarded] = useState(false);
   const [resultGemRewards, setResultGemRewards] = useState<GemRewards>([]);
+  const resultGemFinalBalancesRef = useRef<GemBalances | null>(null);
+  const {
+    balances: resultGemDisplayBalances,
+    pulse: resultGemPulse,
+    prepare: prepareResultGemDisplay,
+    handleGemArrive: handleResultGemArrive,
+    finish: finishResultGemDisplay,
+  } = useGemRewardDisplay();
   const performance = getQuizPerformanceSummary(
     mode,
     results,
@@ -4207,7 +4228,10 @@ export function ResultView({
     }).then((result) => {
       if (!active || !result.success) return;
 
+      const rewards = result.awarded ? result.rewards ?? [] : [];
       if (result.balances) {
+        resultGemFinalBalancesRef.current = result.balances;
+        prepareResultGemDisplay(result.balances, rewards);
         updateProfileField({
           blueGems: result.balances.blue,
           greenGems: result.balances.green,
@@ -4224,6 +4248,7 @@ export function ResultView({
     };
   }, [
     mode,
+    prepareResultGemDisplay,
     quizSessionId,
     resultCardCount,
     starRating,
@@ -4500,7 +4525,7 @@ export function ResultView({
               </span>
             </div>
           </div>
-          <RewardGemHud className="mt-2" animate />
+          <RewardGemHud className="mt-2" balances={resultGemDisplayBalances} pulse={resultGemPulse} animate />
 
           <div
             className={cn(
@@ -4592,7 +4617,11 @@ export function ResultView({
             ? 1000
             : Math.max(0, 1000 - (Date.now() - starsRevealedAt))
         }
-        onComplete={() => void refreshProfile?.()}
+        onGemArrive={handleResultGemArrive}
+        onComplete={() => {
+          finishResultGemDisplay(resultGemFinalBalancesRef.current);
+          void refreshProfile?.();
+        }}
       />
 
       {openMenu ? (

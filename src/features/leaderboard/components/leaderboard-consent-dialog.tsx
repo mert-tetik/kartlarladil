@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { cn } from "@/lib/utils";
 
 export function LeaderboardConsentDialog({
   open,
@@ -11,31 +13,54 @@ export function LeaderboardConsentDialog({
   error,
   onClose,
   onConfirm,
+  sourceRect = null,
 }: {
   open: boolean;
   busy: boolean;
   error?: string;
   onClose: () => void;
   onConfirm: () => void;
+  sourceRect?: DOMRect | null;
 }) {
   const { locale } = useLocale();
   const t = useT();
   const phase = open ? "open" : "closed";
+  const [hasOpened, setHasOpened] = useState(open);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const frame = window.requestAnimationFrame(() => setHasOpened(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
+  const origin = sourceRect
+    ? {
+        x: sourceRect.left + sourceRect.width / 2,
+        y: sourceRect.top + sourceRect.height / 2,
+      }
+    : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
   return (
     <div
-      className={`fixed inset-0 z-[75] flex items-end justify-center p-4 transition-opacity duration-300 ease-out sm:items-center ${
-        phase === "open" ? "pointer-events-auto bg-black/55" : "pointer-events-none bg-black/0"
-      }`}
+      className={cn(
+        "fixed inset-0 z-[75] flex items-end justify-center p-4 sm:items-center",
+        open && hasOpened && "leaderboard-consent-overlay",
+        open && !hasOpened && "leaderboard-consent-overlay--preparing",
+        !open && hasOpened && "leaderboard-consent-overlay--closing",
+        !hasOpened && "invisible pointer-events-none",
+        open && hasOpened ? "pointer-events-auto" : "pointer-events-none",
+        hasOpened ? "bg-black/55" : "bg-black/0",
+      )}
+      style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}
       aria-hidden={phase !== "open"}
     >
       <div
+        key={phase}
         role="dialog"
         aria-modal="true"
         aria-labelledby="leaderboard-consent-title"
-        className={`w-full max-w-md rounded-xl border border-border bg-background-card p-6 shadow-sm transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          phase === "open" ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-[0.98] opacity-0"
-        }`}
+        className="leaderboard-consent-overlay__item w-full max-w-md rounded-xl border border-border bg-background-card p-6 shadow-sm"
       >
         <h2
           id="leaderboard-consent-title"

@@ -27,6 +27,22 @@ import { vibrate } from "@/lib/vibration";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
+const CATEGORY_WORD_ANIMATION_MS = 260;
+
+const CATEGORY_SORT_PALETTES = [
+  {
+    background: "bg-emerald-500",
+    wordBackground: "bg-emerald-600",
+  },
+  {
+    background: "bg-sky-500",
+    wordBackground: "bg-sky-600",
+  },
+  {
+    background: "bg-rose-500",
+    wordBackground: "bg-rose-600",
+  },
+] as const;
 
 export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const { locale } = useLocale();
@@ -481,21 +497,50 @@ function CategorySortBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
+  const [exitingAssignments, setExitingAssignments] = useState<Record<string, string>>({});
+  const [returningWordIds, setReturningWordIds] = useState<Record<string, boolean>>({});
+  const animationTimersRef = useRef<number[]>([]);
   const categoryByWord = new Map(question.categories.flatMap((category) => category.wordIds.map((wordId) => [wordId, category.id] as const)));
   const canCheck = Object.keys(assignments).length === question.words.length;
   const isCorrect = question.words.every((word) => assignments[word.id] === categoryByWord.get(word.id));
 
+  useEffect(() => {
+    return () => {
+      animationTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
+
   function selectWord(wordId: string) {
     if (showingAnswer) return;
-    if (assignments[wordId]) {
+    const assignedCategoryId = assignments[wordId];
+    if (assignedCategoryId) {
+      // A word in a category needs one deliberate tap to return to the word bank.
+      // It must not become selected in the same interaction.
+      setSelectedWordId(null);
+      setExitingAssignments((current) => ({ ...current, [wordId]: assignedCategoryId }));
       setAssignments((current) => {
         const next = { ...current };
         delete next[wordId];
         return next;
       });
+      setReturningWordIds((current) => ({ ...current, [wordId]: true }));
+      const timer = window.setTimeout(() => {
+        setExitingAssignments((current) => {
+          const next = { ...current };
+          delete next[wordId];
+          return next;
+        });
+        setReturningWordIds((current) => {
+          const next = { ...current };
+          delete next[wordId];
+          return next;
+        });
+      }, CATEGORY_WORD_ANIMATION_MS);
+      animationTimersRef.current.push(timer);
+      return;
     }
     setSelectedWordId(wordId);
   }
@@ -510,10 +555,16 @@ function CategorySortBonus({
   }
 
   return (
-    <div className="flex w-full flex-col gap-4" data-bonus-category-sort>
+    <div className="flex w-full flex-col gap-3" data-bonus-category-sort>
       <div className="flex flex-wrap justify-center gap-2">
         {question.words.map((word) => {
           const assigned = assignments[word.id];
+          const assignedCategoryIndex = assigned
+            ? question.categories.findIndex((category) => category.id === assigned)
+            : -1;
+          const assignedPalette = assignedCategoryIndex >= 0
+            ? CATEGORY_SORT_PALETTES[assignedCategoryIndex % CATEGORY_SORT_PALETTES.length]
+            : null;
           const correct = showingAnswer && assigned === categoryByWord.get(word.id);
           const wrong = showingAnswer && assigned !== categoryByWord.get(word.id);
           return (
@@ -522,7 +573,17 @@ function CategorySortBonus({
               type="button"
               disabled={showingAnswer}
               onClick={() => selectWord(word.id)}
-              className={cn("rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-300", selectedWordId === word.id && "-translate-y-0.5 ring-2 ring-brand", assigned && "bg-brand/15 border-brand", correct && "bg-emerald-500 text-white border-emerald-500", wrong && "bg-rose-500 text-white border-rose-500", !assigned && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !assigned && "opacity-60")}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                selectedWordId === word.id && "-translate-y-0.5 ring-2 ring-brand",
+                assignedPalette?.background,
+                assigned && "border-0 text-white",
+                returningWordIds[word.id] && "animate-bonus-category-word-return",
+                correct && "bg-emerald-500 text-white border-emerald-500",
+                wrong && "bg-rose-500 text-white border-rose-500",
+                !assigned && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand",
+                showingAnswer && !assigned && "opacity-60",
+              )}
               data-bonus-category-word={word.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -533,25 +594,74 @@ function CategorySortBonus({
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {question.categories.map((category) => {
-          const words = question.words.filter((word) => assignments[word.id] === category.id);
+          const categoryIndex = question.categories.findIndex((candidate) => candidate.id === category.id);
+          const palette = CATEGORY_SORT_PALETTES[categoryIndex % CATEGORY_SORT_PALETTES.length];
+          const assignedWords = question.words.filter((word) => assignments[word.id] === category.id);
+          const returningWords = question.words.filter(
+            (word) => exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id,
+          );
+          const words = [...assignedWords, ...returningWords];
           const categoryCorrect = showingAnswer && words.length === 3 && words.every((word) => categoryByWord.get(word.id) === category.id);
           const categoryWrong = showingAnswer && words.some((word) => categoryByWord.get(word.id) !== category.id);
+          const categoryLabel = category.nameKey ? t(`cards.groups.${category.nameKey}` as never) : category.name;
           return (
-            <button
+            <div
               key={category.id}
-              type="button"
-              disabled={showingAnswer}
+              role="button"
+              tabIndex={showingAnswer ? -1 : 0}
+              aria-disabled={showingAnswer}
+              aria-label={categoryLabel}
               onClick={() => selectCategory(category.id)}
-              className={cn("min-h-28 rounded-xl border border-border bg-background-card p-3 text-left transition-[background-color,border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-brand", categoryCorrect && "border-emerald-500 bg-emerald-500/15", categoryWrong && "border-rose-500 bg-rose-500/15")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  selectCategory(category.id);
+                }
+              }}
+              className={cn(
+                "min-h-20 rounded-xl p-2.5 text-left text-white transition-[filter,transform] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                palette.background,
+                !showingAnswer && "hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90",
+                categoryCorrect && "ring-2 ring-emerald-100",
+                categoryWrong && "ring-2 ring-rose-100",
+              )}
               data-bonus-category={category.id}
             >
-              <span className="block text-sm font-semibold text-foreground">
-                {category.nameKey ? t(`cards.groups.${category.nameKey}` as never) : category.name}
+              <span className={cn(
+                "block text-sm font-semibold text-white",
+                canUseSuperWater(locale) && "font-super-water",
+              )}>
+                {formatSuperWaterText(locale, categoryLabel)}
               </span>
               <span className="mt-2 flex min-h-8 flex-wrap gap-1">
-                {words.map((word) => <span key={word.id} className="rounded bg-background-muted px-1.5 py-1 text-xs font-semibold text-foreground-secondary">{word.text}</span>)}
+                {words.map((word) => {
+                  const isReturning = exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id;
+                  const correct = showingAnswer && assignments[word.id] === categoryByWord.get(word.id);
+                  const wrong = showingAnswer && assignments[word.id] !== categoryByWord.get(word.id);
+                  return (
+                    <button
+                      key={word.id}
+                      type="button"
+                      disabled={showingAnswer || isReturning}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectWord(word.id);
+                      }}
+                      className={cn(
+                        "rounded-md border-0 px-1.5 py-1 text-xs font-semibold text-white transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                        palette.wordBackground,
+                        isReturning ? "animate-bonus-category-word-exit" : "animate-bonus-category-word-enter",
+                        correct && "bg-emerald-600",
+                        wrong && "bg-rose-600",
+                      )}
+                      data-bonus-category-assigned-word={word.id}
+                    >
+                      {word.text}
+                    </button>
+                  );
+                })}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>

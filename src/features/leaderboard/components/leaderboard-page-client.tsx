@@ -23,6 +23,7 @@ export function LeaderboardPageClient() {
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentBusy, setConsentBusy] = useState(false);
   const [consentError, setConsentError] = useState("");
+  const [consentSourceRect, setConsentSourceRect] = useState<DOMRect | null>(null);
   const viewerRowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -150,7 +151,7 @@ export function LeaderboardPageClient() {
                     </p>
                     <p
                       className={cn(
-                        "text-lg font-medium leading-7 text-foreground-secondary sm:text-xl",
+                        "text-lg font-medium leading-7 text-white sm:text-xl",
                         canUseSuperWater(locale) && "font-super-water",
                       )}
                     >
@@ -159,8 +160,9 @@ export function LeaderboardPageClient() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(event) => {
                       setConsentError("");
+                      setConsentSourceRect(event.currentTarget.getBoundingClientRect());
                       setConsentOpen(true);
                     }}
                     className={cn(
@@ -243,6 +245,7 @@ export function LeaderboardPageClient() {
         open={consentOpen}
         busy={consentBusy}
         error={consentError}
+        sourceRect={consentSourceRect}
         onClose={() => setConsentOpen(false)}
         onConfirm={() => {
           void handleConfirmConsent();

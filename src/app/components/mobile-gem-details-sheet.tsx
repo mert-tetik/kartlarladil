@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -37,7 +37,23 @@ const GEM_TEXT_CLASSES = {
   purple: "text-violet-400",
 } as const;
 
-export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType | null; open: boolean; onClose: () => void }) {
+interface MobileGemDetailsSheetProps {
+  type: GemType | null;
+  open: boolean;
+  onClose: () => void;
+  sourceRect?: DOMRect | null;
+}
+
+const CONTENT_ENTER_DELAY_MS = 520;
+const CONTENT_STEP_MS = 70;
+const CLOSE_ANIMATION_MS = 860;
+
+export function MobileGemDetailsSheet({
+  type,
+  open,
+  onClose,
+  sourceRect = null,
+}: MobileGemDetailsSheetProps) {
   const { locale } = useLocale();
   const t = useT();
   const { user, updateProfileField, refreshProfile } = useAuthSession();
@@ -87,10 +103,10 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
       setPresented(false);
       setClosing(false);
       setDisplayedType(null);
-    }, 260);
+    }, CLOSE_ANIMATION_MS);
 
     return () => window.clearTimeout(timer);
-  }, [open, presented, type]);
+  }, [open, presented, sourceRect, type]);
 
   useEffect(() => {
     if (!presented) return;
@@ -123,6 +139,28 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
   const gemDescription = formatSuperWaterText(locale, t(GEM_DESCRIPTION_KEYS[selectedType]));
   const convertLabel = formatSuperWaterText(locale, t("gems.convert"));
   const conversionType = selectedType;
+  const contentItemCount = 4;
+  const origin = sourceRect
+    ? {
+        x: sourceRect.left + sourceRect.width / 2,
+        y: sourceRect.top + sourceRect.height / 2,
+      }
+    : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+  function renderContentItem(index: number, children: ReactNode, className?: string) {
+    return (
+      <div
+        className={cn("gem-details-overlay__item", className)}
+        style={{
+          animationDelay: closing
+            ? `${(contentItemCount - index - 1) * CONTENT_STEP_MS}ms`
+            : `${CONTENT_ENTER_DELAY_MS + index * CONTENT_STEP_MS}ms`,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
 
   async function drainConversionQueue() {
     if (conversionRunningRef.current) return;
@@ -188,9 +226,11 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
   const content = (
     <div
       className={cn(
-        "fixed inset-0 z-[90] flex items-center justify-center bg-black/65 px-5 transition-opacity duration-[260ms] lg:hidden",
-        closing ? "opacity-0" : "opacity-100",
+        "gem-details-overlay fixed inset-0 z-[90] flex items-center justify-center bg-black/65 px-5 lg:hidden",
+        !entered && !closing && "gem-details-overlay--preparing",
+        closing && "gem-details-overlay--closing",
       )}
+      style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}
       role="dialog"
       aria-modal="true"
       aria-label={t("gems.detailsTitle")}
@@ -209,45 +249,65 @@ export function MobileGemDetailsSheet({ type, open, onClose }: { type: GemType |
           "transition-transform duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           closing || !entered ? "translate-y-5 scale-[0.96]" : "translate-y-0 scale-100",
         )}>
+          {renderContentItem(
+            0,
+            <h2 className={cn("mt-1 w-full text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>
+              {gemName}
+            </h2>,
+            "w-full",
+          )}
+          {renderContentItem(
+            1,
+            <p className={cn("mt-2 w-full text-3xl font-bold leading-none", GEM_TEXT_CLASSES[selectedType], useSuperWater && "font-super-water")}>
+              <span className="inline-flex items-center justify-center gap-1.5">
+                {formatNumber(locale, balance)}
+                <Image src={GEM_ASSETS[selectedType]} alt="" width={22} height={22} className="size-[22px] object-contain" />
+              </span>
+            </p>,
+            "w-full",
+          )}
+          {renderContentItem(
+            2,
+            <p className={cn("mx-auto mt-4 w-full max-w-[18rem] text-sm leading-6 text-white", useSuperWater && "font-super-water")}>
+              {gemDescription}
+            </p>,
+            "w-full",
+          )}
+          {renderContentItem(
+            3,
+            <button
+              type="button"
+              ref={convertButtonRef}
+              data-gem-convert
+              disabled={!user || availableToQueue < 1}
+              onClick={handleConvert}
+              className={cn(
+                "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-bold text-[var(--brand-foreground)] transition-transform active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45",
+                GEM_BUTTON_CLASSES[selectedType],
+                useSuperWater && "font-super-water",
+                converting && "animate-pulse",
+              )}
+            >
+              <span>{convertLabel}</span>
+              <span className="inline-flex items-center gap-1 text-yellow-300">
+                {points}
+                <ScoreIcon size={18} />
+              </span>
+            </button>,
+            "w-full",
+          )}
           <button
             type="button"
             onClick={onClose}
             aria-label={t("common.close")}
-            className="absolute right-3 top-3 z-10 inline-flex size-10 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="gem-details-overlay__item absolute right-3 top-3 z-10 inline-flex size-10 items-center justify-center text-foreground-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
+            style={{
+              animationDelay: closing
+                ? `${contentItemCount * CONTENT_STEP_MS}ms`
+                : `${CONTENT_ENTER_DELAY_MS + contentItemCount * CONTENT_STEP_MS}ms`,
+            }}
           >
             <X className="size-6 stroke-[3]" aria-hidden="true" />
-          </button>
-
-          <h2 className={cn("mt-1 w-full text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>
-            {gemName}
-          </h2>
-          <p className={cn("mt-2 w-full text-3xl font-bold leading-none", GEM_TEXT_CLASSES[selectedType], useSuperWater && "font-super-water")}>
-            <span className="inline-flex items-center justify-center gap-1.5">
-              {formatNumber(locale, balance)}
-              <Image src={GEM_ASSETS[selectedType]} alt="" width={22} height={22} className="size-[22px] object-contain" />
-            </span>
-          </p>
-          <p className={cn("mx-auto mt-4 w-full max-w-[18rem] text-sm leading-6 text-white", useSuperWater && "font-super-water")}>
-            {gemDescription}
-          </p>
-          <button
-            type="button"
-            ref={convertButtonRef}
-            data-gem-convert
-            disabled={!user || availableToQueue < 1}
-            onClick={handleConvert}
-            className={cn(
-              "mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-bold text-[var(--brand-foreground)] transition-transform active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45",
-              GEM_BUTTON_CLASSES[selectedType],
-              useSuperWater && "font-super-water",
-              converting && "animate-pulse",
-            )}
-          >
-            <span>{convertLabel}</span>
-            <span className="inline-flex items-center gap-1 text-yellow-300">
-              {points}
-              <ScoreIcon size={18} />
-            </span>
           </button>
         </div>
 

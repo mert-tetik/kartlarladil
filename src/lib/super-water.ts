@@ -52,3 +52,12 @@ export function formatSuperWaterText(locale: LocaleCode, text: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
+
+/**
+ * Formats a localized label that is rendered in uppercase with Super Water.
+ * Uppercasing must happen before ASCII conversion so Turkish casing does not
+ * turn a supported ASCII `I` into an unsupported dotted `İ`.
+ */
+export function formatSuperWaterUppercaseText(locale: LocaleCode, text: string) {
+  return formatSuperWaterText(locale, text.toLocaleUpperCase(locale));
+}

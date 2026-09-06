@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GEM_POINTS, normalizeGemRewards } from "./gem-types";
+import { GEM_POINTS, getGemBalancesBeforeRewards, normalizeGemRewards } from "./gem-types";
 
 describe("gem reward payloads", () => {
   it("normalizes a multi-gem payload in the stable display order", () => {
@@ -26,5 +26,16 @@ describe("gem reward payloads", () => {
 
   it("keeps the intended conversion values", () => {
     expect(GEM_POINTS).toEqual({ blue: 5, green: 20, purple: 40 });
+  });
+
+  it("derives the pre-reward totals for the animated HUD", () => {
+    expect(getGemBalancesBeforeRewards(
+      { blue: 14, green: 8, purple: 3 },
+      [
+        { type: "blue", amount: 4 },
+        { type: "green", amount: 2 },
+        { type: "purple", amount: 1 },
+      ],
+    )).toEqual({ blue: 10, green: 6, purple: 2 });
   });
 });

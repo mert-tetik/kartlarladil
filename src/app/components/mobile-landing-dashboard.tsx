@@ -49,6 +49,11 @@ import {
 } from "@/app/components/mobile-landing-language-guard";
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
+import {
+  getMissionNavigationHref,
+  parseLandingMissionAction,
+  type MissionNavigationTarget,
+} from "@/features/missions/mission-navigation";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 
@@ -121,16 +126,19 @@ export function MobileLandingDashboard() {
   const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
   const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<ActiveCardLimitDetails | null>(null);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
+  const [pendingMissionNavigation, setPendingMissionNavigation] = useState<MissionNavigationTarget | null>(null);
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
+  const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
   const rankRegionRef = useRef<HTMLDivElement>(null);
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
   const hasPendingStoredLandingLanguageRef = useRef(false);
+  const consumedMissionActionRef = useRef<string | null>(null);
 
   useEffect(() => {
     router.prefetch("/create-card");
@@ -284,8 +292,12 @@ export function MobileLandingDashboard() {
         ? "text-[0.66rem]"
         : "text-[0.72rem]";
 
-  function handleDrawCards() {
+  function handleDrawCards(languageOverride?: LanguageCode) {
     vibrate("tap");
+    if (languageOverride && languageOverride !== selectedLanguage) {
+      writeLandingCardLanguage(languageOverride, { notify: false });
+      setSelectedLanguage(languageOverride);
+    }
     requireAuthAction(() => {
       setSwipeDeckOpen(true);
     }, { nextPath: "/" });
@@ -323,13 +335,23 @@ export function MobileLandingDashboard() {
     closeLockedSheetThen(handleStartLearning);
   }
 
-  function handleStartLearning() {
+  function handleStartLearning(languageOverride?: LanguageCode) {
     vibrate("tap");
-    if (activeCount === 0) {
+    const learningLanguage = languageOverride ?? selectedLanguage;
+    const learningCardCount = languageOverride
+      ? filterInventoryCards({ cards, language: learningLanguage, status: "active" }).length
+      : activeCount;
+
+    if (languageOverride && languageOverride !== selectedLanguage) {
+      writeLandingCardLanguage(languageOverride, { notify: false });
+      setSelectedLanguage(languageOverride);
+    }
+
+    if (learningCardCount === 0) {
       setLockedSheet("active");
       return;
     }
-    const nextPath = `/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`;
+    const nextPath = `/learn?mode=active&language=${encodeURIComponent(learningLanguage)}`;
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
       if (!isActiveNavigationIntent(navigationIntent)) return;
@@ -349,6 +371,44 @@ export function MobileLandingDashboard() {
       void verifyLearnedReviewAccess(nextPath, navigationIntent);
     }, { nextPath });
   }
+
+  function handleMissionNavigate(target: MissionNavigationTarget) {
+    setPendingMissionNavigation(target);
+    setMissionsPanelOpen(false);
+  }
+
+  function handleMissionPanelExited() {
+    if (!pendingMissionNavigation) return;
+
+    const target = pendingMissionNavigation;
+    setPendingMissionNavigation(null);
+    navigateWithRouteTransition(() => router.push(getMissionNavigationHref(target, true)));
+  }
+
+  useEffect(() => {
+    const action = parseLandingMissionAction(searchParams.get("mission-action"));
+    const actionLanguage = parseLandingLanguage(searchParams.get("language"));
+
+    if (!action || !user || !hydrated) return;
+
+    const actionKey = `${action}:${actionLanguage ?? ""}`;
+    if (consumedMissionActionRef.current === actionKey) return;
+    consumedMissionActionRef.current = actionKey;
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("mission-action");
+    window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+
+    const timerId = window.setTimeout(() => {
+      if (action === "draw-cards") {
+        handleDrawCards(actionLanguage ?? selectedLanguage);
+      } else {
+        handleStartLearning(actionLanguage ?? selectedLanguage);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [hydrated, searchParams, selectedLanguage, user]);
 
   async function verifyLearnedReviewAccess(nextPath: string, navigationIntent: number) {
     const verifiedEntitlements = await refreshEntitlements();
@@ -472,7 +532,16 @@ export function MobileLandingDashboard() {
         data-mobile-gem-counters
       >
         {MOBILE_GEM_COUNTERS.map((gem) => (
-          <button key={gem.src} type="button" onClick={() => setSelectedGem(gem.type)} className="flex h-7 items-center justify-center gap-0.5 rounded-md px-0.5 transition-transform active:scale-95" aria-label={gem.alt}>
+          <button
+            key={gem.src}
+            type="button"
+            onClick={(event) => {
+              setSelectedGemSourceRect(event.currentTarget.getBoundingClientRect());
+              setSelectedGem(gem.type);
+            }}
+            className="flex h-7 items-center justify-center gap-0.5 rounded-md px-0.5 transition-transform active:scale-95"
+            aria-label={gem.alt}
+          >
             <Image
               src={gem.src}
               alt={gem.alt}
@@ -721,7 +790,10 @@ export function MobileLandingDashboard() {
       <MobileGemDetailsSheet
         type={selectedGem}
         open={selectedGem !== null}
-        onClose={() => setSelectedGem(null)}
+        sourceRect={selectedGemSourceRect}
+        onClose={() => {
+          setSelectedGem(null);
+        }}
       />
 
       <UpgradeDialog
@@ -767,6 +839,8 @@ export function MobileLandingDashboard() {
       <MissionsPanel
         open={missionsPanelOpen}
         onClose={() => setMissionsPanelOpen(false)}
+        onExited={handleMissionPanelExited}
+        onMissionNavigate={handleMissionNavigate}
       />
     </section>
   );

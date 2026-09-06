@@ -35,6 +35,8 @@ export function MobileRankInfoSheet({
   const t = useT();
   const { locale } = useLocale();
   const currentRankIndex = getRankIndex(rank.id);
+  const currentRankAccentColor =
+    RANK_ACCENT_COLORS[rank.id as keyof typeof RANK_ACCENT_COLORS] ?? RANK_ACCENT_COLORS.baslangic;
   const rankTrackRef = useRef<HTMLDivElement | null>(null);
   const rankCardRefs = useRef<Array<HTMLElement | null>>([]);
   const activeRankIndexRef = useRef(getRankIndex(rank.id));
@@ -225,7 +227,17 @@ export function MobileRankInfoSheet({
     >
       <div className="relative flex min-h-[28rem] flex-1 flex-col overflow-hidden rounded-t-[1.75rem] bg-[#121212] text-white">
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 justify-center px-5 pb-3 pt-5">
+          <div className="flex shrink-0 flex-col items-center justify-center gap-2 px-5 pb-3 pt-5 text-center">
+            <p
+              data-mobile-current-rank-label
+              className={cn(
+                "max-w-[90vw] text-3xl font-extrabold leading-none",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
+              style={{ color: currentRankAccentColor }}
+            >
+              {formatSuperWaterText(locale, getRankLabel(rank, locale))}
+            </p>
             <span className="inline-flex items-center gap-2 text-xl font-extrabold leading-none text-white">
               {formatNumber(locale, totalPoints)}
               <ScoreIcon size={26} className="size-[1.625rem]" />

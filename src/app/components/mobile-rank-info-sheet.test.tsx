@@ -121,4 +121,28 @@ describe("MobileRankInfoSheet", () => {
       expect(track.scrollLeft).toBe(500);
     });
   });
+
+  it("shows the current rank above the total points in its accent color", async () => {
+    const currentRank = RANKS[5];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={10_720}
+        />
+      </LocaleProvider>,
+    );
+
+    const rankLabel = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-mobile-current-rank-label]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    expect(rankLabel).toHaveTextContent("Kelime Ustasi");
+    expect(rankLabel).toHaveStyle({ color: "#7309BF" });
+    expect(rankLabel?.nextElementSibling).toHaveTextContent("10.720");
+  });
 });

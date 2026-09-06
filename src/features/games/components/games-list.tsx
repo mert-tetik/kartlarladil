@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Image, { type StaticImageData } from "next/image";
+import { useSearchParams } from "next/navigation";
 import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
 import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
 import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
@@ -20,6 +21,11 @@ import type { GameName } from "../game-types";
 import { useGameProgressStore } from "../game-progress-store";
 import { getHighestTierForLevel } from "../game-levels";
 import { GAME_LAUNCH_COLORS, requestGameLaunch } from "../game-launch-transition";
+import {
+  MISSION_AUTO_START_QUERY_KEY,
+  MISSION_GAME_QUERY_KEY,
+  parseMissionGame,
+} from "@/features/missions/mission-navigation";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 
@@ -151,6 +157,7 @@ function SelectedGameContent({
 export function GamesList() {
   const t = useT();
   const { locale } = useLocale();
+  const searchParams = useSearchParams();
   const { stats } = useProgressStats();
   const getProgress = useGameProgressStore((state) => state.getProgress);
   const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
@@ -161,6 +168,7 @@ export function GamesList() {
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const contentTransitionTimerRef = useRef<number | null>(null);
+  const consumedAutoStartRef = useRef<string | null>(null);
 
   const languageOptions = LANGUAGES.map((language) => ({ code: language.code, count: 0 }));
   const displayedLanguage = selectedLanguage === "all" ? readLandingCardLanguage() ?? locale : selectedLanguage;
@@ -178,6 +186,9 @@ export function GamesList() {
   const outgoingTier = outgoingProgress ? getHighestTierForLevel(outgoingProgress.currentLevel) : null;
   const superWaterFont = canUseSuperWater(locale);
 
+  const missionGame = parseMissionGame(searchParams.get(MISSION_GAME_QUERY_KEY));
+  const missionAutoStart = searchParams.get(MISSION_AUTO_START_QUERY_KEY) === "1";
+
   useEffect(() => {
     const landingLanguage = readLandingCardLanguage() ?? locale;
     setSelectedLanguage(landingLanguage);
@@ -190,6 +201,45 @@ export function GamesList() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!missionAutoStart || !missionGame) return;
+
+    if (selectedGameName !== missionGame) {
+      setSelectedGameName(missionGame);
+      setVisibleGameName(missionGame);
+      setExitingGameName(null);
+      return;
+    }
+
+    const autoStartKey = `${missionGame}:1`;
+    if (consumedAutoStartRef.current === autoStartKey) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const launchButton = document.querySelector<HTMLButtonElement>(`[data-game-launch="${missionGame}"]`);
+      const rect = launchButton?.getBoundingClientRect();
+
+      if (!rect) return;
+
+      consumedAutoStartRef.current = autoStartKey;
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete(MISSION_GAME_QUERY_KEY);
+      cleanUrl.searchParams.delete(MISSION_AUTO_START_QUERY_KEY);
+      window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+
+      requestGameLaunch({
+        game: missionGame,
+        href: selectedGame.href,
+        color: GAME_LAUNCH_COLORS[missionGame],
+        origin: {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        },
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [missionAutoStart, missionGame, selectedGame.href, selectedGameName]);
 
   function handleSelect(language: LanguageCode) {
     setLanguageSheetOpen(false);

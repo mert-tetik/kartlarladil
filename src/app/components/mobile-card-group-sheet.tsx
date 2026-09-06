@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, FolderPlus } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -46,9 +46,13 @@ export function MobileCardGroupSheet({
   const [addedCounts, setAddedCounts] = useState<Partial<Record<CardGroupIcon, number>>>({});
   const [errorGroupId, setErrorGroupId] = useState<CardGroupIcon | null>(null);
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
+  const [selectedCardSourceRect, setSelectedCardSourceRect] = useState<DOMRect | null>(null);
+  const [confirmationClosing, setConfirmationClosing] = useState(false);
+  const confirmationCloseTimerRef = useRef<number | null>(null);
   const [pendingGroup, setPendingGroup] = useState<{
     groupId: CardGroupIcon;
     cardIds: string[];
+    sourceRect: DOMRect | null;
   } | null>(null);
 
   const inventoryIds = useMemo(() => new Set(cards.map((card) => card.cardId)), [cards]);
@@ -99,15 +103,33 @@ export function MobileCardGroupSheet({
     }
   }
 
-  function requestAddGroup(groupId: CardGroupIcon, cardIds: string[]) {
+  function requestAddGroup(groupId: CardGroupIcon, cardIds: string[], sourceRect: DOMRect | null = null) {
     if (addingGroupId !== null || addingCardId !== null || cardIds.length === 0) return;
 
     setErrorGroupId(null);
-    setPendingGroup({ groupId, cardIds });
+    setConfirmationClosing(false);
+    setPendingGroup({ groupId, cardIds, sourceRect });
+  }
+
+  function closeConfirmation(afterClose?: () => void) {
+    if (!pendingGroup || confirmationClosing) return;
+
+    setConfirmationClosing(true);
+    confirmationCloseTimerRef.current = window.setTimeout(() => {
+      setPendingGroup(null);
+      setConfirmationClosing(false);
+      confirmationCloseTimerRef.current = null;
+      afterClose?.();
+    }, 860);
   }
 
   function handleClose() {
+    if (confirmationCloseTimerRef.current !== null) {
+      window.clearTimeout(confirmationCloseTimerRef.current);
+      confirmationCloseTimerRef.current = null;
+    }
     setPendingGroup(null);
+    setConfirmationClosing(false);
     onClose();
   }
 
@@ -138,34 +160,51 @@ export function MobileCardGroupSheet({
   const confirmationDialog = open && pendingGroup && typeof document !== "undefined"
     ? createPortal(
         <div className={cn(
-          "fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-5 py-6",
+          "card-group-confirm-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-5 py-6",
+          confirmationClosing && "card-group-confirm-overlay--closing",
           usesSuperWater && "font-super-water",
-        )} data-tutorial-layer="card-groups">
+        )}
+        style={{
+          transformOrigin: pendingGroup.sourceRect
+            ? `${pendingGroup.sourceRect.left + pendingGroup.sourceRect.width / 2}px ${pendingGroup.sourceRect.top + pendingGroup.sourceRect.height / 2}px`
+            : `${window.innerWidth / 2}px ${window.innerHeight / 2}px`,
+        }}
+        data-tutorial-layer="card-groups">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="card-group-confirm-title"
             className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#131313] p-5 text-white shadow-sm"
           >
-            <h3 id="card-group-confirm-title" className="text-center text-lg font-semibold leading-snug">
+            <h3
+              id="card-group-confirm-title"
+              className="card-group-confirm-overlay__item text-center text-lg font-semibold leading-snug"
+              style={{ animationDelay: "520ms" }}
+            >
               {displayText(t("cards.groups.confirmMessage", {
                 count: formatNumber(locale, pendingGroup.cardIds.length),
               }))}
             </h3>
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div
+              className="card-group-confirm-overlay__item mt-5 grid grid-cols-2 gap-2"
+              style={{ animationDelay: "590ms" }}
+            >
               <button
                 type="button"
-                onClick={() => setPendingGroup(null)}
+                disabled={confirmationClosing}
+                onClick={() => closeConfirmation()}
                 className="rounded-lg bg-red-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
               >
                 {displayText(t("cards.groups.confirmCancel"))}
               </button>
               <button
                 type="button"
+                disabled={confirmationClosing}
                 onClick={() => {
                   const group = pendingGroup;
-                  setPendingGroup(null);
-                  void handleAddGroup(group.groupId, group.cardIds);
+                  closeConfirmation(() => {
+                    void handleAddGroup(group.groupId, group.cardIds);
+                  });
                 }}
                 className="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
               >
@@ -178,11 +217,12 @@ export function MobileCardGroupSheet({
       )
     : null;
 
-  const cardDisplay = selectedCard && typeof document !== "undefined"
+  const cardDisplay = typeof document !== "undefined"
     ? createPortal(
         <MobileCardDisplaySheet
           card={selectedCard}
-          isOpen
+          isOpen={selectedCard !== null}
+          sourceRect={selectedCardSourceRect}
           onClose={() => setSelectedCard(null)}
           positionClassName="-translate-y-6"
           tutorialLayer="card-groups"
@@ -263,7 +303,7 @@ export function MobileCardGroupSheet({
                 </button>
                 <button
                   type="button"
-                  onClick={() => requestAddGroup(definition.id, newCards.map((card) => card.sourceKey))}
+                  onClick={(event) => requestAddGroup(definition.id, newCards.map((card) => card.sourceKey), event.currentTarget.getBoundingClientRect())}
                   disabled={isAdding || isComplete || addingGroupId !== null || addingCardId !== null}
                   className={cn(
                     "shrink-0 rounded-full bg-brand-foreground px-3 py-2 text-xs font-semibold text-brand transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
@@ -291,11 +331,15 @@ export function MobileCardGroupSheet({
                         key={card.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => setSelectedCard(card)}
+                        onClick={(event) => {
+                          setSelectedCardSourceRect(event.currentTarget.getBoundingClientRect());
+                          setSelectedCard(card);
+                        }}
                         onKeyDown={(event) => {
                           if ((event.target as HTMLElement).closest("button")) return;
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
+                            setSelectedCardSourceRect(event.currentTarget.getBoundingClientRect());
                             setSelectedCard(card);
                           }
                         }}

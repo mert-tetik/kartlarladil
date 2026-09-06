@@ -57,4 +57,40 @@ describe("MobileBottomSheetShell", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("notifies after the sheet finishes its exit animation", async () => {
+    const onClose = vi.fn();
+    const onExited = vi.fn();
+    const { rerender } = render(
+      <LocaleProvider initialLocale="en">
+        <MobileBottomSheetShell
+          open
+          onClose={onClose}
+          onExited={onExited}
+          title="Shared menu"
+          visual={<span data-testid="shared-visual" />}
+        >
+          <p>Menu content</p>
+        </MobileBottomSheetShell>
+      </LocaleProvider>,
+    );
+
+    await screen.findByRole("dialog", { name: "Shared menu" });
+    rerender(
+      <LocaleProvider initialLocale="en">
+        <MobileBottomSheetShell
+          open={false}
+          onClose={onClose}
+          onExited={onExited}
+          title="Shared menu"
+          visual={<span data-testid="shared-visual" />}
+        >
+          <p>Menu content</p>
+        </MobileBottomSheetShell>
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => expect(onExited).toHaveBeenCalledTimes(1), { timeout: 1000 });
+    expect(screen.queryByRole("dialog", { name: "Shared menu" })).not.toBeInTheDocument();
+  });
 });

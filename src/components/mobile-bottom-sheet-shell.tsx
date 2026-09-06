@@ -31,6 +31,7 @@ export interface MobileBottomSheetShellProps {
   children: ReactNode;
   contentRef?: Ref<HTMLDivElement>;
   onEntered?: () => void;
+  onExited?: () => void;
   panelClassName?: string;
   contentClassName?: string;
   showBackdrop?: boolean;
@@ -47,6 +48,7 @@ export function MobileBottomSheetShell({
   children,
   contentRef,
   onEntered,
+  onExited,
   panelClassName,
   contentClassName,
   showBackdrop = true,
@@ -66,10 +68,14 @@ export function MobileBottomSheetShell({
   const dragStartY = useRef<number | null>(null);
   const dragOffsetY = useRef(0);
   const onEnteredRef = useRef(onEntered);
+  const onExitedRef = useRef(onExited);
+  const hasBeenOpenedRef = useRef(false);
   onEnteredRef.current = onEntered;
+  onExitedRef.current = onExited;
 
   useEffect(() => {
     if (open) {
+      hasBeenOpenedRef.current = true;
       let enterFrame: number | null = null;
       let enterTimer: number | null = null;
       setHasPresented(false);
@@ -98,8 +104,14 @@ export function MobileBottomSheetShell({
       };
     }
 
+    if (!hasBeenOpenedRef.current) return;
+
     const exitFrame = window.requestAnimationFrame(() => setEntered(false));
-    const timer = window.setTimeout(() => setMounted(false), MOBILE_BOTTOM_SHEET_ANIMATION_MS);
+    const timer = window.setTimeout(() => {
+      setMounted(false);
+      hasBeenOpenedRef.current = false;
+      onExitedRef.current?.();
+    }, MOBILE_BOTTOM_SHEET_ANIMATION_MS);
 
     return () => {
       window.cancelAnimationFrame(exitFrame);

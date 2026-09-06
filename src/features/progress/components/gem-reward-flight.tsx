@@ -29,6 +29,7 @@ export function GemRewardFlight({
   sourceRef,
   startDelayMs = 0,
   onComplete,
+  onGemArrive,
   targetSelector = "[data-reward-gem-target]",
 }: {
   /** Kept for single-reward callers while all new callers use rewards. */
@@ -37,6 +38,7 @@ export function GemRewardFlight({
   sourceRef: RefObject<HTMLElement | null>;
   startDelayMs?: number;
   onComplete?: () => void;
+  onGemArrive?: (type: GemType) => void;
   targetSelector?: string;
 }) {
   const [icons, setIcons] = useState<GemFlightIcon[]>([]);
@@ -44,10 +46,12 @@ export function GemRewardFlight({
   const completedRef = useRef(false);
   const arrivedRef = useRef(new Set<number>());
   const onCompleteRef = useRef(onComplete);
+  const onGemArriveRef = useRef(onGemArrive);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
-  }, [onComplete]);
+    onGemArriveRef.current = onGemArrive;
+  }, [onComplete, onGemArrive]);
 
   useEffect(() => {
     const rewardList = rewards?.length ? rewards : reward ? [reward] : [];
@@ -116,7 +120,10 @@ export function GemRewardFlight({
 
   function handleIconEnd(iconId: number) {
     if (arrivedRef.current.has(iconId)) return;
+    const icon = icons.find((candidate) => candidate.id === iconId);
+    if (!icon) return;
     arrivedRef.current.add(iconId);
+    onGemArriveRef.current?.(icon.type);
     playSoundEffect("gem-loot");
     vibrate("tap");
     if (arrivedRef.current.size === icons.length) finishFlight();

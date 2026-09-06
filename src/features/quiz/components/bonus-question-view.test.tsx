@@ -92,6 +92,49 @@ describe("BonusQuestionView", () => {
     expect(onSubmit).toHaveBeenCalledWith("sentence-order", true);
   });
 
+  it("animates category words and requires a second tap to select a returned word", () => {
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={{
+            kind: "category-sort",
+            words: [
+              { id: "apple", text: "apple" },
+              { id: "car", text: "car" },
+              { id: "blue", text: "blue" },
+            ],
+            categories: [
+              { id: "fruit", name: "Fruit", wordIds: ["apple"] },
+              { id: "transport", name: "Transport", wordIds: ["car"] },
+              { id: "color", name: "Color", wordIds: ["blue"] },
+            ],
+          }}
+          showingAnswer={false}
+          answerAccepted={null}
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const word = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-category-word="${id}"]`)!;
+    const category = (id: string) => container.querySelector<HTMLElement>(`[data-bonus-category="${id}"]`)!;
+
+    fireEvent.click(word("apple"));
+    fireEvent.click(category("fruit"));
+    expect(word("apple")).toHaveClass("bg-emerald-500", "border-0");
+    expect(container.querySelector("[data-bonus-category-assigned-word=\"apple\"]")).toHaveClass("animate-bonus-category-word-enter");
+
+    fireEvent.click(word("apple"));
+    expect(container.querySelector("[data-bonus-category-assigned-word=\"apple\"]")).toHaveClass("animate-bonus-category-word-exit");
+    expect(word("apple")).not.toHaveClass("ring-brand");
+
+    fireEvent.click(word("apple"));
+    fireEvent.click(category("transport"));
+    expect(container.querySelector("[data-bonus-category-assigned-word=\"apple\"]")).toBeInTheDocument();
+  });
+
   it("exposes a skip action alongside bonus question checks", () => {
     const onSkip = vi.fn();
     const { container } = render(

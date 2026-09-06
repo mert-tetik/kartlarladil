@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { GamesList } from "@/features/games/components/games-list";
 
 export default function GamesPage() {
@@ -12,7 +13,9 @@ export default function GamesPage() {
       />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[#090909]/20" />
       <div className="relative z-10 flex min-h-0 flex-1">
-        <GamesList />
+        <Suspense fallback={null}>
+          <GamesList />
+        </Suspense>
       </div>
     </div>
   );

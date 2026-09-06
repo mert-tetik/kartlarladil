@@ -50,6 +50,7 @@ export function MobileLandingCardCenter({
   const t = useT();
   const [tier, setTier] = useState<Tier | "all">("all");
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
+  const [selectedCardSourceRect, setSelectedCardSourceRect] = useState<DOMRect | null>(null);
   const drawActionRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
@@ -131,13 +132,29 @@ export function MobileLandingCardCenter({
           </div>
 
           <div className="-mx-4 divide-y divide-border border-b border-border bg-background-card">
-            {cards.length ? cards.map(({ card, inventory }) => <CardRow key={card.id} card={card} inventory={inventory} locale={locale} onOpen={() => setSelectedCard(card)} />) : (
+            {cards.length ? cards.map(({ card, inventory }) => (
+              <CardRow
+                key={card.id}
+                card={card}
+                inventory={inventory}
+                locale={locale}
+                onOpen={(sourceRect) => {
+                  setSelectedCardSourceRect(sourceRect);
+                  setSelectedCard(card);
+                }}
+              />
+            )) : (
               <p className="px-4 py-10 text-center text-sm text-foreground-secondary">{t("inventory.emptyAnyDescription")}</p>
             )}
           </div>
         </div>
       ) : null}
-      <MobileCardDisplaySheet card={selectedCard} isOpen={selectedCard !== null} onClose={() => setSelectedCard(null)} />
+      <MobileCardDisplaySheet
+        card={selectedCard}
+        isOpen={selectedCard !== null}
+        sourceRect={selectedCardSourceRect}
+        onClose={() => setSelectedCard(null)}
+      />
     </section>
   );
 }
@@ -161,7 +178,7 @@ function CardSpeakerIcon({ className }: { className?: string }) {
   );
 }
 
-function CardRow({ card, inventory, locale, onOpen }: { card: VocabularyCard; inventory: InventoryCardView["inventory"]; locale: Parameters<typeof getCardTranslation>[1]; onOpen: () => void }) {
+function CardRow({ card, inventory, locale, onOpen }: { card: VocabularyCard; inventory: InventoryCardView["inventory"]; locale: Parameters<typeof getCardTranslation>[1]; onOpen: (sourceRect: DOMRect) => void }) {
   const t = useT();
   const example = card.examples[0]?.sentence || card.example;
   const style = TIER_STYLES[card.tier];
@@ -172,7 +189,7 @@ function CardRow({ card, inventory, locale, onOpen }: { card: VocabularyCard; in
   const progressCount = isLearned ? requirement : Math.min(inventory.correctCount, requirement);
   const progress = Math.min(100, Math.round((progressCount / requirement) * 100));
   return (
-    <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }} className="relative flex cursor-pointer gap-3 pb-7 pl-14 pr-4 pt-4 text-left transition-colors hover:bg-background-muted" data-mobile-card-row>
+    <div role="button" tabIndex={0} onClick={(event) => onOpen(event.currentTarget.getBoundingClientRect())} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(event.currentTarget.getBoundingClientRect()); } }} className="relative flex cursor-pointer gap-3 pb-7 pl-14 pr-4 pt-4 text-left transition-colors hover:bg-background-muted" data-mobile-card-row>
       <span className={cn("absolute inset-y-0 left-0 flex w-12 items-center justify-center text-lg font-bold text-white", style.accent)} aria-hidden="true">{card.tier}</span>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-1.5">

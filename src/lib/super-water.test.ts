@@ -1,4 +1,8 @@
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import {
+  canUseSuperWater,
+  formatSuperWaterText,
+  formatSuperWaterUppercaseText,
+} from "@/lib/super-water";
 
 describe("Super Water font helpers", () => {
   it("enables the font for supported Latin-script UI locales only", () => {
@@ -22,5 +26,10 @@ describe("Super Water font helpers", () => {
     expect(formatSuperWaterText("pl", "Za\u017c\u00f3\u0142\u0107 g\u0119\u015bl\u0105 ja\u017a\u0144")).toBe("Zazolc gesla jazn");
     expect(formatSuperWaterText("en", "Games")).toBe("Games");
     expect(formatSuperWaterText("ru", "\u0418\u0433\u0440\u044b")).toBe("\u0418\u0433\u0440\u044b");
+  });
+
+  it("uppercases before formatting so Turkish labels keep Super Water compatibility", () => {
+    expect(formatSuperWaterUppercaseText("tr", "Al\u0131nd\u0131")).toBe("ALINDI");
+    expect(formatSuperWaterUppercaseText("tr", "\u0130ptal")).toBe("IPTAL");
   });
 });
