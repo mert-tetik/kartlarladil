@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { usePathname } from "next/navigation";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { TranslationKey, TranslationValues } from "@/i18n/dictionaries";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tutorial-store";
 import {
   dispatchTutorialCardLayerClosed,
   dispatchTutorialCardLayerOpened,
@@ -106,8 +106,9 @@ export function LandingTutorial() {
   const layerMessageCloseTimerRef = useRef<number | null>(null);
   const allowProgrammaticTargetClickRef = useRef(false);
   const targetTransitionStartedRef = useRef(false);
+  const completionStartedRef = useRef(false);
   const testModeUrlHandledRef = useRef(false);
-  const isVisible = testMode || (active && !completed);
+  const isVisible = isTutorialVisibleState({ active, completed, testMode });
   const isTutorialStarting = isVisible && !tutorialStartReady;
   const currentStep = getTutorialStep(step);
   const shouldShowWelcome = isVisible && tutorialStartReady && !introSeen && phase === "visible";
@@ -135,7 +136,7 @@ export function LandingTutorial() {
     layerMessageCloseTimerRef.current = null;
   }, []);
 
-  const startInvisibleTransition = useCallback((options?: { scrollToTopAfterMs?: number; complete?: boolean; onComplete?: () => void }) => {
+  const startInvisibleTransition = useCallback((options?: { scrollToTopAfterMs?: number; onComplete?: () => void }) => {
     updatePhase("transition");
     setPosition(null);
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
@@ -148,9 +149,7 @@ export function LandingTutorial() {
     }
 
     transitionTimerRef.current = window.setTimeout(() => {
-      if (options?.complete) {
-        complete();
-      } else if (!options?.onComplete) {
+      if (!options?.onComplete) {
         advance();
       }
       updateActiveLayer(null);
@@ -161,7 +160,7 @@ export function LandingTutorial() {
       }
       transitionTimerRef.current = null;
     }, SCREEN_TRANSITION_MS);
-  }, [advance, complete]);
+  }, [advance]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -191,6 +190,8 @@ export function LandingTutorial() {
       setTutorialStartReady(false);
       updatePhase("visible");
       updateActiveLayer(null);
+      targetTransitionStartedRef.current = false;
+      completionStartedRef.current = false;
       setIsWelcomeExiting(false);
       setIsChoiceExiting(false);
       setIsTargetExiting(false);
@@ -209,7 +210,7 @@ export function LandingTutorial() {
     const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
     setIsMobile(mobile);
     const state = useTutorialStore.getState();
-    const shouldRender = state.testMode || (state.active && !state.completed);
+    const shouldRender = isTutorialVisibleState(state);
     const target = getTargetForStep(state.step, window.location.pathname);
     if (!mobile || !shouldRender || phaseRef.current !== "visible" || !target) {
       setPosition(null);
@@ -395,13 +396,11 @@ export function LandingTutorial() {
           targetTransitionStartedRef.current = false;
         }, ORIGIN_SCREEN_CLOSE_TOTAL_MS);
       } else if (current.key === "start-learning") {
-        setIsTargetExiting(true);
-        transitionTimerRef.current = window.setTimeout(() => {
-          updatePhase("transition");
-          setPosition(null);
-          startInvisibleTransition({ complete: true });
-          setIsTargetExiting(false);
-        }, ORIGIN_SCREEN_CLOSE_TOTAL_MS);
+        if (completionStartedRef.current) return;
+        completionStartedRef.current = true;
+        // Complete in this click turn. The real button starts navigation in
+        // its React handler, and a pathname change must not cancel completion.
+        complete();
       }
     };
     document.addEventListener("click", handleTargetClick);

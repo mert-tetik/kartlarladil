@@ -1,9 +1,112 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { BonusQuestionView } from "@/features/quiz/components/bonus-question-view";
 
 describe("BonusQuestionView", () => {
+  const matchingQuestion = {
+    kind: "matching" as const,
+    pairs: [
+      { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+      { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+      { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+      { id: "d", cardId: "card-d", term: "door", meaning: "kapı" },
+    ],
+    terms: [
+      { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+      { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+      { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+      { id: "d", cardId: "card-d", term: "door", meaning: "kapı" },
+    ],
+    meanings: [
+      { id: "a", cardId: "card-a", term: "apple", meaning: "elma" },
+      { id: "b", cardId: "card-b", term: "book", meaning: "kitap" },
+      { id: "c", cardId: "card-c", term: "chair", meaning: "sandalye" },
+      { id: "d", cardId: "card-d", term: "door", meaning: "kapı" },
+    ],
+  };
+
+  it("allows matching from either column and replaces a pending same-column selection", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer={false}
+          answerAccepted={null}
+          onSubmit={onSubmit}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const term = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-term="${id}"]`)!;
+    const meaning = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-meaning="${id}"]`)!;
+
+    fireEvent.click(meaning("a"));
+    fireEvent.click(meaning("b"));
+    fireEvent.click(term("b"));
+    fireEvent.click(meaning("a"));
+    fireEvent.click(term("a"));
+    fireEvent.click(meaning("c"));
+    fireEvent.click(term("c"));
+    fireEvent.click(meaning("d"));
+    fireEvent.click(term("d"));
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>("[data-bonus-check]")!);
+    expect(onSubmit).toHaveBeenCalledWith("matching", true);
+  });
+
+  it("colors matching lines and both buttons by correctness after checking", async () => {
+    const { container, rerender } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer={false}
+          answerAccepted={null}
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const term = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-term="${id}"]`)!;
+    const meaning = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-meaning="${id}"]`)!;
+
+    fireEvent.click(term("a"));
+    fireEvent.click(meaning("b"));
+    fireEvent.click(term("b"));
+    fireEvent.click(meaning("a"));
+    fireEvent.click(term("c"));
+    fireEvent.click(meaning("c"));
+    fireEvent.click(term("d"));
+    fireEvent.click(meaning("d"));
+
+    rerender(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer
+          answerAccepted={false}
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(term("a")).toHaveAttribute("data-bonus-result", "incorrect");
+      expect(meaning("b")).toHaveAttribute("data-bonus-result", "incorrect");
+      expect(term("c")).toHaveAttribute("data-bonus-result", "correct");
+      expect(meaning("c")).toHaveAttribute("data-bonus-result", "correct");
+      expect(container.querySelector('[data-bonus-matching-connection="a-b"]')).toHaveAttribute("stroke", "#ef4444");
+      expect(container.querySelector('[data-bonus-matching-connection="c-c"]')).toHaveAttribute("stroke", "#22c55e");
+    });
+  });
+
   it("allows a matching pair to be replaced before checking", () => {
     const onSubmit = vi.fn();
     const { container } = render(
@@ -81,8 +184,12 @@ describe("BonusQuestionView", () => {
     );
 
     const token = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-sentence-token="${id}"]`)!;
+    expect(container.querySelector("[data-bonus-sentence-decoration]")).toBeInTheDocument();
     fireEvent.click(token("one"));
-    expect(container.querySelector("[data-bonus-sentence-selected=\"one\"]")).toBeInTheDocument();
+    const selectedToken = container.querySelector("[data-bonus-sentence-selected=\"one\"]");
+    expect(selectedToken).toBeInTheDocument();
+    expect(selectedToken).toHaveClass("bg-brand", "border-0");
+    expect(selectedToken).not.toHaveClass("border-brand");
     fireEvent.click(token("one"));
     expect(container.querySelector("[data-bonus-sentence-selected=\"one\"]")).not.toBeInTheDocument();
 

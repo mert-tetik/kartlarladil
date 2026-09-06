@@ -1,10 +1,10 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
-import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 
-vi.mock("@/lib/sound-effects", () => ({
-  playSoundEffect: vi.fn(),
+vi.mock("@/lib/vibration", () => ({
+  vibrate: vi.fn(),
 }));
 
 describe("QuizStreakCelebrationView animations", () => {
@@ -28,22 +28,19 @@ describe("QuizStreakCelebrationView animations", () => {
     expect(background).toHaveClass("animate-streak-celebration-background-enter");
     expect(number?.parentElement).toHaveClass("animate-streak-celebration-copy-enter");
     expect(onComplete).not.toHaveBeenCalled();
-    expect(playSoundEffect).not.toHaveBeenCalled();
+    expect(vibrate).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(1300);
     });
 
-    expect(background).toHaveClass("animate-streak-celebration-background-exit");
-    expect(number).toHaveClass("animate-streak-celebration-number-exit");
-    expect(icon).toHaveClass("animate-streak-celebration-icon-exit");
-    expect(playSoundEffect).toHaveBeenCalledWith("streak-break");
-    expect(background?.getAttribute("style")).toContain("--streak-background-fall-y");
-    expect(number?.getAttribute("style")).toContain("--streak-number-fall-rotation");
-    expect(icon?.getAttribute("style")).toContain("--streak-icon-fall-rotation");
+    expect(vibrate).toHaveBeenCalledWith("streak-break");
+    expect(background?.getAttribute("style")).toContain("translate3d(");
+    expect(number?.getAttribute("style")).toContain("translate3d(");
+    expect(icon?.getAttribute("style")).toContain("translate3d(");
 
     act(() => {
-      vi.advanceTimersByTime(820);
+      vi.advanceTimersByTime(1000);
     });
 
     expect(onComplete).toHaveBeenCalledTimes(1);

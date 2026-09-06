@@ -979,6 +979,31 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 }
 
+@keyframes quiz-action-scale-in {
+  from {
+    transform: scale(0);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.quiz-action-scale {
+  transform-origin: center;
+  transition-property: transform !important;
+  transition-duration: 420ms !important;
+  transition-timing-function: cubic-bezier(0.85, 0, 0.15, 1) !important;
+  animation: quiz-action-scale-in 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+.quiz-action-scale[data-quiz-action-hidden="true"] {
+  transform: scale(0);
+  animation: none;
+  pointer-events: none;
+}
+
 .animate-quiz-card-progress-reveal {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }
@@ -1027,6 +1052,11 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .quiz-action-scale {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms;
+  }
+
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;

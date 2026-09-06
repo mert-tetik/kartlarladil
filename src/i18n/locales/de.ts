@@ -581,7 +581,7 @@ const dictionary = {
   "quiz.startSplash": "START",
   "quiz.submitAnswer": "Antwort überprüfen",
   "quiz.rerollQuestion": "Frage neu würfeln",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "Wird überprüft...",
   "quiz.openChest": "Belohnungstruhe öffnen",
   "chest.title": "Belohnungstruhe",
   "chest.tapToOpen": "Tippe auf die Truhe, um sie zu öffnen",

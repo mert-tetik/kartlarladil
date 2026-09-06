@@ -2,9 +2,15 @@
 
 import { createPortal } from "react-dom";
 import { Flame } from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import { playSoundEffect } from "@/lib/sound-effects";
+import {
+  createStreakExitMotion,
+  stepRigidBody,
+  type RigidBodyState,
+  type StreakExitMotion,
+} from "@/features/quiz/streak-rigid-body";
+import { vibrate } from "@/lib/vibration";
 
 interface QuizStreakCelebrationViewProps {
   streak: number;
@@ -12,83 +18,14 @@ interface QuizStreakCelebrationViewProps {
 }
 
 const VISIBLE_DURATION_MS = 1300;
-const EXIT_DURATION_MS = 820;
+const EXIT_DURATION_MS = 1000;
 
-type RigidBodyMotion = {
-  launchX: string;
-  launchY: string;
-  launchRotation: string;
-  apexX: string;
-  apexY: string;
-  apexRotation: string;
-  landingX: string;
-  landingY: string;
-  landingRotation: string;
-  fallStartX: string;
-  fallStartY: string;
-  fallStartRotation: string;
-  fallX: string;
-  fallY: string;
-  fallRotation: string;
-};
-
-type StreakExitMotion = {
-  background: RigidBodyMotion;
-  number: RigidBodyMotion;
-  icon: RigidBodyMotion;
-};
-
-function createRigidBodyMotion(horizontalSpread: number, verticalSpread: number): RigidBodyMotion {
-  const direction = Math.random() < 0.5 ? -1 : 1;
-  const distance = direction * (horizontalSpread + Math.random() * horizontalSpread * 0.75);
-  const rotation = direction * (12 + Math.random() * 22);
-  const fallRotation = rotation + direction * (35 + Math.random() * 65);
-
+function motionStyle(motion: RigidBodyState): CSSProperties {
   return {
-    launchX: `${distance * 0.18}px`,
-    launchY: `-${Math.round(verticalSpread * 0.5 + Math.random() * verticalSpread * 0.25)}px`,
-    launchRotation: `${rotation * 0.25}deg`,
-    apexX: `${distance * 0.5}px`,
-    apexY: `-${Math.round(verticalSpread + Math.random() * verticalSpread * 0.45)}px`,
-    apexRotation: `${rotation}deg`,
-    landingX: `${distance}px`,
-    landingY: `${Math.round(28 + Math.random() * 18)}vh`,
-    landingRotation: `${fallRotation * 0.7}deg`,
-    fallStartX: `${distance + direction * Math.round(12 + Math.random() * 35)}px`,
-    fallStartY: `${Math.round(62 + Math.random() * 12)}vh`,
-    fallStartRotation: `${fallRotation * 0.82}deg`,
-    fallX: `${distance + direction * Math.round(24 + Math.random() * 70)}px`,
-    fallY: `${Math.round(112 + Math.random() * 18)}vh`,
-    fallRotation: `${fallRotation}deg`,
+    transform: `translate3d(${motion.x}px, ${motion.y}px, 0) rotate(${motion.rotation}deg)`,
+    transformOrigin: "center",
+    willChange: "transform",
   };
-}
-
-function createStreakExitMotion(): StreakExitMotion {
-  return {
-    background: createRigidBodyMotion(36, 130),
-    number: createRigidBodyMotion(100, 180),
-    icon: createRigidBodyMotion(130, 210),
-  };
-}
-
-function motionStyle(prefix: "background" | "number" | "icon", motion: RigidBodyMotion): CSSProperties {
-  return {
-    [`--streak-${prefix}-launch-x`]: motion.launchX,
-    [`--streak-${prefix}-launch-y`]: motion.launchY,
-    [`--streak-${prefix}-launch-rotation`]: motion.launchRotation,
-    [`--streak-${prefix}-apex-x`]: motion.apexX,
-    [`--streak-${prefix}-apex-y`]: motion.apexY,
-    [`--streak-${prefix}-apex-rotation`]: motion.apexRotation,
-    [`--streak-${prefix}-landing-x`]: motion.landingX,
-    [`--streak-${prefix}-landing-y`]: motion.landingY,
-    [`--streak-${prefix}-landing-rotation`]: motion.landingRotation,
-    [`--streak-${prefix}-fall-start-x`]: motion.fallStartX,
-    [`--streak-${prefix}-fall-start-y`]: motion.fallStartY,
-    [`--streak-${prefix}-fall-start-rotation`]: motion.fallStartRotation,
-    [`--streak-${prefix}-fall-x`]: motion.fallX,
-    [`--streak-${prefix}-fall-y`]: motion.fallY,
-    [`--streak-${prefix}-fall-rotation`]: motion.fallRotation,
-  } as CSSProperties;
 }
 
 export function QuizStreakCelebrationView({
@@ -97,22 +34,63 @@ export function QuizStreakCelebrationView({
 }: QuizStreakCelebrationViewProps) {
   const [exiting, setExiting] = useState(false);
   const [exitMotion, setExitMotion] = useState<StreakExitMotion | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  const animationFrameRef = useRef<number | null>(null);
+  const completionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setExitMotion(createStreakExitMotion());
-      playSoundEffect("streak-break");
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    const visibleTimer = window.setTimeout(() => {
+      const bodies = createStreakExitMotion();
+      setExitMotion({
+        background: { ...bodies.background },
+        number: { ...bodies.number },
+        icon: { ...bodies.icon },
+      });
       setExiting(true);
+      vibrate("streak-break");
+
+      let elapsed = 0;
+      let lastTimestamp: number | null = null;
+      const tick = (timestamp: number) => {
+        if (lastTimestamp === null) lastTimestamp = timestamp;
+        const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.032);
+        lastTimestamp = timestamp;
+        elapsed += delta * 1000;
+
+        stepRigidBody(bodies.background, delta);
+        stepRigidBody(bodies.number, delta);
+        stepRigidBody(bodies.icon, delta);
+        setExitMotion({
+          background: { ...bodies.background },
+          number: { ...bodies.number },
+          icon: { ...bodies.icon },
+        });
+
+        if (elapsed < EXIT_DURATION_MS) {
+          animationFrameRef.current = window.requestAnimationFrame(tick);
+        }
+      };
+
+      animationFrameRef.current = window.requestAnimationFrame(tick);
+      completionTimeoutRef.current = window.setTimeout(() => {
+        onCompleteRef.current?.();
+      }, EXIT_DURATION_MS);
     }, VISIBLE_DURATION_MS);
-    return () => window.clearTimeout(timer);
+
+    return () => {
+      window.clearTimeout(visibleTimer);
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (completionTimeoutRef.current !== null) {
+        window.clearTimeout(completionTimeoutRef.current);
+      }
+    };
   }, []);
-
-  useEffect(() => {
-    if (!exiting) return;
-
-    const timer = window.setTimeout(() => onComplete?.(), EXIT_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [exiting, onComplete]);
 
   return createPortal(
     <div
@@ -127,11 +105,9 @@ export function QuizStreakCelebrationView({
         data-streak-celebration-background
         className={cn(
           "pointer-events-none absolute inset-0 bg-action-learn",
-          exiting
-            ? "animate-streak-celebration-background-exit"
-            : "animate-streak-celebration-background-enter",
+          !exiting && "animate-streak-celebration-background-enter",
         )}
-        style={exitMotion ? motionStyle("background", exitMotion.background) : undefined}
+        style={exitMotion ? motionStyle(exitMotion.background) : undefined}
       />
       <div
         className={cn(
@@ -142,10 +118,9 @@ export function QuizStreakCelebrationView({
         <span
           className={cn(
             "text-7xl font-black text-white sm:text-8xl lg:text-9xl",
-            exiting && "animate-streak-celebration-number-exit",
           )}
           data-streak-count
-          style={exitMotion ? motionStyle("number", exitMotion.number) : undefined}
+          style={exitMotion ? motionStyle(exitMotion.number) : undefined}
         >
           {streak}
         </span>
@@ -153,11 +128,10 @@ export function QuizStreakCelebrationView({
           className={cn(
             "size-16 text-red-500 sm:size-20",
             !exiting && "animate-streak-fire",
-            exiting && "animate-streak-celebration-icon-exit",
           )}
           fill="currentColor"
           data-streak-fire-icon
-          style={exitMotion ? motionStyle("icon", exitMotion.icon) : undefined}
+          style={exitMotion ? motionStyle(exitMotion.icon) : undefined}
         />
       </div>
     </div>,

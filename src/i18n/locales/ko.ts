@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "시작",
   "quiz.submitAnswer": "답변 확인",
   "quiz.rerollQuestion": "문제 다시 뽑기",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "확인 중...",
   "quiz.openChest": "보상 상자 열기",
   "chest.title": "보상 상자",
   "chest.tapToOpen": "상자를 íƒ­í•´ 열기",

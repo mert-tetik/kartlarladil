@@ -18,6 +18,12 @@ import {
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
+import {
+  createStreakExitMotion,
+  stepRigidBody,
+  type RigidBodyState,
+  type StreakExitMotion,
+} from "@/features/quiz/streak-rigid-body";
 
 interface QuizStreakRewardViewProps {
   streak: number;
@@ -40,21 +46,31 @@ type FlightIcon = {
 
 const BREAK_DELAY_MS = 1000;
 const LAST_START_MS = 780;
+const EXIT_DURATION_MS = 1000;
+
+function motionStyle(motion: RigidBodyState): CSSProperties {
+  return {
+    transform: `translate3d(${motion.x}px, ${motion.y}px, 0) rotate(${motion.rotation}deg)`,
+    transformOrigin: "center",
+    willChange: "transform",
+  };
+}
 
 export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionId, onComplete }: QuizStreakRewardViewProps) {
   const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLDivElement>(null);
-  const timersRef = useRef<number[]>([]);
   const arrivedIconIdsRef = useRef(new Set<number>());
   const completedRef = useRef(false);
-  const [breaking, setBreaking] = useState(false);
-  const [exiting, setExiting] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  const animationFrameRef = useRef<number | null>(null);
+  const completionTimeoutRef = useRef<number | null>(null);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
+  const [breakMotion, setBreakMotion] = useState<StreakExitMotion | null>(null);
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
   const {
     balances: gemDisplayBalances,
@@ -63,6 +79,10 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
     handleGemArrive,
     finish: finishGemRewardDisplay,
   } = useGemRewardDisplay();
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!user || !quizSessionId || streak <= 0) return;
@@ -93,65 +113,76 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
   }, [prepareGemRewardDisplay, quizSessionId, streak, updateProfileField, user]);
 
   useEffect(() => {
-    const timers = timersRef.current;
     const breakTimer = window.setTimeout(() => {
-      // If the DOM refs are not mounted by the time the break timer fires, we still
-      // need to ensure the reward view completes — schedule a short fallback that
-      // closes the view so it doesn't get stuck.
-      if (!rewardRef.current || !scoreRef.current) {
-        timers.push(
-          window.setTimeout(() => {
-            if (completedRef.current) return;
-            completedRef.current = true;
-            setExiting(true);
-            onComplete();
-          }, 420),
-        );
-        return;
+      const bodies = createStreakExitMotion();
+      setBreakMotion({
+        background: { ...bodies.background },
+        number: { ...bodies.number },
+        icon: { ...bodies.icon },
+      });
+      vibrate("streak-break");
+
+      if (rewardRef.current && scoreRef.current) {
+        const source = rewardRef.current.getBoundingClientRect();
+        const target = scoreRef.current.getBoundingClientRect();
+        const iconCount = getScoreFlightIconCount(points);
+        const targetX = target.left + target.width / 2;
+        const targetY = target.top + target.height / 2;
+        const icons = Array.from({ length: iconCount }, (_, index) => {
+          const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
+          const startX = source.left + source.width * (0.22 + Math.random() * 0.56);
+          const startY = source.top + source.height * (0.22 + Math.random() * 0.56);
+          return {
+            id: index, startX, startY, targetX, targetY,
+            scatterX: (Math.random() - 0.5) * 150,
+            scatterY: -35 - Math.random() * 100,
+            delay: Math.round(ratio * LAST_START_MS),
+          };
+        });
+
+        setFlightIcons(icons);
       }
 
-      setBreaking(true);
-      playSoundEffect("streak-break");
+      let elapsed = 0;
+      let lastTimestamp: number | null = null;
+      const tick = (timestamp: number) => {
+        if (lastTimestamp === null) lastTimestamp = timestamp;
+        const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.032);
+        lastTimestamp = timestamp;
+        elapsed += delta * 1000;
 
-      const source = rewardRef.current.getBoundingClientRect();
-      const target = scoreRef.current.getBoundingClientRect();
-      const iconCount = getScoreFlightIconCount(points);
-      const targetX = target.left + target.width / 2;
-      const targetY = target.top + target.height / 2;
-      const icons = Array.from({ length: iconCount }, (_, index) => {
-        const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-        const startX = source.left + source.width * (0.22 + Math.random() * 0.56);
-        const startY = source.top + source.height * (0.22 + Math.random() * 0.56);
-        return {
-          id: index, startX, startY, targetX, targetY,
-          scatterX: (Math.random() - 0.5) * 150,
-          scatterY: -35 - Math.random() * 100,
-          delay: Math.round(ratio * LAST_START_MS),
-        };
-      });
+        stepRigidBody(bodies.background, delta);
+        stepRigidBody(bodies.number, delta);
+        stepRigidBody(bodies.icon, delta);
+        setBreakMotion({
+          background: { ...bodies.background },
+          number: { ...bodies.number },
+          icon: { ...bodies.icon },
+        });
 
-      setFlightIcons(icons);
+        if (elapsed < EXIT_DURATION_MS) {
+          animationFrameRef.current = window.requestAnimationFrame(tick);
+        }
+      };
 
-      // Fallback: in case some animations don't fire their animationend events
-      // (or the browser prevents them), force completion after a safe maximum time.
-      // The icons start within LAST_START_MS and each animation is ~700ms (see CSS).
-      const TOTAL_FALLBACK_MS = LAST_START_MS + 700 + 1000;
-      timers.push(
-        window.setTimeout(() => {
-          if (completedRef.current) return;
-          completedRef.current = true;
-          setExiting(true);
-          onComplete();
-        }, TOTAL_FALLBACK_MS),
-      );
+      animationFrameRef.current = window.requestAnimationFrame(tick);
+      completionTimeoutRef.current = window.setTimeout(() => {
+        if (completedRef.current) return;
+        completedRef.current = true;
+        onCompleteRef.current();
+      }, EXIT_DURATION_MS);
     }, BREAK_DELAY_MS);
 
     return () => {
       window.clearTimeout(breakTimer);
-      timers.forEach((timer) => window.clearTimeout(timer));
-      timers.length = 0;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (completionTimeoutRef.current !== null) {
+        window.clearTimeout(completionTimeoutRef.current);
+      }
     };
-  }, [onComplete, points, totalPoints]);
+  }, [points]);
 
   function handleFlightEnd(icon: FlightIcon) {
     if (arrivedIconIdsRef.current.has(icon.id)) return;
@@ -165,18 +196,17 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
     playSoundEffect("points");
     vibrate("tap");
 
-    if (arrivalIndex === flightIcons.length) {
-      // mark completed and schedule exit + onComplete similar to previous behavior
-      if (!completedRef.current) {
-        completedRef.current = true;
-        timersRef.current.push(window.setTimeout(() => setExiting(true), 420));
-        timersRef.current.push(window.setTimeout(() => onComplete(), 780));
-      }
-    }
+    // The reward view closes on the deterministic one-second break timer.
+    // Flight completion only updates the score and feedback while it remains mounted.
   }
 
   return createPortal(
-    <div className={`fixed inset-0 z-[70] overflow-hidden bg-action-learn ${exiting ? "animate-streak-reward-exit" : "animate-streak-reward-enter"}`} data-streak-reward-view aria-hidden="true">
+    <div className="fixed inset-0 z-[70] overflow-hidden bg-transparent animate-streak-reward-enter" data-streak-reward-view aria-hidden="true">
+      <div
+        data-streak-reward-background
+        className="pointer-events-none absolute inset-0 bg-action-learn"
+        style={breakMotion ? motionStyle(breakMotion.background) : undefined}
+      />
       <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
         <div className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
           <Star className="size-5 fill-current" aria-hidden="true" />
@@ -186,9 +216,18 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
         </div>
         <RewardGemHud className="mt-2" balances={gemDisplayBalances} pulse={gemPulse} animate />
       </div>
-      <div ref={rewardRef} className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 ${breaking ? "animate-streak-reward-break" : ""}`}>
-        <span className="text-7xl font-black text-white sm:text-8xl lg:text-9xl">{streak}</span>
-        <Flame className="size-16 animate-streak-fire text-red-500 sm:size-20" fill="currentColor" />
+      <div ref={rewardRef} className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4">
+        <span
+          className="text-7xl font-black text-white sm:text-8xl lg:text-9xl"
+          style={breakMotion ? motionStyle(breakMotion.number) : undefined}
+        >
+          {streak}
+        </span>
+        <Flame
+          className="size-16 animate-streak-fire text-red-500 sm:size-20"
+          fill="currentColor"
+          style={breakMotion ? motionStyle(breakMotion.icon) : undefined}
+        />
       </div>
       {flightIcons.map((icon) => (
         <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[71] animate-quiz-score-icon-flight" style={{

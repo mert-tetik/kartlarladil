@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
-export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "word-challenge-correct" | "word-challenge-incorrect";
+export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "word-challenge-correct" | "word-challenge-incorrect";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
@@ -27,6 +27,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "chest-tap": [45],
   /** Strong, triumphant burst when the chest opens. */
   "chest-open": [90, 35, 120],
+  /** Heavy multi-pulse impact when a streak reward breaks apart. */
+  "streak-break": [110, 28, 170, 34, 250],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

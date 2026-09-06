@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils";
 export function QuizSkipButton({
   className,
   disabled = false,
+  hidden = false,
   onClick,
 }: {
   className?: string;
   disabled?: boolean;
+  hidden?: boolean;
   onClick: () => void;
 }) {
   const t = useT();
@@ -19,9 +21,10 @@ export function QuizSkipButton({
     <Button
       type="button"
       variant="danger"
-      className={cn("bg-rose-500 text-white hover:bg-rose-600", className)}
+      className={cn("quiz-action-scale bg-rose-500 text-white hover:bg-rose-600", className)}
       data-quiz-skip
-      disabled={disabled}
+      data-quiz-action-hidden={hidden}
+      disabled={disabled || hidden}
       onClick={onClick}
     >
       {t("cards.skip")}

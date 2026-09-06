@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "开始",
   "quiz.submitAnswer": "检查答案",
   "quiz.rerollQuestion": "更换题目",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "正在检查...",
   "quiz.openChest": "打开奖励宝箱",
   "chest.title": "奖励宝箱",
   "chest.tapToOpen": "点击宝箱将其打开",

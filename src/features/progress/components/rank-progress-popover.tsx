@@ -11,7 +11,7 @@ import {
   isQuizRankUpDeferred,
   readLastAcknowledgedRank,
 } from "@/features/progress/rank-up-flow";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { formatNumber, formatPoints, getRankLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
@@ -44,7 +44,7 @@ export function RankProgressPopover({
   const [forcedRankUpOpen, setForcedRankUpOpen] = useState(Boolean(forceRankUpRank));
   const rootRef = useRef<HTMLDivElement>(null);
   const { displayStats, scoreGain, rankUpRank, rankUpPreviousRank, dismissRankUp } = useAnimatedScoreDisplay(stats, userId);
-  const tutorialVisible = useTutorialStore((state) => state.testMode || (state.active && !state.completed));
+  const tutorialVisible = useTutorialStore(isTutorialVisibleState);
   const pendingRankUp = forceRankUpRank ? (forcedRankUpOpen ? forceRankUpRank : null) : rankUpRank;
   const visibleRankUp = tutorialVisible ? null : pendingRankUp;
   const { locale } = useLocale();

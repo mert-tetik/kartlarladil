@@ -17,7 +17,6 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "card-swipe-left",
   "chest-tap",
   "chest-open",
-  "streak-break",
   "clock-tick-low",
   "clock-tick-high",
   "level-fail",

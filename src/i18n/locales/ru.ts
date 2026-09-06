@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "СТАРТ",
   "quiz.submitAnswer": "Проверить ответ",
   "quiz.rerollQuestion": "Обновить вопрос",
-  "quiz.aiValidating": "Проверяем ваш ответ...",
+  "quiz.aiValidating": "Проверяем...",
   "quiz.openChest": "Открыть сундук с наградой",
   "chest.title": "Сундук с наградой",
   "chest.tapToOpen": "Нажмите на сундук, чтобы открыть его",

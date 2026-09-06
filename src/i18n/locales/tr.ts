@@ -587,7 +587,7 @@ const dictionary = {
   "quiz.startSplash": "BAŞLA",
   "quiz.submitAnswer": "Cevabı kontrol et",
   "quiz.rerollQuestion": "Soruyu yenile",
-  "quiz.aiValidating": "Cevabın kontrol ediliyor...",
+  "quiz.aiValidating": "Kontrol ediliyor...",
   "quiz.openChest": "Ödül sandığı aç",
   "chest.title": "Ödül Sandığı",
   "chest.tapToOpen": "Açmak için sandığa dokun",

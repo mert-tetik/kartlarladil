@@ -3,95 +3,17 @@
   "model": "gpt-5.4-nano",
   "requestBatchSize": 100,
   "maxRequestsPerBatch": 50,
-  "requestCount": 686,
-  "conceptCount": 4891,
+  "requestCount": 2,
+  "conceptCount": 4900,
   "localeCount": 14,
-  "batchCount": 14,
+  "batchCount": 1,
   "batches": [
     {
-      "batchId": "batch_6a96e7f2963c8190bd811304c281ae7d",
-      "inputFileId": "file-JoUDQPxafYNeYDPJaiwKmj",
+      "batchId": "batch_6a9dbb2d198c8190900ae18f90531454",
+      "inputFileId": "file-73LVG3tpnc6FnX9ygfnGKF",
       "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-001.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e7f519888190b3c9082542c19db3",
-      "inputFileId": "file-XD9bdBHzzMRU2wVXuxxcx5",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-002.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e7f8472081908fe2667fbd239d0b",
-      "inputFileId": "file-PWdaH16nyCVvcJktxXLSFw",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-003.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e7fa3b348190b521909acbfe7714",
-      "inputFileId": "file-5mrNQhTKi3hZY6PJf1EBY7",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-004.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e7fc2c448190b0073b5b8f63bc4e",
-      "inputFileId": "file-9TkwPZvsgsut6oBkmHLMpZ",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-005.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e7ff2a2881909a0a06be27ea83bc",
-      "inputFileId": "file-QJvCtmxS2ErgpSQHpmwxAJ",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-006.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e8010a2c8190a1dc447cf621cf97",
-      "inputFileId": "file-VrmaS2oAXJV8TLTHDwFLtx",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-007.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e80369208190bd6e82e8cc80141e",
-      "inputFileId": "file-EvP7nL6bVEkQ5pGjWBJJ1w",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-008.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e80547e08190aa28dae96abd69d1",
-      "inputFileId": "file-7ipb1syzsgbwynJR6bGsjk",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-009.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e80813e081908a9038c11c419523",
-      "inputFileId": "file-8G8mN3FGsjEh2PaRaG52bT",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-010.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e809ed5081909e844eb4d2529d61",
-      "inputFileId": "file-54QZamKvmXeHP1XssaBaEX",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-011.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e80c4ec88190b07c8b2bfb61e001",
-      "inputFileId": "file-DiCqWFdYeG8YRQxHdmS1Mb",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-012.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e80e1b5881909a49ca5b4e2ac3f9",
-      "inputFileId": "file-AntHZw9cnG1NbYLADW487b",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-013.jsonl",
-      "requestCount": 50
-    },
-    {
-      "batchId": "batch_6a96e8101dcc8190ba68006612397c20",
-      "inputFileId": "file-7V8RfBLfc87JsEgXNumgWu",
-      "inputPath": "scripts\\data\\card-definitions-batches\\card-definitions-014.jsonl",
-      "requestCount": 36
+      "requestCount": 2
     }
   ],
-  "createdAt": "2026-09-01T14:58:25.744Z"
+  "createdAt": "2026-09-06T19:12:45.471Z"
 }

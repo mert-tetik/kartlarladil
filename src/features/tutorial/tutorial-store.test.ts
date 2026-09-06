@@ -107,4 +107,24 @@ describe("useTutorialStore", () => {
     expect(useTutorialStore.getState().testMode).toBe(false);
   });
 
+  it("writes a terminal state when the tutorial is completed", () => {
+    useTutorialStore.setState({
+      active: true,
+      completed: false,
+      introSeen: true,
+      step: 3,
+      testMode: true,
+    });
+
+    useTutorialStore.getState().complete();
+
+    expect(useTutorialStore.getState()).toMatchObject({
+      active: false,
+      completed: true,
+      introSeen: true,
+      step: 4,
+      testMode: false,
+    });
+  });
+
 });

@@ -113,7 +113,23 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
     fireEvent.click(screen.getByRole("button", { name: "start" }));
-    await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true), { timeout: 2_500 });
+    expect(useTutorialStore.getState()).toMatchObject({
+      active: false,
+      completed: true,
+      step: 4,
+      testMode: false,
+    });
     expect(screen.getByText("started")).toBeInTheDocument();
+  });
+
+  it("does not stay visible after completing in test mode", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: true });
+    render(<TutorialFixture />);
+
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
+    fireEvent.click(screen.getByRole("button", { name: "start" }));
+
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial]")).not.toBeInTheDocument());
+    expect(useTutorialStore.getState().completed).toBe(true);
   });
 });

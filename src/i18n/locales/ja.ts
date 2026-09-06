@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "スタート",
   "quiz.submitAnswer": "回答を確認",
   "quiz.rerollQuestion": "問題を変更",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "確認中...",
   "quiz.openChest": "報酬の宝箱を開ける",
   "chest.title": "報酬の宝箱",
   "chest.tapToOpen": "宝箱をタップして開ける",

@@ -2918,11 +2918,11 @@ function QuizRerollButton({
       onClick={action.onReroll}
       disabled={action.disabled || hidden}
       className={cn(
-        "inline-flex h-10 min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter,opacity] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
+        "quiz-action-scale inline-flex h-10 min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
         className,
-        hidden && "invisible pointer-events-none",
       )}
       aria-label={t("quiz.rerollQuestion")}
+      data-quiz-action-hidden={hidden}
       data-quiz-reroll
     >
       {action.loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
@@ -2951,8 +2951,9 @@ function QuizQuestionActionRow({
   return (
     <div className={cn("mt-1 flex w-full gap-2 sm:mt-2", className)} data-quiz-question-actions data-quiz-reroll-action>
       <QuizSkipButton
-        className={cn("min-w-0 flex-1", hidden && "invisible pointer-events-none")}
+        className="min-w-0 flex-1"
         disabled={skipDisabled || hidden}
+        hidden={hidden}
         onClick={onSkip}
       />
       {rerollAction ? <QuizRerollButton action={rerollAction} hidden={hidden} /> : null}
@@ -3740,30 +3741,47 @@ function TextQuestion({
                 {t("quiz.nextCard")}
               </Button>
             </div>
-          ) : (
-            <div className="mt-4 flex w-full gap-2 sm:mt-4 lg:mt-5" data-quiz-question-actions data-quiz-reroll-action>
+          ) : null}
+
+          <div
+            className={cn(
+              "mt-4 flex w-full flex-col gap-2 sm:mt-4 lg:mt-5",
+              showingAnswer && "pointer-events-none",
+            )}
+            data-quiz-question-actions
+            data-quiz-reroll-action
+          >
+            <Button
+              className="quiz-action-scale w-full"
+              data-quiz-action-hidden={showingAnswer}
+              onClick={handleSubmit}
+              disabled={textAnswer.trim().length === 0 || isAiValidating || showingAnswer}
+            >
+              {isAiValidating ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                  {t("quiz.aiValidating")}
+                </>
+              ) : (
+                t("quiz.submitAnswer")
+              )}
+            </Button>
+            <div className="flex w-full gap-2">
               <QuizSkipButton
                 className="min-w-0 flex-[0.8]"
                 disabled={isAiValidating}
+                hidden={showingAnswer}
                 onClick={onSkip}
               />
-              {rerollAction ? <QuizRerollButton action={rerollAction} className="flex-[1.2]" /> : null}
-              <Button
-                className="min-w-0 flex-[1.45]"
-                onClick={handleSubmit}
-                disabled={textAnswer.trim().length === 0 || isAiValidating}
-              >
-                {isAiValidating ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                    {t("quiz.aiValidating")}
-                  </>
-                ) : (
-                  t("quiz.submitAnswer")
-                )}
-              </Button>
+              {rerollAction ? (
+                <QuizRerollButton
+                  action={rerollAction}
+                  className="flex-[1.2]"
+                  hidden={showingAnswer}
+                />
+              ) : null}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </>
@@ -3879,7 +3897,6 @@ export function CelebrationView({
     hasTriggered.current = true;
 
     setCardFace("front");
-    playSoundEffect("learned");
     vibrate("learned");
     playSoundEffect("confetti");
     vibrate("confetti");

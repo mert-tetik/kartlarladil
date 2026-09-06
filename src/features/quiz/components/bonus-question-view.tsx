@@ -28,6 +28,9 @@ import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
+// This is intentionally unrelated to the sentence content: it is a decorative
+// AI Practice character, not a scenario or an answer hint.
+const SENTENCE_ORDER_DECORATION_CHARACTER = "/ai-characters/soft-artist.webp";
 
 const CATEGORY_SORT_PALETTES = [
   {
@@ -116,13 +119,33 @@ export function BonusQuestionView({
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
   const points = getBonusQuestionPoints(question.kind);
+  const isSentenceOrder = question.kind === "sentence-order";
 
   return (
     <div
-      className="animate-screen-pop flex w-full max-w-2xl flex-col items-center gap-4 rounded-xl bg-transparent px-1 py-2 text-foreground sm:gap-5 sm:px-4"
+      className={cn(
+        "animate-screen-pop relative flex w-full max-w-2xl flex-col items-center gap-4 rounded-xl bg-transparent px-1 py-2 text-foreground sm:gap-5 sm:px-4",
+        isSentenceOrder && "isolate",
+      )}
       data-bonus-question={question.kind}
     >
-      <div className="flex flex-col items-center gap-1 text-center">
+      {isSentenceOrder ? (
+        <div
+          className="pointer-events-none fixed bottom-0 left-1/2 z-0 h-[min(112vw,36rem)] w-[min(112vw,36rem)] -translate-x-1/2 translate-y-1/2 opacity-25"
+          data-bonus-sentence-decoration
+          aria-hidden="true"
+        >
+          <Image
+            src={SENTENCE_ORDER_DECORATION_CHARACTER}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 112vw, 576px"
+            className="object-contain"
+          />
+        </div>
+      ) : null}
+
+      <div className="relative z-10 flex flex-col items-center gap-1 text-center">
         <span className="inline-flex items-center bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-xs font-semibold uppercase tracking-wider text-transparent">
           {formatSuperWaterText(locale, copy.bonusPoints)}
         </span>
@@ -139,7 +162,7 @@ export function BonusQuestionView({
         </p>
       </div>
 
-      <div ref={sourceRef} className="flex w-full flex-col items-center">
+      <div ref={sourceRef} className="relative z-10 flex w-full flex-col items-center">
         {question.kind === "matching" ? (
           <MatchingBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "sentence-order" ? (
@@ -151,7 +174,7 @@ export function BonusQuestionView({
         )}
       </div>
 
-      <div className="flex w-full flex-col items-center gap-2">
+      <div className="relative z-10 flex w-full flex-col items-center gap-2">
         {!showingAnswer ? null : (
           <div className={cn("flex items-center gap-2 text-sm font-semibold", answerAccepted ? "text-emerald-500" : "text-rose-500")}>
             {answerAccepted ? <CheckCircle2 className="size-5" aria-hidden="true" /> : <XCircle className="size-5" aria-hidden="true" />}
@@ -198,6 +221,7 @@ function MatchingBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
+  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -209,7 +233,12 @@ function MatchingBonus({
   const isCorrect = question.pairs.every((pair) => matches[pair.id] === pair.id);
 
   function selectTerm(id: string) {
-    if (showingAnswer || !selectedMeaningId) return;
+    if (showingAnswer) return;
+
+    if (!selectedMeaningId) {
+      setSelectedTermId(id);
+      return;
+    }
 
     setMatches((current) => {
       const next = { ...current };
@@ -219,20 +248,28 @@ function MatchingBonus({
       next[id] = selectedMeaningId;
       return next;
     });
+    setSelectedTermId(null);
     setSelectedMeaningId(null);
   }
 
   function selectMeaning(id: string) {
     if (showingAnswer) return;
 
+    if (!selectedTermId) {
+      setSelectedMeaningId(id);
+      return;
+    }
+
     setMatches((current) => {
       const next = { ...current };
       Object.entries(next).forEach(([termId, meaningId]) => {
-        if (meaningId === id) delete next[termId];
+        if (termId === selectedTermId || meaningId === id) delete next[termId];
       });
+      next[selectedTermId] = id;
       return next;
     });
-    setSelectedMeaningId(id);
+    setSelectedTermId(null);
+    setSelectedMeaningId(null);
   }
 
   useEffect(() => {
@@ -248,8 +285,10 @@ function MatchingBonus({
 
         const termRect = term.getBoundingClientRect();
         const meaningRect = meaning.getBoundingClientRect();
-        const colorIndex = question.pairs.findIndex((pair) => pair.id === termId);
-        const color = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length]?.background ?? MATCHING_PAIR_COLORS[0].background;
+         const colorIndex = question.pairs.findIndex((pair) => pair.id === termId);
+         const color = showingAnswer
+           ? (matches[termId] === termId ? "#22c55e" : "#ef4444")
+           : MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length]?.background ?? MATCHING_PAIR_COLORS[0].background;
 
         return [{
           id: `${termId}-${meaningId}`,
@@ -275,7 +314,7 @@ function MatchingBonus({
       window.removeEventListener("resize", updateConnections);
       resizeObserver?.disconnect();
     };
-  }, [matches, question.pairs]);
+  }, [matches, question.pairs, showingAnswer]);
 
   return (
     <div ref={boardRef} className="relative grid w-full grid-cols-2 gap-3 sm:gap-4" data-bonus-matching-board>
@@ -290,15 +329,17 @@ function MatchingBonus({
             stroke={connection.color}
             strokeWidth="5"
             strokeLinecap="round"
+            className="transition-[stroke] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
+            data-bonus-matching-connection={connection.id}
           />
         ))}
       </svg>
 
       <div className="relative z-10 flex flex-col gap-2">
-        {question.terms.map((pair) => {
-          const matched = Boolean(matches[pair.id]);
-          const correct = showingAnswer && matches[pair.id] === pair.id;
-          const wrong = showingAnswer && matched && matches[pair.id] !== pair.id;
+         {question.terms.map((pair) => {
+           const matched = Boolean(matches[pair.id]);
+           const correct = showingAnswer && matches[pair.id] === pair.id;
+           const wrong = showingAnswer && matched && matches[pair.id] !== pair.id;
           const colorIndex = question.pairs.findIndex((candidate) => candidate.id === pair.id);
           const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
           return (
@@ -309,7 +350,7 @@ function MatchingBonus({
               onClick={() => selectTerm(pair.id)}
               style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
               ref={(element) => { termRefs.current[pair.id] = element; }}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", selectedMeaningId && "cursor-pointer", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
+              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
               data-bonus-term={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -334,7 +375,7 @@ function MatchingBonus({
               onClick={() => selectMeaning(pair.id)}
               style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
               ref={(element) => { meaningRefs.current[pair.id] = element; }}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300", selected && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
+              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", selected && "-translate-y-0.5 ring-2 ring-brand", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
               data-bonus-meaning={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -421,9 +462,9 @@ function SentenceOrderBonus({
                   disabled={showingAnswer}
                   onClick={() => toggleToken(id)}
                   className={cn(
-                    "rounded-md border px-2.5 py-1.5 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    "rounded-md border-0 px-2.5 py-1.5 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
                     "animate-bonus-sentence-token-enter",
-                    correct ? "border-emerald-500 bg-emerald-500 text-white" : showingAnswer ? "border-rose-500 bg-rose-500 text-white" : "border-brand bg-brand/15 text-foreground",
+                    correct ? "bg-emerald-500 text-white" : showingAnswer ? "bg-rose-500 text-white" : "bg-brand text-brand-foreground",
                   )}
                   data-bonus-sentence-selected={id}
                 >
@@ -746,17 +787,19 @@ function BonusCheckButton({
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
   return (
-    <div className={cn("mt-1 flex w-full gap-2", showingAnswer && "invisible pointer-events-none")}>
+    <div className={cn("mt-1 flex w-full gap-2", showingAnswer && "pointer-events-none")}>
       <QuizSkipButton
         className="min-w-0 flex-1"
         disabled={showingAnswer}
+        hidden={showingAnswer}
         onClick={onSkip}
       />
       <Button
         type="button"
-        disabled={disabled}
+        disabled={disabled || showingAnswer}
         onClick={onClick}
-        className="min-w-0 flex-[1.45] bg-brand text-brand-foreground hover:bg-brand-hover"
+        className="quiz-action-scale min-w-0 flex-[1.45] bg-brand text-brand-foreground hover:bg-brand-hover"
+        data-quiz-action-hidden={showingAnswer}
         data-bonus-check
       >
         {copy.check}

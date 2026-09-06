@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "COMENZAR",
   "quiz.submitAnswer": "Verificar respuesta",
   "quiz.rerollQuestion": "Cambiar pregunta",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "Comprobando...",
   "quiz.openChest": "Abrir cofre de recompensa",
   "chest.title": "Cofre de recompensa",
   "chest.tapToOpen": "Toca el cofre para abrirlo",

@@ -21,6 +21,12 @@ interface TutorialState {
 
 export const TUTORIAL_STEP_COUNT = 4;
 
+export function isTutorialVisibleState(
+  state: Pick<TutorialState, "active" | "completed" | "testMode">,
+) {
+  return !state.completed && (state.testMode || state.active);
+}
+
 export const useTutorialStore = create<TutorialState>()(
   persist(
     (set) => ({
@@ -40,7 +46,14 @@ export const useTutorialStore = create<TutorialState>()(
           };
         });
       },
-      complete: () => set({ active: false, completed: true }),
+      complete: () =>
+        set({
+          active: false,
+          completed: true,
+          introSeen: true,
+          step: TUTORIAL_STEP_COUNT,
+          testMode: false,
+        }),
       reset: () => set({ active: false, completed: false, introSeen: false, step: 0 }),
       activate: () => set({ active: true }),
       deactivate: () => set({ active: false }),

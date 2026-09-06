@@ -14,7 +14,6 @@ export type SoundEffectName =
   | "card-swipe-left"
   | "chest-tap"
   | "chest-open"
-  | "streak-break"
   | "clock-tick-low"
   | "clock-tick-high"
   | "level-fail"
@@ -40,9 +39,9 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
   "rank-up-reveal": "/sounds/rank-up-reveal-elevenlabs-v4.mp3",
   "chest-open": "/sounds/chest.mp3",
-  "streak-break": "/sounds/streak-break-ice-shatter-v1.mp3",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
+  "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
   "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
 };
 
@@ -481,12 +480,6 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "card-swipe-left": cardSwipeLeft,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
-  "streak-break": (context, now) => {
-    // The streak-break file is the primary effect; this fallback is a crisp ice-like shatter.
-    playNoise(context, { startTime: now, duration: 0.18, gain: 0.12, filterFrequency: 3200 });
-    playTone(context, { frequency: 1460, endFrequency: 520, startTime: now, duration: 0.22, gain: 0.07, type: "triangle" });
-    playTone(context, { frequency: 2349, endFrequency: 1175, startTime: now + 0.03, duration: 0.16, gain: 0.045, type: "sine" });
-  },
   "clock-tick-low": clockTickLow,
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,

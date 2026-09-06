@@ -582,7 +582,7 @@ const dictionary = {
   "quiz.startSplash": "START",
   "quiz.submitAnswer": "Controleer antwoord",
   "quiz.rerollQuestion": "Vraag vernieuwen",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "Bezig met controleren...",
   "quiz.openChest": "Open beloningskist",
   "chest.title": "Beloningskist",
   "chest.tapToOpen": "Tik op de kist om hem te openen",

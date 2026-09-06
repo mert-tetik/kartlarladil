@@ -585,7 +585,7 @@ const dictionary = {
   "quiz.startSplash": "START",
   "quiz.submitAnswer": "Check answer",
   "quiz.rerollQuestion": "Reroll question",
-  "quiz.aiValidating": "Checking your answer...",
+  "quiz.aiValidating": "Checking...",
   "quiz.openChest": "Open reward chest",
   "chest.title": "Reward Chest",
   "chest.tapToOpen": "Tap the chest to open it",
