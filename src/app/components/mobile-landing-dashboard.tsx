@@ -77,6 +77,10 @@ function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
 }
 
+function getValidLanguageOverride(value: unknown): LanguageCode | null {
+  return typeof value === "string" ? parseLandingLanguage(value) : null;
+}
+
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
   "whitespace-nowrap text-left font-semibold leading-none text-action-review";
 const MOBILE_RANK_MIN_HEIGHT =
@@ -371,9 +375,10 @@ export function MobileLandingDashboard() {
 
   function handleDrawCards(languageOverride?: LanguageCode) {
     vibrate("tap");
-    if (languageOverride && languageOverride !== selectedLanguage) {
-      writeLandingCardLanguage(languageOverride, { notify: false });
-      setSelectedLanguage(languageOverride);
+    const requestedLanguage = getValidLanguageOverride(languageOverride);
+    if (requestedLanguage && requestedLanguage !== selectedLanguage) {
+      writeLandingCardLanguage(requestedLanguage, { notify: false });
+      setSelectedLanguage(requestedLanguage);
     }
     requireAuthAction(() => {
       setSwipeDeckOpen(true);
@@ -414,21 +419,22 @@ export function MobileLandingDashboard() {
 
   function handleStartLearning(languageOverride?: LanguageCode) {
     vibrate("tap");
-    const learningLanguage = languageOverride ?? selectedLanguage;
-    const learningCardCount = languageOverride
-      ? filterInventoryCards({ cards, language: learningLanguage, status: "active" }).length
+    const requestedLanguage = getValidLanguageOverride(languageOverride);
+    const safeLearningLanguage = requestedLanguage ?? selectedLanguage;
+    const learningCardCount = requestedLanguage
+      ? filterInventoryCards({ cards, language: safeLearningLanguage, status: "active" }).length
       : activeCount;
 
-    if (languageOverride && languageOverride !== selectedLanguage) {
-      writeLandingCardLanguage(languageOverride, { notify: false });
-      setSelectedLanguage(languageOverride);
+    if (requestedLanguage && requestedLanguage !== selectedLanguage) {
+      writeLandingCardLanguage(requestedLanguage, { notify: false });
+      setSelectedLanguage(requestedLanguage);
     }
 
     if (learningCardCount === 0) {
       setLockedSheet("active");
       return;
     }
-    const nextPath = `/learn?mode=active&language=${encodeURIComponent(learningLanguage)}`;
+    const nextPath = `/learn?mode=active&language=${encodeURIComponent(safeLearningLanguage)}`;
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
       if (!isActiveNavigationIntent(navigationIntent)) return;
@@ -792,7 +798,7 @@ export function MobileLandingDashboard() {
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}
           locked={activeCount === 0}
-          onClick={handleStartLearning}
+          onClick={() => handleStartLearning()}
           variant="active"
           dataTutorialTarget="start-learning"
         />
@@ -814,9 +820,9 @@ export function MobileLandingDashboard() {
         isOpen={cardCenterOpen}
         onStatusChange={setCardCenterStatus}
         onOpenChange={handleCardCenterOpenChange}
-        onOpenDraw={handleDrawCards}
-        onOpenCreate={handleCreateCard}
-        onOpenGroups={handleOpenCardGroups}
+        onOpenDraw={() => handleDrawCards()}
+        onOpenCreate={() => handleCreateCard()}
+        onOpenGroups={() => handleOpenCardGroups()}
         showEmptyDeckPointer={activeCount === 0 && !hasLandingLayerOpen}
       />
 

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
@@ -152,6 +152,24 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
+  });
+
+  it("keeps the landing language valid when any card-add action is clicked", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    for (const target of ["landing-draw-cards", "landing-create-card", "landing-card-groups"]) {
+      const button = document.querySelector<HTMLButtonElement>(`[data-tutorial-target="${target}"]`);
+      expect(button).not.toBeNull();
+      fireEvent.click(button!);
+    }
+
+    const landingLanguageButton = document.querySelector<HTMLButtonElement>("[data-mobile-landing-card-language]");
+    expect(landingLanguageButton).not.toBeNull();
+    expect(within(landingLanguageButton!).getByText(getLanguageDisplayName("en", "tr"))).toBeInTheDocument();
   });
 
   it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {
