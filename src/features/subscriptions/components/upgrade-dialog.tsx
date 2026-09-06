@@ -31,6 +31,7 @@ interface UpgradeDialogProps {
   selectedLanguage?: LanguageCode;
   onSwapLanguages?: () => void;
   activeCardLimitDetails?: ActiveCardLimitDetails | null;
+  onPricingNavigate?: () => void;
 }
 
 export function UpgradeDialog({
@@ -40,6 +41,7 @@ export function UpgradeDialog({
   selectedLanguage,
   onSwapLanguages,
   activeCardLimitDetails,
+  onPricingNavigate,
 }: UpgradeDialogProps) {
   const t = useT();
   const router = useRouter();
@@ -105,12 +107,16 @@ export function UpgradeDialog({
         {showsUpgradeCta ? (
           <Link
             href="/pricing"
+            data-tutorial-pricing-link
             className={buttonClassName(
               "primary",
               "md",
               "h-11 w-full rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] text-sm font-bold text-[#552000] hover:brightness-105 focus-visible:outline-[#fdf4a5]",
             )}
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              onPricingNavigate?.();
+              onOpenChange(false);
+            }}
           >
             {t("limit.upgradeButtonFirstMonthFree")}
           </Link>

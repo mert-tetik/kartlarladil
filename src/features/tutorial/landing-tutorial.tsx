@@ -281,6 +281,7 @@ export function LandingTutorial() {
 
     const allowTarget = (element: Element | null) => {
       if (!element) return false;
+      if (element.closest("[data-tutorial-pricing-link]")) return true;
       if (phaseRef.current === "transition") return false;
       if (phaseRef.current === "layer") {
         const layer = layerRef.current;
@@ -444,7 +445,7 @@ function TutorialChoiceScreen({ title, choices, t, onChoice }: { title: string; 
 
   return (
     <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} className="tutorial-choice-enter fixed inset-0 z-[1000] flex min-h-[100dvh] flex-col overflow-hidden bg-background px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground">
-      <h2 className={cn("shrink-0 py-3 text-center text-2xl font-bold text-foreground", useSuperWater && "font-super-water")}>
+      <h2 className={cn("shrink-0 py-3 text-center text-4xl font-bold text-foreground", useSuperWater && "font-super-water")}>
         {formatSuperWaterUppercaseText(locale, title)}
       </h2>
       <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-3">
@@ -455,7 +456,7 @@ function TutorialChoiceScreen({ title, choices, t, onChoice }: { title: string; 
           choice.key === "groups" && "bg-[#84cc16] text-[#26341b]",
         )}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
-          <span className="min-w-0"><span className={cn("block text-xl font-bold leading-tight", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span><span className={cn("mt-2 block text-sm font-medium leading-snug opacity-80", useSuperWater && "font-super-water")}>{displayText(t(choice.descriptionKey))}</span></span>
+          <span className="min-w-0"><span className={cn("block text-4xl font-bold leading-tight", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span><span className={cn("mt-2 block text-xl font-medium leading-snug opacity-80", useSuperWater && "font-super-water")}>{displayText(t(choice.descriptionKey))}</span></span>
         </button>)}
       </div>
     </div>

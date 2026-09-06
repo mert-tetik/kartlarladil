@@ -37,6 +37,7 @@ function renderDialog(props: {
   open: boolean;
   errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"];
   activeCardLimitDetails?: ActiveCardLimitDetails | null;
+  onPricingNavigate?: () => void;
 }) {
   const onOpenChange = vi.fn();
   const result = render(
@@ -46,6 +47,7 @@ function renderDialog(props: {
         errorCode={props.errorCode}
         onOpenChange={onOpenChange}
         activeCardLimitDetails={props.activeCardLimitDetails}
+        onPricingNavigate={props.onPricingNavigate}
       />
     </LocaleProvider>,
   );
@@ -82,6 +84,21 @@ describe("UpgradeDialog", () => {
     });
 
     expect(screen.getByText(/3.*2/)).toBeInTheDocument();
+  });
+
+  it("notifies the tutorial before opening pricing", async () => {
+    const user = userEvent.setup();
+    const onPricingNavigate = vi.fn();
+    const { onOpenChange } = renderDialog({
+      open: true,
+      errorCode: "free_active_card_limit",
+      onPricingNavigate,
+    });
+
+    await user.click(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i }));
+
+    expect(onPricingNavigate).toHaveBeenCalledOnce();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("navigates to the learn page when the learn cards button is clicked", async () => {
