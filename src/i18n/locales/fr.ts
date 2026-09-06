@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "Ajoute tout un groupe de cartes par thème en une fois.",
   "tutorial.landingCardsAction": "Appuie maintenant sur le bouton « Cartes ».",
   "tutorial.landingCardsMessage": "Retrouve tous tes mots ici et appuie sur l’un d’eux pour en savoir plus.",
+  "tutorial.cardCollectionPrompt": "Ajoute maintenant des mots à ta collection.",
   "tutorial.landingStartLearningAction": "Appuie ici pour apprendre tes cartes, gagner des récompenses et monter en rang !",
   "tutorial.next": "Suivant",
   "tutorial.understood": "Compris",

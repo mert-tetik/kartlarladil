@@ -863,6 +863,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "Add a complete topic-based group of cards at once.",
   "tutorial.landingCardsAction": "Now tap the \"Cards\" button.",
   "tutorial.landingCardsMessage": "See all your words here, then tap one to learn more about it.",
+  "tutorial.cardCollectionPrompt": "Now add some words to your collection.",
   "tutorial.landingStartLearningAction": "Tap this button to learn your cards, earn rewards, and rank up!",
   "tutorial.next": "Next",
   "tutorial.understood": "Got it",

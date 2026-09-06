@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
+import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { MissionIcon } from "@/components/mission-icon";
 import { ScoreIcon } from "@/components/score-icon";
@@ -51,6 +52,13 @@ import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import {
+  TUTORIAL_CARD_LAYER_CLOSED_EVENT,
+  TUTORIAL_CARD_LAYER_OPENED_EVENT,
+  type TutorialCardLayer,
+  type TutorialCardLayerClosedDetail,
+  type TutorialCardLayerOpenedDetail,
+} from "@/features/tutorial/tutorial-card-session";
+import {
   getMissionNavigationHref,
   parseLandingMissionAction,
   type MissionNavigationTarget,
@@ -92,6 +100,7 @@ export function MobileLandingDashboard() {
   const { openLeaderboard } = useLeaderboardOverlay();
   const { refreshEntitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
+  const addCards = useInventoryStore((state) => state.addCards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
@@ -140,6 +149,73 @@ export function MobileLandingDashboard() {
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
   const hasPendingStoredLandingLanguageRef = useRef(false);
   const consumedMissionActionRef = useRef<string | null>(null);
+  const selectedLanguageRef = useRef(selectedLanguage);
+  const tutorialCardSessionRef = useRef<{
+    layer: TutorialCardLayer;
+    language: LanguageCode;
+    cardAdded: boolean;
+    cardAddPending: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    selectedLanguageRef.current = selectedLanguage;
+  }, [selectedLanguage]);
+
+  const markTutorialCardAdded = useCallback((layer: TutorialCardLayer) => {
+    const session = tutorialCardSessionRef.current;
+    if (session?.layer === layer) {
+      session.cardAdded = true;
+      session.cardAddPending = false;
+    }
+  }, []);
+
+  const markTutorialCardAddStarted = useCallback((layer: TutorialCardLayer) => {
+    const session = tutorialCardSessionRef.current;
+    if (session?.layer === layer) {
+      session.cardAddPending = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleLayerOpened(event: Event) {
+      const detail = (event as CustomEvent<TutorialCardLayerOpenedDetail>).detail;
+      if (!detail?.layer) return;
+
+      tutorialCardSessionRef.current = {
+        layer: detail.layer,
+        language: selectedLanguageRef.current,
+        cardAdded: false,
+        cardAddPending: false,
+      };
+    }
+
+    function handleLayerClosed(event: Event) {
+      const detail = (event as CustomEvent<TutorialCardLayerClosedDetail>).detail;
+      const session = tutorialCardSessionRef.current;
+      if (!detail?.layer || !session || session.layer !== detail.layer) return;
+
+      tutorialCardSessionRef.current = null;
+      if (session.cardAdded || session.cardAddPending) return;
+
+      const existingIds = new Set(useInventoryStore.getState().cards.map((card) => card.cardId));
+      const automaticCardIds = VOCABULARY_CARDS
+        .filter((card) => card.language === session.language && card.tier === "A1")
+        .filter((card) => !existingIds.has(card.id) && !existingIds.has(card.sourceKey))
+        .slice(0, 3)
+        .map((card) => card.sourceKey);
+
+      if (automaticCardIds.length > 0) {
+        void addCards(automaticCardIds).catch(() => undefined);
+      }
+    }
+
+    window.addEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
+    window.addEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
+    return () => {
+      window.removeEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
+      window.removeEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
+    };
+  }, [addCards]);
 
   useEffect(() => {
     router.prefetch("/create-card");
@@ -781,18 +857,24 @@ export function MobileLandingDashboard() {
         language={selectedLanguage}
         onClose={() => setSwipeDeckOpen(false)}
         onSubscriptionLimitReached={handleCardLimitReached}
+        onCardAddStarted={() => markTutorialCardAddStarted("draw-cards")}
+        onCardAdded={() => markTutorialCardAdded("draw-cards")}
       />
       <MobileCustomCardSheet
         open={customCardOpen}
         onClose={() => setCustomCardOpen(false)}
         landingLanguage={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
+        onCardAddStarted={() => markTutorialCardAddStarted("custom-card")}
+        onCardAdded={() => markTutorialCardAdded("custom-card")}
       />
       <MobileCardGroupSheet
         open={groupCardOpen}
         onClose={() => setGroupCardOpen(false)}
         language={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
+        onCardAddStarted={() => markTutorialCardAddStarted("card-groups")}
+        onCardAdded={() => markTutorialCardAdded("card-groups")}
       />
 
       <MobileGemDetailsSheet

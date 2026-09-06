@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "주제별 카드 그룹을 한 번에 추가하세요.",
   "tutorial.landingCardsAction": "이제 ‘카드’ 버튼을 눌러 보세요.",
   "tutorial.landingCardsMessage": "여기에서 모든 단어를 보고, 단어를 누르면 더 자세한 내용을 확인할 수 있어요.",
+  "tutorial.cardCollectionPrompt": "이제 컬렉션에 단어를 추가해 보세요.",
   "tutorial.landingStartLearningAction": "이 버튼을 눌러 카드를 배우고, 보상을 받고, 등급을 올려 보세요!",
   "tutorial.next": "다음",
   "tutorial.understood": "알겠어요",

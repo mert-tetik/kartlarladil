@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "Voeg in één keer een volledige thematische kaartgroep toe.",
   "tutorial.landingCardsAction": "Tik nu op de knop ‘Kaarten’.",
   "tutorial.landingCardsMessage": "Bekijk hier al je woorden en tik op een woord om er meer over te ontdekken.",
+  "tutorial.cardCollectionPrompt": "Voeg nu woorden toe aan je verzameling.",
   "tutorial.landingStartLearningAction": "Tik hier om je kaarten te leren, beloningen te verdienen en in rang te stijgen!",
   "tutorial.next": "Volgende",
   "tutorial.understood": "Begrepen",

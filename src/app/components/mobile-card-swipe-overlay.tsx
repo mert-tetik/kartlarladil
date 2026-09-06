@@ -27,7 +27,7 @@ const PRELOAD_DECK_SIZE = 5;
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
 
-export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
+export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached, onCardAdded, onCardAddStarted }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; onCardAdded?: () => void; onCardAddStarted?: () => void }) {
   const { locale } = useLocale();
   const t = useT();
   const inventory = useInventoryStore((state) => state.cards);
@@ -169,6 +169,9 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     setIncoming("waiting");
     setIncomingDirection(direction);
     const addedCardId = direction === "add" ? card.sourceKey : null;
+    if (addedCardId) {
+      onCardAddStarted?.();
+    }
     dragPosition.current = { x: 0, y: 0 };
     queuedDragPosition.current = { x: 0, y: 0 };
     swipeFeedbackRef.current = null;
@@ -241,6 +244,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         .then((result) => {
           if (result.limitReached) {
             onSubscriptionLimitReached?.("free_active_card_limit");
+          } else if (result.ok) {
+            onCardAdded?.();
           }
         })
         .catch(() => undefined);
@@ -315,7 +320,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     ? demoActive ? { transform: getCardTransform(demoX, 0) } : undefined
     : { transform: `translate3d(${incomingX}px, ${incomingY}px, 0) rotate(0deg)`, opacity: incomingIsHidden ? 0 : 1 };
   const shouldRenderCard = card && incoming !== "waiting" && incoming !== "teleporting";
-  return <div role="dialog" aria-modal="true" data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
+  return <div role="dialog" aria-modal={open} aria-hidden={!open} inert={!open} data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
     <div className="relative z-[60] flex min-h-10 items-center justify-center">
       <p
         data-card-swipe-title

@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "一次性添加完整的主题卡片分组。",
   "tutorial.landingCardsAction": "现在点击“卡片”按钮。",
   "tutorial.landingCardsMessage": "你可以在这里查看所有单词，点击单词即可了解更多信息。",
+  "tutorial.cardCollectionPrompt": "现在把一些单词添加到你的收藏中吧。",
   "tutorial.landingStartLearningAction": "点击此按钮学习卡片、获得奖励并提升等级！",
   "tutorial.next": "下一步",
   "tutorial.understood": "明白了",

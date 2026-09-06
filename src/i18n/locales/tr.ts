@@ -865,6 +865,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "Konuya göre hazırlanmış kartları topluca ekle.",
   "tutorial.landingCardsAction": "Şimdi \"Kartlar\" butonuna bas.",
   "tutorial.landingCardsMessage": "Buradan tüm kelimelerini görebilir ve üstlerine basıp kelime hakkında daha fazla şeye ulaşabilirsin.",
+  "tutorial.cardCollectionPrompt": "Şimdi koleksiyonuna kelimeler ekle.",
   "tutorial.landingStartLearningAction": "Kartlarını öğrenip, hediyeler kazanıp rütbe atlamak için bu butona bas!",
   "tutorial.next": "Sonraki",
   "tutorial.understood": "Anlaşıldı",

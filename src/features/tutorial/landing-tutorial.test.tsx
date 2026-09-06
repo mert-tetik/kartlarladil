@@ -74,12 +74,14 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
     const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ });
     fireEvent.click(choice);
-    expect(await screen.findByText("close layer")).toBeInTheDocument();
+    expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId("tutorial-layer-message")).not.toBeInTheDocument(), { timeout: 4_000 });
 
     fireEvent.click(screen.getByRole("button", { name: "close layer" }));
-    await waitFor(() => expect(useTutorialStore.getState().step).toBe(1), { timeout: 2_000 });
-    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_000 });
+    await waitFor(() => expect(useTutorialStore.getState().step).toBe(1), { timeout: 2_500 });
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
   });
 
   it("keeps the cards target restricted and then shows a message-only screen", async () => {
@@ -101,9 +103,9 @@ describe("LandingTutorial", () => {
     dashboard.scrollTo = vi.fn();
     const continueButton = await screen.findByRole("button", { name: "tutorial.next" });
     fireEvent.click(continueButton);
-    await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 800 });
-    await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 1_500 });
-    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_000 });
+    await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 2_200 });
+    await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 2_500 });
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
   });
 
   it("completes when the real start-learning target is clicked", async () => {
@@ -111,7 +113,7 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
     fireEvent.click(screen.getByRole("button", { name: "start" }));
-    await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true), { timeout: 1_000 });
+    await waitFor(() => expect(useTutorialStore.getState().completed).toBe(true), { timeout: 2_500 });
     expect(screen.getByText("started")).toBeInTheDocument();
   });
 });

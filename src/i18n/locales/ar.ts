@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "أضف مجموعة بطاقات كاملة حسب الموضوع دفعة واحدة.",
   "tutorial.landingCardsAction": "اضغط الآن على زر «البطاقات».",
   "tutorial.landingCardsMessage": "يمكنك رؤية جميع كلماتك هنا. اضغط على أي كلمة لمعرفة المزيد عنها.",
+  "tutorial.cardCollectionPrompt": "أضف الآن كلمات إلى مجموعتك.",
   "tutorial.landingStartLearningAction": "اضغط هنا لتعلّم بطاقاتك، وكسب المكافآت، والتقدّم في الترتيب!",
   "tutorial.next": "التالي",
   "tutorial.understood": "فهمت",

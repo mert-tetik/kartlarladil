@@ -861,6 +861,7 @@ const dictionary = {
   "tutorial.cardModes.groups.description": "Добавь целую тематическую группу карточек за один раз.",
   "tutorial.landingCardsAction": "Теперь нажми кнопку «Карточки».",
   "tutorial.landingCardsMessage": "Здесь ты увидишь все свои слова. Нажми на слово, чтобы узнать о нём больше.",
+  "tutorial.cardCollectionPrompt": "Теперь добавь слова в свою коллекцию.",
   "tutorial.landingStartLearningAction": "Нажми эту кнопку, чтобы учить карточки, получать награды и повышать ранг!",
   "tutorial.next": "Далее",
   "tutorial.understood": "Понятно",

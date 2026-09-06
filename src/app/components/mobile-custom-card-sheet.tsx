@@ -32,7 +32,7 @@ const PREVIEW_MOVE_DELAY_MS = 400;
 const PREVIEW_MOVE_DURATION_MS = 700;
 const PREVIEW_REVEAL_DELAY_MS = PREVIEW_MOVE_DELAY_MS + PREVIEW_MOVE_DURATION_MS + 70;
 
-export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached, landingLanguage }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; landingLanguage: LanguageCode }) {
+export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached, onCardAdded, onCardAddStarted, landingLanguage }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; onCardAdded?: () => void; onCardAddStarted?: () => void; landingLanguage: LanguageCode }) {
   const { locale } = useLocale();
   const t = useT();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
@@ -212,6 +212,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     }
 
     if (aiResponse) {
+      onCardAddStarted?.();
       const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
       const optimisticCard = { ...preview, id: optimisticId, sourceKey: optimisticId };
 
@@ -232,6 +233,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
         },
         optimisticCard,
       }).then(() => {
+        onCardAdded?.();
         showCardAddedMessage();
       }).catch((error: unknown) => {
         if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") {
@@ -244,13 +246,17 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       return;
     }
 
+    onCardAddStarted?.();
     void addCard(preview.sourceKey)
       .then((result) => {
         if (result.limitReached) {
           onSubscriptionLimitReached?.("free_active_card_limit");
           return;
         }
-        if (result.ok) showCardAddedMessage();
+        if (result.ok) {
+          onCardAdded?.();
+          showCardAddedMessage();
+        }
       })
       .catch(() => undefined);
     setTerm("");
