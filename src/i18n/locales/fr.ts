@@ -852,7 +852,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "Gagne des points en pratiquant la conversation !",
   "tutorial.welcome": "Bienvenue sur FoxiesDeck !",
   "tutorial.welcomeDescription": "Crée ta collection de cartes, apprends avec des quiz, gagne des points et monte en rang ! Accède à tous tes mots au même endroit !",
-  "tutorial.cardModes.title": "Crée ta collection de cartes",
+  "tutorial.cardModes.title": "Ajoute ta première carte de mot",
   "tutorial.cardModes.random.title": "Tirer des cartes au hasard",
   "tutorial.cardModes.random.description": "Découvre de nouveaux mots et ajoute-les à ta collection.",
   "tutorial.cardModes.custom.title": "Ajouter une carte personnalisée",

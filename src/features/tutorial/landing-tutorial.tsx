@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
 import type { TranslationKey, TranslationValues } from "@/i18n/dictionaries";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { getTargetForStep, getTutorialStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 import { cn } from "@/lib/utils";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 
 const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
@@ -419,11 +420,16 @@ export function LandingTutorial() {
 }
 
 function WelcomeTutorialScreen({ exiting, label, description, nextLabel, onNext }: { exiting: boolean; label: string; description: string; nextLabel: string; onNext: () => void }) {
+  const { locale } = useLocale();
+  const useSuperWater = canUseSuperWater(locale);
+
   return (
     <div data-landing-tutorial data-landing-tutorial-welcome role="dialog" aria-label={label} aria-modal="true" aria-busy={exiting} className={cn("tutorial-welcome-screen fixed inset-0 z-[1000] flex min-h-[100dvh] touch-none items-center justify-center bg-black/80 px-6 text-center backdrop-blur-[2px]", exiting ? "tutorial-welcome-exit" : "tutorial-welcome-enter")}>
       <div data-tutorial-welcome-content className="tutorial-welcome-content flex w-full max-w-sm flex-col items-center">
         <Image alt="" aria-hidden="true" data-tutorial-welcome-mascot className="h-auto w-full max-w-[19rem] object-contain" height={720} priority src="/mascots/mascot1.webp" width={720} />
-        <h2 className="mt-4 text-3xl font-bold text-white">{label}</h2>
+        <h2 className={cn("mt-4 text-3xl font-bold text-white", useSuperWater && "font-super-water")}>
+          {formatSuperWaterText(locale, label)}
+        </h2>
         <p data-tutorial-welcome-description className="mt-4 max-w-[19rem] text-base font-semibold leading-relaxed text-white/90">{description}</p>
         <button type="button" data-landing-tutorial-welcome-next disabled={exiting} onClick={onNext} className="mt-8 h-14 w-full max-w-64 rounded-lg bg-brand text-base font-bold text-brand-foreground shadow-sm transition-[background-color,opacity,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:outline-none">{nextLabel}</button>
       </div>
@@ -432,13 +438,24 @@ function WelcomeTutorialScreen({ exiting, label, description, nextLabel, onNext 
 }
 
 function TutorialChoiceScreen({ title, choices, t, onChoice }: { title: string; choices: readonly (typeof TUTORIAL_CHOICES)[number][]; t: (key: TranslationKey, variables?: TranslationValues) => string; onChoice: (choice: (typeof TUTORIAL_CHOICES)[number]) => void }) {
+  const { locale } = useLocale();
+  const useSuperWater = canUseSuperWater(locale);
+  const displayText = (text: string) => formatSuperWaterText(locale, text);
+
   return (
     <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} className="tutorial-choice-enter fixed inset-0 z-[1000] flex min-h-[100dvh] flex-col overflow-hidden bg-background px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground">
-      <h2 className="shrink-0 py-3 text-center text-2xl font-bold text-foreground">{title}</h2>
-      <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-3">
-        {choices.map((choice) => <button key={choice.key} type="button" data-landing-tutorial-choice data-tutorial-choice={choice.key} onClick={() => onChoice(choice)} className="group flex min-h-0 w-full items-center gap-4 rounded-2xl border border-border bg-background-card px-5 text-left shadow-sm transition-[transform,background-color,border-color] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+      <h2 className={cn("shrink-0 py-3 text-center text-2xl font-bold text-foreground", useSuperWater && "font-super-water")}>
+        {formatSuperWaterUppercaseText(locale, title)}
+      </h2>
+      <div className="grid min-h-0 grid-rows-3 gap-3 py-3">
+        {choices.map((choice) => <button key={choice.key} type="button" data-landing-tutorial-choice data-tutorial-choice={choice.key} onClick={() => onChoice(choice)} className={cn(
+          "group flex min-h-[7rem] w-full items-center gap-4 rounded-2xl border border-transparent px-4 text-left shadow-sm transition-[transform,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          choice.key === "random" && "bg-[#f6c56f] text-[#3b2a1c]",
+          choice.key === "custom" && "bg-[#d6a1d8] text-[#38243d]",
+          choice.key === "groups" && "bg-[#b8d979] text-[#26341b]",
+        )}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
-          <span className="min-w-0"><span className="block text-xl font-bold leading-tight text-foreground">{t(choice.titleKey)}</span><span className="mt-2 block text-sm font-medium leading-snug text-foreground-secondary">{t(choice.descriptionKey)}</span></span>
+          <span className="min-w-0"><span className={cn("block text-xl font-bold leading-tight", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span><span className={cn("mt-2 block text-sm font-medium leading-snug opacity-80", useSuperWater && "font-super-water")}>{displayText(t(choice.descriptionKey))}</span></span>
         </button>)}
       </div>
     </div>

@@ -856,7 +856,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "Konuşma pratiği yaparak puan kazan!",
   "tutorial.welcome": "FoxiesDeck'e hoş geldin!",
   "tutorial.welcomeDescription": "Kendi kelime kartı koleksiyonunu oluştur, quizlerle kelimelerini öğren, puan topla, rütbe atla! Tüm kelimelerine tek bir yerden eriş!",
-  "tutorial.cardModes.title": "Kart koleksiyonunu oluştur",
+  "tutorial.cardModes.title": "İlk kelime kartını ekle",
   "tutorial.cardModes.random.title": "Rastgele kart çek",
   "tutorial.cardModes.random.description": "Yeni kelimeleri keşfet ve koleksiyonuna ekle.",
   "tutorial.cardModes.custom.title": "Özel kart ekle",

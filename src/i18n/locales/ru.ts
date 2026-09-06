@@ -852,7 +852,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "Зарабатывай очки, практикуя разговорную речь!",
   "tutorial.welcome": "Добро пожаловать в FoxiesDeck!",
   "tutorial.welcomeDescription": "Создавай свою коллекцию карточек, учи слова с помощью викторин, зарабатывай очки и повышай ранг! Все слова в одном месте!",
-  "tutorial.cardModes.title": "Создай свою коллекцию карточек",
+  "tutorial.cardModes.title": "Добавь свою первую карточку со словом",
   "tutorial.cardModes.random.title": "Взять случайные карточки",
   "tutorial.cardModes.random.description": "Открывай новые слова и добавляй их в коллекцию.",
   "tutorial.cardModes.custom.title": "Добавить свою карточку",

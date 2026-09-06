@@ -5,6 +5,7 @@ import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 vi.mock("@/i18n/locale-provider", () => ({
+  useLocale: () => ({ locale: "en" }),
   useT: () => (key: string) => key,
 }));
 

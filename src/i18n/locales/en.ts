@@ -854,7 +854,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "Earn points by practicing conversation!",
   "tutorial.welcome": "Welcome to FoxiesDeck!",
   "tutorial.welcomeDescription": "Build your own word-card collection, learn with quizzes, earn points, and rank up! Access all your words in one place!",
-  "tutorial.cardModes.title": "Build your card collection",
+  "tutorial.cardModes.title": "Add your first word card",
   "tutorial.cardModes.random.title": "Draw random cards",
   "tutorial.cardModes.random.description": "Discover new words and add them to your collection.",
   "tutorial.cardModes.custom.title": "Add a custom card",

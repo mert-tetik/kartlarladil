@@ -851,7 +851,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "Sammle Punkte, indem du das Sprechen übst!",
   "tutorial.welcome": "Willkommen bei FoxiesDeck!",
   "tutorial.welcomeDescription": "Erstelle deine eigene Wortkartensammlung, lerne mit Quizzen, sammle Punkte und steige im Rang auf! Greife an einem Ort auf alle deine Wörter zu!",
-  "tutorial.cardModes.title": "Erstelle deine Kartensammlung",
+  "tutorial.cardModes.title": "Füge deine erste Wortkarte hinzu",
   "tutorial.cardModes.random.title": "Zufällige Karten ziehen",
   "tutorial.cardModes.random.description": "Entdecke neue Wörter und füge sie deiner Sammlung hinzu.",
   "tutorial.cardModes.custom.title": "Eigene Karte hinzufügen",

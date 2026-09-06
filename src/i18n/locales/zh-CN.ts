@@ -852,7 +852,7 @@ const dictionary = {
   "tutorial.landingAiPractice": "通过练习对话赚取积分！",
   "tutorial.welcome": "欢迎来到 FoxiesDeck！",
   "tutorial.welcomeDescription": "创建自己的单词卡片收藏，用测验学习单词，赚取积分并提升等级！在一个地方访问你的所有单词！",
-  "tutorial.cardModes.title": "创建你的卡片收藏",
+  "tutorial.cardModes.title": "添加你的第一张单词卡",
   "tutorial.cardModes.random.title": "抽取随机卡片",
   "tutorial.cardModes.random.description": "发现新单词并将它们加入你的收藏。",
   "tutorial.cardModes.custom.title": "添加自定义卡片",

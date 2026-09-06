@@ -226,7 +226,7 @@ export function MobileGemDetailsSheet({
   const content = (
     <div
       className={cn(
-        "gem-details-overlay fixed inset-0 z-[90] flex items-center justify-center bg-black/65 px-5 lg:hidden",
+        "gem-details-overlay fixed inset-0 z-[90] flex items-center justify-center bg-transparent px-5 lg:hidden",
         !entered && !closing && "gem-details-overlay--preparing",
         closing && "gem-details-overlay--closing",
       )}
