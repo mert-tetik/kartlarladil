@@ -447,12 +447,12 @@ function TutorialChoiceScreen({ title, choices, t, onChoice }: { title: string; 
       <h2 className={cn("shrink-0 py-3 text-center text-2xl font-bold text-foreground", useSuperWater && "font-super-water")}>
         {formatSuperWaterUppercaseText(locale, title)}
       </h2>
-      <div className="grid min-h-0 grid-rows-3 gap-3 py-3">
+      <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-3">
         {choices.map((choice) => <button key={choice.key} type="button" data-landing-tutorial-choice data-tutorial-choice={choice.key} onClick={() => onChoice(choice)} className={cn(
-          "group flex min-h-[7rem] w-full items-center gap-4 rounded-2xl border border-transparent px-4 text-left shadow-sm transition-[transform,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-          choice.key === "random" && "bg-[#f6c56f] text-[#3b2a1c]",
-          choice.key === "custom" && "bg-[#d6a1d8] text-[#38243d]",
-          choice.key === "groups" && "bg-[#b8d979] text-[#26341b]",
+          "group flex min-h-0 w-full items-center gap-4 rounded-2xl border border-transparent px-5 text-left shadow-sm transition-[transform,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          choice.key === "random" && "bg-[#f59e0b] text-[#3b2a1c]",
+          choice.key === "custom" && "bg-[#c026d3] text-white",
+          choice.key === "groups" && "bg-[#84cc16] text-[#26341b]",
         )}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
           <span className="min-w-0"><span className={cn("block text-xl font-bold leading-tight", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span><span className={cn("mt-2 block text-sm font-medium leading-snug opacity-80", useSuperWater && "font-super-water")}>{displayText(t(choice.descriptionKey))}</span></span>

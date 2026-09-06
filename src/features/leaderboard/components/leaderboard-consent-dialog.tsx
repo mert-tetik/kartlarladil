@@ -39,7 +39,10 @@ export function LeaderboardConsentDialog({
         x: sourceRect.left + sourceRect.width / 2,
         y: sourceRect.top + sourceRect.height / 2,
       }
-    : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    : {
+        x: typeof window === "undefined" ? 0 : window.innerWidth / 2,
+        y: typeof window === "undefined" ? 0 : window.innerHeight / 2,
+      };
 
   return (
     <div
