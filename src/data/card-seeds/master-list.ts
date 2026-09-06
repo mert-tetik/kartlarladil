@@ -4893,4 +4893,13 @@ export const masterCardEntries = [
   ["try to do","B1","word","phrase","/traɪ tə duː/","yapmaya çalış","try to do","versuchen zu tun","постарайтесь сделать","essayer de faire","intentar hacer","tentare di fare","tentar fazer","proberen te doen","spróbować zrobić","حاول أن يفعل","しようとする","하려고 하다","试图去做"],
   ["used to","B1","word","phrase","/juːst tuː/","eskiden","used to","früher","раньше","avait l'habitude de","solía","aveva l'abitudine di","costumava","vroeger","kiedyś","كان يفعل عادة","以前は","예전에","过去经常"],
   ["be used to","B1","word","phrase","/biː juːst tuː/","alışkın olmak","be used to","daran gewöhnt sein","привыкнуть к","être habitué à","estar acostumbrado a","essere abituato a","estar habituado a","eraan gewend zijn aan","przyzwyczaić się do","معتاد على","慣れている","익숙하다","习惯于"],
+  ["grape","A1","word","noun","greyip","üzüm","grape","Traube","виноград","raisin","uva","uva","uva","druif","winogrono","عنب","ぶどう","포도","葡萄"],
+  ["strawberry","A1","word","noun","stroberi","çilek","strawberry","Erdbeere","клубника","fraise","fresa","fragola","morango","aardbei","truskawka","فراولة","いちご","딸기","草莓"],
+  ["blueberry","A2","word","noun","bluberi","yaban mersini","blueberry","Heidelbeere","черника","myrtille","arándano","mirtillo","mirtilo","blauwe bes","borówka","توت أزرق","ブルーベリー","블루베리","蓝莓"],
+  ["watermelon","A1","word","noun","vatırmelon","karpuz","watermelon","Wassermelone","арбуз","pastèque","sandía","anguria","melancia","watermeloen","arbuz","بطيخ","すいか","수박","西瓜"],
+  ["pineapple","A2","word","noun","paynepıl","ananas","pineapple","Ananas","ананас","ananas","piña","ananas","abacaxi","ananas","ananas","أناناس","パイナップル","파인애플","菠萝"],
+  ["mango","A1","word","noun","mengo","mango","mango","Mango","манго","mangue","mango","mango","manga","mango","mango","مانجو","マンゴー","망고","芒果"],
+  ["peach","A1","word","noun","piich","şeftali","peach","Pfirsich","персик","pêche","melocotón","pesca","pêssego","perzik","brzoskwinia","خوخ","もも","복숭아","桃"],
+  ["pear","A1","word","noun","per","armut","pear","Birne","груша","poire","pera","pera","pera","peer","gruszka","كمثرى","なし","배","梨"],
+  ["cherry","A1","word","noun","çeri","kiraz","cherry","Kirsche","вишня","cerise","cereza","ciliegia","cereja","kers","wiśnia","كرز","さくらんぼ","체리","樱桃"],
 ] as const satisfies readonly CardSeedRow[];

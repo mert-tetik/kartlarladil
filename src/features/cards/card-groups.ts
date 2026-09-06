@@ -85,41 +85,52 @@ const group = <T extends CardGroupIcon>(
 
 export const CARD_GROUPS: readonly CardGroupDefinition[] = [
   group("school", [
-    "school", "student", "teacher", "class", "lesson", "book", "exam", "homework",
-    "university", "college", "library", "study", "learn", "subject", "course",
+    "school", "student", "teacher", "class", "classroom", "lesson", "book", "exam", "homework",
+    "university", "college", "library", "study", "learn", "subject", "course", "principal", "pupil",
+    "professor", "campus", "notebook", "pencil", "pen",
   ]),
   group("business", [
     "business", "company", "office", "meeting", "manager", "customer", "client", "job",
-    "work", "career", "project", "team", "salary", "market", "contract",
+    "work", "career", "project", "team", "salary", "market", "contract", "employee", "employer",
+    "department", "director", "boss", "staff", "finance", "profit", "trade", "industry",
   ]),
   group("restaurant", [
     "restaurant", "menu", "waiter", "table", "order", "bill", "dish", "meal",
-    "breakfast", "lunch", "dinner", "coffee", "water", "food",
+    "breakfast", "lunch", "dinner", "coffee", "water", "food", "chef", "cook", "kitchen",
+    "fork", "spoon", "plate", "recipe", "reservation", "receipt",
   ]),
   group("shopping", [
     "shop", "store", "buy", "sell", "price", "cost", "money", "cash", "card", "market",
-    "customer", "size", "clothes",
+    "customer", "size", "clothes", "mall", "basket", "receipt", "discount", "sale", "cheap",
+    "expensive", "online",
   ]),
-  group("fruits", ["apple", "banana", "orange", "lemon", "fruit", "tomato"]),
+  group("fruits", [
+    "apple", "banana", "orange", "lemon", "fruit", "tomato", "grape", "strawberry", "blueberry",
+    "watermelon", "pineapple", "mango", "peach", "pear", "cherry",
+  ]),
   group("months", [
     "january", "february", "march", "april", "may", "june", "july", "august",
     "september", "october", "november", "december",
   ]),
   group("travel", [
     "travel", "trip", "journey", "ticket", "train", "airport", "hotel", "passport",
-    "map", "tourist", "vacation", "flight", "station", "beach",
+    "map", "tourist", "vacation", "flight", "station", "beach", "border", "guide", "destination",
+    "departure", "arrival", "visa",
   ]),
   group("home", [
     "home", "house", "room", "kitchen", "bathroom", "bedroom", "door", "window", "table",
-    "chair", "bed", "wall", "floor", "garden", "key",
+    "chair", "bed", "wall", "floor", "garden", "key", "apartment", "lamp", "shelf", "roof",
+    "ceiling", "furniture",
   ]),
   group("health", [
     "health", "doctor", "hospital", "medicine", "pain", "head", "hand", "foot", "heart",
-    "body", "sick", "ill", "exercise", "sleep", "blood",
+    "body", "sick", "ill", "exercise", "sleep", "blood", "nurse", "patient", "treatment",
+    "symptom", "fever", "disease", "temperature",
   ]),
   group("technology", [
     "computer", "phone", "internet", "website", "email", "message", "screen", "keyboard",
-    "software", "program", "file", "password", "camera", "video", "technology",
+    "software", "program", "file", "password", "camera", "video", "technology", "app", "data",
+    "network", "battery", "browser", "download", "cloud", "code", "database",
   ]),
   group("emotions", [
     "emotion", "feeling", "happy", "sad", "angry", "afraid", "excited", "surprised", "worried",

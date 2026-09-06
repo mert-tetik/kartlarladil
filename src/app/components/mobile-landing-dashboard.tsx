@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -157,28 +157,11 @@ export function MobileLandingDashboard() {
   const tutorialCardSessionRef = useRef<{
     layer: TutorialCardLayer;
     language: LanguageCode;
-    cardAdded: boolean;
-    cardAddPending: boolean;
   } | null>(null);
 
   useEffect(() => {
     selectedLanguageRef.current = selectedLanguage;
   }, [selectedLanguage]);
-
-  const markTutorialCardAdded = useCallback((layer: TutorialCardLayer) => {
-    const session = tutorialCardSessionRef.current;
-    if (session?.layer === layer) {
-      session.cardAdded = true;
-      session.cardAddPending = false;
-    }
-  }, []);
-
-  const markTutorialCardAddStarted = useCallback((layer: TutorialCardLayer) => {
-    const session = tutorialCardSessionRef.current;
-    if (session?.layer === layer) {
-      session.cardAddPending = true;
-    }
-  }, []);
 
   useEffect(() => {
     function handleLayerOpened(event: Event) {
@@ -188,8 +171,6 @@ export function MobileLandingDashboard() {
       tutorialCardSessionRef.current = {
         layer: detail.layer,
         language: selectedLanguageRef.current,
-        cardAdded: false,
-        cardAddPending: false,
       };
     }
 
@@ -199,9 +180,15 @@ export function MobileLandingDashboard() {
       if (!detail?.layer || !session || session.layer !== detail.layer) return;
 
       tutorialCardSessionRef.current = null;
-      if (session.cardAdded || session.cardAddPending) return;
+      const currentCards = useInventoryStore.getState().cards;
+      const hasLearningCards = filterInventoryCards({
+        cards: currentCards,
+        language: session.language,
+        status: "active",
+      }).length > 0;
+      if (hasLearningCards) return;
 
-      const existingIds = new Set(useInventoryStore.getState().cards.map((card) => card.cardId));
+      const existingIds = new Set(currentCards.map((card) => card.cardId));
       const automaticCardIds = VOCABULARY_CARDS
         .filter((card) => card.language === session.language && card.tier === "A1")
         .filter((card) => !existingIds.has(card.id) && !existingIds.has(card.sourceKey))
@@ -863,24 +850,18 @@ export function MobileLandingDashboard() {
         language={selectedLanguage}
         onClose={() => setSwipeDeckOpen(false)}
         onSubscriptionLimitReached={handleCardLimitReached}
-        onCardAddStarted={() => markTutorialCardAddStarted("draw-cards")}
-        onCardAdded={() => markTutorialCardAdded("draw-cards")}
       />
       <MobileCustomCardSheet
         open={customCardOpen}
         onClose={() => setCustomCardOpen(false)}
         landingLanguage={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
-        onCardAddStarted={() => markTutorialCardAddStarted("custom-card")}
-        onCardAdded={() => markTutorialCardAdded("custom-card")}
       />
       <MobileCardGroupSheet
         open={groupCardOpen}
         onClose={() => setGroupCardOpen(false)}
         language={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
-        onCardAddStarted={() => markTutorialCardAddStarted("card-groups")}
-        onCardAdded={() => markTutorialCardAdded("card-groups")}
       />
 
       <MobileGemDetailsSheet

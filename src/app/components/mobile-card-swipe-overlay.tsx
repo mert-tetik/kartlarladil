@@ -27,7 +27,7 @@ const PRELOAD_DECK_SIZE = 5;
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
 
-export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached, onCardAdded, onCardAddStarted }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; onCardAdded?: () => void; onCardAddStarted?: () => void }) {
+export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
   const { locale } = useLocale();
   const t = useT();
   const inventory = useInventoryStore((state) => state.cards);
@@ -169,9 +169,6 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     setIncoming("waiting");
     setIncomingDirection(direction);
     const addedCardId = direction === "add" ? card.sourceKey : null;
-    if (addedCardId) {
-      onCardAddStarted?.();
-    }
     dragPosition.current = { x: 0, y: 0 };
     queuedDragPosition.current = { x: 0, y: 0 };
     swipeFeedbackRef.current = null;
@@ -244,8 +241,6 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         .then((result) => {
           if (result.limitReached) {
             onSubscriptionLimitReached?.("free_active_card_limit");
-          } else if (result.ok) {
-            onCardAdded?.();
           }
         })
         .catch(() => undefined);

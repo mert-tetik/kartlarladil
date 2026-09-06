@@ -11,10 +11,15 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { InventoryCard, SubscriptionPlan } from "@/types/domain";
+import {
+  dispatchTutorialCardLayerClosed,
+  dispatchTutorialCardLayerOpened,
+} from "@/features/tutorial/tutorial-card-session";
 
 const {
   consumePlayReviewEligibilityMock,
   hasPlayReviewEligibilityMock,
+  addCardsMock,
   inventoryCardsMock,
   isTwaModeMock,
   refreshEntitlementsMock,
@@ -25,6 +30,7 @@ const {
 } = vi.hoisted(() => ({
   consumePlayReviewEligibilityMock: vi.fn(),
   hasPlayReviewEligibilityMock: vi.fn(),
+  addCardsMock: vi.fn(),
   inventoryCardsMock: { value: [] as InventoryCard[] },
   isTwaModeMock: { value: false },
   refreshEntitlementsMock: vi.fn(),
@@ -94,20 +100,29 @@ vi.mock("@/lib/twa-analytics", () => ({
   requestGooglePlayReview: requestGooglePlayReviewMock,
 }));
 
-vi.mock("@/features/inventory/inventory-store", () => ({
-  useInventoryStore: (selector: (state: {
-    cards: InventoryCard[];
-    hydrated: boolean;
-    pendingCardIds: Set<string>;
-    removeCard: () => Promise<void>;
-  }) => unknown) =>
-    selector({
-      cards: inventoryCardsMock.value,
-      hydrated: true,
-      pendingCardIds: new Set<string>(),
-      removeCard: vi.fn(async () => {}),
-    }),
-}));
+vi.mock("@/features/inventory/inventory-store", () => {
+  const useInventoryStore = Object.assign(
+    (selector: (state: {
+      cards: InventoryCard[];
+      addCards: typeof addCardsMock;
+      hydrated: boolean;
+      pendingCardIds: Set<string>;
+      removeCard: () => Promise<void>;
+    }) => unknown) =>
+      selector({
+        cards: inventoryCardsMock.value,
+        addCards: addCardsMock,
+        hydrated: true,
+        pendingCardIds: new Set<string>(),
+        removeCard: vi.fn(async () => {}),
+      }),
+    {
+      getState: () => ({ cards: inventoryCardsMock.value }),
+    },
+  );
+
+  return { useInventoryStore };
+});
 
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
@@ -117,6 +132,14 @@ describe("MobileLandingDashboard language sync", () => {
     });
     window.localStorage.clear();
     inventoryCardsMock.value = [];
+    addCardsMock.mockReset();
+    addCardsMock.mockResolvedValue({
+      ok: true,
+      firstCardAdded: true,
+      addedCardIds: ["starter-card"],
+      remainingCardIds: [],
+      limitReached: false,
+    });
     isTwaModeMock.value = false;
     hasPlayReviewEligibilityMock.mockReset();
     hasPlayReviewEligibilityMock.mockReturnValue(false);
@@ -170,6 +193,36 @@ describe("MobileLandingDashboard language sync", () => {
     const landingLanguageButton = document.querySelector<HTMLButtonElement>("[data-mobile-landing-card-language]");
     expect(landingLanguageButton).not.toBeNull();
     expect(within(landingLanguageButton!).getByText(getLanguageDisplayName("en", "tr"))).toBeInTheDocument();
+  });
+
+  it("adds starter cards only when the selected language has no learning cards", async () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 10, y: 10 } });
+    dispatchTutorialCardLayerClosed({ layer: "draw-cards" });
+
+    await waitFor(() => expect(addCardsMock).toHaveBeenCalledOnce());
+    expect(addCardsMock.mock.calls[0][0]).toHaveLength(3);
+
+    addCardsMock.mockClear();
+    const learningCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1");
+    expect(learningCard).toBeDefined();
+    inventoryCardsMock.value = [{
+      cardId: learningCard!.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-09-06T00:00:00.000Z",
+    }];
+
+    dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 10, y: 10 } });
+    dispatchTutorialCardLayerClosed({ layer: "draw-cards" });
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(addCardsMock).not.toHaveBeenCalled();
   });
 
   it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {

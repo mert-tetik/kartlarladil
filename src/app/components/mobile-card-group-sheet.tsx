@@ -26,8 +26,6 @@ interface MobileCardGroupSheetProps {
   onClose: () => void;
   language: LanguageCode;
   onSubscriptionLimitReached?: (errorCode: LimitErrorCode, details?: ActiveCardLimitDetails) => void;
-  onCardAdded?: () => void;
-  onCardAddStarted?: () => void;
 }
 
 export function MobileCardGroupSheet({
@@ -35,8 +33,6 @@ export function MobileCardGroupSheet({
   onClose,
   language,
   onSubscriptionLimitReached,
-  onCardAdded,
-  onCardAddStarted,
 }: MobileCardGroupSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -81,7 +77,6 @@ export function MobileCardGroupSheet({
 
     setAddingGroupId(groupId);
     setErrorGroupId(null);
-    onCardAddStarted?.();
 
     try {
       const result = await addCards(cardIds);
@@ -92,7 +87,6 @@ export function MobileCardGroupSheet({
       }
 
       if (result.addedCardIds.length > 0) {
-        onCardAdded?.();
         setAddedCounts((current) => ({ ...current, [groupId]: result.addedCardIds.length }));
       }
 
@@ -144,7 +138,6 @@ export function MobileCardGroupSheet({
 
     setAddingCardId(cardId);
     setErrorGroupId(null);
-    onCardAddStarted?.();
 
     try {
       const result = await addCards([cardId]);
@@ -156,8 +149,6 @@ export function MobileCardGroupSheet({
 
       if (result.limitReached) {
         onSubscriptionLimitReached?.("free_active_card_limit");
-      } else if (result.addedCardIds.length > 0) {
-        onCardAdded?.();
       }
     } catch {
       setErrorGroupId(groupId);

@@ -57518,3 +57518,49 @@ export const CARD_PRONUNCIATIONS: Record<string, string> = {
   "zh-CN:C1:word:yield:noun": "chan liang",
   "zh-CN:C1:word:youngster:noun": "qing nian ren",
 };
+
+// Manually maintained additions for the expanded card groups.
+const MANUAL_CARD_PRONUNCIATIONS = {
+  grape: {
+    tier: "A1",
+    pronunciations: { tr: "greyip", en: "greyip", de: "traube", ru: "vinagrad", fr: "rezen", es: "uva", it: "uva", pt: "uva", nl: "droyf", pl: "vinogrono", ar: "anab", ja: "budo", ko: "podo", "zh-CN": "putao" },
+  },
+  strawberry: {
+    tier: "A1",
+    pronunciations: { tr: "chilek", en: "stroberi", de: "ertbeere", ru: "klubnika", fr: "frez", es: "fresa", it: "fragola", pt: "morango", nl: "aardbei", pl: "truskafka", ar: "faravla", ja: "ichigo", ko: "ttalgi", "zh-CN": "tsaomei" },
+  },
+  blueberry: {
+    tier: "A2",
+    pronunciations: { tr: "yaban mersini", en: "bluberi", de: "haydelbeere", ru: "chernika", fr: "mirtil", es: "arandano", it: "mirtillo", pt: "mirtilo", nl: "blavve bes", pl: "borufka", ar: "tut azrak", ja: "buruuberi", ko: "beoluberi", "zh-CN": "lanmey" },
+  },
+  watermelon: {
+    tier: "A1",
+    pronunciations: { tr: "karpuz", en: "vatırmelon", de: "vasırmelone", ru: "arbuz", fr: "potesk", es: "sandia", it: "anguria", pt: "melansiya", nl: "vatırmeloen", pl: "arbuz", ar: "batih", ja: "suika", ko: "subak", "zh-CN": "shigua" },
+  },
+  pineapple: {
+    tier: "A2",
+    pronunciations: { tr: "ananas", en: "paynepıl", de: "ananas", ru: "ananas", fr: "ananas", es: "pina", it: "ananas", pt: "abakashi", nl: "ananas", pl: "ananas", ar: "ananas", ja: "painappuru", ko: "painepeul", "zh-CN": "boluo" },
+  },
+  mango: {
+    tier: "A1",
+    pronunciations: { tr: "mango", en: "mengo", de: "mango", ru: "mango", fr: "mang", es: "mango", it: "mango", pt: "manga", nl: "mango", pl: "mango", ar: "manjo", ja: "mango", ko: "mango", "zh-CN": "mangguo" },
+  },
+  peach: {
+    tier: "A1",
+    pronunciations: { tr: "sheftali", en: "piich", de: "pfirtsich", ru: "persik", fr: "pesh", es: "melokoton", it: "peska", pt: "pesegu", nl: "perzik", pl: "bshkovinya", ar: "hoh", ja: "momo", ko: "poksunaga", "zh-CN": "tao" },
+  },
+  pear: {
+    tier: "A1",
+    pronunciations: { tr: "armut", en: "per", de: "birne", ru: "grusha", fr: "puar", es: "pera", it: "pera", pt: "pera", nl: "per", pl: "grushka", ar: "kumetra", ja: "nashi", ko: "bae", "zh-CN": "li" },
+  },
+  cherry: {
+    tier: "A1",
+    pronunciations: { tr: "kiraz", en: "cheri", de: "kirshe", ru: "vishnya", fr: "seriz", es: "seresa", it: "chiliedja", pt: "serisha", nl: "kers", pl: "vishnya", ar: "karaz", ja: "sakuranbo", ko: "cheri", "zh-CN": "yingtao" },
+  },
+} as const;
+
+for (const [englishKey, entry] of Object.entries(MANUAL_CARD_PRONUNCIATIONS)) {
+  for (const [language, pronunciation] of Object.entries(entry.pronunciations)) {
+    CARD_PRONUNCIATIONS[`${language}:${entry.tier}:word:${englishKey}:noun`] = pronunciation;
+  }
+}
