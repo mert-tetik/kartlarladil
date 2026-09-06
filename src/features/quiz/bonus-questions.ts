@@ -130,6 +130,27 @@ export function getBonusCopy(locale: LocaleCode) {
   return BONUS_COPY[locale] ?? BONUS_COPY.en;
 }
 
+export const MATCHING_COLUMN_COPY: Record<LocaleCode, { terms: string; meanings: string }> = {
+  tr: { terms: "Kelimeler", meanings: "Anlamlar" },
+  en: { terms: "Words", meanings: "Meanings" },
+  de: { terms: "Wörter", meanings: "Bedeutungen" },
+  ru: { terms: "Слова", meanings: "Значения" },
+  fr: { terms: "Mots", meanings: "Significations" },
+  es: { terms: "Palabras", meanings: "Significados" },
+  it: { terms: "Parole", meanings: "Significati" },
+  pt: { terms: "Palavras", meanings: "Significados" },
+  nl: { terms: "Woorden", meanings: "Betekenissen" },
+  pl: { terms: "Słowa", meanings: "Znaczenia" },
+  ar: { terms: "كلمات", meanings: "معانٍ" },
+  ja: { terms: "単語", meanings: "意味" },
+  ko: { terms: "단어", meanings: "뜻" },
+  "zh-CN": { terms: "单词", meanings: "含义" },
+};
+
+export function getMatchingColumnCopy(locale: LocaleCode) {
+  return MATCHING_COLUMN_COPY[locale] ?? MATCHING_COLUMN_COPY.en;
+}
+
 export function buildMatchingBonusQuestion(
   cards: VocabularyCard[],
   uiLocale: LocaleCode,

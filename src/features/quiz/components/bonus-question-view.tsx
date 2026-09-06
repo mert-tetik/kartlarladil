@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import {
   getBonusCopy,
+  getMatchingColumnCopy,
   type BonusQuestion,
   type CategorySortBonusQuestion,
   type ImposterBonusQuestion,
@@ -20,7 +21,7 @@ import {
 import { ScoreIcon } from "@/components/score-icon";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -151,13 +152,13 @@ export function BonusQuestionView({
         </span>
         <h2
           className={cn(
-            "text-2xl font-semibold text-foreground sm:text-3xl",
+            "text-2xl font-semibold text-white sm:text-3xl",
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
           {formatSuperWaterText(locale, getBonusTitle(copy, question.kind))}
         </h2>
-        <p className="text-sm font-medium text-foreground-muted">
+        <p className="text-sm font-medium text-white">
           {getBonusPrompt(copy, question.kind)}
         </p>
       </div>
@@ -221,6 +222,9 @@ function MatchingBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
+  const { locale } = useLocale();
+  const usesSuperWater = canUseSuperWater(locale);
+  const columnCopy = getMatchingColumnCopy(locale);
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
@@ -292,9 +296,9 @@ function MatchingBonus({
 
         return [{
           id: `${termId}-${meaningId}`,
-          x1: termRect.right - boardRect.left,
+          x1: termRect.right - boardRect.left - termRect.width * MATCHING_CONNECTOR_INSET_RATIO,
           y1: termRect.top + termRect.height / 2 - boardRect.top,
-          x2: meaningRect.left - boardRect.left,
+          x2: meaningRect.left - boardRect.left + meaningRect.width * MATCHING_CONNECTOR_INSET_RATIO,
           y2: meaningRect.top + meaningRect.height / 2 - boardRect.top,
           color,
         }];
@@ -335,7 +339,11 @@ function MatchingBonus({
         ))}
       </svg>
 
-      <div className="relative z-10 flex flex-col gap-2">
+      <div className="relative z-10 flex min-w-0 flex-col items-center gap-2">
+        <h3 className={cn("h-6 w-full text-center text-sm font-bold leading-6 text-white", usesSuperWater && "font-super-water")}>
+          {formatSuperWaterUppercaseText(locale, columnCopy.terms)}
+        </h3>
+        <div className="flex w-full flex-col items-center gap-3">
          {question.terms.map((pair) => {
            const matched = Boolean(matches[pair.id]);
            const correct = showingAnswer && matches[pair.id] === pair.id;
@@ -350,7 +358,7 @@ function MatchingBonus({
               onClick={() => selectTerm(pair.id)}
               style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
               ref={(element) => { termRefs.current[pair.id] = element; }}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
+              className={cn("w-[calc(100%-0.5rem)] min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
               data-bonus-term={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -358,8 +366,13 @@ function MatchingBonus({
             </button>
           );
         })}
+        </div>
       </div>
-      <div className="relative z-10 flex flex-col gap-2">
+      <div className="relative z-10 flex min-w-0 flex-col items-center gap-2">
+        <h3 className={cn("h-6 w-full text-center text-sm font-bold leading-6 text-white", usesSuperWater && "font-super-water")}>
+          {formatSuperWaterUppercaseText(locale, columnCopy.meanings)}
+        </h3>
+        <div className="flex w-full flex-col items-center gap-3">
         {question.meanings.map((pair) => {
           const pairedTermId = Object.entries(matches).find(([, meaningId]) => meaningId === pair.id)?.[0];
           const correct = showingAnswer && pairedTermId === pair.id;
@@ -375,7 +388,7 @@ function MatchingBonus({
               onClick={() => selectMeaning(pair.id)}
               style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
               ref={(element) => { meaningRefs.current[pair.id] = element; }}
-              className={cn("min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", selected && "-translate-y-0.5 ring-2 ring-brand", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
+              className={cn("w-[calc(100%-0.5rem)] min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", selected && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
               data-bonus-meaning={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -383,6 +396,7 @@ function MatchingBonus({
             </button>
           );
         })}
+        </div>
       </div>
       <div className="relative z-10 col-span-2">
         <BonusCheckButton
@@ -794,16 +808,21 @@ function BonusCheckButton({
         hidden={showingAnswer}
         onClick={onSkip}
       />
-      <Button
-        type="button"
-        disabled={disabled || showingAnswer}
-        onClick={onClick}
-        className="quiz-action-scale min-w-0 flex-[1.45] bg-brand text-brand-foreground hover:bg-brand-hover"
+      <div
+        className="quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]"
         data-quiz-action-hidden={showingAnswer}
-        data-bonus-check
       >
-        {copy.check}
-      </Button>
+        <Button
+          type="button"
+          disabled={disabled || showingAnswer}
+          onClick={onClick}
+          className="quiz-action-scale w-full bg-brand text-brand-foreground hover:bg-brand-hover"
+          data-quiz-action-hidden={showingAnswer}
+          data-bonus-check
+        >
+          {copy.check}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -943,6 +962,8 @@ const MATCHING_PAIR_COLORS = [
   { background: "#ef4444", foreground: "#ffffff" },
   { background: "#eab308", foreground: "#111827" },
 ] as const;
+
+const MATCHING_CONNECTOR_INSET_RATIO = 0.18;
 
 function getBonusTitle(copy: ReturnType<typeof getBonusCopy>, kind: BonusQuestion["kind"]) {
   if (kind === "matching") return copy.matchingTitle;

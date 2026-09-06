@@ -18,16 +18,21 @@ export function QuizSkipButton({
   const t = useT();
 
   return (
-    <Button
-      type="button"
-      variant="danger"
-      className={cn("quiz-action-scale bg-rose-500 text-white hover:bg-rose-600", className)}
-      data-quiz-skip
+    <div
+      className={cn("quiz-action-depth quiz-action-depth--skip w-full min-w-0", className)}
       data-quiz-action-hidden={hidden}
-      disabled={disabled || hidden}
-      onClick={onClick}
     >
-      {t("cards.skip")}
-    </Button>
+      <Button
+        type="button"
+        variant="danger"
+        className="quiz-action-scale w-full bg-rose-500 text-white hover:bg-rose-600"
+        data-quiz-skip
+        data-quiz-action-hidden={hidden}
+        disabled={disabled || hidden}
+        onClick={onClick}
+      >
+        {t("cards.skip")}
+      </Button>
+    </div>
   );
 }

@@ -1004,6 +1004,52 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   pointer-events: none;
 }
 
+/* Quiz actions share the same darker offset base as the landing primary actions. */
+.quiz-action-depth {
+  isolation: isolate;
+  position: relative;
+  overflow: visible;
+  border-radius: 0.375rem;
+}
+
+.quiz-action-depth::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  border-radius: inherit;
+  background: var(--quiz-action-depth-color, var(--brand));
+  filter: brightness(0.72) saturate(1.06);
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+.quiz-action-depth > :is(a, button) {
+  position: relative;
+  z-index: 1;
+  box-shadow: none !important;
+}
+
+.quiz-action-depth--skip {
+  --quiz-action-depth-color: #f43f5e;
+}
+
+.quiz-action-depth--reroll {
+  --quiz-action-depth-color: #22c987;
+}
+
+.quiz-action-depth--check {
+  --quiz-action-depth-color: var(--brand);
+}
+
+.quiz-action-depth[data-quiz-action-hidden="true"] {
+  pointer-events: none;
+}
+
+.quiz-action-depth[data-quiz-action-hidden="true"]::after {
+  transform: translateY(6px) scale(0);
+}
+
 .animate-quiz-card-progress-reveal {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }

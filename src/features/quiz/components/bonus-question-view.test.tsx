@@ -45,7 +45,12 @@ describe("BonusQuestionView", () => {
     const meaning = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-meaning="${id}"]`)!;
 
     fireEvent.click(meaning("a"));
+    expect(meaning("a")).toHaveClass("ring-2", "ring-brand");
+    expect(term("a")).not.toHaveClass("ring-2", "ring-brand");
     fireEvent.click(meaning("b"));
+    expect(meaning("a")).not.toHaveClass("ring-2", "ring-brand");
+    expect(meaning("b")).toHaveClass("ring-2", "ring-brand");
+    expect(term("b")).not.toHaveClass("ring-2", "ring-brand");
     fireEvent.click(term("b"));
     fireEvent.click(meaning("a"));
     fireEvent.click(term("a"));

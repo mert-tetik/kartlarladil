@@ -117,6 +117,7 @@ import {
   getChestPreviewPairForCount,
   getChestLabelKey,
   getChestRewardPoints,
+  CHEST_TIER_TEXT_CLASSES,
   type ChestTier,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
@@ -145,7 +146,11 @@ import {
   getRankLabel,
 } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import {
+  canUseSuperWater,
+  formatSuperWaterText,
+  formatSuperWaterUppercaseText,
+} from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -1903,7 +1908,7 @@ export function QuizStation({
         >
           {isCardFirstQuestion ? (
             <p
-              className="order-1 mt-6 text-center text-sm font-semibold text-foreground-muted max-lg:text-white lg:hidden"
+              className="order-1 mt-6 text-center text-sm font-semibold text-white lg:hidden"
               data-quiz-mobile-prompt
             >
               {item.questionType === "true-false"
@@ -1984,6 +1989,7 @@ export function QuizStation({
                   rerollAction={rerollAction}
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
+                  isFirstQuestion={currentIndex === 0}
                 />
               ) : item.questionType === "true-false" ? (
                 <TrueFalseQuestion
@@ -2511,6 +2517,7 @@ export function CountSelection({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const useSuperWater = canUseSuperWater(locale);
   const showChestTiers = mode === "active";
   const languageName = getLanguageDisplayName(language, locale);
   const [launch, setLaunch] = useState<CountLaunch | null>(null);
@@ -2674,6 +2681,7 @@ export function CountSelection({
               className={cn(
                 "flex flex-col items-center justify-center gap-1 border border-white/10 p-4 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
                 colorClass,
+                useSuperWater && "font-super-water",
                 selectedCount === count &&
                   "ring-inset ring-2 ring-white/30 brightness-110",
                 launch && launch.count !== count && "relative z-[80] pointer-events-none disabled:opacity-100",
@@ -2690,7 +2698,7 @@ export function CountSelection({
               }
             >
               <span className="text-xs font-medium uppercase tracking-wide opacity-80">
-                {t("quiz.countLabel")}
+                {formatSuperWaterUppercaseText(locale, t("quiz.countLabel"))}
               </span>
               <span className="text-4xl font-bold sm:text-5xl">{count}</span>
               {showChestTiers && previewPair ? (
@@ -2698,10 +2706,13 @@ export function CountSelection({
                   {previewPair.map((tier) => (
                     <span
                       key={tier}
-                      className="flex items-center gap-1 text-xs font-semibold"
+                      className={cn(
+                        "flex items-center gap-1 text-xs font-semibold",
+                        CHEST_TIER_TEXT_CLASSES[tier],
+                      )}
                     >
                       <ChestIcon tier={tier} className="size-4 shrink-0" />
-                      {t(getChestLabelKey(tier))}
+                      {formatSuperWaterText(locale, t(getChestLabelKey(tier)))}
                     </span>
                   ))}
                 </div>
@@ -2714,7 +2725,11 @@ export function CountSelection({
         ? createPortal(
             <div
               aria-hidden="true"
-              className={cn("pointer-events-none fixed z-[70] flex flex-col items-center justify-center gap-1 border border-white/10 text-center text-white animate-quiz-count-cover", launch.colorClass)}
+              className={cn(
+                "pointer-events-none fixed z-[70] flex flex-col items-center justify-center gap-1 border border-white/10 text-center text-white animate-quiz-count-cover",
+                launch.colorClass,
+                useSuperWater && "font-super-water",
+              )}
               style={{
                 left: launch.left,
                 top: launch.top,
@@ -2729,14 +2744,22 @@ export function CountSelection({
               } as CSSProperties}
             >
               <div className="animate-quiz-count-cover-copy flex flex-col items-center justify-center gap-1">
-                <span className="text-xs font-medium uppercase tracking-wide opacity-80">{t("quiz.countLabel")}</span>
+                <span className="text-xs font-medium uppercase tracking-wide opacity-80">
+                  {formatSuperWaterUppercaseText(locale, t("quiz.countLabel"))}
+                </span>
                 <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
                 {launch.chestTiers ? (
                   <div className="mt-1 flex flex-col items-center gap-1">
                     {launch.chestTiers.map((tier) => (
-                      <span key={tier} className="flex items-center gap-1 text-xs font-semibold">
+                      <span
+                        key={tier}
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-semibold",
+                          CHEST_TIER_TEXT_CLASSES[tier],
+                        )}
+                      >
                         <ChestIcon tier={tier} className="size-4 shrink-0" />
-                        {t(getChestLabelKey(tier))}
+                        {formatSuperWaterText(locale, t(getChestLabelKey(tier)))}
                       </span>
                     ))}
                   </div>
@@ -2913,25 +2936,27 @@ function QuizRerollButton({
   const t = useT();
 
   return (
-    <button
-      type="button"
-      onClick={action.onReroll}
-      disabled={action.disabled || hidden}
-      className={cn(
-        "quiz-action-scale inline-flex h-10 min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35",
-        className,
-      )}
-      aria-label={t("quiz.rerollQuestion")}
+    <div
+      className={cn("quiz-action-depth quiz-action-depth--reroll w-full min-w-0 flex-1", className)}
       data-quiz-action-hidden={hidden}
-      data-quiz-reroll
     >
-      {action.loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
-      <span className="min-w-0">{t("quiz.rerollQuestion")}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5">
-        {GEM_COSTS.rerollQuestion.amount}
-        <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
-      </span>
-    </button>
+      <button
+        type="button"
+        onClick={action.onReroll}
+        disabled={action.disabled || hidden}
+        className="quiz-action-scale inline-flex h-10 min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+        aria-label={t("quiz.rerollQuestion")}
+        data-quiz-action-hidden={hidden}
+        data-quiz-reroll
+      >
+        {action.loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
+        <span className="min-w-0">{t("quiz.rerollQuestion")}</span>
+        <span className="inline-flex shrink-0 items-center gap-0.5">
+          {GEM_COSTS.rerollQuestion.amount}
+          <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -2990,7 +3015,7 @@ function ListeningQuestion({
       className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
       data-quiz-question-content="listening"
     >
-      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
+      <p className="text-center text-sm font-semibold text-white">
         {t("quiz.listeningPrompt")}
       </p>
 
@@ -3100,7 +3125,7 @@ function ChoiceQuestion({
       {showPrompt ? (
         <p
           className={cn(
-            "text-center text-sm font-semibold text-foreground-muted max-lg:text-white",
+            "text-center text-sm font-semibold text-white",
             promptClassName,
           )}
         >
@@ -3117,7 +3142,7 @@ function ChoiceQuestion({
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
         </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
+        <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
           {item.card.term}
         </h2>
       </div>
@@ -3181,6 +3206,7 @@ function DefinitionQuestion({
   rerollAction,
   onNext,
   showNextButton = true,
+  isFirstQuestion = false,
 }: {
   item: DefinitionQuizItem;
   showingAnswer: boolean;
@@ -3189,16 +3215,62 @@ function DefinitionQuestion({
   rerollAction?: QuizRerollAction;
   onNext: () => void;
   showNextButton?: boolean;
+  isFirstQuestion?: boolean;
 }) {
+  const { locale } = useLocale();
   const t = useT();
   const question = item.question;
+  const isMobileViewport = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 1024,
+    () => false,
+  );
+  const [splashDone, setSplashDone] = useState(false);
+  const [splashColor] = useState(
+    () => CHOICE_OPTION_COLORS[Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)],
+  );
+  const skipSplash = isFirstQuestion;
+
+  useEffect(() => {
+    if (!isMobileViewport || skipSplash) {
+      setSplashDone(true);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setSplashDone(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [isMobileViewport, skipSplash]);
 
   return (
-    <div
-      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
-      data-quiz-question-content="definition"
-    >
-      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
+    <>
+      {!skipSplash && isMobileViewport && !splashDone
+        ? createPortal(
+            <div
+              className={cn(
+                "pointer-events-none fixed inset-0 z-[60] flex items-center justify-center animate-learning-quiz-splash lg:hidden",
+                splashColor,
+              )}
+              data-learning-quiz-splash
+              aria-hidden="true"
+            >
+              <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
+                {t("quiz.learningQuizSplash")}
+              </span>
+            </div>,
+            document.body,
+          )
+        : null}
+      <div
+        className={cn(
+          "animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8",
+          splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
+        )}
+        data-quiz-question-content="definition"
+      >
+      <p className="text-center text-sm font-semibold text-white">
         {t("quiz.definitionPrompt")}
       </p>
 
@@ -3212,7 +3284,7 @@ function DefinitionQuestion({
         >
           <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
         </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
+        <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
           {item.card.term}
         </h2>
       </div>
@@ -3261,7 +3333,8 @@ function DefinitionQuestion({
           {t("quiz.nextCard")}
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -3351,7 +3424,9 @@ function SentenceCompletionQuestion({
       className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 max-lg:translate-y-3 lg:gap-4 lg:p-8"
       data-quiz-question-content="sentence-completion"
     >
-      <p className="text-center text-sm font-semibold text-foreground-muted max-lg:text-white">
+      {mobileCard ? <div className="-my-1 flex items-center justify-center lg:hidden">{mobileCard}</div> : null}
+
+      <p className="text-center text-sm font-semibold text-white">
         {t("quiz.sentenceCompletionPrompt")}
       </p>
 
@@ -3368,7 +3443,7 @@ function SentenceCompletionQuestion({
         <div className="relative min-h-20 flex-1 rounded-lg bg-background-card px-4 py-3 text-left before:absolute before:-left-1.5 before:top-5 before:size-3 before:rotate-45 before:bg-background-card">
           <p className="relative text-xs font-semibold text-foreground-muted max-lg:text-white/80">{characterName}</p>
           <p
-            className="relative mt-1 text-lg font-semibold leading-relaxed text-foreground max-lg:text-white sm:text-xl"
+            className="relative mt-1 text-lg font-semibold leading-relaxed text-white sm:text-xl"
             data-quiz-sentence
           >
             {question.sentenceWithBlank}
@@ -3423,8 +3498,6 @@ function SentenceCompletionQuestion({
           );
         })}
       </div>
-
-      {mobileCard ? <div className="-my-1 flex items-center justify-center lg:hidden">{mobileCard}</div> : null}
 
       <QuizQuestionActionRow
         skipDisabled={showingAnswer || isAiValidating}
@@ -3497,7 +3570,7 @@ function TrueFalseQuestion({
       {showPrompt ? (
         <p
           className={cn(
-            "text-center text-sm font-semibold text-foreground-muted max-lg:text-white",
+            "text-center text-sm font-semibold text-white",
             promptClassName,
           )}
         >
@@ -3511,7 +3584,7 @@ function TrueFalseQuestion({
         </p>
         <div className="flex w-full items-center justify-center rounded-lg border border-border bg-background-card px-4 py-5 sm:px-5 sm:py-6">
           <p
-            className="text-center text-2xl font-semibold leading-snug text-foreground max-lg:text-white sm:text-3xl lg:text-4xl"
+            className="text-center text-2xl font-semibold leading-snug text-white sm:text-3xl lg:text-4xl"
             data-quiz-true-false-meaning
           >
             {`${item.card.term} = ${question.proposedMeaning}`}
@@ -3676,11 +3749,11 @@ function TextQuestion({
         )}
         data-quiz-question-content="text"
       >
-        <p className="text-center text-sm font-semibold text-[var(--accent-primary)] max-lg:text-white">
+        <p className="text-center text-sm font-semibold text-white">
           {t("quiz.learningPrompt")}
         </p>
         <div className="flex items-center justify-center">
-          <h2 className="font-display text-3xl font-semibold leading-none text-foreground max-lg:text-white sm:text-4xl lg:text-6xl">
+          <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
             {getCardTranslation(item.card, locale)}
           </h2>
         </div>
@@ -3751,21 +3824,26 @@ function TextQuestion({
             data-quiz-question-actions
             data-quiz-reroll-action
           >
-            <Button
-              className="quiz-action-scale w-full"
+            <div
+              className="quiz-action-depth quiz-action-depth--check w-full"
               data-quiz-action-hidden={showingAnswer}
-              onClick={handleSubmit}
-              disabled={textAnswer.trim().length === 0 || isAiValidating || showingAnswer}
             >
-              {isAiValidating ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                  {t("quiz.aiValidating")}
-                </>
-              ) : (
-                t("quiz.submitAnswer")
-              )}
-            </Button>
+              <Button
+                className="quiz-action-scale w-full"
+                data-quiz-action-hidden={showingAnswer}
+                onClick={handleSubmit}
+                disabled={textAnswer.trim().length === 0 || isAiValidating || showingAnswer}
+              >
+                {isAiValidating ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                    {t("quiz.aiValidating")}
+                  </>
+                ) : (
+                  t("quiz.submitAnswer")
+                )}
+              </Button>
+            </div>
             <div className="flex w-full gap-2">
               <QuizSkipButton
                 className="min-w-0 flex-[0.8]"
