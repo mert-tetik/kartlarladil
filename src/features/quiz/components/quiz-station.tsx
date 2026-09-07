@@ -216,6 +216,9 @@ const QUIZ_COUNT_BUTTON_COLORS = [
   "bg-blue-500",
 ] as const;
 
+const COUNT_INTRO_HOLD_DURATION_MS = 1000;
+const COUNT_INTRO_EXIT_DURATION_MS = 500;
+
 function getQuizCountButtonColor(count: number) {
   const index = QUIZ_COUNT_OPTIONS.findIndex((option) => option === count);
   return QUIZ_COUNT_BUTTON_COLORS[index >= 0 ? index : 0];
@@ -2521,9 +2524,26 @@ export function CountSelection({
   const showChestTiers = mode === "active";
   const languageName = getLanguageDisplayName(language, locale);
   const [launch, setLaunch] = useState<CountLaunch | null>(null);
+  const [introPhase, setIntroPhase] = useState<CountIntroPhase>("intro");
   const [scatterMotion, setScatterMotion] = useState<Record<number, CountScatterMotion>>({});
   const launchTimerRef = useRef<number | null>(null);
   const scatterFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const closeTimer = window.setTimeout(
+      () => setIntroPhase("closing"),
+      COUNT_INTRO_HOLD_DURATION_MS,
+    );
+    const readyTimer = window.setTimeout(
+      () => setIntroPhase("ready"),
+      COUNT_INTRO_HOLD_DURATION_MS + COUNT_INTRO_EXIT_DURATION_MS,
+    );
+
+    return () => {
+      window.clearTimeout(closeTimer);
+      window.clearTimeout(readyTimer);
+    };
+  }, []);
 
   useEffect(
     () => () => {
@@ -2641,30 +2661,46 @@ export function CountSelection({
   return (
     <div
       data-quiz-count-selection
+      data-quiz-count-ready={introPhase === "ready" ? "true" : undefined}
       data-quiz-count-launching={launch ? "true" : undefined}
       className={cn(
-        "animate-screen-pop mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-background-card max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0",
+        "relative isolate flex h-full min-h-[calc(100dvh-var(--app-header-height))] w-full flex-col overflow-hidden bg-background-card",
         launch && "overflow-visible",
       )}
     >
-      <div className="flex flex-col items-center justify-center bg-black px-5 py-4 text-center text-white max-lg:px-4 max-lg:py-3">
-        <h2 className="text-base font-semibold sm:text-lg">
-          {t("quiz.chooseCountTitle")}
-        </h2>
-        <p className="text-xs font-medium opacity-90 sm:text-sm">
-          {t("quiz.countAvailable", {
-            language: languageName,
-            count: availableCount,
-          })}
-        </p>
-        {locked ? (
-          <p className="mt-2 text-xs font-medium opacity-90 sm:text-sm">
-            {t("quiz.loadingDescription")}
-          </p>
-        ) : null}
-      </div>
+      {introPhase !== "ready" ? (
+        <div
+          data-quiz-count-intro
+          className={cn(
+            "quiz-count-intro fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center px-6 text-center text-white",
+            mode === "active" ? "bg-action-learn" : "bg-action-learned",
+            useSuperWater && "font-super-water",
+            introPhase === "closing" && "quiz-count-intro--closing",
+          )}
+        >
+          <div className="flex w-full max-w-4xl flex-col items-center gap-5 sm:gap-7">
+            <h2 className="max-w-4xl text-[clamp(2.75rem,8vw,6.5rem)] font-bold leading-[0.95]">
+              {formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
+            </h2>
+            <p className="max-w-3xl text-[clamp(1.25rem,3.2vw,2.5rem)] font-semibold leading-tight text-white/95">
+              {formatSuperWaterText(
+                locale,
+                t("quiz.countAvailable", {
+                  language: languageName,
+                  count: availableCount,
+                }),
+              )}
+            </p>
+            {locked ? (
+              <p className="text-base font-semibold text-white/90 sm:text-xl">
+                {formatSuperWaterText(locale, t("quiz.loadingDescription"))}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
-      <div className="grid flex-1 grid-cols-2">
+      {introPhase === "ready" ? <div className="quiz-count-grid-enter relative grid min-h-0 flex-1 grid-cols-2">
         {QUIZ_COUNT_OPTIONS.map((count) => {
           const disabled = locked || Boolean(launch) || count > availableCount;
           const previewPair = showChestTiers
@@ -2679,7 +2715,7 @@ export function CountSelection({
               disabled={disabled}
               onClick={(event) => handleSelect(count, colorClass, event.currentTarget)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 border border-white/10 p-4 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40",
+                "flex flex-col items-center justify-center gap-1 border border-white/10 p-6 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 sm:p-8",
                 colorClass,
                 useSuperWater && "font-super-water",
                 selectedCount === count &&
@@ -2697,21 +2733,21 @@ export function CountSelection({
                   : undefined
               }
             >
-              <span className="text-xs font-medium uppercase tracking-wide opacity-80">
-                {formatSuperWaterUppercaseText(locale, t("quiz.countLabel"))}
-              </span>
-              <span className="text-4xl font-bold sm:text-5xl">{count}</span>
+                <span className="inline-block translate-y-2 text-lg font-medium uppercase tracking-wide opacity-85 sm:translate-y-3 sm:text-2xl">
+                  {formatSuperWaterUppercaseText(locale, t("quiz.countLabel"))}
+                </span>
+              <span className="inline-block translate-y-2 text-7xl font-bold leading-none sm:translate-y-3 sm:text-9xl">{count}</span>
               {showChestTiers && previewPair ? (
-                <div className="mt-1 flex flex-col items-center gap-1">
+                <div className="mt-5 flex w-full translate-y-3 items-start justify-center gap-1 sm:mt-7 sm:translate-y-5 sm:gap-3">
                   {previewPair.map((tier) => (
                     <span
                       key={tier}
                       className={cn(
-                        "flex items-center gap-1 text-xs font-semibold",
+                        "flex w-1/2 max-w-40 flex-col items-center justify-start gap-2 text-center text-base font-semibold leading-tight sm:max-w-56 sm:gap-3 sm:text-2xl",
                         CHEST_TIER_TEXT_CLASSES[tier],
                       )}
                     >
-                      <ChestIcon tier={tier} className="size-4 shrink-0" />
+                      <ChestIcon tier={tier} className="size-14 shrink-0 sm:size-24" />
                       {formatSuperWaterText(locale, t(getChestLabelKey(tier)))}
                     </span>
                   ))}
@@ -2720,7 +2756,24 @@ export function CountSelection({
             </button>
           );
         })}
-      </div>
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 z-30 flex size-[clamp(7rem,18vw,10rem)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#121212] bg-[url('/quiz/black_button.png')] bg-contain bg-center bg-no-repeat text-white shadow-sm"
+          data-quiz-learning-count
+          aria-label={`${formatNumber(locale, availableCount)} ${t("quiz.countLabel")}`}
+        >
+          <span className="flex items-center gap-2 text-[clamp(1.5rem,4vw,2.75rem)] font-bold leading-none">
+            {formatNumber(locale, availableCount)}
+            <Image
+              src="/quiz/cards_icon.png"
+              alt=""
+              width={128}
+              height={128}
+              className="size-[clamp(1.75rem,4.5vw,3.25rem)] shrink-0 object-contain"
+              aria-hidden="true"
+            />
+          </span>
+        </div>
+      </div> : null}
       {launch
         ? createPortal(
             <div
@@ -2744,21 +2797,21 @@ export function CountSelection({
               } as CSSProperties}
             >
               <div className="animate-quiz-count-cover-copy flex flex-col items-center justify-center gap-1">
-                <span className="text-xs font-medium uppercase tracking-wide opacity-80">
+                <span className="inline-block translate-y-2 text-lg font-medium uppercase tracking-wide opacity-85 sm:translate-y-3 sm:text-2xl">
                   {formatSuperWaterUppercaseText(locale, t("quiz.countLabel"))}
                 </span>
-                <span className="text-4xl font-bold sm:text-5xl">{launch.count}</span>
+                <span className="inline-block translate-y-2 text-7xl font-bold leading-none sm:translate-y-3 sm:text-9xl">{launch.count}</span>
                 {launch.chestTiers ? (
-                  <div className="mt-1 flex flex-col items-center gap-1">
+                  <div className="mt-5 flex w-full translate-y-3 items-start justify-center gap-1 sm:mt-7 sm:translate-y-5 sm:gap-3">
                     {launch.chestTiers.map((tier) => (
                       <span
                         key={tier}
                         className={cn(
-                          "flex items-center gap-1 text-xs font-semibold",
+                          "flex w-1/2 max-w-40 flex-col items-center justify-start gap-2 text-center text-base font-semibold leading-tight sm:max-w-56 sm:gap-3 sm:text-2xl",
                           CHEST_TIER_TEXT_CLASSES[tier],
                         )}
                       >
-                        <ChestIcon tier={tier} className="size-4 shrink-0" />
+                        <ChestIcon tier={tier} className="size-14 shrink-0 sm:size-24" />
                         {formatSuperWaterText(locale, t(getChestLabelKey(tier)))}
                       </span>
                     ))}
@@ -2796,6 +2849,8 @@ type CountLaunch = {
     floorY: number;
   }>;
 };
+
+type CountIntroPhase = "intro" | "closing" | "ready";
 
 type CountScatterMotion = {
   x: number;
