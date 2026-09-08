@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Image, { type StaticImageData } from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
 import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
 import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
@@ -121,7 +121,11 @@ function SelectedGameContent({
   "aria-hidden": ariaHidden,
 }: SelectedGameContentProps) {
   return (
-    <div className={cn("flex w-full flex-col items-center", className)} aria-hidden={ariaHidden}>
+    <div
+      className={cn("flex w-full flex-col items-center", className)}
+      aria-hidden={ariaHidden}
+      data-route-transition-surface
+    >
       <div className="mb-2 max-w-md text-center">
         <h2 className={cn("font-display text-[clamp(2rem,8vw,3.25rem)] font-semibold leading-[0.95] text-white", superWaterFont && "font-super-water")}>
           {formatSuperWaterText(locale, t(game.titleKey))}
@@ -155,6 +159,7 @@ function SelectedGameContent({
 }
 
 export function GamesList() {
+  const router = useRouter();
   const t = useT();
   const { locale } = useLocale();
   const searchParams = useSearchParams();
@@ -193,6 +198,12 @@ export function GamesList() {
     const landingLanguage = readLandingCardLanguage() ?? locale;
     setSelectedLanguage(landingLanguage);
   }, [locale, setSelectedLanguage]);
+
+  useEffect(() => {
+    // Keep the existing game launch cover, but warm the destination route
+    // before the user taps Play.
+    router.prefetch(selectedGame.href);
+  }, [router, selectedGame.href]);
 
   useEffect(() => {
     return () => {
@@ -352,7 +363,7 @@ export function GamesList() {
             )}
           </div>
 
-          <div className="mt-4 flex w-full max-w-md items-center justify-center gap-3">
+          <div className="mt-4 flex w-full max-w-md items-center justify-center gap-3" data-route-transition-surface>
             <button
               type="button"
               onClick={() => {

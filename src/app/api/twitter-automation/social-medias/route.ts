@@ -30,8 +30,8 @@ type SocialMediaRow = {
   description: string | null;
 };
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioSession(request.headers.get("cookie"));
 }
 
 function toDatabaseRow(value: z.infer<typeof accountFieldsSchema>) {
@@ -44,7 +44,7 @@ function toDatabaseRow(value: z.infer<typeof accountFieldsSchema>) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   try {
     const supabase = createSupabaseAdminClient();
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_social_media" }, { status: 400 });
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   const parsed = updateSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_social_media" }, { status: 400 });
@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   const parsed = deleteSchema.safeParse({ id: request.nextUrl.searchParams.get("id") });
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_social_media_id" }, { status: 400 });

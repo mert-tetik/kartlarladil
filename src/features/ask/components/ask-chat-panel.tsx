@@ -544,7 +544,7 @@ function ChatHeader() {
   const { locale } = useLocale();
 
   return (
-    <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4">
+    <header className="flex shrink-0 items-center gap-3 border-b border-border p-3 sm:p-4" data-route-transition-surface>
       <div className="relative size-12 shrink-0">
         <Image src="/mascots/mascot14.webp" alt="FoxiesDeck" fill sizes="48px" className="object-contain" priority />
       </div>
@@ -592,6 +592,7 @@ function MessageList({
       ref={refObject}
       className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto p-3 sm:p-5"
       data-ask-chat-scroll="true"
+      data-route-transition-surface
     >
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
@@ -777,6 +778,7 @@ function ChatComposer({
       onSubmit={onSubmit}
       className="border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
+      data-route-transition-surface
     >
       <div className="mx-auto w-full max-w-5xl max-lg:max-w-full">
         <div

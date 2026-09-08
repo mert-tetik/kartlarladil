@@ -103,14 +103,15 @@ export function checkLimit(
 }
 
 function normalizeSubscription(row: UserSubscriptionRow | null): UserSubscription {
-  const isGooglePlaySubscription = row?.provider === "google_play";
-  const plan = isGooglePlaySubscription ? normalizeSubscriptionPlan(row?.plan) : "free";
-  const status = isGooglePlaySubscription ? normalizeSubscriptionStatus(row?.status) : "free";
+  const provider = row?.provider === "admin" ? "admin" : "google_play";
+  const isEntitlementProvider = row?.provider === "google_play" || row?.provider === "admin";
+  const plan = isEntitlementProvider ? normalizeSubscriptionPlan(row?.plan) : "free";
+  const status = isEntitlementProvider ? normalizeSubscriptionStatus(row?.status) : "free";
 
   return {
     plan,
     status,
-    provider: "google_play",
+    provider,
     displayName: row?.display_name ?? null,
     customerPortalUrl: row?.customer_portal_url ?? null,
     googlePlayPurchaseToken: row?.google_play_purchase_token ?? null,

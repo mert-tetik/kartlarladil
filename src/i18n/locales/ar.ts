@@ -433,6 +433,8 @@ const dictionary = {
   "pricing.featurePrioritySupportDescription": "احصل على مساعدة أسرع كلما احتجت إليها.",
   "pricing.featureThemesDescription": "خصص مجموعتك باستخدام سمة ألوان تناسبك.",
   "pricing.mobileFeatureUnlimitedAccess": "أزل حدود البطاقات، واحصل على وصول غير محدود إلى الألعاب، واحصل على المزيد من الرسائل عند التحدث مع الشخصيات.",
+  "pricing.previousFeature": "الميزة السابقة",
+  "pricing.nextFeature": "الميزة التالية",
   "pricing.firstMonthFree": "الشهر الأول مجاني",
   "pricing.firstMonthFreeBanner": "الشهر الأول مجاني على جميع الاشتراكات",
   "pricing.free": "مجاني",

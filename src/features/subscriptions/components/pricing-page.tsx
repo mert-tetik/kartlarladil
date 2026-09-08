@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -136,7 +138,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           </div>
 
           <div className="hidden animate-screen-pop lg:block">
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center" data-route-transition-surface>
           <h1 className={cn("font-display text-4xl font-semibold text-white md:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("pricing.title"))}
           </h1>
@@ -150,7 +152,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           ) : null}
         </div>
 
-        <div className="relative z-10 mt-8 flex justify-center">
+        <div className="relative z-10 mt-8 flex justify-center" data-route-transition-surface>
           <BillingCycleToggle cycle={cycle} onChange={setCycle} />
         </div>
 
@@ -416,6 +418,7 @@ function PricingCard({
   return (
     <div
       data-pricing-card={plan}
+      data-route-transition-surface
       className={cn(
         "relative flex flex-col rounded-xl border border-border bg-background-card p-6 text-foreground",
         containerClassName,
@@ -895,6 +898,7 @@ function MobilePricingPerkCarousel({
   const activeRenderIndexRef = useRef<number>(MOBILE_PERK_ARTWORK.length);
   const activeIndexRef = useRef<number>(0);
   const initializedRef = useRef(false);
+  const programmaticScrollUntilRef = useRef(0);
   const settleTimerRef = useRef<number | null>(null);
   const [highlightRenderIndex, setHighlightRenderIndex] = useState<number>(MOBILE_PERK_ARTWORK.length);
 
@@ -940,6 +944,30 @@ function MobilePricingPerkCarousel({
     track.scrollTo({ left: nextScrollLeft, behavior });
   }, []);
 
+  const moveToAdjacentCard = useCallback((direction: -1 | 1) => {
+    const total = MOBILE_PERK_ARTWORK.length;
+    const middleCopyStart = total;
+    const middleCopyEnd = total * 2 - 1;
+    const currentIndex = activeRenderIndexRef.current;
+    const fallbackIndex = middleCopyStart + ((activeIndexRef.current + direction + total) % total);
+    const targetIndex = currentIndex + direction < middleCopyStart || currentIndex + direction > middleCopyEnd
+      ? fallbackIndex
+      : currentIndex + direction;
+    const normalizedTargetIndex = ((targetIndex % total) + total) % total;
+
+    activeRenderIndexRef.current = targetIndex;
+    activeIndexRef.current = normalizedTargetIndex;
+    programmaticScrollUntilRef.current = window.performance.now() + 800;
+    setHighlightRenderIndex(targetIndex);
+
+    if (initializedRef.current) {
+      vibrate("tap");
+      playSoundEffect("pricing-perk-select");
+    }
+
+    centerCard(targetIndex, "smooth");
+  }, [centerCard]);
+
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
@@ -962,6 +990,7 @@ function MobilePricingPerkCarousel({
     const handleScroll = () => {
       const nearestIndex = getNearestCardIndex();
       if (nearestIndex < 0) return;
+      if (window.performance.now() < programmaticScrollUntilRef.current) return;
 
       const normalizedIndex = ((nearestIndex % MOBILE_PERK_ARTWORK.length) + MOBILE_PERK_ARTWORK.length) % MOBILE_PERK_ARTWORK.length;
       if (activeRenderIndexRef.current !== nearestIndex) {
@@ -1016,65 +1045,87 @@ function MobilePricingPerkCarousel({
   }, [centerCard, getNearestCardIndex]);
 
   return (
-    <div
-      ref={trackRef}
-      className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-[calc(100%+2rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      data-mobile-pricing-perks
-      aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
-    >
-      <div className="flex h-full w-max snap-x snap-mandatory gap-3 px-[14vw]">
-        {LOOPED_MOBILE_PERK_ARTWORK.map((perk, renderIndex) => {
-          const index = renderIndex % MOBILE_PERK_ARTWORK.length;
-          const isHighlighted = renderIndex === highlightRenderIndex;
-          const description = perk.id === "practice"
-            ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
-            : perk.id === "scenario-ai"
-              ? t("pricing.featureAiScenariosDescription", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
-            : t(perk.descriptionKey);
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => moveToAdjacentCard(-1)}
+        className="absolute left-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white/90 backdrop-blur-sm transition-[background-color,transform] hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
+        aria-label={t("pricing.previousFeature")}
+        data-pricing-perk-previous
+      >
+        <ChevronLeft className="h-7 w-7 pricing-perk-arrow-left" strokeWidth={2.5} aria-hidden="true" />
+      </button>
 
-          return (
-            <article
-              key={`${perk.id}-${renderIndex}`}
-              ref={(element) => {
-                cardRefs.current[renderIndex] = element;
-              }}
-              data-perk-index={index}
-              data-highlighted={isHighlighted ? "true" : "false"}
-              className={cn(
-                "relative h-full w-[72vw] max-w-[19rem] snap-center snap-always rounded-[2rem] bg-[var(--pricing-mobile-surface)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                isHighlighted ? "z-20 scale-100 opacity-100" : "z-0 scale-[0.86] opacity-55",
-              )}
-            >
-              <Image
-                src={perk.image}
-                alt=""
-                fill
-                priority={renderIndex === MOBILE_PERK_ARTWORK.length}
-                sizes="72vw"
+      <div
+        ref={trackRef}
+        className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-[calc(100%+2rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-mobile-pricing-perks
+        aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
+      >
+        <div className="flex h-full w-max snap-x snap-mandatory gap-3 px-[14vw]">
+          {LOOPED_MOBILE_PERK_ARTWORK.map((perk, renderIndex) => {
+            const index = renderIndex % MOBILE_PERK_ARTWORK.length;
+            const isHighlighted = renderIndex === highlightRenderIndex;
+            const description = perk.id === "practice"
+              ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
+              : perk.id === "scenario-ai"
+                ? t("pricing.featureAiScenariosDescription", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
+                : t(perk.descriptionKey);
+
+            return (
+              <article
+                key={`${perk.id}-${renderIndex}`}
+                ref={(element) => {
+                  cardRefs.current[renderIndex] = element;
+                }}
+                data-perk-index={index}
+                data-highlighted={isHighlighted ? "true" : "false"}
                 className={cn(
-                  "rounded-[2rem] object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  isHighlighted ? "scale-100 opacity-100" : "scale-[0.9] opacity-45 grayscale-[0.2]",
+                  "relative h-full w-[72vw] max-w-[19rem] snap-center snap-always rounded-[2rem] bg-[var(--pricing-mobile-surface)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  isHighlighted ? "z-20 scale-100 opacity-100" : "z-0 scale-[0.86] opacity-55",
                 )}
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-[2rem] [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
-              />
-              <div className="relative z-10 flex h-full min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
-                <h2
+              >
+                <Image
+                  src={perk.image}
+                  alt=""
+                  fill
+                  priority={renderIndex === MOBILE_PERK_ARTWORK.length}
+                  sizes="72vw"
                   className={cn(
-                    "text-xl font-semibold leading-none text-white transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    canUseSuperWater(locale) && "font-super-water",
+                    "rounded-[2rem] object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    isHighlighted ? "scale-100 opacity-100" : "scale-[0.9] opacity-45 grayscale-[0.2]",
                   )}
-                >
-                  {formatSuperWaterText(locale, t(perk.titleKey))}
-                </h2>
-                <p className="mt-2 max-w-[16rem] text-xs leading-4 text-white/80">{description}</p>
-              </div>
-            </article>
-          );
-        })}
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-[2rem] [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
+                />
+                <div className="relative z-10 flex h-full min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
+                  <h2
+                    className={cn(
+                      "text-xl font-semibold leading-none text-white transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      canUseSuperWater(locale) && "font-super-water",
+                    )}
+                  >
+                    {formatSuperWaterText(locale, t(perk.titleKey))}
+                  </h2>
+                  <p className="mt-2 max-w-[16rem] text-xs leading-4 text-white/80">{description}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => moveToAdjacentCard(1)}
+        className="absolute right-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white/90 backdrop-blur-sm transition-[background-color,transform] hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
+        aria-label={t("pricing.nextFeature")}
+        data-pricing-perk-next
+      >
+        <ChevronRight className="h-7 w-7 pricing-perk-arrow-right" strokeWidth={2.5} aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -1210,6 +1261,7 @@ function MobilePricingView({
         <header
           className="shrink-0 text-center"
           data-mobile-pricing-heading
+          data-route-transition-surface
           style={{
             transform: "translateY(clamp(-3rem, calc((26.8125rem - 50dvh) * 0.5), 3rem))",
           }}
@@ -1222,7 +1274,7 @@ function MobilePricingView({
           </p>
         </header>
 
-        <div className="flex min-h-0 w-full min-w-0 shrink-0 items-center">
+        <div className="flex min-h-0 w-full min-w-0 shrink-0 items-center" data-route-transition-surface>
           <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
         </div>
       </div>
@@ -1284,7 +1336,7 @@ function MobilePricingView({
           })}
         </div>
 
-      <div className="mt-2">
+      <div className="mt-2" data-route-transition-surface>
         <MobileBillingCycleToggle
           cycle={selectedOption.cycle}
           yearlyDiscountRate={yearlyDiscountRate}
@@ -1292,7 +1344,7 @@ function MobilePricingView({
         />
       </div>
 
-      <div className="mt-3 shrink-0">
+      <div className="mt-3 shrink-0" data-route-transition-surface>
         {isCurrentPlan ? (
           <CurrentPlanButton className="h-14 rounded-2xl border-0 bg-[var(--pricing-mobile-surface)] text-base text-white" />
         ) : !user ? (
@@ -1314,7 +1366,7 @@ function MobilePricingView({
         )}
       </div>
 
-      <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-[10px] text-white/45">
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-[10px] text-white/45" data-route-transition-surface>
         <Link href="/terms" className="underline underline-offset-2">{t("pricing.consentTerms")}</Link>
         <Link href="/privacy" className="underline underline-offset-2">{t("pricing.consentPrivacy")}</Link>
       </div>

@@ -224,7 +224,7 @@ function createImagePrompt(mode: ImageMode, imagePlan: AiImagePlan) {
     "MANDATORY EASY-TO-CONFUSE FACTS. Render these exact facts and do not replace, translate, or invent terms:",
     `- First selected-learning-language term: \"${pair.firstTerm}\". It means: \"${pair.firstMeaning}\".`,
     `- Second selected-learning-language term: \"${pair.secondTerm}\". It means: \"${pair.secondMeaning}\".`,
-    "Use the exact heading: EASY TO CONFUSE. Use the exact subheading: SIMILAR MEANING • DIFFERENT NUANCE.",
+    "Use the exact heading: EASY TO CONFUSE. Use the exact subheading: SIMILAR MEANING â€¢ DIFFERENT NUANCE.",
     "Show exactly two separate, equally prominent panels in the selected learning language, one per term, with its nuance visibly attached to the correct term. Do not show the native-language word as a second vocabulary term.",
     "Never render 'NOT a false friend', 'What does ... mean?', a cross-language translation pair, lookalike words, interchangeable synonyms, or a CEFR tier badge. These are comparison panels, not A1/A2/B1/B2 cards.",
   ].join("\n");
@@ -246,7 +246,7 @@ function createImageCaption(mode: ImageMode, language: LanguageCode, nativeLangu
 }
 
 export async function POST(request: Request) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) {
     return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   }
 

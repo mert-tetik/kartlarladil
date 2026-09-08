@@ -31,7 +31,6 @@ import {
 import {
   PLANS,
   TWA_PLANS,
-  getReferenceUsdPrice,
 } from "@/features/subscriptions/components/pricing-page";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -58,34 +57,21 @@ export function MobileSubscriptionOfferScreen({
   const plans = isTwa ? TWA_PLANS : PLANS;
   const basicPlan = plans.find((item) => item.plan === "basic");
   const fallbackPrice = cycle === "yearly" ? basicPlan?.yearlyPrice : basicPlan?.monthlyPrice;
-  const referenceUsdPrice = getReferenceUsdPrice("basic", cycle, isTwa);
   const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, "basic", cycle);
   const localized = getLocalizedPrice(localizedPricing, "basic", cycle);
-
-  const showIntroOffer =
-    isTwa && cycle === "monthly" && googlePlayDetails?.hasIntroductoryOffer;
 
   const priceDisplay = useMemo(() => {
     if (googlePlayDetails) {
       const amount = Number.parseFloat(googlePlayDetails.price.value);
-      return {
-        primary: formatCurrency(amount, googlePlayDetails.price.currency, locale),
-        original: referenceUsdPrice !== null ? `USD $${referenceUsdPrice}` : "",
-      };
+      return formatCurrency(amount, googlePlayDetails.price.currency, locale);
     }
 
     if (localized) {
-      return {
-        primary: formatCurrency(localized.amount, localized.currencyCode, locale),
-        original: referenceUsdPrice !== null ? `USD $${referenceUsdPrice}` : "",
-      };
+      return formatCurrency(localized.amount, localized.currencyCode, locale);
     }
 
-    return {
-      primary: fallbackPrice != null ? `$${fallbackPrice}` : "",
-      original: "",
-    };
-  }, [fallbackPrice, googlePlayDetails, localized, referenceUsdPrice, locale]);
+    return fallbackPrice != null ? `$${fallbackPrice}` : "";
+  }, [fallbackPrice, googlePlayDetails, localized, locale]);
 
   const monthlyEquivalent = useMemo(() => {
     if (cycle !== "yearly" || basicPlan?.yearlyPrice == null) return null;
@@ -159,26 +145,16 @@ export function MobileSubscriptionOfferScreen({
       <div className="flex flex-col px-6 pb-8 pt-2">
         <div className="mt-4 flex items-baseline justify-center gap-1">
           <span className="font-display text-5xl font-semibold text-white">
-            {priceDisplay.primary}
+            {priceDisplay}
           </span>
           <span className="text-sm text-white/60">
             {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
           </span>
         </div>
 
-        {priceDisplay.original ? (
-          <p className="text-xs text-white/55">{priceDisplay.original}</p>
-        ) : null}
-
         {cycle === "yearly" && monthlyEquivalent ? (
           <p className="mt-1 text-xs text-emerald-600">
             {t("pricing.monthlyEquivalent", { price: monthlyEquivalent })}
-          </p>
-        ) : null}
-
-        {showIntroOffer ? (
-          <p className="mt-2 text-sm font-bold uppercase text-brand">
-            {t("pricing.firstMonthFree")}
           </p>
         ) : null}
 

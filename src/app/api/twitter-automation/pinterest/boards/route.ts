@@ -11,7 +11,7 @@ const querySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) {
     return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   }
 

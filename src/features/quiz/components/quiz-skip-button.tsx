@@ -19,13 +19,17 @@ export function QuizSkipButton({
 
   return (
     <div
-      className={cn("quiz-action-depth quiz-action-depth--skip w-full min-w-0", className)}
+      className={cn(
+        "quiz-action-depth quiz-action-depth--skip w-full min-w-0",
+        (disabled || hidden) && "quiz-action-depth--locked",
+        className,
+      )}
       data-quiz-action-hidden={hidden}
     >
       <Button
         type="button"
         variant="danger"
-        className="quiz-action-scale w-full bg-rose-500 text-white hover:bg-rose-600"
+        className="quiz-action-scale w-full bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-100"
         data-quiz-skip
         data-quiz-action-hidden={hidden}
         disabled={disabled || hidden}

@@ -213,6 +213,19 @@ export function MobileLandingDashboard() {
   }, [router]);
 
   useEffect(() => {
+    if (!user || !hydrated) {
+      return;
+    }
+
+    // The learning buttons use an action handler instead of a Link because
+    // they also enforce card-count and entitlement rules. Prefetch both
+    // destinations while the landing dashboard is idle so that the server
+    // route request is already warm when the user taps either action.
+    router.prefetch(`/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`);
+    router.prefetch(`/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`);
+  }, [hydrated, router, selectedLanguage, user]);
+
+  useEffect(() => {
     if (!isTwa || !hydrated || cards.length < 10 || !hasPlayReviewEligibility()) {
       return;
     }
@@ -443,6 +456,7 @@ export function MobileLandingDashboard() {
   }
 
   function handleMissionNavigate(target: MissionNavigationTarget) {
+    router.prefetch(getMissionNavigationHref(target, true));
     setPendingMissionNavigation(target);
     setMissionsPanelOpen(false);
   }
@@ -607,6 +621,7 @@ export function MobileLandingDashboard() {
         className="absolute left-2 top-[4.75rem] z-40 flex flex-col items-center gap-2"
         aria-label="Gem counters"
         data-mobile-gem-counters
+        data-route-transition-surface
       >
         {MOBILE_GEM_COUNTERS.map((gem) => (
           <button
@@ -696,6 +711,7 @@ export function MobileLandingDashboard() {
           flex: rankLayoutHeight === null ? undefined : "none",
         }}
         className="relative isolate z-0 -mx-4 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-hidden rounded-none px-4 pt-2 pb-1 text-white"
+        data-route-transition-surface
       >
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white to-white/50 dark:from-black dark:to-black/50"
@@ -760,7 +776,7 @@ export function MobileLandingDashboard() {
       </button>
 
       {/* Active / Learned row */}
-      <div className="relative mt-2 grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border">
+      <div className="relative mt-2 grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border" data-route-transition-surface>
         <StatusBlock
           title={t("home.mobile.activeCards")}
           count={activeCount}
@@ -780,7 +796,7 @@ export function MobileLandingDashboard() {
       </div>
 
       {/* Action buttons */}
-      <div className="mt-3 flex shrink-0 flex-col gap-3 pb-1">
+      <div className="mt-3 flex shrink-0 flex-col gap-3 pb-1" data-route-transition-surface>
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}

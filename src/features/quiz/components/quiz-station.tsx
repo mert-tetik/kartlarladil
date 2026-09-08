@@ -214,7 +214,7 @@ const QUIZ_COUNT_BUTTON_COLORS = [
   "bg-blue-500",
 ] as const;
 
-const COUNT_INTRO_HOLD_DURATION_MS = 1000;
+const COUNT_INTRO_HOLD_DURATION_MS = 1700;
 const COUNT_BUTTON_STAGGER_DURATION_MS = 100;
 const COUNT_BUTTON_ENTER_DURATION_MS = 680;
 const COUNT_BUTTONS_ENTER_TOTAL_DURATION_MS =
@@ -223,6 +223,7 @@ const COUNT_BUTTONS_ENTER_TOTAL_DURATION_MS =
 const COUNT_CENTER_ENTER_DELAY_MS =
   COUNT_BUTTON_STAGGER_DURATION_MS * QUIZ_COUNT_OPTIONS.length;
 const COUNT_INTRO_EXIT_DURATION_MS = 500;
+const COUNT_SELECTION_COVER_DURATION_MS = 820;
 
 function getQuizCountButtonColor(count: number) {
   const index = QUIZ_COUNT_OPTIONS.findIndex((option) => option === count);
@@ -2160,7 +2161,24 @@ function MobileQuizCard({
     };
   } | null>(null);
   const [isCentered, setIsCentered] = useState(false);
+  const [lockedTapCount, setLockedTapCount] = useState(0);
+  const isMobileViewport = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 1024,
+    () => false,
+  );
   const isFeedbackActive = feedbackStage !== "idle";
+  const isLockedBeforeAnswer = isMobileViewport && face === "back" && !isFeedbackActive;
+
+  function handleLockedCardPress() {
+    if (!isLockedBeforeAnswer) return;
+
+    setLockedTapCount((current) => current + 1);
+    vibrate("incorrect");
+  }
 
   useLayoutEffect(() => {
     if (!slotRef.current) return;
@@ -2277,12 +2295,18 @@ function MobileQuizCard({
 
   const cardFrame = (
     <div
+      key={lockedTapCount}
       className={cn(
         "h-full w-full transform-gpu transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
         // Above the question UI, below every quiz-wide overlay (streak, rewards, results).
         floatingFrame ? "fixed z-20" : "relative",
+        isLockedBeforeAnswer && lockedTapCount > 0 && "animate-quiz-card-locked-shake",
       )}
       data-quiz-card-feedback={feedbackStage}
+      data-quiz-card-locked={isLockedBeforeAnswer ? "true" : "false"}
+      data-quiz-card-locked-tap-count={lockedTapCount}
+      aria-disabled={isLockedBeforeAnswer || undefined}
+      onClick={isLockedBeforeAnswer ? handleLockedCardPress : undefined}
       style={floatingStyle}
     >
       <div
@@ -2700,7 +2724,7 @@ export function CountSelection({
     launchTimerRef.current = window.setTimeout(() => {
       onSelect(count, { count, colorClass, contentScale, chestTiers });
       launchTimerRef.current = null;
-    }, 1180);
+    }, COUNT_SELECTION_COVER_DURATION_MS);
   }
 
   return (
@@ -2783,7 +2807,7 @@ export function CountSelection({
               disabled={disabled}
               onClick={(event) => handleSelect(count, colorClass, event.currentTarget)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 border border-white/10 p-6 text-center text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 sm:p-8",
+                "flex flex-col items-center justify-center gap-1 border border-white/10 p-6 text-center text-white transition-[background-color,border-color,color,filter,opacity] duration-300 ease-out hover:brightness-110 disabled:cursor-not-allowed sm:p-8",
                 colorClass,
                 useSuperWater && "font-super-water",
                 selectedCount === count &&
@@ -3065,14 +3089,18 @@ function QuizRerollButton({
 
   return (
     <div
-      className={cn("quiz-action-depth quiz-action-depth--reroll w-full min-w-0 flex-1", className)}
+      className={cn(
+        "quiz-action-depth quiz-action-depth--reroll w-full min-w-0 flex-1",
+        (action.disabled || hidden) && "quiz-action-depth--locked",
+        className,
+      )}
       data-quiz-action-hidden={hidden}
     >
       <button
         type="button"
         onClick={action.onReroll}
         disabled={action.disabled || hidden}
-        className="quiz-action-scale inline-flex h-10 min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+        className="quiz-action-scale inline-flex h-10 min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-100"
         aria-label={t("quiz.rerollQuestion")}
         data-quiz-action-hidden={hidden}
         data-quiz-reroll
@@ -3819,6 +3847,7 @@ function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question;
+  const checkDisabled = textAnswer.trim().length === 0 || isAiValidating || showingAnswer;
   const isMobileViewport = useSyncExternalStore(
     (callback) => {
       window.addEventListener("resize", callback);
@@ -3953,14 +3982,17 @@ function TextQuestion({
             data-quiz-reroll-action
           >
             <div
-              className="quiz-action-depth quiz-action-depth--check w-full"
+              className={cn(
+                "quiz-action-depth quiz-action-depth--check w-full",
+                checkDisabled && "quiz-action-depth--locked",
+              )}
               data-quiz-action-hidden={showingAnswer}
             >
               <Button
-                className="quiz-action-scale w-full"
+                className="quiz-action-scale w-full disabled:opacity-100"
                 data-quiz-action-hidden={showingAnswer}
                 onClick={handleSubmit}
-                disabled={textAnswer.trim().length === 0 || isAiValidating || showingAnswer}
+                disabled={checkDisabled}
               >
                 {isAiValidating ? (
                   <>

@@ -1,23 +1,34 @@
 import "server-only";
 
 import crypto from "node:crypto";
+import { hasDeveloperAdminRequest } from "@/features/developer/developer-auth";
 
-export const SOCIAL_STUDIO_SESSION_COOKIE = "foxiesdeck:social-studio";
-export const SOCIAL_STUDIO_SESSION_MAX_AGE = 60 * 60 * 12;
 export const AUTOMATION_RENDERER_SESSION_COOKIE = "foxiesdeck:automation-renderer";
 export const AUTOMATION_RENDERER_SESSION_MAX_AGE = 60 * 60 * 12;
+export const SOCIAL_AUTOMATION_INTERNAL_SESSION_COOKIE = "foxiesdeck:automation-internal";
+export const SOCIAL_AUTOMATION_INTERNAL_SESSION_MAX_AGE = 60 * 5;
 
-const ADMIN_USERNAME = "tetikmert";
-const ADMIN_PASSWORD = "m25041979";
-const SESSION_VERSION = "v1";
 const RENDERER_SESSION_VERSION = "renderer-v1";
+const INTERNAL_SESSION_VERSION = "internal-v1";
 
 function getSessionSecret() {
-  return process.env.SOCIAL_STUDIO_AUTH_SECRET?.trim() || "foxiesdeck-social-studio-session-v1";
+  return process.env.SOCIAL_STUDIO_AUTH_SECRET?.trim() ?? "";
 }
 
 function sign(value: string) {
-  return crypto.createHmac("sha256", getSessionSecret()).update(value).digest("base64url");
+  const secret = getSessionSecret();
+  if (!secret) return null;
+  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
+}
+
+function getInternalSessionSecret() {
+  return process.env.SOCIAL_AUTOMATION_INTERNAL_SECRET?.trim() ?? "";
+}
+
+function signInternal(value: string) {
+  const secret = getInternalSessionSecret();
+  if (!secret) return null;
+  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
 function readCookie(cookieHeader: string | null, name: string) {
@@ -31,22 +42,12 @@ function readCookie(cookieHeader: string | null, name: string) {
   return null;
 }
 
-export function isSocialStudioAdminCredentials(username: string, password: string) {
-  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+export async function hasSocialStudioSession(cookieHeader: string | null) {
+  return hasInternalAutomationSession(cookieHeader) || await hasDeveloperAdminRequest(cookieHeader);
 }
 
-export function createSocialStudioSession() {
-  const expiresAt = Math.floor(Date.now() / 1000) + SOCIAL_STUDIO_SESSION_MAX_AGE;
-  const payload = `${SESSION_VERSION}:${expiresAt}`;
-  return `${Buffer.from(payload).toString("base64url")}.${sign(payload)}`;
-}
-
-export function hasSocialStudioSession(cookieHeader: string | null) {
-  return hasSignedSession(cookieHeader, SOCIAL_STUDIO_SESSION_COOKIE, SESSION_VERSION);
-}
-
-function hasSignedSession(cookieHeader: string | null, cookieName: string, version: string) {
-  const session = readCookie(cookieHeader, cookieName);
+function hasInternalAutomationSession(cookieHeader: string | null) {
+  const session = readCookie(cookieHeader, SOCIAL_AUTOMATION_INTERNAL_SESSION_COOKIE);
   if (!session) return false;
 
   const [encodedPayload, receivedSignature, ...rest] = session.split(".");
@@ -59,22 +60,30 @@ function hasSignedSession(cookieHeader: string | null, cookieName: string, versi
     return false;
   }
 
-  const expectedSignature = sign(payload);
+  const expectedSignature = signInternal(payload);
+  if (!expectedSignature) return false;
   const expectedBuffer = Buffer.from(expectedSignature);
   const receivedBuffer = Buffer.from(receivedSignature);
-  if (expectedBuffer.length !== receivedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) {
-    return false;
-  }
+  if (expectedBuffer.length !== receivedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) return false;
 
-  const [payloadVersion, rawExpiresAt] = payload.split(":");
+  const [version, rawExpiresAt] = payload.split(":");
   const expiresAt = Number(rawExpiresAt);
-  return payloadVersion === version && Number.isSafeInteger(expiresAt) && expiresAt > Math.floor(Date.now() / 1000);
+  return version === INTERNAL_SESSION_VERSION && Number.isSafeInteger(expiresAt) && expiresAt > Math.floor(Date.now() / 1000);
+}
+
+export function createSocialAutomationInternalSession() {
+  const secret = getInternalSessionSecret();
+  if (!secret) throw new Error("SOCIAL_AUTOMATION_INTERNAL_SECRET is required for automation workers.");
+  const expiresAt = Math.floor(Date.now() / 1000) + SOCIAL_AUTOMATION_INTERNAL_SESSION_MAX_AGE;
+  const payload = `${INTERNAL_SESSION_VERSION}:${expiresAt}`;
+  return `${Buffer.from(payload).toString("base64url")}.${signInternal(payload)!}`;
 }
 
 export function createAutomationRendererSession(rendererId: string, ownerKey: string) {
+  if (!getSessionSecret()) throw new Error("SOCIAL_STUDIO_AUTH_SECRET is required for automation renderers.");
   const expiresAt = Math.floor(Date.now() / 1000) + AUTOMATION_RENDERER_SESSION_MAX_AGE;
   const payload = `${RENDERER_SESSION_VERSION}:${rendererId}:${ownerKey}:${expiresAt}`;
-  return `${Buffer.from(payload).toString("base64url")}.${sign(payload)}`;
+  return `${Buffer.from(payload).toString("base64url")}.${sign(payload)!}`;
 }
 
 export function getAutomationRendererSession(cookieHeader: string | null) {
@@ -91,6 +100,7 @@ export function getAutomationRendererSession(cookieHeader: string | null) {
   }
 
   const expectedSignature = sign(payload);
+  if (!expectedSignature) return null;
   const expectedBuffer = Buffer.from(expectedSignature);
   const receivedBuffer = Buffer.from(receivedSignature);
   if (expectedBuffer.length !== receivedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) return null;
@@ -105,6 +115,6 @@ export function hasAutomationRendererSession(cookieHeader: string | null) {
   return Boolean(getAutomationRendererSession(cookieHeader));
 }
 
-export function hasSocialStudioAutomationSession(cookieHeader: string | null) {
-  return hasSocialStudioSession(cookieHeader) || hasAutomationRendererSession(cookieHeader);
+export async function hasSocialStudioAutomationSession(cookieHeader: string | null) {
+  return hasAutomationRendererSession(cookieHeader) || await hasSocialStudioSession(cookieHeader);
 }

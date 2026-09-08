@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 type SocialMediaRow = { id: number; "Social Media": string | null; "Account Name": string | null; "upload-post profile username": string | null };
 export async function GET(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
     const supabase = createSupabaseAdminClient();

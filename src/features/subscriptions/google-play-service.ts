@@ -2,23 +2,46 @@ import "server-only";
 
 import { google } from "googleapis";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { SubscriptionPlan, SubscriptionProvider, SubscriptionStatus } from "@/types/domain";
+import type {
+  SubscriptionPlan,
+  SubscriptionProvider,
+  SubscriptionStatus,
+} from "@/types/domain";
 
 const PACKAGE_NAME = process.env.GOOGLE_PLAY_PACKAGE_NAME;
-const SERVICE_ACCOUNT_KEY_JSON = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON;
+const SERVICE_ACCOUNT_KEY_JSON =
+  process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON;
 
-const GOOGLE_PLAY_PLAN_BY_SKU: Record<string, Exclude<SubscriptionPlan, "free">> = {
-  basic_monthly: "basic",
-  basic_yearly: "basic",
-  pro_monthly: "pro",
-  pro_yearly: "pro",
-  "basic-monthly-first-month-free": "basic",
-  "pro-monthly-one-month-free": "pro",
+type GooglePlayBillingCycle = "monthly" | "yearly";
+
+const GOOGLE_PLAY_PRODUCT_BY_SKU: Record<
+  string,
+  {
+    plan: Exclude<SubscriptionPlan, "free">;
+    billingCycle: GooglePlayBillingCycle;
+  }
+> = {
+  basic_monthly: { plan: "basic", billingCycle: "monthly" },
+  basic_yearly: { plan: "basic", billingCycle: "yearly" },
+  pro_monthly: { plan: "pro", billingCycle: "monthly" },
+  pro_yearly: { plan: "pro", billingCycle: "yearly" },
+  "basic-monthly-first-month-free": { plan: "basic", billingCycle: "monthly" },
+  "pro-monthly-one-month-free": { plan: "pro", billingCycle: "monthly" },
 };
+
+interface GooglePlayMoney {
+  currencyCode?: string | null;
+  nanos?: number | null;
+  units?: string | null;
+}
 
 interface GooglePlayLineItem {
   productId?: string | null;
   expiryTime?: string | null;
+  autoRenewingPlan?: {
+    autoRenewEnabled?: boolean | null;
+    recurringPrice?: GooglePlayMoney | null;
+  } | null;
 }
 
 interface GooglePlaySubscriptionV2 {
@@ -31,7 +54,19 @@ interface GooglePlaySubscriptionV2 {
 export interface GooglePlayPublisher {
   purchases: {
     subscriptionsv2: {
-      get: (params: { packageName: string; token: string }) => Promise<{ data: GooglePlaySubscriptionV2 }>;
+      get: (params: {
+        packageName: string;
+        token: string;
+      }) => Promise<{ data: GooglePlaySubscriptionV2 }>;
+      cancel: (params: {
+        packageName: string;
+        token: string;
+        requestBody: {
+          cancellationContext: {
+            cancellationType: "USER_REQUESTED_STOP_RENEWALS";
+          };
+        };
+      }) => Promise<unknown>;
     };
     subscriptions: {
       acknowledge: (params: {
@@ -47,6 +82,9 @@ export interface GooglePlaySubscriptionVerification {
   plan: Exclude<SubscriptionPlan, "free">;
   status: SubscriptionStatus;
   provider: SubscriptionProvider;
+  billingCycle: GooglePlayBillingCycle;
+  autoRenewEnabled: boolean;
+  recurringPrice: { amount: number; currencyCode: string } | null;
   purchaseToken: string;
   subscriptionId: string;
   orderId: string | null;
@@ -77,11 +115,19 @@ function getAndroidPublisher(): GooglePlayPublisher {
     scopes: ["https://www.googleapis.com/auth/androidpublisher"],
   });
 
-  return google.androidpublisher({ version: "v3", auth }) as unknown as GooglePlayPublisher;
+  return google.androidpublisher({
+    version: "v3",
+    auth,
+  }) as unknown as GooglePlayPublisher;
 }
 
-function resolvePlanFromSku(sku: string): Exclude<SubscriptionPlan, "free"> | null {
-  return GOOGLE_PLAY_PLAN_BY_SKU[sku] ?? null;
+function resolveProductFromSku(
+  sku: string,
+): {
+  plan: Exclude<SubscriptionPlan, "free">;
+  billingCycle: GooglePlayBillingCycle;
+} | null {
+  return GOOGLE_PLAY_PRODUCT_BY_SKU[sku] ?? null;
 }
 
 function toIsoDate(value: string | null | undefined): string | null {
@@ -91,7 +137,9 @@ function toIsoDate(value: string | null | undefined): string | null {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 }
 
-function toSubscriptionStatus(value: string | null | undefined): SubscriptionStatus {
+function toSubscriptionStatus(
+  value: string | null | undefined,
+): SubscriptionStatus {
   switch (value) {
     case "SUBSCRIPTION_STATE_ACTIVE":
       return "active";
@@ -108,19 +156,77 @@ function toSubscriptionStatus(value: string | null | undefined): SubscriptionSta
     case "SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED":
       return "expired";
     default:
-      throw new Error(`Unknown Google Play subscription state: ${value ?? "missing"}`);
+      throw new Error(
+        `Unknown Google Play subscription state: ${value ?? "missing"}`,
+      );
+  }
+}
+
+function parseGooglePlayMoney(
+  value: GooglePlayMoney | null | undefined,
+): { amount: number; currencyCode: string } | null {
+  const currencyCode = value?.currencyCode?.trim().toUpperCase() ?? "";
+  const units = Number(value?.units ?? 0);
+  const nanos = value?.nanos ?? 0;
+  const amount = units + nanos / 1_000_000_000;
+
+  if (
+    !/^[A-Z]{3}$/.test(currencyCode) ||
+    !Number.isFinite(units) ||
+    !Number.isFinite(nanos) ||
+    !Number.isFinite(amount) ||
+    amount < 0
+  ) {
+    return null;
+  }
+
+  return { amount, currencyCode };
+}
+
+async function convertToTry(
+  amount: number,
+  currencyCode: string,
+): Promise<number | null> {
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  if (currencyCode === "TRY") return Math.round(amount * 100) / 100;
+
+  try {
+    const response = await fetch(
+      `https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(currencyCode)}&quotes=TRY`,
+      {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 3600 },
+      },
+    );
+    if (!response.ok) return null;
+    const data = (await response.json()) as Array<{
+      quote?: string;
+      rate?: number;
+    }>;
+    const rate = data.find((entry) => entry.quote === "TRY")?.rate;
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0)
+      return null;
+    return Math.round(amount * rate * 100) / 100;
+  } catch {
+    return null;
   }
 }
 
 function resolveSubscriptionLine(
   subscription: GooglePlaySubscriptionV2,
   expectedSku?: string,
-): { line: GooglePlayLineItem; plan: Exclude<SubscriptionPlan, "free"> } {
+): {
+  line: GooglePlayLineItem;
+  product: {
+    plan: Exclude<SubscriptionPlan, "free">;
+    billingCycle: GooglePlayBillingCycle;
+  };
+} {
   const candidates = (subscription.lineItems ?? [])
     .flatMap((line) => {
       const productId = line.productId ?? "";
-      const plan = resolvePlanFromSku(productId);
-      return plan ? [{ line, plan }] : [];
+      const product = resolveProductFromSku(productId);
+      return product ? [{ line, product }] : [];
     })
     .sort((left, right) => {
       const leftExpiry = new Date(left.line.expiryTime ?? 0).getTime();
@@ -133,7 +239,9 @@ function resolveSubscriptionLine(
     : candidates[0];
 
   if (!match || !match.line.productId) {
-    throw new Error("Google Play subscription does not contain a supported product.");
+    throw new Error(
+      "Google Play subscription does not contain a supported product.",
+    );
   }
 
   return match;
@@ -150,14 +258,17 @@ async function readGooglePlaySubscription(
     token: purchaseToken,
   });
 
-  const { line, plan } = resolveSubscriptionLine(data, expectedSku);
+  const { line, product } = resolveSubscriptionLine(data, expectedSku);
   const status = toSubscriptionStatus(data.subscriptionState);
   const subscriptionId = line.productId!;
 
   return {
-    plan,
+    plan: product.plan,
     status,
     provider: "google_play",
+    billingCycle: product.billingCycle,
+    autoRenewEnabled: line.autoRenewingPlan?.autoRenewEnabled ?? false,
+    recurringPrice: parseGooglePlayMoney(line.autoRenewingPlan?.recurringPrice),
     purchaseToken,
     subscriptionId,
     orderId: data.latestOrderId ?? null,
@@ -171,13 +282,15 @@ async function claimGooglePlayPurchaseToken(
   userId: string,
 ): Promise<void> {
   const supabase = createSupabaseAdminClient();
-  const { error: insertError } = await supabase.from("google_play_purchase_tokens").insert({
-    purchase_token: verification.purchaseToken,
-    user_id: userId,
-    subscription_id: verification.subscriptionId,
-    order_id: verification.orderId,
-    updated_at: new Date().toISOString(),
-  });
+  const { error: insertError } = await supabase
+    .from("google_play_purchase_tokens")
+    .insert({
+      purchase_token: verification.purchaseToken,
+      user_id: userId,
+      subscription_id: verification.subscriptionId,
+      order_id: verification.orderId,
+      updated_at: new Date().toISOString(),
+    });
 
   if (insertError && insertError.code !== "23505") {
     throw insertError;
@@ -196,14 +309,16 @@ async function claimGooglePlayPurchaseToken(
     throw updateTokenError;
   }
 
-  const { error: accountError } = await supabase.from("google_play_purchase_accounts").upsert(
-    {
-      purchase_token: verification.purchaseToken,
-      user_id: userId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "purchase_token,user_id" },
-  );
+  const { error: accountError } = await supabase
+    .from("google_play_purchase_accounts")
+    .upsert(
+      {
+        purchase_token: verification.purchaseToken,
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "purchase_token,user_id" },
+    );
 
   if (accountError) {
     throw accountError;
@@ -217,6 +332,13 @@ async function persistGooglePlayEntitlement(
   await claimGooglePlayPurchaseToken(verification, userId);
 
   const supabase = createSupabaseAdminClient();
+  const recurringMonthlyTry = verification.recurringPrice
+    ? await convertToTry(
+        verification.recurringPrice.amount /
+          (verification.billingCycle === "yearly" ? 12 : 1),
+        verification.recurringPrice.currencyCode,
+      )
+    : null;
   const { error } = await supabase.from("user_subscriptions").upsert(
     {
       user_id: userId,
@@ -226,6 +348,15 @@ async function persistGooglePlayEntitlement(
       google_play_purchase_token: verification.purchaseToken,
       google_play_subscription_id: verification.subscriptionId,
       google_play_order_id: verification.orderId,
+      billing_cycle: verification.billingCycle,
+      recurring_price_amount: verification.recurringPrice?.amount ?? null,
+      recurring_price_currency:
+        verification.recurringPrice?.currencyCode ?? null,
+      recurring_monthly_try: recurringMonthlyTry,
+      revenue_price_updated_at: verification.recurringPrice
+        ? new Date().toISOString()
+        : null,
+      auto_renew_enabled: verification.autoRenewEnabled,
       renews_at: verification.endsAt,
       ends_at: verification.endsAt,
       updated_at: new Date().toISOString(),
@@ -271,16 +402,25 @@ export async function verifyGooglePlaySubscription(
   userId: string,
   publisher?: GooglePlayPublisher,
 ): Promise<GooglePlaySubscriptionVerification> {
-  const expectedPlan = resolvePlanFromSku(subscriptionId);
-  if (!expectedPlan) {
+  const expectedProduct = resolveProductFromSku(subscriptionId);
+  if (!expectedProduct) {
     throw new Error(`Unknown Google Play subscription SKU: ${subscriptionId}`);
   }
 
   const activePublisher = publisher ?? getAndroidPublisher();
-  const verification = await readGooglePlaySubscription(purchaseToken, subscriptionId, activePublisher);
+  const verification = await readGooglePlaySubscription(
+    purchaseToken,
+    subscriptionId,
+    activePublisher,
+  );
 
-  if (verification.plan !== expectedPlan) {
-    throw new Error("Google Play subscription plan does not match the requested product.");
+  if (
+    verification.plan !== expectedProduct.plan ||
+    verification.billingCycle !== expectedProduct.billingCycle
+  ) {
+    throw new Error(
+      "Google Play subscription plan does not match the requested product.",
+    );
   }
 
   await persistGooglePlayEntitlement(verification, userId);
@@ -289,12 +429,55 @@ export async function verifyGooglePlaySubscription(
   return verification;
 }
 
+/** Cancels future renewals while preserving the user's paid access until expiry. */
+export async function cancelGooglePlaySubscription(
+  userId: string,
+  publisher?: GooglePlayPublisher,
+): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select("provider, google_play_purchase_token")
+    .eq("user_id", userId)
+    .maybeSingle<{
+      provider: string | null;
+      google_play_purchase_token: string | null;
+    }>();
+  if (error) throw error;
+  if (data?.provider !== "google_play") return false;
+  if (!data.google_play_purchase_token) {
+    throw new Error("Google Play subscription is missing its purchase token.");
+  }
+
+  const activePublisher = publisher ?? getAndroidPublisher();
+  await activePublisher.purchases.subscriptionsv2.cancel({
+    packageName: getPackageName(),
+    token: data.google_play_purchase_token,
+    requestBody: {
+      cancellationContext: { cancellationType: "USER_REQUESTED_STOP_RENEWALS" },
+    },
+  });
+
+  const { error: updateError } = await supabase
+    .from("user_subscriptions")
+    .update({
+      status: "cancelled",
+      auto_renew_enabled: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  if (updateError) throw updateError;
+  return true;
+}
+
 async function resolveGooglePlayPurchaseOwners(
   purchaseToken: string,
   linkedPurchaseToken: string | null,
 ): Promise<string[]> {
   const supabase = createSupabaseAdminClient();
-  const tokens = [purchaseToken, linkedPurchaseToken].filter((token): token is string => Boolean(token));
+  const tokens = [purchaseToken, linkedPurchaseToken].filter(
+    (token): token is string => Boolean(token),
+  );
   const ownerIds = new Set<string>();
 
   for (const token of tokens) {
@@ -312,9 +495,15 @@ async function resolveGooglePlayPurchaseOwners(
   return [...ownerIds];
 }
 
-export async function syncGooglePlaySubscriptionFromRtdn(purchaseToken: string): Promise<string | null> {
+export async function syncGooglePlaySubscriptionFromRtdn(
+  purchaseToken: string,
+): Promise<string | null> {
   const publisher = getAndroidPublisher();
-  const verification = await readGooglePlaySubscription(purchaseToken, undefined, publisher);
+  const verification = await readGooglePlaySubscription(
+    purchaseToken,
+    undefined,
+    publisher,
+  );
   const userIds = await resolveGooglePlayPurchaseOwners(
     verification.purchaseToken,
     verification.linkedPurchaseToken,
@@ -336,10 +525,12 @@ export async function claimGooglePlayRtdnEvent(
   payload: unknown,
 ): Promise<boolean> {
   const supabase = createSupabaseAdminClient();
-  const { error: insertError } = await supabase.from("google_play_rtdn_events").insert({
-    message_id: messageId,
-    payload,
-  });
+  const { error: insertError } = await supabase
+    .from("google_play_rtdn_events")
+    .insert({
+      message_id: messageId,
+      payload,
+    });
 
   if (!insertError) {
     return true;
@@ -378,12 +569,16 @@ export async function completeGooglePlayRtdnEvent(
   if (error) throw error;
 }
 
-export async function verifyGooglePlayRtdnToken(idToken: string): Promise<void> {
+export async function verifyGooglePlayRtdnToken(
+  idToken: string,
+): Promise<void> {
   const audience = process.env.GOOGLE_PLAY_RTDN_AUDIENCE;
   const expectedEmail = process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL;
 
   if (!audience || !expectedEmail) {
-    throw new Error("Google Play RTDN environment variables are not configured.");
+    throw new Error(
+      "Google Play RTDN environment variables are not configured.",
+    );
   }
 
   const ticket = await new google.auth.OAuth2().verifyIdToken({

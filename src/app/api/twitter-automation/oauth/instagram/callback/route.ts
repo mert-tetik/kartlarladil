@@ -33,7 +33,7 @@ function clearStateCookie(response: NextResponse) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

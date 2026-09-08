@@ -24,7 +24,7 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) {
     return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   }
 

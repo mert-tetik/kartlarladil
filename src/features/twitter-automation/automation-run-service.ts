@@ -1,6 +1,6 @@
 import "server-only";
 
-import { SOCIAL_STUDIO_SESSION_COOKIE, createSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { SOCIAL_AUTOMATION_INTERNAL_SESSION_COOKIE, createSocialAutomationInternalSession } from "@/features/twitter-automation/social-studio-auth";
 import { publishWithUploadPost, type DataUrlAsset, type RemoteVideoAsset } from "@/features/twitter-automation/upload-post-publishing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier } from "@/types/domain";
@@ -18,6 +18,10 @@ const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
 const STAGED_MEDIA_URL_SECONDS = 24 * 60 * 60;
 const STAGED_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
+const FAILED_MEDIA_RETENTION_MS = 24 * 60 * 60 * 1000;
+const READY_MEDIA_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const STALE_ACTIVE_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
+const STORAGE_PAGE_SIZE = 1000;
 const SCHEDULE_OUTPUT_CONCURRENCY = 3;
 const MAX_STAGED_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -147,7 +151,7 @@ function createInternalRequest(path: string, init?: RequestInit) {
   return new Request(`http://social-studio.internal${path}`, {
     ...init,
     headers: {
-      cookie: `${SOCIAL_STUDIO_SESSION_COOKIE}=${createSocialStudioSession()}`,
+      cookie: `${SOCIAL_AUTOMATION_INTERNAL_SESSION_COOKIE}=${createSocialAutomationInternalSession()}`,
       "content-type": "application/json",
       ...init?.headers,
     },
@@ -963,33 +967,127 @@ export async function refreshAutomationRunStatus(runId: string, options: { autoS
 }
 
 export async function cleanupStagedAutomationMedia(now = new Date()) {
-  const cutoff = new Date(now.getTime() - STAGED_MEDIA_RETENTION_MS).toISOString();
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("social_content_automation_outputs")
-    .select("id,media_path,media_paths")
-    .eq("status", "scheduled")
-    .lt("scheduled_at_upload_post", cutoff)
-    .limit(100);
-  if (error) throw new Error("automation_media_cleanup_query_failed");
+  const outputs: Array<{
+    id: string;
+    status: OutputStatus;
+    media_path: string | null;
+    media_paths: unknown;
+    media_type: "image" | "video" | null;
+    scheduled_at_upload_post: string | null;
+    updated_at: string;
+  }> = [];
 
-  const staleOutputs = (data ?? []).map((output) => ({
-    id: output.id,
-    paths: [...new Set([
-      typeof output.media_path === "string" && output.media_path.startsWith(AUTOMATION_MEDIA_PREFIX) ? output.media_path : null,
-      ...asMediaPaths(output.media_paths),
-    ].filter((path): path is string => Boolean(path)))],
-  })).filter((output) => output.paths.length);
-  if (!staleOutputs.length) return { removed: 0 };
+  for (let from = 0; ; from += STORAGE_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("social_content_automation_outputs")
+      .select("id,status,media_path,media_paths,media_type,scheduled_at_upload_post,updated_at")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + STORAGE_PAGE_SIZE - 1)
+      .returns<typeof outputs>();
+    if (error) throw new Error("automation_media_cleanup_query_failed");
+    outputs.push(...(data ?? []));
+    if (!data || data.length < STORAGE_PAGE_SIZE) break;
+  }
 
-  const paths = [...new Set(staleOutputs.flatMap((output) => output.paths))];
-  const { error: removeError } = await supabase.storage.from(AUTOMATION_BUCKET).remove(paths);
-  if (removeError) throw new Error("automation_media_cleanup_failed");
+  const pathsForOutput = (output: (typeof outputs)[number]) => [...new Set([
+    typeof output.media_path === "string" && output.media_path.startsWith(AUTOMATION_MEDIA_PREFIX)
+      ? output.media_path
+      : null,
+    ...asMediaPaths(output.media_paths),
+  ].filter((path): path is string => Boolean(path)))];
+  const allReferencedPaths = new Set(outputs.flatMap(pathsForOutput));
+  const activeStatuses = new Set<OutputStatus>([
+    "queued",
+    "processing",
+    "generating_video",
+    "awaiting_browser_image",
+    "awaiting_browser_video",
+  ]);
+  const failedCutoff = new Date(now.getTime() - FAILED_MEDIA_RETENTION_MS);
+  const readyCutoff = new Date(now.getTime() - READY_MEDIA_RETENTION_MS);
+  const activeCutoff = new Date(now.getTime() - STALE_ACTIVE_MEDIA_RETENTION_MS);
+  const scheduledCutoff = new Date(now.getTime() - STAGED_MEDIA_RETENTION_MS);
+  const staleOutputs = outputs.filter((output) => {
+    if (!pathsForOutput(output).length) return false;
+    if (output.status === "scheduled") {
+      return Boolean(output.scheduled_at_upload_post) && new Date(output.scheduled_at_upload_post!).getTime() < scheduledCutoff.getTime();
+    }
+    if (output.status === "failed") return new Date(output.updated_at).getTime() < failedCutoff.getTime();
+    if (output.status === "ready_to_schedule") return new Date(output.updated_at).getTime() < readyCutoff.getTime();
+    return activeStatuses.has(output.status) && new Date(output.updated_at).getTime() < activeCutoff.getTime();
+  });
+  const staleOutputIds = new Set(staleOutputs.map((output) => output.id));
+  const pathsReferencedByFreshOutputs = new Set(
+    outputs
+      .filter((output) => !staleOutputIds.has(output.id))
+      .flatMap(pathsForOutput),
+  );
+  const removableReferencedPaths = new Set(
+    staleOutputs
+      .flatMap(pathsForOutput)
+      .filter((path) => !pathsReferencedByFreshOutputs.has(path)),
+  );
 
-  const { error: updateError } = await supabase
-    .from("social_content_automation_outputs")
-    .update({ media_path: null, media_paths: [], media_type: null, updated_at: now.toISOString() })
-    .in("id", staleOutputs.map((output) => output.id));
-  if (updateError) throw new Error("automation_media_cleanup_update_failed");
-  return { removed: staleOutputs.length };
+  const stagedFiles: Array<{ path: string; updatedAt: string | null }> = [];
+  for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
+    const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).list("automation", {
+      limit: STORAGE_PAGE_SIZE,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error) throw new Error("automation_media_cleanup_list_failed");
+    const files = (data ?? []).filter((file) => file.metadata !== null);
+    stagedFiles.push(...files.map((file) => ({
+      path: `${AUTOMATION_MEDIA_PREFIX}${file.name}`,
+      updatedAt: file.updated_at ?? file.created_at ?? null,
+    })));
+    if (!data || data.length < STORAGE_PAGE_SIZE) break;
+  }
+
+  const orphanCutoff = failedCutoff;
+  const orphanPaths = stagedFiles
+    .filter((file) => !allReferencedPaths.has(file.path))
+    .filter((file) => file.updatedAt && new Date(file.updatedAt).getTime() < orphanCutoff.getTime())
+    .map((file) => file.path);
+  const pathsToRemove = [...new Set([...removableReferencedPaths, ...orphanPaths])];
+  for (let from = 0; from < pathsToRemove.length; from += STORAGE_PAGE_SIZE) {
+    const batch = pathsToRemove.slice(from, from + STORAGE_PAGE_SIZE);
+    const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove(batch);
+    if (error) throw new Error("automation_media_cleanup_failed");
+  }
+
+  const removedPaths = new Set(pathsToRemove);
+  const outputsToUpdate = staleOutputs.filter((output) => pathsForOutput(output).some((path) => removedPaths.has(path)));
+  for (const output of outputsToUpdate) {
+    const mediaPath = output.media_path && !removedPaths.has(output.media_path) ? output.media_path : null;
+    const mediaPaths = asMediaPaths(output.media_paths).filter((path) => !removedPaths.has(path));
+    const shouldExpire = output.status !== "scheduled" && output.status !== "failed" && !mediaPath && !mediaPaths.length;
+    const updatePayload: Record<string, unknown> = {
+      media_path: mediaPath,
+      media_paths: mediaPaths,
+      media_type: mediaPath || mediaPaths.length ? output.media_type : null,
+      updated_at: now.toISOString(),
+    };
+    if (shouldExpire) {
+      Object.assign(updatePayload, {
+        status: "failed",
+        error_code: "automation_media_retention_expired",
+        last_error_detail: "Automation media retention window expired.",
+        retry_exhausted_at: now.toISOString(),
+      });
+    }
+    const { error } = await supabase
+      .from("social_content_automation_outputs")
+      .update(updatePayload)
+      .eq("id", output.id);
+    if (error) throw new Error("automation_media_cleanup_update_failed");
+  }
+
+  return {
+    removed: pathsToRemove.length,
+    expiredOutputs: outputsToUpdate.filter((output) => output.status !== "scheduled" && output.status !== "failed").length,
+    orphaned: orphanPaths.length,
+  };
 }

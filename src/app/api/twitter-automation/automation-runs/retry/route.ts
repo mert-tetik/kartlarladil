@@ -68,7 +68,7 @@ function statusForRetry(output: RetryableOutput) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!hasSocialStudioAutomationSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!await hasSocialStudioAutomationSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_output" }, { status: 400 });
 

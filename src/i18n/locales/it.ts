@@ -433,6 +433,8 @@ const dictionary = {
   "pricing.featurePrioritySupportDescription": "Ricevi assistenza più rapida ogni volta che ne hai bisogno.",
   "pricing.featureThemesDescription": "Personalizza la tua collezione con un tema di colori adatto a te.",
   "pricing.mobileFeatureUnlimitedAccess": "Rimuovi i limiti delle carte, accedi senza limiti ai giochi e ottieni più messaggi parlando con i personaggi.",
+  "pricing.previousFeature": "Vantaggio precedente",
+  "pricing.nextFeature": "Vantaggio successivo",
   "pricing.firstMonthFree": "PRIMO MESE GRATUITO",
   "pricing.firstMonthFreeBanner": "PRIMO MESE GRATUITO PER TUTTI GLI ABBONAMENTI",
   "pricing.free": "Gratuito",

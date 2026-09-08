@@ -78,8 +78,10 @@ export function AiPracticeCharacterSelection({
     const languageSyncTimer = window.setTimeout(() => {
       setSelectedLanguage(landingLanguage);
     }, 0);
+    const nextPath = `/ai-practice/${landingLanguage}/character?tier=${tier}&mode=${mode}`;
+    router.prefetch(nextPath);
     navigateWithRouteTransition(() => {
-      router.replace(`/ai-practice/${landingLanguage}/character?tier=${tier}&mode=${mode}`);
+      router.replace(nextPath);
     });
 
     return () => window.clearTimeout(languageSyncTimer);
@@ -87,7 +89,9 @@ export function AiPracticeCharacterSelection({
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);
-    navigateWithRouteTransition(() => router.replace(`/ai-practice/${code}/character?tier=${tier}&mode=${mode}`));
+    const nextPath = `/ai-practice/${code}/character?tier=${tier}&mode=${mode}`;
+    router.prefetch(nextPath);
+    navigateWithRouteTransition(() => router.replace(nextPath));
   }
 
   return (
@@ -95,7 +99,7 @@ export function AiPracticeCharacterSelection({
       className="w-full overflow-y-auto rounded-lg border border-border bg-background p-3 lg:mx-auto lg:h-[480px] lg:max-w-5xl max-lg:mx-auto max-lg:flex-1 max-lg:h-full max-lg:min-h-0 max-lg:w-[calc(100%_-_1.5rem)] max-lg:overscroll-contain max-lg:touch-pan-y max-lg:pb-4"
       data-ai-practice-character-container
     >
-      <div className="mb-4">
+      <div className="mb-4" data-route-transition-surface>
         <button
           data-ai-practice-language-button
           type="button"
@@ -115,7 +119,7 @@ export function AiPracticeCharacterSelection({
         </button>
       </div>
 
-      <div className="mb-4 rounded-xl bg-background-muted p-1" data-ai-practice-mode-switch>
+      <div className="mb-4 rounded-xl bg-background-muted p-1" data-ai-practice-mode-switch data-route-transition-surface>
         <p className="sr-only">{t("page.aiPractice.modeLabel")}</p>
         <div className="grid grid-cols-2 gap-1">
           <button

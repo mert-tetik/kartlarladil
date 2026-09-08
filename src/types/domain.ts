@@ -182,7 +182,7 @@ export interface ProgressStats {
 }
 
 export type SubscriptionPlan = "free" | "basic" | "pro";
-export type SubscriptionProvider = "google_play";
+export type SubscriptionProvider = "google_play" | "admin";
 
 export type SubscriptionStatus =
   | "free"

@@ -87,7 +87,7 @@ describe("AskChatPanel", () => {
 
   it("shows native-language suggestions for the selected landing card language", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(() => Promise.resolve(new Response("suggestion answer")));
+    const fetchMock = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.resolve(new Response("suggestion answer")));
     window.localStorage.setItem("foxiesdeck:landing-card-language", "de");
     vi.stubGlobal("fetch", fetchMock);
 

@@ -18,7 +18,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
 const VIEWPORT_GAP = 16;
-const CALLOUT_WIDTH = 332;
+const CALLOUT_WIDTH = 300;
 const MESSAGE_HEIGHT = 96;
 const TUTORIAL_START_DELAY_MS = 700;
 const SCREEN_TRANSITION_MS = 1000;
@@ -27,6 +27,8 @@ const ORIGIN_SCREEN_ENTER_MS = 650;
 const ORIGIN_SCREEN_CLOSE_TOTAL_MS = 860;
 const LAYER_MESSAGE_VISIBLE_MS = 1500;
 const WELCOME_EXIT_DURATION_MS = ORIGIN_SCREEN_CLOSE_TOTAL_MS;
+const TUTORIAL_MESSAGE_SURFACE_CLASS =
+  "border-0 shadow-none outline-none ring-0 before:border-0 before:shadow-none before:outline-none before:ring-0";
 
 const TUTORIAL_CHOICES = [
   {
@@ -96,7 +98,7 @@ export function LandingTutorial() {
   const [isLayerMessageExiting, setIsLayerMessageExiting] = useState(false);
   const [layerOrigin, setLayerOrigin] = useState<TutorialLayerOrigin>({ x: 0, y: 0 });
   const [tutorialStartReady, setTutorialStartReady] = useState(false);
-  const [isSubscriptionOfferVisible, setIsSubscriptionOfferVisible] = useState(() => isSubscriptionOfferOpen());
+  const [isLandingReady, setIsLandingReady] = useState(false);
   const welcomeExitTimerRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
   const scrollTimerRef = useRef<number | null>(null);
@@ -173,18 +175,43 @@ export function LandingTutorial() {
   }, [enableTestMode, pathname, reset]);
 
   useEffect(() => {
-    const updateSubscriptionOfferVisibility = () => {
-      const visible = isSubscriptionOfferOpen();
-      setIsSubscriptionOfferVisible((current) => (current === visible ? current : visible));
+    let readyFrame: number | null = null;
+
+    const updateLandingReadiness = () => {
+      const ready = isLandingPageReady();
+      if (!ready) {
+        if (readyFrame !== null) window.cancelAnimationFrame(readyFrame);
+        readyFrame = null;
+        setIsLandingReady(false);
+        return;
+      }
+
+      if (readyFrame !== null) return;
+      readyFrame = window.requestAnimationFrame(() => {
+        readyFrame = null;
+        setIsLandingReady(isLandingPageReady());
+      });
     };
-    const observer = new MutationObserver(updateSubscriptionOfferVisibility);
-    observer.observe(document.body, { childList: true, subtree: true });
-    updateSubscriptionOfferVisibility();
-    return () => observer.disconnect();
+
+    const observer = new MutationObserver(updateLandingReadiness);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["aria-hidden", "class", "style"],
+      childList: true,
+      subtree: true,
+    });
+    window.addEventListener("resize", updateLandingReadiness);
+    updateLandingReadiness();
+
+    return () => {
+      if (readyFrame !== null) window.cancelAnimationFrame(readyFrame);
+      observer.disconnect();
+      window.removeEventListener("resize", updateLandingReadiness);
+    };
   }, []);
 
   useEffect(() => {
-    if (!isVisible || !isMobile || isSubscriptionOfferVisible || pathname !== "/") {
+    if (!isVisible || !isMobile || !isLandingReady || pathname !== "/") {
       // This effect also resets the tutorial's transient UI when the route/auth layer changes.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTutorialStartReady(false);
@@ -204,7 +231,7 @@ export function LandingTutorial() {
     setTutorialStartReady(false);
     const startTimer = window.setTimeout(() => setTutorialStartReady(true), TUTORIAL_START_DELAY_MS);
     return () => window.clearTimeout(startTimer);
-  }, [clearTutorialTimers, isMobile, isSubscriptionOfferVisible, isVisible, pathname]);
+  }, [clearTutorialTimers, isLandingReady, isMobile, isVisible, pathname]);
 
   const updatePosition = useCallback(() => {
     const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
@@ -212,7 +239,7 @@ export function LandingTutorial() {
     const state = useTutorialStore.getState();
     const shouldRender = isTutorialVisibleState(state);
     const target = getTargetForStep(state.step, window.location.pathname);
-    if (!mobile || !shouldRender || phaseRef.current !== "visible" || !target) {
+    if (!mobile || !shouldRender || !isLandingReady || phaseRef.current !== "visible" || !target) {
       setPosition(null);
       return;
     }
@@ -237,7 +264,12 @@ export function LandingTutorial() {
     const preferredCalloutTop = isCalloutBelowTarget
       ? clamp(top + height + 42, VIEWPORT_GAP, viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP)
       : clamp(top - MESSAGE_HEIGHT - 42, VIEWPORT_GAP, viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP);
-    const calloutTop = clamp(preferredCalloutTop - 8, VIEWPORT_GAP, viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP);
+    const isActionTarget = target.key === "landing-card-center" || target.key === "start-learning";
+    const calloutTop = clamp(
+      preferredCalloutTop - (isActionTarget ? 40 : 8),
+      VIEWPORT_GAP,
+      viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP,
+    );
     const calloutBottom = calloutTop + MESSAGE_HEIGHT;
 
     setPosition({
@@ -254,7 +286,7 @@ export function LandingTutorial() {
       arrowStartY: isCalloutBelowTarget ? calloutBottom + 8 : calloutTop - 8,
       arrowEndY: isCalloutBelowTarget ? top + height + 5 : top - 5,
     });
-  }, []);
+  }, [isLandingReady]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(updatePosition);
@@ -341,11 +373,12 @@ export function LandingTutorial() {
   }, [activeLayer, phase, startInvisibleTransition]);
 
   useEffect(() => {
-    if (!isVisible || !isMobile || isSubscriptionOfferVisible || pathname !== "/") return;
+    if (!isVisible || !isMobile || !isLandingReady || pathname !== "/") return;
 
     const allowTarget = (element: Element | null) => {
       if (!element) return false;
       if (element.closest("[data-tutorial-pricing-link]")) return true;
+      if (element.closest("[data-tutorial-restriction-later]")) return true;
       if (phaseRef.current === "transition") return false;
       if (phaseRef.current === "layer") {
         const layer = layerRef.current;
@@ -369,10 +402,10 @@ export function LandingTutorial() {
     const eventNames = ["pointerdown", "pointerup", "pointermove", "touchstart", "touchmove", "wheel", "click", "contextmenu", "keydown"];
     eventNames.forEach((name) => document.addEventListener(name, blockEvent, true));
     return () => eventNames.forEach((name) => document.removeEventListener(name, blockEvent, true));
-  }, [currentStep, isMobile, isSubscriptionOfferVisible, isVisible, pathname, shouldShowWelcome]);
+  }, [currentStep, isLandingReady, isMobile, isVisible, pathname, shouldShowWelcome]);
 
   useEffect(() => {
-    if (!isVisible || !isMobile || isSubscriptionOfferVisible || pathname !== "/") return;
+    if (!isVisible || !isMobile || !isLandingReady || pathname !== "/") return;
     const handleTargetClick = (event: MouseEvent) => {
       if (allowProgrammaticTargetClickRef.current) {
         allowProgrammaticTargetClickRef.current = false;
@@ -405,9 +438,9 @@ export function LandingTutorial() {
     };
     document.addEventListener("click", handleTargetClick);
     return () => document.removeEventListener("click", handleTargetClick);
-  }, [complete, isMobile, isSubscriptionOfferVisible, isTargetExiting, isVisible, pathname, startInvisibleTransition]);
+  }, [complete, isLandingReady, isMobile, isTargetExiting, isVisible, pathname, startInvisibleTransition]);
 
-  if (!isVisible || !isMobile || isSubscriptionOfferVisible || pathname !== "/") return null;
+  if (!isVisible || !isMobile || !isLandingReady || pathname !== "/") return null;
   if (isTutorialStarting) return <TutorialStartScreen />;
 
   function handleBeginTutorial() {
@@ -493,7 +526,7 @@ export function LandingTutorial() {
       <div key={`callout-${step}`} className="pointer-events-none fixed z-20" style={{ left: "50%", top: position.calloutTop, width: `min(${CALLOUT_WIDTH}px, calc(100vw - ${VIEWPORT_GAP * 2}px))`, transform: "translateX(-50%)" }}>
         <div data-landing-tutorial-callout className="tutorial-origin-overlay__item" style={{ animationDelay: isTargetExiting ? "0ms" : "520ms" }}>
           <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-3 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
-          <p data-landing-tutorial-message className="relative z-20 ml-20 flex h-24 items-center rounded-lg bg-white px-4 py-3 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-4 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{t(currentStep.messageKey as TranslationKey)}</p>
+          <p data-landing-tutorial-message className={cn("relative z-20 ml-20 flex h-24 items-center rounded-lg bg-white px-4 py-3 text-center text-base font-semibold leading-snug text-brand before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", TUTORIAL_MESSAGE_SURFACE_CLASS)}>{t(currentStep.messageKey as TranslationKey)}</p>
         </div>
       </div>
     </div>
@@ -546,7 +579,7 @@ function TutorialChoiceScreen({ exiting, origin, title, choices, t, onChoice }: 
 function TutorialMessageScreen({ exiting, origin, message, nextLabel, onNext }: { exiting: boolean; origin: TutorialLayerOrigin; message: string; nextLabel: string; onNext: () => void }) {
   return (
     <div data-landing-tutorial data-landing-tutorial-message-screen role="dialog" aria-modal="true" aria-label={message} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center bg-black/80 px-5 text-center backdrop-blur-[2px]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <div className="tutorial-origin-overlay__item flex w-full max-w-[22rem] flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}><div className="relative w-full pl-16"><Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-1 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} /><p data-landing-tutorial-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-4 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p></div><button type="button" data-landing-tutorial-next onClick={onNext} disabled={exiting} className="mt-5 h-14 w-[calc(100%-4rem)] rounded-lg bg-brand text-base font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none">{nextLabel}</button></div>
+      <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}><div className="relative w-full pl-20"><Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} /><p data-landing-tutorial-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p></div><button type="button" data-landing-tutorial-next onClick={onNext} disabled={exiting} className="mt-12 h-14 w-[calc(100%-4rem)] rounded-lg bg-brand text-base font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none">{nextLabel}</button></div>
     </div>
   );
 }
@@ -554,10 +587,10 @@ function TutorialMessageScreen({ exiting, origin, message, nextLabel, onNext }: 
 function TutorialLayerMessageScreen({ message, origin, exiting }: { message: string; origin: TutorialLayerOrigin; exiting: boolean }) {
   return (
     <div data-testid="tutorial-layer-message" data-landing-tutorial data-landing-tutorial-layer-message-screen role="dialog" aria-modal="true" aria-label={message} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center bg-black/80 px-5 text-center backdrop-blur-[2px]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <div className="tutorial-origin-overlay__item flex w-full max-w-[22rem] items-center justify-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
-        <div className="relative w-full pl-16">
-          <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-1 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
-          <p data-landing-tutorial-layer-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-4 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p>
+      <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] items-center justify-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
+        <div className="relative w-full pl-20">
+          <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
+          <p data-landing-tutorial-layer-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p>
         </div>
       </div>
     </div>
@@ -578,8 +611,28 @@ function TutorialArrow({ position }: { position: SpotlightPosition }) {
   return <svg aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 h-full w-full text-red-500" focusable="false"><defs><marker id="landing-tutorial-arrowhead" markerHeight="22" markerUnits="userSpaceOnUse" markerWidth="22" orient="auto" refX="0" refY="11" viewBox="0 0 22 22"><path d="M 0 0 L 22 11 L 0 22 z" fill="currentColor" /></marker></defs><path className="tutorial-arrow-path" d={path} fill="none" markerEnd="url(#landing-tutorial-arrowhead)" pathLength="1" stroke="currentColor" strokeLinecap="round" strokeWidth="8" /></svg>;
 }
 
-function isSubscriptionOfferOpen() {
-  return typeof document !== "undefined" && document.querySelector("[data-mobile-subscription-offer]") !== null;
+function isLandingPageReady() {
+  if (typeof document === "undefined") return false;
+
+  const landingDashboard = document.querySelector<HTMLElement>("[data-mobile-landing-dashboard]");
+  if (!landingDashboard || !isRenderedElement(landingDashboard)) return false;
+
+  if (document.documentElement.dataset.routeTransition) return false;
+
+  return ![
+    "[data-mobile-gateway-bootstrap]",
+    "[data-app-image-cache-gate]",
+    "[data-mobile-auth-gateway]",
+    "[data-mobile-subscription-offer]",
+  ].some((selector) =>
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).some(isRenderedElement),
+  );
+}
+
+function isRenderedElement(element: HTMLElement) {
+  if (element.getAttribute("aria-hidden") === "true") return false;
+  const style = window.getComputedStyle(element);
+  return style.display !== "none" && style.visibility !== "hidden";
 }
 
 function findVisibleElement(selector: string) {

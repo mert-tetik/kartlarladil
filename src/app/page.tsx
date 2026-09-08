@@ -94,7 +94,7 @@ export default async function Home() {
       <MobileLandingDashboard />
       <div className="max-lg:hidden">
         <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
-        <section className="relative isolate min-h-[72vh] overflow-hidden bg-slate-950 text-white sm:min-h-[88vh]">
+        <section data-route-transition-surface className="relative isolate min-h-[72vh] overflow-hidden bg-slate-950 text-white sm:min-h-[88vh]">
         <div className="absolute inset-0 opacity-[0.74] brightness-125 contrast-125 saturate-125">
           <CardBackdrop />
         </div>
@@ -157,7 +157,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-brand">
+      <section data-route-transition-surface className="bg-brand">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
           {featureItems.map((item) => {
             const Icon = item.icon;
@@ -173,7 +173,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-collection-preview-section className="bg-slate-50 dark:bg-background">
+      <section data-collection-preview-section data-route-transition-surface className="bg-slate-50 dark:bg-background">
         <div className="mx-auto grid w-full max-w-[1500px] items-center justify-items-center gap-6 px-4 py-16 text-center max-lg:gap-3 max-lg:py-8 sm:px-6 max-lg:grid-cols-1 lg:grid-cols-[140px_minmax(350px,0.75fr)_minmax(650px,1.25fr)] lg:gap-8 lg:px-8 lg:text-left">
           <div className="order-first flex items-center justify-center lg:order-none">
             <Image
@@ -228,7 +228,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-slate-950">
+      <section data-route-transition-surface className="bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-3">
             {[
@@ -248,7 +248,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section data-points-rank-section className="border-y border-slate-200 bg-slate-50 dark:border-border dark:bg-background">
+      <section data-points-rank-section data-route-transition-surface className="border-y border-slate-200 bg-slate-50 dark:border-border dark:bg-background">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:px-8">
           <div>
             <div className="relative h-44 w-44">
@@ -303,7 +303,7 @@ export default async function Home() {
         href={`/ask/${locale}`}
       />
 
-      <section className="bg-slate-950 text-white">
+      <section data-route-transition-surface className="bg-slate-950 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <div>
             <div className="flex items-center gap-3">

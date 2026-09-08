@@ -73,7 +73,7 @@ const DIALOGUE_MASCOT_VOICES = Object.fromEntries([
     const id = SHUFFLED_DIALOGUE_VOICE_IDS[index]!;
     return [variation, { id, label: `Voice ${index + 1}` }] as const;
   }),
-  ["Original.png", { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy — custom mascot voice" }] as const,
+  ["Original.png", { id: FOXIESDECK_MASCOT_VOICE, label: "Foxy â€” custom mascot voice" }] as const,
 ]) as Record<string, { id: string; label: string }>;
 
 const requestSchema = z.object({
@@ -144,7 +144,7 @@ function instructionsFor(mode: DialogueMode) {
     "Create a lively, everyday two-person conversation for a language-learning vertical social video.",
     "Return one JSON object only: { caption, scenes }. scenes may contain up to 14 objects with exactly { text, translation }.",
     "text is spoken entirely in the provided learning language. translation is its natural native-language subtitle.",
-    "Pick a completely random real-life situation every time. Examples include: gossip about someone, discussing a movie or show, chatting at a café, ordering at a restaurant, shopping at a store, asking a stranger on the street, texting or calling online, talking to a partner, or a casual family conversation.",
+    "Pick a completely random real-life situation every time. Examples include: gossip about someone, discussing a movie or show, chatting at a cafÃ©, ordering at a restaurant, shopping at a store, asking a stranger on the street, texting or calling online, talking to a partner, or a casual family conversation.",
     "The two speakers should feel like natural friends, coworkers, classmates, couple, family members, or strangers. Vary the relationship, location, and topic freely.",
     "Keep each text and translation under 22 words, conversational, and speakable. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
   ].join("\n");
@@ -179,7 +179,7 @@ async function createPlan(mode: DialogueMode, language: LanguageCode, nativeLang
 }
 
 export async function POST(request: Request) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) return Response.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   if (!process.env.POYO_API_KEY?.trim()) return Response.json({ errorCode: "poyo_not_configured" }, { status: 503 });

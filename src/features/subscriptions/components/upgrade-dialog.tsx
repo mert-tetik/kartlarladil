@@ -160,6 +160,7 @@ export function UpgradeDialog({
               ? "h-12 rounded-full border-0 bg-black text-brand hover:bg-black/85 hover:text-brand"
               : "h-10 rounded-xl border border-white/30 bg-black/20 text-white hover:bg-black/35 hover:text-white",
           )}
+          data-tutorial-restriction-later={showsUpgradeCta ? "" : undefined}
           onClick={() => onOpenChange(false)}
         >
           {isLanguageMatchDialog

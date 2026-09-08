@@ -41,7 +41,6 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
   const coverTimerRef = useRef<number | null>(null);
   const entryTimerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const contentWaitTimerRef = useRef<number | null>(null);
   const contentObserverRef = useRef<MutationObserver | null>(null);
   const previousRouteKeyRef = useRef(routeKey);
   const mainRef = useRef<HTMLElement>(null);
@@ -53,27 +52,50 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     });
   });
 
-  const prepareRouteTransitionItems = useEffectEvent(() => {
-    clearRouteTransitionItems();
+  const prepareRouteTransitionItems = useEffectEvent((reset = true) => {
+    if (reset) {
+      clearRouteTransitionItems();
+    }
 
     const root = mainRef.current;
     if (!root) return 0;
 
     const viewportHeight = Math.max(window.innerHeight, 1);
     const candidates = root.querySelectorAll<HTMLElement>(
-      "button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, label, img",
+      "[data-route-transition-surface], button, a[href], input, select, textarea, [role='button'], h1, h2, h3, h4, p, label, img",
     );
 
     let itemCount = 0;
 
     candidates.forEach((element) => {
+      // The first pass prepares the complete route. Later mutation passes only
+      // add newly-mounted elements so they can never reset an animation that
+      // is already in progress.
+      if (element.hasAttribute("data-route-transition-item")) {
+        return;
+      }
+
       const interactiveParent = element.closest("button, a[href], [role='button']");
       if (interactiveParent && interactiveParent !== element) {
         return;
       }
 
+      const transitionSurfaceParent = element.closest("[data-route-transition-surface]");
+      if (transitionSurfaceParent && transitionSurfaceParent !== element) {
+        return;
+      }
+
       const rect = element.getBoundingClientRect();
-      const isVisible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < viewportHeight;
+      const computedStyle = window.getComputedStyle(element);
+      const isRouteCovering = document.documentElement.dataset.routeTransition === "covering";
+      const isVisible =
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom > 0 &&
+        rect.top < viewportHeight &&
+        computedStyle.display !== "none" &&
+        (computedStyle.visibility !== "hidden" || isRouteCovering) &&
+        computedStyle.opacity !== "0";
       if (!isVisible) return;
 
       const verticalProgress = Math.min(1, Math.max(0, rect.top / viewportHeight));
@@ -99,10 +121,6 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
-      }
-      if (contentWaitTimerRef.current !== null) {
-        window.clearTimeout(contentWaitTimerRef.current);
-        contentWaitTimerRef.current = null;
       }
       contentObserverRef.current?.disconnect();
       contentObserverRef.current = null;
@@ -142,12 +160,6 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       function startEntrance() {
         if (entranceStarted) return;
         entranceStarted = true;
-        contentObserverRef.current?.disconnect();
-        contentObserverRef.current = null;
-        if (contentWaitTimerRef.current !== null) {
-          window.clearTimeout(contentWaitTimerRef.current);
-          contentWaitTimerRef.current = null;
-        }
 
         applyRouteTransitionPhase("preparing");
         setTransitionPhase("preparing");
@@ -158,6 +170,8 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
             applyRouteTransitionPhase("entering");
             setTransitionPhase("entering");
             entryTimerRef.current = window.setTimeout(() => {
+              contentObserverRef.current?.disconnect();
+              contentObserverRef.current = null;
               applyRouteTransitionPhase("idle");
               transitionStartedAtRef.current = null;
               setTransitionPhase("idle");
@@ -166,20 +180,19 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         });
       }
 
-      function prepareTargetContent() {
-        if (prepareRouteTransitionItems() > 0) {
-          startEntrance();
-        }
-      }
+      // Do not hold the curtain open for server/client content to settle. The
+      // route's loading UI and the first committed target elements are enough
+      // to start the same entrance animation immediately. Late-mounted
+      // elements are picked up by the observer without blocking navigation.
+      prepareRouteTransitionItems();
+      startEntrance();
 
-      prepareTargetContent();
-      if (entranceStarted || !root) return;
+      if (!root) return;
 
-      contentObserverRef.current = new MutationObserver(prepareTargetContent);
+      contentObserverRef.current = new MutationObserver(() => {
+        prepareRouteTransitionItems(false);
+      });
       contentObserverRef.current.observe(root, { childList: true, subtree: true });
-      contentWaitTimerRef.current = window.setTimeout(() => {
-        startEntrance();
-      }, 10000);
     }, remainingCoverTime);
 
     coverTimerRef.current = coverTimer;
@@ -187,9 +200,13 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       window.clearTimeout(coverTimer);
       contentObserverRef.current?.disconnect();
       contentObserverRef.current = null;
-      if (contentWaitTimerRef.current !== null) {
-        window.clearTimeout(contentWaitTimerRef.current);
-        contentWaitTimerRef.current = null;
+      if (entryTimerRef.current !== null) {
+        window.clearTimeout(entryTimerRef.current);
+        entryTimerRef.current = null;
+      }
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
   }, [routeKey]);

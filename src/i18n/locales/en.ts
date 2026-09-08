@@ -436,6 +436,8 @@ const dictionary = {
   "pricing.featurePrioritySupportDescription": "Get faster help whenever you need support.",
   "pricing.featureThemesDescription": "Personalize your collection with a color theme that suits you.",
   "pricing.mobileFeatureUnlimitedAccess": "Remove card limits, get unlimited access to games, and unlock more messages when chatting with characters.",
+  "pricing.previousFeature": "Previous benefit",
+  "pricing.nextFeature": "Next benefit",
   "pricing.firstMonthFree": "FIRST MONTH FREE",
   "pricing.firstMonthFreeBanner": "FIRST MONTH FREE ON ALL SUBSCRIPTIONS",
   "pricing.free": "Free",

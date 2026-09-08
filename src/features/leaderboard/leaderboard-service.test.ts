@@ -72,36 +72,45 @@ beforeEach(() => {
     from: vi.fn((table: string) => {
       if (table === "user_profiles") {
         return {
-          select: vi.fn(() => Promise.resolve({ data: profiles, error: null })),
+          select: vi.fn(() => ({
+            range: vi.fn(() => ({
+              returns: vi.fn(() => Promise.resolve({ data: profiles, error: null })),
+            })),
+          })),
         };
       }
 
       if (table === "custom_cards") {
         return {
           select: vi.fn(() => ({
-            in: vi.fn(() =>
-              Promise.resolve({
-                data: [
-                  { user_id: "user-5", source_key: "custom:user-5:card-1", tier: "B1" },
-                ],
-                error: null,
-              }),
-            ),
+            range: vi.fn(() => ({
+              returns: vi.fn(() =>
+                Promise.resolve({
+                  data: [
+                    { user_id: "user-5", source_key: "custom:user-5:card-1", tier: "B1" },
+                  ],
+                  error: null,
+                }),
+              ),
+            })),
           })),
         };
       }
 
       return {
         select: vi.fn(() => ({
-          in: vi.fn(() => ({
-            eq: vi.fn(() =>
-              Promise.resolve({
-                data: [
-                  { user_id: "user-3", card_source_key: "en:A1:learned" },
-                  { user_id: "user-5", card_source_key: "custom:user-5:card-1" },
-                ],
-                error: null,
-              })),
+          eq: vi.fn(() => ({
+            range: vi.fn(() => ({
+              returns: vi.fn(() =>
+                Promise.resolve({
+                  data: [
+                    { user_id: "user-3", card_source_key: "en:A1:learned" },
+                    { user_id: "user-5", card_source_key: "custom:user-5:card-1" },
+                  ],
+                  error: null,
+                }),
+              ),
+            })),
           })),
         })),
       };

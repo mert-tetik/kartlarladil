@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const requestSchema = z.object({ runId: z.string().uuid(), scope: z.enum(["production", "test"]).optional() }).strict();
 
 export async function POST(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
 

@@ -45,7 +45,7 @@ describe("LocaleSwitcher language matching", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Site dilini değiştir" }));
-    const desktopMenu = document.querySelector('[data-locale-menu="desktop"]')!;
+    const desktopMenu = document.querySelector('[data-locale-menu="desktop"]') as HTMLElement;
     await user.click(within(desktopMenu).getByRole("option", { name: /English/i }));
 
     const swapButton = screen.getByRole("button", { name: "Dillerin yerlerini değiştir" });
@@ -68,7 +68,7 @@ describe("LocaleSwitcher language matching", () => {
 
     await user.click(screen.getByRole("button"));
 
-    const mobileMenu = document.querySelector('[data-locale-menu="mobile"]')!;
+    const mobileMenu = document.querySelector('[data-locale-menu="mobile"]') as HTMLElement;
     const selectedOption = within(mobileMenu).getByRole("option", { selected: true });
 
     expect(mobileMenu).toHaveClass("grid-rows-[minmax(0,1fr)_2.5rem]", "top-[var(--app-header-height)]");

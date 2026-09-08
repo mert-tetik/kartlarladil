@@ -1,5 +1,5 @@
 {
-  "version": "77ef68716a9e165b1efb0a0e377b4f2b459196e1c2481664c9b9077538054c81",
+  "version": "911bb020db1bb0598caeab791fb0cf3a19de3cf29d751c795c2987c6ae907813",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -1056,6 +1056,22 @@
     {
       "url": "/profile-pictures/pp_9.webp",
       "revision": "b3e8aa4011e1de2a3a47670d5816dbf760fb74333f478be4d5ebe276c483c3db"
+    },
+    {
+      "url": "/quiz/black_button.png",
+      "revision": "32fb9773357d966ef60d46da2891e15aa8110e39ff6a50e03fa76df58b673ff3"
+    },
+    {
+      "url": "/quiz/cards_icon.png",
+      "revision": "88b9cc30aec80f6743c95918e5e9c980d0f23d3d9deecc8aaca5d1cfcb04cb88"
+    },
+    {
+      "url": "/quiz/cards_icon2.png",
+      "revision": "ef14a4135352dd318329a3bfb80589257f5373033f2ea8dbad40c320cdf9b013"
+    },
+    {
+      "url": "/quiz/cards_icon3.png",
+      "revision": "3ed579f0a6efef8c167c35c57eaaf13bfdc3fb55b396aa83c1b58d54bb9a25af"
     },
     {
       "url": "/quiz/result-cards/correct.png",

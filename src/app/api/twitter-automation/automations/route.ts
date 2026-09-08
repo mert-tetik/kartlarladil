@@ -170,8 +170,8 @@ function parseStoredAutomationState(value: unknown) {
   return automationGroupsSchema.safeParse(Array.isArray(value) ? { groups: value, superGroups: [] } : value);
 }
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioSession(request.headers.get("cookie"));
 }
 
 function hasValidSocialSelections(groups: z.infer<typeof automationGroupsSchema>["groups"], accounts: SocialMediaAccount[]) {
@@ -190,7 +190,7 @@ function hasValidSocialSelections(groups: z.infer<typeof automationGroupsSchema>
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
 
   try {
@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
 
   const parsed = automationGroupsSchema.safeParse(await request.json().catch(() => null));

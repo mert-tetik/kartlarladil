@@ -433,6 +433,8 @@ const dictionary = {
   "pricing.featurePrioritySupportDescription": "Krijg sneller hulp wanneer je die nodig hebt.",
   "pricing.featureThemesDescription": "Personaliseer je collectie met een kleurthema dat bij je past.",
   "pricing.mobileFeatureUnlimitedAccess": "Verwijder kaartlimieten, krijg onbeperkte toegang tot games en ontvang meer berichten wanneer je met personages praat.",
+  "pricing.previousFeature": "Vorig voordeel",
+  "pricing.nextFeature": "Volgend voordeel",
   "pricing.firstMonthFree": "EERSTE MAAND GRATIS",
   "pricing.firstMonthFreeBanner": "EERSTE MAAND GRATIS BIJ ALLE ABONNEMENTEN",
   "pricing.free": "Gratis",

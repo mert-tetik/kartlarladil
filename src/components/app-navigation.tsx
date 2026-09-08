@@ -56,6 +56,7 @@ const PREFETCHED_NAV_PATHS = new Set([
   "/games",
   "/ai-practice",
   "/ask",
+  "/pricing",
 ]);
 
 const navItems: readonly NavItem[] = [

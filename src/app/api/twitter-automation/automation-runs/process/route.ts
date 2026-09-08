@@ -46,8 +46,8 @@ const requestSchema = z.object({
   if (value.caption && !stagedPaths.length) context.addIssue({ code: "custom", path: ["caption"], message: "Staged media is required." });
 });
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioAutomationSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioAutomationSession(request.headers.get("cookie"));
 }
 
 function isBrowserImageOutput(generator: string, mediaType: AutomationOutputRecord["media_type"]) {
@@ -56,7 +56,7 @@ function isBrowserImageOutput(generator: string, mediaType: AutomationOutputReco
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_output" }, { status: 400 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(parsed.data.scope));

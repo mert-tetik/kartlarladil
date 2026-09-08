@@ -39,13 +39,35 @@ const TIER_POINT_MAP: Record<Tier, number> = {
   C1: 100,
 };
 
+const SUPABASE_PAGE_SIZE = 1000;
+
+async function readAllRows<T>(
+  loadPage: (from: number, to: number) => PromiseLike<{
+    data: T[] | null;
+    error: unknown;
+  }>,
+) {
+  const rows: T[] = [];
+  for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+    const { data, error } = await loadPage(from, from + SUPABASE_PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < SUPABASE_PAGE_SIZE) return rows;
+  }
+}
+
 export async function getLeaderboardPayload(viewerUserId: string): Promise<LeaderboardPayload> {
   const admin = createSupabaseAdminClient();
-  const { data: profiles, error: profileError } = await admin
-    .from("user_profiles")
-    .select("*");
+  let profiles: LeaderboardProfileRow[];
+  try {
+    profiles = await readAllRows((from, to) =>
+      admin.from("user_profiles").select("*").range(from, to).returns<LeaderboardProfileRow[]>(),
+    );
+  } catch {
+    return createEmptyLeaderboardPayload(viewerUserId);
+  }
 
-  if (profileError || !profiles?.length) {
+  if (!profiles.length) {
     return createEmptyLeaderboardPayload(viewerUserId);
   }
 
@@ -55,32 +77,36 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
     return createEmptyLeaderboardPayload(viewerUserId);
   }
 
-  const userIds = profiles.map((profile) => profile.user_id);
-  const [
-    { data: learnedCards, error: learnedError },
-    { data: customCards, error: customCardsError },
-  ] = await Promise.all([
-    admin
-      .from("user_cards")
-      .select("user_id, card_source_key")
-      .in("user_id", userIds)
-      .eq("status", "learned"),
-    admin
-      .from("custom_cards")
-      .select("user_id, source_key, tier")
-      .in("user_id", userIds),
-  ]);
-
-  if (learnedError || customCardsError) {
+  let learnedCards: LearnedCardRow[];
+  let customCards: CustomCardTierRow[];
+  try {
+    [learnedCards, customCards] = await Promise.all([
+      readAllRows((from, to) =>
+        admin
+          .from("user_cards")
+          .select("user_id, card_source_key")
+          .eq("status", "learned")
+          .range(from, to)
+          .returns<LearnedCardRow[]>(),
+      ),
+      readAllRows((from, to) =>
+        admin
+          .from("custom_cards")
+          .select("user_id, source_key, tier")
+          .range(from, to)
+          .returns<CustomCardTierRow[]>(),
+      ),
+    ]);
+  } catch {
     return createEmptyLeaderboardPayload(viewerUserId, viewerProfile);
   }
 
   const customTierBySourceKey = new Map(
-    ((customCards ?? []) as CustomCardTierRow[]).map((card) => [card.source_key, card.tier]),
+    customCards.map((card) => [card.source_key, card.tier]),
   );
   const learnedPointsByUser = new Map<string, number>();
 
-  for (const row of (learnedCards ?? []) as LearnedCardRow[]) {
+  for (const row of learnedCards) {
     const tier =
       parseTierFromSourceKey(row.card_source_key) ??
       parseTier(customTierBySourceKey.get(row.card_source_key));
@@ -97,13 +123,13 @@ export async function getLeaderboardPayload(viewerUserId: string): Promise<Leade
   const scoredProfiles = profiles
     .map((profile) => {
       const totalPoints = (learnedPointsByUser.get(profile.user_id) ?? 0) + getProfilePointTotal({
-        aiPracticePoints: profile.ai_practice_points,
-        chestPoints: profile.chest_points,
-        streakPoints: profile.streak_points,
-        missionPoints: profile.mission_points,
-        quizResultPoints: profile.quiz_result_points,
-        gamePoints: profile.game_points,
-        gemPoints: profile.gem_points,
+        aiPracticePoints: profile.ai_practice_points ?? 0,
+        chestPoints: profile.chest_points ?? 0,
+        streakPoints: profile.streak_points ?? 0,
+        missionPoints: profile.mission_points ?? 0,
+        quizResultPoints: profile.quiz_result_points ?? 0,
+        gamePoints: profile.game_points ?? 0,
+        gemPoints: profile.gem_points ?? 0,
       });
 
       return {

@@ -119,7 +119,7 @@ async function createSelfExampleSentences({
 }
 
 export async function POST(request: Request) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) {
     return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   }
 

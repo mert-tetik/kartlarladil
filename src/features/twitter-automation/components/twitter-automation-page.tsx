@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
@@ -335,10 +335,6 @@ function GeneratorModeOption({
 export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "test-automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [studioMode, setStudioMode] = useState<StudioMode>("text");
   const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("fun-post");
   const [highlightedGeneratorModes, setHighlightedGeneratorModes] = useState<Set<GeneratorMode>>(() => new Set(DEFAULT_HIGHLIGHTED_GENERATOR_MODES));
@@ -1347,30 +1343,6 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     }
   }
 
-  async function submitCredentials(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAuthError("");
-    setIsAuthenticating(true);
-
-    try {
-      const response = await fetch("/api/twitter-automation/auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        setAuthError("Name or password is incorrect.");
-        return;
-      }
-
-      setPassword("");
-      setAuthenticated(true);
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }
-
   function selectStudioMode(nextMode: StudioMode) {
     setStudioMode(nextMode);
     setGeneratorMode(GENERATOR_OPTIONS[nextMode][0].value);
@@ -1674,37 +1646,13 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
     return (
       <section className="content-automation-shell relative grid min-h-[calc(100dvh-4rem)] place-items-center overflow-hidden bg-[#12100e] px-4 py-10 text-[#f9f2e9]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(203,255,66,0.22),transparent_28rem),radial-gradient(circle_at_90%_90%,rgba(150,218,36,0.16),transparent_24rem)]" />
-        <form className="relative w-full max-w-sm rounded-xl border border-white/15 bg-[#1b1714] p-6 shadow-sm" onSubmit={submitCredentials}>
+        <div className="relative w-full max-w-sm rounded-xl border border-white/15 bg-[#1b1714] p-6 shadow-sm">
           <div className="flex size-11 items-center justify-center rounded-lg bg-[#f5ac27] text-[#251106]">
             <LockKeyhole className="size-5" aria-hidden="true" />
           </div>
           <h1 className="mt-5 font-display text-3xl font-semibold">Social content studio</h1>
-          <p className="mt-2 text-sm leading-6 text-[#d7c9bc]">Private workspace for FoxiesDeck social posts, card images, and future video formats.</p>
-
-          <label className="mt-7 block text-sm font-semibold" htmlFor="social-studio-name">Admin name</label>
-          <input
-            autoComplete="username"
-            className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none transition-colors placeholder:text-[#8d8177] focus:border-[#f5ac27]"
-            id="social-studio-name"
-            onChange={(event) => setUsername(event.target.value)}
-            required
-            value={username}
-          />
-          <label className="mt-4 block text-sm font-semibold" htmlFor="social-studio-password">Password</label>
-          <input
-            autoComplete="current-password"
-            className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none transition-colors placeholder:text-[#8d8177] focus:border-[#f5ac27]"
-            id="social-studio-password"
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-          {authError ? <p className="mt-3 text-sm text-[#ffae9f]" role="alert">{authError}</p> : null}
-          <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isAuthenticating || authenticated === null} type="submit">
-            {isAuthenticating ? "Opening studio..." : "Open studio"}
-          </Button>
-        </form>
+          <p className="mt-2 text-sm leading-6 text-[#d7c9bc]">Access is controlled by your Supabase session and the configured developer-admin allow-list.</p>
+        </div>
       </section>
     );
   }

@@ -72,8 +72,8 @@ type PlannedOutput = {
   targetIds: number[];
 };
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioAutomationSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioAutomationSession(request.headers.get("cookie"));
 }
 
 function istanbulDateParts(date: Date) {
@@ -160,7 +160,7 @@ function mediaPaths(value: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
   const runId = request.nextUrl.searchParams.get("runId");
   const activeOnly = request.nextUrl.searchParams.get("active") === "1";
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsedRequest = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsedRequest.success) return NextResponse.json({ errorCode: "invalid_automation_horizon" }, { status: 400 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(parsedRequest.data.scope));

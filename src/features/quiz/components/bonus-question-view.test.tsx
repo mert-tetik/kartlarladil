@@ -211,9 +211,9 @@ describe("BonusQuestionView", () => {
           question={{
             kind: "category-sort",
             words: [
-              { id: "apple", text: "apple" },
-              { id: "car", text: "car" },
-              { id: "blue", text: "blue" },
+              { id: "apple", cardId: "apple", text: "apple" },
+              { id: "car", cardId: "car", text: "car" },
+              { id: "blue", cardId: "blue", text: "blue" },
             ],
             categories: [
               { id: "fruit", name: "Fruit", wordIds: ["apple"] },

@@ -731,6 +731,74 @@ describe("QuizStation sound feedback", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
   });
 
+  it("shakes the unanswered mobile card and plays the incorrect haptic twice", async () => {
+    const previousInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+
+    try {
+      renderQuizStation();
+      await startChoiceQuiz();
+      vi.clearAllMocks();
+
+      let lockedCard = document.querySelector<HTMLElement>('[data-quiz-card-locked="true"]');
+      expect(lockedCard).toBeInTheDocument();
+
+      fireEvent.click(lockedCard!);
+
+      expect(vibrate).toHaveBeenCalledTimes(1);
+      expect(vibrate).toHaveBeenCalledWith("incorrect");
+      expect(document.querySelector('[data-quiz-card-locked-tap-count="1"]')).toHaveClass(
+        "animate-quiz-card-locked-shake",
+      );
+
+      lockedCard = document.querySelector<HTMLElement>('[data-quiz-card-locked="true"]');
+      fireEvent.click(lockedCard!);
+
+      expect(vibrate).toHaveBeenCalledTimes(2);
+      expect(document.querySelector('[data-quiz-card-locked-tap-count="2"]')).toHaveClass(
+        "animate-quiz-card-locked-shake",
+      );
+
+      vi.clearAllMocks();
+      fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+      await waitFor(() => {
+        expect(document.querySelector('[data-quiz-card-locked="false"]')).toBeInTheDocument();
+      });
+
+      const revealedCard = document.querySelector<HTMLElement>('[data-quiz-card-locked="false"]');
+      fireEvent.click(revealedCard!);
+      expect(vibrate).not.toHaveBeenCalledWith("incorrect");
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: previousInnerWidth,
+      });
+    }
+  });
+
+  it("does not make the desktop quiz card respond to the locked-card tap", async () => {
+    const previousInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
+
+    try {
+      renderQuizStation();
+      await startChoiceQuiz();
+      vi.clearAllMocks();
+
+      const lockedCard = document.querySelector<HTMLElement>('[data-quiz-card-locked="false"]');
+      expect(lockedCard).toBeInTheDocument();
+
+      fireEvent.click(lockedCard!);
+
+      expect(vibrate).not.toHaveBeenCalledWith("incorrect");
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: previousInnerWidth,
+      });
+    }
+  });
+
   it("renders a listening question with pronunciation options and a skip action", async () => {
     mathRandomSpy
       .mockReset()

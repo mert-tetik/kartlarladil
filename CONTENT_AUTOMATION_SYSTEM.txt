@@ -258,13 +258,15 @@ Automation tarafinda uretilen AI image ve AI avatar video, Upload-Post'a
 gonderilmeden once private social-studio-automation bucket'ina kopyalanir.
 Video tesliminde Upload-Post'a bu kopyanin 24 saat gecerliligi olan signed URL'i
 verilir; image teslimi ise ayni private kopyadan okunarak yapilir. Basarili
-schedule'dan 48 saat sonra dosya ve output'un medya referansi silinir. Bu grace
-period, Upload-Post'un medyayi tekrar okumasina/retry etmesine pay birakir ancak
-Storage'in kalici arsiv olarak buyumesini engeller.
+schedule'dan 48 saat sonra dosya ve output'un medya referansi silinir. Failed
+medya 24 saat, ready_to_schedule medya 7 gun, stale aktif medya ise 48 saat
+sonra temizlenir. Ayrica output tablosunda referansi kalmayan 24 saatten eski
+orphan staging dosyalari da silinir. Bu grace period, retry ve onizleme icin
+yeterli pay birakir ancak Storage'in kalici arsiv olarak buyumesini engeller.
 
 Vercel Cron her gun 03:15 UTC'de /api/twitter-automation/maintenance endpointini
 calistirir. Bu endpoint CRON_SECRET ile Bearer auth ister ve sadece automation/
-prefixli, 48 saatten eski, basariyla schedule edilmis medya dosyalarini temizler.
+prefixli staging medya dosyalarini, durum ve retention kurallarina gore temizler.
 Migration: supabase/migrations/20260801000000_expand_social_automation_staging_storage.sql
 
 Mevcut studio endpoint ailesi:

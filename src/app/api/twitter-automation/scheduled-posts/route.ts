@@ -10,12 +10,12 @@ const cancelSchema = z.object({
   jobId: z.string().trim().min(1).max(300),
 }).strict();
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioSession(request.headers.get("cookie"));
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   try {
     const posts = await listUploadPostScheduledPosts();
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
 
   const parsed = cancelSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_scheduled_post" }, { status: 400 });

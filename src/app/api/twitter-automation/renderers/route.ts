@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({ label: z.string().trim().min(1).max(120), scope: z.enum(["production", "test"]).optional() }).strict();
 
-function isAuthorized(request: NextRequest) {
-  return hasSocialStudioSession(request.headers.get("cookie"));
+async function isAuthorized(request: NextRequest) {
+  return await hasSocialStudioSession(request.headers.get("cookie"));
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("social_content_automation_renderers").select("id,label,active,last_heartbeat_at,last_seen_at,created_at,revoked_at").eq("owner_key", ownerKey).order("created_at", { ascending: false });
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ errorCode: "invalid_automation_renderer" }, { status: 400 });
   try {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAuthorized(request)) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
+  if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const rendererId = request.nextUrl.searchParams.get("rendererId");
   if (!rendererId || !z.string().uuid().safeParse(rendererId).success) return NextResponse.json({ errorCode: "invalid_automation_renderer" }, { status: 400 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));

@@ -24,7 +24,7 @@ type VideoSourceOutput = {
 };
 
 export async function GET(request: NextRequest) {
-  if (!hasSocialStudioAutomationSession(request.headers.get("cookie"))) {
+  if (!await hasSocialStudioAutomationSession(request.headers.get("cookie"))) {
     return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   }
   const parsed = requestSchema.safeParse({
