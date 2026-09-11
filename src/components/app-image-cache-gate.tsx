@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getTwaMode } from "@/features/install-app/twa-mode";
-import { useT } from "@/i18n/locale-provider";
 import {
   getAssetsRequiringCache,
   getCriticalImageAssets,
@@ -24,9 +22,7 @@ const CACHE_REQUEST_TIMEOUT_MS = 2_500;
 type CacheGatePhase = "hidden" | "loading" | "exiting";
 
 export function AppImageCacheGate() {
-  const t = useT();
   const [phase, setPhase] = useState<CacheGatePhase>("hidden");
-  const [progress, setProgress] = useState({ completed: 0, total: 0 });
 
   useEffect(() => {
     if (!getTwaMode() || !("caches" in window)) {
@@ -40,11 +36,7 @@ export function AppImageCacheGate() {
       if (cancelled) return;
 
       setPhase("loading");
-      const criticalCachePromise = prepareCriticalImageCache((nextProgress) => {
-        if (!cancelled) {
-          setProgress(nextProgress);
-        }
-      });
+      const criticalCachePromise = prepareCriticalImageCache(() => undefined);
       const cacheResultPromise = criticalCachePromise
         .then((manifest) => ({ kind: "complete" as const, manifest }))
         .catch(() => ({ kind: "failed" as const, manifest: null }));
@@ -89,37 +81,35 @@ export function AppImageCacheGate() {
     return null;
   }
 
-  const percentage = progress.total === 0 ? 0 : Math.round((progress.completed / progress.total) * 100);
-
   return (
     <div
       aria-busy="true"
-      aria-label={t("common.loading")}
+      aria-label="Loading"
       className={`fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white transition-[opacity,transform] duration-300 ease-out ${
         phase === "exiting" ? "pointer-events-none -translate-y-3 opacity-0" : "translate-y-0 opacity-100"
       }`}
       data-app-image-cache-gate
       role="status"
     >
-      <div className="flex w-full max-w-[18rem] flex-col items-center">
-        <div className="h-12 w-72 max-w-full overflow-hidden">
-          <Image
-            alt="FoxiesDeck"
-            className="h-auto w-full -translate-y-[40%]"
-            height={1024}
-            priority
-            src="/splash.png"
-            width={1024}
-          />
+      <div className="app-image-cache-loader" aria-hidden="true">
+        <div className="app-image-cache-loader__scene">
+          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--back">
+            <div className="app-image-cache-loader__track app-image-cache-loader__track--back font-super-water">
+              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
+            </div>
+          </div>
+          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--middle">
+            <div className="app-image-cache-loader__track app-image-cache-loader__track--middle font-super-water">
+              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
+            </div>
+          </div>
+          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--front">
+            <div className="app-image-cache-loader__track app-image-cache-loader__track--front font-super-water">
+              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
+            </div>
+          </div>
         </div>
-        <p className="mt-8 text-sm font-semibold text-white">Loading</p>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
-          <div
-            className="h-full rounded-full bg-white transition-transform duration-200 ease-out"
-            style={{ transform: `scaleX(${percentage / 100})`, transformOrigin: "left" }}
-          />
-        </div>
-        <span className="sr-only">{t("common.loading")}</span>
+        <span className="sr-only">Loading</span>
       </div>
     </div>
   );

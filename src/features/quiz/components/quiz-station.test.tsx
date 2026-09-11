@@ -886,17 +886,19 @@ describe("QuizStation sound feedback", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
   });
 
-  it("orders the mobile choice quiz as prompt, card, then question", async () => {
+  it("renders the mobile choice prompt directly below the quiz bar", async () => {
     renderQuizStation();
     await startChoiceQuiz();
 
     const layout = document.querySelector('[data-quiz-mobile-layout="choice"]');
-    const prompt = layout?.querySelector("[data-quiz-mobile-prompt]");
+    const prompt = document.querySelector("[data-quiz-mobile-prompt]");
     const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
     const card = layout?.querySelector("[data-quiz-mobile-card]");
     const question = layout?.querySelector("[data-quiz-mobile-question]");
 
-    expect(prompt).toHaveClass("order-1");
+    expect(prompt).toBeInTheDocument();
+    expect(prompt?.closest("[data-mobile-quiz-top-bar]")).not.toBeInTheDocument();
+    expect(prompt?.closest("[data-mobile-quiz-question-prompt]")).toBeInTheDocument();
     expect(cardSlot).toHaveClass("order-2");
     expect(question).toHaveClass("order-3");
     expect(card).toHaveClass("w-[min(285px,calc((100vw-3rem)/2))]");
@@ -918,12 +920,14 @@ describe("QuizStation sound feedback", () => {
     });
 
     const layout = document.querySelector('[data-quiz-mobile-layout="true-false"]');
-    const prompt = layout?.querySelector("[data-quiz-mobile-prompt]");
+    const prompt = document.querySelector("[data-quiz-mobile-prompt]");
     const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
     const question = layout?.querySelector("[data-quiz-mobile-question]");
     const questionContent = layout?.querySelector('[data-quiz-question-content="true-false"]');
 
-    expect(prompt).toHaveClass("order-1");
+    expect(prompt).toBeInTheDocument();
+    expect(prompt?.closest("[data-mobile-quiz-top-bar]")).not.toBeInTheDocument();
+    expect(prompt?.closest("[data-mobile-quiz-question-prompt]")).toBeInTheDocument();
     expect(cardSlot).toHaveClass("order-2");
     expect(question).toHaveClass("order-3");
     expect(questionContent).toHaveClass("items-center", "text-center");

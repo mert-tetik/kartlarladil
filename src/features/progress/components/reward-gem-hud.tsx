@@ -42,11 +42,15 @@ export function useGemRewardDisplay() {
 export function RewardGemHud({
   className,
   animate = false,
+  size = "default",
+  superWater = false,
   balances: providedBalances,
   pulse,
 }: {
   className?: string;
   animate?: boolean;
+  size?: "default" | "large";
+  superWater?: boolean;
   balances?: GemBalances | null;
   pulse?: GemHudPulse | null;
 }) {
@@ -60,18 +64,33 @@ export function RewardGemHud({
   const balances = providedBalances ?? profileBalances;
 
   return (
-    <div className={cn("flex items-center justify-center gap-1.5 lg:hidden", animate && "animate-points-pop", className)} data-reward-gem-hud>
+    <div
+      className={cn(
+        "flex items-center justify-center gap-1.5 lg:hidden",
+        size === "large" && "gap-2",
+        animate && "animate-points-pop",
+        className,
+      )}
+      data-reward-gem-hud
+    >
       {(["blue", "green", "purple"] as const).map((type) => (
         <span
           key={`${type}-${pulse?.type === type ? pulse.key : "idle"}`}
           data-reward-gem-target={type}
           className={cn(
             "inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white",
+            size === "large" && "gap-1 px-2 py-1.5 text-sm",
             pulse?.type === type && "animate-gem-target-pulse",
           )}
         >
-          <Image src={GEM_ASSETS[type]} alt="" width={20} height={20} className="size-5 object-contain" />
-          <span>{balances[type]}</span>
+          <Image
+            src={GEM_ASSETS[type]}
+            alt=""
+            width={size === "large" ? 28 : 20}
+            height={size === "large" ? 28 : 20}
+            className={cn("size-5 object-contain", size === "large" && "size-7")}
+          />
+          <span className={cn(superWater && "font-super-water")}>{balances[type]}</span>
         </span>
       ))}
     </div>

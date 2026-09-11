@@ -378,10 +378,11 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
                 data-chest-total-points
                 className={cn(
                   "text-lg font-bold sm:text-xl",
+                  usesSuperWater && "font-super-water",
                   pointsPhase === "added" && "animate-score-bobble",
                 )}
               >
-                {formatPoints(locale, displayPoints)}
+                {formatRewardText(formatPoints(locale, displayPoints))}
               </span>
             </div>
           </div>
@@ -392,6 +393,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
             )}
             balances={gemDisplayBalances}
             pulse={gemPulse}
+            superWater={usesSuperWater}
           />
         </div>
 

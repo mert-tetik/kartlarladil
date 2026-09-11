@@ -12,7 +12,7 @@ import {
   getBonusQuestionPoints,
   type BonusQuestionKind,
 } from "@/features/quiz/bonus-question-constants";
-import { normalizeGemRewards, type GemRewards, type GemType } from "@/features/gems/gem-types";
+import { normalizeGemRewards, type GemBalances, type GemRewards, type GemType } from "@/features/gems/gem-types";
 
 const VALID_TIERS = new Set<ChestTier>([
   "wood",
@@ -55,6 +55,8 @@ export interface AwardQuizBonusPointsResult {
   success: boolean;
   awarded?: boolean;
   points?: number;
+  gemRewards?: GemRewards;
+  balances?: GemBalances;
   error?: string;
 }
 
@@ -229,23 +231,39 @@ export async function awardQuizBonusPoints(
     return { success: false, error: "unauthorized" };
   }
 
-  const { data, error } = await supabase.rpc("award_quiz_bonus_points", {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("award_quiz_bonus_rewards", {
     p_user_id: user.id,
     p_session_id: sessionId,
     p_bonus_id: bonusId,
     p_points: points,
-  });
+  }).maybeSingle<{
+    awarded: boolean;
+    points: number;
+    rewards: unknown;
+    blue_gems: number;
+    green_gems: number;
+    purple_gems: number;
+  }>();
 
-  if (error) {
+  if (error || !data) {
     return { success: false, error: "database_error" };
   }
 
   revalidatePath("/learn");
   revalidatePath("/profile");
 
+  const gemRewards = data.awarded ? normalizeGemRewards(data.rewards) : [];
+
   return {
     success: true,
-    awarded: Boolean(data),
-    points,
+    awarded: data.awarded,
+    points: data.points,
+    gemRewards,
+    balances: {
+      blue: data.blue_gems,
+      green: data.green_gems,
+      purple: data.purple_gems,
+    },
   };
 }

@@ -34,8 +34,12 @@ export function createRigidBodyState({
   };
 }
 
-function createStreakBody(horizontalVelocity: number, upwardVelocity: number): RigidBodyState {
-  const direction = Math.random() < 0.5 ? -1 : 1;
+function createStreakBody(
+  horizontalVelocity: number,
+  upwardVelocity: number,
+  forcedDirection?: -1 | 1,
+): RigidBodyState {
+  const direction = forcedDirection ?? (Math.random() < 0.5 ? -1 : 1);
   return createRigidBodyState({
     velocityX: direction * (horizontalVelocity + Math.random() * horizontalVelocity * 0.35),
     velocityY: -(upwardVelocity + Math.random() * upwardVelocity * 0.2),
@@ -46,8 +50,8 @@ function createStreakBody(horizontalVelocity: number, upwardVelocity: number): R
 export function createStreakExitMotion(): StreakExitMotion {
   return {
     background: createStreakBody(140, 420),
-    number: createStreakBody(360, 760),
-    icon: createStreakBody(420, 840),
+    number: createStreakBody(360, 760, -1),
+    icon: createStreakBody(420, 840, 1),
   };
 }
 

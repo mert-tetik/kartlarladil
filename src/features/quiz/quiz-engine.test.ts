@@ -130,13 +130,26 @@ describe("quiz engine", () => {
   });
 
   it("builds a four-option listening question from the target language", () => {
-    const card = VOCABULARY_CARDS.find((item) => item.language === "en")!;
+    const card = VOCABULARY_CARDS.find((item) => {
+      if (item.language !== "en") return false;
+
+      const firstLetter = item.term.trim().slice(0, 1).toLocaleLowerCase();
+      return VOCABULARY_CARDS.filter(
+        (candidate) =>
+          candidate.language === item.language &&
+          candidate.termKind === item.termKind &&
+          candidate.term.trim().slice(0, 1).toLocaleLowerCase() === firstLetter,
+      ).length >= 4;
+    })!;
     const question = buildListeningQuizQuestion(card, VOCABULARY_CARDS);
 
     expect(question).not.toBeNull();
     expect(question?.options).toHaveLength(4);
     expect(question?.correctAnswer).toBe(card.term);
     expect(question?.options).toContain(card.term);
+    expect(question?.options.every((option) =>
+      option.trim().slice(0, 1).toLocaleLowerCase() === card.term.trim().slice(0, 1).toLocaleLowerCase(),
+    )).toBe(true);
     expect(question?.options.every((option) =>
       VOCABULARY_CARDS.some(
         (candidate) => candidate.language === card.language && candidate.term === option,

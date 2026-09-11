@@ -1,5 +1,5 @@
 {
-  "version": "911bb020db1bb0598caeab791fb0cf3a19de3cf29d751c795c2987c6ae907813",
+  "version": "91de6227b3f357a70a63096e61995e8fcf9dac9b1bc69e2209374c45ad349e12",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -1062,6 +1062,10 @@
       "revision": "32fb9773357d966ef60d46da2891e15aa8110e39ff6a50e03fa76df58b673ff3"
     },
     {
+      "url": "/quiz/bonus_img.png",
+      "revision": "7102cbf7babe79d0cca643c243470a0ebbfd2a0dc439b8adb7d4f6247396046c"
+    },
+    {
       "url": "/quiz/cards_icon.png",
       "revision": "88b9cc30aec80f6743c95918e5e9c980d0f23d3d9deecc8aaca5d1cfcb04cb88"
     },
@@ -1072,6 +1076,22 @@
     {
       "url": "/quiz/cards_icon3.png",
       "revision": "3ed579f0a6efef8c167c35c57eaaf13bfdc3fb55b396aa83c1b58d54bb9a25af"
+    },
+    {
+      "url": "/quiz/count-options/10.png",
+      "revision": "3b888065a6100b247b2f48ad3c0d63a231e30016352258652fa291e53c811793"
+    },
+    {
+      "url": "/quiz/count-options/20.png",
+      "revision": "0abf8bd198880db902f8211c87a9dbfff7482497b4ecbd3d422ecfc67f82597d"
+    },
+    {
+      "url": "/quiz/count-options/30.png",
+      "revision": "80da6063f1a94288497ef30aa686d90e6878347ec4845cf8e5e5764197b8d2c2"
+    },
+    {
+      "url": "/quiz/count-options/50.png",
+      "revision": "a433773111150b00abb140495bb089d865b04ebee00a3e19839ec34b0d7e2c18"
     },
     {
       "url": "/quiz/result-cards/correct.png",

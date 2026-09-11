@@ -9,6 +9,11 @@ import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empt
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
+import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
+import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
+import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
+import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
+import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/locale-provider";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
@@ -21,12 +26,22 @@ interface LearnQuizShellProps {
   description: string;
   initialMode: PracticeMode | null;
   initialLanguage?: LanguageCode | null;
+  learnedCelebrationTest?: boolean;
+  streakTest?: boolean;
+  resultTest?: boolean;
+  resultMessageTest?: boolean;
+  bonusTest?: boolean;
 }
 
 export function LearnQuizShell({
   title,
   initialMode,
   initialLanguage,
+  learnedCelebrationTest = false,
+  streakTest = false,
+  resultTest = false,
+  resultMessageTest = false,
+  bonusTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -40,6 +55,26 @@ export function LearnQuizShell({
   const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
+
+  if (learnedCelebrationTest) {
+    return <LearnedCelebrationTest />;
+  }
+
+  if (streakTest) {
+    return <StreakCelebrationTest />;
+  }
+
+  if (resultTest) {
+    return <QuizResultTest />;
+  }
+
+  if (resultMessageTest) {
+    return <QuizResultMessageTest />;
+  }
+
+  if (bonusTest) {
+    return <BonusQuestionsTest />;
+  }
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {

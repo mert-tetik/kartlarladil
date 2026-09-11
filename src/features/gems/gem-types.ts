@@ -1,5 +1,5 @@
 export type GemType = "blue" | "green" | "purple";
-export type ProgressGemRewardSource = "game-level" | "quiz-streak" | "quiz-result";
+export type ProgressGemRewardSource = "game-level" | "quiz-streak" | "quiz-result" | "quiz-bonus";
 
 export interface GemBalances {
   blue: number;
@@ -48,7 +48,7 @@ export const GEM_ASSETS: Record<GemType, string> = {
 export const GEM_COSTS = {
   removeCard: { type: "blue", amount: 10 } satisfies { type: GemType; amount: number },
   markLearned: { type: "purple", amount: 2 } satisfies { type: GemType; amount: number },
-  rerollQuestion: { type: "green", amount: 2 } satisfies { type: GemType; amount: number },
+  rerollQuestion: { type: "green", amount: 1 } satisfies { type: GemType; amount: number },
 } as const;
 
 export function normalizeGemRewards(value: unknown): GemRewards {

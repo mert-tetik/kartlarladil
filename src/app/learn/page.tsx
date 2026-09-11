@@ -39,6 +39,31 @@ function parseLanguage(value: string | string[] | undefined): LanguageCode | nul
   return LANGUAGES.find((language) => language.code === rawValue)?.code ?? null;
 }
 
+function parseLearnedCelebrationTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseStreakTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseResultTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseResultMessageTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseBonusTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 export default async function LearnPage({
   searchParams,
 }: {
@@ -49,6 +74,11 @@ export default async function LearnPage({
   const params = await searchParams;
   const initialMode = parsePracticeMode(params.mode);
   const initialLanguage = parseLanguage(params.language);
+  const learnedCelebrationTest = parseLearnedCelebrationTest(params["learned-celebration-test"]);
+  const streakTest = parseStreakTest(params["streak-test"]);
+  const resultTest = parseResultTest(params["result-test"]);
+  const resultMessageTest = parseResultMessageTest(params["result-message-test"]);
+  const bonusTest = parseBonusTest(params["bonus-test"]);
 
   return (
     <section
@@ -60,6 +90,11 @@ export default async function LearnPage({
         description={t("page.learn.description")}
         initialMode={initialMode}
         initialLanguage={initialLanguage}
+        learnedCelebrationTest={learnedCelebrationTest}
+        streakTest={streakTest}
+        resultTest={resultTest}
+        resultMessageTest={resultMessageTest}
+        bonusTest={bonusTest}
       />
     </section>
   );

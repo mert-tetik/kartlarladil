@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
-export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "word-challenge-correct" | "word-challenge-incorrect";
+export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-shockwave" | "streak-exit" | "word-challenge-correct" | "word-challenge-incorrect";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
@@ -29,6 +29,10 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "chest-open": [90, 35, 120],
   /** Heavy multi-pulse impact when a streak reward breaks apart. */
   "streak-break": [110, 28, 170, 34, 250],
+  /** Short impact synced with the streak entrance shockwave. */
+  "streak-shockwave": [36, 20, 64],
+  /** Strong impact when the streak number and fire icon launch out. */
+  "streak-exit": [140, 24, 220, 28, 320],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

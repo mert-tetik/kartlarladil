@@ -1049,7 +1049,7 @@ function MobilePricingPerkCarousel({
       <button
         type="button"
         onClick={() => moveToAdjacentCard(-1)}
-        className="absolute left-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white/90 backdrop-blur-sm transition-[background-color,transform] hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
+        className="absolute left-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-white/90 transition-[color,transform] hover:bg-transparent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
         aria-label={t("pricing.previousFeature")}
         data-pricing-perk-previous
       >
@@ -1120,7 +1120,7 @@ function MobilePricingPerkCarousel({
       <button
         type="button"
         onClick={() => moveToAdjacentCard(1)}
-        className="absolute right-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white/90 backdrop-blur-sm transition-[background-color,transform] hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
+        className="absolute right-0 top-1/2 z-30 inline-flex h-10 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-transparent text-white/90 transition-[color,transform] hover:bg-transparent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-95"
         aria-label={t("pricing.nextFeature")}
         data-pricing-perk-next
       >

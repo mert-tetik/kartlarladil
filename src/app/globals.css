@@ -98,9 +98,216 @@
   animation: pricing-perk-arrow-right-nudge 1.7s ease-in-out infinite;
 }
 
+/* Route loader adapted from the MIT-licensed Uiverse pencil loader. The
+   pencil follows the active theme instead of using a fixed blue palette. */
+.route-loading-pencil-wrap {
+  --route-pencil-body-1: color-mix(in srgb, var(--brand) 86%, black);
+  --route-pencil-body-2: color-mix(in srgb, var(--brand) 58%, white);
+  --route-pencil-body-3: color-mix(in srgb, var(--brand) 72%, black);
+  --route-pencil-eraser: color-mix(in srgb, var(--brand) 66%, white);
+  --route-pencil-eraser-shade: color-mix(in srgb, var(--brand) 82%, black);
+  --route-pencil-point-light: color-mix(in srgb, var(--brand) 38%, white);
+  --route-pencil-point-dark: color-mix(in srgb, var(--brand) 78%, black);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+}
+
+.route-loading-pencil {
+  display: block;
+  height: clamp(7.5rem, 24vw, 10rem);
+  width: clamp(7.5rem, 24vw, 10rem);
+}
+
+.route-loading-pencil__body1,
+.route-loading-pencil__body2,
+.route-loading-pencil__body3,
+.route-loading-pencil__eraser,
+.route-loading-pencil__eraser-skew,
+.route-loading-pencil__point,
+.route-loading-pencil__rotate,
+.route-loading-pencil__stroke {
+  animation-duration: 3s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+.route-loading-pencil__body1,
+.route-loading-pencil__body2,
+.route-loading-pencil__body3 {
+  transform: rotate(-90deg);
+}
+
+.route-loading-pencil__body1 {
+  animation-name: routeLoadingPencilBody1;
+}
+
+.route-loading-pencil__body2 {
+  animation-name: routeLoadingPencilBody2;
+}
+
+.route-loading-pencil__body3 {
+  animation-name: routeLoadingPencilBody3;
+}
+
+.route-loading-pencil__eraser {
+  animation-name: routeLoadingPencilEraser;
+  transform: rotate(-90deg) translate(49px, 0);
+}
+
+.route-loading-pencil__eraser-skew {
+  animation-name: routeLoadingPencilEraserSkew;
+  animation-timing-function: ease-in-out;
+}
+
+.route-loading-pencil__point {
+  animation-name: routeLoadingPencilPoint;
+  transform: rotate(-90deg) translate(49px, -30px);
+}
+
+.route-loading-pencil__rotate {
+  animation-name: routeLoadingPencilRotate;
+}
+
+.route-loading-pencil__stroke {
+  animation-name: routeLoadingPencilStroke;
+  transform: translate(100px, 100px) rotate(-113deg);
+}
+
+@keyframes routeLoadingPencilBody1 {
+  from,
+  to {
+    stroke-dashoffset: 351.86;
+    transform: rotate(-90deg);
+  }
+
+  50% {
+    stroke-dashoffset: 150.8;
+    transform: rotate(-225deg);
+  }
+}
+
+@keyframes routeLoadingPencilBody2 {
+  from,
+  to {
+    stroke-dashoffset: 406.84;
+    transform: rotate(-90deg);
+  }
+
+  50% {
+    stroke-dashoffset: 174.36;
+    transform: rotate(-225deg);
+  }
+}
+
+@keyframes routeLoadingPencilBody3 {
+  from,
+  to {
+    stroke-dashoffset: 296.88;
+    transform: rotate(-90deg);
+  }
+
+  50% {
+    stroke-dashoffset: 127.23;
+    transform: rotate(-225deg);
+  }
+}
+
+@keyframes routeLoadingPencilEraser {
+  from,
+  to {
+    transform: rotate(-45deg) translate(49px, 0);
+  }
+
+  50% {
+    transform: rotate(0deg) translate(49px, 0);
+  }
+}
+
+@keyframes routeLoadingPencilEraserSkew {
+  from,
+  32.5%,
+  67.5%,
+  to {
+    transform: skewX(0);
+  }
+
+  35%,
+  65% {
+    transform: skewX(-4deg);
+  }
+
+  37.5%,
+  62.5% {
+    transform: skewX(8deg);
+  }
+
+  40%,
+  45%,
+  50%,
+  55%,
+  60% {
+    transform: skewX(-15deg);
+  }
+
+  42.5%,
+  47.5%,
+  52.5%,
+  57.5% {
+    transform: skewX(15deg);
+  }
+}
+
+@keyframes routeLoadingPencilPoint {
+  from,
+  to {
+    transform: rotate(-90deg) translate(49px, -30px);
+  }
+
+  50% {
+    transform: rotate(-225deg) translate(49px, -30px);
+  }
+}
+
+@keyframes routeLoadingPencilRotate {
+  from {
+    transform: translate(100px, 100px) rotate(0);
+  }
+
+  to {
+    transform: translate(100px, 100px) rotate(720deg);
+  }
+}
+
+@keyframes routeLoadingPencilStroke {
+  from {
+    stroke-dashoffset: 439.82;
+    transform: translate(100px, 100px) rotate(-113deg);
+  }
+
+  50% {
+    stroke-dashoffset: 164.93;
+    transform: translate(100px, 100px) rotate(-113deg);
+  }
+
+  75%,
+  to {
+    stroke-dashoffset: 439.82;
+    transform: translate(100px, 100px) rotate(112deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pricing-perk-arrow-left,
-  .pricing-perk-arrow-right {
+  .pricing-perk-arrow-right,
+  .route-loading-pencil__body1,
+  .route-loading-pencil__body2,
+  .route-loading-pencil__body3,
+  .route-loading-pencil__eraser,
+  .route-loading-pencil__eraser-skew,
+  .route-loading-pencil__point,
+  .route-loading-pencil__rotate,
+  .route-loading-pencil__stroke {
     animation: none;
   }
 }
@@ -744,6 +951,159 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+.quiz-first-question-entry [data-quiz-counter],
+.quiz-first-question-entry [data-quiz-progress-header],
+.quiz-first-question-entry [data-quiz-mobile-prompt],
+.quiz-first-question-entry [data-quiz-question-content],
+.quiz-first-question-entry [data-quiz-mobile-card-slot] {
+  animation: mission-details-content-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) both !important;
+  will-change: opacity, transform;
+}
+
+.quiz-first-question-entry [data-quiz-progress-header] {
+  animation-delay: 70ms !important;
+}
+
+.quiz-first-question-entry [data-quiz-mobile-prompt] {
+  animation-delay: 110ms !important;
+}
+
+.quiz-first-question-entry [data-quiz-question-content] {
+  animation-delay: 150ms !important;
+}
+
+.quiz-first-question-entry [data-quiz-mobile-card-slot] {
+  animation-delay: 220ms !important;
+}
+
+[data-quiz-first-question-pending] [data-quiz-counter],
+[data-quiz-first-question-pending] [data-quiz-progress-header],
+[data-quiz-first-question-pending] [data-quiz-mobile-prompt],
+[data-quiz-first-question-pending] [data-quiz-question-content],
+[data-quiz-first-question-pending] [data-quiz-mobile-card-slot] {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translate3d(0, 1.25rem, 0) scale(0) !important;
+}
+
+@keyframes quiz-learned-celebration-item-exit {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -1rem, 0) scale(0);
+  }
+}
+
+[data-quiz-celebration-closing="true"] [data-quiz-celebration-score-group],
+[data-quiz-celebration-closing="true"] [data-quiz-celebration-title],
+[data-quiz-celebration-closing="true"] [data-quiz-celebration-card] {
+  animation: quiz-learned-celebration-item-exit 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+[data-quiz-celebration-closing="true"] [data-quiz-celebration-title] {
+  animation-delay: 80ms;
+}
+
+[data-quiz-celebration-closing="true"] [data-quiz-celebration-card] {
+  animation-delay: 160ms;
+}
+
+.app-image-cache-loader {
+  display: flex;
+  width: min(82vw, 22rem);
+  height: 8rem;
+  align-items: center;
+  justify-content: center;
+  perspective: 900px;
+}
+
+.app-image-cache-loader__scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1.5rem;
+}
+
+.app-image-cache-loader__layer {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 32%);
+  background: rgb(18 18 18 / 54%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 16%), 0 14px 28px rgb(0 0 0 / 14%);
+  backdrop-filter: blur(3px);
+  transform-style: preserve-3d;
+}
+
+.app-image-cache-loader__layer--back {
+  inset: 1.35rem 2.25rem;
+  transform: translateZ(-90px) rotate(-4deg);
+  opacity: 0.48;
+}
+
+.app-image-cache-loader__layer--middle {
+  inset: 0.85rem 1.2rem;
+  transform: translateZ(-35px) rotate(2deg);
+  opacity: 0.7;
+}
+
+.app-image-cache-loader__layer--front {
+  inset: 0.3rem 0.25rem;
+  transform: translateZ(18px) rotate(-1deg);
+}
+
+.app-image-cache-loader__track {
+  display: flex;
+  width: max-content;
+  min-width: 180%;
+  height: 100%;
+  align-items: center;
+  gap: 2.25rem;
+  color: #fff;
+  font-size: clamp(1.7rem, 6vw, 2.8rem);
+  line-height: 1;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.app-image-cache-loader__track span {
+  display: inline-block;
+  flex: none;
+}
+
+.app-image-cache-loader__track--back {
+  animation: app-image-cache-loader-scroll-back 5.2s ease-in-out infinite alternate;
+}
+
+.app-image-cache-loader__track--middle {
+  animation: app-image-cache-loader-scroll-middle 3.9s ease-in-out infinite alternate;
+}
+
+.app-image-cache-loader__track--front {
+  animation: app-image-cache-loader-scroll-front 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes app-image-cache-loader-scroll-back {
+  from { transform: translate3d(-22%, 0, 0); }
+  to { transform: translate3d(4%, 0, 0); }
+}
+
+@keyframes app-image-cache-loader-scroll-middle {
+  from { transform: translate3d(4%, 0, 0); }
+  to { transform: translate3d(-20%, 0, 0); }
+}
+
+@keyframes app-image-cache-loader-scroll-front {
+  from { transform: translate3d(-17%, 0, 0); }
+  to { transform: translate3d(8%, 0, 0); }
+}
+
 /* Quiz count setup uses the same source-origin scale as the mission details menu. */
 .quiz-count-intro,
 .quiz-count-grid-enter {
@@ -774,10 +1134,6 @@ html[data-route-transition="entering"] [data-route-transition-item] {
     quiz-count-option-fade-in 180ms linear var(--quiz-count-option-delay, 0ms) both;
   transform-origin: center;
   will-change: transform, opacity;
-}
-
-.quiz-count-option-enter--dimmed {
-  opacity: 0.4 !important;
 }
 
 @keyframes quiz-count-option-scale-in {
@@ -1160,6 +1516,31 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }
 
+@keyframes quiz-card-progress-void {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  34%,
+  72% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+.animate-quiz-card-progress-void {
+  animation: quiz-card-progress-void 1.84s cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
 [data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator] {
   transition-duration: 900ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1223,6 +1604,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-bonus-intro-exit,
   .animate-bonus-intro-copy,
   .animate-bonus-intro-copy-exit,
+  .animate-bonus-reward-pulse,
   .animate-bonus-sentence-token-enter,
   .animate-bonus-sentence-token-return,
   .animate-bonus-category-word-enter,
@@ -1230,6 +1612,9 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-bonus-category-word-return,
   .animate-streak-celebration-background-enter,
   .animate-streak-celebration-copy-enter,
+  .animate-streak-shockwave-ring,
+  .animate-streak-shockwave-ring-delayed,
+  .animate-streak-shockwave-core,
   .animate-streak-celebration-background-exit,
   .animate-streak-celebration-number-exit,
   .animate-streak-celebration-icon-exit,
@@ -1842,6 +2227,23 @@ body:has([data-ask-page]) footer {
   }
 }
 
+@keyframes bonus-reward-pulse {
+  0% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-bonus-reward-pulse {
+  animation: bonus-reward-pulse 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+}
+
 .animate-bonus-intro-enter {
   animation: bonus-intro-enter 1050ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform, opacity;
@@ -2087,8 +2489,8 @@ body:has([data-ask-page]) footer {
     opacity: 1;
   }
   75% {
-    transform: translate3d(0, 50%, 0);
-    opacity: 0;
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
   100% {
     transform: translate3d(0, 100%, 0);
@@ -2097,7 +2499,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-quiz-start-splash {
-  animation: quiz-start-splash 1.2s cubic-bezier(0.85, 0, 0.15, 1) forwards;
+  animation: quiz-start-splash 1.4s cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 @keyframes game-start-splash-enter {
@@ -2159,16 +2561,6 @@ body:has([data-ask-page]) footer {
   animation: game-launch-copy 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
-@keyframes quiz-start-selection-underlay {
-  to {
-    opacity: 0;
-  }
-}
-
-.animate-quiz-start-selection-underlay {
-  animation: quiz-start-selection-underlay 1ms linear 480ms forwards;
-}
-
 @keyframes streak-fire {
   0%, 100% {
     transform: scale(1) rotate(-4deg);
@@ -2185,15 +2577,11 @@ body:has([data-ask-page]) footer {
 @keyframes streak-celebration-background-enter {
   0% {
     opacity: 0;
-    transform: scale(1.28) translateY(-18px);
-  }
-  58% {
-    opacity: 0.88;
-    transform: scale(0.985) translateY(3px);
+    transform: scale(1.015);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
 }
 
@@ -2212,36 +2600,26 @@ body:has([data-ask-page]) footer {
   }
 }
 
-@keyframes streak-celebration-background-exit {
+@keyframes streak-celebration-background-opacity-exit {
   0% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  12% {
-    transform: translate3d(var(--streak-background-launch-x), var(--streak-background-launch-y), 0)
-      rotate(var(--streak-background-launch-rotation));
-  }
-  30% {
-    transform: translate3d(var(--streak-background-apex-x), var(--streak-background-apex-y), 0)
-      rotate(var(--streak-background-apex-rotation));
-  }
-  50% {
-    transform: translate3d(var(--streak-background-landing-x), var(--streak-background-landing-y), 0)
-      rotate(var(--streak-background-landing-rotation));
-  }
-  74% {
-    transform: translate3d(var(--streak-background-fall-start-x), var(--streak-background-fall-start-y), 0)
-      rotate(var(--streak-background-fall-start-rotation));
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--streak-background-fall-x), var(--streak-background-fall-y), 0)
-      rotate(var(--streak-background-fall-rotation));
+  }
+}
+
+@keyframes streak-celebration-background-scale-exit {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.72);
   }
 }
 
 .animate-streak-celebration-background-enter {
-  animation: streak-celebration-background-enter 1050ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation: streak-celebration-background-enter 220ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: opacity, transform;
 }
 
@@ -2250,8 +2628,76 @@ body:has([data-ask-page]) footer {
   will-change: opacity, transform;
 }
 
+@keyframes streak-shockwave-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.22);
+  }
+  16% {
+    opacity: 0.9;
+  }
+  68% {
+    opacity: 0.42;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.25);
+  }
+}
+
+@keyframes streak-shockwave-ring-delayed {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.16);
+  }
+  18% {
+    opacity: 0.72;
+  }
+  72% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.7);
+  }
+}
+
+@keyframes streak-shockwave-core {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.25);
+  }
+  20% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+}
+
+.animate-streak-shockwave-ring {
+  animation: streak-shockwave-ring 560ms linear both;
+  box-shadow: 0 0 20px color-mix(in srgb, currentColor 38%, transparent);
+  will-change: opacity, transform;
+}
+
+.animate-streak-shockwave-ring-delayed {
+  animation: streak-shockwave-ring-delayed 560ms 90ms linear both;
+  will-change: opacity, transform;
+}
+
+.animate-streak-shockwave-core {
+  animation: streak-shockwave-core 360ms linear both;
+  box-shadow: 0 0 22px 6px color-mix(in srgb, currentColor 55%, transparent);
+  will-change: opacity, transform;
+}
+
 .animate-streak-celebration-background-exit {
-  animation: streak-celebration-background-exit 820ms linear both;
+  animation:
+    streak-celebration-background-scale-exit 560ms cubic-bezier(0.85, 0, 0.15, 1) both,
+    streak-celebration-background-opacity-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: opacity, transform;
 }

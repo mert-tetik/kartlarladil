@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { awardChestPoints, awardQuizResultPoints } from "@/features/quiz/actions";
+import { awardChestPoints, awardQuizBonusPoints, awardQuizResultPoints } from "@/features/quiz/actions";
 
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
@@ -125,6 +125,55 @@ describe("awardChestPoints", () => {
       p_claim_key: `quiz:${sessionId}`,
       p_tier: "gold",
       p_points: 60,
+    });
+  });
+});
+
+describe("awardQuizBonusPoints", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+    mockAdminRpc.mockReturnValue({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          awarded: true,
+          points: 35,
+          rewards: [
+            { type: "blue", amount: 2 },
+            { type: "green", amount: 1 },
+          ],
+          blue_gems: 12,
+          green_gems: 4,
+          purple_gems: 1,
+        },
+        error: null,
+      }),
+    });
+  });
+
+  it("uses the atomic bonus reward RPC and returns every gem drop", async () => {
+    const sessionId = "00000000-0000-4000-8000-000000000007";
+    const bonusId = `${sessionId}-category-sort-1`;
+
+    await expect(awardQuizBonusPoints(sessionId, bonusId)).resolves.toEqual({
+      success: true,
+      awarded: true,
+      points: 35,
+      gemRewards: [
+        { type: "blue", amount: 2 },
+        { type: "green", amount: 1 },
+      ],
+      balances: { blue: 12, green: 4, purple: 1 },
+    });
+
+    expect(mockAdminRpc).toHaveBeenCalledWith("award_quiz_bonus_rewards", {
+      p_user_id: "user-1",
+      p_session_id: sessionId,
+      p_bonus_id: bonusId,
+      p_points: 35,
     });
   });
 });

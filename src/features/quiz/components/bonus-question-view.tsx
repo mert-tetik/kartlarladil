@@ -19,6 +19,9 @@ import {
   getScoreFlightIconCount,
 } from "@/features/progress/score-flight";
 import { ScoreIcon } from "@/components/score-icon";
+import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { RewardGemHud, type GemHudPulse } from "@/features/progress/components/reward-gem-hud";
+import type { GemBalances, GemRewards, GemType } from "@/features/gems/gem-types";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
@@ -26,9 +29,11 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
+import { formatNumber } from "@/i18n/labels";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
+const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png";
 // This is intentionally unrelated to the sentence content: it is a decorative
 // AI Practice character, not a scenario or an answer hint.
 const SENTENCE_ORDER_DECORATION_CHARACTER = "/ai-characters/soft-artist.webp";
@@ -36,15 +41,12 @@ const SENTENCE_ORDER_DECORATION_CHARACTER = "/ai-characters/soft-artist.webp";
 const CATEGORY_SORT_PALETTES = [
   {
     background: "bg-emerald-500",
-    wordBackground: "bg-emerald-600",
   },
   {
     background: "bg-sky-500",
-    wordBackground: "bg-sky-600",
   },
   {
     background: "bg-rose-500",
-    wordBackground: "bg-rose-600",
   },
 ] as const;
 
@@ -104,6 +106,15 @@ export function BonusQuestionView({
   onFlightStart,
   onPointArrive,
   onFlightComplete,
+  rewardReady = true,
+  showPointFlight = true,
+  totalPoints = 0,
+  scorePulse = 0,
+  gemBalances,
+  gemPulse,
+  gemRewards,
+  onGemArrive,
+  onGemFlightComplete,
 }: {
   question: BonusQuestion;
   showingAnswer: boolean;
@@ -115,12 +126,31 @@ export function BonusQuestionView({
   onFlightStart?: () => void;
   onPointArrive?: (points: number) => void;
   onFlightComplete?: () => void;
+  rewardReady?: boolean;
+  showPointFlight?: boolean;
+  totalPoints?: number;
+  scorePulse?: number;
+  gemBalances?: GemBalances | null;
+  gemPulse?: GemHudPulse | null;
+  gemRewards?: GemRewards | null;
+  onGemArrive?: (type: GemType) => void;
+  onGemFlightComplete?: () => void;
 }) {
   const { locale, t } = useLocale();
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
+  const rewardFlightStartedRef = useRef(false);
+  const [rewardPulse, setRewardPulse] = useState(0);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
+  const showRewardHud = showingAnswer && answerAccepted === true;
+  const rewardFlightReady = showingAnswer && answerAccepted && rewardReady && (showPointFlight || Boolean(gemRewards?.length));
+
+  useEffect(() => {
+    if (!rewardFlightReady || rewardFlightStartedRef.current) return;
+    rewardFlightStartedRef.current = true;
+    setRewardPulse((current) => current + 1);
+  }, [rewardFlightReady]);
 
   return (
     <div
@@ -146,10 +176,54 @@ export function BonusQuestionView({
         </div>
       ) : null}
 
+      {showRewardHud ? (
+        <div className="relative z-10 flex flex-col items-center gap-2" data-bonus-reward-hud>
+          <div
+            className="animate-points-pop relative inline-flex items-center gap-1.5 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-3 py-1.5 text-white shadow-sm"
+            data-bonus-reward-score
+          >
+            <ScoreIcon size={22} className="size-[22px]" />
+            <span
+              className={cn(
+                "text-base font-bold",
+                canUseSuperWater(locale) && "font-super-water",
+                scorePulse > 0 && "animate-score-bobble",
+              )}
+              key={scorePulse}
+            >
+              {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
+            </span>
+          </div>
+          <RewardGemHud
+            animate
+            size="large"
+            balances={gemBalances}
+            pulse={gemPulse}
+            superWater={canUseSuperWater(locale)}
+          />
+        </div>
+      ) : null}
+
       <div className="relative z-10 flex flex-col items-center gap-1 text-center">
-        <span className="inline-flex items-center bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-xs font-semibold uppercase tracking-wider text-transparent">
-          {formatSuperWaterText(locale, copy.bonusPoints)}
-        </span>
+        <div
+          ref={sourceRef}
+          key={rewardPulse}
+          className={cn(
+            "relative w-[min(10rem,40vw)]",
+            rewardPulse > 0 && "animate-bonus-reward-pulse",
+          )}
+          data-bonus-reward-source
+          aria-hidden="true"
+        >
+          <Image
+            src={BONUS_REWARD_IMAGE}
+            alt=""
+            width={1536}
+            height={1000}
+            sizes="(max-width: 640px) 40vw, 160px"
+            className="h-auto w-full object-contain"
+          />
+        </div>
         <h2
           className={cn(
             "text-2xl font-semibold text-white sm:text-3xl",
@@ -163,7 +237,7 @@ export function BonusQuestionView({
         </p>
       </div>
 
-      <div ref={sourceRef} className="relative z-10 flex w-full flex-col items-center">
+      <div className="relative z-10 flex w-full flex-col items-center">
         {question.kind === "matching" ? (
           <MatchingBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "sentence-order" ? (
@@ -196,13 +270,22 @@ export function BonusQuestionView({
         </Button>
       </div>
 
-      {showingAnswer && answerAccepted
+      {showingAnswer && answerAccepted && rewardReady && showPointFlight
         ? <BonusPointFlight
             points={points}
             sourceRef={sourceRef}
             onFlightStart={onFlightStart}
             onPointArrive={onPointArrive}
             onComplete={onFlightComplete}
+          />
+        : null}
+
+      {showingAnswer && answerAccepted && rewardReady && gemRewards?.length
+        ? <GemRewardFlight
+            rewards={gemRewards}
+            sourceRef={sourceRef}
+            onGemArrive={onGemArrive}
+            onComplete={onGemFlightComplete}
           />
         : null}
     </div>
@@ -674,7 +757,7 @@ function CategorySortBonus({
                 }
               }}
               className={cn(
-                "min-h-20 rounded-xl p-2.5 text-left text-white transition-[filter,transform] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                "min-h-20 overflow-hidden rounded-xl text-left text-white transition-[filter,transform] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
                 palette.background,
                 !showingAnswer && "hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90",
                 categoryCorrect && "ring-2 ring-emerald-100",
@@ -682,40 +765,44 @@ function CategorySortBonus({
               )}
               data-bonus-category={category.id}
             >
-              <span className={cn(
-                "block text-sm font-semibold text-white",
-                canUseSuperWater(locale) && "font-super-water",
-              )}>
-                {formatSuperWaterText(locale, categoryLabel)}
-              </span>
-              <span className="mt-2 flex min-h-8 flex-wrap gap-1">
-                {words.map((word) => {
-                  const isReturning = exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id;
-                  const correct = showingAnswer && assignments[word.id] === categoryByWord.get(word.id);
-                  const wrong = showingAnswer && assignments[word.id] !== categoryByWord.get(word.id);
-                  return (
-                    <button
-                      key={word.id}
-                      type="button"
-                      disabled={showingAnswer || isReturning}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        selectWord(word.id);
-                      }}
-                      className={cn(
-                        "rounded-md border-0 px-1.5 py-1 text-xs font-semibold text-white transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-                        palette.wordBackground,
-                        isReturning ? "animate-bonus-category-word-exit" : "animate-bonus-category-word-enter",
-                        correct && "bg-emerald-600",
-                        wrong && "bg-rose-600",
-                      )}
-                      data-bonus-category-assigned-word={word.id}
-                    >
-                      {word.text}
-                    </button>
-                  );
-                })}
-              </span>
+              <div className="px-2.5 py-2">
+                <span className={cn(
+                  "block text-sm font-semibold text-white",
+                  canUseSuperWater(locale) && "font-super-water",
+                )}>
+                  {formatSuperWaterText(locale, categoryLabel)}
+                </span>
+              </div>
+              <div className="min-h-8 bg-black/20 px-2.5 py-2">
+                <span className="flex min-h-8 flex-wrap gap-1">
+                  {words.map((word) => {
+                    const isReturning = exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id;
+                    const correct = showingAnswer && assignments[word.id] === categoryByWord.get(word.id);
+                    const wrong = showingAnswer && assignments[word.id] !== categoryByWord.get(word.id);
+                    return (
+                      <button
+                        key={word.id}
+                        type="button"
+                        disabled={showingAnswer || isReturning}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectWord(word.id);
+                        }}
+                        className={cn(
+                          "rounded-md border-0 px-1.5 py-1 text-xs font-semibold text-white transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                          palette.background,
+                          isReturning ? "animate-bonus-category-word-exit" : "animate-bonus-category-word-enter",
+                          correct && "bg-emerald-600",
+                          wrong && "bg-rose-600",
+                        )}
+                        data-bonus-category-assigned-word={word.id}
+                      >
+                        {word.text}
+                      </button>
+                    );
+                  })}
+                </span>
+              </div>
             </div>
           );
         })}
@@ -862,7 +949,9 @@ function BonusPointFlight({
 
     const frame = window.requestAnimationFrame(() => {
       const source = sourceRef.current?.getBoundingClientRect();
-      const target = document.querySelector<HTMLElement>("[data-quiz-total-score]")?.getBoundingClientRect();
+      const target = document
+        .querySelector<HTMLElement>("[data-bonus-reward-score], [data-quiz-total-score]")
+        ?.getBoundingClientRect();
       if (!source || !target || source.width === 0 || source.height === 0 || target.width === 0 || target.height === 0) {
         completedRef.current = true;
         onCompleteRef.current?.();

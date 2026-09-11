@@ -17,6 +17,7 @@ import {
 } from "@/features/progress/score-flight";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import {
   createStreakExitMotion,
@@ -210,11 +211,11 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
       <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
         <div className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
           <Star className="size-5 fill-current" aria-hidden="true" />
-          <span ref={scoreRef} key={scorePulse} className={cn("text-lg font-bold", scorePulse > 0 && "animate-score-bobble")}>
-            {formatPoints(locale, displayPoints)}
+          <span ref={scoreRef} key={scorePulse} className={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water", scorePulse > 0 && "animate-score-bobble")}>
+            {formatSuperWaterText(locale, formatPoints(locale, displayPoints))}
           </span>
         </div>
-        <RewardGemHud className="mt-2" balances={gemDisplayBalances} pulse={gemPulse} animate />
+        <RewardGemHud className="mt-2" balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} />
       </div>
       <div ref={rewardRef} className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4">
         <span

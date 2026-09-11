@@ -47,6 +47,13 @@ describe("getQuizPerformanceSummary", () => {
     expect(summary.messageKeys).toContain("quiz.resultMessageMediumHigh1");
   });
 
+  it("unlocks the chest at the 70% accuracy threshold", () => {
+    const summary = getQuizPerformanceSummary("active", buildResults(7, 3), 10, false);
+
+    expect(summary.accuracy).toBe(70);
+    expect(summary.chestUnlocked).toBe(true);
+  });
+
   it("uses the medium state at the passing threshold without chest access", () => {
     const summary = getQuizPerformanceSummary("active", buildResults(5, 5, 1), 10, false);
 

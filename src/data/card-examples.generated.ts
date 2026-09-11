@@ -230982,6 +230982,510 @@ export const CARD_EXAMPLE_SENTENCES: Record<string, string[]> = {
   "pl:A2:word:childish:adjective": [
     "To było dziecinne zachowanie jak na kogoś w jego wieku.",
     "Nie kłóć się o takie rzeczy, to naprawdę dziecinne."
+  ],
+  "ar:A2:word:blueberry:noun": [
+    "أضفت التوت الأزرق إلى الزبادي في الصباح.",
+    "ترك التوت الأزرق بقعًا زرقاء على أصابعي."
+  ],
+  "ar:A1:word:cherry:noun": [
+    "وضعت حبة كرز فوق الحلوى.",
+    "قطفنا الكرز من الشجرة في يونيو."
+  ],
+  "ar:A1:word:grape:noun": [
+    "اشتريت عنقودًا من العنب من السوق.",
+    "هذا العنب طازج وحلو جدًا."
+  ],
+  "ar:A1:word:mango:noun": [
+    "هذه المانجو ناضجة وطرية.",
+    "خلطت المانجو مع الزبادي لتحضير مشروب."
+  ],
+  "ar:A1:word:peach:noun": [
+    "سال عصير الخوخ على يدي.",
+    "وضعت حبتين من الخوخ في حقيبتي."
+  ],
+  "ar:A1:word:pear:noun": [
+    "قطّعت كمثرى لوجبة الإفطار.",
+    "هذه الكمثرى مقرمشة وحلوة."
+  ],
+  "ar:A2:word:pineapple:noun": [
+    "قطّعنا أناناسًا طازجًا للتحلية.",
+    "يضيف الأناناس نكهة استوائية إلى السلطة."
+  ],
+  "ar:A1:word:strawberry:noun": [
+    "قطّعت فراولة لأضعها فوق الكعكة.",
+    "هذه الفراولة ناضجة ورائحتها جميلة."
+  ],
+  "ar:A1:word:watermelon:noun": [
+    "تقاسمنا بطيخة باردة في النزهة.",
+    "هذه البطيخة حمراء وحلوة ومليئة بالعصير."
+  ],
+  "de:A2:word:blueberry:noun": [
+    "Ich gebe Heidelbeeren in meinen Joghurt.",
+    "Heidelbeeren färben die Finger schnell blau."
+  ],
+  "de:A1:word:cherry:noun": [
+    "Sie setzte eine Kirsche auf das Dessert.",
+    "Im Juni pflückten wir Kirschen im Garten."
+  ],
+  "de:A1:word:grape:noun": [
+    "Ich habe auf dem Markt eine Traube probiert.",
+    "Die Trauben liegen frisch in einer Schale."
+  ],
+  "de:A1:word:mango:noun": [
+    "Diese Mango ist weich und reif.",
+    "Für den Smoothie püriere ich Mango mit Joghurt."
+  ],
+  "de:A1:word:peach:noun": [
+    "Der Saft vom Pfirsich lief über meine Hand.",
+    "Ich packte zwei Pfirsiche für die Reise ein."
+  ],
+  "de:A1:word:pear:noun": [
+    "Ich schnitt eine Birne in mein Frühstück.",
+    "Diese Birne ist knackig und süß."
+  ],
+  "de:A2:word:pineapple:noun": [
+    "Zum Nachtisch schnitt er eine Ananas.",
+    "Die Ananas gibt dem Salat einen tropischen Geschmack."
+  ],
+  "de:A1:word:strawberry:noun": [
+    "Sie schnitt Erdbeeren für den Kuchen.",
+    "Diese Erdbeeren sind süß und reif."
+  ],
+  "de:A1:word:watermelon:noun": [
+    "Wir teilten eine kalte Wassermelone beim Picknick.",
+    "Diese Wassermelone ist innen rot und saftig."
+  ],
+  "en:A2:word:blueberry:noun": [
+    "I added blueberries to my morning yogurt.",
+    "The blueberry stain is difficult to remove."
+  ],
+  "en:A1:word:cherry:noun": [
+    "She put a cherry on top of the dessert.",
+    "We picked cherries from the tree in June."
+  ],
+  "en:A1:word:grape:noun": [
+    "I bought a bunch of grapes at the market.",
+    "We used fresh grapes to make a fruit salad."
+  ],
+  "en:A1:word:mango:noun": [
+    "This mango is soft enough to eat.",
+    "She blended mango with yogurt for a smoothie."
+  ],
+  "en:A1:word:peach:noun": [
+    "The peach was so ripe that its juice ran down my hand.",
+    "He packed two peaches for the trip."
+  ],
+  "en:A1:word:pear:noun": [
+    "I sliced a pear into my breakfast bowl.",
+    "This pear is crisp and sweet."
+  ],
+  "en:A2:word:pineapple:noun": [
+    "The chef cut a fresh pineapple for dessert.",
+    "Pineapple gives the salad a tropical flavor."
+  ],
+  "en:A1:word:strawberry:noun": [
+    "She put sliced strawberries on the cake.",
+    "These strawberries are sweet and ripe."
+  ],
+  "en:A1:word:watermelon:noun": [
+    "We shared a cold watermelon at the picnic.",
+    "This watermelon is sweet and full of juice."
+  ],
+  "es:A2:word:blueberry:noun": [
+    "Añadí arándanos a mi yogur de la mañana.",
+    "Los arándanos dejaron manchas azules en mis dedos."
+  ],
+  "es:A1:word:cherry:noun": [
+    "Puso una cereza encima del postre.",
+    "Recogimos cerezas del árbol en junio."
+  ],
+  "es:A1:word:grape:noun": [
+    "Compré un racimo de uvas en el mercado.",
+    "Estas uvas están frescas y dulces."
+  ],
+  "es:A1:word:mango:noun": [
+    "Este mango está maduro y muy suave.",
+    "Mezclé mango con yogur para preparar un batido."
+  ],
+  "es:A1:word:peach:noun": [
+    "El jugo del melocotón me cayó en la mano.",
+    "Guardé dos melocotones en la bolsa."
+  ],
+  "es:A1:word:pear:noun": [
+    "Corté una pera para el desayuno.",
+    "Esta pera está crujiente y dulce."
+  ],
+  "es:A2:word:pineapple:noun": [
+    "Cortamos una piña fresca para el postre.",
+    "La piña le da un sabor tropical a la ensalada."
+  ],
+  "es:A1:word:strawberry:noun": [
+    "Cortó fresas para ponerlas sobre el pastel.",
+    "Estas fresas están maduras."
+  ],
+  "es:A1:word:watermelon:noun": [
+    "Compartimos una sandía fría en el picnic.",
+    "Esta sandía está roja, dulce y jugosa."
+  ],
+  "fr:A2:word:blueberry:noun": [
+    "J’ajoute des myrtilles à mon yaourt.",
+    "Les myrtilles ont taché mes doigts en bleu."
+  ],
+  "fr:A1:word:cherry:noun": [
+    "Elle a posé une cerise sur le dessert.",
+    "Nous avons cueilli des cerises en juin."
+  ],
+  "fr:A1:word:grape:noun": [
+    "J’ai acheté une grappe de raisin au marché.",
+    "Ces raisins sont très sucrés et frais."
+  ],
+  "fr:A1:word:mango:noun": [
+    "Cette mangue est mûre et très tendre.",
+    "Je mixe la mangue avec du yaourt pour faire un smoothie."
+  ],
+  "fr:A1:word:peach:noun": [
+    "Le jus de la pêche a coulé sur ma main.",
+    "J’ai mis deux pêches dans mon sac."
+  ],
+  "fr:A1:word:pear:noun": [
+    "J’ai découpé une poire pour le petit-déjeuner.",
+    "Cette poire est croquante et sucrée."
+  ],
+  "fr:A2:word:pineapple:noun": [
+    "Nous avons préparé un ananas pour le dessert.",
+    "L’ananas donne une note tropicale à la salade."
+  ],
+  "fr:A1:word:strawberry:noun": [
+    "Elle a coupé des fraises pour le gâteau.",
+    "Ces fraises sont mûres et parfumées."
+  ],
+  "fr:A1:word:watermelon:noun": [
+    "Nous avons partagé une pastèque froide au pique-nique.",
+    "Cette pastèque est rouge, sucrée et très juteuse."
+  ],
+  "it:A2:word:blueberry:noun": [
+    "Aggiungo i mirtilli allo yogurt del mattino.",
+    "I mirtilli hanno macchiato di blu le mie dita."
+  ],
+  "it:A1:word:cherry:noun": [
+    "Ha messo una ciliegia sul dessert.",
+    "A giugno abbiamo raccolto le ciliegie dall’albero."
+  ],
+  "it:A1:word:grape:noun": [
+    "Ho comprato un grappolo d’uva al mercato.",
+    "Quest’uva è dolce e fresca."
+  ],
+  "it:A1:word:mango:noun": [
+    "Questo mango è maturo e morbido.",
+    "Ho frullato il mango con lo yogurt."
+  ],
+  "it:A1:word:peach:noun": [
+    "Il succo della pesca mi è colato sulla mano.",
+    "Ho messo due pesche nella borsa."
+  ],
+  "it:A1:word:pear:noun": [
+    "Ho tagliato una pera per la colazione.",
+    "Questa pera è croccante e dolce."
+  ],
+  "it:A2:word:pineapple:noun": [
+    "Abbiamo tagliato un ananas fresco per il dessert.",
+    "L’ananas dà un sapore tropicale all’insalata."
+  ],
+  "it:A1:word:strawberry:noun": [
+    "Ha tagliato le fragole per la torta.",
+    "Queste fragole sono mature e profumate."
+  ],
+  "it:A1:word:watermelon:noun": [
+    "Abbiamo condiviso un’anguria fredda al picnic.",
+    "Questa anguria è dolce e molto succosa."
+  ],
+  "ja:A2:word:blueberry:noun": [
+    "朝のヨーグルトにブルーベリーを入れました。",
+    "ブルーベリーを食べると指が青くなります。"
+  ],
+  "ja:A1:word:cherry:noun": [
+    "デザートにさくらんぼを一つのせました。",
+    "六月に木からさくらんぼを取りました。"
+  ],
+  "ja:A1:word:grape:noun": [
+    "市場でぶどうを一房買いました。",
+    "このぶどうは新鮮で甘いです。"
+  ],
+  "ja:A1:word:mango:noun": [
+    "このマンゴーは柔らかくて食べ頃です。",
+    "マンゴーとヨーグルトでスムージーを作りました。"
+  ],
+  "ja:A1:word:peach:noun": [
+    "桃の汁が手に流れました。",
+    "旅行に桃を二つ持っていきました。"
+  ],
+  "ja:A1:word:pear:noun": [
+    "朝食に梨を切りました。",
+    "この梨はシャキシャキして甘いです。"
+  ],
+  "ja:A2:word:pineapple:noun": [
+    "デザートにパイナップルを切りました。",
+    "パイナップルはサラダに南国の味を加えます。"
+  ],
+  "ja:A1:word:strawberry:noun": [
+    "ケーキの上にいちごを切ってのせました。",
+    "このいちごは赤くて甘いです。"
+  ],
+  "ja:A1:word:watermelon:noun": [
+    "ピクニックで冷たいすいかをみんなで食べました。",
+    "このすいかは赤くてとてもみずみずしいです。"
+  ],
+  "ko:A2:word:blueberry:noun": [
+    "아침 요거트에 블루베리를 넣었어요.",
+    "블루베리를 먹으면 손가락이 파랗게 물들어요."
+  ],
+  "ko:A1:word:cherry:noun": [
+    "디저트 위에 체리 하나를 올렸어요.",
+    "6월에 나무에서 체리를 땄어요."
+  ],
+  "ko:A1:word:grape:noun": [
+    "시장에 가서 포도 한 송이를 샀어요.",
+    "이 포도는 신선하고 달아요."
+  ],
+  "ko:A1:word:mango:noun": [
+    "이 망고는 부드럽고 잘 익었어요.",
+    "망고와 요거트를 갈아 스무디를 만들었어요."
+  ],
+  "ko:A1:word:peach:noun": [
+    "복숭아즙이 손 위로 흘렀어요.",
+    "여행을 가려고 복숭아 두 개를 가방에 넣었어요."
+  ],
+  "ko:A1:word:pear:noun": [
+    "아침 식사로 배를 잘랐어요.",
+    "이 배는 아삭하고 달아요."
+  ],
+  "ko:A2:word:pineapple:noun": [
+    "디저트로 파인애플을 잘랐어요.",
+    "파인애플은 샐러드에 열대의 맛을 더해 줘요."
+  ],
+  "ko:A1:word:strawberry:noun": [
+    "케이크 위에 딸기를 잘라 올렸어요.",
+    "이 딸기는 잘 익고 달아요."
+  ],
+  "ko:A1:word:watermelon:noun": [
+    "소풍에서 차가운 수박을 함께 먹었어요.",
+    "이 수박은 속이 빨갛고 아주 달아요."
+  ],
+  "nl:A2:word:blueberry:noun": [
+    "Ik doe blauwe bessen in mijn yoghurt.",
+    "De blauwe bessen maakten mijn vingers blauw."
+  ],
+  "nl:A1:word:cherry:noun": [
+    "Ze legde een kers op het dessert.",
+    "In juni plukten we kersen van de boom."
+  ],
+  "nl:A1:word:grape:noun": [
+    "Ik kocht een tros druiven op de markt.",
+    "Deze druiven zijn zoet en vers."
+  ],
+  "nl:A1:word:mango:noun": [
+    "Deze mango is zacht en rijp.",
+    "Ik mengde mango met yoghurt voor een smoothie."
+  ],
+  "nl:A1:word:peach:noun": [
+    "Het sap van de perzik liep over mijn hand.",
+    "Ik stopte twee perziken in mijn tas."
+  ],
+  "nl:A1:word:pear:noun": [
+    "Ik sneed een peer voor het ontbijt.",
+    "Deze peer is knapperig en zoet."
+  ],
+  "nl:A2:word:pineapple:noun": [
+    "We sneden een verse ananas voor het dessert.",
+    "Ananas geeft de salade een tropische smaak."
+  ],
+  "nl:A1:word:strawberry:noun": [
+    "Ze sneed aardbeien voor op de taart.",
+    "Deze aardbeien zijn rijp en zoet."
+  ],
+  "nl:A1:word:watermelon:noun": [
+    "We deelden een koude watermeloen tijdens de picknick.",
+    "Deze watermeloen is rood, zoet en sappig."
+  ],
+  "pl:A2:word:blueberry:noun": [
+    "Dodałem borówki do porannego jogurtu.",
+    "Borówki zabarwiły mi palce na niebiesko."
+  ],
+  "pl:A1:word:cherry:noun": [
+    "Położyła wiśnię na deserze.",
+    "W czerwcu zbieraliśmy wiśnie z drzewa."
+  ],
+  "pl:A1:word:grape:noun": [
+    "Kupiłem kiść winogron na targu.",
+    "Te winogrona są świeże i słodkie."
+  ],
+  "pl:A1:word:mango:noun": [
+    "To mango jest miękkie i dojrzałe.",
+    "Zmiksowałem mango z jogurtem na koktajl."
+  ],
+  "pl:A1:word:peach:noun": [
+    "Sok z brzoskwini spłynął mi po dłoni.",
+    "Włożyłem dwie brzoskwinie do torby."
+  ],
+  "pl:A1:word:pear:noun": [
+    "Pokroiłem gruszkę na śniadanie.",
+    "Ta gruszka jest chrupiąca i słodka."
+  ],
+  "pl:A2:word:pineapple:noun": [
+    "Pokroiliśmy świeżego ananasa na deser.",
+    "Ananas nadaje sałatce tropikalny smak."
+  ],
+  "pl:A1:word:strawberry:noun": [
+    "Pokroiła truskawki na ciasto.",
+    "Te truskawki są dojrzałe i pachnące."
+  ],
+  "pl:A1:word:watermelon:noun": [
+    "Podczas pikniku podzieliliśmy się zimnym arbuzem.",
+    "Ten arbuz jest czerwony, słodki i soczysty."
+  ],
+  "pt:A2:word:blueberry:noun": [
+    "Adicionei mirtilos ao meu iogurte de manhã.",
+    "Os mirtilos deixaram meus dedos azuis."
+  ],
+  "pt:A1:word:cherry:noun": [
+    "Ela colocou uma cereja sobre a sobremesa.",
+    "Em junho, colhemos cerejas da árvore."
+  ],
+  "pt:A1:word:grape:noun": [
+    "Comprei um cacho de uvas no mercado.",
+    "Essas uvas estão frescas e doces."
+  ],
+  "pt:A1:word:mango:noun": [
+    "Esta manga está madura e macia.",
+    "Bati manga com iogurte para fazer um smoothie."
+  ],
+  "pt:A1:word:peach:noun": [
+    "O suco do pêssego escorreu pela minha mão.",
+    "Coloquei dois pêssegos na bolsa."
+  ],
+  "pt:A1:word:pear:noun": [
+    "Cortei uma pera para o café da manhã.",
+    "Esta pera está crocante e doce."
+  ],
+  "pt:A2:word:pineapple:noun": [
+    "Cortamos um abacaxi fresco para a sobremesa.",
+    "O abacaxi dá um sabor tropical à salada."
+  ],
+  "pt:A1:word:strawberry:noun": [
+    "Ela cortou morangos para colocar no bolo.",
+    "Esses morangos estão maduros."
+  ],
+  "pt:A1:word:watermelon:noun": [
+    "Compartilhamos uma melancia gelada no piquenique.",
+    "Esta melancia está doce, vermelha e suculenta."
+  ],
+  "ru:A2:word:blueberry:noun": [
+    "Я добавил чернику в йогурт.",
+    "Черника оставляет на пальцах синие пятна."
+  ],
+  "ru:A1:word:cherry:noun": [
+    "Она положила в десерт вишню.",
+    "В июне мы собирали вишню в саду."
+  ],
+  "ru:A1:word:grape:noun": [
+    "Я купил несколько виноградин на рынке.",
+    "Этот виноград выглядит очень свежим."
+  ],
+  "ru:A1:word:mango:noun": [
+    "Это манго уже мягкое и спелое.",
+    "Я смешал манго с йогуртом для смузи."
+  ],
+  "ru:A1:word:peach:noun": [
+    "Сок из персика потёк по моей руке.",
+    "Я взял два персика в поездку."
+  ],
+  "ru:A1:word:pear:noun": [
+    "Я нарезал грушу к завтраку.",
+    "Эта груша хрустящая и сладкая."
+  ],
+  "ru:A2:word:pineapple:noun": [
+    "На десерт мы нарезали ананас.",
+    "Ананас придаёт салату тропический вкус."
+  ],
+  "ru:A1:word:strawberry:noun": [
+    "Я нарезал клубнику для торта.",
+    "Эта клубника сладкая и спелая."
+  ],
+  "ru:A1:word:watermelon:noun": [
+    "На пикнике мы ели холодный арбуз.",
+    "Этот арбуз очень сочный и сладкий."
+  ],
+  "tr:A2:word:blueberry:noun": [
+    "Yoğurduma bir avuç yaban mersini ekledim.",
+    "Yaban mersini küçük ama çok lezzetli bir meyvedir."
+  ],
+  "tr:A1:word:cherry:noun": [
+    "Pastanın üzerine bir kiraz koydu.",
+    "Haziranda ağaçtan kiraz topladık."
+  ],
+  "tr:A1:word:grape:noun": [
+    "Kahvaltıda birkaç üzüm yedim.",
+    "Bu üzüm salkımı pazarda çok taze görünüyordu."
+  ],
+  "tr:A1:word:mango:noun": [
+    "Bu mango tamamen olgunlaşmış ve yumuşak.",
+    "Smoothie yapmak için mango ile yoğurdu karıştırdım."
+  ],
+  "tr:A1:word:peach:noun": [
+    "Şeftalinin suyu elimden aşağı aktı.",
+    "Yolculuk için çantama iki şeftali koydum."
+  ],
+  "tr:A1:word:pear:noun": [
+    "Kahvaltı kaseme bir armut doğradım.",
+    "Bu armut hem gevrek hem de tatlı."
+  ],
+  "tr:A2:word:pineapple:noun": [
+    "Tatlı için taze bir ananas kestik.",
+    "Ananas salataya hoş ve tropikal bir tat kattı."
+  ],
+  "tr:A1:word:strawberry:noun": [
+    "Çilekleri yıkayıp kahvaltı tabağına koydum.",
+    "Bu çilek reçeli ekmeğin üzerinde çok güzel oldu."
+  ],
+  "tr:A1:word:watermelon:noun": [
+    "Piknikte soğuk karpuz dilimleri yedik.",
+    "Bu karpuzun içi kırmızı ve çok sulu."
+  ],
+  "zh-CN:A2:word:blueberry:noun": [
+    "我在早上的酸奶里加了蓝莓。",
+    "蓝莓把我的手指染成了蓝色。"
+  ],
+  "zh-CN:A1:word:cherry:noun": [
+    "她在甜点上放了一颗樱桃。",
+    "六月的时候，我们从树上摘了樱桃。"
+  ],
+  "zh-CN:A1:word:grape:noun": [
+    "我在市场买了一串葡萄。",
+    "这些葡萄又新鲜又甜。"
+  ],
+  "zh-CN:A1:word:mango:noun": [
+    "这个芒果已经熟了，摸起来很软。",
+    "我把芒果和酸奶混合成了奶昔。"
+  ],
+  "zh-CN:A1:word:peach:noun": [
+    "桃子的汁流到了我的手上。",
+    "我带了两个桃子去旅行。"
+  ],
+  "zh-CN:A1:word:pear:noun": [
+    "我把梨切开放进早餐里。",
+    "这个梨又脆又甜。"
+  ],
+  "zh-CN:A2:word:pineapple:noun": [
+    "我们切了一个新鲜的菠萝当甜点。",
+    "菠萝给沙拉增添了热带风味。"
+  ],
+  "zh-CN:A1:word:strawberry:noun": [
+    "她把草莓切好放在蛋糕上。",
+    "这些草莓已经成熟了。"
+  ],
+  "zh-CN:A1:word:watermelon:noun": [
+    "我们在野餐时一起吃了一个冰西瓜。",
+    "这个西瓜又红又甜，水分很多。"
   ]
 };
 

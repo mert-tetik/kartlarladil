@@ -103,6 +103,13 @@ export function buildListeningQuizQuestion(
   card: VocabularyCard,
   allCards: VocabularyCard[],
 ): ListeningQuizQuestion | null {
+  const correctTerm = card.term.trim();
+  const firstLetter = correctTerm.slice(0, 1).toLocaleLowerCase();
+
+  if (!firstLetter) {
+    return null;
+  }
+
   const distractors = Array.from(
     new Set(
       allCards
@@ -110,21 +117,22 @@ export function buildListeningQuizQuestion(
           (candidate) =>
             candidate.id !== card.id &&
             candidate.language === card.language &&
-            candidate.termKind === card.termKind,
+            candidate.termKind === card.termKind &&
+            candidate.term.trim().slice(0, 1).toLocaleLowerCase() === firstLetter,
         )
         .map((candidate) => candidate.term.trim())
         .filter(Boolean),
     ),
   );
 
-  if (distractors.length < 3 || !card.term.trim()) {
+  if (distractors.length < 3) {
     return null;
   }
 
   return {
     card,
-    options: shuffle([card.term, ...shuffle(distractors).slice(0, 3)]),
-    correctAnswer: card.term,
+    options: shuffle([correctTerm, ...shuffle(distractors).slice(0, 3)]),
+    correctAnswer: correctTerm,
   };
 }
 

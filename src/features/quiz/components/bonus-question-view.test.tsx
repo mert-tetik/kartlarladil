@@ -26,6 +26,28 @@ describe("BonusQuestionView", () => {
     ],
   };
 
+  it("shows a temporary score and gem HUD after a correct bonus answer", () => {
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer
+          answerAccepted
+          totalPoints={42}
+          rewardReady={false}
+          showPointFlight={false}
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(container.querySelector("[data-bonus-reward-hud]")).toBeInTheDocument();
+    expect(container.querySelector("[data-bonus-reward-score]")).toHaveTextContent("42");
+    expect(container.querySelectorAll("[data-reward-gem-target]")).toHaveLength(3);
+  });
+
   it("allows matching from either column and replaces a pending same-column selection", () => {
     const onSubmit = vi.fn();
     const { container } = render(
