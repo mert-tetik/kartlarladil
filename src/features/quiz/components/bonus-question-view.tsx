@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import {
   getBonusCopy,
   getMatchingColumnCopy,
+  MATCHING_BONUS_TITLES,
   type BonusQuestion,
   type CategorySortBonusQuestion,
   type ImposterBonusQuestion,
@@ -30,13 +31,306 @@ import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 import { formatNumber } from "@/i18n/labels";
+import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png";
-// This is intentionally unrelated to the sentence content: it is a decorative
-// AI Practice character, not a scenario or an answer hint.
-const SENTENCE_ORDER_DECORATION_CHARACTER = "/ai-characters/soft-artist.webp";
+const BONUS_INTRO_FRAME_COUNT = 13;
+const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 30;
+const BONUS_INTRO_HOLD_DURATION_MS = 800;
+const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.png";
+const BONUS_INTRO_FRAME_WIDTH = 480;
+const BONUS_INTRO_FRAME_HEIGHT = 854;
+const BONUS_INTRO_SPRITE_COLUMNS = 4;
+
+type BonusIntroRenderer = {
+  drawFrame: (frame: number) => void;
+  destroy: () => void;
+};
+
+function parseBonusIntroBrandColor(value: string): [number, number, number] {
+  const normalized = value.trim();
+  const hexMatch = normalized.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    const fullHex = hex.length === 3 ? hex.split("").map((digit) => `${digit}${digit}`).join("") : hex;
+    return [
+      Number.parseInt(fullHex.slice(0, 2), 16) / 255,
+      Number.parseInt(fullHex.slice(2, 4), 16) / 255,
+      Number.parseInt(fullHex.slice(4, 6), 16) / 255,
+    ];
+  }
+
+  const rgbMatch = normalized.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+  if (rgbMatch) {
+    return [
+      Math.min(255, Number(rgbMatch[1])) / 255,
+      Math.min(255, Number(rgbMatch[2])) / 255,
+      Math.min(255, Number(rgbMatch[3])) / 255,
+    ];
+  }
+
+  return [0xf7 / 255, 0x68 / 255, 0x08 / 255];
+}
+
+function createBonusIntroWebglRenderer(
+  canvas: HTMLCanvasElement,
+  atlas: HTMLImageElement,
+): BonusIntroRenderer | null {
+  const gl = canvas.getContext("webgl", {
+    alpha: true,
+    antialias: false,
+    depth: false,
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: false,
+    stencil: false,
+  });
+  if (!gl) return null;
+
+  const vertexShaderSource = `
+    attribute vec2 a_position;
+    attribute vec2 a_texCoord;
+    uniform vec2 u_resolution;
+    varying vec2 v_texCoord;
+
+    void main() {
+      vec2 zeroToOne = a_position / u_resolution;
+      vec2 clipSpace = zeroToOne * 2.0 - 1.0;
+      gl_Position = vec4(clipSpace * vec2(1.0, -1.0), 0.0, 1.0);
+      v_texCoord = a_texCoord;
+    }
+  `;
+  const fragmentShaderSource = `
+    precision mediump float;
+    uniform sampler2D u_texture;
+    uniform vec4 u_frameRect;
+    uniform vec3 u_tint;
+    varying vec2 v_texCoord;
+
+    void main() {
+      vec2 atlasCoord = u_frameRect.xy + v_texCoord * u_frameRect.zw;
+      float alpha = texture2D(u_texture, atlasCoord).a;
+      gl_FragColor = vec4(u_tint, alpha);
+    }
+  `;
+
+  const compileShader = (type: number, source: string) => {
+    const shader = gl.createShader(type);
+    if (!shader) return null;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  };
+
+  const vertexShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
+  const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+  if (!vertexShader || !fragmentShader) {
+    if (vertexShader) gl.deleteShader(vertexShader);
+    if (fragmentShader) gl.deleteShader(fragmentShader);
+    return null;
+  }
+
+  const program = gl.createProgram();
+  if (!program) {
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+    return null;
+  }
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    gl.deleteProgram(program);
+    return null;
+  }
+
+  const positionLocation = gl.getAttribLocation(program, "a_position");
+  const texCoordLocation = gl.getAttribLocation(program, "a_texCoord");
+  const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+  const frameRectLocation = gl.getUniformLocation(program, "u_frameRect");
+  const tintLocation = gl.getUniformLocation(program, "u_tint");
+  if (
+    positionLocation < 0 ||
+    texCoordLocation < 0 ||
+    resolutionLocation === null ||
+    frameRectLocation === null ||
+    tintLocation === null
+  ) {
+    gl.deleteProgram(program);
+    return null;
+  }
+
+  const positionBuffer = gl.createBuffer();
+  const texCoordBuffer = gl.createBuffer();
+  const texture = gl.createTexture();
+  if (!positionBuffer || !texCoordBuffer || !texture) {
+    if (positionBuffer) gl.deleteBuffer(positionBuffer);
+    if (texCoordBuffer) gl.deleteBuffer(texCoordBuffer);
+    if (texture) gl.deleteTexture(texture);
+    gl.deleteProgram(program);
+    return null;
+  }
+
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
+    gl.STATIC_DRAW,
+  );
+  gl.enableVertexAttribArray(texCoordLocation);
+  gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+  gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
+  gl.uniform3fv(
+    tintLocation,
+    new Float32Array(
+      parseBonusIntroBrandColor(
+        getComputedStyle(document.documentElement).getPropertyValue("--brand"),
+      ),
+    ),
+  );
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+
+  let lastWidth = 0;
+  let lastHeight = 0;
+
+  const drawFrame = (frame: number) => {
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelWidth = Math.max(1, Math.round(width * devicePixelRatio));
+    const pixelHeight = Math.max(1, Math.round(height * devicePixelRatio));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      gl.viewport(0, 0, pixelWidth, pixelHeight);
+    }
+
+    if (width !== lastWidth || height !== lastHeight) {
+      lastWidth = width;
+      lastHeight = height;
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([0, 0, width, 0, 0, height, width, height]),
+        gl.STATIC_DRAW,
+      );
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    const scale = Math.max(width / BONUS_INTRO_FRAME_WIDTH, height / BONUS_INTRO_FRAME_HEIGHT);
+    const drawWidth = BONUS_INTRO_FRAME_WIDTH * scale;
+    const drawHeight = BONUS_INTRO_FRAME_HEIGHT * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
+    const atlasColumn = (frame - 1) % BONUS_INTRO_SPRITE_COLUMNS;
+    const atlasRow = Math.floor((frame - 1) / BONUS_INTRO_SPRITE_COLUMNS);
+    const insetX = 0.5 / atlas.naturalWidth;
+    const insetY = 0.5 / atlas.naturalHeight;
+
+    gl.uniform2f(resolutionLocation, width, height);
+    gl.uniform4f(
+      frameRectLocation,
+      (atlasColumn * BONUS_INTRO_FRAME_WIDTH) / atlas.naturalWidth + insetX,
+      (atlasRow * BONUS_INTRO_FRAME_HEIGHT) / atlas.naturalHeight + insetY,
+      (BONUS_INTRO_FRAME_WIDTH - 1) / atlas.naturalWidth,
+      (BONUS_INTRO_FRAME_HEIGHT - 1) / atlas.naturalHeight,
+    );
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  };
+
+  const destroy = () => {
+    gl.deleteTexture(texture);
+    gl.deleteBuffer(positionBuffer);
+    gl.deleteBuffer(texCoordBuffer);
+    gl.deleteProgram(program);
+  };
+
+  return { drawFrame, destroy };
+}
+
+function createBonusIntroCanvasRenderer(
+  canvas: HTMLCanvasElement,
+  atlas: HTMLImageElement,
+): BonusIntroRenderer | null {
+  const context = canvas.getContext("2d", { alpha: true, desynchronized: true });
+  if (!context) return null;
+
+  const tintCanvas = document.createElement("canvas");
+  tintCanvas.width = atlas.naturalWidth;
+  tintCanvas.height = atlas.naturalHeight;
+  const tintContext = tintCanvas.getContext("2d", { alpha: true });
+  if (!tintContext) return null;
+
+  tintContext.drawImage(atlas, 0, 0);
+  tintContext.globalCompositeOperation = "source-in";
+  tintContext.fillStyle =
+    getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#f76808";
+  tintContext.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+  tintContext.globalCompositeOperation = "source-over";
+  context.imageSmoothingEnabled = true;
+
+  const drawFrame = (frame: number) => {
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelWidth = Math.max(1, Math.round(width * devicePixelRatio));
+    const pixelHeight = Math.max(1, Math.round(height * devicePixelRatio));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      context.imageSmoothingEnabled = true;
+    }
+
+    const scale = Math.max(width / BONUS_INTRO_FRAME_WIDTH, height / BONUS_INTRO_FRAME_HEIGHT);
+    const drawWidth = BONUS_INTRO_FRAME_WIDTH * scale;
+    const drawHeight = BONUS_INTRO_FRAME_HEIGHT * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
+    const atlasColumn = (frame - 1) % BONUS_INTRO_SPRITE_COLUMNS;
+    const atlasRow = Math.floor((frame - 1) / BONUS_INTRO_SPRITE_COLUMNS);
+
+    context.clearRect(0, 0, width, height);
+    context.drawImage(
+      tintCanvas,
+      atlasColumn * BONUS_INTRO_FRAME_WIDTH,
+      atlasRow * BONUS_INTRO_FRAME_HEIGHT,
+      BONUS_INTRO_FRAME_WIDTH,
+      BONUS_INTRO_FRAME_HEIGHT,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+    );
+  };
+
+  return { drawFrame, destroy: () => undefined };
+}
 
 const CATEGORY_SORT_PALETTES = [
   {
@@ -53,38 +347,169 @@ const CATEGORY_SORT_PALETTES = [
 export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
-  const [exiting, setExiting] = useState(false);
+  const spriteRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const completedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    const enterTimer = window.setTimeout(() => setExiting(true), 1_050);
-    const exitTimer = window.setTimeout(() => {
+    let frameTimer: number | null = null;
+    let animationFrame: number | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let resizeHandler: (() => void) | null = null;
+    let renderer: BonusIntroRenderer | null = null;
+    let cancelled = false;
+    let currentFrame = 1;
+
+    const complete = () => {
+      if (cancelled) return;
       if (completedRef.current) return;
       completedRef.current = true;
-      onComplete();
-    }, 1_460);
+      onCompleteRef.current();
+    };
+
+    const updatePhase = (phase: "opening" | "holding" | "closing") => {
+      const sprite = spriteRef.current;
+      if (!sprite) return;
+      sprite.dataset.bonusIntroPhase = phase;
+      sprite.style.transform = phase === "closing" ? "scaleY(-1)" : "";
+    };
+
+    const loadImage = async () => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = BONUS_INTRO_SPRITE_IMAGE;
+
+      if (typeof image.decode === "function") {
+        await image.decode().catch(() => undefined);
+      }
+
+      if (!image.complete) {
+        await new Promise<void>((resolve) => {
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+
+      return image;
+    };
+
+    const prepareAndAnimate = async () => {
+      const canvas = canvasRef.current;
+      const sprite = spriteRef.current;
+      if (!canvas || !sprite) return;
+
+      const atlas = await loadImage();
+      if (cancelled || atlas.naturalWidth === 0 || atlas.naturalHeight === 0) return;
+
+      const activeRenderer =
+        createBonusIntroWebglRenderer(canvas, atlas) ?? createBonusIntroCanvasRenderer(canvas, atlas);
+      if (!activeRenderer) return;
+      renderer = activeRenderer;
+
+      const drawFrame = (nextFrame: number) => {
+        activeRenderer.drawFrame(nextFrame);
+        sprite.dataset.bonusIntroFrame = String(nextFrame);
+      };
+
+      const resize = () => drawFrame(currentFrame);
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(canvas);
+      } else {
+        resizeHandler = resize;
+        window.addEventListener("resize", resizeHandler);
+      }
+
+      const startClosing = () => {
+        if (cancelled) return;
+        updatePhase("closing");
+        currentFrame = BONUS_INTRO_FRAME_COUNT;
+        drawFrame(currentFrame);
+
+        const closingStartedAt = performance.now();
+        const animateClosing = (now: number) => {
+          if (cancelled) return;
+
+          const nextFrame = Math.max(
+            1,
+            BONUS_INTRO_FRAME_COUNT - Math.floor((now - closingStartedAt) / BONUS_INTRO_FRAME_DURATION_MS),
+          );
+          if (nextFrame !== currentFrame) {
+            currentFrame = nextFrame;
+            drawFrame(currentFrame);
+          }
+
+          if (currentFrame <= 1) {
+            complete();
+            return;
+          }
+
+          animationFrame = window.requestAnimationFrame(animateClosing);
+        };
+
+        animationFrame = window.requestAnimationFrame(animateClosing);
+      };
+
+      const openingStartedAt = performance.now();
+      const animateOpening = (now: number) => {
+        if (cancelled) return;
+
+        const nextFrame = Math.min(
+          BONUS_INTRO_FRAME_COUNT,
+          1 + Math.floor((now - openingStartedAt) / BONUS_INTRO_FRAME_DURATION_MS),
+        );
+        if (nextFrame !== currentFrame) {
+          currentFrame = nextFrame;
+          drawFrame(currentFrame);
+        }
+
+        if (currentFrame >= BONUS_INTRO_FRAME_COUNT) {
+          updatePhase("holding");
+          frameTimer = window.setTimeout(startClosing, BONUS_INTRO_HOLD_DURATION_MS);
+          return;
+        }
+
+        animationFrame = window.requestAnimationFrame(animateOpening);
+      };
+
+      drawFrame(currentFrame);
+      animationFrame = window.requestAnimationFrame(animateOpening);
+    };
+
+    void prepareAndAnimate();
 
     return () => {
-      window.clearTimeout(enterTimer);
-      window.clearTimeout(exitTimer);
+      cancelled = true;
+      if (frameTimer !== null) window.clearTimeout(frameTimer);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+      renderer?.destroy();
     };
-  }, [onComplete]);
+  }, []);
 
   if (typeof document === "undefined") return null;
 
   return createPortal(
     <div
-      className={cn(
-        "pointer-events-none fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-[var(--brand)] text-[var(--brand-foreground)]",
-        exiting ? "animate-bonus-intro-exit" : "animate-bonus-intro-enter",
-      )}
+      className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-[var(--background)] text-[var(--foreground)]"
       data-bonus-question-intro
       aria-hidden="true"
     >
+      <div
+        className="absolute inset-0"
+        ref={spriteRef}
+        data-bonus-intro-sprite
+        data-bonus-intro-frame="1"
+        data-bonus-intro-phase="opening"
+      >
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+      </div>
       <span
         className={cn(
-          "px-6 text-center text-4xl font-bold sm:text-6xl",
-          exiting ? "animate-bonus-intro-copy-exit" : "animate-bonus-intro-copy",
+          "relative z-[1] px-6 text-center text-4xl font-bold sm:text-6xl",
           canUseSuperWater(locale) && "font-super-water",
         )}
       >
@@ -143,6 +568,10 @@ export function BonusQuestionView({
   const [rewardPulse, setRewardPulse] = useState(0);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
+  const [sentenceDecorationCharacter] = useState(() => {
+    const characters = getAiPracticeCharacters();
+    return characters[Math.floor(Math.random() * characters.length)] ?? characters[0]!;
+  });
   const showRewardHud = showingAnswer && answerAccepted === true;
   const rewardFlightReady = showingAnswer && answerAccepted && rewardReady && (showPointFlight || Boolean(gemRewards?.length));
 
@@ -167,7 +596,7 @@ export function BonusQuestionView({
           aria-hidden="true"
         >
           <Image
-            src={SENTENCE_ORDER_DECORATION_CHARACTER}
+            src={sentenceDecorationCharacter.imageSrc}
             alt=""
             fill
             sizes="(max-width: 640px) 112vw, 576px"
@@ -230,11 +659,18 @@ export function BonusQuestionView({
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
-          {formatSuperWaterText(locale, getBonusTitle(copy, question.kind))}
+          {formatSuperWaterText(
+            locale,
+            question.kind === "matching"
+              ? MATCHING_BONUS_TITLES[locale]
+              : getBonusTitle(copy, question.kind),
+          )}
         </h2>
-        <p className="text-sm font-medium text-white">
-          {getBonusPrompt(copy, question.kind)}
-        </p>
+        {question.kind !== "matching" ? (
+          <p className="text-sm font-medium text-white">
+            {getBonusPrompt(copy, question.kind)}
+          </p>
+        ) : null}
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-center">
@@ -896,14 +1332,17 @@ function BonusCheckButton({
         onClick={onSkip}
       />
       <div
-        className="quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]"
+        className={cn(
+          "quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]",
+          disabled && "quiz-action-depth--locked",
+        )}
         data-quiz-action-hidden={showingAnswer}
       >
         <Button
           type="button"
           disabled={disabled || showingAnswer}
           onClick={onClick}
-          className="quiz-action-scale w-full bg-brand text-brand-foreground hover:bg-brand-hover"
+          className="quiz-action-scale w-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-100"
           data-quiz-action-hidden={showingAnswer}
           data-bonus-check
         >
