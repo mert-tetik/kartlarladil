@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const ALWAYS_LOCKED_PATHS = [
   "/ask",
+  "/contact",
 ];
 
 const MOBILE_ONLY_LOCKED_PATHS = [

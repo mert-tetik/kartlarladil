@@ -192,7 +192,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
                 </p>
               </div>
               <h1 className={cn(
-                "mt-4 text-[clamp(1.35rem,5.5vw,2.35rem)] font-bold leading-tight text-white",
+                "relative -top-4 mt-4 text-[clamp(1.35rem,5.5vw,2.35rem)] font-bold leading-tight text-white",
                 canUseSuperWater(locale) && "font-super-water",
               )}>
                 {descriptionDisplay}
@@ -239,7 +239,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
           {renderContentItem(
             2,
             <div
-              className="relative mx-auto w-full -top-16"
+              className="relative top-[-2rem] mx-auto w-full"
             >
               <div className="mb-2 flex items-center justify-between gap-6 text-sm font-bold text-white/90">
                 <span>{t("missions.progressLabel", { progress: activeMission.progress, requirement: activeMission.requirement })}</span>

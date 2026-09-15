@@ -714,7 +714,7 @@ export function MobileLandingDashboard() {
             setDayStreakOpen(true);
           }, { nextPath: "/" });
         }}
-        className="absolute right-2 top-[4.75rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
+        className="absolute right-2 top-[4.25rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
         aria-label="Daily streak"
         data-mobile-day-streak-action
         data-route-transition-surface

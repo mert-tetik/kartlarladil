@@ -59,7 +59,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const t = useT();
   const { locale } = useLocale();
   const usesSuperWater = canUseSuperWater(locale);
-  const useDarkRewardHeading = tier.tier === "gold" || tier.tier === "diamond";
   const [stableTotalPoints] = useState(totalPoints);
   const [phase, setPhase] = useState<ChestPhase>("playing");
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
@@ -336,19 +335,16 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
             <div
               data-chest-reward-heading
               className={cn(
-                "flex items-center justify-center gap-3 text-2xl font-bold leading-none drop-shadow-sm sm:text-3xl",
-                useDarkRewardHeading ? "text-black" : "text-white",
+                "flex items-center justify-center gap-3 text-2xl font-bold leading-none text-white drop-shadow-sm sm:text-3xl",
                 usesSuperWater && "font-super-water",
               )}
             >
               <span aria-hidden="true" className={cn(
-                "animate-chest-reward-heading-line-left inline-block h-1 w-12 rounded-full sm:w-16",
-                useDarkRewardHeading ? "bg-black/90" : "bg-white/90",
+                "animate-chest-reward-heading-line-left inline-block h-1 w-12 rounded-full bg-white/90 sm:w-16",
               )} />
               <span className="animate-chest-reward-heading-text">{formatSuperWaterUppercaseText(locale, t("chest.rewardsHeader"))}</span>
               <span aria-hidden="true" className={cn(
-                "animate-chest-reward-heading-line-right inline-block h-1 w-12 rounded-full sm:w-16",
-                useDarkRewardHeading ? "bg-black/90" : "bg-white/90",
+                "animate-chest-reward-heading-line-right inline-block h-1 w-12 rounded-full bg-white/90 sm:w-16",
               )} />
             </div>
 
