@@ -11,6 +11,7 @@ import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
 import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
 import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
+import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
 import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
 import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
@@ -28,6 +29,7 @@ interface LearnQuizShellProps {
   initialLanguage?: LanguageCode | null;
   learnedCelebrationTest?: boolean;
   streakTest?: boolean;
+  streakRewardTest?: boolean;
   resultTest?: boolean;
   resultMessageTest?: boolean;
   bonusTest?: boolean;
@@ -39,6 +41,7 @@ export function LearnQuizShell({
   initialLanguage,
   learnedCelebrationTest = false,
   streakTest = false,
+  streakRewardTest = false,
   resultTest = false,
   resultMessageTest = false,
   bonusTest = false,
@@ -56,26 +59,6 @@ export function LearnQuizShell({
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
 
-  if (learnedCelebrationTest) {
-    return <LearnedCelebrationTest />;
-  }
-
-  if (streakTest) {
-    return <StreakCelebrationTest />;
-  }
-
-  if (resultTest) {
-    return <QuizResultTest />;
-  }
-
-  if (resultMessageTest) {
-    return <QuizResultMessageTest />;
-  }
-
-  if (bonusTest) {
-    return <BonusQuestionsTest />;
-  }
-
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       setSelectedMode(initialMode);
@@ -86,13 +69,41 @@ export function LearnQuizShell({
   }, [initialMode]);
 
   useEffect(() => {
+    if (bonusTest) return;
+
     if (hydrated && cards.length === 0 && !redirectStartedRef.current) {
       if (!window.matchMedia("(max-width: 1023px)").matches) return;
 
       redirectStartedRef.current = true;
       navigateWithRouteTransition(() => router.replace("/"));
     }
-  }, [cards.length, hydrated, router]);
+  }, [bonusTest, cards.length, hydrated, router]);
+
+  if (learnedCelebrationTest) {
+    return <LearnedCelebrationTest />;
+  }
+
+  if (streakTest) {
+    return <StreakCelebrationTest />;
+  }
+
+  if (streakRewardTest) {
+    return <StreakRewardTest />;
+  }
+
+  if (resultTest) {
+    return <QuizResultTest />;
+  }
+
+  if (resultMessageTest) {
+    return <QuizResultMessageTest />;
+  }
+
+  // Isolated test routes must remain available even when the visual-test
+  // account has no persisted inventory. They provide their own fixture cards.
+  if (bonusTest) {
+    return <BonusQuestionsTest />;
+  }
 
   if (!hydrated && !canRenderPersistedPool) {
     return (

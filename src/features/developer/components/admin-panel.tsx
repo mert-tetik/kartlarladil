@@ -11,6 +11,7 @@ import {
   Gem,
   GraduationCap,
   LoaderCircle,
+  Mail,
   Search,
   ShieldAlert,
   Trash2,
@@ -372,6 +373,13 @@ export function AdminPanel({
               Supabase parolan gerekir.
             </p>
           </div>
+          <a
+            href="/developer/admin/contact"
+            className="mt-4 inline-flex items-center gap-2 rounded-md border border-[#ccd4c9] bg-[#fcfbf8] px-3 py-2 text-sm font-semibold text-[#405548] transition-colors hover:bg-white"
+          >
+            <Mail className="size-4" aria-hidden="true" />
+            Contact inbox
+          </a>
         </header>
         <section
           className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6"

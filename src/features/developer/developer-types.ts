@@ -9,6 +9,20 @@ export interface DeveloperBudgetItem {
   updatedAt: string;
 }
 
+export interface DeveloperContactReview {
+  id: string;
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+  profilePictureIndex: number | null;
+  preferredLanguage: string | null;
+  preferredUiLocale: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DeveloperDashboardStats {
   totalUsers: number;
   freeSubscribers: number;

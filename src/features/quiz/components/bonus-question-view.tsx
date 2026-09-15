@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 import {
   getBonusCopy,
   getMatchingColumnCopy,
@@ -17,7 +17,10 @@ import {
 import { getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
 import {
   getScoreFlightAwardAtArrival,
+  getChestRewardFlightMotion,
   getScoreFlightIconCount,
+  SCORE_FLIGHT_DURATION_MS,
+  SCORE_FLIGHT_LAST_START_MS,
 } from "@/features/progress/score-flight";
 import { ScoreIcon } from "@/components/score-icon";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
@@ -32,13 +35,21 @@ import { vibrate } from "@/lib/vibration";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 import { formatNumber } from "@/i18n/labels";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
+import { speakCardTerm } from "@/features/cards/card-speech";
+import type { LanguageCode } from "@/types/domain";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png";
+const MATCHING_WORD_BUTTON_CLASS =
+  "rounded-2xl border-[3px] border-b-[6px] px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]";
 const BONUS_INTRO_FRAME_COUNT = 13;
-const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 30;
+const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
+const BONUS_INTRO_TEXT_ENTRY_DELAY_MS = 220;
+const BONUS_INTRO_TEXT_EXIT_DELAY_MS = 40;
+const BONUS_INTRO_TEXT_ANIMATION_DURATION_MS = 230;
+const BONUS_INTRO_TEXT_STAGGER_MS = 14;
 const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.png";
 const BONUS_INTRO_FRAME_WIDTH = 480;
 const BONUS_INTRO_FRAME_HEIGHT = 854;
@@ -248,12 +259,16 @@ function createBonusIntroWebglRenderer(
     const atlasRow = Math.floor((frame - 1) / BONUS_INTRO_SPRITE_COLUMNS);
     const insetX = 0.5 / atlas.naturalWidth;
     const insetY = 0.5 / atlas.naturalHeight;
+    // WebGL's texture origin is at the bottom-left after UNPACK_FLIP_Y_WEBGL.
+    // Convert the frame's top-left atlas row to its bottom-based texture Y.
+    const atlasFrameBottom =
+      1 - ((atlasRow + 1) * BONUS_INTRO_FRAME_HEIGHT) / atlas.naturalHeight;
 
     gl.uniform2f(resolutionLocation, width, height);
     gl.uniform4f(
       frameRectLocation,
       (atlasColumn * BONUS_INTRO_FRAME_WIDTH) / atlas.naturalWidth + insetX,
-      (atlasRow * BONUS_INTRO_FRAME_HEIGHT) / atlas.naturalHeight + insetY,
+      atlasFrameBottom + insetY,
       (BONUS_INTRO_FRAME_WIDTH - 1) / atlas.naturalWidth,
       (BONUS_INTRO_FRAME_HEIGHT - 1) / atlas.naturalHeight,
     );
@@ -347,6 +362,7 @@ const CATEGORY_SORT_PALETTES = [
 export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
+  const introText = formatSuperWaterText(locale, copy.intro);
   const spriteRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const completedRef = useRef(false);
@@ -429,6 +445,12 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
         drawFrame(currentFrame);
 
         const closingStartedAt = performance.now();
+        const closingDuration = Math.max(
+          (BONUS_INTRO_FRAME_COUNT - 1) * BONUS_INTRO_FRAME_DURATION_MS,
+          BONUS_INTRO_TEXT_EXIT_DELAY_MS +
+            BONUS_INTRO_TEXT_ANIMATION_DURATION_MS +
+            Math.max(0, Array.from(introText).length - 1) * BONUS_INTRO_TEXT_STAGGER_MS,
+        );
         const animateClosing = (now: number) => {
           if (cancelled) return;
 
@@ -441,7 +463,7 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
             drawFrame(currentFrame);
           }
 
-          if (currentFrame <= 1) {
+          if (currentFrame <= 1 && now - closingStartedAt >= closingDuration) {
             complete();
             return;
           }
@@ -488,7 +510,7 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
       if (resizeHandler) window.removeEventListener("resize", resizeHandler);
       renderer?.destroy();
     };
-  }, []);
+  }, [introText]);
 
   if (typeof document === "undefined") return null;
 
@@ -512,8 +534,18 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
           "relative z-[1] px-6 text-center text-4xl font-bold sm:text-6xl",
           canUseSuperWater(locale) && "font-super-water",
         )}
+        data-bonus-intro-text
+        aria-label={introText}
       >
-        {formatSuperWaterText(locale, copy.intro)}
+        {Array.from(introText).map((character, index) => (
+          <span
+            key={`${character}-${index}`}
+            aria-hidden="true"
+            style={{ "--bonus-intro-character-index": index } as CSSProperties}
+          >
+            {character === " " ? "\u00a0" : character}
+          </span>
+        ))}
       </span>
     </div>,
     document.body,
@@ -522,8 +554,10 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
 
 export function BonusQuestionView({
   question,
+  language = "en",
   showingAnswer,
   answerAccepted,
+  wasSkipped = false,
   canAdvance = true,
   onSubmit,
   onSkip,
@@ -542,8 +576,10 @@ export function BonusQuestionView({
   onGemFlightComplete,
 }: {
   question: BonusQuestion;
+  language?: LanguageCode;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
+  wasSkipped?: boolean;
   canAdvance?: boolean;
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
@@ -564,85 +600,154 @@ export function BonusQuestionView({
   const { locale, t } = useLocale();
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
-  const rewardFlightStartedRef = useRef(false);
-  const [rewardPulse, setRewardPulse] = useState(0);
+  const flightSourceRef = useRef<HTMLDivElement | null>(null);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
+  const [sentenceDecorationMounted, setSentenceDecorationMounted] = useState(false);
   const [sentenceDecorationCharacter] = useState(() => {
     const characters = getAiPracticeCharacters();
     return characters[Math.floor(Math.random() * characters.length)] ?? characters[0]!;
   });
-  const showRewardHud = showingAnswer && answerAccepted === true;
-  const rewardFlightReady = showingAnswer && answerAccepted && rewardReady && (showPointFlight || Boolean(gemRewards?.length));
+  const [rewardSourceRect, setRewardSourceRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const rewardDelivered = showingAnswer && answerAccepted === true && rewardReady;
+  const rewardFlightReady = rewardDelivered && (showPointFlight || Boolean(gemRewards?.length));
+  const showRewardHud = rewardFlightReady;
 
   useEffect(() => {
-    if (!rewardFlightReady || rewardFlightStartedRef.current) return;
-    rewardFlightStartedRef.current = true;
-    setRewardPulse((current) => current + 1);
-  }, [rewardFlightReady]);
+    setSentenceDecorationMounted(true);
+  }, []);
 
-  return (
-    <div
-      className={cn(
-        "animate-screen-pop relative flex w-full max-w-2xl flex-col items-center gap-4 rounded-xl bg-transparent px-1 py-2 text-foreground sm:gap-5 sm:px-4",
-        isSentenceOrder && "isolate",
-      )}
-      data-bonus-question={question.kind}
-    >
-      {isSentenceOrder ? (
+  useLayoutEffect(() => {
+    if (!showRewardHud) {
+      setRewardSourceRect(null);
+      return;
+    }
+
+    const updateRewardSourceRect = () => {
+      const rect = sourceRef.current?.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        setRewardSourceRect(null);
+        return;
+      }
+
+      setRewardSourceRect({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+
+    updateRewardSourceRect();
+    window.addEventListener("resize", updateRewardSourceRect);
+    return () => window.removeEventListener("resize", updateRewardSourceRect);
+  }, [showRewardHud]);
+
+  const sentenceDecoration = isSentenceOrder && sentenceDecorationMounted
+    ? (
         <div
-          className="pointer-events-none fixed bottom-0 left-1/2 z-0 h-[min(112vw,36rem)] w-[min(112vw,36rem)] -translate-x-1/2 translate-y-1/2 opacity-25"
-          data-bonus-sentence-decoration
+          className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+          data-bonus-sentence-decoration-layer
           aria-hidden="true"
         >
-          <Image
-            src={sentenceDecorationCharacter.imageSrc}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 112vw, 576px"
-            className="object-contain"
-          />
-        </div>
-      ) : null}
-
-      {showRewardHud ? (
-        <div className="relative z-10 flex flex-col items-center gap-2" data-bonus-reward-hud>
           <div
-            className="animate-points-pop relative inline-flex items-center gap-1.5 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-3 py-1.5 text-white shadow-sm"
-            data-bonus-reward-score
+            className="absolute bottom-0 left-1/2 h-[min(112vw,36rem)] w-[min(112vw,36rem)] -translate-x-1/2 translate-y-[20%] opacity-25"
+            data-bonus-sentence-decoration
           >
-            <ScoreIcon size={22} className="size-[22px]" />
-            <span
-              className={cn(
-                "text-base font-bold",
-                canUseSuperWater(locale) && "font-super-water",
-                scorePulse > 0 && "animate-score-bobble",
-              )}
-              key={scorePulse}
-            >
-              {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
-            </span>
+            <Image
+              src={sentenceDecorationCharacter.imageSrc}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 112vw, 576px"
+              className="object-contain"
+            />
           </div>
-          <RewardGemHud
-            animate
-            size="large"
-            balances={gemBalances}
-            pulse={gemPulse}
-            superWater={canUseSuperWater(locale)}
-          />
         </div>
-      ) : null}
+      )
+    : null;
+
+  const rewardHudContent = showRewardHud ? (
+    <div
+      className="pointer-events-none absolute inset-0 z-[70] flex flex-col items-center justify-center gap-1"
+      data-bonus-reward-hud
+    >
+      <div
+        className="animate-points-pop relative inline-flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"
+        data-bonus-reward-score
+      >
+        <Star className="size-5 fill-current" aria-hidden="true" />
+        <span
+          className={cn(
+            "text-lg font-bold",
+            canUseSuperWater(locale) && "font-super-water",
+            scorePulse > 0 && "animate-score-bobble",
+          )}
+          key={scorePulse}
+        >
+          {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
+        </span>
+      </div>
+      <RewardGemHud
+        animate
+        size="large"
+        desktopVisible
+        hudRole="reward"
+        balances={gemBalances}
+        pulse={gemPulse}
+        superWater={canUseSuperWater(locale)}
+      />
+    </div>
+  ) : null;
+
+  const rewardHudPortal = rewardHudContent && rewardSourceRect && typeof document !== "undefined"
+    ? createPortal(
+        <div
+          className="pointer-events-none fixed z-[75] flex items-center justify-center"
+          style={{
+            left: rewardSourceRect.left,
+            top: rewardSourceRect.top,
+            width: rewardSourceRect.width,
+            height: rewardSourceRect.height,
+          }}
+          data-bonus-reward-hud-layer
+        >
+          {rewardHudContent}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  const rewardFlightSource = rewardFlightReady && typeof document !== "undefined"
+    ? createPortal(
+        <div
+          ref={flightSourceRef}
+          className="pointer-events-none fixed bottom-0 left-1/2 z-0 size-px -translate-x-1/2"
+          data-bonus-reward-flight-source
+          aria-hidden="true"
+        />,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div className="relative isolate z-0 w-full">
+      {sentenceDecoration}
+      <div
+        className="animate-screen-pop relative z-10 flex w-full max-w-2xl flex-col items-center gap-4 overflow-visible rounded-xl bg-transparent px-1 py-2 text-foreground sm:gap-5 sm:px-4"
+        data-bonus-question={question.kind}
+      >
 
       <div className="relative z-10 flex flex-col items-center gap-1 text-center">
         <div
           ref={sourceRef}
-          key={rewardPulse}
-          className={cn(
-            "relative w-[min(10rem,40vw)]",
-            rewardPulse > 0 && "animate-bonus-reward-pulse",
-          )}
+          className="relative aspect-[1536/1000] w-[min(10rem,40vw)] overflow-visible"
           data-bonus-reward-source
-          aria-hidden="true"
+          data-bonus-reward-source-state={rewardFlightReady ? "exiting" : "idle"}
         >
           <Image
             src={BONUS_REWARD_IMAGE}
@@ -650,8 +755,12 @@ export function BonusQuestionView({
             width={1536}
             height={1000}
             sizes="(max-width: 640px) 40vw, 160px"
-            className="h-auto w-full object-contain"
+            className={cn(
+              "h-auto w-full object-contain",
+              rewardFlightReady && "animate-bonus-reward-source-exit",
+            )}
           />
+          {!rewardSourceRect ? rewardHudContent : null}
         </div>
         <h2
           className={cn(
@@ -663,19 +772,14 @@ export function BonusQuestionView({
             locale,
             question.kind === "matching"
               ? MATCHING_BONUS_TITLES[locale]
-              : getBonusTitle(copy, question.kind),
+            : getBonusTitle(copy, question.kind),
           )}
         </h2>
-        {question.kind !== "matching" ? (
-          <p className="text-sm font-medium text-white">
-            {getBonusPrompt(copy, question.kind)}
-          </p>
-        ) : null}
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-center">
         {question.kind === "matching" ? (
-          <MatchingBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
+          <MatchingBonus question={question} language={language} showingAnswer={showingAnswer} answerAccepted={answerAccepted} wasSkipped={wasSkipped} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "sentence-order" ? (
           <SentenceOrderBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "category-sort" ? (
@@ -686,12 +790,6 @@ export function BonusQuestionView({
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-center gap-2">
-        {!showingAnswer ? null : (
-          <div className={cn("flex items-center gap-2 text-sm font-semibold", answerAccepted ? "text-emerald-500" : "text-rose-500")}>
-            {answerAccepted ? <CheckCircle2 className="size-5" aria-hidden="true" /> : <XCircle className="size-5" aria-hidden="true" />}
-            {answerAccepted ? copy.correct : copy.incorrect}
-          </div>
-        )}
         <Button
           type="button"
           onClick={onNext}
@@ -706,10 +804,13 @@ export function BonusQuestionView({
         </Button>
       </div>
 
+      {rewardHudPortal}
+      {rewardFlightSource}
+
       {showingAnswer && answerAccepted && rewardReady && showPointFlight
         ? <BonusPointFlight
             points={points}
-            sourceRef={sourceRef}
+            sourceRef={flightSourceRef}
             onFlightStart={onFlightStart}
             onPointArrive={onPointArrive}
             onComplete={onFlightComplete}
@@ -719,25 +820,33 @@ export function BonusQuestionView({
       {showingAnswer && answerAccepted && rewardReady && gemRewards?.length
         ? <GemRewardFlight
             rewards={gemRewards}
-            sourceRef={sourceRef}
+            sourceRef={flightSourceRef}
+            targetSelector='[data-reward-gem-hud-role="main"] [data-reward-gem-target]'
+            sourceOrigin="center"
+            arrivalSoundEffect="gem-loot"
             onGemArrive={onGemArrive}
             onComplete={onGemFlightComplete}
           />
         : null}
+    </div>
     </div>
   );
 }
 
 function MatchingBonus({
   question,
+  language,
   showingAnswer,
   answerAccepted,
+  wasSkipped,
   onSubmit,
   onSkip,
 }: {
   question: MatchingBonusQuestion;
+  language: LanguageCode;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
+  wasSkipped: boolean;
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
@@ -747,16 +856,49 @@ function MatchingBonus({
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const termRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const meaningRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [connections, setConnections] = useState<Array<{ id: string; x1: number; y1: number; x2: number; y2: number; color: string }>>([]);
+  const [animatingPair, setAnimatingPair] = useState<{ termId: string; meaningId: string } | null>(null);
+  const matchAnimationFrameRef = useRef<number | null>(null);
+  const matchAnimationTimerRef = useRef<number | null>(null);
   const matchedMeaningIds = new Set(Object.values(matches));
   const canCheck = Object.keys(matches).length === question.pairs.length;
   const isCorrect = question.pairs.every((pair) => matches[pair.id] === pair.id);
 
+  useEffect(() => () => {
+    if (matchAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(matchAnimationFrameRef.current);
+    }
+    if (matchAnimationTimerRef.current !== null) {
+      window.clearTimeout(matchAnimationTimerRef.current);
+    }
+  }, []);
+
+  function triggerMatchAnimation(termId: string, meaningId: string) {
+    if (matchAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(matchAnimationFrameRef.current);
+    }
+    if (matchAnimationTimerRef.current !== null) {
+      window.clearTimeout(matchAnimationTimerRef.current);
+    }
+
+    setAnimatingPair(null);
+    matchAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      matchAnimationFrameRef.current = null;
+      setAnimatingPair({ termId, meaningId });
+      matchAnimationTimerRef.current = window.setTimeout(() => {
+        setAnimatingPair((current) => current?.termId === termId && current.meaningId === meaningId ? null : current);
+        matchAnimationTimerRef.current = null;
+      }, MATCHING_PAIR_ANIMATION_MS);
+    });
+  }
+
+  function speakMatchedTerm(termId: string) {
+    const term = question.terms.find((pair) => pair.id === termId)?.term;
+    if (term) speakCardTerm(term, language);
+  }
+
   function selectTerm(id: string) {
     if (showingAnswer) return;
+    playSoundEffect("bonus-select");
 
     if (!selectedMeaningId) {
       setSelectedTermId(id);
@@ -773,10 +915,13 @@ function MatchingBonus({
     });
     setSelectedTermId(null);
     setSelectedMeaningId(null);
+    triggerMatchAnimation(id, selectedMeaningId);
+    speakMatchedTerm(id);
   }
 
   function selectMeaning(id: string) {
     if (showingAnswer) return;
+    playSoundEffect("bonus-select");
 
     if (!selectedTermId) {
       setSelectedMeaningId(id);
@@ -793,80 +938,22 @@ function MatchingBonus({
     });
     setSelectedTermId(null);
     setSelectedMeaningId(null);
+    triggerMatchAnimation(selectedTermId, id);
+    speakMatchedTerm(selectedTermId);
   }
 
-  useEffect(() => {
-    function updateConnections() {
-      const board = boardRef.current;
-      if (!board) return;
-
-      const boardRect = board.getBoundingClientRect();
-      const nextConnections = Object.entries(matches).flatMap(([termId, meaningId]) => {
-        const term = termRefs.current[termId];
-        const meaning = meaningRefs.current[meaningId];
-        if (!term || !meaning) return [];
-
-        const termRect = term.getBoundingClientRect();
-        const meaningRect = meaning.getBoundingClientRect();
-         const colorIndex = question.pairs.findIndex((pair) => pair.id === termId);
-         const color = showingAnswer
-           ? (matches[termId] === termId ? "#22c55e" : "#ef4444")
-           : MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length]?.background ?? MATCHING_PAIR_COLORS[0].background;
-
-        return [{
-          id: `${termId}-${meaningId}`,
-          x1: termRect.right - boardRect.left - termRect.width * MATCHING_CONNECTOR_INSET_RATIO,
-          y1: termRect.top + termRect.height / 2 - boardRect.top,
-          x2: meaningRect.left - boardRect.left + meaningRect.width * MATCHING_CONNECTOR_INSET_RATIO,
-          y2: meaningRect.top + meaningRect.height / 2 - boardRect.top,
-          color,
-        }];
-      });
-
-      setConnections(nextConnections);
-    }
-
-    updateConnections();
-    window.addEventListener("resize", updateConnections);
-    const resizeObserver = typeof ResizeObserver === "undefined" || !boardRef.current
-      ? null
-      : new ResizeObserver(updateConnections);
-    if (resizeObserver && boardRef.current) resizeObserver.observe(boardRef.current);
-
-    return () => {
-      window.removeEventListener("resize", updateConnections);
-      resizeObserver?.disconnect();
-    };
-  }, [matches, question.pairs, showingAnswer]);
-
   return (
-    <div ref={boardRef} className="relative grid w-full grid-cols-2 gap-3 sm:gap-4" data-bonus-matching-board>
-      <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" aria-hidden="true" data-bonus-matching-connections>
-        {connections.map((connection) => (
-          <line
-            key={connection.id}
-            x1={connection.x1}
-            y1={connection.y1}
-            x2={connection.x2}
-            y2={connection.y2}
-            stroke={connection.color}
-            strokeWidth="5"
-            strokeLinecap="round"
-            className="transition-[stroke] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
-            data-bonus-matching-connection={connection.id}
-          />
-        ))}
-      </svg>
-
-      <div className="relative z-10 flex min-w-0 flex-col items-center gap-2">
+    <div className="relative grid w-full grid-cols-2 gap-3 sm:gap-4" data-bonus-matching-board>
+      <div className="relative z-10 col-start-2 row-start-1 flex min-w-0 flex-col items-center gap-2">
         <h3 className={cn("h-6 w-full text-center text-sm font-bold leading-6 text-white", usesSuperWater && "font-super-water")}>
           {formatSuperWaterUppercaseText(locale, columnCopy.terms)}
         </h3>
         <div className="flex w-full flex-col items-center gap-3">
          {question.terms.map((pair) => {
            const matched = Boolean(matches[pair.id]);
-           const correct = showingAnswer && matches[pair.id] === pair.id;
-           const wrong = showingAnswer && matched && matches[pair.id] !== pair.id;
+           const skipped = showingAnswer && wasSkipped;
+           const correct = showingAnswer && !skipped && matches[pair.id] === pair.id;
+           const wrong = showingAnswer && (skipped || (matched && matches[pair.id] !== pair.id));
           const colorIndex = question.pairs.findIndex((candidate) => candidate.id === pair.id);
           const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
           return (
@@ -875,27 +962,46 @@ function MatchingBonus({
               type="button"
               disabled={showingAnswer}
               onClick={() => selectTerm(pair.id)}
-              style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
-              ref={(element) => { termRefs.current[pair.id] = element; }}
-              className={cn("w-[calc(100%-0.5rem)] min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5 ring-2 ring-brand", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && "opacity-60")}
+              style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : selectedTermId === pair.id && !showingAnswer ? { borderColor: "var(--brand)" } : undefined}
+              className={cn("flex h-14 w-[calc(100%-0.5rem)] items-center justify-center", MATCHING_WORD_BUTTON_CLASS, "text-lg sm:text-xl", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5", animatingPair?.termId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", !showingAnswer && "border-[#aaaaaa]", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && !skipped && "opacity-60")}
               data-bonus-term={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
-              {pair.term}
+              <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
+                <span
+                  className={cn(
+                    "transition-transform duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    wrong && "-translate-y-0.5",
+                  )}
+                >
+                  {pair.term}
+                </span>
+                <span
+                  className={cn(
+                    "max-w-full overflow-hidden text-xs font-medium leading-4 transition-[max-height,opacity,transform] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    wrong ? "max-h-4 translate-y-0 opacity-100" : "max-h-0 translate-y-1 opacity-0",
+                  )}
+                  aria-hidden={!wrong}
+                  data-bonus-correct-answer={pair.id}
+                >
+                  ({pair.meaning})
+                </span>
+              </span>
             </button>
           );
         })}
         </div>
       </div>
-      <div className="relative z-10 flex min-w-0 flex-col items-center gap-2">
+      <div className="relative z-10 col-start-1 row-start-1 flex min-w-0 flex-col items-center gap-2">
         <h3 className={cn("h-6 w-full text-center text-sm font-bold leading-6 text-white", usesSuperWater && "font-super-water")}>
           {formatSuperWaterUppercaseText(locale, columnCopy.meanings)}
         </h3>
         <div className="flex w-full flex-col items-center gap-3">
         {question.meanings.map((pair) => {
           const pairedTermId = Object.entries(matches).find(([, meaningId]) => meaningId === pair.id)?.[0];
-          const correct = showingAnswer && pairedTermId === pair.id;
-          const wrong = showingAnswer && pairedTermId !== undefined && pairedTermId !== pair.id;
+           const skipped = showingAnswer && wasSkipped;
+           const correct = showingAnswer && !skipped && pairedTermId === pair.id;
+           const wrong = showingAnswer && (skipped || (pairedTermId !== undefined && pairedTermId !== pair.id));
           const colorIndex = pairedTermId ? question.pairs.findIndex((candidate) => candidate.id === pairedTermId) : -1;
           const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
           const selected = selectedMeaningId === pair.id;
@@ -905,9 +1011,8 @@ function MatchingBonus({
               type="button"
               disabled={showingAnswer}
               onClick={() => selectMeaning(pair.id)}
-              style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : undefined}
-              ref={(element) => { meaningRefs.current[pair.id] = element; }}
-              className={cn("w-[calc(100%-0.5rem)] min-h-14 rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", selected && "-translate-y-0.5 ring-2 ring-brand", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && "opacity-60")}
+              style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : selected && !showingAnswer ? { borderColor: "var(--brand)" } : undefined}
+              className={cn("w-[calc(100%-0.5rem)] min-h-14", MATCHING_WORD_BUTTON_CLASS, "text-lg sm:text-xl", selected && "-translate-y-0.5", animatingPair?.meaningId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", !showingAnswer && "border-[#aaaaaa]", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && !skipped && "opacity-60")}
               data-bonus-meaning={pair.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -950,7 +1055,9 @@ function SentenceOrderBonus({
   const returnAnimationTimerRef = useRef<number | null>(null);
   const selectedSet = new Set(selectedIds);
   const canCheck = selectedIds.length === question.tokens.length;
-  const isCorrect = selectedIds.every((id, index) => id === question.tokens[index]?.id);
+  const isCorrect = question.acceptedTokenOrders.some(
+    (acceptedOrder) => acceptedOrder.length === selectedIds.length && acceptedOrder.every((id, index) => id === selectedIds[index]),
+  );
 
   useEffect(() => () => {
     if (returnAnimationTimerRef.current !== null) {
@@ -960,6 +1067,7 @@ function SentenceOrderBonus({
 
   function toggleToken(id: string) {
     if (showingAnswer) return;
+    playSoundEffect("bonus-select");
 
     if (returnAnimationTimerRef.current !== null) {
       window.clearTimeout(returnAnimationTimerRef.current);
@@ -987,7 +1095,9 @@ function SentenceOrderBonus({
           <div className="flex flex-wrap gap-2">
             {selectedIds.map((id, index) => {
               const token = question.tokens.find((candidate) => candidate.id === id)!;
-              const correct = showingAnswer && id === question.tokens[index]?.id;
+              const correct = showingAnswer && (
+                answerAccepted === true || id === question.tokens[index]?.id
+              );
               return (
                 <button
                   key={id}
@@ -995,9 +1105,10 @@ function SentenceOrderBonus({
                   disabled={showingAnswer}
                   onClick={() => toggleToken(id)}
                   className={cn(
-                    "rounded-md border-0 px-2.5 py-1.5 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    "inline-flex min-h-10 items-center justify-center",
+                    MATCHING_WORD_BUTTON_CLASS,
                     "animate-bonus-sentence-token-enter",
-                    correct ? "bg-emerald-500 text-white" : showingAnswer ? "bg-rose-500 text-white" : "bg-brand text-brand-foreground",
+                    correct ? "border-emerald-500 bg-emerald-500 text-white" : showingAnswer ? "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake" : "border-[#aaaaaa] bg-brand text-brand-foreground",
                   )}
                   data-bonus-sentence-selected={id}
                 >
@@ -1016,7 +1127,8 @@ function SentenceOrderBonus({
             disabled={showingAnswer}
             onClick={() => toggleToken(token.id)}
             className={cn(
-              "rounded-md border border-border bg-background-card px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] hover:-translate-y-0.5",
+              "inline-flex min-h-14 items-center justify-center border-[#aaaaaa] bg-background-card hover:-translate-y-0.5 hover:border-brand",
+              MATCHING_WORD_BUTTON_CLASS,
               selectedSet.has(token.id) && "opacity-35",
               returningTokenId === token.id && "animate-bonus-sentence-token-return",
               showingAnswer && "opacity-60",
@@ -1089,6 +1201,7 @@ function CategorySortBonus({
 
   function selectWord(wordId: string) {
     if (showingAnswer) return;
+    playSoundEffect("bonus-select");
     const assignedCategoryId = assignments[wordId];
     if (assignedCategoryId) {
       // A word in a category needs one deliberate tap to return to the word bank.
@@ -1121,6 +1234,7 @@ function CategorySortBonus({
 
   function selectCategory(categoryId: string) {
     if (showingAnswer || !selectedWordId) return;
+    playSoundEffect("bonus-select");
     setAssignments((current) => ({
       ...current,
       [selectedWordId]: categoryId,
@@ -1148,13 +1262,14 @@ function CategorySortBonus({
               disabled={showingAnswer}
               onClick={() => selectWord(word.id)}
               className={cn(
-                "rounded-lg border px-3 py-2 text-sm font-semibold transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                "inline-flex min-h-14 items-center justify-center border-[#aaaaaa]",
+                MATCHING_WORD_BUTTON_CLASS,
                 selectedWordId === word.id && "-translate-y-0.5 ring-2 ring-brand",
                 assignedPalette?.background,
-                assigned && "border-0 text-white",
+                assigned && "text-white",
                 returningWordIds[word.id] && "animate-bonus-category-word-return",
                 correct && "bg-emerald-500 text-white border-emerald-500",
-                wrong && "bg-rose-500 text-white border-rose-500",
+                wrong && "bg-rose-500 text-white border-rose-500 animate-bonus-incorrect-shake",
                 !assigned && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand",
                 showingAnswer && !assigned && "opacity-60",
               )}
@@ -1225,11 +1340,12 @@ function CategorySortBonus({
                           selectWord(word.id);
                         }}
                         className={cn(
-                          "rounded-md border-0 px-1.5 py-1 text-xs font-semibold text-white transition-[transform,opacity,background-color] duration-[260ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                          "inline-flex items-center justify-center px-1.5 py-1 text-xs text-white border-white/30",
+                          MATCHING_WORD_BUTTON_CLASS,
                           palette.background,
                           isReturning ? "animate-bonus-category-word-exit" : "animate-bonus-category-word-enter",
                           correct && "bg-emerald-600",
-                          wrong && "bg-rose-600",
+                          wrong && "bg-rose-600 animate-bonus-incorrect-shake",
                         )}
                         data-bonus-category-assigned-word={word.id}
                       >
@@ -1273,11 +1389,22 @@ function ImposterBonus({
   const groupLabel = t(`cards.groups.${question.groupId}` as never);
   const isCorrect = selectedId === question.correctOptionId;
 
+  function selectOption(optionId: string) {
+    if (showingAnswer) return;
+    playSoundEffect("bonus-select");
+    setSelectedId(optionId);
+  }
+
   return (
     <div className="flex w-full flex-col items-center gap-4" data-bonus-imposter>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-background-card px-4 py-3">
-        <Image src={question.groupImageSrc} alt="" width={56} height={56} className="size-14 rounded-lg object-cover" />
-        <span className="text-base font-semibold text-foreground">{groupLabel}</span>
+      <div className="flex items-center gap-1 px-4 py-3">
+        <Image src={question.groupImageSrc} alt="" width={112} height={112} className="size-24 rounded-xl object-cover sm:size-28" />
+        <span className={cn(
+          "text-2xl font-semibold text-foreground sm:text-3xl",
+          canUseSuperWater(locale) && "font-super-water",
+        )}>
+          {formatSuperWaterText(locale, groupLabel)}
+        </span>
       </div>
       <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-5">
         {question.options.map((option) => {
@@ -1288,8 +1415,8 @@ function ImposterBonus({
               key={option.id}
               type="button"
               disabled={showingAnswer}
-              onClick={() => setSelectedId(option.id)}
-              className={cn("min-h-16 rounded-lg border border-border bg-background-card px-2 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 hover:-translate-y-0.5 hover:border-brand", selectedId === option.id && "border-brand bg-brand/15 ring-2 ring-brand", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white", showingAnswer && option.id !== selectedId && !correct && "opacity-60")}
+              onClick={() => selectOption(option.id)}
+              className={cn("inline-flex min-h-16 w-full items-center justify-center border-[#aaaaaa] bg-background-card text-lg hover:-translate-y-0.5 hover:border-brand sm:text-xl", MATCHING_WORD_BUTTON_CLASS, selectedId === option.id && "border-brand ring-2 ring-brand", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", showingAnswer && option.id !== selectedId && !correct && "opacity-60")}
               data-bonus-imposter-option={option.id}
               data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
             >
@@ -1367,7 +1494,6 @@ function BonusPointFlight({
   onComplete?: () => void;
 }) {
   const [icons, setIcons] = useState<FlightIcon[]>([]);
-  const startedRef = useRef(false);
   const completedRef = useRef(false);
   const arrivedRef = useRef(new Set<number>());
   const onFlightStartRef = useRef(onFlightStart);
@@ -1382,18 +1508,28 @@ function BonusPointFlight({
 
   useEffect(() => {
     const activeTimers: number[] = [];
-    if (startedRef.current) return;
-    startedRef.current = true;
+    completedRef.current = false;
+    arrivedRef.current.clear();
     onFlightStartRef.current?.();
+    let cancelled = false;
+    let geometryAttempt = 0;
+    let frame: number | null = null;
 
-    const frame = window.requestAnimationFrame(() => {
+    const startFlightWhenReady = () => {
+      if (cancelled) return;
+
       const source = sourceRef.current?.getBoundingClientRect();
-      const target = document
-        .querySelector<HTMLElement>("[data-bonus-reward-score], [data-quiz-total-score]")
-        ?.getBoundingClientRect();
+      const targetElement = document
+        .querySelector<HTMLElement>("[data-quiz-total-score]")
+        ?? document.querySelector<HTMLElement>("[data-bonus-reward-score]");
+      const target = targetElement?.getBoundingClientRect();
       if (!source || !target || source.width === 0 || source.height === 0 || target.width === 0 || target.height === 0) {
-        completedRef.current = true;
-        onCompleteRef.current?.();
+        if (geometryAttempt < 60) {
+          geometryAttempt += 1;
+          frame = window.requestAnimationFrame(startFlightWhenReady);
+          return;
+        }
+        finishFlight(0);
         return;
       }
 
@@ -1401,25 +1537,29 @@ function BonusPointFlight({
       const targetY = target.top + target.height / 2;
       const iconCount = getScoreFlightIconCount(points);
       const nextIcons = Array.from({ length: iconCount }, (_, index) => {
-        const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
+        const motion = getChestRewardFlightMotion(source, index, iconCount);
         return {
           id: index,
-          startX: source.left + source.width * (0.28 + Math.random() * 0.44),
-          startY: source.top + source.height * (0.35 + Math.random() * 0.3),
-          scatterX: (Math.random() - 0.5) * 100,
-          scatterY: -25 - Math.random() * 70,
+          ...motion,
+          startX: source.left + source.width / 2,
+          startY: source.top + source.height / 2,
           targetX,
           targetY,
-          delay: Math.round(ratio * 520),
         };
       });
       setIcons(nextIcons);
-      const finishTimer = window.setTimeout(() => finishFlight(nextIcons.length), 2_300);
+      const finishTimer = window.setTimeout(
+        () => finishFlight(nextIcons.length),
+        SCORE_FLIGHT_LAST_START_MS + SCORE_FLIGHT_DURATION_MS + 500,
+      );
       activeTimers.push(finishTimer);
-    });
+    };
+
+    frame = window.requestAnimationFrame(startFlightWhenReady);
 
     return () => {
-      window.cancelAnimationFrame(frame);
+      cancelled = true;
+      if (frame !== null) window.cancelAnimationFrame(frame);
       activeTimers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [points, sourceRef]);
@@ -1465,7 +1605,7 @@ function BonusPointFlight({
             animationDelay: `${icon.delay}ms`,
           } as CSSProperties}
         >
-          <ScoreIcon size={30} />
+          <ScoreIcon size={32} />
         </span>
       ))}
     </>,
@@ -1491,18 +1631,11 @@ const MATCHING_PAIR_COLORS = [
   { background: "#eab308", foreground: "#111827" },
 ] as const;
 
-const MATCHING_CONNECTOR_INSET_RATIO = 0.18;
+const MATCHING_PAIR_ANIMATION_MS = 520;
 
 function getBonusTitle(copy: ReturnType<typeof getBonusCopy>, kind: BonusQuestion["kind"]) {
   if (kind === "matching") return copy.matchingTitle;
   if (kind === "sentence-order") return copy.sentenceTitle;
   if (kind === "category-sort") return copy.categoryTitle;
   return copy.imposterTitle;
-}
-
-function getBonusPrompt(copy: ReturnType<typeof getBonusCopy>, kind: BonusQuestion["kind"]) {
-  if (kind === "matching") return copy.matchingPrompt;
-  if (kind === "sentence-order") return copy.sentencePrompt;
-  if (kind === "category-sort") return copy.categoryPrompt;
-  return copy.imposterPrompt;
 }

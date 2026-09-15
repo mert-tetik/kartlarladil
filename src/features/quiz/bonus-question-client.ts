@@ -7,7 +7,7 @@ import {
 } from "@/features/quiz/bonus-questions";
 
 const API_ROUTE = "/api/quiz/bonus";
-const REQUEST_TIMEOUT_MS = 4_500;
+const REQUEST_TIMEOUT_MS = 8_000;
 
 export async function requestSentenceBonusQuestion(input: {
   language: LanguageCode;

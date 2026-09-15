@@ -7,9 +7,11 @@ import {
   type CardGroupIcon,
 } from "@/features/cards/card-groups";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
-import type { LanguageCode, LocaleCode, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 export { BONUS_QUESTION_POINTS, getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
 export type { BonusQuestionKind } from "@/features/quiz/bonus-question-constants";
+
+const IMPOSTER_GROUP_WORD_COUNT = 5;
 
 export interface BonusPair {
   id: string;
@@ -34,6 +36,7 @@ export interface SentenceOrderBonusQuestion {
   kind: "sentence-order";
   sentence: string;
   tokens: SentenceOrderToken[];
+  acceptedTokenOrders: string[][];
   sourceCardId: string;
 }
 
@@ -80,6 +83,9 @@ export type BonusQuestion =
 export const generatedSentenceBonusSchema = z.object({
   sentence: z.string().trim().min(2).max(180),
   tokens: z.array(z.string().trim().min(1).max(40)).min(2).max(14),
+  alternativeTokenOrders: z.array(
+    z.array(z.string().trim().min(1).max(40)).min(2).max(14),
+  ).max(4).default([]),
   sourceCardId: z.string().trim().min(1).max(160),
 });
 
@@ -130,6 +136,23 @@ export function getBonusCopy(locale: LocaleCode) {
   return BONUS_COPY[locale] ?? BONUS_COPY.en;
 }
 
+export const MATCHING_BONUS_TITLES: Record<LocaleCode, string> = {
+  tr: "Kelimeleri anlamlarıyla eşleştir",
+  en: "Match each word to its meaning",
+  de: "Ordne jedes Wort seiner Bedeutung zu",
+  ru: "Сопоставь каждое слово с его значением",
+  fr: "Associe chaque mot à sa signification",
+  es: "Relaciona cada palabra con su significado",
+  it: "Abbina ogni parola al suo significato",
+  pt: "Associe cada palavra ao seu significado",
+  nl: "Koppel elk woord aan de betekenis",
+  pl: "Dopasuj każde słowo do jego znaczenia",
+  ar: "طابق كل كلمة مع معناها",
+  ja: "単語を正しい意味と組み合わせよう",
+  ko: "각 단어를 알맞은 뜻과 짝지으세요",
+  "zh-CN": "将每个单词与正确含义配对",
+};
+
 export const MATCHING_COLUMN_COPY: Record<LocaleCode, { terms: string; meanings: string }> = {
   tr: { terms: "Kelimeler", meanings: "Anlamlar" },
   en: { terms: "Words", meanings: "Meanings" },
@@ -151,19 +174,132 @@ export function getMatchingColumnCopy(locale: LocaleCode) {
   return MATCHING_COLUMN_COPY[locale] ?? MATCHING_COLUMN_COPY.en;
 }
 
+export function getMatchingLearnedSelectionProbability(learnedCount: number) {
+  const normalizedCount = Math.max(0, Math.floor(learnedCount));
+
+  if (normalizedCount <= 10) return 0.2;
+  if (normalizedCount <= 20) return 0.4;
+  if (normalizedCount <= 30) return 0.6;
+  if (normalizedCount < 40) return 0.75;
+  return 0.9;
+}
+
+const MATCHING_TIER_ORDER: readonly Tier[] = ["A1", "A2", "B1", "B2", "C1"];
+
+export type MatchingTierWeights = Record<Tier, number>;
+
+/**
+ * Keep the matching question close to the learner's actual vocabulary level.
+ * A tier's weight is its number of learned cards, so every slot can make an
+ * independent tier choice while the learner's learned-tier distribution stays
+ * represented in the question.
+ */
+export function getMatchingLearnedTierWeights(
+  learnedCards: VocabularyCard[],
+): MatchingTierWeights {
+  const weights: MatchingTierWeights = {
+    A1: 0,
+    A2: 0,
+    B1: 0,
+    B2: 0,
+    C1: 0,
+  };
+  const seenCardIds = new Set<string>();
+
+  for (const card of learnedCards) {
+    if (seenCardIds.has(card.id)) continue;
+    seenCardIds.add(card.id);
+    weights[card.tier] += 1;
+  }
+
+  return weights;
+}
+
+function selectMatchingCardByTier(
+  cards: VocabularyCard[],
+  tierWeights: MatchingTierWeights,
+): VocabularyCard | null {
+  const cardsByTier = new Map<Tier, VocabularyCard[]>();
+
+  for (const card of cards) {
+    const tierCards = cardsByTier.get(card.tier) ?? [];
+    tierCards.push(card);
+    cardsByTier.set(card.tier, tierCards);
+  }
+
+  const availableTiers = MATCHING_TIER_ORDER.flatMap((tier) => {
+    const tierCards = cardsByTier.get(tier);
+    return tierCards?.length ? [{ tier, cards: tierCards }] : [];
+  });
+  if (availableTiers.length === 0) return null;
+
+  const learnedTiers = availableTiers.filter(({ tier }) => tierWeights[tier] > 0);
+  const weightedTiers = learnedTiers.length > 0 ? learnedTiers : availableTiers;
+  const totalWeight = weightedTiers.reduce(
+    (total, { tier }) => total + Math.max(0, tierWeights[tier]),
+    0,
+  );
+
+  let selectedTier = weightedTiers[0];
+  if (totalWeight > 0) {
+    let cursor = Math.random() * totalWeight;
+    for (const tierPool of weightedTiers) {
+      cursor -= tierWeights[tierPool.tier];
+      if (cursor < 0) {
+        selectedTier = tierPool;
+        break;
+      }
+    }
+  } else {
+    selectedTier = weightedTiers[Math.floor(Math.random() * weightedTiers.length)];
+  }
+
+  if (!selectedTier) return null;
+  return selectedTier.cards[Math.floor(Math.random() * selectedTier.cards.length)] ?? null;
+}
+
 export function buildMatchingBonusQuestion(
   cards: VocabularyCard[],
   uiLocale: LocaleCode,
   seed: string,
+  learnedCards: VocabularyCard[] = [],
 ): MatchingBonusQuestion | null {
+  const learnedCardIds = new Set(learnedCards.map((card) => card.id));
   const candidates = shuffle([...cards]).filter((card, index, all) => {
     const meaning = getPrimaryCardTranslation(card, uiLocale).trim();
     return Boolean(meaning) && all.findIndex((other) => other.id === card.id) === index;
   });
 
-  if (candidates.length < 4) return null;
+  const learnedSelectionProbability = getMatchingLearnedSelectionProbability(learnedCards.length);
+  const learnedTierWeights = getMatchingLearnedTierWeights(learnedCards);
+  const selectedCards: VocabularyCard[] = [];
+  const usedTermKeys = new Set<string>();
+  const usedMeaningKeys = new Set<string>();
 
-  const pairs = candidates.slice(0, 4).map((card, index) => ({
+  for (let index = 0; index < 4; index += 1) {
+    const availableCandidates = candidates.filter((card) => {
+      const termKey = normalizeMatchingValue(card.term);
+      const meaningKey = normalizeMatchingValue(getPrimaryCardTranslation(card, uiLocale));
+      return !usedTermKeys.has(termKey) && !usedMeaningKeys.has(meaningKey);
+    });
+    const learnedCandidates = availableCandidates.filter((card) => learnedCardIds.has(card.id));
+    const randomCandidates = availableCandidates.filter((card) => !learnedCardIds.has(card.id));
+    const preferLearned = Math.random() < learnedSelectionProbability;
+    const preferredPool = preferLearned ? learnedCandidates : randomCandidates;
+    const fallbackPool = preferLearned ? randomCandidates : learnedCandidates;
+    const pool = preferredPool.length > 0 ? preferredPool : fallbackPool;
+
+    if (pool.length === 0) return null;
+
+    const selectedCard = selectMatchingCardByTier(pool, learnedTierWeights);
+    if (!selectedCard) return null;
+
+    selectedCards.push(selectedCard);
+    usedTermKeys.add(normalizeMatchingValue(selectedCard.term));
+    usedMeaningKeys.add(normalizeMatchingValue(getPrimaryCardTranslation(selectedCard, uiLocale)));
+  }
+
+  const pairs = selectedCards.map((card, index) => ({
     id: `${seed}-pair-${index}`,
     cardId: card.id,
     term: card.term,
@@ -176,6 +312,10 @@ export function buildMatchingBonusQuestion(
     terms: shuffle(pairs),
     meanings: shuffle(pairs),
   };
+}
+
+function normalizeMatchingValue(value: string) {
+  return value.trim().normalize("NFKC").toLocaleLowerCase();
 }
 
 export function buildFallbackSentenceOrderQuestion(
@@ -200,6 +340,7 @@ export function buildFallbackSentenceOrderQuestion(
     kind: "sentence-order",
     sentence: candidate.sentence,
     tokens,
+    acceptedTokenOrders: [tokens.map((token) => token.id)],
     sourceCardId: candidate.card.id,
   };
 }
@@ -248,11 +389,11 @@ export function buildImposterBonusQuestion(
   seed: string,
 ): ImposterBonusQuestion | null {
   const group = shuffle([...CARD_GROUPS]).find(
-    (candidate) => getCardsForGroup(candidate.id, language).length >= 4,
+    (candidate) => getCardsForGroup(candidate.id, language).length >= IMPOSTER_GROUP_WORD_COUNT,
   );
   if (!group) return null;
 
-  const groupCards = shuffle(getCardsForGroup(group.id, language)).slice(0, 4);
+  const groupCards = shuffle(getCardsForGroup(group.id, language)).slice(0, IMPOSTER_GROUP_WORD_COUNT);
   const groupKeys = new Set(group.englishKeys.map((key) => key.toLowerCase()));
   const outsider = shuffle(VOCABULARY_CARDS).find(
     (card) => card.language === language && !groupKeys.has(card.englishKey.toLowerCase()),
@@ -308,12 +449,50 @@ export function buildSentenceBonusFromGenerated(
     text,
   }));
 
+  const acceptedTokenOrders = [tokens.map((token) => token.id)];
+  const primaryTokenKeys = generated.tokens.map(normalizeSentenceToken);
+
+  for (const alternative of generated.alternativeTokenOrders) {
+    if (alternative.length !== generated.tokens.length) continue;
+
+    const unusedTokenIndexes = new Set(primaryTokenKeys.map((_, index) => index));
+    const tokenOrderIndexes: number[] = [];
+
+    for (const token of alternative) {
+      const tokenKey = normalizeSentenceToken(token);
+      const matchingIndex = [...unusedTokenIndexes].find(
+        (index) => primaryTokenKeys[index] === tokenKey,
+      );
+
+      if (matchingIndex === undefined) {
+        tokenOrderIndexes.length = 0;
+        break;
+      }
+
+      unusedTokenIndexes.delete(matchingIndex);
+      tokenOrderIndexes.push(matchingIndex);
+    }
+
+    if (tokenOrderIndexes.length !== generated.tokens.length || unusedTokenIndexes.size > 0) continue;
+
+    const tokenOrder = tokenOrderIndexes.map((index) => tokens[index]!.id);
+    if (tokenOrder.join("|") === acceptedTokenOrders[0]!.join("|")) continue;
+    if (!acceptedTokenOrders.some((accepted) => accepted.join("|") === tokenOrder.join("|"))) {
+      acceptedTokenOrders.push(tokenOrder);
+    }
+  }
+
   return {
     kind: "sentence-order",
     sentence: generated.sentence,
     tokens,
+    acceptedTokenOrders,
     sourceCardId: sourceCard.id,
   };
+}
+
+function normalizeSentenceToken(value: string) {
+  return value.trim().replace(/\s+/gu, " ").toLocaleLowerCase();
 }
 
 export function buildCategoryBonusFromGenerated(

@@ -17,6 +17,12 @@ export interface GemHudPulse {
   key: number;
 }
 
+const GEM_HUD_BACKGROUND_CLASSES: Record<GemType, string> = {
+  blue: "bg-sky-500/95",
+  green: "bg-emerald-500/95",
+  purple: "bg-violet-500/95",
+};
+
 export function useGemRewardDisplay() {
   const [balances, setBalances] = useState<GemBalances | null>(null);
   const [pulse, setPulse] = useState<GemHudPulse | null>(null);
@@ -44,6 +50,8 @@ export function RewardGemHud({
   animate = false,
   size = "default",
   superWater = false,
+  desktopVisible = false,
+  hudRole = "main",
   balances: providedBalances,
   pulse,
 }: {
@@ -51,6 +59,8 @@ export function RewardGemHud({
   animate?: boolean;
   size?: "default" | "large";
   superWater?: boolean;
+  desktopVisible?: boolean;
+  hudRole?: "main" | "reward";
   balances?: GemBalances | null;
   pulse?: GemHudPulse | null;
 }) {
@@ -66,19 +76,22 @@ export function RewardGemHud({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-1.5 lg:hidden",
+        "flex items-center justify-center gap-1.5",
+        !desktopVisible && "lg:hidden",
         size === "large" && "gap-2",
         animate && "animate-points-pop",
         className,
       )}
       data-reward-gem-hud
+      data-reward-gem-hud-role={hudRole}
     >
       {(["blue", "green", "purple"] as const).map((type) => (
         <span
           key={`${type}-${pulse?.type === type ? pulse.key : "idle"}`}
           data-reward-gem-target={type}
           className={cn(
-            "inline-flex items-center gap-0.5 rounded-full bg-black/30 px-1.5 py-1 text-xs font-bold text-white",
+            "inline-flex items-center gap-0.5 rounded-full px-1.5 py-1 text-xs font-bold text-white",
+            GEM_HUD_BACKGROUND_CLASSES[type],
             size === "large" && "gap-1 px-2 py-1.5 text-sm",
             pulse?.type === type && "animate-gem-target-pulse",
           )}

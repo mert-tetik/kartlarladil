@@ -94,6 +94,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       pathname === "/card-draw" ||
       pathname === "/leaderboard" ||
       pathname === "/learn" ||
+      pathname === "/contact" ||
       pathname === "/pricing" ||
       pathname.startsWith("/ai-practice/") ||
       pathname === "/create-card" ||

@@ -1,5 +1,5 @@
 {
-  "version": "91de6227b3f357a70a63096e61995e8fcf9dac9b1bc69e2209374c45ad349e12",
+  "version": "637ebd0fbd30911ce9ad9c17e66ccfc56f6257d5c9ddbbf1f08688814241e53b",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -426,12 +426,20 @@
       "revision": "de7a6636ad755fca3e25ea72b2f1ca219142b4832f6d15202da0ed86d24c4c8e"
     },
     {
+      "url": "/chests/diamond_chest.png",
+      "revision": "3329b08ba6a7d02337afbda88c1b200a8f5943d62c5b23dcc9ac69702823bfb5"
+    },
+    {
       "url": "/chests/emerald-bottom.png",
       "revision": "81dcc203ed63b7d6be29a707e9057f4f2dfd4aef90c054adbdef383da6602d00"
     },
     {
       "url": "/chests/emerald-top.png",
       "revision": "15e8c8399ed1ce86cbd35af2386d3a0df016c39c5d32fa978b340dc54970c26c"
+    },
+    {
+      "url": "/chests/emerald_chest.png",
+      "revision": "b122b3bb3dbf2fbc0ca096234e4d50c752e7d66647532307b930c2590a570083"
     },
     {
       "url": "/chests/gold-bottom.png",
@@ -442,12 +450,20 @@
       "revision": "c68814db7cb5ce0b8f11a81d0c292c321fcf1ce8d4ad52f9f64a38d37921bd56"
     },
     {
+      "url": "/chests/gold_chest.png",
+      "revision": "e1e7e3e209171619535687ec5707af474d9c8965cbf87bcb475ecfca96f331ed"
+    },
+    {
       "url": "/chests/iron-bottom.png",
       "revision": "70de7499416f43a5a4cce8019742ed70e95e37764718567deef41ecfb08761fb"
     },
     {
       "url": "/chests/iron-top.png",
       "revision": "b2257a04c4faee9944939a0058f75fa07120fc91e18d6ad2b9b9c1c77a83f379"
+    },
+    {
+      "url": "/chests/iron_chest.png",
+      "revision": "c63a22984d5fd9ef905f70adced2fddad9b2e802c4e76fc5b926c2ad3580b68b"
     },
     {
       "url": "/chests/ruby-bottom.png",
@@ -458,12 +474,20 @@
       "revision": "814ac6a4c04387b2b9e20366df9d736ea117634a3ac2240f5ebd8790213e7709"
     },
     {
+      "url": "/chests/ruby_chest.png",
+      "revision": "ec89ce770758ecdf40a5e93e45962a6b29cf90ba98939513a42c196acbd7152d"
+    },
+    {
       "url": "/chests/wood-bottom.png",
       "revision": "74ab1d46685442318cad9a1725223ac73ae6eb1be72a44ef76812b1f4d21f10c"
     },
     {
       "url": "/chests/wood-top.png",
       "revision": "c9cc66bd7fd1a4cc238ac039dc768db71f3e70c8e662098d465dfb352465ac3a"
+    },
+    {
+      "url": "/chests/wooden_chest.png",
+      "revision": "8288dada3ac43d4e25a322e2ca39441dc6ddee12d4f07bf0299777efd9062f3f"
     },
     {
       "url": "/colored-backgrounds/blue.png",
@@ -1062,6 +1086,62 @@
       "revision": "32fb9773357d966ef60d46da2891e15aa8110e39ff6a50e03fa76df58b673ff3"
     },
     {
+      "url": "/quiz/bonus-intro-frames/1.png",
+      "revision": "079f737e102579ae8c97ffa550d4b0e2ce12a0d5c7c8ff98c2d7083ac559cb36"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/10.png",
+      "revision": "fc57cc5cb57c7cb75e304f70659ea0cb3ba63f0210f5102a26e02477fa1ee3d0"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/11.png",
+      "revision": "3d805afe96c8e07204b39c5ed419dc09c473cd2b2bcdb0fb5b65b05145c0db0e"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/12.png",
+      "revision": "6d594be17207f424802641ee1f9f33daa3a95bc2a323033d2986c1a5467a1ef9"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/13.png",
+      "revision": "bf3ba969318a1d7f534077d021b3f215beae48dc5910f871b7c930305056dcdf"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/2.png",
+      "revision": "b7bd6a95e0d2a87d8b800cb6750b52fe7f2b12165eea33ff38969aab67a6c9f8"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/3.png",
+      "revision": "016592473da4ae08be4bd7ac10f83d4758cbf04143d5132abefa3dd7c029faf1"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/4.png",
+      "revision": "5fbfba235d82833f30d6b1e027096da86f2feb7472b21483cf13c6a5653cb459"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/5.png",
+      "revision": "2ceb72b8854cf5510b66d67833c5f731c82c85c05d3923ad898d2e13309b3ec8"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/6.png",
+      "revision": "1fd78f5523a05810544b2b9e6d5413801898491c47da129eef0849044858f485"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/7.png",
+      "revision": "ffdde48e3f313a1ec237f741b824d37b0e3fa28aae0baec0ebaf10f967efe49f"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/8.png",
+      "revision": "484b13f4039dd290148481ba294795549f33fb8bc6a7451b087a1766d1c3050e"
+    },
+    {
+      "url": "/quiz/bonus-intro-frames/9.png",
+      "revision": "9c2d71c83f1a3e1f1047ecb0dfa3ceb4f4be60ee225bfd0e9be585d9a9ae3fc6"
+    },
+    {
+      "url": "/quiz/bonus-intro-sprite.png",
+      "revision": "516e79855fd9e91957d9e5a6cbb66edfb057df8333b0d98f866eea87f23d0091"
+    },
+    {
       "url": "/quiz/bonus_img.png",
       "revision": "7102cbf7babe79d0cca643c243470a0ebbfd2a0dc439b8adb7d4f6247396046c"
     },
@@ -1116,10 +1196,6 @@
     {
       "url": "/rank-up/kurdele-v1.png",
       "revision": "723688b225b34d4a936046966c683faf4ce8923cdba4a493524b39810965783a"
-    },
-    {
-      "url": "/rank-up/rank-up-background-v1.png",
-      "revision": "265f0833237eb79602102e80d8a735b59634d966ef6def39d425ec8ca25d6d1d"
     },
     {
       "url": "/ranks/rank1.png",

@@ -9,6 +9,7 @@ import type {
   DeveloperBudgetItem,
   DeveloperDashboardStats,
   DeveloperAuditLog,
+  DeveloperContactReview,
   DeveloperPointSource,
   DeveloperUserDetail,
   DeveloperUserPage,
@@ -108,6 +109,23 @@ type AuditRow = {
   action: string;
   target_user_id: string | null;
   created_at: string;
+};
+
+type ReviewRow = {
+  id: string;
+  user_id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type ReviewProfileRow = {
+  user_id: string;
+  display_name: string | null;
+  profile_picture_index: number | null;
+  preferred_language_code: string | null;
+  preferred_ui_locale: string | null;
 };
 
 const SUPABASE_PAGE_SIZE = 1000;
@@ -265,6 +283,47 @@ export async function getDeveloperDashboardStats(): Promise<DeveloperDashboardSt
     revenuePricedSubscribers: asNumber(row?.revenue_priced_subscribers),
     revenueUnpricedSubscribers: asNumber(row?.revenue_unpriced_subscribers),
   };
+}
+
+export async function getDeveloperContactReviews(): Promise<DeveloperContactReview[]> {
+  const supabase = createSupabaseAdminClient();
+  const [{ data: reviewRows, error: reviewError }, { data: profileRows, error: profileError }, authUsers] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select("id, user_id, rating, comment, created_at, updated_at")
+      .order("created_at", { ascending: false })
+      .returns<ReviewRow[]>(),
+    supabase
+      .from("user_profiles")
+      .select("user_id, display_name, profile_picture_index, preferred_language_code, preferred_ui_locale")
+      .returns<ReviewProfileRow[]>(),
+    readAuthUsersBestEffort(supabase),
+  ]);
+
+  if (reviewError) throw reviewError;
+  if (profileError) throw profileError;
+
+  const usersById = new Map(authUsers.map((user) => [user.id, user]));
+  const profilesById = new Map((profileRows ?? []).map((profile) => [profile.user_id, profile]));
+
+  return (reviewRows ?? []).map((review) => {
+    const authUser = usersById.get(review.user_id);
+    const profile = profilesById.get(review.user_id);
+
+    return {
+      id: review.id,
+      userId: review.user_id,
+      email: authUser?.email ?? null,
+      displayName: profile?.display_name ?? null,
+      profilePictureIndex: profile?.profile_picture_index ?? null,
+      preferredLanguage: profile?.preferred_language_code ?? null,
+      preferredUiLocale: profile?.preferred_ui_locale ?? null,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.created_at,
+      updatedAt: review.updated_at,
+    };
+  });
 }
 
 export async function getDeveloperUsers(

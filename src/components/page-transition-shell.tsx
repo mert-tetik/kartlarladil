@@ -32,6 +32,8 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     pathname === "/learn" ||
     pathname === "/learned" ||
     pathname === "/leaderboard" ||
+    pathname === "/contact" ||
+    pathname.startsWith("/developer/") ||
     pathname.startsWith("/games/");
   const isAutomationTable =
     pathname === "/content-automation/automations" ||

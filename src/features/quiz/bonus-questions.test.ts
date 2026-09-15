@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import type { Tier } from "@/types/domain";
 import {
   buildCategoryBonusFromGenerated,
   buildFallbackCategoryBonusQuestion,
@@ -7,6 +8,8 @@ import {
   buildImposterBonusQuestion,
   buildMatchingBonusQuestion,
   buildSentenceBonusFromGenerated,
+  getMatchingLearnedTierWeights,
+  getMatchingLearnedSelectionProbability,
 } from "@/features/quiz/bonus-questions";
 
 const ENGLISH_CARDS = VOCABULARY_CARDS.filter((card) => card.language === "en");
@@ -23,6 +26,62 @@ describe("bonus quiz questions", () => {
     );
   });
 
+  it("uses progressive learned-card weights and keeps visible matching values unique", () => {
+    expect(getMatchingLearnedSelectionProbability(10)).toBe(0.2);
+    expect(getMatchingLearnedSelectionProbability(11)).toBe(0.4);
+    expect(getMatchingLearnedSelectionProbability(20)).toBe(0.4);
+    expect(getMatchingLearnedSelectionProbability(21)).toBe(0.6);
+    expect(getMatchingLearnedSelectionProbability(30)).toBe(0.6);
+    expect(getMatchingLearnedSelectionProbability(31)).toBe(0.75);
+    expect(getMatchingLearnedSelectionProbability(39)).toBe(0.75);
+    expect(getMatchingLearnedSelectionProbability(40)).toBe(0.9);
+
+    const firstCard = ENGLISH_CARDS[0]!;
+    const question = buildMatchingBonusQuestion(
+      [...ENGLISH_CARDS.slice(0, 5), { ...firstCard, id: `${firstCard.id}-duplicate` }],
+      "tr",
+      "session-unique-values",
+    );
+
+    expect(question).not.toBeNull();
+    expect(new Set(question?.pairs.map((pair) => pair.term)).size).toBe(4);
+    expect(new Set(question?.pairs.map((pair) => pair.meaning)).size).toBe(4);
+  });
+
+  it("uses the learned-card tier distribution for each matching selection", () => {
+    const tieredCards = ENGLISH_CARDS.slice(0, 12).map((card, index) => ({
+      ...card,
+      tier: (index < 4 ? "A1" : index < 8 ? "B1" : "C1") as Tier,
+    }));
+    const learnedCards = tieredCards.slice(0, 4);
+
+    expect(getMatchingLearnedTierWeights(learnedCards)).toEqual({
+      A1: 4,
+      A2: 0,
+      B1: 0,
+      B2: 0,
+      C1: 0,
+    });
+
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      const question = buildMatchingBonusQuestion(
+        tieredCards,
+        "tr",
+        "session-tier-weighted-matching",
+        learnedCards,
+      );
+
+      expect(question).not.toBeNull();
+      expect(question?.pairs).toHaveLength(4);
+      expect(question?.pairs.every((pair) => {
+        return tieredCards.find((card) => card.id === pair.cardId)?.tier === "A1";
+      })).toBe(true);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it("keeps fallback sentence questions local and validates GPT token order", () => {
     const fallback = buildFallbackSentenceOrderQuestion(ENGLISH_CARDS.slice(0, 12), "session-sentence");
     expect(fallback).not.toBeNull();
@@ -36,6 +95,7 @@ describe("bonus quiz questions", () => {
       {
         sentence: sentence!,
         tokens: sentence!.split(/\s+/u),
+        alternativeTokenOrders: [],
         sourceCardId: sentenceCard!.id,
       },
       ENGLISH_CARDS,
@@ -48,12 +108,54 @@ describe("bonus quiz questions", () => {
         {
           sentence: "This is not the token sequence",
           tokens: ["different", "tokens"],
+          alternativeTokenOrders: [],
           sourceCardId: sentenceCard!.id,
         },
         ENGLISH_CARDS,
         "session-invalid-sentence",
       ),
     ).toBeNull();
+  });
+
+  it("accepts valid alternative GPT sentence orders built from the same tokens", () => {
+    const cards = ENGLISH_CARDS.slice(0, 12);
+    const sourceCard = cards[0]!;
+    const question = buildSentenceBonusFromGenerated(
+      {
+        sentence: "This pizza is the best in town",
+        tokens: ["This", "pizza", "is", "the", "best", "in", "town"],
+        alternativeTokenOrders: [["This", "is", "the", "best", "pizza", "in", "town"]],
+        sourceCardId: sourceCard.id,
+      },
+      cards,
+      "session-alternative-sentence",
+    );
+
+    expect(question).not.toBeNull();
+    expect(question?.acceptedTokenOrders).toHaveLength(2);
+    expect(question?.acceptedTokenOrders[1]?.map((id) => question.tokens.find((token) => token.id === id)?.text)).toEqual(
+      ["This", "is", "the", "best", "pizza", "in", "town"],
+    );
+  });
+
+  it("rejects alternative orders that do not preserve the exact token multiset", () => {
+    const cards = ENGLISH_CARDS.slice(0, 12);
+    const question = buildSentenceBonusFromGenerated(
+      {
+        sentence: "This pizza is the best in town",
+        tokens: ["This", "pizza", "is", "the", "best", "in", "town"],
+        alternativeTokenOrders: [
+          ["This", "is", "the", "best", "pizza", "in", "town"],
+          ["This", "is", "the", "best", "pizza", "in", "city"],
+          ["This", "is", "the", "best", "pizza", "in", "town", "town"],
+        ],
+        sourceCardId: cards[0]!.id,
+      },
+      cards,
+      "session-invalid-alternatives",
+    );
+
+    expect(question?.acceptedTokenOrders).toHaveLength(2);
   });
 
   it("creates three balanced local categories and an independent imposter question", () => {
@@ -66,7 +168,8 @@ describe("bonus quiz questions", () => {
     expect(category?.words).toHaveLength(9);
 
     expect(imposter).not.toBeNull();
-    expect(imposter?.options).toHaveLength(5);
+    expect(imposter?.options).toHaveLength(6);
+    expect(imposter?.options.filter((option) => !option.isImposter)).toHaveLength(5);
     expect(imposter?.options.filter((option) => option.isImposter)).toHaveLength(1);
   });
 

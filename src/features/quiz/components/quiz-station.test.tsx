@@ -223,8 +223,10 @@ describe("MobileQuizFeedback", () => {
 
     const newBar = container.querySelector("[data-quiz-mobile-feedback] > div");
     expect(newBar).toHaveClass("bg-emerald-500");
+    expect(container.querySelector("[data-quiz-feedback-status-icon]")).toBeInTheDocument();
     expect(screen.queryByText(/apple/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Correct answer/i)).toBeInTheDocument();
+    expect(screen.getByText(/Congratulations!/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeInTheDocument();
   });
 });
 
@@ -954,9 +956,9 @@ describe("QuizStation sound feedback", () => {
     fireEvent.click(screen.getByRole("button", { name: /Doğru|Correct/i }));
 
     await waitFor(() => {
-      expect(
-        document.querySelector("[data-quiz-mobile-feedback]"),
-      ).toHaveTextContent(`Doğru cevap: ${correctAnswer}`);
+        expect(
+          document.querySelector("[data-quiz-mobile-feedback]"),
+        ).toHaveTextContent(`Dogru cevap: ${correctAnswer}`);
     });
   });
 

@@ -9,6 +9,8 @@ interface StarRatingProps {
   readOnly?: boolean;
   size?: "sm" | "md" | "lg";
   label?: string;
+  centered?: boolean;
+  superWater?: boolean;
 }
 
 const sizeClasses = {
@@ -17,11 +19,11 @@ const sizeClasses = {
   lg: "size-10 gap-1.5",
 };
 
-export function StarRating({ value, onChange, readOnly = false, size = "md", label }: StarRatingProps) {
+export function StarRating({ value, onChange, readOnly = false, size = "md", label, centered = false, superWater = false }: StarRatingProps) {
   return (
-    <div className="flex flex-col gap-2">
-      {label ? <span className="text-sm font-semibold text-foreground-secondary">{label}</span> : null}
-      <div className="flex items-center" role={readOnly ? undefined : "radiogroup"} aria-label={label}>
+    <div className={cn("flex flex-col gap-2", centered && "items-center text-center")}>
+      {label ? <span className={cn("text-sm font-semibold text-foreground-secondary", superWater && "font-super-water")}>{label}</span> : null}
+      <div className={cn("flex items-center", centered && "justify-center")} role={readOnly ? undefined : "radiogroup"} aria-label={label}>
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= value;
           return (

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BarChart3, CreditCard, LogOut, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
+import { BarChart3, CreditCard, LogOut, MessageCircle, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -208,6 +208,9 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
               <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
             </>
           )}
+          {isMobileMenu ? (
+            <MenuLink href="/contact" icon={MessageCircle} label={t("footer.contact")} onClick={() => setOpen(false)} />
+          ) : null}
           {vibrationSupported ? (
             <button
               type="button"

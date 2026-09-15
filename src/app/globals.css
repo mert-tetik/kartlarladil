@@ -1264,51 +1264,67 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 
   20% {
-    transform: translate3d(-1px, 0, 0) rotate(-0.5deg) scale(1.01);
+    transform: translate3d(-3px, 0, 0) rotate(-1.2deg) scale(1.01);
   }
 
   30% {
-    transform: translate3d(1px, 0, 0) rotate(0.5deg) scale(1.015);
+    transform: translate3d(3px, 0, 0) rotate(1.2deg) scale(1.015);
   }
 
   40% {
-    transform: translate3d(-2px, 0, 0) rotate(-1deg) scale(1.02);
+    transform: translate3d(-6px, 0, 0) rotate(-2.4deg) scale(1.02);
   }
 
   50% {
-    transform: translate3d(2px, 0, 0) rotate(1deg) scale(1.025);
+    transform: translate3d(6px, 0, 0) rotate(2.4deg) scale(1.025);
   }
 
   58% {
-    transform: translate3d(-3px, 0, 0) rotate(-1.4deg) scale(1.03);
+    transform: translate3d(-9px, 0, 0) rotate(-3.6deg) scale(1.03);
   }
 
   65% {
-    transform: translate3d(3px, 0, 0) rotate(1.4deg) scale(1.035);
+    transform: translate3d(9px, 0, 0) rotate(3.6deg) scale(1.035);
   }
 
   72% {
-    transform: translate3d(-4px, 0, 0) rotate(-1.8deg) scale(1.04);
+    transform: translate3d(-13px, 0, 0) rotate(-5deg) scale(1.04);
   }
 
-  78% {
-    transform: translate3d(4px, 0, 0) rotate(1.8deg) scale(1.05);
+  77% {
+    transform: translate3d(13px, 0, 0) rotate(5deg) scale(1.05);
   }
 
-  84% {
-    transform: translate3d(-5px, 0, 0) rotate(-2.2deg) scale(1.06);
+  81.5% {
+    transform: translate3d(-15px, 0, 0) rotate(-5.8deg) scale(1.055);
   }
 
-  90% {
-    transform: translate3d(5px, 0, 0) rotate(2.2deg) scale(1.07);
+  85.5% {
+    transform: translate3d(15px, 0, 0) rotate(5.8deg) scale(1.06);
   }
 
-  95% {
-    transform: translate3d(-4px, 0, 0) rotate(-1.6deg) scale(1.08);
+  89% {
+    transform: translate3d(-18px, 0, 0) rotate(-6.8deg) scale(1.065);
+  }
+
+  92% {
+    transform: translate3d(18px, 0, 0) rotate(6.8deg) scale(1.07);
+  }
+
+  94.5% {
+    transform: translate3d(-20px, 0, 0) rotate(-7.5deg) scale(1.08);
+  }
+
+  96.5% {
+    transform: translate3d(20px, 0, 0) rotate(7.5deg) scale(1.09);
+  }
+
+  98% {
+    transform: translate3d(-23px, 0, 0) rotate(-8.5deg) scale(1.09);
   }
 
   100% {
-    transform: translate3d(0, 0, 0) rotate(0deg) scale(1.1);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1.11);
   }
 }
 
@@ -1500,7 +1516,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .quiz-action-depth--locked > :is(a, button) {
-  filter: brightness(0.8) saturate(0.62);
+  filter: brightness(0.68) saturate(0.45);
   opacity: 1 !important;
 }
 
@@ -1600,11 +1616,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-message-pop,
   .typing-indicator-dot,
   .animate-screen-pop,
-  .animate-bonus-intro-enter,
-  .animate-bonus-intro-exit,
-  .animate-bonus-intro-copy,
-  .animate-bonus-intro-copy-exit,
   .animate-bonus-reward-pulse,
+  .animate-bonus-reward-source-exit,
   .animate-bonus-sentence-token-enter,
   .animate-bonus-sentence-token-return,
   .animate-bonus-category-word-enter,
@@ -1619,6 +1632,10 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-streak-celebration-number-exit,
   .animate-streak-celebration-icon-exit,
   .animate-chest-screen-close,
+  .animate-chest-reward-box-enter,
+  .animate-chest-reward-heading-text,
+  .animate-chest-reward-heading-line-left,
+  .animate-chest-reward-heading-line-right,
   .animate-gem-target-pulse,
   .mission-details-overlay,
   .mission-details-overlay__item,
@@ -2212,21 +2229,6 @@ body:has([data-ask-page]) footer {
   will-change: transform, opacity;
 }
 
-@keyframes bonus-intro-enter {
-  0% {
-    opacity: 0;
-    transform: scale(1.28) translate3d(0, -18px, 0);
-  }
-  58% {
-    opacity: 0.88;
-    transform: scale(0.985) translate3d(0, 3px, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translate3d(0, 0, 0);
-  }
-}
-
 @keyframes bonus-reward-pulse {
   0% {
     transform: scale(1);
@@ -2244,61 +2246,92 @@ body:has([data-ask-page]) footer {
   transform-origin: center;
 }
 
-.animate-bonus-intro-enter {
-  animation: bonus-intro-enter 1050ms cubic-bezier(0.85, 0, 0.15, 1) both;
-  will-change: transform, opacity;
-}
-
-@keyframes bonus-intro-exit {
+@keyframes chest-reward-box-enter {
   0% {
-    opacity: 1;
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: translate3d(0, 8px, 0) rotate(-1.6deg) scale(0.72);
   }
-  100% {
-    opacity: 0;
-    transform: scale(0.78) translate3d(0, 26px, 0);
-  }
-}
-
-.animate-bonus-intro-exit {
-  animation: bonus-intro-exit 410ms cubic-bezier(0.85, 0, 0.15, 1) both;
-  will-change: transform, opacity;
-}
-
-@keyframes bonus-intro-copy-enter {
-  0% {
-    opacity: 0;
-    transform: scale(1.34) translate3d(0, -12px, 0);
+  46% {
+    transform: translate3d(0, -3px, 0) rotate(1.2deg) scale(1.06);
   }
   70% {
-    opacity: 0.92;
-    transform: scale(0.98) translate3d(0, 2px, 0);
+    transform: translate3d(0, 1px, 0) rotate(-0.65deg) scale(0.98);
   }
   100% {
-    opacity: 1;
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
 }
 
-.animate-bonus-intro-copy {
-  animation: bonus-intro-copy-enter 900ms 110ms cubic-bezier(0.85, 0, 0.15, 1) both;
-  will-change: transform, opacity;
+.animate-chest-reward-box-enter {
+  animation: chest-reward-box-enter 620ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
 }
 
-@keyframes bonus-intro-copy-exit {
+@keyframes chest-reward-heading-text-enter {
   0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.84);
+  }
+  68% {
     opacity: 1;
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: translate3d(0, -1px, 0) scale(1.03);
   }
   100% {
-    opacity: 0;
-    transform: scale(0.72) translate3d(0, 34px, 0);
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-.animate-bonus-intro-copy-exit {
-  animation: bonus-intro-copy-exit 340ms 55ms cubic-bezier(0.85, 0, 0.15, 1) both;
+.animate-chest-reward-heading-text {
+  animation: chest-reward-heading-text-enter 560ms cubic-bezier(0.85, 0, 0.15, 1) 40ms both;
+  transform-origin: center;
   will-change: transform, opacity;
+}
+
+.animate-chest-reward-heading-line-left,
+.animate-chest-reward-heading-line-right {
+  will-change: clip-path;
+}
+
+.animate-chest-reward-heading-line-left {
+  animation: chest-reward-heading-line-left-draw 460ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+.animate-chest-reward-heading-line-right {
+  animation: chest-reward-heading-line-right-draw 460ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+@keyframes chest-reward-heading-line-left-draw {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes chest-reward-heading-line-right-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes bonus-reward-source-exit {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+.animate-bonus-reward-source-exit {
+  animation: bonus-reward-source-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
 }
 
 @keyframes bonus-sentence-token-enter {
@@ -3214,8 +3247,123 @@ body:has([data-games-active]) {
   animation: quiz-card-locked-shake 360ms ease-in-out;
 }
 
+@keyframes bonus-matching-pair-confirm {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  18% {
+    transform: translate3d(0, -5px, 0) rotate(-1deg);
+  }
+  36% {
+    transform: translate3d(0, -8px, 0) rotate(1deg);
+  }
+  54% {
+    transform: translate3d(0, -4px, 0) rotate(-0.7deg);
+  }
+  72% {
+    transform: translate3d(0, -5px, 0) rotate(0.45deg);
+  }
+  88% {
+    transform: translate3d(0, -1px, 0) rotate(-0.15deg);
+  }
+}
+
+.animate-bonus-matching-pair-confirm {
+  animation: bonus-matching-pair-confirm 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+@keyframes bonus-intro-letter-drop-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8vh, 0) rotate(1deg) scale(1.005);
+  }
+  70% {
+    opacity: 0.92;
+    transform: translate3d(0, -2px, 0) rotate(-0.5deg) scale(1.002);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes bonus-intro-letter-drop-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  30% {
+    opacity: 0.88;
+    transform: translate3d(0, -2px, 0) rotate(0.5deg) scale(1.002);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -8vh, 0) rotate(-1deg) scale(0.995);
+  }
+}
+
+[data-bonus-intro-text] > span {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 8vh, 0);
+  will-change: transform, opacity;
+}
+
+[data-bonus-intro-sprite][data-bonus-intro-phase="opening"] + [data-bonus-intro-text] > span,
+[data-bonus-intro-sprite][data-bonus-intro-phase="holding"] + [data-bonus-intro-text] > span {
+  animation: bonus-intro-letter-drop-in 230ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation-delay: calc(220ms + var(--bonus-intro-character-index) * 14ms);
+}
+
+[data-bonus-intro-sprite][data-bonus-intro-phase="closing"] + [data-bonus-intro-text] > span {
+  animation: bonus-intro-letter-drop-out 230ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation-delay: calc(40ms + var(--bonus-intro-character-index) * 14ms);
+}
+
+@keyframes bonus-incorrect-shake {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  16% {
+    transform: translate3d(-5px, 0, 0) rotate(-1.2deg);
+  }
+  32% {
+    transform: translate3d(5px, 0, 0) rotate(1.2deg);
+  }
+  48% {
+    transform: translate3d(-4px, 0, 0) rotate(-0.9deg);
+  }
+  64% {
+    transform: translate3d(4px, 0, 0) rotate(0.9deg);
+  }
+  80% {
+    transform: translate3d(-2px, 0, 0) rotate(-0.35deg);
+  }
+}
+
+.animate-bonus-incorrect-shake {
+  animation: bonus-incorrect-shake 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-quiz-card-locked-shake {
+    animation-duration: 1ms;
+  }
+
+  .animate-bonus-matching-pair-confirm {
+    animation-duration: 1ms;
+  }
+
+  .animate-bonus-incorrect-shake {
+    animation-duration: 1ms;
+  }
+
+  [data-bonus-intro-sprite][data-bonus-intro-phase="opening"] + [data-bonus-intro-text] > span,
+  [data-bonus-intro-sprite][data-bonus-intro-phase="closing"] + [data-bonus-intro-text] > span {
+    animation-delay: 0ms;
     animation-duration: 1ms;
   }
 }

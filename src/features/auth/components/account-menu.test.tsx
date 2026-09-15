@@ -97,6 +97,7 @@ describe("AccountMenu", () => {
     expect(screen.getByText("test@example.com")).toBeInTheDocument();
     expect(document.querySelector('a[href="/profile"]')).not.toBeInTheDocument();
     expect(document.querySelector('a[href="/pricing"]')).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/contact"]')).toBeInTheDocument();
     expect(screen.queryByText("A1")).not.toBeInTheDocument();
   });
 

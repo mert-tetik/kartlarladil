@@ -31,6 +31,9 @@ interface QuizStreakRewardViewProps {
   points: number;
   totalPoints: number;
   quizSessionId?: string;
+  testMode?: boolean;
+  testGemRewards?: GemRewards;
+  testGemBalances?: GemBalances;
   onComplete: () => void;
 }
 
@@ -57,7 +60,16 @@ function motionStyle(motion: RigidBodyState): CSSProperties {
   };
 }
 
-export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionId, onComplete }: QuizStreakRewardViewProps) {
+export function QuizStreakRewardView({
+  streak,
+  points,
+  totalPoints,
+  quizSessionId,
+  testMode = false,
+  testGemRewards = [],
+  testGemBalances = { blue: 50, green: 30, purple: 15 },
+  onComplete,
+}: QuizStreakRewardViewProps) {
   const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
@@ -86,6 +98,13 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
   }, [onComplete]);
 
   useEffect(() => {
+    if (testMode) {
+      gemFinalBalancesRef.current = testGemBalances;
+      prepareGemRewardDisplay(testGemBalances, testGemRewards);
+      setGemRewards(testGemRewards);
+      return;
+    }
+
     if (!user || !quizSessionId || streak <= 0) return;
     let active = true;
 
@@ -111,7 +130,7 @@ export function QuizStreakRewardView({ streak, points, totalPoints, quizSessionI
     return () => {
       active = false;
     };
-  }, [prepareGemRewardDisplay, quizSessionId, streak, updateProfileField, user]);
+  }, [prepareGemRewardDisplay, quizSessionId, streak, testGemBalances, testGemRewards, testMode, updateProfileField, user]);
 
   useEffect(() => {
     const breakTimer = window.setTimeout(() => {

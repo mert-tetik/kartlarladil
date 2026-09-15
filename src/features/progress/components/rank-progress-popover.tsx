@@ -378,6 +378,8 @@ export function RankUpMenu({
   const previousRank = fromRank ?? getPreviousRank(rank);
   const [revealed, setRevealed] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [backgroundPhase, setBackgroundPhase] = useState<"first" | "loop">("first");
+  const backgroundVideoRef = useRef<HTMLVideoElement>(null);
   const closeTimerRef = useRef<number | null>(null);
 
   function handleClose() {
@@ -401,6 +403,14 @@ export function RankUpMenu({
   }, [rank.id]);
 
   useEffect(() => {
+    if (!revealed) {
+      return;
+    }
+
+    void backgroundVideoRef.current?.play().catch(() => undefined);
+  }, [backgroundPhase, revealed]);
+
+  useEffect(() => {
     return () => {
       if (closeTimerRef.current !== null) {
         window.clearTimeout(closeTimerRef.current);
@@ -421,15 +431,27 @@ export function RankUpMenu({
         )}
         aria-hidden="true"
       >
-        <Image
-          src="/rank-up/rank-up-background-v1.png"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
+        <video
+          key={backgroundPhase}
+          ref={backgroundVideoRef}
+          src={
+            backgroundPhase === "first"
+              ? "/rank-up/rank-up-background-first.mp4"
+              : "/rank-up/rank-up-background-loopedvideo.mp4"
+          }
+          muted
+          playsInline
+          loop={backgroundPhase === "loop"}
+          onEnded={() => {
+            if (backgroundPhase === "first") {
+              setBackgroundPhase("loop");
+            }
+          }}
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover object-center"
+          style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
         />
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
       <RankUpConfetti revealed={revealed} />
       <div
@@ -457,18 +479,20 @@ export function RankUpMenu({
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <div className={cn("rank-up-sequence-item rank-up-sequence-title w-full", revealed && "rank-up-sequence-item--visible")}>
-              <ConvexRankTitle
-                text={usesSuperWater ? formatSuperWaterText(locale, t("rank.up")) : t("rank.up")}
-                accessibleText={t("rank.up")}
-                usesSuperWater={usesSuperWater}
-              />
+              <div className="translate-y-4">
+                <ConvexRankTitle
+                  text={usesSuperWater ? formatSuperWaterText(locale, t("rank.up")) : t("rank.up")}
+                  accessibleText={t("rank.up")}
+                  usesSuperWater={usesSuperWater}
+                />
+              </div>
             </div>
-            <div className="relative mt-8 size-44 shrink-0 sm:size-48 lg:size-40">
+            <div className="relative mt-8 size-52 shrink-0 sm:size-56 lg:size-48">
               <div className={cn("absolute inset-0 flex items-center justify-center rank-up-old-rank", revealed && "rank-up-old-rank--exit")}>
-                <RankIcon icon={previousRank.icon} className={cn("size-full", getRankIconTone(previousRank.icon))} sizes="224px" />
+                <RankIcon icon={previousRank.icon} className={cn("size-full scale-[1.18]", getRankIconTone(previousRank.icon))} sizes="288px" />
               </div>
               <div className={cn("absolute inset-0 flex items-center justify-center rank-up-new-rank", revealed && "rank-up-new-rank--visible")}>
-                <RankIcon icon={rank.icon} className={cn("size-full", getRankIconTone(rank.icon))} sizes="224px" />
+                <RankIcon icon={rank.icon} className={cn("size-full scale-[1.18]", getRankIconTone(rank.icon))} sizes="288px" />
               </div>
             </div>
             <p className={cn("rank-up-sequence-item rank-up-sequence-name mt-6 text-4xl font-bold text-foreground sm:text-5xl", revealed && "rank-up-sequence-item--visible", usesSuperWater && "font-super-water")}>
@@ -498,6 +522,7 @@ export function RankUpMenu({
                   fill
                   sizes="(max-width: 1023px) calc(100vw - 3rem), 420px"
                   className="object-fill"
+                  style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
                 />
               </span>
               <span className="relative z-10">{formatSuperWaterText(locale, continueLabel)}</span>
@@ -594,6 +619,7 @@ function ConvexRankTitle({
         fill
         sizes="(max-width: 640px) calc(100vw - 3rem), 352px"
         className="pointer-events-none object-contain"
+        style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
         priority
       />
       <svg

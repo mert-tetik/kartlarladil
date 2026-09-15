@@ -25,13 +25,22 @@ export const CHEST_TIER_BORDER_CLASSES: Record<ChestTier, string> = {
   ruby: "border-red-500",
 };
 
-export const CHEST_TIER_ARTWORK: Record<ChestTier, { bottom: string; top: string }> = {
-  wood: { bottom: "/chests/wood-bottom.png", top: "/chests/wood-top.png" },
-  iron: { bottom: "/chests/iron-bottom.png", top: "/chests/iron-top.png" },
-  gold: { bottom: "/chests/gold-bottom.png", top: "/chests/gold-top.png" },
-  diamond: { bottom: "/chests/diamond-bottom.png", top: "/chests/diamond-top.png" },
-  emerald: { bottom: "/chests/emerald-bottom.png", top: "/chests/emerald-top.png" },
-  ruby: { bottom: "/chests/ruby-bottom.png", top: "/chests/ruby-top.png" },
+export const CHEST_TIER_ARTWORK: Record<ChestTier, string> = {
+  wood: "/chests/wooden_chest.png",
+  iron: "/chests/iron_chest.png",
+  gold: "/chests/gold_chest.png",
+  diamond: "/chests/diamond_chest.png",
+  emerald: "/chests/emerald_chest.png",
+  ruby: "/chests/ruby_chest.png",
+};
+
+export const CHEST_TIER_OPENING_VIDEOS: Record<ChestTier, string> = {
+  wood: "/chests/openings/wood_chest_opening.mp4",
+  iron: "/chests/openings/iron_chest_opening.mp4",
+  gold: "/chests/openings/golden_chest_opening.mp4",
+  diamond: "/chests/openings/diamond_chest_opening.mp4",
+  emerald: "/chests/openings/emerald_chest_opening.mp4",
+  ruby: "/chests/openings/ruby_chest_opening.mp4",
 };
 
 export const CHEST_TIERS: ChestTierDefinition[] = [

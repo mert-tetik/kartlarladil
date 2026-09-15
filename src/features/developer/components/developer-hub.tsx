@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeDollarSign, Clapperboard, ShieldCheck } from "lucide-react";
+import { ArrowRight, BadgeDollarSign, Clapperboard, Mail, ShieldCheck } from "lucide-react";
 
 const tools = [
   {
@@ -23,6 +23,13 @@ const tools = [
     description: "Kullanıcılar, abonelikler, kart ilerlemesi ve toplu metrikler.",
     accent: "bg-[#e8e7f6] text-[#39346f]",
   },
+  {
+    href: "/developer/admin/contact",
+    icon: Mail,
+    title: "Contact inbox",
+    description: "Kullanıcıların landing sayfasından gönderdiği puan ve mesajları incele.",
+    accent: "bg-[#f8e5db] text-[#7b442d]",
+  },
 ];
 
 export function DeveloperHub({ email }: { email: string }) {
@@ -35,7 +42,7 @@ export function DeveloperHub({ email }: { email: string }) {
           <p className="mt-3 max-w-2xl text-base leading-7 text-[#58665c]">FoxiesDeck’in içerik, maliyet ve operasyon kontrolleri tek güvenli çalışma alanında.</p>
         </header>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-3" aria-label="Developer tools">
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Developer tools">
           {tools.map((tool) => {
             const Icon = tool.icon;
             return (

@@ -22,6 +22,11 @@ import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
 import {
+  MobileDayStreakMenu,
+  preloadDayStreakVideo,
+} from "@/app/components/mobile-day-streak-menu";
+import { useTheme } from "@/components/theme-provider";
+import {
   readLandingCardLanguage,
   subscribeLandingCardLanguage,
   writeLandingCardLanguage,
@@ -92,6 +97,12 @@ const MOBILE_GEM_COUNTERS = [
 ] as const;
 
 export function MobileLandingDashboard() {
+  const { mode: themeMode } = useTheme();
+
+  useEffect(() => {
+    preloadDayStreakVideo(themeMode);
+  }, [themeMode]);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -146,6 +157,7 @@ export function MobileLandingDashboard() {
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
+  const [dayStreakOpen, setDayStreakOpen] = useState(false);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
@@ -357,7 +369,8 @@ export function MobileLandingDashboard() {
     swipeDeckOpen ||
     customCardOpen ||
     groupCardOpen ||
-    selectedGem !== null;
+    selectedGem !== null ||
+    dayStreakOpen;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
     leaderboardViewer && leaderboardViewer.userId === user?.id ? leaderboardViewer.position : null;
@@ -686,6 +699,36 @@ export function MobileLandingDashboard() {
         </span>
       </button>
 
+      {/* Daily streak action */}
+      <button
+        type="button"
+        onPointerEnter={() => {
+          preloadDayStreakVideo(themeMode);
+        }}
+        onFocus={() => {
+          preloadDayStreakVideo(themeMode);
+        }}
+        onClick={() => {
+          vibrate("tap");
+          requireAuthAction(() => {
+            setDayStreakOpen(true);
+          }, { nextPath: "/" });
+        }}
+        className="absolute right-2 top-[4.75rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
+        aria-label="Daily streak"
+        data-mobile-day-streak-action
+        data-route-transition-surface
+      >
+        <Image
+          src="/day-streak/day-streak-icon.png"
+          alt=""
+          aria-hidden="true"
+          width={256}
+          height={256}
+          className="size-[2.45rem] object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]"
+        />
+      </button>
+
       {/* Info icon */}
       <button
         type="button"
@@ -887,6 +930,11 @@ export function MobileLandingDashboard() {
         onClose={() => {
           setSelectedGem(null);
         }}
+      />
+
+      <MobileDayStreakMenu
+        open={dayStreakOpen}
+        onClose={() => setDayStreakOpen(false)}
       />
 
       <UpgradeDialog

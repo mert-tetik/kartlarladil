@@ -5,7 +5,6 @@ import { ArrowRight, Brain, CheckCircle2, Layers3, Search, Trophy } from "lucide
 import { JsonLd } from "@/components/seo/json-ld";
 import { AskSection } from "@/app/components/ask-section";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LANGUAGES } from "@/data/languages";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -17,6 +16,7 @@ import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
 import { ReviewSection } from "@/features/reviews/components/review-section";
+import { getExistingReview } from "@/features/reviews/review-service";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
 import { RankIcon } from "@/features/progress/rank-icons";
 import { getInstallAppCopy } from "@/features/install-app/install-app-copy";
@@ -70,7 +70,7 @@ export default async function Home() {
   const t = createTranslator(locale);
   const installAppCopy = getInstallAppCopy(locale);
   const user = await getCurrentAuthUser();
-  const existingReview = user ? await fetchExistingReview(user.id) : null;
+  const existingReview = user ? await getExistingReview(user.id) : null;
   const featureItems = [
     {
       icon: Search,
@@ -334,30 +334,12 @@ export default async function Home() {
           success: t("home.review.success"),
           error: t("home.review.error"),
           invalidRating: t("home.review.invalidRating"),
+          back: t("common.back"),
         }}
       />
       </div>
     </>
   );
-}
-
-async function fetchExistingReview(userId: string) {
-  const supabase = await createSupabaseServerClient();
-
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("rating, comment")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return {
-    rating: data.rating as number,
-    comment: (data.comment as string) ?? "",
-  };
 }
 
 function CardBackdrop() {

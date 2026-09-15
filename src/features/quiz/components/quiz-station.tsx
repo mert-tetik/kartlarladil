@@ -83,7 +83,9 @@ import { RankUpMenu } from "@/features/progress/components/rank-progress-popover
 import { acknowledgeRankUp, setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import {
   getScoreFlightAwardAtArrival,
+  getScoreFlightMotion,
   getScoreFlightIconCount,
+  SCORE_FLIGHT_DURATION_MS,
 } from "@/features/progress/score-flight";
 import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
@@ -838,11 +840,15 @@ export function QuizStation({
         };
       });
 
-      const bonusCards = filterInventoryCards({
+      const bonusInventoryCards = filterInventoryCards({
         cards,
         language,
         status: "all",
-      }).map((item) => item.card);
+      });
+      const bonusCards = bonusInventoryCards.map((item) => item.card);
+      const bonusLearnedCards = bonusInventoryCards
+        .filter((item) => item.inventory.status === "learned")
+        .map((item) => item.card);
       const items: QuizItem[] = [];
       const gptJobs: Array<{
         bonusId: string;
@@ -861,7 +867,14 @@ export function QuizStation({
 
         const kind = getBonusKind(index);
         const bonusId = `${sessionId}-${kind}-${index}`;
-        const fallback = buildFallbackBonusQuestion(kind, bonusCards, language, locale, bonusId);
+        const fallback = buildFallbackBonusQuestion(
+          kind,
+          bonusCards,
+          language,
+          locale,
+          bonusId,
+          bonusLearnedCards,
+        );
 
         if (!fallback) return;
 
@@ -2070,8 +2083,10 @@ export function QuizStation({
         >
           <div
             className={cn(
-              "flex w-full max-w-md flex-col justify-center gap-3 max-lg:pb-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
-              isCardFirstQuestion ? "order-3" : "order-1",
+              "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+              isBonusQuizItem(item)
+                ? "order-1 max-lg:min-h-0 max-lg:flex-1 max-lg:pb-0"
+                : cn(isCardFirstQuestion ? "order-3" : "order-1", "max-lg:pb-3"),
             )}
             data-quiz-mobile-question
           >
@@ -2082,9 +2097,11 @@ export function QuizStation({
                 <BonusQuestionView
                   key={currentIndex}
                   question={item.bonusQuestion}
-                  showingAnswer={showingAnswer}
-                  answerAccepted={lastAnswerCorrect}
-                  canAdvance={!pendingStreak && !bonusFlightActive}
+                   language={item.card.language}
+                   showingAnswer={showingAnswer}
+                   answerAccepted={lastAnswerCorrect}
+                   wasSkipped={isBonusQuizItem(item) && lastAnswer === ""}
+                   canAdvance={!pendingStreak && !bonusFlightActive}
                   rewardReady={bonusRewardReady}
                   showPointFlight={bonusPointFlightEnabled}
                   totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
@@ -2551,9 +2568,10 @@ function buildFallbackBonusQuestion(
   language: LanguageCode,
   locale: LocaleCode,
   seed: string,
+  learnedCards: VocabularyCard[] = [],
 ): BonusQuestion | null {
   if (kind === "matching") {
-    return buildMatchingBonusQuestion(cards, locale, seed);
+    return buildMatchingBonusQuestion(cards, locale, seed, learnedCards);
   }
 
   if (kind === "sentence-order") {
@@ -4350,6 +4368,7 @@ export function MobileQuizFeedback({
   onNext: () => void;
   showNextButton?: boolean;
 }) {
+  const { locale } = useLocale();
   const t = useT();
   const [snapshot, setSnapshot] = useState<{
     isCorrect: boolean;
@@ -4363,6 +4382,11 @@ export function MobileQuizFeedback({
   }, [isOpen, isCorrect, correctAnswer]);
 
   const display = snapshot ?? { isCorrect, correctAnswer: correctAnswer ?? "" };
+  const feedbackText = display.isCorrect
+    ? t("quiz.congratulations")
+    : display.correctAnswer
+      ? t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })
+      : t("quiz.wrongAnswer");
 
   return (
     <div
@@ -4376,38 +4400,51 @@ export function MobileQuizFeedback({
     >
       <div
         className={cn(
-          "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-4 shadow-2xl transition-transform duration-300",
+          "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-4 shadow-lg transition-transform duration-300",
           display.isCorrect ? "bg-emerald-500" : "bg-rose-500",
           isOpen ? "translate-y-0" : "translate-y-full",
+          canUseSuperWater(locale) && "font-super-water",
         )}
       >
         <div className="flex items-center gap-3">
-          {display.isCorrect ? (
-            <CheckCircle2 className="size-6 text-white" aria-hidden="true" />
-          ) : (
-            <XCircle className="size-6 text-white" aria-hidden="true" />
-          )}
-          <p className="text-sm font-semibold text-white">
-            {display.isCorrect
-              ? t("quiz.correctAnswer")
-              : display.correctAnswer
-                ? t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })
-                : t("quiz.wrongAnswer")}
+          <QuizFeedbackStatusIcon isCorrect={display.isCorrect} />
+          <p className="text-base font-bold text-white">
+            {formatSuperWaterText(locale, feedbackText)}
           </p>
         </div>
         <Button
           className={cn(
-            "shrink-0 bg-white text-black hover:bg-white/90",
+            "shrink-0 rounded-full bg-white px-5 text-base font-bold hover:bg-white/90",
+            display.isCorrect ? "text-emerald-600" : "text-rose-600",
             !showNextButton && "invisible pointer-events-none",
           )}
           onClick={onNext}
           data-quiz-mobile-feedback-next
           disabled={!showNextButton}
         >
-          {t("quiz.nextCard")}
+          {formatSuperWaterText(locale, t("quiz.feedbackContinue"))}
         </Button>
       </div>
     </div>
+  );
+}
+
+function QuizFeedbackStatusIcon({ isCorrect }: { isCorrect: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white",
+        isCorrect ? "text-emerald-600" : "text-rose-600",
+      )}
+      data-quiz-feedback-status-icon
+      aria-hidden="true"
+    >
+      {isCorrect ? (
+        <Check className="size-6 stroke-[3.5]" />
+      ) : (
+        <X className="size-6 stroke-[3.5]" />
+      )}
+    </span>
   );
 }
 
@@ -4491,22 +4528,12 @@ export function CelebrationView({
       const targetX = scoreBounds.left + scoreBounds.width / 2;
       const targetY = scoreBounds.top + scoreBounds.height / 2;
       const iconCount = getScoreFlightIconCount(gainedPoints);
-      const flightDuration = 700;
-      const latestStart = 780;
       const nextIcons = Array.from({ length: iconCount }, (_, index) => {
-        const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-        const startX = cardBounds.left + cardBounds.width * (0.22 + Math.random() * 0.56);
-        const startY = cardBounds.top + cardBounds.height * (0.24 + Math.random() * 0.52);
-
         return {
           id: index,
-          startX,
-          startY,
-          scatterX: (Math.random() - 0.5) * 150,
-          scatterY: -35 - Math.random() * 100,
+          ...getScoreFlightMotion(cardBounds, index, iconCount),
           targetX,
           targetY,
-          delay: Math.round(ratio * latestStart),
         };
       });
 
@@ -4523,7 +4550,7 @@ export function CelebrationView({
           void refreshStats();
           closeTimerRef.current = window.setTimeout(() => setIsClosing(true), 420);
         }
-      }, icon.delay + flightDuration));
+      }, icon.delay + SCORE_FLIGHT_DURATION_MS));
     }, 1000);
 
     return () => {

@@ -1,26 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Sparkles, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { formatPoints } from "@/i18n/labels";
+import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
-import { ChestArtwork } from "@/features/quiz/components/chest-artwork";
-import type { ChestTierDefinition } from "@/features/quiz/chest-rewards";
-import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances } from "@/features/gems/gem-types";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { CHEST_TIER_OPENING_VIDEOS, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
-import {
-  getScoreFlightAwardAtArrival,
-  getScoreFlightIconCount,
-} from "@/features/progress/score-flight";
-import confetti from "canvas-confetti";
+import { getScoreFlightAwardAtArrival, getScoreFlightIconCount } from "@/features/progress/score-flight";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -30,31 +24,52 @@ interface ChestOpeningViewProps {
   reward?: ChestRewardOutcome | null;
 }
 
-type ChestPhase = "appearing" | "idle" | "shake" | "opening" | "revealed" | "disappearing";
+type ChestPhase = "playing" | "revealed" | "disappearing";
 type PointsPhase = "hidden" | "shown" | "flying" | "added";
-type LidMotion = { x: number; y: number; rotation: number };
-type FlightIcon = { id: number; startX: number; startY: number; scatterX: number; scatterY: number; targetX: number; targetY: number; delay: number };
+type FlightIcon = {
+  id: number;
+  startX: number;
+  startY: number;
+  scatterX: number;
+  scatterY: number;
+  targetX: number;
+  targetY: number;
+  delay: number;
+};
 
-const REWARD_REVEAL_DELAY_MS = 900;
+const REWARD_REVEAL_AT_SECONDS = 3;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
-const AUTO_CLOSE_AFTER_FLIGHT_MS = 1000;
-const AUTO_OPEN_DELAY_MS = 700;
-const CHEST_CHARGE_DURATION_MS = 780;
+const VIDEO_LAST_FRAME_HOLD_MS = 2000;
+const VIDEO_AUDIO_FADE_DURATION_MS = 800;
 const DISAPPEAR_MS = 500;
+
+const GEM_REWARD_BOX_CLASSES: Record<GemType, string> = {
+  blue: "border-sky-300/60 bg-sky-500/95",
+  green: "border-emerald-300/60 bg-emerald-500/95",
+  purple: "border-violet-300/60 bg-violet-500/95",
+};
+
+const GEM_REWARD_FOOTER_CLASSES: Record<GemType, string> = {
+  blue: "bg-sky-700/90",
+  green: "bg-emerald-700/90",
+  purple: "bg-violet-700/90",
+};
 
 export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady, reward }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
   const usesSuperWater = canUseSuperWater(locale);
+  const useDarkRewardHeading = tier.tier === "gold" || tier.tier === "diamond";
   const [stableTotalPoints] = useState(totalPoints);
-  const phaseRef = useRef<ChestPhase>("appearing");
-  const [phase, setPhase] = useState<ChestPhase>("appearing");
+  const [phase, setPhase] = useState<ChestPhase>("playing");
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
-  const [sparkles, setSparkles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
-  const [lidMotion, setLidMotion] = useState<LidMotion>({ x: 0, y: 0, rotation: 0 });
-  const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
+  const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
+  const [rewardRevealReady, setRewardRevealReady] = useState(false);
+  const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
+  const [pointsSourcePulse, setPointsSourcePulse] = useState(0);
+  const [gemSourcePulse, setGemSourcePulse] = useState<Record<GemType, number>>({ blue: 0, green: 0, purple: 0 });
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
   const {
     balances: gemDisplayBalances,
@@ -63,253 +78,176 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     handleGemArrive,
     finish: finishGemRewardDisplay,
   } = useGemRewardDisplay();
-  const hasAwarded = useRef(false);
-  const lidRef = useRef<HTMLImageElement | null>(null);
-  const totalPointsRef = useRef<HTMLSpanElement | null>(null);
-  const rewardPointsRef = useRef<HTMLParagraphElement | null>(null);
-  const rewardGemRef = useRef<HTMLDivElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const revealTimeoutRef = useRef<number | null>(null);
-  const pointsTimeoutRef = useRef<number | null>(null);
-  const pointsSoundTimeoutRef = useRef<number | null>(null);
-  const arrivalTimersRef = useRef<number[]>([]);
-  const closeTimeoutRef = useRef<number | null>(null);
-  const completeTimeoutRef = useRef<number | null>(null);
-  const autoOpenTimeoutRef = useRef<number | null>(null);
-  const chargeTimeoutRef = useRef<number | null>(null);
-  const hasStartedOpeningRef = useRef(false);
+  const hasCompleted = useRef(false);
+  const rewardRevealTriggeredRef = useRef(false);
+  const hasShownRewardsRef = useRef(false);
+  const hasTriggeredOpenHapticRef = useRef(false);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
+  const totalPointsRef = useRef<HTMLSpanElement | null>(null);
+  const rewardPointsRef = useRef<HTMLDivElement | null>(null);
+  const blueGemRewardRef = useRef<HTMLDivElement | null>(null);
+  const greenGemRewardRef = useRef<HTMLDivElement | null>(null);
+  const purpleGemRewardRef = useRef<HTMLDivElement | null>(null);
+  const pointsTimeoutRef = useRef<number | null>(null);
+  const videoEndCloseTimeoutRef = useRef<number | null>(null);
+  const completeTimeoutRef = useRef<number | null>(null);
+  const videoRevealTimeoutRef = useRef<number | null>(null);
 
-  const formatRewardText = (text: string) =>
-    usesSuperWater ? formatSuperWaterText(locale, text) : text;
+  const rewardGemSourceRefs = useMemo<Partial<Record<GemType, RefObject<HTMLElement | null>>>>(
+    () => ({ blue: blueGemRewardRef, green: greenGemRewardRef, purple: purpleGemRewardRef }),
+    [],
+  );
 
-  const spawnSparkles = useCallback(() => {
-    const next = Array.from({ length: 18 }, (_, index) => ({
-      id: Date.now() + index,
-      left: 10 + Math.random() * 80,
-      delay: Math.random() * 250,
-    }));
-    setSparkles(next);
+  const formatRewardText = useCallback(
+    (text: string) => (usesSuperWater ? formatSuperWaterText(locale, text) : text),
+    [locale, usesSuperWater],
+  );
+
+  const revealAtVideoTimestamp = useCallback(() => {
+    if (rewardRevealTriggeredRef.current) return;
+    rewardRevealTriggeredRef.current = true;
+    if (videoRevealTimeoutRef.current !== null) {
+      window.clearTimeout(videoRevealTimeoutRef.current);
+      videoRevealTimeoutRef.current = null;
+    }
+    setRewardRevealReady(true);
   }, []);
 
+  const handleVideoPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    event.currentTarget.volume = 1;
+    if (!hasTriggeredOpenHapticRef.current) {
+      hasTriggeredOpenHapticRef.current = true;
+      try {
+        vibrate("chest-open");
+      } catch {
+        // Optional audio and haptics must not block the reward flow.
+      }
+    }
+
+    if (rewardRevealTriggeredRef.current) return;
+    const remainingMs = Math.max(
+      0,
+      (REWARD_REVEAL_AT_SECONDS - event.currentTarget.currentTime) * 1000,
+    );
+    videoRevealTimeoutRef.current = window.setTimeout(revealAtVideoTimestamp, remainingMs);
+  }, [revealAtVideoTimestamp]);
+
+  const handleVideoTimeUpdate = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget;
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      const fadeStart = video.duration - VIDEO_AUDIO_FADE_DURATION_MS / 1000;
+      if (video.currentTime >= fadeStart) {
+        video.volume = Math.max(0, Math.min(1, (video.duration - video.currentTime) / (VIDEO_AUDIO_FADE_DURATION_MS / 1000)));
+      }
+    }
+
+    if (video.currentTime >= REWARD_REVEAL_AT_SECONDS) {
+      revealAtVideoTimestamp();
+    }
+  }, [revealAtVideoTimestamp]);
+
   const handleCollect = useCallback(() => {
-    if (hasAwarded.current) return;
-    hasAwarded.current = true;
+    if (hasCompleted.current) return;
+    hasCompleted.current = true;
     setPhase("disappearing");
-    completeTimeoutRef.current = window.setTimeout(() => onComplete(), DISAPPEAR_MS);
+    completeTimeoutRef.current = window.setTimeout(onComplete, DISAPPEAR_MS);
   }, [onComplete]);
 
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  const startOpening = useCallback(() => {
-    const currentPhase = phaseRef.current;
-
-    if (
-      hasStartedOpeningRef.current ||
-      currentPhase === "opening" ||
-      currentPhase === "revealed" ||
-      currentPhase === "disappearing"
-    ) {
-      return;
+  const handleVideoEnded = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    event.currentTarget.volume = 0;
+    revealAtVideoTimestamp();
+    if (videoEndCloseTimeoutRef.current !== null) {
+      window.clearTimeout(videoEndCloseTimeoutRef.current);
     }
-
-    hasStartedOpeningRef.current = true;
-
-    const direction = Math.random() < 0.5 ? -1 : 1;
-    const launchVelocityX = direction * (340 + Math.random() * 120);
-    let velocityY = -(620 + Math.random() * 120);
-    let velocityX = launchVelocityX;
-    let rotation = 0;
-    let rotationVelocity = direction * (220 + Math.random() * 110);
-    let offsetX = 0;
-    let offsetY = 0;
-    let lastTimestamp: number | null = null;
-    const gravity = 1850;
-    const rotationDrag = 0.995;
-    const horizontalDrag = 0.998;
-    const floorY = 188 + Math.random() * 30;
-
-    if (animationFrameRef.current !== null) {
-      window.cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    setLidMotion({ x: 0, y: 0, rotation: 0 });
-    setPhase("opening");
-    spawnSparkles();
-
-    const tick = (timestamp: number) => {
-      if (lastTimestamp === null) {
-        lastTimestamp = timestamp;
-      }
-
-      const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.032);
-      lastTimestamp = timestamp;
-
-      velocityY += gravity * delta;
-      velocityX *= horizontalDrag;
-      offsetX += velocityX * delta;
-      offsetY += velocityY * delta;
-      rotation += rotationVelocity * delta;
-      rotationVelocity *= rotationDrag;
-
-      if (offsetY >= floorY) {
-        offsetY = floorY;
-        velocityY *= -0.18;
-        velocityX *= 0.86;
-        rotationVelocity *= 0.82;
-      }
-
-      setLidMotion({
-        x: offsetX,
-        y: offsetY,
-        rotation,
-      });
-
-      const shouldStop =
-        offsetY >= floorY - 1 &&
-        Math.abs(velocityY) < 22 &&
-        Math.abs(velocityX) < 12 &&
-        Math.abs(rotationVelocity) < 14;
-
-      if (!shouldStop) {
-        animationFrameRef.current = window.requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrameRef.current = window.requestAnimationFrame(tick);
-
-    revealTimeoutRef.current = window.setTimeout(() => {
-      const reveal = (outcome: ChestRewardOutcome | null) => {
-        if (outcome?.balances) {
-          gemFinalBalancesRef.current = outcome.balances;
-          prepareGemRewardDisplay(outcome.balances, outcome.rewards);
-        }
-        setRewardOutcome(outcome);
-        setPhase("revealed");
-        setPointsPhase("shown");
-        pointsTimeoutRef.current = window.setTimeout(() => {
-          setPointsPhase("flying");
-        }, REWARD_HOLD_BEFORE_FLIGHT_MS);
-      };
-
-      if (rewardPromiseRef.current) {
-        void rewardPromiseRef.current.then(reveal);
-      } else {
-        reveal(null);
-      }
-    }, REWARD_REVEAL_DELAY_MS);
-
-    try {
-      playSoundEffect("chest-open");
-      vibrate("chest-open");
-      void confetti({
-        particleCount: 200,
-        spread: 120,
-        origin: { y: 0.55 },
-        colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
-        disableForReducedMotion: true,
-      });
-    } catch {
-      // Ignore effect failures; the reward flow should keep running.
-    }
-
-    pointsSoundTimeoutRef.current = window.setTimeout(() => {
-      try {
-        playSoundEffect("points");
-        vibrate("confetti");
-      } catch {
-        // Ignore effect failures; the reward flow should keep running.
-      }
-    }, REWARD_REVEAL_DELAY_MS);
-  }, [prepareGemRewardDisplay, spawnSparkles]);
+    videoEndCloseTimeoutRef.current = window.setTimeout(handleCollect, VIDEO_LAST_FRAME_HOLD_MS);
+  }, [handleCollect, revealAtVideoTimestamp]);
 
   useEffect(() => {
     if (reward) {
       rewardPromiseRef.current = Promise.resolve(reward);
-    } else if (onRewardReady) {
-      rewardPromiseRef.current ??= onRewardReady().catch(() => null);
+      setRewardOutcome(reward);
+      setRewardResolved(true);
+      return;
     }
-    if (!rewardPromiseRef.current) return;
-    void rewardPromiseRef.current.then(setRewardOutcome);
+
+    if (!onRewardReady) {
+      setRewardResolved(true);
+      return;
+    }
+
+    rewardPromiseRef.current ??= onRewardReady().catch(() => null);
+    let active = true;
+    void rewardPromiseRef.current.then((outcome) => {
+      if (!active) return;
+      setRewardOutcome(outcome);
+      setRewardResolved(true);
+    });
+
+    return () => {
+      active = false;
+    };
   }, [onRewardReady, reward]);
 
   useEffect(() => {
     if (!rewardOutcome?.balances) return;
-
     gemFinalBalancesRef.current = rewardOutcome.balances;
     prepareGemRewardDisplay(rewardOutcome.balances, rewardOutcome.rewards);
   }, [prepareGemRewardDisplay, rewardOutcome]);
 
   useEffect(() => {
-    autoOpenTimeoutRef.current = window.setTimeout(() => {
-      setPhase("shake");
-      chargeTimeoutRef.current = window.setTimeout(() => {
-        startOpening();
-      }, CHEST_CHARGE_DURATION_MS);
-    }, AUTO_OPEN_DELAY_MS);
+    if (!rewardRevealReady || !rewardResolved || hasShownRewardsRef.current) return;
+    hasShownRewardsRef.current = true;
+    setPhase("revealed");
+    setPointsPhase("shown");
+    pointsTimeoutRef.current = window.setTimeout(() => {
+      setPointsPhase("flying");
+    }, REWARD_HOLD_BEFORE_FLIGHT_MS);
 
     return () => {
-      if (autoOpenTimeoutRef.current !== null) {
-        window.clearTimeout(autoOpenTimeoutRef.current);
-      }
-      if (chargeTimeoutRef.current !== null) {
-        window.clearTimeout(chargeTimeoutRef.current);
-      }
+      if (pointsTimeoutRef.current !== null) window.clearTimeout(pointsTimeoutRef.current);
     };
-  }, [startOpening]);
+  }, [rewardResolved, rewardRevealReady]);
 
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (revealTimeoutRef.current !== null) {
-        window.clearTimeout(revealTimeoutRef.current);
-      }
-      if (pointsTimeoutRef.current !== null) {
-        window.clearTimeout(pointsTimeoutRef.current);
-      }
-      if (pointsSoundTimeoutRef.current !== null) {
-        window.clearTimeout(pointsSoundTimeoutRef.current);
-      }
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-      if (completeTimeoutRef.current !== null) {
-        window.clearTimeout(completeTimeoutRef.current);
-      }
-      if (autoOpenTimeoutRef.current !== null) {
-        window.clearTimeout(autoOpenTimeoutRef.current);
-      }
-      if (chargeTimeoutRef.current !== null) {
-        window.clearTimeout(chargeTimeoutRef.current);
-      }
+      if (pointsTimeoutRef.current !== null) window.clearTimeout(pointsTimeoutRef.current);
+      if (videoEndCloseTimeoutRef.current !== null) window.clearTimeout(videoEndCloseTimeoutRef.current);
+      if (completeTimeoutRef.current !== null) window.clearTimeout(completeTimeoutRef.current);
+      if (videoRevealTimeoutRef.current !== null) window.clearTimeout(videoRevealTimeoutRef.current);
     };
   }, []);
 
+  const rewardPoints = rewardOutcome?.points ?? tier.points;
   useLayoutEffect(() => {
     if (pointsPhase !== "flying" || !rewardPointsRef.current || !totalPointsRef.current) return;
 
-    const start = rewardPointsRef.current.getBoundingClientRect();
+    const source = rewardPointsRef.current.getBoundingClientRect();
     const end = totalPointsRef.current.getBoundingClientRect();
+    if (source.width === 0 || source.height === 0 || end.width === 0 || end.height === 0) return;
 
-    const startX = start.left + start.width / 2;
-    const startY = start.top + start.height / 2;
+    const startX = source.left + source.width / 2;
+    const startY = source.top + source.height / 2;
     const endX = end.left + end.width / 2;
     const endY = end.top + end.height / 2;
-
-    const iconCount = getScoreFlightIconCount(tier.points);
-    const latestStart = 780;
+    const iconCount = getScoreFlightIconCount(rewardPoints);
     const icons = Array.from({ length: iconCount }, (_, index) => {
       const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-      return { id: index, startX: startX + (Math.random() - 0.5) * start.width * 0.55, startY: startY + (Math.random() - 0.5) * start.height * 0.35, scatterX: (Math.random() - 0.5) * 150, scatterY: -35 - Math.random() * 100, targetX: endX, targetY: endY, delay: Math.round(ratio * latestStart) };
+      return {
+        id: index,
+        startX: startX + (Math.random() - 0.5) * source.width * 0.55,
+        startY: startY + (Math.random() - 0.5) * source.height * 0.35,
+        scatterX: (Math.random() - 0.5) * 150,
+        scatterY: -35 - Math.random() * 100,
+        targetX: endX,
+        targetY: endY,
+        delay: Math.round(ratio * 780),
+      };
     });
+
     setFlightIcons(icons);
-    arrivalTimersRef.current = icons.map((icon, index) => window.setTimeout(() => {
+    const timers = icons.map((icon, index) => window.setTimeout(() => {
       setDisplayPoints(
-        stableTotalPoints + getScoreFlightAwardAtArrival(tier.points, iconCount, index + 1),
+        stableTotalPoints + getScoreFlightAwardAtArrival(rewardPoints, iconCount, index + 1),
       );
       playSoundEffect("points");
       vibrate("tap");
@@ -317,62 +255,53 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     }, icon.delay + 700));
 
     return () => {
-      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      timers.forEach((timer) => window.clearTimeout(timer));
+      setFlightIcons([]);
     };
-  }, [pointsPhase, stableTotalPoints, tier.points]);
+  }, [pointsPhase, rewardPoints, stableTotalPoints]);
 
-  useEffect(() => {
-    if (pointsPhase !== "added") return;
+  const shouldRenderRewardSources = phase === "revealed" || phase === "disappearing";
+  const rewardList = rewardOutcome?.rewards ?? [];
 
-    closeTimeoutRef.current = window.setTimeout(() => {
-      handleCollect();
-    }, Math.max(0, AUTO_CLOSE_AFTER_FLIGHT_MS - DISAPPEAR_MS));
-
-    return () => {
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-    };
-  }, [handleCollect, pointsPhase]);
-
-  const shouldRenderRewardStack = phase === "revealed" || pointsPhase !== "hidden";
-  const shouldHideRewardSource = pointsPhase === "added" || pointsPhase === "flying";
-  const isRewardHeaderVisible = phase === "opening" || phase === "revealed" || phase === "disappearing";
+  const bumpGemSourcePulse = useCallback((type: GemType) => {
+    setGemSourcePulse((current) => ({ ...current, [type]: current[type] + 1 }));
+  }, []);
 
   return (
     <div
       data-chest-opening-view
       data-chest-opening-layout
       className={cn(
-        "relative flex min-h-full w-full items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
+        "relative flex h-full min-h-full w-full items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
         phase === "disappearing" ? "animate-chest-screen-close" : "animate-screen-pop",
       )}
     >
-      <Image
-        src="/chests/chest_background.png"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
+      <video
+        key={tier.tier}
+        autoPlay
+        playsInline
+        preload="auto"
         aria-hidden="true"
-        data-chest-opening-background
-        className={cn(
-          "pointer-events-none absolute inset-0 z-0 object-cover opacity-0 transition-opacity duration-300 ease-out",
-          (phase === "opening" || phase === "revealed" || phase === "disappearing") && "opacity-100",
-        )}
-      />
+        data-chest-opening-video
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+        onEnded={handleVideoEnded}
+        onPlay={handleVideoPlay}
+        onTimeUpdate={handleVideoTimeUpdate}
+      >
+        <source src={CHEST_TIER_OPENING_VIDEOS[tier.tier]} type="video/mp4" />
+      </video>
 
       <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
-        <div className="flex flex-col items-center gap-2 pt-1 sm:pt-2">
+        <div className={cn(
+          "fixed inset-x-0 top-10 z-30 flex flex-col items-center gap-2 transition-[opacity,transform] duration-300 ease-out sm:top-12",
+          !shouldRenderRewardSources && "translate-y-2 opacity-0",
+        )}>
           <div
             data-chest-total-points-shell
-            className={cn(
-              "rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg transition-[opacity,transform] duration-300 ease-out sm:px-5",
-              phase !== "opening" && phase !== "revealed" && phase !== "disappearing" && "translate-y-2 opacity-0",
-            )}
+            className="rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg sm:px-5"
           >
             <div className="flex items-center gap-2">
-              <Star className="size-5 fill-current" aria-hidden="true" />
+              <ScoreIcon size={24} className="size-6 brightness-0 invert" />
               <span
                 ref={totalPointsRef}
                 data-chest-total-points
@@ -382,132 +311,139 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
                   pointsPhase === "added" && "animate-score-bobble",
                 )}
               >
-                {formatRewardText(formatPoints(locale, displayPoints))}
+                {formatRewardText(formatNumber(locale, displayPoints))}
               </span>
             </div>
           </div>
           <RewardGemHud
-            className={cn(
-              "transition-[opacity,transform] duration-300 ease-out",
-              !isRewardHeaderVisible && "translate-y-2 opacity-0",
-            )}
+            className="transition-[opacity,transform] duration-300 ease-out"
+            size="large"
             balances={gemDisplayBalances}
             pulse={gemPulse}
             superWater={usesSuperWater}
+            desktopVisible
           />
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
+        {shouldRenderRewardSources ? (
           <div
+            data-chest-reward-sources
             className={cn(
-              "relative flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-transparent bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10",
+              "pointer-events-none fixed inset-x-0 bottom-6 z-20 flex flex-col items-center gap-3 px-3 sm:bottom-8 sm:gap-4",
+              phase === "disappearing" && "animate-chest-screen-close",
             )}
           >
-            <p
-              data-chest-tier-name
+            <div
+              data-chest-reward-heading
               className={cn(
-                "mt-1 text-center text-4xl font-bold leading-tight text-white transition-[opacity,transform] duration-300 ease-out sm:text-5xl",
-                phase !== "opening" && phase !== "revealed" && phase !== "disappearing" && "translate-y-3 opacity-0",
+                "flex items-center justify-center gap-3 text-2xl font-bold leading-none drop-shadow-sm sm:text-3xl",
+                useDarkRewardHeading ? "text-black" : "text-white",
                 usesSuperWater && "font-super-water",
               )}
             >
-              {formatRewardText(t(tier.labelKey))}
-            </p>
+              <span aria-hidden="true" className={cn(
+                "animate-chest-reward-heading-line-left inline-block h-1 w-12 rounded-full sm:w-16",
+                useDarkRewardHeading ? "bg-black/90" : "bg-white/90",
+              )} />
+              <span className="animate-chest-reward-heading-text">{formatSuperWaterUppercaseText(locale, t("chest.rewardsHeader"))}</span>
+              <span aria-hidden="true" className={cn(
+                "animate-chest-reward-heading-line-right inline-block h-1 w-12 rounded-full sm:w-16",
+                useDarkRewardHeading ? "bg-black/90" : "bg-white/90",
+              )} />
+            </div>
 
-            <div className="relative mt-5 sm:mt-6">
+            <div
+              data-chest-reward-boxes
+              className="flex w-full max-w-4xl items-stretch justify-center gap-2 sm:gap-3"
+            >
               <div
-                data-chest-auto-open
-                role="img"
-                aria-label={phase === "revealed" ? t("chest.opened") : t("chest.title")}
+                ref={rewardPointsRef}
+                key={`points-${pointsSourcePulse}`}
+                data-chest-reward-points
                 className={cn(
-                  "relative flex size-[260px] scale-100 items-end justify-center overflow-visible rounded-lg opacity-100 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:size-[320px] md:size-[360px]",
-                  phase === "appearing" && "animate-chest-appear",
-                  phase === "revealed" && "scale-[1.03]",
+                  "flex aspect-[0.7] w-[clamp(6.5rem,21vw,9rem)] min-w-0 flex-col overflow-hidden rounded-[1.4rem] border-[3px] border-amber-200/90 bg-amber-400 text-white shadow-lg",
+                  pointsSourcePulse === 0 && "animate-chest-reward-box-enter",
+                  pointsSourcePulse > 0 && "animate-bonus-reward-pulse",
                 )}
-                style={{ perspective: "800px" }}
+                style={{ animationDelay: "0ms" }}
               >
-                <span
-                  data-chest-ground-shadow
-                  aria-hidden="true"
-                  className="pointer-events-none absolute bottom-1 left-1/2 z-0 h-5 w-[72%] -translate-x-1/2 rounded-full bg-black/40 blur-[6px]"
-                />
-
-                <div
-                  className={cn(
-                    "relative flex size-full items-end justify-center",
-                    phase === "idle" && "animate-chest-float",
-                    phase === "shake" && "animate-chest-charge",
-                    phase === "opening" && "animate-chest-pulse",
-                  )}
-                >
-                  {shouldRenderRewardStack ? (
-                    <div
-                      data-chest-reward-stack
-                      className={cn(
-                        "pointer-events-none absolute left-1/2 top-[28px] z-40 flex w-[92%] -translate-x-1/2 flex-col items-center text-center sm:top-[32px] md:top-[36px]",
-                        usesSuperWater && "font-super-water",
-                        pointsPhase === "shown" && "animate-points-pop",
-                      )}
-                    >
-                      <p
-                        ref={rewardPointsRef}
-                        data-chest-reward-points
-                        className={cn(
-                          "flex items-center justify-center gap-3 text-6xl font-bold leading-none text-amber-400 sm:text-7xl md:text-8xl",
-                          shouldHideRewardSource && "opacity-0",
-                        )}
-                      >
-                        <span>{tier.points}</span>
-                        <ScoreIcon size={42} className="size-10 sm:size-12" />
-                      </p>
-                      {rewardOutcome?.rewards.length ? (
-                        <div ref={rewardGemRef} data-chest-reward-gem className={cn("mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-3xl font-bold text-white lg:hidden", shouldHideRewardSource && "opacity-0")}>
-                          {rewardOutcome.rewards.map((item) => (
-                            <span key={item.type} className="inline-flex items-center justify-center gap-2">
-                              <span>{item.amount}</span>
-                              <Image src={GEM_ASSETS[item.type]} alt="" width={36} height={36} className="size-9 object-contain" />
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  <ChestArtwork
-                    tier={tier.tier}
-                    className="relative z-10 size-[220px] sm:size-[270px] md:size-[310px]"
-                    lidRef={lidRef}
-                    priority
-                    sizes="(max-width: 640px) 220px, (max-width: 768px) 270px, 310px"
-                    lidStyle={{
-                      transform: `translate3d(${lidMotion.x}px, ${lidMotion.y}px, 0) rotate(${lidMotion.rotation}deg)`,
-                      transformOrigin: "50% 70%",
-                      willChange: phase === "opening" || phase === "revealed" ? "transform" : undefined,
-                    }}
-                  />
+                <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-3">
+                  <ScoreIcon size={88} className="size-[clamp(3.5rem,12vw,5.5rem)]" />
+                </div>
+                <div className={cn(
+                  "flex min-h-[3.25rem] items-center justify-center gap-1.5 bg-amber-600/90 px-2 py-2 text-[clamp(1.35rem,5vw,2rem)] font-bold leading-none sm:min-h-[4rem] sm:gap-2",
+                  usesSuperWater && "font-super-water",
+                )}>
+                  <span>{formatRewardText(formatNumber(locale, rewardPoints))}</span>
+                  <ScoreIcon size={34} className="size-[clamp(1.5rem,5vw,2.15rem)]" />
                 </div>
               </div>
 
-              {sparkles.map((sparkle) => (
-                <span
-                  key={sparkle.id}
-                  className="pointer-events-none absolute bottom-0 animate-sparkle-rise text-amber-400"
-                  style={{ left: `${sparkle.left}%`, animationDelay: `${sparkle.delay}ms` }}
-                >
-                  <Sparkles className="size-4" aria-hidden="true" />
-                </span>
-              ))}
+              {rewardList.map((item, rewardIndex) => {
+                const entryDelay = `${(rewardIndex + 1) * 130}ms`;
+                const ref = item.type === "blue"
+                  ? blueGemRewardRef
+                  : item.type === "green"
+                    ? greenGemRewardRef
+                    : purpleGemRewardRef;
+                return (
+                  <div
+                    ref={ref}
+                    key={`${item.type}-${gemSourcePulse[item.type]}`}
+                    data-chest-reward-gem={item.type}
+                    aria-label={`${item.amount}`}
+                    className={cn(
+                      "flex aspect-[0.7] w-[clamp(6.5rem,21vw,9rem)] min-w-0 flex-col overflow-hidden rounded-[1.4rem] border-[3px] text-white shadow-lg",
+                      GEM_REWARD_BOX_CLASSES[item.type],
+                      gemSourcePulse[item.type] === 0 && "animate-chest-reward-box-enter",
+                      gemSourcePulse[item.type] > 0 && "animate-bonus-reward-pulse",
+                    )}
+                    style={gemSourcePulse[item.type] === 0 ? { animationDelay: entryDelay } : undefined}
+                  >
+                    <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-3">
+                      <Image src={GEM_ASSETS[item.type]} alt="" width={88} height={88} className="size-[clamp(3.5rem,12vw,5.5rem)] object-contain" />
+                    </div>
+                    <div className={cn(
+                      "flex min-h-[3.25rem] items-center justify-center gap-1.5 px-2 py-2 text-[clamp(1.35rem,5vw,2rem)] font-bold leading-none sm:min-h-[4rem] sm:gap-2",
+                      GEM_REWARD_FOOTER_CLASSES[item.type],
+                      usesSuperWater && "font-super-water",
+                    )}>
+                      <span>{formatRewardText(String(item.amount))}</span>
+                      <Image src={GEM_ASSETS[item.type]} alt="" width={34} height={34} className="size-[clamp(1.5rem,5vw,2.15rem)] object-contain" />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
-        <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[60] animate-quiz-score-icon-flight" aria-hidden="true" style={{ "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`, "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`, "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`, animationDelay: `${icon.delay}ms` } as CSSProperties}><ScoreIcon size={32} /></span>
+        <span
+          key={icon.id}
+          className="pointer-events-none fixed left-0 top-0 z-[111] animate-quiz-score-icon-flight"
+          aria-hidden="true"
+          onAnimationStart={() => setPointsSourcePulse((current) => current + 1)}
+          style={{
+            "--score-flight-start-x": `${icon.startX}px`,
+            "--score-flight-start-y": `${icon.startY}px`,
+            "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
+            "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
+            "--score-flight-target-x": `${icon.targetX}px`,
+            "--score-flight-target-y": `${icon.targetY}px`,
+            animationDelay: `${icon.delay}ms`,
+          } as CSSProperties}
+        >
+          <ScoreIcon size={32} />
+        </span>
       )), document.body) : null}
+
       <GemRewardFlight
-        rewards={pointsPhase === "flying" ? rewardOutcome?.rewards : null}
-        sourceRef={rewardGemRef}
+        rewards={pointsPhase === "flying" ? rewardList : null}
+        sourceRef={blueGemRewardRef}
+        sourceRefs={rewardGemSourceRefs}
+        onGemLaunch={bumpGemSourcePulse}
         onGemArrive={handleGemArrive}
         onComplete={() => finishGemRewardDisplay(gemFinalBalancesRef.current)}
       />

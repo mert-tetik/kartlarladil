@@ -6,6 +6,10 @@ vi.mock("@/i18n/locale-provider", () => ({
   useLocale: () => ({ locale: "en" }),
 }));
 
+vi.mock("@/features/progress/progress-client", () => ({
+  useProgressStats: () => ({ stats: { totalPoints: 100 } }),
+}));
+
 vi.mock("@/features/quiz/components/bonus-question-view", () => ({
   BonusQuestionIntro: ({ onComplete }: { onComplete: () => void }) => (
     <button type="button" data-testid="bonus-test-intro" onClick={onComplete}>

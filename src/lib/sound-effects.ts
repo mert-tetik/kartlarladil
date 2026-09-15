@@ -9,6 +9,7 @@ export type SoundEffectName =
   | "quiz-complete"
   | "quiz-stars-complete"
   | "quiz-select"
+  | "bonus-select"
   | "pricing-perk-select"
   | "card-swipe-right"
   | "card-swipe-left"
@@ -341,6 +342,33 @@ function quizSelect(context: AudioContext, now: number) {
   });
 }
 
+function bonusSelect(context: AudioContext, now: number) {
+  // Compact, warm click with a tiny sparkle that stays pleasant when tapped repeatedly.
+  playTone(context, {
+    frequency: 230,
+    endFrequency: 155,
+    startTime: now,
+    duration: 0.065,
+    gain: 0.075,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.C6,
+    endFrequency: SCALE.E6,
+    startTime: now + 0.012,
+    duration: 0.11,
+    gain: 0.04,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    startTime: now + 0.035,
+    duration: 0.08,
+    gain: 0.022,
+    type: "triangle",
+  });
+}
+
 function pricingPerkSelect(context: AudioContext, now: number) {
   // Very short, soft sparkle for moving between subscription benefits.
   playTone(context, {
@@ -475,6 +503,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "quiz-stars-complete": quizStarsComplete,
   "quiz-select": quizSelect,
+  "bonus-select": bonusSelect,
   "pricing-perk-select": pricingPerkSelect,
   "card-swipe-right": cardSwipeRight,
   "card-swipe-left": cardSwipeLeft,

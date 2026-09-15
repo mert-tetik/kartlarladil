@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
+import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
 
 const CHEST_OPENING_TEST_PARAM = "chest-opening-test";
 const NEXT_CHEST_DELAY_MS = 1000;
@@ -18,6 +19,11 @@ export function ChestOpeningTestOverlay() {
   const [showChest, setShowChest] = useState(true);
   const enabledTimeoutRef = useRef<number | null>(null);
   const nextChestTimeoutRef = useRef<number | null>(null);
+  const tier = CHEST_TIERS[tierIndex % CHEST_TIERS.length]!;
+  const visualReward = useMemo(
+    () => createChestRewardPreview(tier.tier),
+    [tier.tier, tierIndex],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,8 +57,6 @@ export function ChestOpeningTestOverlay() {
     return null;
   }
 
-  const tier = CHEST_TIERS[tierIndex % CHEST_TIERS.length]!;
-
   return createPortal(
     <div
       data-chest-opening-test-overlay
@@ -64,6 +68,7 @@ export function ChestOpeningTestOverlay() {
         key={`${tier.tier}-${tierIndex}`}
         tier={tier}
         totalPoints={0}
+        reward={visualReward}
         onComplete={handleChestComplete}
       />
     </div>,
