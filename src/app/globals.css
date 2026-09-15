@@ -1196,6 +1196,12 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   filter: grayscale(0.35) saturate(0.65);
 }
 
+.mission-card--claimed > [data-mission-claimed-label] {
+  opacity: 1;
+  filter: none;
+  color: #fff;
+}
+
 .mission-card-shine::after {
   content: "";
   position: absolute;

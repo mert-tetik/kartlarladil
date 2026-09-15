@@ -78,6 +78,7 @@ export function MissionCard({
   const isClaimed = status === "claimed";
   const isLocked = status === "locked";
   const isClickable = (isWaiting && !claiming) || isLocked || isClaimed;
+  const shouldShowRewardDisplay = !isLocked || reward.kind === "chest";
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
   const descriptionDisplay = canUseSuperWater(locale)
     ? formatSuperWaterText(locale, description)
@@ -162,28 +163,17 @@ export function MissionCard({
             isWaiting && !claiming && "animate-mission-reward-wiggle",
           )}
         >
-          {reward.kind === "chest" ? (
-            <ChestIcon tier={reward.tier} hideLid={isClaimed} className="relative -top-6 size-[6.25rem] drop-shadow-sm" />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-1">
-              <PointsRewardStack tier={getMissionPointTier(reward.amount)} />
-              <span className="relative -top-2 text-xl font-bold leading-none text-white">+{reward.amount}</span>
-            </div>
-          )}
+          {shouldShowRewardDisplay ? (
+            reward.kind === "chest" ? (
+              <ChestIcon tier={reward.tier} hideLid={isClaimed} className="size-[6.25rem] drop-shadow-sm" />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1">
+                <PointsRewardStack tier={getMissionPointTier(reward.amount)} />
+                <span className="relative -top-2 text-xl font-bold leading-none text-white">+{reward.amount}</span>
+              </div>
+            )
+          ) : null}
         </div>
-
-        {isClaimed ? (
-          <span
-            data-mission-claimed-label
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-0 z-20 flex items-center justify-center break-words px-2 text-center text-[clamp(1.45rem,7vw,2.35rem)] font-bold uppercase leading-none text-white drop-shadow-sm",
-              canUseSuperWater(locale) && "font-super-water",
-            )}
-          >
-            {formatSuperWaterUppercaseText(locale, t("missions.claimed"))}
-          </span>
-        ) : null}
 
         {isLocked ? (
           <div className="absolute inset-0 z-30 flex items-center justify-center drop-shadow-sm">
@@ -198,6 +188,19 @@ export function MissionCard({
           </div>
         ) : null}
       </div>
+
+      {isClaimed ? (
+        <span
+          data-mission-claimed-label
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 z-20 flex items-center justify-center break-words px-2 text-center text-[clamp(1.45rem,7vw,2.35rem)] font-bold uppercase leading-none text-white drop-shadow-sm",
+            canUseSuperWater(locale) && "font-super-water",
+          )}
+        >
+          {formatSuperWaterUppercaseText(locale, t("missions.claimed"))}
+        </span>
+      ) : null}
 
       <div className="relative z-10 flex min-w-0 flex-col gap-2">
         <div className="flex min-w-0 flex-col gap-1.5 pt-1">

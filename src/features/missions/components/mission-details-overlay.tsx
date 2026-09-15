@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import { ArrowRight, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScoreIcon } from "@/components/score-icon";
@@ -92,7 +91,6 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
 
   const isClaimed = activeMission.status === "claimed";
   const isLocked = activeMission.status === "locked";
-  const isChestReward = activeMission.reward.kind === "chest";
   const progressPercent = Math.min(100, Math.round((activeMission.progress / activeMission.requirement) * 100));
   const description = getMissionDescription(
     t,
@@ -157,7 +155,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
       data-mission-details-overlay
       data-mission-details-state={closing ? "closing" : "open"}
       className={cn(
-        "mission-details-overlay fixed inset-0 z-[100] overflow-y-auto overscroll-contain text-white",
+        "mission-details-overlay fixed inset-0 z-[100] overflow-hidden overscroll-none touch-none text-white",
         !animationStarted && "mission-details-overlay--preparing",
         closing && "mission-details-overlay--closing",
       )}
@@ -192,16 +190,6 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
                 )}>
                   {statusText}
                 </p>
-                {isLocked ? (
-                  <Image
-                    src="/missions/mission-lock-icon-v3.png"
-                    alt=""
-                    width={64}
-                    height={64}
-                    className="size-[clamp(3rem,12vw,4.5rem)] shrink-0 object-contain"
-                    aria-hidden="true"
-                  />
-                ) : null}
               </div>
               <h1 className={cn(
                 "mt-4 text-[clamp(1.35rem,5.5vw,2.35rem)] font-bold leading-tight text-white",
@@ -216,7 +204,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
             1,
             <div className="relative flex min-h-[15rem] w-full -translate-y-5 flex-col items-center justify-center">
               {activeMission.reward.kind === "chest" ? (
-                <div className="flex -translate-y-8 flex-col items-center">
+                <div className="flex flex-col items-center">
                   <ChestIcon
                     tier={activeMission.reward.tier}
                     hideLid={isClaimed}
@@ -251,14 +239,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
           {renderContentItem(
             2,
             <div
-              className={cn(
-                "relative left-1/2 -translate-x-1/2",
-                isChestReward ? "-translate-y-10" : "-top-16",
-              )}
-              style={{
-                width: "calc(100% + 1rem)",
-                maxWidth: "calc(100vw - 1.5rem)",
-              }}
+              className="relative mx-auto w-full -top-16"
             >
               <div className="mb-2 flex items-center justify-between gap-6 text-sm font-bold text-white/90">
                 <span>{t("missions.progressLabel", { progress: activeMission.progress, requirement: activeMission.requirement })}</span>
