@@ -8,13 +8,15 @@ import type { ThemeMode } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 
 const DAY_STREAK_CLOSE_DURATION = 360;
+const DAY_STREAK_GREEN_VIDEO_SOURCE = "/day-streak/day-streak-green-2x.mp4";
+const DAY_STREAK_GREEN_POSTER_SOURCE = "/day-streak/day-streak-green-poster.webp";
 const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
-  dark: "/day-streak/day-streak-dark.mp4",
-  light: "/day-streak/day-streak-light.mp4",
+  dark: DAY_STREAK_GREEN_VIDEO_SOURCE,
+  light: DAY_STREAK_GREEN_VIDEO_SOURCE,
 };
 const DAY_STREAK_POSTER_SOURCES: Record<ThemeMode, string> = {
-  dark: "/day-streak/day-streak-dark-poster.webp",
-  light: "/day-streak/day-streak-light-poster.webp",
+  dark: DAY_STREAK_GREEN_POSTER_SOURCE,
+  light: DAY_STREAK_GREEN_POSTER_SOURCE,
 };
 
 const preloadedDayStreakVideos = new Map<string, HTMLVideoElement>();
