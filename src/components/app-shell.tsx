@@ -24,6 +24,7 @@ import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { GameLaunchCover } from "@/features/games/components/game-launch-cover";
 import { CardPronunciationQueue } from "@/features/cards/components/card-pronunciation-queue";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { DailyStreakProvider } from "@/features/daily-streak/daily-streak-client";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -45,36 +46,38 @@ export function AppShell({
       <MobileViewportController />
       <GlobalTapVibration />
       <AuthSessionProvider user={user}>
-        <TwaAnalyticsProvider>
-          <SubscriptionProvider>
-            <ProgressStatsProvider>
-              <ThemeProvider initialTheme={user?.profile.theme}>
-                <CardPronunciationQueue />
-                <PushNotificationsProvider>
-                  <RouteTransitionProvider>
-                    <LeaderboardOverlayProvider>
-                      <AskOverlayProvider>
-                        <div className="flex min-h-screen flex-col bg-background text-foreground">
-                          <AppNavigation user={user} />
-                          {user ? null : <RankUpTestOverlay />}
-                          <ChestOpeningTestOverlay />
-                          <MobileAuthGateway countryCode={onboardingCountryCode} />
-                          <PostPracticeLeaderboardConsentGate />
-                          <RouteAwareShell>{children}</RouteAwareShell>
-                          <GameLaunchCover />
-                          <SiteFooter className="max-lg:hidden" />
-                          <CookieNotice />
-                          <LandingTutorial />
-                          <AppImageCacheGate />
-                        </div>
-                      </AskOverlayProvider>
-                    </LeaderboardOverlayProvider>
-                  </RouteTransitionProvider>
-                </PushNotificationsProvider>
-              </ThemeProvider>
-            </ProgressStatsProvider>
-          </SubscriptionProvider>
-        </TwaAnalyticsProvider>
+        <DailyStreakProvider>
+          <TwaAnalyticsProvider>
+            <SubscriptionProvider>
+              <ProgressStatsProvider>
+                <ThemeProvider initialTheme={user?.profile.theme}>
+                  <CardPronunciationQueue />
+                  <PushNotificationsProvider>
+                    <RouteTransitionProvider>
+                      <LeaderboardOverlayProvider>
+                        <AskOverlayProvider>
+                          <div className="flex min-h-screen flex-col bg-background text-foreground">
+                            <AppNavigation user={user} />
+                            {user ? null : <RankUpTestOverlay />}
+                            <ChestOpeningTestOverlay />
+                            <MobileAuthGateway countryCode={onboardingCountryCode} />
+                            <PostPracticeLeaderboardConsentGate />
+                            <RouteAwareShell>{children}</RouteAwareShell>
+                            <GameLaunchCover />
+                            <SiteFooter className="max-lg:hidden" />
+                            <CookieNotice />
+                            <LandingTutorial />
+                            <AppImageCacheGate />
+                          </div>
+                        </AskOverlayProvider>
+                      </LeaderboardOverlayProvider>
+                    </RouteTransitionProvider>
+                  </PushNotificationsProvider>
+                </ThemeProvider>
+              </ProgressStatsProvider>
+            </SubscriptionProvider>
+          </TwaAnalyticsProvider>
+        </DailyStreakProvider>
       </AuthSessionProvider>
     </LocaleProvider>
   );

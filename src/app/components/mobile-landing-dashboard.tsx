@@ -70,6 +70,8 @@ import {
 } from "@/features/missions/mission-navigation";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
+import { useOptionalDailyStreak } from "@/features/daily-streak/daily-streak-client";
+import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
 
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
@@ -80,6 +82,27 @@ import type { GemType } from "@/features/gems/gem-types";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
+}
+
+function createDailyStreakTestSnapshot(currentStreak: number): DailyStreakSnapshot {
+  const today = getLocalDateKey(new Date());
+  const loggedDates = Array.from({ length: Math.max(1, currentStreak) }, (_, index) =>
+    getDateKeyOffset(today, index),
+  );
+
+  return { currentStreak, today, loggedDates };
+}
+
+function getDateKeyOffset(dateKey: string, offset: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return getLocalDateKey(new Date(year, month - 1, day + offset, 12));
+}
+
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getValidLanguageOverride(value: unknown): LanguageCode | null {
@@ -96,6 +119,8 @@ const MOBILE_GEM_COUNTERS = [
   { type: "purple", src: "/gems/purple-gem.png", alt: "Purple gems" },
 ] as const;
 
+const DAILY_STREAK_TEST_REOPEN_DELAY = 400;
+
 export function MobileLandingDashboard() {
   const { mode: themeMode } = useTheme();
 
@@ -107,6 +132,9 @@ export function MobileLandingDashboard() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuthSession();
+  const dailyStreakContext = useOptionalDailyStreak();
+  const dailyStreak = dailyStreakContext?.snapshot ?? null;
+  const refreshDailyStreak = dailyStreakContext?.refresh;
   const { stats } = useProgressStats();
   const { locale, setLocale } = useLocale();
   const detectedLocale = useDetectedLocale();
@@ -158,6 +186,7 @@ export function MobileLandingDashboard() {
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
   const [dayStreakOpen, setDayStreakOpen] = useState(false);
+  const [dayStreakTestValue, setDayStreakTestValue] = useState(1);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
@@ -166,10 +195,45 @@ export function MobileLandingDashboard() {
   const hasPendingStoredLandingLanguageRef = useRef(false);
   const consumedMissionActionRef = useRef<string | null>(null);
   const selectedLanguageRef = useRef(selectedLanguage);
+  const dayStreakTestStartedRef = useRef(false);
+  const dayStreakTestReopenTimerRef = useRef<number | null>(null);
   const tutorialCardSessionRef = useRef<{
     layer: TutorialCardLayer;
     language: LanguageCode;
   } | null>(null);
+
+  const dailyStreakTestMode =
+    searchParams.get("daily-streak-test") === "1" ||
+    searchParams.get("daily-streak-test") === "true" ||
+    searchParams.get("day-streak-test") === "1" ||
+    searchParams.get("day-streak-test") === "true";
+  const dayStreakSnapshot = useMemo<DailyStreakSnapshot | null>(
+    () => (dailyStreakTestMode ? createDailyStreakTestSnapshot(dayStreakTestValue) : dailyStreak),
+    [dailyStreak, dailyStreakTestMode, dayStreakTestValue],
+  );
+
+  useEffect(() => {
+    if (!dailyStreakTestMode) {
+      dayStreakTestStartedRef.current = false;
+      return;
+    }
+
+    if (dayStreakTestStartedRef.current) {
+      return;
+    }
+
+    dayStreakTestStartedRef.current = true;
+    setDayStreakTestValue(1);
+    setDayStreakOpen(true);
+  }, [dailyStreakTestMode]);
+
+  useEffect(() => {
+    return () => {
+      if (dayStreakTestReopenTimerRef.current !== null) {
+        window.clearTimeout(dayStreakTestReopenTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     selectedLanguageRef.current = selectedLanguage;
@@ -711,11 +775,12 @@ export function MobileLandingDashboard() {
         onClick={() => {
           vibrate("tap");
           requireAuthAction(() => {
+            void refreshDailyStreak?.();
             setDayStreakOpen(true);
           }, { nextPath: "/" });
         }}
         className="absolute right-2 top-[4.25rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
-        aria-label="Daily streak"
+        aria-label={t("dayStreak.title")}
         data-mobile-day-streak-action
         data-route-transition-surface
       >
@@ -934,7 +999,23 @@ export function MobileLandingDashboard() {
 
       <MobileDayStreakMenu
         open={dayStreakOpen}
-        onClose={() => setDayStreakOpen(false)}
+        onClose={() => {
+          if (!dailyStreakTestMode) {
+            setDayStreakOpen(false);
+            return;
+          }
+
+          setDayStreakOpen(false);
+          if (dayStreakTestReopenTimerRef.current !== null) {
+            window.clearTimeout(dayStreakTestReopenTimerRef.current);
+          }
+          dayStreakTestReopenTimerRef.current = window.setTimeout(() => {
+            dayStreakTestReopenTimerRef.current = null;
+            setDayStreakTestValue((current) => current + 1);
+            setDayStreakOpen(true);
+          }, DAILY_STREAK_TEST_REOPEN_DELAY);
+        }}
+        snapshot={dayStreakSnapshot}
       />
 
       <UpgradeDialog

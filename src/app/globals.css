@@ -991,93 +991,325 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .app-image-cache-loader {
+  /* Keep the source loader's em-based scale: its clipped letter layers use
+     fractions of this value and become tiny when it is resolved to pixels. */
+  --app-loader-main-size: 4em;
+  --app-loader-text-color: #ffffff;
+  --app-loader-shine-color: rgb(255 255 255 / 25%);
+  --app-loader-shadow-color: #aaaaaa;
   display: flex;
-  width: min(82vw, 22rem);
-  height: 8rem;
+  width: min(7.3em, calc(100vw - 2rem));
+  height: 1em;
   align-items: center;
   justify-content: center;
-  perspective: 900px;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  font-size: var(--app-loader-main-size);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--app-loader-text-color);
+  filter: drop-shadow(0 0 0.05em var(--app-loader-shine-color));
 }
 
-.app-image-cache-loader__scene {
-  position: relative;
+.app-image-cache-loader__text {
+  display: flex;
+  inset: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  border-radius: 1.5rem;
-}
-
-.app-image-cache-loader__layer {
+  align-items: center;
+  justify-content: center;
   position: absolute;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 32%);
-  background: rgb(18 18 18 / 54%);
-  box-shadow: inset 0 1px rgb(255 255 255 / 16%), 0 14px 28px rgb(0 0 0 / 14%);
-  backdrop-filter: blur(3px);
-  transform-style: preserve-3d;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.app-image-cache-loader__layer--back {
-  inset: 1.35rem 2.25rem;
-  transform: translateZ(-90px) rotate(-4deg);
-  opacity: 0.48;
+.app-image-cache-loader__text:nth-child(1) {
+  clip-path: polygon(0% 0%, 11.11% 0%, 11.11% 100%, 0% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.6;
 }
 
-.app-image-cache-loader__layer--middle {
-  inset: 0.85rem 1.2rem;
-  transform: translateZ(-35px) rotate(2deg);
+.app-image-cache-loader__text:nth-child(2) {
+  clip-path: polygon(11.11% 0%, 22.22% 0%, 22.22% 100%, 11.11% 100%);
+  font-size: 1em;
+  margin-left: 0;
   opacity: 0.7;
 }
 
-.app-image-cache-loader__layer--front {
-  inset: 0.3rem 0.25rem;
-  transform: translateZ(18px) rotate(-1deg);
+.app-image-cache-loader__text:nth-child(3) {
+  clip-path: polygon(22.22% 0%, 33.33% 0%, 33.33% 100%, 22.22% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.8;
 }
 
-.app-image-cache-loader__track {
+.app-image-cache-loader__text:nth-child(4) {
+  clip-path: polygon(33.33% 0%, 44.44% 0%, 44.44% 100%, 33.33% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.9;
+}
+
+.app-image-cache-loader__text:nth-child(5) {
+  clip-path: polygon(44.44% 0%, 55.55% 0%, 55.55% 100%, 44.44% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 1;
+}
+
+.app-image-cache-loader__text:nth-child(6) {
+  clip-path: polygon(55.55% 0%, 66.66% 0%, 66.66% 100%, 55.55% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.9;
+}
+
+.app-image-cache-loader__text:nth-child(7) {
+  clip-path: polygon(66.66% 0%, 77.77% 0%, 77.77% 100%, 66.66% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.8;
+}
+
+.app-image-cache-loader__text:nth-child(8) {
+  clip-path: polygon(77.77% 0%, 88.88% 0%, 88.88% 100%, 77.77% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.7;
+}
+
+.app-image-cache-loader__text:nth-child(9) {
+  clip-path: polygon(88.88% 0%, 100% 0%, 100% 100%, 88.88% 100%);
+  font-size: 1em;
+  margin-left: 0;
+  opacity: 0.6;
+}
+
+.app-image-cache-loader__text span {
+  animation:
+    app-image-cache-loader-scrolling 2s cubic-bezier(0.1, 0.6, 0.9, 0.4) infinite,
+    app-image-cache-loader-shadow 2s cubic-bezier(0.1, 0.6, 0.9, 0.4) infinite;
+}
+
+.app-image-cache-loader__text:nth-child(1) span,
+.app-image-cache-loader__text:nth-child(2) span,
+.app-image-cache-loader__text:nth-child(3) span,
+.app-image-cache-loader__text:nth-child(4) span,
+.app-image-cache-loader__text:nth-child(6) span,
+.app-image-cache-loader__text:nth-child(7) span,
+.app-image-cache-loader__text:nth-child(8) span,
+.app-image-cache-loader__text:nth-child(9) span {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.app-image-cache-loader__text:nth-child(1) span {
+  background: linear-gradient(to right, var(--app-loader-text-color) 4%, var(--app-loader-shadow-color) 7%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(2) span {
+  background: linear-gradient(to right, var(--app-loader-text-color) 9%, var(--app-loader-shadow-color) 13%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(3) span {
+  background: linear-gradient(to right, var(--app-loader-text-color) 15%, var(--app-loader-shadow-color) 18%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(4) span {
+  background: linear-gradient(to right, var(--app-loader-text-color) 20%, var(--app-loader-shadow-color) 23%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(6) span {
+  background: linear-gradient(to right, var(--app-loader-shadow-color) 29%, var(--app-loader-text-color) 32%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(7) span {
+  background: linear-gradient(to right, var(--app-loader-shadow-color) 34%, var(--app-loader-text-color) 37%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(8) span {
+  background: linear-gradient(to right, var(--app-loader-shadow-color) 39%, var(--app-loader-text-color) 42%);
+  background-size: 200% auto;
+}
+
+.app-image-cache-loader__text:nth-child(9) span {
+  background: linear-gradient(to right, var(--app-loader-shadow-color) 45%, var(--app-loader-text-color) 48%);
+  background-size: 200% auto;
+}
+
+/* The background shorthand above resets background-clip, so restore text
+   clipping after each slice's gradient is declared. */
+.app-image-cache-loader__text:nth-child(1) span,
+.app-image-cache-loader__text:nth-child(2) span,
+.app-image-cache-loader__text:nth-child(3) span,
+.app-image-cache-loader__text:nth-child(4) span,
+.app-image-cache-loader__text:nth-child(6) span,
+.app-image-cache-loader__text:nth-child(7) span,
+.app-image-cache-loader__text:nth-child(8) span,
+.app-image-cache-loader__text:nth-child(9) span {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-image-cache-loader__line {
+  position: relative;
   display: flex;
-  width: max-content;
-  min-width: 180%;
-  height: 100%;
   align-items: center;
-  gap: 2.25rem;
-  color: #fff;
-  font-size: clamp(1.7rem, 6vw, 2.8rem);
-  line-height: 1;
-  white-space: nowrap;
-  will-change: transform;
+  justify-content: center;
+  overflow: hidden;
+  width: calc(var(--app-loader-main-size) / 2);
+  height: 0.05em;
+  margin-top: 0.9em;
+  border-radius: 0.05em;
 }
 
-.app-image-cache-loader__track span {
-  display: inline-block;
+.app-image-cache-loader__line::before {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: var(--app-loader-text-color);
+  content: "";
+  opacity: 0.3;
+}
+
+.app-image-cache-loader__line::after {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.05em;
+  background-color: var(--app-loader-text-color);
+  content: "";
+  transform: translateX(-90%);
+  animation: app-image-cache-loader-wobble 2s cubic-bezier(0.5, 0.8, 0.5, 0.2) infinite;
+}
+
+@keyframes app-image-cache-loader-wobble {
+  0% { transform: translateX(-90%); }
+  50% { transform: translateX(90%); }
+  100% { transform: translateX(-90%); }
+}
+
+@keyframes app-image-cache-loader-scrolling {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes app-image-cache-loader-shadow {
+  0% { background-position: -98% 0; }
+  100% { background-position: 102% 0; }
+}
+
+/* Keep the loader's text clipped to the viewport on narrow mobile screens. */
+.app-image-cache-loader__text,
+.app-image-cache-loader__line {
   flex: none;
+  line-height: 1;
 }
 
-.app-image-cache-loader__track--back {
-  animation: app-image-cache-loader-scroll-back 5.2s ease-in-out infinite alternate;
+/* Uiverse typing indicator used by the app loading screen. */
+.app-image-cache-loader {
+  display: block;
+  width: 90px;
+  height: 48px;
+  position: relative;
+  overflow: hidden;
+  font-size: 1rem;
+  filter: none;
 }
 
-.app-image-cache-loader__track--middle {
-  animation: app-image-cache-loader-scroll-middle 3.9s ease-in-out infinite alternate;
+.app-image-cache-loader__typing-circle {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  left: 12px;
+  z-index: 4;
+  border-radius: 50%;
+  background-color: #fff;
+  transform-origin: 50%;
+  animation: app-loading-typing-circle 0.5s alternate infinite ease;
 }
 
-.app-image-cache-loader__track--front {
-  animation: app-image-cache-loader-scroll-front 2.8s ease-in-out infinite alternate;
+.app-image-cache-loader__typing-circle:nth-child(2) {
+  left: calc(50% - 8px);
+  animation-delay: 0.2s;
 }
 
-@keyframes app-image-cache-loader-scroll-back {
-  from { transform: translate3d(-22%, 0, 0); }
-  to { transform: translate3d(4%, 0, 0); }
+.app-image-cache-loader__typing-circle:nth-child(3) {
+  right: 12px;
+  left: auto;
+  animation-delay: 0.3s;
 }
 
-@keyframes app-image-cache-loader-scroll-middle {
-  from { transform: translate3d(4%, 0, 0); }
-  to { transform: translate3d(-20%, 0, 0); }
+@keyframes app-loading-typing-circle {
+  0% {
+    top: 30px;
+    height: 10px;
+    border-radius: 50px 50px 25px 25px;
+    transform: scaleX(1.7);
+  }
+
+  40% {
+    height: 16px;
+    border-radius: 50%;
+    transform: scaleX(1);
+  }
+
+  100% {
+    top: 0;
+  }
 }
 
-@keyframes app-image-cache-loader-scroll-front {
-  from { transform: translate3d(-17%, 0, 0); }
-  to { transform: translate3d(8%, 0, 0); }
+.app-image-cache-loader__typing-shadow {
+  width: 10px;
+  height: 6px;
+  position: absolute;
+  top: 40px;
+  left: 15px;
+  z-index: 3;
+  border-radius: 50%;
+  background-color: rgb(255 255 255 / 28%);
+  transform-origin: 50%;
+  filter: blur(1px);
+  animation: app-loading-typing-shadow 0.5s alternate infinite ease;
+}
+
+.app-image-cache-loader__typing-shadow:nth-child(5) {
+  left: calc(50% - 5px);
+  animation-delay: 0.2s;
+}
+
+.app-image-cache-loader__typing-shadow:nth-child(6) {
+  right: 15px;
+  left: auto;
+  animation-delay: 0.3s;
+}
+
+@keyframes app-loading-typing-shadow {
+  0% {
+    transform: scaleX(1.5);
+  }
+
+  40% {
+    opacity: 0.7;
+    transform: scaleX(1);
+  }
+
+  100% {
+    opacity: 0.4;
+    transform: scaleX(0.2);
+  }
 }
 
 /* Quiz count setup uses the same source-origin scale as the mission details menu. */
@@ -1613,6 +1845,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-streak-celebration-background-exit,
   .animate-streak-celebration-number-exit,
   .animate-streak-celebration-icon-exit,
+  .day-streak-ui-enter,
+  .day-streak-ui-pending,
   .animate-chest-screen-close,
   .animate-chest-reward-box-enter,
   .animate-chest-reward-heading-text,
@@ -2587,6 +2821,110 @@ body:has([data-ask-page]) footer {
 
 .animate-streak-fire {
   animation: streak-fire 0.6s ease-in-out infinite;
+}
+
+@keyframes day-streak-ui-scale-in {
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.day-streak-ui-pending {
+  visibility: hidden;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.day-streak-ui-enter {
+  visibility: visible;
+  animation: day-streak-ui-scale-in 520ms cubic-bezier(0.85, 0, 0.15, 1) var(--day-streak-enter-delay, 0ms) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes day-streak-calendar-slide-in {
+  0% {
+    transform: translate3d(0, 100%, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes day-streak-calendar-slide-out {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.day-streak-calendar-enter {
+  animation: day-streak-calendar-slide-in 560ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+.day-streak-calendar-exit {
+  animation: day-streak-calendar-slide-out 560ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.day-streak-idle-background {
+  filter: saturate(1.14);
+}
+
+.day-streak-opening-background {
+  filter: saturate(1.09);
+}
+
+@keyframes day-streak-check-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.45) rotate(-12deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.day-streak-check-enter {
+  animation: day-streak-check-in 300ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-streak-ui-enter {
+    animation: none;
+    transform: scale(1);
+  }
+
+  .day-streak-ui-pending {
+    transform: scale(1);
+  }
+
+  .day-streak-calendar-enter {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .day-streak-calendar-exit {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .day-streak-check-enter {
+    animation: none;
+  }
 }
 
 @keyframes streak-celebration-background-enter {

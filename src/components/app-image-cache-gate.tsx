@@ -18,6 +18,7 @@ const BACKGROUND_CACHE_DELAY_MS = 1_200;
 const EXIT_ANIMATION_DURATION_MS = 320;
 const MAX_CACHE_GATE_DURATION_MS = 1_200;
 const CACHE_REQUEST_TIMEOUT_MS = 2_500;
+const APP_LOADING_TEST_PARAM = "loading-test";
 
 type CacheGatePhase = "hidden" | "loading" | "exiting";
 
@@ -25,6 +26,18 @@ export function AppImageCacheGate() {
   const [phase, setPhase] = useState<CacheGatePhase>("hidden");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const testMode =
+      params.get(APP_LOADING_TEST_PARAM) === "1" ||
+      params.get(APP_LOADING_TEST_PARAM) === "true";
+
+    if (testMode) {
+      // Keep the visual test gate mounted indefinitely. In particular, do not
+      // start caching or the normal exit timer while this URL mode is active.
+      setPhase("loading");
+      return;
+    }
+
     if (!getTwaMode() || !("caches" in window)) {
       return;
     }
@@ -89,27 +102,16 @@ export function AppImageCacheGate() {
         phase === "exiting" ? "pointer-events-none -translate-y-3 opacity-0" : "translate-y-0 opacity-100"
       }`}
       data-app-image-cache-gate
+      data-testid="app-image-cache-gate"
       role="status"
     >
       <div className="app-image-cache-loader" aria-hidden="true">
-        <div className="app-image-cache-loader__scene">
-          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--back">
-            <div className="app-image-cache-loader__track app-image-cache-loader__track--back font-super-water">
-              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
-            </div>
-          </div>
-          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--middle">
-            <div className="app-image-cache-loader__track app-image-cache-loader__track--middle font-super-water">
-              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
-            </div>
-          </div>
-          <div className="app-image-cache-loader__layer app-image-cache-loader__layer--front">
-            <div className="app-image-cache-loader__track app-image-cache-loader__track--front font-super-water">
-              <span>LOADING</span><span>LOADING</span><span>LOADING</span>
-            </div>
-          </div>
-        </div>
-        <span className="sr-only">Loading</span>
+        <div className="app-image-cache-loader__typing-circle" />
+        <div className="app-image-cache-loader__typing-circle" />
+        <div className="app-image-cache-loader__typing-circle" />
+        <div className="app-image-cache-loader__typing-shadow" />
+        <div className="app-image-cache-loader__typing-shadow" />
+        <div className="app-image-cache-loader__typing-shadow" />
       </div>
     </div>
   );
