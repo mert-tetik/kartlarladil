@@ -15,10 +15,10 @@ const DAY_STREAK_CLOSE_DURATION = 360;
 const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
 const DAY_STREAK_VIDEO_FALLBACK_DURATION = 4500;
 const DAY_STREAK_UI_EARLY_REVEAL = 1500;
-const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/streak-bg.mp4";
+const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/day-streak-idle-hq-v1.mp4";
 const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
-  dark: "/day-streak/day-streak-dark-v2.mp4",
-  light: "/day-streak/day-streak-light-v2.mp4",
+  dark: "/day-streak/day-streak-dark-v3.mp4",
+  light: "/day-streak/day-streak-light-v3.mp4",
 };
 const DAY_STREAK_POSTER_SOURCES: Record<ThemeMode, string> = {
   dark: "/day-streak/day-streak-dark-v2-poster.webp",
@@ -239,7 +239,7 @@ export function MobileDayStreakMenu({
         aria-hidden="true"
         data-day-streak-idle-background
         className={cn(
-          "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[120ms] ease-linear",
+          "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[70ms] ease-linear",
           idleBackgroundReady ? "opacity-100" : "opacity-0",
         )}
       />
@@ -427,7 +427,9 @@ function CalendarView({
   t: ReturnType<typeof useT>;
   closing: boolean;
 }) {
-  const weekHeaders = getWeekDays(calendarMonth).map((day) => shortWeekday(day.date, locale));
+  const weekHeaders = getWeekDays(calendarMonth).map((day) =>
+    formatSuperWaterUppercaseText(locale, shortWeekday(day.date, locale)),
+  );
 
   return (
     <section
@@ -437,32 +439,32 @@ function CalendarView({
       )}
       data-day-streak-calendar-view
     >
-      <div className="flex w-full max-w-[32rem] flex-col items-center justify-center">
+      <div className="flex w-full max-w-[32rem] flex-col items-center justify-center gap-8">
         <div className="flex w-full items-center justify-between gap-3">
           <button
             type="button"
             onClick={onPreviousMonth}
             aria-label={t("dayStreak.previousMonth")}
-            className="inline-flex size-11 items-center justify-center rounded-lg text-white ring-1 ring-white/30 transition-transform active:scale-95"
+            className="inline-flex size-11 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-white transition-transform active:scale-95"
           >
             <ChevronLeft className="size-6" aria-hidden="true" />
           </button>
           <h1 className={cn("text-center text-xl font-bold capitalize text-white", useSuperWater && "font-super-water")}>
-            {formatMonth(calendarMonth, locale)}
+            {formatSuperWaterText(locale, formatMonth(calendarMonth, locale))}
           </h1>
           <button
             type="button"
             onClick={onNextMonth}
             aria-label={t("dayStreak.nextMonth")}
-            className="inline-flex size-11 items-center justify-center rounded-lg text-white ring-1 ring-white/30 transition-transform active:scale-95"
+            className="inline-flex size-11 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-white transition-transform active:scale-95"
           >
             <ChevronRight className="size-6" aria-hidden="true" />
           </button>
         </div>
-        <div className="mt-5 grid w-full grid-cols-7 gap-y-3 text-center">
+        <div className="grid w-full grid-cols-7 gap-y-4 text-center">
           {weekHeaders.map((day, index) => (
             <span key={`${day}-${index}`} className={cn("text-xs font-semibold uppercase text-white/80", useSuperWater && "font-super-water")}>
-              {formatSuperWaterText(locale, day)}
+              {day}
             </span>
           ))}
           {calendarDays.map((day) => {
