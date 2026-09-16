@@ -300,7 +300,7 @@ export function MobileDayStreakMenu({
             <section className="flex w-full max-w-[32rem] flex-col items-center text-center" data-day-streak-week-view>
               <p
                 className={cn(
-                  "relative -top-4 text-[clamp(5.5rem,24vw,9rem)] font-bold leading-[0.78] text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]",
+                  "relative -top-6 text-[clamp(5.5rem,24vw,9rem)] font-bold leading-[0.78] text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]",
                   superWater && "font-super-water",
                   contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
                 )}
@@ -311,7 +311,7 @@ export function MobileDayStreakMenu({
               </p>
               <h1
                 className={cn(
-                  "relative -top-4 mt-5 text-[clamp(1.7rem,7vw,2.8rem)] font-bold leading-none text-white drop-shadow-[0_3px_8px_rgba(0,0,0,0.25)]",
+                  "relative -top-6 mt-5 text-[clamp(1.7rem,7vw,2.8rem)] font-bold leading-none text-white drop-shadow-[0_3px_8px_rgba(0,0,0,0.25)]",
                   superWater && "font-super-water",
                   contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
                 )}
@@ -337,7 +337,7 @@ export function MobileDayStreakMenu({
                       </span>
                       <span
                         className={cn(
-                          "relative -top-4 inline-flex size-10 items-center justify-center rounded-full border-4 border-white bg-[#303030] text-white transition-colors sm:size-12",
+                          "relative -top-8 inline-flex size-10 items-center justify-center rounded-full border-4 border-white bg-[#303030] text-white transition-colors sm:size-12",
                           isLogged && "border-white bg-white",
                         )}
                         aria-label={isLogged ? t("dayStreak.loggedIn") : t("dayStreak.notLoggedIn")}
@@ -360,7 +360,7 @@ export function MobileDayStreakMenu({
 
         <div
           className={cn(
-            "relative -top-4 z-40 mx-auto grid w-full max-w-[32rem] grid-cols-2 gap-3 pointer-events-auto",
+            "relative -top-8 z-40 mx-auto grid w-full max-w-[32rem] grid-cols-2 gap-3 pointer-events-auto",
             contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
           )}
           style={getDayStreakEnterStyle(480)}
@@ -483,10 +483,10 @@ function CalendarView({
               <div key={day.key} className="flex min-h-10 items-center justify-center">
                 <span
                   className={cn(
-                    "inline-flex size-9 items-center justify-center rounded-full text-sm font-semibold text-white/65",
+                    "inline-flex h-9 min-w-10 items-center justify-center rounded-lg bg-[#292929] px-2 text-sm font-semibold text-white/65",
                     day.inMonth && "text-white",
                     isLogged && "text-red-500",
-                    isToday && "ring-2 ring-white",
+                    isToday && "bg-white text-black ring-2 ring-white",
                   )}
                 >
                   {isLogged ? <Flame className="size-5" fill="currentColor" aria-hidden="true" /> : day.day}
