@@ -247,7 +247,7 @@ export function MobileDayStreakMenu({
         aria-hidden="true"
         data-day-streak-idle-background
         className={cn(
-          "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[350ms] ease-linear",
+          "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[580ms] ease-linear",
           idleBackgroundReady ? "opacity-100" : "opacity-0",
         )}
       />
