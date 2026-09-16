@@ -15,6 +15,7 @@ const DAY_STREAK_CLOSE_DURATION = 360;
 const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
 const DAY_STREAK_VIDEO_FALLBACK_DURATION = 4500;
 const DAY_STREAK_UI_EARLY_REVEAL = 1500;
+const DAY_STREAK_IDLE_BACKGROUND_LEAD_TIME = 350;
 const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/day-streak-idle-hq-v1.mp4";
 const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
   dark: "/day-streak/day-streak-dark-v3.mp4",
@@ -195,6 +196,13 @@ export function MobileDayStreakMenu({
   };
   const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
+    if (
+      !idleBackgroundReady &&
+      video.duration > 0 &&
+      video.duration - video.currentTime <= DAY_STREAK_IDLE_BACKGROUND_LEAD_TIME / 1000
+    ) {
+      setIdleBackgroundReady(true);
+    }
     if (!contentReady && video.duration > 0 && video.duration - video.currentTime <= DAY_STREAK_UI_EARLY_REVEAL / 1000) {
       revealContent();
     }
