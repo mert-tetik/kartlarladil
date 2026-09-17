@@ -1,5 +1,5 @@
 {
-  "version": "637ebd0fbd30911ce9ad9c17e66ccfc56f6257d5c9ddbbf1f08688814241e53b",
+  "version": "d469c04668f2a43438edbdb6e548562cc62681277f0cc3562e38dbe1da6f3a80",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -514,6 +514,30 @@
       "revision": "37a9127d20bb10c95675865493269c30cc11599d6e685c55f537e4c5d36960cf"
     },
     {
+      "url": "/day-streak/day-streak-dark-poster.webp",
+      "revision": "56df64669bea5eef60937db63bc1377ab0037b7594ed4e5dc2949f7a37f07db2"
+    },
+    {
+      "url": "/day-streak/day-streak-dark-v2-poster.webp",
+      "revision": "6f859fb90f3df9efd1bbe14444d3fed68c4b4162c2d6118c44b54d7c88300ad5"
+    },
+    {
+      "url": "/day-streak/day-streak-green-poster.webp",
+      "revision": "99105ac8d460dd5fb33f062ecc4842fd1662db6fba8b7b5088c5ceffdb2d398b"
+    },
+    {
+      "url": "/day-streak/day-streak-icon.png",
+      "revision": "6378e44ea04106e342dbf6a9896adfb7b2602c83d84a3a7e43d6bb2a6e236050"
+    },
+    {
+      "url": "/day-streak/day-streak-light-poster.webp",
+      "revision": "bfacc42ae3d7e46bda42f61349f6a0d6830b17cd500a91cb2cbaefaa1c5c9e7e"
+    },
+    {
+      "url": "/day-streak/day-streak-light-v2-poster.webp",
+      "revision": "058f354c3fbbf80282c77f1830443448e6d2d0971d84436d433e13e7589341b4"
+    },
+    {
       "url": "/flags/4x3/cn.svg",
       "revision": "981da9bdf82d48e31691f20578cefcb26cf7d0bd95e4ebd5c0df00bdfe988c1a"
     },
@@ -752,6 +776,10 @@
     {
       "url": "/leaderboard-icon.png",
       "revision": "d7a071bbafc4e21aefb4ea439c0d041d33bb6b83119773d9dd897258dae2e73b"
+    },
+    {
+      "url": "/leaderboard/series-leaderboard-icon.png",
+      "revision": "599b42bfb6f5b9e69c721779b05faccb424c2f6569b984f04f717bc78cf0f15b"
     },
     {
       "url": "/logo.webp",

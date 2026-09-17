@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getLeaderboardPayload } from "@/features/leaderboard/leaderboard-service";
+import {
+  calculateLongestDailyStreak,
+  getLeaderboardPayload,
+} from "@/features/leaderboard/leaderboard-service";
 
 const mockCreateSupabaseAdminClient = vi.hoisted(() => vi.fn());
 
@@ -97,6 +100,32 @@ beforeEach(() => {
         };
       }
 
+      if (table === "user_daily_logins") {
+        return {
+          select: vi.fn(() => ({
+            range: vi.fn(() => ({
+              returns: vi.fn(() =>
+                Promise.resolve({
+                  data: [
+                    { user_id: "user-1", activity_date: "2026-09-01" },
+                    { user_id: "user-1", activity_date: "2026-09-02" },
+                    { user_id: "user-1", activity_date: "2026-09-03" },
+                    { user_id: "user-1", activity_date: "2026-09-05" },
+                    { user_id: "user-2", activity_date: "2026-09-01" },
+                    { user_id: "user-2", activity_date: "2026-09-02" },
+                    { user_id: "user-4", activity_date: "2026-09-10" },
+                    { user_id: "user-5", activity_date: "2026-09-01" },
+                    { user_id: "user-5", activity_date: "2026-09-02" },
+                    { user_id: "user-5", activity_date: "2026-09-03" },
+                  ],
+                  error: null,
+                }),
+              ),
+            })),
+          })),
+        };
+      }
+
       return {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -126,6 +155,8 @@ describe("getLeaderboardPayload", () => {
       userId: "user-1",
       totalPoints: 7,
       position: 4,
+      pointsPosition: 4,
+      streakPosition: 1,
     });
     expect(payload.entries.map((entry) => [entry.userId, entry.totalPoints, entry.position])).toEqual([
       ["user-5", 40, 1],
@@ -147,5 +178,37 @@ describe("getLeaderboardPayload", () => {
       "user-1",
       "user-4",
     ]);
+  });
+
+  it("ranks users by their highest consecutive daily streak", async () => {
+    const payload = await getLeaderboardPayload("user-1", "streaks");
+
+    expect(payload.mode).toBe("streaks");
+    expect(payload.viewer).toMatchObject({
+      userId: "user-1",
+      streak: 3,
+      position: 1,
+      pointsPosition: 4,
+      streakPosition: 1,
+    });
+    expect(payload.entries.map((entry) => [entry.userId, entry.streak, entry.position])).toEqual([
+      ["user-1", 3, 1],
+      ["user-5", 3, 2],
+      ["user-2", 2, 3],
+      ["user-4", 1, 4],
+      ["user-3", 0, 5],
+    ]);
+  });
+
+  it("ignores duplicate and invalid dates when finding the longest streak", () => {
+    expect(
+      calculateLongestDailyStreak([
+        "2026-09-01",
+        "2026-09-02",
+        "2026-09-02",
+        "2026-09-04",
+        "not-a-date",
+      ]),
+    ).toBe(2);
   });
 });

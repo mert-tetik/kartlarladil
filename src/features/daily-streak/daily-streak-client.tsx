@@ -7,7 +7,7 @@ import { syncDailyStreakAction, type DailyStreakSnapshot } from "./daily-streak-
 interface DailyStreakContextValue {
   snapshot: DailyStreakSnapshot | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
 }
 
 const DailyStreakContext = createContext<DailyStreakContextValue | null>(null);
@@ -32,29 +32,56 @@ function isDailyStreakTestMode() {
   });
 }
 
+const DAILY_STREAK_RETRY_DELAYS = [0, 500, 1500] as const;
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+}
+
 export function DailyStreakProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthSession();
   const [snapshot, setSnapshot] = useState<DailyStreakSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const syncedUserIdRef = useRef<string | null>(null);
+  const syncRequestRef = useRef<Promise<boolean> | null>(null);
+  const userId = user?.id ?? null;
 
   const refresh = useCallback(async () => {
-    if (isDailyStreakTestMode()) {
-      return;
+    if (isDailyStreakTestMode() || !userId) {
+      return false;
+    }
+
+    if (syncRequestRef.current) {
+      return syncRequestRef.current;
     }
 
     setLoading(true);
-    try {
-      const result = await syncDailyStreakAction(getBrowserTimeZone());
-      if (result.success) {
-        setSnapshot(result.snapshot);
+    const request = (async () => {
+      try {
+        const result = await syncDailyStreakAction(getBrowserTimeZone());
+        if (result.success) {
+          setSnapshot(result.snapshot);
+          return true;
+        }
+      } catch {
+        // A streak sync failure must not block the rest of the application.
       }
-    } catch {
-      // A streak sync failure must not block the rest of the application.
+
+      return false;
+    })();
+
+    syncRequestRef.current = request;
+    try {
+      return await request;
     } finally {
+      if (syncRequestRef.current === request) {
+        syncRequestRef.current = null;
+      }
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (isDailyStreakTestMode()) {
@@ -74,8 +101,56 @@ export function DailyStreakProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    syncedUserIdRef.current = user.id;
-    void refresh();
+    let cancelled = false;
+
+    const syncWithRetry = async () => {
+      for (const delay of DAILY_STREAK_RETRY_DELAYS) {
+        if (delay > 0) {
+          await wait(delay);
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        if (await refresh()) {
+          if (!cancelled) {
+            syncedUserIdRef.current = user.id;
+          }
+          return;
+        }
+      }
+    };
+
+    void syncWithRetry();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh, user]);
+
+  useEffect(() => {
+    if (!user || isDailyStreakTestMode()) {
+      return;
+    }
+
+    const refreshWhenResuming = () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      void refresh();
+    };
+
+    window.addEventListener("pageshow", refreshWhenResuming);
+    window.addEventListener("focus", refreshWhenResuming);
+    document.addEventListener("visibilitychange", refreshWhenResuming);
+
+    return () => {
+      window.removeEventListener("pageshow", refreshWhenResuming);
+      window.removeEventListener("focus", refreshWhenResuming);
+      document.removeEventListener("visibilitychange", refreshWhenResuming);
+    };
   }, [refresh, user]);
 
   const value = useMemo(

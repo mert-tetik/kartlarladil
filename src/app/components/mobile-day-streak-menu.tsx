@@ -2,9 +2,10 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
-import { ChevronLeft, ChevronRight, Flame, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, Loader2, X } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import type { ThemeMode } from "@/lib/themes";
+import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
@@ -50,11 +51,21 @@ export function preloadDayStreakVideo(mode: ThemeMode) {
 export function MobileDayStreakMenu({
   open,
   onClose,
+  onExited,
   snapshot,
+  loading = false,
+  highestStreak,
+  streakPosition,
+  onOpenLeaderboard,
 }: {
   open: boolean;
   onClose: () => void;
+  onExited?: () => void;
   snapshot: DailyStreakSnapshot | null;
+  loading?: boolean;
+  highestStreak?: number | null;
+  streakPosition?: number | null;
+  onOpenLeaderboard?: () => void;
 }) {
   const { mode } = useTheme();
   const { locale } = useLocale();
@@ -99,10 +110,11 @@ export function MobileDayStreakMenu({
     setPhase("closing");
     const closeTimer = window.setTimeout(() => {
       setMounted(false);
+      onExited?.();
     }, DAY_STREAK_CLOSE_DURATION);
 
     return () => window.clearTimeout(closeTimer);
-  }, [mode, open]);
+  }, [mode, onExited, open]);
 
   useEffect(() => {
     if (!calendarClosing) {
@@ -185,6 +197,7 @@ export function MobileDayStreakMenu({
   }
 
   const streak = Math.max(1, snapshot?.currentStreak ?? 1);
+  const highestStreakValue = Math.max(1, highestStreak ?? streak);
   const superWater = canUseSuperWater(locale);
   const revealContent = () => {
     if (!open) {
@@ -211,7 +224,7 @@ export function MobileDayStreakMenu({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[70] overflow-hidden bg-[var(--background)] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
+        "fixed inset-0 z-[70] overflow-hidden bg-[#F08608] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
         phase === "closing" ? "pointer-events-none scale-[0.98] opacity-0" : "scale-100 opacity-100",
       )}
       role="dialog"
@@ -274,6 +287,46 @@ export function MobileDayStreakMenu({
         <X className="size-9 stroke-[3]" aria-hidden="true" />
       </button>
 
+      {!calendarOpen && onOpenLeaderboard ? (
+        <button
+          type="button"
+          onClick={onOpenLeaderboard}
+          aria-label={t("leaderboard.streaks")}
+          className={cn(
+            "absolute left-5 top-[max(1rem,env(safe-area-inset-top))] z-40 flex flex-col items-start text-left text-white transition-transform duration-200 active:scale-95",
+            contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
+          )}
+          style={getDayStreakEnterStyle(0)}
+          data-day-streak-world-ranking
+        >
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <span className={cn(
+              "text-[clamp(0.9rem,4vw,1.25rem)] font-semibold uppercase leading-none text-white/90",
+              superWater && "font-super-water",
+            )}>
+              {formatSuperWaterUppercaseText(locale, t("dayStreak.longestSeries"))}
+            </span>
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[clamp(1.8rem,8vw,2.7rem)] font-bold leading-none drop-shadow-[0_3px_8px_rgba(0,0,0,0.22)]",
+              superWater && "font-super-water",
+            )}>
+              <span>{formatSuperWaterText(locale, formatNumber(locale, highestStreakValue))}</span>
+              <Flame className="relative -top-1 size-7 fill-white text-white" aria-hidden="true" />
+            </span>
+          </span>
+          <span className={cn("mt-1 text-[clamp(1.15rem,5vw,1.8rem)] font-semibold uppercase leading-none text-white/90", superWater && "font-super-water")}>
+            {streakPosition === null || streakPosition === undefined
+              ? formatSuperWaterUppercaseText(locale, t("leaderboard.worldPositionUnavailable"))
+              : formatSuperWaterUppercaseText(
+                  locale,
+                  t("leaderboard.worldPosition", {
+                    position: formatNumber(locale, streakPosition),
+                  }),
+                )}
+          </span>
+        </button>
+      ) : null}
+
       {calendarOpen ? (
         <CalendarView
           calendarDays={calendarDays}
@@ -298,17 +351,31 @@ export function MobileDayStreakMenu({
         <div className="flex flex-1 items-end justify-center pb-5">
           {!calendarOpen ? (
             <section className="flex w-full max-w-[32rem] flex-col items-center text-center" data-day-streak-week-view>
-              <p
-                className={cn(
-                  "relative -top-6 text-[clamp(5.5rem,24vw,9rem)] font-bold leading-[0.78] text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]",
-                  superWater && "font-super-water",
-                  contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
-                )}
-                style={getDayStreakEnterStyle(80)}
-                data-day-streak-current-streak
-              >
-                {streak}
-              </p>
+              {loading ? (
+                <div
+                  className={cn(
+                    "relative -top-6 flex h-[clamp(5.5rem,24vw,9rem)] items-center justify-center text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]",
+                    contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
+                  )}
+                  style={getDayStreakEnterStyle(80)}
+                  data-day-streak-current-streak-loading
+                  aria-label={t("common.loading")}
+                >
+                  <Loader2 className="size-[clamp(3rem,14vw,5rem)] animate-spin" aria-hidden="true" />
+                </div>
+              ) : (
+                <p
+                  className={cn(
+                    "relative -top-6 text-[clamp(5.5rem,24vw,9rem)] font-bold leading-[0.78] text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]",
+                    superWater && "font-super-water",
+                    contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
+                  )}
+                  style={getDayStreakEnterStyle(80)}
+                  data-day-streak-current-streak
+                >
+                  {streak}
+                </p>
+              )}
               <h1
                 className={cn(
                   "relative -top-6 mt-5 text-[clamp(1.7rem,7vw,2.8rem)] font-bold leading-none text-white drop-shadow-[0_3px_8px_rgba(0,0,0,0.25)]",
@@ -331,8 +398,18 @@ export function MobileDayStreakMenu({
                   const isLogged = loggedDates.has(day.key);
 
                   return (
-                    <div key={day.key} className="flex min-w-0 flex-col items-center gap-2" data-day-streak-day={day.key}>
-                      <span className={cn("text-xs font-semibold uppercase text-white/90", superWater && "font-super-water")}>
+                    <div
+                      key={day.key}
+                      className="relative isolate flex min-w-0 flex-col items-center gap-2"
+                      data-day-streak-day={day.key}
+                    >
+                      <span
+                        className={cn(
+                          "relative z-20 inline-flex shrink-0 whitespace-nowrap text-xs font-semibold uppercase leading-none text-white/90",
+                          superWater && "font-super-water",
+                        )}
+                        data-day-streak-weekday={day.key}
+                      >
                         {formatSuperWaterText(locale, shortWeekday(day.date, locale))}
                       </span>
                       <span

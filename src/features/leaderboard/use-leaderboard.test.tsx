@@ -10,11 +10,15 @@ vi.mock("next/navigation", () => ({
 }));
 
 const payload = {
+  mode: "points" as const,
   viewer: {
     userId: "user-1",
     position: 12,
+    pointsPosition: 12,
+    streakPosition: 4,
     displayName: "Fox",
     totalPoints: 240,
+    streak: 0,
     leaderboardVisible: true,
   },
   entries: [],
@@ -88,8 +92,48 @@ describe("useLeaderboardData", () => {
     });
 
     expect(payload).toMatchObject({
+      mode: "points",
       canViewLeaderboard: true,
-      viewer: { leaderboardVisible: true },
+      viewer: { leaderboardVisible: true, streak: 0 },
     });
+  });
+
+  it("keeps point and streak requests in separate caches", async () => {
+    const streakPayload = {
+      mode: "streaks" as const,
+      viewer: {
+        ...payload.viewer,
+        streak: 6,
+      },
+      entries: [],
+      canViewLeaderboard: true,
+    };
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => (url.includes("mode=streaks") ? streakPayload : payload),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result, rerender } = renderHook(
+      ({ mode }: { mode: "points" | "streaks" }) =>
+        useLeaderboardData({ mode, refreshOnMount: false }),
+      { initialProps: { mode: "points" as "points" | "streaks" } },
+    );
+
+    await waitFor(() => expect(result.current.data?.mode).toBe("points"));
+
+    rerender({ mode: "streaks" });
+
+    await waitFor(() => {
+      expect(result.current.data).toMatchObject({
+        mode: "streaks",
+        viewer: { streak: 6 },
+      });
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/leaderboard?mode=streaks",
+      expect.objectContaining({ cache: "no-store" }),
+    );
   });
 });

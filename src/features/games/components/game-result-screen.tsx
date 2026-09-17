@@ -207,7 +207,7 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
             <ImageActionButton
               imageSrc={RESULT_BUTTON_IMAGES.leaderboard}
               imageSizes="56px"
-              onClick={openLeaderboard}
+              onClick={() => openLeaderboard()}
               aria-label={t("leaderboard.title")}
               data-game-result-action="leaderboard"
               className="game-result-action-leaderboard size-14"

@@ -1,7 +1,7 @@
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
-import { RANKS } from "@/features/progress/progress-stats";
+import { RANKS, RANK_ACCENT_COLORS } from "@/features/progress/progress-stats";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 describe("MobileRankInfoSheet", () => {
@@ -9,9 +9,92 @@ describe("MobileRankInfoSheet", () => {
     vi.restoreAllMocks();
   });
 
-  it("centers the current rank horizontally every time the sheet opens", async () => {
+  it("opens as an opaque full-screen surface with the selected rank centered", async () => {
+    const currentRank = RANKS[5];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+
+    const overlay = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-rank-details-overlay]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    const track = document.querySelector<HTMLElement>("[data-mobile-rank-carousel]")!;
+    const trackWidth = track.clientWidth || window.innerWidth;
+
+    await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
+
+    expect(overlay).toHaveClass("bg-black");
+    expect(overlay).toHaveAttribute("data-rank-details-phase", "open");
+    expect(document.querySelector("[data-rank-details-gradient]")).toHaveStyle({
+      backgroundImage: expect.stringContaining("rgba(115, 9, 191, 0.82)"),
+    });
+    expect(document.querySelector("[data-rank-index='5'] [data-rank-visual]")).toHaveClass(
+      "absolute",
+      "left-1/2",
+      "top-1/2",
+    );
+  });
+
+  it("recenters the current rank every time the overlay opens", async () => {
     const currentRank = RANKS[5];
     const { rerender } = render(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+    const track = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-mobile-rank-carousel]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    const trackWidth = track.clientWidth || window.innerWidth;
+
+    await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen={false}
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+    track.scrollLeft = 0;
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
+  });
+
+  it("changes the highlighted rank with a touch swipe", async () => {
+    const currentRank = RANKS[5];
+
+    render(
       <LocaleProvider initialLocale="tr">
         <MobileRankInfoSheet
           isOpen
@@ -27,102 +110,33 @@ describe("MobileRankInfoSheet", () => {
       expect(element).not.toBeNull();
       return element!;
     });
-    const currentCard = document.querySelector<HTMLElement>("[data-rank-index='5']");
-    expect(currentCard).not.toBeNull();
+    const trackWidth = track.clientWidth || window.innerWidth;
+    await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
 
-    Object.defineProperty(track, "clientWidth", {
-      configurable: true,
-      value: 390,
+    fireEvent.pointerDown(track, {
+      pointerId: 1,
+      pointerType: "touch",
+      button: 0,
+      clientX: 320,
     });
-    vi.spyOn(track, "getBoundingClientRect").mockReturnValue({
-      bottom: 600,
-      height: 500,
-      left: 0,
-      right: 390,
-      top: 100,
-      width: 390,
-      x: 0,
-      y: 100,
-      toJSON: () => ({}),
+    fireEvent.pointerMove(track, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 100,
     });
-    const currentCardRect = vi.spyOn(currentCard!, "getBoundingClientRect").mockImplementation(() => ({
-      bottom: 600,
-      height: 180,
-      left: 500 - track.scrollLeft,
-      right: 690 - track.scrollLeft,
-      top: 420,
-      width: 190,
-      x: 500 - track.scrollLeft,
-      y: 420,
-      toJSON: () => ({}),
-    }));
-
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen={false}
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
-    track.scrollLeft = 0;
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
+    fireEvent.pointerUp(track, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 100,
+    });
 
     await waitFor(() => {
-      expect(track.scrollLeft).toBe(400);
+      expect(document.querySelector("[data-rank-index='6']")).toHaveAttribute("data-highlighted", "true");
     });
-
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen={false}
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
-    track.scrollLeft = 0;
-    currentCardRect.mockImplementation(() => ({
-      bottom: 680,
-      height: 180,
-      left: 600 - track.scrollLeft,
-      right: 790 - track.scrollLeft,
-      top: 500,
-      width: 190,
-      x: 600 - track.scrollLeft,
-      y: 500,
-      toJSON: () => ({}),
-    }));
-
-    rerender(
-      <LocaleProvider initialLocale="tr">
-        <MobileRankInfoSheet
-          isOpen
-          onClose={vi.fn()}
-          rank={currentRank}
-          totalPoints={currentRank.minPoints}
-        />
-      </LocaleProvider>,
-    );
-
-    await waitFor(() => {
-      expect(track.scrollLeft).toBe(500);
-    });
+    expect(document.querySelector("[data-rank-index='5']")).toHaveAttribute("data-highlighted", "false");
   });
 
-  it("shows the current rank above the total points in its accent color", async () => {
+  it("updates the rank label and gradient when a different rank is highlighted", async () => {
     const currentRank = RANKS[5];
 
     render(
@@ -136,13 +150,13 @@ describe("MobileRankInfoSheet", () => {
       </LocaleProvider>,
     );
 
-    const rankLabel = await waitFor(() => {
+    const label = await waitFor(() => {
       const element = document.querySelector<HTMLElement>("[data-mobile-current-rank-label]");
       expect(element).not.toBeNull();
       return element!;
     });
-    expect(rankLabel).toHaveTextContent("Kelime Ustasi");
-    expect(rankLabel).toHaveStyle({ color: "#7309BF" });
-    expect(rankLabel?.nextElementSibling).toHaveTextContent("10.720");
+    expect(label).toHaveTextContent("Kelime Ustasi");
+    expect(label).toHaveStyle({ color: RANK_ACCENT_COLORS["kelime-ustasi"] });
+    expect(label.nextElementSibling).toHaveTextContent("10.720");
   });
 });

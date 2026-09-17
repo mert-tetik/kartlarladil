@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
@@ -273,34 +274,14 @@ function BillingCycleToggle({
   const t = useT();
 
   return (
-    <div className="inline-flex items-center rounded-full border border-border bg-background-muted p-1">
-      <button
-        type="button"
-        onClick={() => onChange("monthly")}
-        className={cn(
-          "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-          cycle === "monthly"
-            ? cn(PRICING_GRADIENT_BUTTON_CLASS, "shadow-sm")
-            : "text-foreground-secondary hover:text-foreground",
-        )}
-        aria-pressed={cycle === "monthly"}
-      >
-        {t("pricing.billingMonthly")}
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("yearly")}
-        className={cn(
-          "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-          cycle === "yearly"
-            ? cn(PRICING_GRADIENT_BUTTON_CLASS, "shadow-sm")
-            : "text-foreground-secondary hover:text-foreground",
-        )}
-        aria-pressed={cycle === "yearly"}
-      >
-        {t("pricing.billingYearly")}
-      </button>
-    </div>
+    <SegmentedToggle
+      value={cycle}
+      onChange={onChange}
+      options={[
+        { value: "monthly", label: t("pricing.billingMonthly") },
+        { value: "yearly", label: t("pricing.billingYearly") },
+      ]}
+    />
   );
 }
 

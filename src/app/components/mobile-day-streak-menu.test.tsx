@@ -43,6 +43,7 @@ describe("MobileDayStreakMenu", () => {
     expect(currentStreak).toHaveClass("day-streak-ui-enter");
     expect(currentStreak?.style.getPropertyValue("--day-streak-enter-delay")).toBe("80ms");
     expect(document.querySelectorAll("[data-day-streak-day]")).toHaveLength(7);
+    expect(document.querySelectorAll("[data-day-streak-weekday]")).toHaveLength(7);
     expect(document.querySelector('[data-day-streak-day="2026-09-15"] svg')).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "SERI TAKVIMI" })).toBeInTheDocument();
 
@@ -59,5 +60,32 @@ describe("MobileDayStreakMenu", () => {
 
     await user.click(screen.getByRole("button", { name: "Kapat" }));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("shows a loader instead of a stale streak value while the streak is loading", async () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ThemeProvider initialTheme="default-dark">
+          <MobileDayStreakMenu
+            open
+            loading
+            onClose={vi.fn()}
+            snapshot={{
+              currentStreak: 4,
+              today: "2026-09-15",
+              loggedDates: [],
+            }}
+          />
+        </ThemeProvider>
+      </LocaleProvider>,
+    );
+
+    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
+    fireEvent.ended(backgroundVideo!);
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-day-streak-current-streak-loading]")).toBeInTheDocument();
+    });
+    expect(document.querySelector("[data-day-streak-current-streak]")).not.toBeInTheDocument();
   });
 });

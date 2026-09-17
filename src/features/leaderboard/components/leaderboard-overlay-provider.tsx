@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { LeaderboardPageClient } from "@/features/leaderboard/components/leaderboard-page-client";
+import type { LeaderboardMode } from "@/features/leaderboard/leaderboard-types";
 import {
   setMobileNavbarBackOverride,
   subscribeMobileNavbarBackRequest,
@@ -15,7 +16,7 @@ const LEADERBOARD_OVERLAY_ANIMATION_MS = 320;
 type OverlayPhase = "closed" | "opening" | "open" | "closing";
 
 interface LeaderboardOverlayContextValue {
-  openLeaderboard: () => void;
+  openLeaderboard: (mode?: LeaderboardMode) => void;
   closeLeaderboard: () => void;
 }
 
@@ -23,8 +24,10 @@ const LeaderboardOverlayContext = createContext<LeaderboardOverlayContextValue |
 
 export function LeaderboardOverlayProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<OverlayPhase>("closed");
+  const [initialMode, setInitialMode] = useState<LeaderboardMode>("points");
 
-  const openLeaderboard = useCallback(() => {
+  const openLeaderboard = useCallback((mode: LeaderboardMode = "points") => {
+    setInitialMode(mode);
     setPhase((current) => (current === "closed" || current === "closing" ? "opening" : current));
   }, []);
 
@@ -84,7 +87,11 @@ export function LeaderboardOverlayProvider({ children }: { children: ReactNode }
       {children}
       {phase !== "closed" && typeof document !== "undefined"
         ? createPortal(
-            <LeaderboardOverlay phase={phase} onClose={closeLeaderboard} />,
+            <LeaderboardOverlay
+              phase={phase}
+              initialMode={initialMode}
+              onClose={closeLeaderboard}
+            />,
             document.body,
           )
         : null}
@@ -100,7 +107,15 @@ export function useLeaderboardOverlay() {
   };
 }
 
-function LeaderboardOverlay({ phase, onClose }: { phase: Exclude<OverlayPhase, "closed">; onClose: () => void }) {
+function LeaderboardOverlay({
+  phase,
+  initialMode,
+  onClose,
+}: {
+  phase: Exclude<OverlayPhase, "closed">;
+  initialMode: LeaderboardMode;
+  onClose: () => void;
+}) {
   const t = useT();
   const isOpen = phase === "open";
 
@@ -112,7 +127,7 @@ function LeaderboardOverlay({ phase, onClose }: { phase: Exclude<OverlayPhase, "
       data-leaderboard-overlay
       data-state={phase}
       className={cn(
-        "fixed inset-x-0 bottom-0 top-[var(--app-header-height)] z-40 overflow-hidden transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "fixed inset-x-0 bottom-0 top-[var(--app-header-height)] z-[80] overflow-hidden transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
       )}
     >
@@ -123,7 +138,7 @@ function LeaderboardOverlay({ phase, onClose }: { phase: Exclude<OverlayPhase, "
         className="absolute inset-0 z-0 w-full bg-black/70"
       />
       <div className="relative z-10 h-full w-full">
-        <LeaderboardPageClient />
+        <LeaderboardPageClient initialMode={initialMode} />
       </div>
     </div>
   );

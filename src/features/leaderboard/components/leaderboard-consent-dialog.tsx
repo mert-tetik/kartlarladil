@@ -26,6 +26,25 @@ export function LeaderboardConsentDialog({
   const t = useT();
   const phase = open ? "open" : "closed";
   const [hasOpened, setHasOpened] = useState(open);
+  const [transformOrigin, setTransformOrigin] = useState("0px 0px");
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const origin = sourceRect
+      ? {
+          x: sourceRect.left + sourceRect.width / 2,
+          y: sourceRect.top + sourceRect.height / 2,
+        }
+      : {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        };
+
+    setTransformOrigin(`${origin.x}px ${origin.y}px`);
+  }, [open, sourceRect]);
 
   useEffect(() => {
     if (!open) return;
@@ -33,16 +52,6 @@ export function LeaderboardConsentDialog({
     const frame = window.requestAnimationFrame(() => setHasOpened(true));
     return () => window.cancelAnimationFrame(frame);
   }, [open]);
-
-  const origin = sourceRect
-    ? {
-        x: sourceRect.left + sourceRect.width / 2,
-        y: sourceRect.top + sourceRect.height / 2,
-      }
-    : {
-        x: typeof window === "undefined" ? 0 : window.innerWidth / 2,
-        y: typeof window === "undefined" ? 0 : window.innerHeight / 2,
-      };
 
   return (
     <div
@@ -55,7 +64,7 @@ export function LeaderboardConsentDialog({
         open && hasOpened ? "pointer-events-auto" : "pointer-events-none",
         hasOpened ? "bg-black/55" : "bg-black/0",
       )}
-      style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}
+      style={{ transformOrigin }}
       aria-hidden={phase !== "open"}
     >
       <div

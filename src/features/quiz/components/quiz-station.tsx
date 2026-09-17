@@ -128,6 +128,7 @@ import {
   RESULT_BUTTON_IMAGES,
 } from "@/components/image-action-button";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
+import { useOptionalMobileDayStreakOverlay } from "@/app/components/mobile-day-streak-overlay-provider";
 import { LanguageFlag } from "@/components/language-flag";
 import { ScoreIcon } from "@/components/score-icon";
 import { Badge } from "@/components/ui/badge";
@@ -4734,6 +4735,7 @@ export function ResultView({
   const updateProfileField = session?.updateProfileField;
   const { stats, refreshStats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
+  const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
   const router = useRouter();
   const { data: leaderboardData } = useLeaderboardData({ refreshOnMount: true });
   const [openMenu, setOpenMenu] = useState<
@@ -4788,6 +4790,17 @@ export function ResultView({
   const rankLabel = getRankLabel(stats.rank, locale);
   const formatResultDisplayText = (text: string) =>
     canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
+  const runAfterDailyStreakReminder = useCallback(
+    (action: () => void) => {
+      if (!dayStreakOverlay) {
+        action();
+        return;
+      }
+
+      dayStreakOverlay.requestAutoOpenAfterQuizResult(action);
+    },
+    [dayStreakOverlay],
+  );
 
   useEffect(() => {
     if (mode !== "active" || !quizSessionId || resultRewardPromiseRef.current) {
@@ -5185,7 +5198,7 @@ export function ResultView({
               imageSrc={RESULT_BUTTON_IMAGES.play}
               imageSizes="80px"
               disabled={locked}
-              onClick={onRestart}
+              onClick={() => runAfterDailyStreakReminder(onRestart)}
               aria-label={t("quiz.restart")}
               data-result-action="play"
               className="size-20"
@@ -5195,7 +5208,7 @@ export function ResultView({
               imageSrc={RESULT_BUTTON_IMAGES.menu}
               imageSizes="56px"
               disabled={locked}
-              onClick={onExit}
+              onClick={() => runAfterDailyStreakReminder(onExit)}
               aria-label={t("quiz.exit")}
               data-result-action="menu"
               className="size-14"

@@ -2902,6 +2902,38 @@ body:has([data-ask-page]) footer {
   transform-origin: center;
 }
 
+@keyframes rank-details-overlay-enter {
+  0% {
+    transform: scale(0.92);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rank-details-overlay-exit {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(0.92);
+  }
+}
+
+.rank-details-overlay-enter {
+  animation: rank-details-overlay-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.rank-details-overlay-exit {
+  animation: rank-details-overlay-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .day-streak-ui-enter {
     animation: none;
@@ -2924,6 +2956,12 @@ body:has([data-ask-page]) footer {
 
   .day-streak-check-enter {
     animation: none;
+  }
+
+  .rank-details-overlay-enter,
+  .rank-details-overlay-exit {
+    animation: none;
+    transform: scale(1);
   }
 }
 

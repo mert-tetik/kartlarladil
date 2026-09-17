@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { GraduationCap, Info, RotateCcw, Trash2, X } from "lucide-react";
+import { GraduationCap, Info, Loader2, RotateCcw, Trash2, X } from "lucide-react";
 import { LANGUAGES } from "@/data/languages";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIERS, TIER_STYLES } from "@/data/tiers";
@@ -21,10 +21,8 @@ import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overl
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
-import {
-  MobileDayStreakMenu,
-  preloadDayStreakVideo,
-} from "@/app/components/mobile-day-streak-menu";
+import { preloadDayStreakVideo } from "@/app/components/mobile-day-streak-menu";
+import { useOptionalMobileDayStreakOverlay } from "@/app/components/mobile-day-streak-overlay-provider";
 import { useTheme } from "@/components/theme-provider";
 import {
   readLandingCardLanguage,
@@ -70,8 +68,6 @@ import {
 } from "@/features/missions/mission-navigation";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
-import { useOptionalDailyStreak } from "@/features/daily-streak/daily-streak-client";
-import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
 
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
@@ -82,27 +78,6 @@ import type { GemType } from "@/features/gems/gem-types";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
-}
-
-function createDailyStreakTestSnapshot(currentStreak: number): DailyStreakSnapshot {
-  const today = getLocalDateKey(new Date());
-  const loggedDates = Array.from({ length: Math.max(1, currentStreak) }, (_, index) =>
-    getDateKeyOffset(today, index),
-  );
-
-  return { currentStreak, today, loggedDates };
-}
-
-function getDateKeyOffset(dateKey: string, offset: number) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return getLocalDateKey(new Date(year, month - 1, day + offset, 12));
-}
-
-function getLocalDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 function getValidLanguageOverride(value: unknown): LanguageCode | null {
@@ -119,8 +94,6 @@ const MOBILE_GEM_COUNTERS = [
   { type: "purple", src: "/gems/purple-gem.png", alt: "Purple gems" },
 ] as const;
 
-const DAILY_STREAK_TEST_REOPEN_DELAY = 400;
-
 export function MobileLandingDashboard() {
   const { mode: themeMode } = useTheme();
 
@@ -132,9 +105,11 @@ export function MobileLandingDashboard() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuthSession();
-  const dailyStreakContext = useOptionalDailyStreak();
-  const dailyStreak = dailyStreakContext?.snapshot ?? null;
-  const refreshDailyStreak = dailyStreakContext?.refresh;
+  const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
+  const dayStreakOpen = dayStreakOverlay?.isOpen ?? false;
+  const dayStreakSnapshot = dayStreakOverlay?.snapshot ?? null;
+  const dailyStreakLoading = dayStreakOverlay?.loading ?? false;
+  const openDayStreak = dayStreakOverlay?.openDayStreak ?? (() => undefined);
   const { stats } = useProgressStats();
   const { locale, setLocale } = useLocale();
   const detectedLocale = useDetectedLocale();
@@ -147,7 +122,10 @@ export function MobileLandingDashboard() {
   const hydrated = useInventoryStore((state) => state.hydrated);
   const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
-  const { data: leaderboardData } = useLeaderboardData({
+  const {
+    data: leaderboardData,
+    loading: leaderboardLoading,
+  } = useLeaderboardData({
     enabled: Boolean(user),
     refreshOnMount: true,
   });
@@ -185,8 +163,6 @@ export function MobileLandingDashboard() {
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
-  const [dayStreakOpen, setDayStreakOpen] = useState(false);
-  const [dayStreakTestValue, setDayStreakTestValue] = useState(1);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
@@ -195,45 +171,13 @@ export function MobileLandingDashboard() {
   const hasPendingStoredLandingLanguageRef = useRef(false);
   const consumedMissionActionRef = useRef<string | null>(null);
   const selectedLanguageRef = useRef(selectedLanguage);
-  const dayStreakTestStartedRef = useRef(false);
-  const dayStreakTestReopenTimerRef = useRef<number | null>(null);
   const tutorialCardSessionRef = useRef<{
     layer: TutorialCardLayer;
     language: LanguageCode;
   } | null>(null);
 
-  const dailyStreakTestMode =
-    searchParams.get("daily-streak-test") === "1" ||
-    searchParams.get("daily-streak-test") === "true" ||
-    searchParams.get("day-streak-test") === "1" ||
-    searchParams.get("day-streak-test") === "true";
-  const dayStreakSnapshot = useMemo<DailyStreakSnapshot | null>(
-    () => (dailyStreakTestMode ? createDailyStreakTestSnapshot(dayStreakTestValue) : dailyStreak),
-    [dailyStreak, dailyStreakTestMode, dayStreakTestValue],
-  );
-
-  useEffect(() => {
-    if (!dailyStreakTestMode) {
-      dayStreakTestStartedRef.current = false;
-      return;
-    }
-
-    if (dayStreakTestStartedRef.current) {
-      return;
-    }
-
-    dayStreakTestStartedRef.current = true;
-    setDayStreakTestValue(1);
-    setDayStreakOpen(true);
-  }, [dailyStreakTestMode]);
-
-  useEffect(() => {
-    return () => {
-      if (dayStreakTestReopenTimerRef.current !== null) {
-        window.clearTimeout(dayStreakTestReopenTimerRef.current);
-      }
-    };
-  }, []);
+  const showDailyStreakLoading = Boolean(user) && (dailyStreakLoading || dayStreakSnapshot === null);
+  const showSeriesPositionLoading = Boolean(user) && leaderboardLoading;
 
   useEffect(() => {
     selectedLanguageRef.current = selectedLanguage;
@@ -775,8 +719,7 @@ export function MobileLandingDashboard() {
         onClick={() => {
           vibrate("tap");
           requireAuthAction(() => {
-            void refreshDailyStreak?.();
-            setDayStreakOpen(true);
+            openDayStreak();
           }, { nextPath: "/" });
         }}
         className="absolute right-2 top-[4.25rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
@@ -792,6 +735,80 @@ export function MobileLandingDashboard() {
           height={256}
           className="size-[2.45rem] object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]"
         />
+        <span
+          data-mobile-day-streak-count
+          className={cn(
+            "absolute -bottom-2 right-[calc(100%-0.5rem)] z-10 inline-flex min-w-max items-center justify-end gap-0.5 text-right text-sm font-bold leading-none text-white",
+            canUseSuperWater(locale) && "font-super-water",
+          )}
+        >
+          {showDailyStreakLoading ? (
+            <Loader2
+              className="size-4 animate-spin text-white"
+              role="status"
+              aria-label={t("common.loading")}
+            />
+          ) : (
+            <span>
+              {formatSuperWaterText(
+                locale,
+                formatNumber(locale, dayStreakSnapshot?.currentStreak ?? 0),
+              )}
+            </span>
+          )}
+        </span>
+      </button>
+
+      {/* Series leaderboard action */}
+      <button
+        type="button"
+        onClick={() => {
+          vibrate("tap");
+          requireAuthAction(() => {
+            openLeaderboard("streaks");
+          }, { nextPath: "/" });
+        }}
+        className="absolute right-2 top-[7.7rem] z-40 inline-flex size-[2.45rem] touch-manipulation items-center justify-center text-white transition-transform active:scale-[0.98]"
+        aria-label={t("leaderboard.streaks")}
+        data-mobile-series-leaderboard-action
+        data-route-transition-surface
+      >
+        <Image
+          src="/leaderboard/series-leaderboard-icon.png"
+          alt=""
+          aria-hidden="true"
+          width={256}
+          height={256}
+          className="size-[2.45rem] object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.16)]"
+        />
+        <span
+          data-mobile-series-leaderboard-position
+          className={cn(
+            "absolute -bottom-5 right-[1rem] z-10 inline-flex min-w-max translate-x-3 translate-y-0 items-center justify-end text-right text-[0.68rem] font-bold leading-none text-yellow-300",
+            canUseSuperWater(locale) && "font-super-water",
+            "origin-top-right rotate-[20deg]",
+          )}
+        >
+          {showSeriesPositionLoading ? (
+            <Loader2
+              className="size-4 animate-spin text-yellow-300"
+              role="status"
+              aria-label={t("common.loading")}
+            />
+          ) : (
+            <span>
+              {formatSuperWaterText(
+                locale,
+                t("home.mobile.leaderboardBadge", {
+                  position:
+                    typeof leaderboardData?.viewer.streakPosition === "number"
+                      ? formatNumber(locale, leaderboardData.viewer.streakPosition)
+                      : "—",
+                }),
+              )}
+            </span>
+          )}
+        </span>
       </button>
 
       {/* Info icon */}
@@ -995,27 +1012,6 @@ export function MobileLandingDashboard() {
         onClose={() => {
           setSelectedGem(null);
         }}
-      />
-
-      <MobileDayStreakMenu
-        open={dayStreakOpen}
-        onClose={() => {
-          if (!dailyStreakTestMode) {
-            setDayStreakOpen(false);
-            return;
-          }
-
-          setDayStreakOpen(false);
-          if (dayStreakTestReopenTimerRef.current !== null) {
-            window.clearTimeout(dayStreakTestReopenTimerRef.current);
-          }
-          dayStreakTestReopenTimerRef.current = window.setTimeout(() => {
-            dayStreakTestReopenTimerRef.current = null;
-            setDayStreakTestValue((current) => current + 1);
-            setDayStreakOpen(true);
-          }, DAILY_STREAK_TEST_REOPEN_DELAY);
-        }}
-        snapshot={dayStreakSnapshot}
       />
 
       <UpgradeDialog
