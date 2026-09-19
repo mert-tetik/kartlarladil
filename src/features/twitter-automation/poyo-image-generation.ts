@@ -8,12 +8,6 @@ const IMAGE_TASK_TIMEOUT_MS = 300_000;
 const IMAGE_TASK_POLL_INTERVAL_MS = 5_000;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
-const BRAND_REFERENCE_ASSETS = [
-  { path: "mascots/mascot1.webp", name: "foxiesdeck-mascot.webp", type: "image/webp" },
-  { path: "splash.png", name: "foxiesdeck-wordmark.png", type: "image/png" },
-  { path: "logo.webp", name: "foxiesdeck-logo.webp", type: "image/webp" },
-] as const;
-
 type PoyoImageSize = "1:1" | "2:3";
 type PoyoTaskStatus = "not_started" | "running" | "finished" | "failed";
 
@@ -53,11 +47,18 @@ async function uploadBase64Asset(base64Data: string, fileName: string, apiKey: s
 
 async function getBrandReferenceUrls(apiKey: string) {
   const requestId = crypto.randomUUID();
-  return await Promise.all(BRAND_REFERENCE_ASSETS.map(async (asset) => {
-    const data = await readFile(join(process.cwd(), "public", asset.path));
-    const dataUrl = `data:${asset.type};base64,${data.toString("base64")}`;
-    return await uploadBase64Asset(dataUrl, `${requestId}-${asset.name}`, apiKey);
-  }));
+  // Keep these paths explicit. A dynamic `public/${asset.path}` lookup makes
+  // Vercel's file tracer include the entire public directory in this function,
+  // even though the image provider needs only these three references.
+  const mascot = await readFile(join(process.cwd(), "public", "mascots", "mascot1.webp"));
+  const wordmark = await readFile(join(process.cwd(), "public", "splash.png"));
+  const logo = await readFile(join(process.cwd(), "public", "logo.webp"));
+
+  return await Promise.all([
+    uploadBase64Asset(`data:image/webp;base64,${mascot.toString("base64")}`, `${requestId}-foxiesdeck-mascot.webp`, apiKey),
+    uploadBase64Asset(`data:image/png;base64,${wordmark.toString("base64")}`, `${requestId}-foxiesdeck-wordmark.png`, apiKey),
+    uploadBase64Asset(`data:image/webp;base64,${logo.toString("base64")}`, `${requestId}-foxiesdeck-logo.webp`, apiKey),
+  ]);
 }
 
 async function submitImageEdit(prompt: string, size: PoyoImageSize, imageUrls: string[], apiKey: string) {
