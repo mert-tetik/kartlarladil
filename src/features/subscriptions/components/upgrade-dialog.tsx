@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export function UpgradeDialog({
   onPricingNavigate,
 }: UpgradeDialogProps) {
   const t = useT();
+  const { locale } = useLocale();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
   const [renderedErrorCode, setRenderedErrorCode] = useState<UpgradeDialogErrorCode | null>(errorCode);
@@ -118,7 +120,7 @@ export function UpgradeDialog({
               onOpenChange(false);
             }}
           >
-            {t("limit.upgradeButtonFirstMonthFree")}
+            {formatSuperWaterUppercaseText(locale, t("limit.upgradeButtonFirstMonthFree"))}
           </Link>
         ) : null}
         {activeErrorCode === "free_active_card_limit" ? (

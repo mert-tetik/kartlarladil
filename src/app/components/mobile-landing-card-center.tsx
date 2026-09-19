@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, Languages } from "lucide-react";
+import { ChevronDown, Languages, ScanText } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
 import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
@@ -30,6 +30,7 @@ export function MobileLandingCardCenter({
   onStatusChange,
   onOpenChange,
   onOpenDraw,
+  onOpenImageTranslate,
   onOpenCreate,
   onOpenGroups,
   showEmptyDeckPointer,
@@ -42,6 +43,7 @@ export function MobileLandingCardCenter({
   onStatusChange: (status: CardStatusFilter) => void;
   onOpenChange: (isOpen: boolean) => void;
   onOpenDraw: () => void;
+  onOpenImageTranslate: () => void;
   onOpenCreate: () => void;
   onOpenGroups: () => void;
   showEmptyDeckPointer: boolean;
@@ -81,6 +83,15 @@ export function MobileLandingCardCenter({
           <ChevronDown className={cn("size-5 transition-transform duration-300", isOpen && "rotate-180")} aria-hidden="true" />
         </button>
         <div className="absolute inset-y-0 right-2 z-50 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenImageTranslate}
+            aria-label={t("imageTranslate.open")}
+            data-tutorial-target="landing-image-translate"
+            className="inline-flex size-10 items-center justify-center text-black transition-transform active:scale-[0.92]"
+          >
+            <ScanText className="size-6" strokeWidth={2.5} aria-hidden="true" />
+          </button>
           <div ref={drawActionRef} className="relative">
             <button type="button" onClick={onOpenDraw} aria-label={t("nav.cardDraw")} data-tutorial-target="landing-draw-cards" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
               <Image src="/card-icons/draw_cards_button.png" alt="" width={40} height={40} className="size-10 translate-y-0.5 object-contain" aria-hidden="true" />

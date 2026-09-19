@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+.control-gradient-outline {
+  --control-outline-fill: #ffffff;
+  --control-outline-top: color-mix(in srgb, var(--brand) 42%, black);
+  --control-outline-bottom: color-mix(in srgb, var(--brand) 68%, white);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--control-outline-fill), var(--control-outline-fill)) padding-box,
+    linear-gradient(
+      180deg,
+      var(--control-outline-top),
+      var(--control-outline-bottom)
+    ) border-box;
+  background-clip: padding-box, border-box;
+  background-origin: border-box;
+}
+
+.control-gradient-outline-brand {
+  --control-outline-fill: var(--brand);
+}
+
 @font-face {
   font-family: "Super Water";
   src: url("/fonts/super-water.ttf") format("truetype");
@@ -64,6 +84,7 @@
   --mobile-nav-bar-height: 3.5rem;
   --mobile-keyboard-offset: 0px;
   --pricing-mobile-surface: #36363b;
+  --pricing-mobile-button-surface: #242428;
   --pricing-mobile-surface-outline-top: #161619;
   --pricing-mobile-surface-outline-bottom: #6a6a70;
 }
@@ -494,6 +515,10 @@ button:disabled,
   background: var(--action-learn);
 }
 
+.mobile-primary-action-depth--brand::after {
+  background: var(--brand);
+}
+
 .mobile-primary-action-depth--sky::after {
   background: var(--action-learned);
 }
@@ -557,11 +582,47 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
 .route-transition-curtain {
   background: var(--background);
   inset: 0;
+  overflow: hidden;
   pointer-events: none;
   position: fixed;
   transform: translate3d(0, -100%, 0);
   transition: transform 260ms cubic-bezier(0.85, 0, 0.15, 1);
-  z-index: 250;
+  z-index: 280;
+}
+
+.route-transition-loading {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  visibility: hidden;
+}
+
+.route-transition-loading > section {
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+html[data-route-transition="covering"] .route-transition-loading {
+  animation: route-transition-loading-reveal 1ms linear 260ms forwards;
+}
+
+@keyframes route-transition-loading-reveal {
+  from {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 html[data-route-transition="covering"] .route-transition-curtain {
@@ -3869,6 +3930,167 @@ body:has([data-games-active]) {
   animation-duration: 280ms;
 }
 
+/* The frame animation is the only opening animation. The whole overlay uses a
+   quick scale/fade exit when it is dismissed. */
+@keyframes subscription-details-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.subscription-details-overlay--closing {
+  animation: subscription-details-exit 300ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.subscription-details-frame-layer {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.subscription-details-frame-layer img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.subscription-details-frame-layer--closing {
+  animation: none;
+}
+
+@keyframes subscription-details-frame-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.subscription-details-intro-item--pending {
+  pointer-events: none;
+  transform: scale(0);
+  visibility: hidden;
+}
+
+.subscription-details-intro-item--enter {
+  animation: subscription-details-ui-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  visibility: visible;
+  will-change: transform;
+}
+
+@keyframes subscription-details-ui-enter {
+  from {
+    transform: scale(0);
+  }
+  72% {
+    transform: scale(1.045);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.subscription-details-intro-item--circle-core.subscription-details-intro-item--enter {
+  animation-duration: 450ms;
+}
+
+.subscription-details-intro-item--cta.subscription-details-intro-item--pending {
+  transform: translateY(-0.75rem) scale(0);
+}
+
+.subscription-details-intro-item--cta.subscription-details-intro-item--enter {
+  animation-name: subscription-details-ui-cta-enter;
+}
+
+@keyframes subscription-details-ui-cta-enter {
+  from {
+    transform: translateY(-0.75rem) scale(0);
+  }
+  72% {
+    transform: translateY(-0.75rem) scale(1.045);
+  }
+  to {
+    transform: translateY(-0.75rem) scale(1);
+  }
+}
+
+.subscription-details-feature {
+  border-bottom: 2px solid rgb(255 255 255 / 75%);
+  max-height: 5.5rem;
+  overflow: hidden;
+  transition:
+    max-height 360ms cubic-bezier(0.85, 0, 0.15, 1),
+    min-height 360ms cubic-bezier(0.85, 0, 0.15, 1),
+    opacity 240ms linear,
+    padding 360ms cubic-bezier(0.85, 0, 0.15, 1),
+    transform 360ms cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.subscription-details-feature:last-child {
+  border-bottom: 0;
+}
+
+/* The image/text translator is a full-screen workspace rather than a brand
+   colored bottom sheet. Keep the surface calm so uploaded photos and word
+   results remain the visual focus while the inner panel can scroll naturally. */
+.image-text-translate-surface {
+  background-color: var(--background);
+  color: var(--foreground);
+  background-image:
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--background-card) 92%, var(--foreground) 8%) 0, transparent 34%),
+    radial-gradient(circle at 6% 78%, color-mix(in srgb, var(--accent-secondary) 16%, transparent) 0, transparent 28%),
+    linear-gradient(180deg, var(--background-card) 0%, var(--background) 100%);
+}
+
+.image-text-translate-surface .control-gradient-outline {
+  --control-outline-fill: var(--background-card);
+}
+
+.image-text-translate-surface .image-text-translate-plain-outline {
+  --control-outline-fill: var(--background-card);
+  background: var(--background-card);
+  background-clip: border-box;
+  border: 2px solid #ffffff;
+}
+
+.image-text-translate-surface .image-text-translate-primary-action {
+  --control-outline-fill: var(--background-inverse);
+}
+
+@keyframes serious-learner-scroll-hint {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(0.4rem);
+  }
+}
+
+.serious-learner-scroll-hint {
+  animation: serious-learner-scroll-hint 900ms cubic-bezier(0.85, 0, 0.15, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .serious-learner-scroll-hint {
+    animation: none;
+  }
+}
+
 /* Gem detail menus use the same card-origin expansion as mission details. */
 .gem-details-overlay {
   animation: mission-details-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
@@ -3955,6 +4177,18 @@ body:has([data-games-active]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .subscription-details-overlay--closing {
+    animation-duration: 1ms;
+  }
+
+  .subscription-details-frame-layer--closing {
+    animation-duration: 1ms;
+  }
+
+  .subscription-details-intro-item--enter {
+    animation-duration: 1ms;
+  }
+
   .mission-details-overlay--preparing {
     transform: none;
   }

@@ -4,10 +4,15 @@ import { TIERS } from "@/data/tiers";
 import { normalizeGeneratedPronunciation } from "@/features/cards/card-pronunciation";
 import type { LanguageCode } from "@/types/domain";
 
+export const CREATE_CARD_DIRECTIONS = ["native-to-learning", "learning-to-native"] as const;
+export const createCardDirectionSchema = z.enum(CREATE_CARD_DIRECTIONS);
+export type CreateCardDirection = z.infer<typeof createCardDirectionSchema>;
+
 export const createCardRequestSchema = z.object({
   locale: z.enum(LOCALE_CODES),
   term: z.string().min(1).max(120),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
+  direction: createCardDirectionSchema.optional(),
 });
 
 export type CreateCardRequest = z.infer<typeof createCardRequestSchema>;
@@ -50,4 +55,11 @@ export function matchesRequestedTargetLanguage(
   targetLanguage?: LanguageCode,
 ) {
   return !targetLanguage || card.language === targetLanguage;
+}
+
+export function isSupportedCreateCardDirection(
+  direction: CreateCardDirection | undefined,
+  targetLanguage?: LanguageCode,
+) {
+  return direction !== "learning-to-native" || targetLanguage !== undefined;
 }

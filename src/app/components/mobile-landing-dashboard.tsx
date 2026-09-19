@@ -19,6 +19,7 @@ import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-she
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
+import { MobileImageTextTranslateOverlay } from "@/app/components/mobile-image-text-translate-overlay";
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
 import { preloadDayStreakVideo } from "@/app/components/mobile-day-streak-menu";
@@ -160,6 +161,7 @@ export function MobileLandingDashboard() {
   const [pendingMissionNavigation, setPendingMissionNavigation] = useState<MissionNavigationTarget | null>(null);
   const [swipeDeckOpen, setSwipeDeckOpen] = useState(false);
   const [customCardOpen, setCustomCardOpen] = useState(false);
+  const [imageTextTranslateOpen, setImageTextTranslateOpen] = useState(false);
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
@@ -376,6 +378,7 @@ export function MobileLandingDashboard() {
     missionsPanelOpen ||
     swipeDeckOpen ||
     customCardOpen ||
+    imageTextTranslateOpen ||
     groupCardOpen ||
     selectedGem !== null ||
     dayStreakOpen;
@@ -410,6 +413,13 @@ export function MobileLandingDashboard() {
     vibrate("tap");
     requireAuthAction(() => {
       setCustomCardOpen(true);
+    }, { nextPath: "/" });
+  }
+
+  function handleOpenImageTranslate() {
+    vibrate("tap");
+    requireAuthAction(() => {
+      setImageTextTranslateOpen(true);
     }, { nextPath: "/" });
   }
 
@@ -949,6 +959,7 @@ export function MobileLandingDashboard() {
         onStatusChange={setCardCenterStatus}
         onOpenChange={handleCardCenterOpenChange}
         onOpenDraw={() => handleDrawCards()}
+        onOpenImageTranslate={() => handleOpenImageTranslate()}
         onOpenCreate={() => handleCreateCard()}
         onOpenGroups={() => handleOpenCardGroups()}
         showEmptyDeckPointer={activeCount === 0 && !hasLandingLayerOpen}
@@ -996,6 +1007,12 @@ export function MobileLandingDashboard() {
         open={customCardOpen}
         onClose={() => setCustomCardOpen(false)}
         landingLanguage={selectedLanguage}
+        onSubscriptionLimitReached={handleCardLimitReached}
+      />
+      <MobileImageTextTranslateOverlay
+        open={imageTextTranslateOpen}
+        onClose={() => setImageTextTranslateOpen(false)}
+        targetLanguage={selectedLanguage}
         onSubscriptionLimitReached={handleCardLimitReached}
       />
       <MobileCardGroupSheet

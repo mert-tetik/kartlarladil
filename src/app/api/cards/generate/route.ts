@@ -7,6 +7,7 @@ import {
 import {
   createCardRequestSchema,
   generatedCardSchema,
+  isSupportedCreateCardDirection,
   matchesRequestedTargetLanguage,
 } from "@/features/cards/create-card-schema";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
+  if (!isSupportedCreateCardDirection(parsed.data.direction, parsed.data.targetLanguage)) {
+    return Response.json({ errorCode: "invalid_request" }, { status: 400 });
+  }
+
   const entitlements = await getUserEntitlements(user.id);
   const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "create_card");
 
@@ -50,6 +55,7 @@ export async function POST(request: Request) {
   const instructions = buildCreateCardInstructions({
     locale: parsed.data.locale,
     targetLanguage: parsed.data.targetLanguage,
+    direction: parsed.data.direction,
   });
   const input = buildCreateCardInput(parsed.data);
 

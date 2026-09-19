@@ -9,7 +9,7 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { TIER_STYLES } from "@/data/tiers";
 import { cn } from "@/lib/utils";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { buildLevelConfig, getHighestTierForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
 import { generateWordChallengeItems } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
@@ -190,7 +190,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
                   {currentItem.card.tier}
                 </span>
                 <span className={cn("text-sm font-semibold uppercase tracking-wider text-slate-600", superWaterFont && "font-super-water")}>
-                  {formatSuperWaterText(locale, t("games.wordChallenge.question"))}
+                  {formatSuperWaterUppercaseText(locale, t("games.wordChallenge.question"))}
                 </span>
                 <p className="text-center text-2xl font-semibold leading-snug text-slate-950 sm:text-3xl">
                   {`${currentItem.card.term} = ${currentItem.proposedMeaning}`}

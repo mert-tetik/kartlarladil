@@ -50,7 +50,9 @@ export function formatSuperWaterText(locale: LocaleCode, text: string) {
   return text
     .replace(SPECIAL_LATIN_CHARACTER_PATTERN, (character) => ASCII_CHARACTER_REPLACEMENTS[character] ?? character)
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    // Locale-aware Turkish casing can produce dotted capital I again.
+    .replace(/\u0130/g, "I");
 }
 
 /**

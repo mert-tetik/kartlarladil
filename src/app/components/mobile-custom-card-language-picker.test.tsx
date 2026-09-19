@@ -7,7 +7,7 @@ import {
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 describe("MobileCustomCardLanguagePicker", () => {
-  it("shows the selected language and lets the user choose a different target", () => {
+  it("shows the selected language and lets the user choose a different target", async () => {
     const onChange = vi.fn();
 
     render(
@@ -19,7 +19,7 @@ describe("MobileCustomCardLanguagePicker", () => {
     expect(screen.getByRole("button", { name: /russian/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /russian/i }));
-    fireEvent.click(screen.getByRole("option", { name: /german/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /deutsch/i }));
 
     expect(onChange).toHaveBeenCalledWith("de");
   });

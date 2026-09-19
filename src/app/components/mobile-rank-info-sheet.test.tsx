@@ -112,6 +112,7 @@ describe("MobileRankInfoSheet", () => {
     });
     const trackWidth = track.clientWidth || window.innerWidth;
     await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
+    const startScrollLeft = track.scrollLeft;
 
     fireEvent.pointerDown(track, {
       pointerId: 1,
@@ -124,6 +125,10 @@ describe("MobileRankInfoSheet", () => {
       pointerType: "touch",
       clientX: 100,
     });
+
+    expect(track.scrollLeft).toBe(startScrollLeft + 220);
+    expect(track).toHaveAttribute("data-mobile-rank-dragging", "true");
+
     fireEvent.pointerUp(track, {
       pointerId: 1,
       pointerType: "touch",
@@ -134,6 +139,52 @@ describe("MobileRankInfoSheet", () => {
       expect(document.querySelector("[data-rank-index='6']")).toHaveAttribute("data-highlighted", "true");
     });
     expect(document.querySelector("[data-rank-index='5']")).toHaveAttribute("data-highlighted", "false");
+  });
+
+  it("follows a mouse drag continuously before settling", async () => {
+    const currentRank = RANKS[5];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileRankInfoSheet
+          isOpen
+          onClose={vi.fn()}
+          rank={currentRank}
+          totalPoints={currentRank.minPoints}
+        />
+      </LocaleProvider>,
+    );
+
+    const track = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-mobile-rank-carousel]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    const trackWidth = track.clientWidth || window.innerWidth;
+    await waitFor(() => expect(track.scrollLeft).toBe(5 * trackWidth));
+
+    fireEvent.pointerDown(track, {
+      pointerId: 2,
+      pointerType: "mouse",
+      button: 0,
+      clientX: 300,
+    });
+    fireEvent.pointerMove(track, {
+      pointerId: 2,
+      pointerType: "mouse",
+      clientX: 240,
+    });
+
+    expect(track.scrollLeft).toBe(5 * trackWidth + 60);
+    expect(track).toHaveAttribute("data-mobile-rank-dragging", "true");
+
+    fireEvent.pointerUp(track, {
+      pointerId: 2,
+      pointerType: "mouse",
+      clientX: 240,
+    });
+
+    await waitFor(() => expect(track).toHaveAttribute("data-mobile-rank-dragging", "false"));
   });
 
   it("updates the rank label and gradient when a different rank is highlighted", async () => {
@@ -157,6 +208,10 @@ describe("MobileRankInfoSheet", () => {
     });
     expect(label).toHaveTextContent("Kelime Ustasi");
     expect(label).toHaveStyle({ color: RANK_ACCENT_COLORS["kelime-ustasi"] });
-    expect(label.nextElementSibling).toHaveTextContent("10.720");
+    expect(document.querySelector("[data-mobile-rank-total-points]")).toHaveTextContent("10.720");
+    expect(document.querySelector("[data-rank-index='5'] [data-rank-visual]")).toHaveTextContent("7.500");
+    expect(document.querySelector("[data-rank-progress='cok-dilli']")).toHaveAttribute("role", "progressbar");
+    expect(document.querySelector("[data-rank-progress='cok-dilli']")).toHaveAttribute("aria-valuenow", "10720");
+    expect(document.querySelector("[data-rank-index='5'] [data-rank-progress]")).toBeNull();
   });
 });

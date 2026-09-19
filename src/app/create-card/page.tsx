@@ -4,17 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Library, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CustomCardDirectionToggle } from "@/app/components/custom-card-direction-toggle";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
+import { getLanguageDisplayName } from "@/i18n/labels";
+import type { CreateCardDirection, GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { TranslationKey } from "@/i18n/types";
-import type { VocabularyCard } from "@/types/domain";
-import { cn, normalizeSearch } from "@/lib/utils";
+import type { LanguageCode, VocabularyCard } from "@/types/domain";
+import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
@@ -31,6 +34,12 @@ export default function CreateCardPage() {
   const cards = useInventoryStore((state) => state.cards);
 
   const [term, setTerm] = useState("");
+  const [direction, setDirection] = useState<CreateCardDirection>("learning-to-native");
+  const targetLanguage = resolveDesktopTargetLanguage(locale, user?.profile.preferredLanguageCode);
+  const inputLanguage = direction === "native-to-learning" ? locale : targetLanguage;
+  const termPlaceholder = t("createCard.termPlaceholder", {
+    language: getLanguageDisplayName(inputLanguage, locale),
+  });
   const [foundCard, setFoundCard] = useState<VocabularyCard | null>(null);
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,19 +103,20 @@ export default function CreateCardPage() {
     setAiResponse(null);
 
     try {
-      const catalogMatches = localCardRepository.list({ query: trimmedTerm });
-      const normalizedTerm = normalizeSearch(trimmedTerm);
-      const exactTermMatch = catalogMatches.find(
-        (card) => normalizeSearch(card.term) === normalizedTerm,
-      );
-      const selectedCard = exactTermMatch ?? catalogMatches[0];
+      const selectedCard = findCustomCardMatch({
+        cards: localCardRepository.list({ language: targetLanguage }),
+        term: trimmedTerm,
+        inputLanguage: locale,
+        targetLanguage,
+        direction,
+      });
 
       if (selectedCard) {
         setFoundCard(selectedCard);
         return;
       }
 
-      const result = await generateCardRequest({ locale, term: trimmedTerm });
+      const result = await generateCardRequest({ locale, term: trimmedTerm, targetLanguage, direction });
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
     } catch (error) {
@@ -244,7 +254,11 @@ export default function CreateCardPage() {
           data-create-card-form
           className="relative z-10 flex w-full max-w-md flex-col items-start gap-2 px-4 pt-36 text-left sm:gap-3 sm:pt-40"
         >
-          <div className="w-full space-y-3 text-left mb-4 sm:mb-5">
+          <div className="mb-4 w-full space-y-3 text-left sm:mb-5">
+            <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
+            <p className="text-xs font-medium text-foreground-muted">
+              {t("createCard.targetLanguage.label")}: {getLanguageDisplayName(targetLanguage, locale)}
+            </p>
             <label htmlFor="term" className="text-sm font-medium">
               {t("createCard.term")}
             </label>
@@ -254,9 +268,9 @@ export default function CreateCardPage() {
               value={term}
               onChange={(event) => setTerm(event.target.value)}
               onFocus={() => window.scrollTo(0, 0)}
-              placeholder={t("createCard.termPlaceholder")}
+              placeholder={termPlaceholder}
               maxLength={120}
-              className="h-12 w-full rounded-md border border-border bg-white px-4 text-base text-black outline-none placeholder:text-gray-500 ring-2 ring-brand"
+              className="control-gradient-outline h-12 w-full rounded-full px-4 text-base text-black outline-none placeholder:text-gray-500"
             />
           </div>
 
@@ -270,7 +284,7 @@ export default function CreateCardPage() {
             size="lg"
             onClick={handleGenerate}
             disabled={loading || !term.trim()}
-            className="h-12 w-full gap-2 bg-brand text-brand-foreground hover:bg-brand-hover"
+            className="control-gradient-outline control-gradient-outline-brand h-12 w-full gap-2 rounded-full text-brand-foreground hover:bg-brand-hover"
           >
             {loading ? <Loader2 className="size-5 animate-spin" /> : <Library className="size-5" />}
             {loading ? t("createCard.generating") : t("createCard.generate")}
@@ -357,6 +371,14 @@ export default function CreateCardPage() {
       )}
     </main>
   );
+}
+
+function resolveDesktopTargetLanguage(locale: string, preferredLanguage?: LanguageCode | null): LanguageCode {
+  if (preferredLanguage && preferredLanguage !== locale) {
+    return preferredLanguage;
+  }
+
+  return locale === "en" ? "tr" : "en";
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {

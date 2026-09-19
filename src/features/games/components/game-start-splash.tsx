@@ -9,7 +9,7 @@ import {
   hasPendingGameLaunch,
 } from "@/features/games/game-launch-transition";
 import type { GameName } from "@/features/games/game-types";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/domain";
 
@@ -135,7 +135,7 @@ export function GameStartSplash({ onComplete, onExited, game, level, tier }: Gam
         </div>
       ) : (
         <span className={cn("break-words px-6 text-center text-5xl font-bold uppercase tracking-wider text-white sm:text-6xl lg:text-7xl", canUseSuperWater(locale) && "font-super-water")}>
-          {formatSuperWaterText(locale, t("games.startSplash"))}
+          {formatSuperWaterUppercaseText(locale, t("games.startSplash"))}
         </span>
       )}
     </div>,

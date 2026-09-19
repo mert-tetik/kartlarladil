@@ -35,6 +35,8 @@ export interface MobileBottomSheetShellProps {
   panelClassName?: string;
   contentClassName?: string;
   showBackdrop?: boolean;
+  fullScreen?: boolean;
+  showPanelDecoration?: boolean;
   titleId?: string;
   panelLabel?: string;
   tutorialLayer?: string;
@@ -52,6 +54,8 @@ export function MobileBottomSheetShell({
   panelClassName,
   contentClassName,
   showBackdrop = true,
+  fullScreen = false,
+  showPanelDecoration = true,
   titleId,
   panelLabel,
   tutorialLayer,
@@ -179,7 +183,11 @@ export function MobileBottomSheetShell({
 
   const content = (
     <div
-      className={cn("fixed inset-0 z-50 flex flex-col justify-end lg:hidden", hasPresented ? "visible" : "invisible pointer-events-none")}
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col lg:hidden",
+        fullScreen ? "justify-start" : "justify-end",
+        hasPresented ? "visible" : "invisible pointer-events-none",
+      )}
       aria-hidden={!open}
       inert={!open}
       role="dialog"
@@ -199,82 +207,103 @@ export function MobileBottomSheetShell({
         ref={contentRef}
         data-mobile-bottom-sheet-panel
         className={cn(
-          "relative z-10 isolate flex max-h-[calc(100dvh-var(--app-header-height)-3rem)] w-full flex-col overflow-visible rounded-t-[2rem] bg-brand text-brand-foreground shadow-sm",
+          "relative z-10 isolate flex w-full flex-col bg-brand text-brand-foreground shadow-sm",
+          fullScreen
+            ? "h-full max-h-none overflow-hidden rounded-none"
+            : "max-h-[calc(100dvh-var(--app-header-height)-3rem)] overflow-visible rounded-t-[2rem]",
           isDragging ? "transition-none" : "transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           panelClassName,
         )}
         style={{ transform: entered ? `translateY(${dragY}px)` : "translateY(100%)" }}
       >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-t-[2rem] opacity-80"
-          style={{
-            backgroundImage: [
-              `linear-gradient(to bottom, ${MOBILE_BOTTOM_SHEET_GRADIENT_START} 0%, color-mix(in srgb, var(--brand) 97%, white) 24%, transparent 62%)`,
-              "radial-gradient(circle at 12% 25%, rgb(255 255 255 / 0.2) 0, rgb(255 255 255 / 0.08) 11%, transparent 28%)",
-              "radial-gradient(circle at 88% 39%, rgb(255 255 255 / 0.16) 0, rgb(255 255 255 / 0.06) 12%, transparent 30%)",
-              "radial-gradient(circle at 18% 67%, rgb(255 255 255 / 0.14) 0, rgb(255 255 255 / 0.05) 12%, transparent 27%)",
-              "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
-            ].join(", "),
-          }}
-        />
-
-        <div
-          data-mobile-bottom-sheet-drag-handle
-          onPointerDown={handleDragStart}
-          onPointerMove={handleDragMove}
-          onPointerUp={handleDragEnd}
-          onPointerCancel={handleDragCancel}
-          className="relative z-0 flex h-[3.5rem] shrink-0 touch-none select-none items-start justify-center"
-        >
-          <span
+        {showPanelDecoration && !fullScreen ? (
+          <div
             aria-hidden="true"
-            data-mobile-bottom-sheet-protrusion
-            className="pointer-events-none absolute left-1/2 top-0 z-0 aspect-[654/151]"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-t-[2rem] opacity-80"
             style={{
-              width: `${MOBILE_BOTTOM_SHEET_PROTRUSION.width}px`,
-              transform: `translate3d(calc(-50% + ${MOBILE_BOTTOM_SHEET_PROTRUSION.x}px), calc(-100% + ${MOBILE_BOTTOM_SHEET_PROTRUSION.y}px), 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.scale})`,
-              transformOrigin: "50% 100%",
+              backgroundImage: [
+                `linear-gradient(to bottom, ${MOBILE_BOTTOM_SHEET_GRADIENT_START} 0%, color-mix(in srgb, var(--brand) 97%, white) 24%, transparent 62%)`,
+                "radial-gradient(circle at 12% 25%, rgb(255 255 255 / 0.2) 0, rgb(255 255 255 / 0.08) 11%, transparent 28%)",
+                "radial-gradient(circle at 88% 39%, rgb(255 255 255 / 0.16) 0, rgb(255 255 255 / 0.06) 12%, transparent 30%)",
+                "radial-gradient(circle at 18% 67%, rgb(255 255 255 / 0.14) 0, rgb(255 255 255 / 0.05) 12%, transparent 27%)",
+                "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+              ].join(", "),
             }}
+          />
+        ) : null}
+
+        {!fullScreen ? (
+          <div
+            data-mobile-bottom-sheet-drag-handle
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragCancel}
+            className="relative z-0 flex h-[3.5rem] shrink-0 touch-none select-none items-start justify-center"
           >
             <span
-              className="absolute inset-0"
-              style={{
-                backgroundColor: MOBILE_BOTTOM_SHEET_GRADIENT_START,
-                maskImage: "url('/missions/cikinti-v2.png')",
-                WebkitMaskImage: "url('/missions/cikinti-v2.png')",
-                maskPosition: "center",
-                WebkitMaskPosition: "center",
-                maskRepeat: "no-repeat",
-                WebkitMaskRepeat: "no-repeat",
-                maskSize: "100% 100%",
-                WebkitMaskSize: "100% 100%",
-              }}
-            />
-            <span
               aria-hidden="true"
-              className="absolute left-1/2 top-[28%] size-16 rounded-full"
+              data-mobile-bottom-sheet-protrusion
+              className="pointer-events-none absolute left-1/2 top-0 z-0 aspect-[654/151]"
               style={{
-                backgroundColor: MOBILE_BOTTOM_SHEET_CIRCLE_COLOR,
-                transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.circleY}px, 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.circleScale})`,
-                transformOrigin: "50% 50%",
+                width: `${MOBILE_BOTTOM_SHEET_PROTRUSION.width}px`,
+                transform: `translate3d(calc(-50% + ${MOBILE_BOTTOM_SHEET_PROTRUSION.x}px), calc(-100% + ${MOBILE_BOTTOM_SHEET_PROTRUSION.y}px), 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.scale})`,
+                transformOrigin: "50% 100%",
               }}
-            />
+            >
+              <span
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: MOBILE_BOTTOM_SHEET_GRADIENT_START,
+                  maskImage: "url('/missions/cikinti-v2.png')",
+                  WebkitMaskImage: "url('/missions/cikinti-v2.png')",
+                  maskPosition: "center",
+                  WebkitMaskPosition: "center",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskSize: "100% 100%",
+                  WebkitMaskSize: "100% 100%",
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-[28%] size-16 rounded-full"
+                style={{
+                  backgroundColor: MOBILE_BOTTOM_SHEET_CIRCLE_COLOR,
+                  transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.circleY}px, 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.circleScale})`,
+                  transformOrigin: "50% 50%",
+                }}
+              />
+              <span
+                data-mobile-bottom-sheet-visual
+                className="absolute left-1/2 top-[28%] flex size-16 items-center justify-center"
+                style={{ transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.iconY}px, 0)` }}
+              >
+                {visual}
+              </span>
+            </span>
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            "relative z-10 flex shrink-0 items-center justify-center px-14 pb-2 pt-0",
+            fullScreen && "justify-start border-b border-border bg-background-card/80 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]",
+          )}
+        >
+          {fullScreen ? (
             <span
               data-mobile-bottom-sheet-visual
-              className="absolute left-1/2 top-[28%] flex size-16 items-center justify-center"
-              style={{ transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.iconY}px, 0)` }}
+              className="mr-3 flex size-10 shrink-0 items-center justify-center rounded-full bg-background-muted text-foreground [&>svg]:!size-6"
             >
               {visual}
             </span>
-          </span>
-        </div>
-
-        <div className="relative z-10 flex shrink-0 items-center justify-center px-14 pb-2 pt-0">
+          ) : null}
           <h2
             id={titleId}
             className={cn(
               "text-center text-3xl font-bold leading-none text-brand-foreground",
+              fullScreen && "pr-12 text-left text-xl text-foreground",
               canUseSuperWater(locale) && "font-super-water",
             )}
           >
@@ -285,7 +314,12 @@ export function MobileBottomSheetShell({
             size="icon"
             onClick={closeSheet}
             aria-label={t("common.close")}
-            className="!size-12 absolute right-2 top-[-2.25rem] text-brand-foreground/90 hover:bg-white/15 hover:text-brand-foreground"
+            className={cn(
+              "!size-12 absolute text-brand-foreground/90 hover:bg-white/15 hover:text-brand-foreground",
+              fullScreen
+                ? "right-2 top-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground hover:bg-background-muted hover:text-foreground"
+                : "right-2 top-[-2.25rem]",
+            )}
           >
             <X className="size-7 stroke-[3]" aria-hidden="true" />
           </Button>

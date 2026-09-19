@@ -19,6 +19,7 @@ export function SegmentedToggle<T extends string>({
   ariaLabel,
   className,
   selectedClassName,
+  optionProps,
 }: {
   value: T;
   options: readonly SegmentedToggleOption<T>[];
@@ -27,6 +28,7 @@ export function SegmentedToggle<T extends string>({
   ariaLabel?: string;
   className?: string;
   selectedClassName?: string;
+  optionProps?: (value: T) => Record<`data-${string}`, string | undefined> & { "aria-label"?: string };
 }) {
   return (
     <div
@@ -44,6 +46,7 @@ export function SegmentedToggle<T extends string>({
           <button
             key={option.value}
             type="button"
+            {...optionProps?.(option.value)}
             onClick={() => onChange(option.value)}
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",

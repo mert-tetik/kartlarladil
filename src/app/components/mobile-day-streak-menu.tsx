@@ -224,7 +224,7 @@ export function MobileDayStreakMenu({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[70] overflow-hidden bg-[#F08608] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
+        "fixed inset-0 z-[70] overflow-hidden bg-[var(--background)] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)] lg:hidden",
         phase === "closing" ? "pointer-events-none scale-[0.98] opacity-0" : "scale-100 opacity-100",
       )}
       role="dialog"
@@ -400,7 +400,7 @@ export function MobileDayStreakMenu({
                   return (
                     <div
                       key={day.key}
-                      className="relative isolate flex min-w-0 flex-col items-center gap-2"
+                      className="relative -top-6 isolate flex min-w-0 flex-col items-center gap-2"
                       data-day-streak-day={day.key}
                     >
                       <span
@@ -410,11 +410,11 @@ export function MobileDayStreakMenu({
                         )}
                         data-day-streak-weekday={day.key}
                       >
-                        {formatSuperWaterText(locale, shortWeekday(day.date, locale))}
+                        {formatSuperWaterUppercaseText(locale, shortWeekday(day.date, locale))}
                       </span>
                       <span
                         className={cn(
-                          "relative -top-8 inline-flex size-10 items-center justify-center rounded-full border-4 border-white bg-[#303030] text-white transition-colors sm:size-12",
+                          "relative inline-flex size-10 items-center justify-center rounded-full border-4 border-white bg-[#303030] text-white transition-colors sm:size-12",
                           isLogged && "border-white bg-white",
                         )}
                         aria-label={isLogged ? t("dayStreak.loggedIn") : t("dayStreak.notLoggedIn")}

@@ -53,6 +53,17 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function lightenHex(hex: string, amount: number) {
+  const normalized = hex.replace("#", "");
+  const value = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+  const lightened = channels.map((channel) => Math.round(channel + (255 - channel) * amount));
+
+  return `rgb(${lightened[0]}, ${lightened[1]}, ${lightened[2]})`;
+}
+
 export function MobileRankInfoSheet({
   isOpen,
   onClose,
@@ -117,7 +128,7 @@ export function MobileRankInfoSheet({
 
     if (initializedRef.current) {
       vibrate("tap");
-      playSoundEffect("quiz-select");
+      playSoundEffect("rank-highlight");
     }
   }, []);
 
@@ -241,6 +252,9 @@ export function MobileRankInfoSheet({
     const track = rankTrackRef.current;
     if (!track) return;
 
+    event.preventDefault();
+    track.style.scrollBehavior = "auto";
+
     pointerDragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -264,7 +278,15 @@ export function MobileRankInfoSheet({
     if (!drag.moved) return;
 
     event.preventDefault();
-    track.scrollLeft = drag.startScrollLeft - deltaX;
+    const trackWidth = getTrackWidth();
+    const measuredMaxScrollLeft = track.scrollWidth - track.clientWidth;
+    const maxScrollLeft = Math.max(
+      0,
+      measuredMaxScrollLeft > 0
+        ? measuredMaxScrollLeft
+        : trackWidth * RANKS.length - track.clientWidth,
+    );
+    track.scrollLeft = Math.max(0, Math.min(maxScrollLeft, drag.startScrollLeft - deltaX));
     updateHighlight(getNearestRankIndex());
   }
 
@@ -276,6 +298,7 @@ export function MobileRankInfoSheet({
     const deltaX = event.clientX - drag.startX;
     pointerDragRef.current = null;
     setIsDragging(false);
+    track.style.scrollBehavior = "smooth";
 
     if (typeof track.releasePointerCapture === "function" && track.hasPointerCapture(event.pointerId)) {
       track.releasePointerCapture(event.pointerId);
@@ -292,13 +315,22 @@ export function MobileRankInfoSheet({
       return;
     }
 
+    if (drag.moved) {
+      const nextIndex = getNearestRankIndex();
+      updateHighlight(nextIndex);
+      centerRank(nextIndex, "smooth");
+      return;
+    }
+
     settleRank();
   }
 
   function handlePointerCancel() {
     if (!pointerDragRef.current) return;
+    const track = rankTrackRef.current;
     pointerDragRef.current = null;
     setIsDragging(false);
+    if (track) track.style.scrollBehavior = "smooth";
     settleRank();
   }
 
@@ -339,12 +371,13 @@ export function MobileRankInfoSheet({
       <div
         ref={rankTrackRef}
         className={cn(
-          "absolute inset-0 z-10 flex w-full overflow-x-hidden overscroll-x-none select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          "touch-none [scroll-behavior:smooth]",
+          "absolute inset-0 z-10 flex w-full overflow-x-auto overscroll-x-none select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "touch-none",
           isDragging ? "cursor-grabbing" : "cursor-grab",
         )}
         data-mobile-rank-scroll
         data-mobile-rank-carousel
+        data-mobile-rank-dragging={isDragging ? "true" : "false"}
         aria-label={t("home.mobile.rankInfoTitle")}
         tabIndex={0}
         onPointerDown={handlePointerDown}
@@ -357,6 +390,9 @@ export function MobileRankInfoSheet({
             const isHighlighted = index === highlightRankIndex;
             const achieved = item.minPoints <= totalPoints;
             const isLocked = index > currentRankIndex;
+            const progressToRank = item.minPoints > 0
+              ? Math.min(100, Math.max(0, (totalPoints / item.minPoints) * 100))
+              : 0;
 
             return (
               <article
@@ -373,39 +409,88 @@ export function MobileRankInfoSheet({
                   )}
                   data-rank-visual
                 >
-                  <div className="relative size-[clamp(12rem,58vw,20rem)]">
-                    {!isLocked ? (
-                      <div
-                        className={cn(
-                          "relative z-10 size-full transition-opacity duration-300",
-                          isHighlighted ? "opacity-100" : "opacity-35",
-                        )}
-                      >
-                        <RankIcon icon={item.icon} className="size-full" sizes="min(58vw, 320px)" />
-                      </div>
-                    ) : null}
-                    {isLocked ? (
-                      <Image
-                        src="/missions/mission-lock-icon-v3.png"
-                        alt=""
-                        width={512}
-                        height={512}
-                        sizes="min(58vw, 320px)"
-                        unoptimized
-                        className="absolute inset-0 z-20 size-full object-contain"
-                        aria-hidden="true"
-                        draggable={false}
-                        data-rank-lock="true"
-                      />
-                    ) : null}
-                  </div>
-                </div>
+                  <div className={cn("flex flex-col items-center", isLocked && "translate-y-6")}>
+                    <p
+                      data-rank-label={item.id}
+                      data-mobile-current-rank-label={isHighlighted ? true : undefined}
+                      className={cn(
+                        "mb-4 max-w-[calc(100vw-2rem)] text-[clamp(2rem,11vw,3.5rem)] font-bold leading-none",
+                        canUseSuperWater(locale) && "font-super-water",
+                      )}
+                      style={{ color: getAccentColor(item.id) }}
+                    >
+                      {formatSuperWaterText(locale, getRankLabel(item, locale))}
+                    </p>
 
-                <div className="pointer-events-none absolute inset-x-5 bottom-[max(6.5rem,env(safe-area-inset-bottom)+5rem)] flex flex-col items-center text-center">
-                  <p className="inline-flex items-center gap-1.5 text-base font-semibold leading-none text-white/90">
-                    {formatNumber(locale, item.minPoints)}
-                    <ScoreIcon size={19} className={cn("size-5", !achieved && "grayscale opacity-60")} />
-                  </p>
+                    <div className="relative size-64">
+                      {!isLocked ? (
+                        <div
+                          className={cn(
+                            "relative z-10 size-full transition-opacity duration-300",
+                            isHighlighted ? "opacity-100" : "opacity-35",
+                          )}
+                        >
+                          <RankIcon icon={item.icon} className="size-full" sizes="256px" />
+                        </div>
+                      ) : null}
+                      {isLocked ? (
+                        <Image
+                          src="/missions/mission-lock-icon-v3.png"
+                          alt=""
+                          width={512}
+                          height={512}
+                          sizes="256px"
+                          unoptimized
+                          className="absolute inset-0 z-20 size-full object-contain"
+                          aria-hidden="true"
+                          draggable={false}
+                          data-rank-lock="true"
+                        />
+                      ) : null}
+                    </div>
+
+                    <p
+                      className={cn(
+                        "mt-4 inline-flex items-center gap-2 text-2xl font-semibold leading-none text-white/90",
+                        canUseSuperWater(locale) && "font-super-water",
+                      )}
+                      data-rank-requirement={item.id}
+                    >
+                      {formatNumber(locale, item.minPoints)}
+                      <ScoreIcon size={27} className={cn("size-7", !achieved && "grayscale opacity-60")} />
+                    </p>
+                  </div>
+
+                  {isLocked ? (
+                    <div
+                      role="progressbar"
+                      aria-label={getRankLabel(item, locale)}
+                      aria-valuemin={0}
+                      aria-valuemax={item.minPoints}
+                      aria-valuenow={Math.min(totalPoints, item.minPoints)}
+                      className="mt-8 translate-y-6 flex w-52 flex-col items-center"
+                      data-rank-progress={item.id}
+                    >
+                      <span
+                        className={cn(
+                          "mb-2 text-lg font-semibold leading-none text-white",
+                          canUseSuperWater(locale) && "font-super-water",
+                        )}
+                        data-rank-progress-percent={item.id}
+                      >
+                        {formatNumber(locale, Math.round(progressToRank))}%
+                      </span>
+                      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white">
+                        <div
+                          className="h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]"
+                          style={{
+                            width: `${progressToRank}%`,
+                            backgroundColor: lightenHex(getAccentColor(item.id), 0.24),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
@@ -413,7 +498,7 @@ export function MobileRankInfoSheet({
         </div>
       </div>
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center px-12 pt-[max(1.75rem,env(safe-area-inset-top)+1rem)] text-center">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-start px-6 pt-[max(1.75rem,env(safe-area-inset-top)+1rem)] text-left">
         <p
           className={cn(
             "text-[clamp(1.5rem,7vw,2.4rem)] font-bold leading-none text-white",
@@ -422,17 +507,13 @@ export function MobileRankInfoSheet({
         >
           {formatSuperWaterText(locale, t("home.mobile.rankInfoTitle"))}
         </p>
-        <p
-          data-mobile-current-rank-label
+        <span
+          data-mobile-rank-total-points
           className={cn(
-            "mt-3 max-w-full text-[clamp(1.2rem,5vw,1.7rem)] font-semibold leading-none",
+            "mt-3 inline-flex items-center gap-2 text-[clamp(1.3rem,6vw,1.8rem)] font-semibold leading-none text-white",
             canUseSuperWater(locale) && "font-super-water",
           )}
-          style={{ color: highlightedAccentColor }}
         >
-          {formatSuperWaterText(locale, getRankLabel(highlightedRank, locale))}
-        </p>
-        <span className="mt-3 inline-flex items-center gap-2 text-[clamp(1.1rem,5vw,1.5rem)] font-semibold leading-none text-white">
           {formatNumber(locale, totalPoints)}
           <ScoreIcon size={25} className="size-6" />
         </span>
@@ -451,7 +532,7 @@ export function MobileRankInfoSheet({
       <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom)+1rem)] z-30 flex justify-center px-6">
         <p
           className={cn(
-            "text-sm font-semibold text-white/75",
+            "text-xl font-semibold text-white/75",
             canUseSuperWater(locale) && "font-super-water",
           )}
           aria-live="polite"

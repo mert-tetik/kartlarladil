@@ -1,9 +1,17 @@
 "use client";
 
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import Image from "next/image";
 import {
   BookOpen,
+  ChevronDown,
   Gamepad2,
   Headset,
   Layers,
@@ -33,32 +41,70 @@ import {
   TWA_PLANS,
 } from "@/features/subscriptions/components/pricing-page";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
-type BillingCycle = "monthly" | "yearly";
+const SERIOUS_LEARNER_FRAME_COUNT = 50;
+const SERIOUS_LEARNER_FRAME_FPS = 30;
+const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v3";
+const SERIOUS_LEARNER_BASIC_COLOR = "#F4A300";
 
 interface MobileSubscriptionOfferScreenProps {
   onContinueFree: () => void;
+  isTestMode?: boolean;
 }
 
 export function MobileSubscriptionOfferScreen({
   onContinueFree,
+  isTestMode = false,
 }: MobileSubscriptionOfferScreenProps) {
   const t = useT();
   const { locale } = useLocale();
   const { presentPurchaseSuccess } = useSubscription();
   const isTwa = useTwaMode();
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const localizedPricing = useLocalizedPricing(null, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const { purchase, isLoading: isGooglePlayLoading, isSupported } = useGooglePlayBilling();
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const [showFeatureScrollHint, setShowFeatureScrollHint] = useState(false);
+  const featureListRef = useRef<HTMLUListElement>(null);
+  const handleIntroComplete = useCallback(() => setIsIntroComplete(true), []);
+
+  const updateFeatureScrollHint = useCallback(() => {
+    const list = featureListRef.current;
+    if (!list) return;
+
+    const hasMoreContent = list.scrollHeight > list.clientHeight + 4;
+    const isAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 4;
+    setShowFeatureScrollHint(hasMoreContent && !isAtBottom);
+  }, []);
+
+  useEffect(() => {
+    const list = featureListRef.current;
+    if (!list) return;
+
+    updateFeatureScrollHint();
+    list.addEventListener("scroll", updateFeatureScrollHint, { passive: true });
+    window.addEventListener("resize", updateFeatureScrollHint);
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateFeatureScrollHint);
+    resizeObserver?.observe(list);
+
+    return () => {
+      list.removeEventListener("scroll", updateFeatureScrollHint);
+      window.removeEventListener("resize", updateFeatureScrollHint);
+      resizeObserver?.disconnect();
+    };
+  }, [isIntroComplete, updateFeatureScrollHint]);
 
   const plans = isTwa ? TWA_PLANS : PLANS;
   const basicPlan = plans.find((item) => item.plan === "basic");
-  const fallbackPrice = cycle === "yearly" ? basicPlan?.yearlyPrice : basicPlan?.monthlyPrice;
-  const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, "basic", cycle);
-  const localized = getLocalizedPrice(localizedPricing, "basic", cycle);
+  const fallbackPrice = basicPlan?.monthlyPrice;
+  const googlePlayDetails = getGooglePlayPricingDetails(googlePlayPricing, "basic", "monthly");
+  const localized = getLocalizedPrice(localizedPricing, "basic", "monthly");
 
   const priceDisplay = useMemo(() => {
     if (googlePlayDetails) {
@@ -73,32 +119,18 @@ export function MobileSubscriptionOfferScreen({
     return fallbackPrice != null ? `$${fallbackPrice}` : "";
   }, [fallbackPrice, googlePlayDetails, localized, locale]);
 
-  const monthlyEquivalent = useMemo(() => {
-    if (cycle !== "yearly" || basicPlan?.yearlyPrice == null) return null;
-
-    const yearlyDetails = getGooglePlayPricingDetails(googlePlayPricing, "basic", "yearly");
-    if (yearlyDetails) {
-      return formatCurrency(
-        Number.parseFloat(yearlyDetails.price.value) / 12,
-        yearlyDetails.price.currency,
-        locale,
-      );
-    }
-
-    const yearlyLocalized = getLocalizedPrice(localizedPricing, "basic", "yearly");
-    if (yearlyLocalized) {
-      return formatCurrency(yearlyLocalized.amount / 12, yearlyLocalized.currencyCode, locale);
-    }
-
-    return (basicPlan.yearlyPrice / 12).toFixed(2);
-  }, [cycle, basicPlan, googlePlayPricing, localizedPricing, locale]);
-
   async function handlePurchase() {
     setPurchaseError(null);
 
+    if (isTestMode) {
+      presentPurchaseSuccess();
+      onContinueFree();
+      return;
+    }
+
     if (isTwa) {
       try {
-        await purchase(getGooglePlaySku("basic", cycle));
+        await purchase(getGooglePlaySku("basic", "monthly"));
         presentPurchaseSuccess();
         onContinueFree();
       } catch (error) {
@@ -119,140 +151,269 @@ export function MobileSubscriptionOfferScreen({
   }
 
   const isLoading = isGooglePlayLoading;
+  const usesSuperWater = canUseSuperWater(locale);
+  const period = t("pricing.perMonth");
 
   return (
-    <div data-mobile-subscription-offer className="animate-screen-pop flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden overflow-y-auto bg-[#070707] pb-[env(safe-area-inset-bottom)] text-center text-white">
-      <div className="relative isolate h-[42vh] min-h-[260px] w-full overflow-hidden">
-        <Image
-          src="/onboarding-premium-hero.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-top"
+    <div
+      data-mobile-subscription-offer
+      className="relative h-full min-h-0 w-full max-w-none overflow-hidden bg-[#070707] text-center text-white"
+    >
+      <SeriousLearnerOfferFrameAnimation onComplete={handleIntroComplete} />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 z-[2] size-[52rem] -translate-x-1/2 -translate-y-[78%]"
+      >
+        <div
+          className={cn(
+            "subscription-details-intro-item subscription-details-intro-item--circle-core absolute inset-0 rounded-full bg-white",
+            isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+          )}
+          style={{ animationDelay: "0ms" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-[#070707]/75 to-black/20" />
-        <div className="absolute inset-x-0 bottom-4 top-auto flex flex-col items-center px-4">
-          <span className="font-display text-4xl font-bold uppercase tracking-tighter text-yellow-400 drop-shadow-sm sm:text-5xl">
-            {t("pricing.firstMonthFree")}
-          </span>
-          <span className="mt-1 text-xs font-semibold uppercase tracking-widest text-foreground-secondary">
-            {t("pricing.billingMonthly")}
-          </span>
-        </div>
       </div>
 
-      <div className="flex flex-col px-6 pb-8 pt-2">
-        <div className="mt-4 flex items-baseline justify-center gap-1">
-          <span className="font-display text-5xl font-semibold text-white">
-            {priceDisplay}
-          </span>
-          <span className="text-sm text-white/60">
-            {cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth")}
-          </span>
-        </div>
+      <div
+        className={cn(
+          "subscription-details-shell relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col items-center overflow-hidden px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(4.75rem,calc(env(safe-area-inset-top)+3.5rem))]",
+        )}
+      >
+        <div className="flex h-full min-h-0 w-full flex-col items-center">
+          <div className="mx-auto flex w-full flex-none -translate-y-8 flex-col items-center">
+            <div
+              className={cn(
+                "subscription-details-intro-item",
+                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              )}
+              style={{ animationDelay: "530ms" }}
+            >
+              <Image
+                src="/subscriptions/serious-learner-basic.png"
+                alt=""
+                width={1254}
+                height={1254}
+                priority
+                sizes="18rem"
+                className="h-40 w-80 flex-none -translate-y-9 object-contain"
+              />
+            </div>
 
-        {cycle === "yearly" && monthlyEquivalent ? (
-          <p className="mt-1 text-xs text-emerald-600">
-            {t("pricing.monthlyEquivalent", { price: monthlyEquivalent })}
-          </p>
-        ) : null}
+            <p
+              className={cn(
+                "subscription-details-intro-item mt-0 flex items-baseline justify-center gap-2 text-center font-display text-4xl font-semibold leading-none sm:text-5xl",
+                usesSuperWater && "font-super-water",
+                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              )}
+              style={{ animationDelay: "590ms", color: SERIOUS_LEARNER_BASIC_COLOR }}
+            >
+              <span>{priceDisplay || "—"}</span>
+              {priceDisplay ? <span className="text-xl font-semibold sm:text-2xl">{period}</span> : null}
+            </p>
+          </div>
 
-        <h2 className="mt-4 font-display text-3xl font-semibold text-white">
-          {t("pricing.seriousLearner")}
-        </h2>
-        <p className="mt-2 text-base leading-6 text-white/75">
-          {t("pricing.description")}
-        </p>
-
-        <div className="mx-auto mt-5 inline-flex rounded-full border border-border bg-background-muted p-1">
-          <button
-            type="button"
-            onClick={() => setCycle("monthly")}
+          <h1
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              cycle === "monthly"
-                ? "bg-brand text-brand-foreground shadow-sm"
-                : "text-white/65 hover:text-white",
+              "subscription-details-intro-item relative -top-28 mt-12 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.2rem,7vw,2.25rem)] font-semibold leading-tight",
+              usesSuperWater && "font-super-water",
+              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
             )}
+            style={{ animationDelay: "650ms", color: "#ffffff" }}
           >
-            {t("pricing.billingMonthly")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCycle("yearly")}
+            {formatSuperWaterText(locale, t("pricing.seriousLearner"))}
+          </h1>
+
+          <p
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              cycle === "yearly"
-                ? "bg-brand text-brand-foreground shadow-sm"
-                : "text-white/65 hover:text-white",
+              "subscription-details-intro-item relative -top-28 mt-1 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.35rem,8vw,2.75rem)] font-semibold leading-tight text-white",
+              usesSuperWater && "font-super-water",
+              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
             )}
+            style={{ animationDelay: "690ms" }}
           >
-            {t("pricing.billingYearly")}
-          </button>
-        </div>
-
-        <ul className="mt-5 divide-y divide-white/15 text-center">
-          <OfferPerk icon={Layers} colorClass="text-blue-500">{t("pricing.featureCards")}</OfferPerk>
-          <OfferPerk icon={BookOpen} colorClass="text-emerald-500">{t("pricing.featureLearned")}</OfferPerk>
-          <OfferPerk icon={Palette} colorClass="text-violet-500">{t("pricing.featureThemes")}</OfferPerk>
-          <OfferPerk icon={Gamepad2} colorClass="text-cyan-500">{t("pricing.featureGames")}</OfferPerk>
-          <OfferPerk icon={Headset} colorClass="text-fuchsia-500">{t("pricing.featurePrioritySupport")}</OfferPerk>
-          <OfferPerk icon={MessageCircle} colorClass="text-amber-500">
-            {t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages })}
-          </OfferPerk>
-          <OfferPerk icon={MessagesSquare} colorClass="text-rose-500">
-            {t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages })}
-          </OfferPerk>
-        </ul>
-
-        <Button
-          type="button"
-          size="lg"
-          onClick={handlePurchase}
-          disabled={isLoading || (isTwa && !isSupported)}
-          className="mt-6 h-14 w-full border-0 bg-brand text-base font-bold text-brand-foreground shadow-lg hover:bg-brand-hover"
-        >
-          {isLoading ? t("common.loading") : t("pricing.ctaUpgrade")}
-        </Button>
-
-        {isTwa && !isSupported ? (
-          <p className="mt-2 text-center text-xs text-foreground-muted">
-            {t("pricing.googlePlayUnavailable")}
+            {formatSuperWaterText(locale, t("pricing.startWithPremium"))}
           </p>
-        ) : purchaseError ? (
-          <p className="mt-2 text-center text-xs text-rose-600">{purchaseError}</p>
-        ) : null}
 
-        <button
-          type="button"
-          onClick={onContinueFree}
-          className={buttonClassName(
-            "ghost",
-            "lg",
-            "mt-3 h-12 w-full text-base font-semibold text-white hover:text-white",
-          )}
-        >
-          {t("pricing.ctaSkip")}
-        </button>
+          <div className="relative -mt-24 min-h-0 w-full max-w-xl flex-1">
+            <ul
+              ref={featureListRef}
+              onScroll={updateFeatureScrollHint}
+              className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1"
+            >
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={690} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={750} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={810} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages })} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages })} />
+            </ul>
+            {showFeatureScrollHint ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-[-1.25rem] left-1/2 inline-flex size-10 -translate-x-1/2 items-center justify-center text-white"
+              >
+                <ChevronDown className="serious-learner-scroll-hint size-6" strokeWidth={2.75} />
+              </span>
+            ) : null}
+          </div>
+
+          <div
+            className={cn(
+              "subscription-details-intro-item mt-8 w-full max-w-xl shrink-0",
+              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+            )}
+            style={{ animationDelay: "1110ms" }}
+          >
+            <Button
+              type="button"
+              size="lg"
+              onClick={handlePurchase}
+              disabled={isLoading || (isTwa && !isSupported)}
+              className={cn(
+                "flex h-16 w-full flex-col gap-1 rounded-full border-0 !bg-white !text-2xl leading-none hover:brightness-95",
+                usesSuperWater && "font-super-water",
+              )}
+              style={{ color: SERIOUS_LEARNER_BASIC_COLOR }}
+            >
+              {isLoading ? (
+                t("common.loading")
+              ) : isTestMode ? (
+                <>
+                  <span>{formatSuperWaterUppercaseText(locale, t("pricing.ctaStartFirstMonthFreeTrial"))}</span>
+                  {priceDisplay ? (
+                    <span className="text-sm font-semibold leading-none">
+                      {formatSuperWaterText(locale, t("pricing.ctaTrialAfter", { price: priceDisplay, period })).replace(/\s+(?=\/)/g, "")}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                t("pricing.ctaUpgrade")
+              )}
+            </Button>
+
+            {isTwa && !isSupported ? (
+              <p className="mt-2 text-center text-xs text-foreground-muted">
+                {t("pricing.googlePlayUnavailable")}
+              </p>
+            ) : purchaseError ? (
+              <p className="mt-2 text-center text-xs text-rose-300">{purchaseError}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onContinueFree}
+              className={buttonClassName(
+                "ghost",
+                "lg",
+                "mt-3 h-12 w-full text-xl font-semibold text-white hover:text-white",
+              )}
+            >
+              {t("pricing.ctaSkip")}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function OfferPerk({
+function SeriousLearnerOfferFrameAnimation({ onComplete }: { onComplete: () => void }) {
+  const [frameIndex, setFrameIndex] = useState(1);
+  const frameIndexRef = useRef(1);
+
+  useEffect(() => {
+    let cancelled = false;
+    let animationFrameId: number | null = null;
+    const frameDuration = 1000 / SERIOUS_LEARNER_FRAME_FPS;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const preloadFrames = Array.from({ length: SERIOUS_LEARNER_FRAME_COUNT }, (_, index) => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = `${SERIOUS_LEARNER_FRAME_BASE_PATH}/${index + 1}.png`;
+      return image;
+    });
+
+    if (prefersReducedMotion) {
+      frameIndexRef.current = SERIOUS_LEARNER_FRAME_COUNT;
+      setFrameIndex(SERIOUS_LEARNER_FRAME_COUNT);
+      onComplete();
+      return () => {
+        cancelled = true;
+        preloadFrames.forEach((image) => {
+          image.onload = null;
+          image.onerror = null;
+        });
+      };
+    }
+
+    const startedAt = window.performance.now();
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const nextFrame = Math.min(
+        SERIOUS_LEARNER_FRAME_COUNT,
+        Math.floor((now - startedAt) / frameDuration) + 1,
+      );
+
+      if (nextFrame !== frameIndexRef.current) {
+        frameIndexRef.current = nextFrame;
+        setFrameIndex(nextFrame);
+      }
+
+      if (nextFrame === SERIOUS_LEARNER_FRAME_COUNT) {
+        onComplete();
+      } else {
+        animationFrameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
+      <img
+        src={`${SERIOUS_LEARNER_FRAME_BASE_PATH}/${frameIndex}.png`}
+        alt=""
+        draggable={false}
+        className="block h-full w-full object-cover"
+      />
+    </div>
+  );
+}
+
+function SeriousLearnerOfferFeature({
+  introVisible,
+  introDelay,
   icon: Icon,
-  colorClass,
-  children,
+  locale,
+  text,
 }: {
-  icon: ComponentType<{ className?: string }>;
-  colorClass: string;
-  children: ReactNode;
+  introVisible: boolean;
+  introDelay: number;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  locale: Parameters<typeof formatSuperWaterText>[0];
+  text: string;
 }) {
   return (
-    <li className="flex items-start justify-center gap-4 py-3 text-[0.95rem] leading-6 text-white">
-      <Icon className={cn("mt-0.5 size-5 shrink-0", colorClass)} aria-hidden="true" />
-      <span>{children}</span>
+    <li
+      className={cn(
+        "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+      )}
+      style={{ animationDelay: `${introDelay}ms` }}
+    >
+      <Icon className="size-6 shrink-0 text-white" strokeWidth={2.4} aria-hidden="true" />
+      <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, text)}
+      </span>
     </li>
   );
 }

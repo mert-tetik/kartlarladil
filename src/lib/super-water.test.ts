@@ -26,6 +26,7 @@ describe("Super Water font helpers", () => {
     expect(formatSuperWaterText("pl", "Za\u017c\u00f3\u0142\u0107 g\u0119\u015bl\u0105 ja\u017a\u0144")).toBe("Zazolc gesla jazn");
     expect(formatSuperWaterText("en", "Games")).toBe("Games");
     expect(formatSuperWaterText("ru", "\u0418\u0433\u0440\u044b")).toBe("\u0418\u0433\u0440\u044b");
+    expect(formatSuperWaterText("tr", "\u0130LK AY \u00dcCRETS\u0130Z")).toBe("ILK AY UCRETSIZ");
   });
 
   it("uppercases before formatting so Turkish labels keep Super Water compatibility", () => {

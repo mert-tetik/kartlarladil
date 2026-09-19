@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
 const MIN_ONBOARDING_VISUAL_HEIGHT_RATIO = 0.72;
+const SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS = 320;
 
 type BootstrapPhase = "visible" | "exiting" | "hidden";
 
@@ -174,6 +175,7 @@ const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-
 const MOBILE_BREAKPOINT = 1024;
 
 const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation"];
+const SERIOUS_LEARNER_TEST_PARAM = "serious-learner-test";
 
 function getIsMobileViewport() {
   if (typeof window === "undefined") return false;
@@ -202,6 +204,9 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isSeriousLearnerTestMode =
+    searchParams.get(SERIOUS_LEARNER_TEST_PARAM) === "1" ||
+    searchParams.get(SERIOUS_LEARNER_TEST_PARAM) === "true";
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
   const [hasChosenWeb, setHasChosenWeb] = useState(() =>
@@ -211,8 +216,12 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
+  const [seriousLearnerTestOpen, setSeriousLearnerTestOpen] = useState(
+    isSeriousLearnerTestMode,
+  );
   const [bootstrapPhase, setBootstrapPhase] = useState<BootstrapPhase>("visible");
   const bootstrapFinishedRef = useRef(false);
+  const seriousLearnerTestTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -276,6 +285,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }, [mounted, user, hasCompletedOnboarding, activateTutorial, resetTutorial]);
 
   useEffect(() => {
+    if (!isSeriousLearnerTestMode) return;
+
+    setSeriousLearnerTestOpen(true);
+    return () => {
+      if (seriousLearnerTestTimerRef.current !== null) {
+        window.clearTimeout(seriousLearnerTestTimerRef.current);
+        seriousLearnerTestTimerRef.current = null;
+      }
+    };
+  }, [isSeriousLearnerTestMode]);
+
+  useEffect(() => {
     if (isOfferEligible) {
       setOfferActive(true);
     }
@@ -303,6 +324,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const isIosTestMode = isIosMobileTestMode();
   const showGateway =
     isTestMode ||
+    isSeriousLearnerTestMode ||
     (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
@@ -350,6 +372,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }
 
   function handleContinueFree() {
+    if (isSeriousLearnerTestMode) {
+      setSeriousLearnerTestOpen(false);
+      if (seriousLearnerTestTimerRef.current !== null) {
+        window.clearTimeout(seriousLearnerTestTimerRef.current);
+      }
+      seriousLearnerTestTimerRef.current = window.setTimeout(() => {
+        seriousLearnerTestTimerRef.current = null;
+        setSeriousLearnerTestOpen(true);
+      }, SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS);
+      return;
+    }
+
     activateTutorial();
     setOfferSeen(true);
     setOfferActive(false);
@@ -359,20 +393,29 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   let gateway: ReactNode = null;
 
-  if (mounted && showGateway && !isPublicMobilePath && !isRankUpTestMode) {
-    if (isIosTestMode && !hasChosenWeb) {
+  if (
+    mounted &&
+    showGateway &&
+    !isPublicMobilePath &&
+    !isRankUpTestMode &&
+    (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
+  ) {
+    if (isSeriousLearnerTestMode || shouldShowOffer) {
+      gateway = (
+        <GatewayShell fullBleed isTestMode={isTestMode || isSeriousLearnerTestMode}>
+          <MobileSubscriptionOfferScreen
+            isTestMode={isSeriousLearnerTestMode}
+            onContinueFree={handleContinueFree}
+          />
+        </GatewayShell>
+      );
+    } else if (isIosTestMode && !hasChosenWeb) {
       gateway = (
       <GatewayShell isTestMode={isTestMode}>
         <MobileAppChoiceScreen
           forceApple
           onContinueOnWeb={handleContinueOnWeb}
         />
-      </GatewayShell>
-      );
-    } else if (shouldShowOffer) {
-      gateway = (
-      <GatewayShell fullBleed isTestMode={isTestMode}>
-        <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
       </GatewayShell>
       );
     } else if (needsOnboarding) {

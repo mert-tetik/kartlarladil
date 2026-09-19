@@ -1,10 +1,12 @@
 import { LOCALE_CODES } from "@/data/languages";
+import type { CreateCardDirection } from "@/features/cards/create-card-schema";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 export interface CreateCardPromptInput {
   locale: LocaleCode;
   term: string;
   targetLanguage?: LanguageCode;
+  direction?: CreateCardDirection;
 }
 
 const NATIVE_WRITING_SYSTEMS: Partial<Record<LanguageCode, string>> = {
@@ -15,8 +17,21 @@ const NATIVE_WRITING_SYSTEMS: Partial<Record<LanguageCode, string>> = {
   "zh-CN": "Simplified Chinese",
 };
 
-export function buildCreateCardInstructions({ locale, targetLanguage }: { locale: LocaleCode; targetLanguage?: LanguageCode }) {
+export function buildCreateCardInstructions({
+  locale,
+  targetLanguage,
+  direction = "native-to-learning",
+}: {
+  locale: LocaleCode;
+  targetLanguage?: LanguageCode;
+  direction?: CreateCardDirection;
+}) {
   const localeList = LOCALE_CODES.join(", ");
+  const directionRules = targetLanguage
+    ? direction === "learning-to-native"
+      ? `The user's input is already written in the learning language ${targetLanguage}. Keep the input meaning in the card term, set language to exactly "${targetLanguage}", and translate/explain it into the user's native/UI language ${locale}. Do not treat the input as a ${locale} word and do not replace the learning-language term with its native translation.`
+      : `The user's input is written in the native/UI language ${locale}. Translate it into the learning language ${targetLanguage}, set language to exactly "${targetLanguage}", and use the translated learning-language word or phrase as term.`
+    : "Infer the input and target languages from the term and the request, while keeping language consistent with the generated card.";
 
   return `You are a helpful vocabulary card generator for a language learning app.
 
@@ -42,6 +57,7 @@ ${LOCALE_CODES.map((code) => `    "${code}": "a short, clear definition of the t
 }
 
 Rules:
+- ${directionRules}
 - ${targetLanguage ? `Set language to exactly "${targetLanguage}". Do not choose another target language.` : "Choose an appropriate target language and CEFR tier for the requested term."}
 - ${targetLanguage && NATIVE_WRITING_SYSTEMS[targetLanguage] ? `When the requested term is written as a Latin-script transliteration, convert term to its canonical ${NATIVE_WRITING_SYSTEMS[targetLanguage]} spelling. Preserve the original meaning; keep the romanization only in pronunciation when useful. For example, Russian "ya ne znayu" becomes term "я не знаю".` : "Keep term in the target language's standard spelling."}
 - The example must use the term naturally.
@@ -57,7 +73,11 @@ Rules:
 }
 
 export function buildCreateCardInput(input: CreateCardPromptInput) {
+  if (input.targetLanguage && input.direction === "learning-to-native") {
+    return `Generate a ${input.targetLanguage} vocabulary card from this learning-language term: "${input.term}". The input is already in the target learning language; preserve its meaning and provide the native-language translations and explanations required by the schema.`;
+  }
+
   return input.targetLanguage
-    ? `Generate a ${input.targetLanguage} vocabulary card for: "${input.term}".`
+    ? `Generate a ${input.targetLanguage} vocabulary card from this native-language input: "${input.term}".`
     : `Generate a vocabulary card for: "${input.term}".`;
 }

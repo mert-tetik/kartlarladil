@@ -1,10 +1,12 @@
-export function RouteLoadingState() {
+export function RouteLoadingState({ idPrefix = "route-loading" }: { idPrefix?: string } = {}) {
+  const eraserClipPathId = `${idPrefix}-pencil-eraser`;
+
   return (
     <section className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] min-h-0 max-w-7xl items-center justify-center bg-background px-4 py-16 text-foreground max-lg:h-[calc(100dvh-8rem)] max-lg:max-h-[calc(100dvh-8rem)] sm:px-6 lg:px-8">
       <div className="route-loading-pencil-wrap" role="status" aria-label="Loading page">
         <svg className="route-loading-pencil" viewBox="0 0 200 200" aria-hidden="true">
           <defs>
-            <clipPath id="route-loading-pencil-eraser">
+            <clipPath id={eraserClipPathId}>
               <rect height="30" width="30" ry="5" rx="5" />
             </clipPath>
           </defs>
@@ -52,7 +54,7 @@ export function RouteLoadingState() {
             <g transform="rotate(-90) translate(49 0)" className="route-loading-pencil__eraser">
               <g className="route-loading-pencil__eraser-skew">
                 <rect height="30" width="30" ry="5" rx="5" fill="var(--route-pencil-eraser, var(--brand))" />
-                <rect clipPath="url(#route-loading-pencil-eraser)" height="30" width="5" fill="var(--route-pencil-eraser-shade, var(--brand))" />
+                <rect clipPath={`url(#${eraserClipPathId})`} height="30" width="5" fill="var(--route-pencil-eraser-shade, var(--brand))" />
                 <rect height="20" width="30" fill="var(--route-pencil-eraser-band, #f5f5f5)" />
                 <rect height="20" width="15" fill="var(--route-pencil-eraser-band-shadow, #c7c7c7)" />
                 <rect height="20" width="5" fill="#e2e2e2" />

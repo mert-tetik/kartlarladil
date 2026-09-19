@@ -1,12 +1,21 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
+  BookOpen,
   Check,
   ChevronLeft,
   ChevronRight,
+  Gamepad2,
+  MessageCircle,
+  MessagesSquare,
+  Headset,
+  Layers,
+  Palette,
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -30,7 +39,7 @@ import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -65,10 +74,57 @@ const MOBILE_PLAN_ORDER_CLASSNAME: Record<SubscriptionPlan, string> = {
 };
 
 const PRICING_CARD_CTA_CLASS = "h-12 whitespace-nowrap text-sm";
-const PRICING_GRADIENT_SURFACE_CLASS =
-  "bg-gradient-to-r from-[var(--premium-start)] via-[var(--reward-start)] to-[var(--premium-end)]";
 const PRICING_GRADIENT_BUTTON_CLASS =
   "bg-gradient-to-r from-[var(--premium-start)] via-[var(--reward-start)] to-[var(--premium-end)] !text-slate-950 hover:brightness-105";
+const PRICING_PURCHASE_BUTTON_CLASS =
+  "relative isolate overflow-hidden !bg-transparent !text-white hover:brightness-105";
+const PRICING_PURCHASE_CTA_CLASS = "h-16 !text-2xl";
+
+const PRICING_ACTIVE_BUTTON_IMAGE = "/pricing-buttons/pricing-active-button-v2.png";
+const PRICING_PLAN_BUTTON_IMAGES: Record<Exclude<SubscriptionPlan, "free">, { src: string; width: number; height: number }> = {
+  basic: {
+    src: "/subscriptions/plan-basic-v2.png",
+    width: 1489,
+    height: 450,
+  },
+  pro: {
+    src: "/subscriptions/plan-pro-v2.png",
+    width: 1338,
+    height: 511,
+  },
+};
+const PRICING_PLAN_BUTTON_BACKGROUND_IMAGES: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "/pricing-buttons/pricing-pro-basic-button-v2.png",
+  pro: "/pricing-buttons/pricing-pro-active-button-v2.png",
+};
+
+const ACTIVE_SUBSCRIPTION_SURFACE_CLASS: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "bg-gradient-to-t from-[#173b91] to-[#2563eb]",
+  pro: "bg-gradient-to-t from-[#4c1d95] to-[#9333ea]",
+};
+
+const ACTIVE_SUBSCRIPTION_BUTTON_CLASS: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "!bg-white !text-[#2563eb] hover:!bg-blue-50",
+  pro: "!bg-white !text-[#9333ea] hover:!bg-purple-50",
+};
+
+const SUBSCRIPTION_PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "#2563eb",
+  pro: "#9333ea",
+};
+
+const SUBSCRIPTION_DETAILS_FRAME_COUNT = 50;
+const SUBSCRIPTION_DETAILS_FRAME_FPS = 30;
+const SUBSCRIPTION_DETAILS_FRAME_BASE_PATH = "/pricing-subscription-menu-frames";
+const SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH = "/pricing-subscription-menu-pro-frames";
+const SUBSCRIPTION_DETAILS_UI_INTRO_DURATION_MS = 520;
+const SUBSCRIPTION_DETAILS_UI_CTA_DELAY_MS = 1090;
+
+type CheckoutSelection = {
+  plan: Exclude<SubscriptionPlan, "free">;
+  cycle: BillingCycle;
+  ctaLabel?: string;
+};
 
 export const PLANS: PricingPlan[] = [
   { plan: "free", monthlyPrice: null, yearlyPrice: null, mascot: "/mascots/mascot14.webp" },
@@ -97,32 +153,121 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const t = useT();
   const { locale } = useLocale();
   const { entitlements } = useSubscription();
+  const searchParams = useSearchParams();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [checkoutSelection, setCheckoutSelection] = useState<CheckoutSelection | null>(null);
   const isTwa = useTwaMode();
   const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const plans = isTwa ? TWA_PLANS : PLANS;
-  const paidPlan = entitlements?.effectivePlan === "basic" || entitlements?.effectivePlan === "pro"
-    ? entitlements.effectivePlan
+  const forceFreePricing = searchParams.get("pricing-test") === "free";
+  const pricingEntitlements = forceFreePricing ? null : entitlements;
+  const paidPlan = pricingEntitlements?.effectivePlan === "basic" || pricingEntitlements?.effectivePlan === "pro"
+    ? pricingEntitlements.effectivePlan
     : null;
+
+  useLayoutEffect(() => {
+    if (paidPlan || typeof window === "undefined") return;
+
+    const page = document.querySelector<HTMLElement>("[data-pricing-page]");
+    if (!page) return;
+
+    let frameId: number | null = null;
+    let pollUntil = 0;
+
+    const syncHeadingPosition = () => {
+      const navigation = document.querySelector<HTMLElement>("[data-route-transition-navigation]");
+      const mobileView = page.querySelector<HTMLElement>("[data-pricing-mobile-view]");
+      const heading = page.querySelector<HTMLElement>("[data-pricing-heading-mobile]");
+      const perkCard = page.querySelector<HTMLElement>("[data-pricing-perk-card][data-highlighted='true']");
+      if (!navigation || !mobileView || !heading || !perkCard) return;
+
+      const navigationBottom = navigation.getBoundingClientRect().bottom;
+      const perkTop = perkCard.getBoundingClientRect().top;
+      const mobileViewRect = mobileView.getBoundingClientRect();
+      const mobileViewScaleY = mobileView.offsetHeight > 0
+        ? mobileViewRect.height / mobileView.offsetHeight
+        : 1;
+      const safeScaleY = Number.isFinite(mobileViewScaleY) && mobileViewScaleY > 0
+        ? mobileViewScaleY
+        : 1;
+
+      heading.style.top = `${(navigationBottom - mobileViewRect.top) / safeScaleY}px`;
+      heading.style.height = `${Math.max(0, (perkTop - navigationBottom) / safeScaleY)}px`;
+      heading.style.transform = "none";
+    };
+
+    const pollDuringLayoutChange = () => {
+      frameId = null;
+      syncHeadingPosition();
+      if (window.performance.now() < pollUntil) {
+        frameId = window.requestAnimationFrame(pollDuringLayoutChange);
+      }
+    };
+
+    const scheduleSync = () => {
+      pollUntil = window.performance.now() + 700;
+      if (frameId === null) {
+        frameId = window.requestAnimationFrame(pollDuringLayoutChange);
+      }
+    };
+
+    syncHeadingPosition();
+    scheduleSync();
+    window.addEventListener("resize", scheduleSync);
+    window.visualViewport?.addEventListener("resize", scheduleSync);
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(scheduleSync);
+    resizeObserver?.observe(page);
+
+    const mutationObserver = typeof MutationObserver === "undefined"
+      ? null
+      : new MutationObserver(scheduleSync);
+    mutationObserver?.observe(page, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ["class", "data-highlighted"],
+    });
+
+    return () => {
+      window.removeEventListener("resize", scheduleSync);
+      window.visualViewport?.removeEventListener("resize", scheduleSync);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [paidPlan]);
 
   return (
     <div
       data-pricing-page
-      className="relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-0 max-lg:overflow-hidden max-lg:p-0 sm:px-6 lg:px-8 lg:pb-10"
+      className={cn(
+        "relative isolate mx-auto min-h-screen max-w-6xl px-4 pb-0 pt-12 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:min-h-0 max-lg:overflow-hidden max-lg:p-0 sm:px-6 lg:px-8 lg:pb-10",
+        paidPlan && ACTIVE_SUBSCRIPTION_SURFACE_CLASS[paidPlan],
+      )}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-[url('/pricing-page-bg.png')] bg-cover bg-center bg-no-repeat"
-        style={{
-          maskImage: "linear-gradient(to top, transparent 0%, black 82%, black 100%)",
-          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 82%, black 100%)",
-        }}
-      />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-1/2 top-0 z-0 h-80 w-screen -translate-x-1/2 overflow-hidden">
-        <div className={cn("absolute -top-20 left-[-5%] h-[25rem] w-[110%] rounded-b-[50%] opacity-55", PRICING_GRADIENT_SURFACE_CLASS)} />
-      </div>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-black/40" />
+      {!paidPlan ? (
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 bg-[#121212]"
+          />
+        </>
+      ) : null}
+      {!paidPlan ? (
+        <div
+          className="relative z-20 mx-auto hidden w-full text-center lg:block lg:sticky lg:top-[var(--app-header-height)]"
+          data-pricing-heading
+          data-route-transition-surface
+        >
+          <PricingHeading locale={locale} />
+        </div>
+      ) : null}
       {paidPlan ? (
         <ActiveSubscriptionPricingView plan={paidPlan} locale={locale} />
       ) : (
@@ -133,27 +278,15 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               isTwa={isTwa}
               localizedPricing={localizedPricing}
               googlePlayPricing={googlePlayPricing}
-              entitlements={entitlements}
+              entitlements={pricingEntitlements}
               locale={locale}
+              forceFirstMonthFree={forceFreePricing}
+              onRequestCheckout={setCheckoutSelection}
             />
           </div>
 
           <div className="hidden animate-screen-pop lg:block">
-        <div className="relative z-10 text-center" data-route-transition-surface>
-          <h1 className={cn("font-display text-4xl font-semibold text-white md:text-5xl", canUseSuperWater(locale) && "font-super-water")}>
-            {formatSuperWaterText(locale, t("pricing.title"))}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-black">
-            {t("pricing.mobileFeatureUnlimitedAccess")}
-          </p>
-          {isTwa ? (
-            <p className="mt-3 text-sm font-bold uppercase text-white">
-              {t("pricing.firstMonthFreeBanner")}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="relative z-10 mt-8 flex justify-center" data-route-transition-surface>
+        <div className="relative z-10 mt-8 hidden justify-center" data-route-transition-surface>
           <BillingCycleToggle cycle={cycle} onChange={setCycle} />
         </div>
 
@@ -167,13 +300,15 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               popular={item.popular}
               mascot={item.mascot}
               cycle={cycle}
-              currentPlan={entitlements?.effectivePlan ?? null}
+              currentPlan={pricingEntitlements?.effectivePlan ?? null}
               user={user}
               localizedPricing={localizedPricing}
               googlePlayPricing={googlePlayPricing}
               uiLocale={locale}
               isTwa={isTwa}
+              forceFirstMonthFree={forceFreePricing}
               containerClassName={MOBILE_PLAN_ORDER_CLASSNAME[item.plan]}
+              onRequestCheckout={setCheckoutSelection}
             />
           ))}
         </div>
@@ -188,6 +323,18 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           </div>
         </>
       )}
+      {checkoutSelection ? (
+        <SubscriptionDetailsOverlay
+          selection={checkoutSelection}
+          user={user}
+          currentPlan={pricingEntitlements?.effectivePlan ?? null}
+          isTwa={isTwa}
+          localizedPricing={localizedPricing}
+          googlePlayPricing={googlePlayPricing}
+          locale={locale}
+          onClose={() => setCheckoutSelection(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -211,7 +358,7 @@ function ActiveSubscriptionPricingView({
       className="relative z-10 flex min-h-[calc(100dvh-var(--app-header-height))] items-center justify-center px-4 pb-[calc(var(--mobile-nav-bar-height)+2.5rem)] pt-10 text-center text-white lg:min-h-[calc(100vh-var(--app-header-height))] lg:py-10"
     >
       <div className="flex w-full max-w-xl flex-col items-center">
-        <p className={cn("font-display text-2xl font-semibold sm:text-3xl", usesSuperWater && "font-super-water")}>
+        <p className={cn("font-display text-4xl font-semibold sm:text-5xl", usesSuperWater && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.currentSubscription"))}
         </p>
         <Image
@@ -221,13 +368,150 @@ function ActiveSubscriptionPricingView({
           height={planImage.height}
           className="mt-8 h-28 w-auto max-w-[82vw] object-contain sm:h-36"
         />
-        <ManageSubscriptionButton locale={locale} />
+        <ManageSubscriptionButton locale={locale} plan={plan} />
       </div>
     </section>
   );
 }
 
-function ManageSubscriptionButton({ locale }: { locale: LocaleCode }) {
+function PricingHeading({ locale }: { locale: LocaleCode }) {
+  const t = useT();
+
+  return (
+    <>
+      <h1 className={cn("font-display text-[clamp(2.1rem,10vw,3rem)] font-semibold leading-[0.95] text-white lg:text-5xl lg:leading-tight xl:text-6xl", canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, t("pricing.title"))}
+      </h1>
+    </>
+  );
+}
+
+function PricingButtonBackground({
+  image = PRICING_ACTIVE_BUTTON_IMAGE,
+  imageClassName,
+}: {
+  image?: string;
+  imageClassName?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 flex overflow-hidden"
+    >
+      <span className="relative h-full shrink-0 aspect-[150/323] overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          width={1000}
+          height={323}
+          className={cn("absolute inset-y-0 left-0 h-full w-auto max-w-none", imageClassName)}
+        />
+      </span>
+      <span className="relative h-full min-w-0 flex-1 overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          width={1000}
+          height={323}
+          className={cn("absolute inset-y-0 left-[-21.4286%] h-full w-[142.8572%] max-w-none", imageClassName)}
+        />
+      </span>
+      <span className="relative h-full shrink-0 aspect-[150/323] overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          width={1000}
+          height={323}
+          className={cn("absolute inset-y-0 right-0 h-full w-auto max-w-none", imageClassName)}
+        />
+      </span>
+    </span>
+  );
+}
+
+function PricingPlanCtaBackground({ plan }: { plan: Exclude<SubscriptionPlan, "free"> }) {
+  return (
+    <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+      <span
+        className={cn(
+          "absolute inset-0 transition-opacity duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]",
+          plan === "basic" ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <PricingButtonBackground
+          image={PRICING_PLAN_BUTTON_BACKGROUND_IMAGES.basic}
+          imageClassName="brightness-[0.68]"
+        />
+      </span>
+      <span
+        className={cn(
+          "absolute inset-0 transition-opacity duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]",
+          plan === "pro" ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <PricingButtonBackground
+          image={PRICING_PLAN_BUTTON_BACKGROUND_IMAGES.pro}
+          imageClassName="brightness-[0.68]"
+        />
+      </span>
+    </span>
+  );
+}
+
+function PricingPlanButtonBackground({
+  plan,
+  isSelected,
+}: {
+  plan: Exclude<SubscriptionPlan, "free">;
+  isSelected: boolean;
+}) {
+  return (
+    <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+      <Image
+        src={PRICING_PLAN_BUTTON_BACKGROUND_IMAGES[plan]}
+        alt=""
+        fill
+        sizes="(max-width: 1023px) 50vw, 0px"
+        className="object-fill"
+        style={{
+          filter: `brightness(0.4) saturate(${isSelected ? 1 : 0})`,
+          transition: "filter 500ms cubic-bezier(0.85, 0, 0.15, 1)",
+        }}
+      />
+    </span>
+  );
+}
+
+function PricingDotsBackground({ plan }: { plan: Exclude<SubscriptionPlan, "free"> }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 opacity-30"
+      style={{
+        backgroundColor: plan === "basic" ? "#2563eb" : "#9333ea",
+        maskImage: "url('/pricing-page-dots.png')",
+        WebkitMaskImage: "url('/pricing-page-dots.png')",
+        maskRepeat: "repeat",
+        WebkitMaskRepeat: "repeat",
+        maskSize: "auto",
+        WebkitMaskSize: "auto",
+        transition: "background-color 500ms cubic-bezier(0.85, 0, 0.15, 1)",
+      }}
+    />
+  );
+}
+
+function formatPricingCtaText(locale: LocaleCode, text: string) {
+  return canUseSuperWater(locale) ? formatSuperWaterUppercaseText(locale, text) : text;
+}
+
+function ManageSubscriptionButton({
+  locale,
+  plan,
+}: {
+  locale: LocaleCode;
+  plan: Exclude<SubscriptionPlan, "free">;
+}) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
     status: "idle" as const,
@@ -252,7 +536,7 @@ function ManageSubscriptionButton({ locale }: { locale: LocaleCode }) {
         variant="primary"
         className={cn(
           "h-14 w-full rounded-full border-0 text-xl",
-          PRICING_GRADIENT_BUTTON_CLASS,
+          ACTIVE_SUBSCRIPTION_BUTTON_CLASS[plan],
           canUseSuperWater(locale) && "font-super-water",
         )}
         disabled={pending}
@@ -298,16 +582,20 @@ function PricingCard({
   googlePlayPricing,
   uiLocale,
   isTwa,
+  forceFirstMonthFree,
   containerClassName,
+  onRequestCheckout,
 }: PricingPlan & {
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   user: AuthShellUser | null;
   localizedPricing: LocalizedPricingStatus;
   googlePlayPricing: GooglePlayPricingStatus;
-  uiLocale: string;
+  uiLocale: LocaleCode;
   isTwa: boolean;
+  forceFirstMonthFree: boolean;
   containerClassName?: string;
+  onRequestCheckout: (selection: CheckoutSelection) => void;
 }) {
   const t = useT();
   const isCurrent = currentPlan === plan;
@@ -390,11 +678,13 @@ function PricingCard({
     return (fallbackYearlyPrice / 12).toFixed(2);
   }, [cycle, plan, fallbackYearlyPrice, googlePlayYearlyDetails, localizedYearly, uiLocale]);
 
+  const showTestIntroOffer = forceFirstMonthFree && cycle === "monthly" && plan !== "free";
   const showIntroOffer =
-    isTwa &&
-    cycle === "monthly" &&
-    plan !== "free" &&
-    googlePlayDetails?.hasIntroductoryOffer;
+    showTestIntroOffer ||
+    (isTwa &&
+      cycle === "monthly" &&
+      plan !== "free" &&
+      googlePlayDetails?.hasIntroductoryOffer);
 
   return (
     <div
@@ -447,7 +737,7 @@ function PricingCard({
 
       {showIntroOffer ? (
         <p className="mt-2 text-sm font-bold uppercase text-white">
-          {t("pricing.firstMonthFree")}
+          {formatSuperWaterUppercaseText(uiLocale, t("pricing.firstMonthFree"))}
         </p>
       ) : null}
 
@@ -467,9 +757,36 @@ function PricingCard({
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName("primary", "md", cn("w-full", PRICING_CARD_CTA_CLASS, PRICING_GRADIENT_BUTTON_CLASS))}
+            onClick={(event) => {
+              if (plan === "free") return;
+              event.preventDefault();
+              onRequestCheckout({
+                plan,
+                cycle,
+                ctaLabel: showTestIntroOffer
+                  ? t("pricing.ctaStartFirstMonthFreeTrial")
+                  : t("pricing.ctaSubscribe"),
+              });
+            }}
+            className={buttonClassName(
+              "primary",
+              "md",
+              plan === "free"
+                ? cn("w-full", PRICING_CARD_CTA_CLASS, PRICING_GRADIENT_BUTTON_CLASS)
+                : cn("w-full", PRICING_PURCHASE_BUTTON_CLASS, PRICING_PURCHASE_CTA_CLASS, canUseSuperWater(uiLocale) && "font-super-water"),
+            )}
           >
-            {plan === "free" ? t("pricing.ctaFree") : t("pricing.ctaSubscribe")}
+            {plan !== "free" ? <PricingPlanCtaBackground plan={plan} /> : null}
+            <span className="relative z-10">
+              {plan !== "free"
+                ? formatPricingCtaText(
+                    uiLocale,
+                    showTestIntroOffer
+                      ? t("pricing.ctaStartFirstMonthFreeTrial")
+                      : t("pricing.ctaSubscribe"),
+                  )
+                : t("pricing.ctaFree")}
+            </span>
           </Link>
         ) : plan === "free" ? (
           <Button variant="secondary" className={cn("w-full", PRICING_CARD_CTA_CLASS)} disabled>
@@ -481,7 +798,16 @@ function PricingCard({
               plan={plan}
               cycle={cycle}
               currentPlan={currentPlan}
-              className={PRICING_CARD_CTA_CLASS}
+              className={PRICING_PURCHASE_CTA_CLASS}
+              locale={uiLocale}
+              ctaContent={showTestIntroOffer ? t("pricing.ctaStartFirstMonthFreeTrial") : undefined}
+              onRequestCheckout={() => onRequestCheckout({
+                plan,
+                cycle,
+                ctaLabel: showTestIntroOffer
+                  ? t("pricing.ctaStartFirstMonthFreeTrial")
+                  : t("pricing.ctaSubscribe"),
+              })}
             />
           </>
         )}
@@ -514,17 +840,49 @@ function PurchaseButton({
   cycle,
   currentPlan,
   className,
+  locale,
   showSubscribeForPaidUser = false,
   ctaContent,
+  onRequestCheckout,
+  summaryCta = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
+  locale: LocaleCode;
   showSubscribeForPaidUser?: boolean;
   ctaContent?: React.ReactNode;
+  onRequestCheckout?: () => void;
+  summaryCta?: boolean;
 }) {
+  const t = useT();
   const isTwa = useTwaMode();
+
+  if (onRequestCheckout && !summaryCta) {
+    return (
+      <div className="w-full space-y-2">
+        <Button
+          type="button"
+          variant="primary"
+          className={cn(
+            "h-12 w-full border-0 whitespace-nowrap text-sm",
+            PRICING_PURCHASE_BUTTON_CLASS,
+            canUseSuperWater(locale) && "font-super-water",
+            className,
+          )}
+          onClick={onRequestCheckout}
+        >
+          <PricingPlanCtaBackground plan={plan} />
+          <span className="relative z-10">
+            {typeof ctaContent === "string"
+              ? formatPricingCtaText(locale, ctaContent)
+              : ctaContent ?? formatPricingCtaText(locale, t("pricing.ctaSubscribe"))}
+          </span>
+        </Button>
+      </div>
+    );
+  }
 
   if (isTwa) {
     return (
@@ -533,8 +891,10 @@ function PurchaseButton({
         cycle={cycle}
         currentPlan={currentPlan}
         className={className}
+        locale={locale}
         showSubscribeForPaidUser={showSubscribeForPaidUser}
         ctaContent={ctaContent}
+        summaryCta={summaryCta}
       />
     );
   }
@@ -544,8 +904,10 @@ function PurchaseButton({
       plan={plan}
       currentPlan={currentPlan}
       className={className}
+      locale={locale}
       showSubscribeForPaidUser={showSubscribeForPaidUser}
       ctaContent={ctaContent}
+      summaryCta={summaryCta}
     />
   );
 }
@@ -554,14 +916,18 @@ function GooglePlayAppButton({
   plan,
   currentPlan,
   className,
+  locale,
   showSubscribeForPaidUser = false,
   ctaContent,
+  summaryCta = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   currentPlan: SubscriptionPlan | null;
   className?: string;
+  locale: LocaleCode;
   showSubscribeForPaidUser?: boolean;
   ctaContent?: React.ReactNode;
+  summaryCta?: boolean;
 }) {
   const t = useT();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
@@ -579,12 +945,20 @@ function GooglePlayAppButton({
           "md",
           cn(
             "flex h-12 w-full items-center justify-center whitespace-nowrap border-0 text-sm",
-            (plan === "basic" || plan === "pro") && PRICING_GRADIENT_BUTTON_CLASS,
+            summaryCta
+              ? "relative isolate overflow-hidden !bg-white hover:brightness-105"
+              : PRICING_PURCHASE_BUTTON_CLASS,
+            canUseSuperWater(locale) && "font-super-water",
             className,
           ),
         )}
       >
-        {ctaContent ?? label}
+        {!summaryCta ? <PricingPlanCtaBackground plan={plan} /> : null}
+        <span className="relative z-10" style={{ color: summaryCta ? SUBSCRIPTION_PLAN_COLOR[plan] : undefined }}>
+          {typeof ctaContent === "string"
+            ? formatPricingCtaText(locale, ctaContent)
+            : ctaContent ?? formatPricingCtaText(locale, label)}
+        </span>
       </a>
     </div>
   );
@@ -595,15 +969,19 @@ function GooglePlayCheckoutButton({
   cycle,
   currentPlan,
   className,
+  locale,
   showSubscribeForPaidUser = false,
   ctaContent,
+  summaryCta = false,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   currentPlan: SubscriptionPlan | null;
   className?: string;
+  locale: LocaleCode;
   showSubscribeForPaidUser?: boolean;
   ctaContent?: React.ReactNode;
+  summaryCta?: boolean;
 }) {
   const t = useT();
   const { presentPurchaseSuccess } = useSubscription();
@@ -660,13 +1038,23 @@ function GooglePlayCheckoutButton({
         variant="primary"
         className={cn(
           "h-12 w-full border-0 whitespace-nowrap text-sm",
-          (plan === "basic" || plan === "pro") && PRICING_GRADIENT_BUTTON_CLASS,
+          summaryCta
+            ? "relative isolate overflow-hidden !bg-white hover:brightness-105"
+            : PRICING_PURCHASE_BUTTON_CLASS,
+          canUseSuperWater(locale) && "font-super-water",
           className,
         )}
         disabled={isLoading || !isSupported}
         onClick={handleClick}
       >
-        {isLoading ? t("common.loading") : ctaContent ?? buttonLabel}
+        {!summaryCta ? <PricingPlanCtaBackground plan={plan} /> : null}
+        <span className="relative z-10" style={{ color: summaryCta ? SUBSCRIPTION_PLAN_COLOR[plan] : undefined }}>
+          {isLoading
+            ? t("common.loading")
+            : typeof ctaContent === "string"
+              ? formatPricingCtaText(locale, ctaContent)
+              : ctaContent ?? formatPricingCtaText(locale, buttonLabel)}
+        </span>
       </Button>
 
       {!isSupported ? (
@@ -719,6 +1107,437 @@ function ConsentText() {
   );
 }
 
+function SubscriptionDetailsOverlay({
+  selection,
+  user,
+  currentPlan,
+  isTwa,
+  localizedPricing,
+  googlePlayPricing,
+  locale,
+  onClose,
+}: {
+  selection: CheckoutSelection;
+  user: AuthShellUser | null;
+  currentPlan: SubscriptionPlan | null;
+  isTwa: boolean;
+  localizedPricing: LocalizedPricingStatus;
+  googlePlayPricing: GooglePlayPricingStatus;
+  locale: LocaleCode;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const [isClosing, setIsClosing] = useState(false);
+  const isClosingRef = useRef(false);
+  const closeTimerRef = useRef<number | null>(null);
+  const planColor = SUBSCRIPTION_PLAN_COLOR[selection.plan];
+  const planImage = PRICING_PLAN_BUTTON_IMAGES[selection.plan];
+  const price = getMobileOptionPriceValue({
+    plan: selection.plan,
+    cycle: selection.cycle,
+    localizedPricing,
+    googlePlayPricing,
+    uiLocale: locale,
+    isTwa,
+  });
+  const ctaLabel = selection.ctaLabel ?? t("pricing.ctaSubscribe");
+  const period = selection.cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth");
+  const usesSuperWater = canUseSuperWater(locale);
+  const featureListRef = useRef<HTMLUListElement | null>(null);
+  const [clippedFeatureIndexes, setClippedFeatureIndexes] = useState<number[]>([]);
+  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const [isIntroUiComplete, setIsIntroUiComplete] = useState(false);
+  const handleIntroComplete = useCallback(() => setIsIntroComplete(true), []);
+
+  useEffect(() => {
+    if (!isIntroComplete) {
+      setIsIntroUiComplete(false);
+      return;
+    }
+
+    const introTimer = window.setTimeout(
+      () => setIsIntroUiComplete(true),
+      SUBSCRIPTION_DETAILS_UI_CTA_DELAY_MS + SUBSCRIPTION_DETAILS_UI_INTRO_DURATION_MS,
+    );
+
+    return () => window.clearTimeout(introTimer);
+  }, [isIntroComplete]);
+
+  const handleClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(onClose, 300);
+  }, [onClose]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, [handleClose]);
+
+  const measureClippedFeatures = useCallback(() => {
+    const list = featureListRef.current;
+    if (!list) return;
+
+    const features = Array.from(
+      list.querySelectorAll<HTMLElement>("[data-pricing-details-feature]"),
+    );
+
+    // Temporarily reveal previously hidden rows so a resize can make them
+    // available again before measuring the current usable list area.
+    features.forEach((feature) => {
+      feature.hidden = false;
+    });
+
+    const listRect = list.getBoundingClientRect();
+    let visibleTop = Math.max(0, listRect.top);
+    let visibleBottom = Math.min(
+      listRect.bottom,
+      window.visualViewport?.height ?? window.innerHeight,
+      window.innerHeight,
+    );
+
+    let ancestor = list.parentElement;
+    while (ancestor && ancestor !== document.body) {
+      const computedStyle = window.getComputedStyle(ancestor);
+      const clipsVertically = ["hidden", "clip", "auto", "scroll"].includes(computedStyle.overflowY);
+      if (clipsVertically) {
+        const ancestorRect = ancestor.getBoundingClientRect();
+        visibleTop = Math.max(visibleTop, ancestorRect.top);
+        visibleBottom = Math.min(visibleBottom, ancestorRect.bottom);
+      }
+      ancestor = ancestor.parentElement;
+    }
+
+    const nextClippedIndexes = features
+      .filter((feature) => {
+        const rect = feature.getBoundingClientRect();
+        return (
+          rect.top < visibleTop - 0.25 ||
+          rect.bottom > visibleBottom + 0.25 ||
+          rect.left < listRect.left - 0.25 ||
+          rect.right > listRect.right + 0.25
+        );
+      })
+      .map((feature) => Number(feature.dataset.pricingDetailsFeature));
+
+    setClippedFeatureIndexes((previous) => (
+      previous.length === nextClippedIndexes.length &&
+      previous.every((index, position) => index === nextClippedIndexes[position])
+        ? previous
+        : nextClippedIndexes
+    ));
+  }, []);
+
+  useLayoutEffect(() => {
+    const list = featureListRef.current;
+    if (!list) return;
+
+    let frameId: number | null = null;
+    const scheduleMeasurement = () => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        measureClippedFeatures();
+      });
+    };
+
+    const overlay = list.closest<HTMLElement>("[data-pricing-subscription-details]");
+    const settleTimer = window.setTimeout(scheduleMeasurement, 700);
+    overlay?.addEventListener("animationend", scheduleMeasurement);
+    measureClippedFeatures();
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(scheduleMeasurement);
+    resizeObserver?.observe(list);
+    window.addEventListener("resize", scheduleMeasurement);
+    window.visualViewport?.addEventListener("resize", scheduleMeasurement);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.clearTimeout(settleTimer);
+      overlay?.removeEventListener("animationend", scheduleMeasurement);
+      window.removeEventListener("resize", scheduleMeasurement);
+      window.visualViewport?.removeEventListener("resize", scheduleMeasurement);
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [measureClippedFeatures]);
+
+  const content = (
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pricing-subscription-details-title"
+      data-pricing-subscription-details
+      className={cn(
+        "subscription-details-overlay fixed inset-0 z-[220] isolate overflow-hidden overscroll-none text-white",
+        isClosing && "subscription-details-overlay--closing",
+      )}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 z-[2] size-[52rem] -translate-x-1/2 -translate-y-[73%]"
+      >
+        <div
+          className={cn(
+            "subscription-details-intro-item subscription-details-intro-item--circle-core absolute inset-0 rounded-full bg-white",
+            isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+          )}
+          style={{ animationDelay: "0ms" }}
+        />
+      </div>
+
+      <SubscriptionDetailsFrameAnimation
+        isClosing={isClosing}
+        onComplete={handleIntroComplete}
+        plan={selection.plan}
+      />
+
+      <button
+        type="button"
+        onClick={handleClose}
+        className={cn(
+          "subscription-details-intro-item absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-30 inline-flex size-11 items-center justify-center rounded-full bg-transparent text-white transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-95",
+          isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+        )}
+        style={{ animationDelay: "470ms", color: planColor }}
+        aria-label={t("common.close")}
+      >
+        <X className="size-8" strokeWidth={2.5} aria-hidden="true" />
+      </button>
+
+      <div className="subscription-details-shell relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col items-center overflow-hidden px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(4.75rem,calc(env(safe-area-inset-top)+3.5rem))]">
+        <div className="flex h-full min-h-0 w-full flex-col items-center">
+          <h2 id="pricing-subscription-details-title" className="sr-only">
+            {formatSuperWaterText(locale, t(`pricing.${selection.plan}`))}
+          </h2>
+
+          <div
+            className="mx-auto flex w-full flex-none -translate-y-6 flex-col items-center"
+          >
+            <div
+              className={cn(
+                "subscription-details-intro-item",
+                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              )}
+              style={{ animationDelay: "530ms" }}
+            >
+              <Image
+                src={planImage.src}
+                alt=""
+                width={planImage.width}
+                height={planImage.height}
+                priority
+                sizes="18rem"
+                className="h-24 w-64 flex-none object-contain"
+              />
+            </div>
+
+            <p
+              className={cn(
+                "subscription-details-intro-item mt-0 flex items-baseline justify-center gap-2 text-center font-display text-4xl font-semibold leading-none sm:text-5xl",
+                usesSuperWater && "font-super-water",
+                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              )}
+              style={{ animationDelay: "590ms", color: planColor }}
+            >
+              <span>{price ?? "—"}</span>
+              {price ? <span className="text-xl font-semibold sm:text-2xl">{period}</span> : null}
+            </p>
+          </div>
+
+          <ul ref={featureListRef} className="mt-10 min-h-0 w-full max-w-xl flex-1 overflow-hidden grid content-start gap-y-0 gap-x-3 sm:grid-cols-2">
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={650} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(1)} index={1} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={710} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(2)} index={2} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={770} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(3)} index={3} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={830} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(4)} index={4} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(5)} index={5} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(6)} index={6} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS[selection.plan].aiDailyMessages })} />
+            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(7)} index={7} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS[selection.plan].aiMonthlyMessages })} />
+          </ul>
+
+          <div
+            className={cn(
+              "subscription-details-intro-item subscription-details-intro-item--cta mt-8 w-full max-w-xl shrink-0 -translate-y-3",
+              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+            )}
+            style={{ animationDelay: "1090ms" }}
+          >
+            {!user ? (
+              <Link
+                href={`/register?next=${encodeURIComponent("/pricing")}`}
+                className={buttonClassName(
+                  "primary",
+                  "lg",
+                  "flex h-16 w-full items-center justify-center rounded-full border-0 !bg-white !text-2xl hover:brightness-95",
+                )}
+                style={{ color: planColor }}
+              >
+                <span className={cn("relative z-10", usesSuperWater && "font-super-water")}>
+                  {formatPricingCtaText(locale, ctaLabel)}
+                </span>
+              </Link>
+            ) : (
+              <PurchaseButton
+                plan={selection.plan}
+                cycle={selection.cycle}
+                currentPlan={currentPlan}
+                className="h-16 !rounded-full !text-2xl"
+                locale={locale}
+                ctaContent={ctaLabel}
+                summaryCta
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  return typeof document === "undefined" ? null : createPortal(content, document.body);
+}
+
+function SubscriptionDetailsFrameAnimation({
+  isClosing,
+  onComplete,
+  plan,
+}: {
+  isClosing: boolean;
+  onComplete: () => void;
+  plan: Exclude<SubscriptionPlan, "free">;
+}) {
+  const [frameIndex, setFrameIndex] = useState(1);
+  const frameIndexRef = useRef(1);
+  const frameBasePath = plan === "pro"
+    ? SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH
+    : SUBSCRIPTION_DETAILS_FRAME_BASE_PATH;
+
+  useEffect(() => {
+    let cancelled = false;
+    let animationFrameId: number | null = null;
+    const frameDuration = 1000 / SUBSCRIPTION_DETAILS_FRAME_FPS;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const preloadFrames = Array.from(
+      { length: SUBSCRIPTION_DETAILS_FRAME_COUNT },
+      (_, index) => {
+        const image = new window.Image();
+        image.decoding = "async";
+        image.src = `${frameBasePath}/${index + 1}.png`;
+        return image;
+      },
+    );
+
+    if (prefersReducedMotion) {
+      frameIndexRef.current = SUBSCRIPTION_DETAILS_FRAME_COUNT;
+      setFrameIndex(SUBSCRIPTION_DETAILS_FRAME_COUNT);
+      onComplete();
+      return () => {
+        cancelled = true;
+        preloadFrames.forEach((image) => {
+          image.onload = null;
+          image.onerror = null;
+        });
+      };
+    }
+
+    const startedAt = window.performance.now();
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const nextFrame = Math.min(
+        SUBSCRIPTION_DETAILS_FRAME_COUNT,
+        Math.floor((now - startedAt) / frameDuration) + 1,
+      );
+
+      if (nextFrame !== frameIndexRef.current) {
+        frameIndexRef.current = nextFrame;
+        setFrameIndex(nextFrame);
+      }
+
+      if (nextFrame === SUBSCRIPTION_DETAILS_FRAME_COUNT) {
+        onComplete();
+      }
+
+      if (nextFrame < SUBSCRIPTION_DETAILS_FRAME_COUNT) {
+        animationFrameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [frameBasePath, onComplete]);
+
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "subscription-details-frame-layer",
+        plan === "pro" && "subscription-details-frame-layer--pro",
+        isClosing && "subscription-details-frame-layer--closing",
+      )}
+    >
+      <img
+        src={`${frameBasePath}/${frameIndex}.png`}
+        alt=""
+        draggable={false}
+        style={{ filter: "none" }}
+      />
+    </div>
+  );
+}
+
+function SubscriptionDetailsFeature({
+  hidden = false,
+  introVisible,
+  introDelay,
+  index,
+  icon: Icon,
+  locale,
+  text,
+}: {
+  hidden?: boolean;
+  introVisible: boolean;
+  introDelay: number;
+  index: number;
+  icon: typeof Layers;
+  locale: LocaleCode;
+  text: string;
+}) {
+  return (
+    <li
+      hidden={hidden}
+      data-pricing-details-feature={index}
+      className={cn(
+        "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+      )}
+      style={{ animationDelay: `${introDelay}ms` }}
+    >
+      <Icon className="size-6 shrink-0 text-white" strokeWidth={2.4} aria-hidden="true" />
+      <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, text)}
+      </span>
+    </li>
+  );
+}
+
 type MobileOption = {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
@@ -767,11 +1586,20 @@ function MobileOptionPrice({
   return (
     <span
       className={cn(
-        "relative z-10 flex items-center justify-center gap-1 whitespace-nowrap text-xs font-medium leading-none transition-colors duration-300",
-        isSelected ? "text-slate-950" : "text-white",
+        "relative z-10 flex items-center justify-center gap-1 whitespace-nowrap font-semibold leading-none transition-[color,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]",
+        isSelected
+          ? plan === "basic"
+            ? "text-lg text-[#60a5fa]"
+            : "text-lg text-[#c084fc]"
+          : "text-base text-[#9ca3af] saturate-0",
       )}
+      style={{
+        transform: `translateY(-0.5rem) scale(${isSelected ? 1 : 0.9})`,
+        transition: "transform 500ms cubic-bezier(0.85, 0, 0.15, 1), color 500ms cubic-bezier(0.85, 0, 0.15, 1), filter 500ms cubic-bezier(0.85, 0, 0.15, 1)",
+        willChange: "transform, color, filter",
+      }}
     >
-      <span className="font-display text-sm font-semibold tabular-nums">{primary}</span>
+      <span className={cn("font-display font-semibold tabular-nums", isSelected ? "text-xl" : "text-lg")}>{primary}</span>
       <span aria-hidden="true">/</span>
       <span>{cycle === "yearly" ? t("pricing.billingYearly") : t("pricing.billingMonthly")}</span>
     </span>
@@ -812,49 +1640,49 @@ function getMobileOptionPriceValue({
 const MOBILE_PERK_ARTWORK = [
   {
     id: "new-cards",
-    image: "/pricing-perks/new-cards.png",
+    image: "/pricing-perks/learn-cards-transparent.png",
     titleKey: "pricing.featureCards",
     descriptionKey: "pricing.featureCardsDescription",
   },
   {
     id: "learn-cards",
-    image: "/pricing-perks/learn-cards.png",
+    image: "/pricing-perks/new-cards-transparent.png",
     titleKey: "pricing.featureLearned",
     descriptionKey: "pricing.featureLearnedDescription",
   },
   {
     id: "review-cards",
-    image: "/pricing-perks/review-cards2.png",
+    image: "/pricing-perks/review-cards2-transparent.png",
     titleKey: "pricing.featureLearnedReview",
     descriptionKey: "pricing.featureLearnedReviewDescription",
   },
   {
     id: "games",
-    image: "/pricing-perks/games.png",
+    image: "/pricing-perks/games-transparent.png",
     titleKey: "pricing.featureGames",
     descriptionKey: "pricing.featureGamesDescription",
   },
   {
     id: "practice",
-    image: "/pricing-perks/practice.png",
+    image: "/pricing-perks/practice-transparent.png",
     titleKey: "nav.aiPractice",
     descriptionKey: "pricing.featureAiDaily",
   },
   {
     id: "themes",
-    image: "/pricing-perks/themes2.png",
+    image: "/pricing-perks/themes2-transparent.png",
     titleKey: "pricing.featureThemes",
     descriptionKey: "pricing.featureThemesDescription",
   },
   {
     id: "priority-support",
-    image: "/pricing-perks/priority-support.png",
+    image: "/pricing-perks/priority-support-transparent.png",
     titleKey: "pricing.featurePrioritySupport",
     descriptionKey: "pricing.featurePrioritySupportDescription",
   },
   {
     id: "scenario-ai",
-    image: "/pricing-perks/durum-ai-practice.png",
+    image: "/pricing-perks/durum-ai-practice-transparent.png",
     titleKey: "pricing.featureAiScenarios",
     descriptionKey: "pricing.featureAiScenariosDescription",
   },
@@ -1039,19 +1867,28 @@ function MobilePricingPerkCarousel({
 
       <div
         ref={trackRef}
-        className="-mx-4 h-[clamp(14rem,40dvh,21rem)] w-[calc(100%+2rem)] overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 -my-12 flex h-[calc(clamp(14rem,40dvh,21rem)+6rem)] w-[calc(100%+2rem)] items-center overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         data-mobile-pricing-perks
         aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
       >
-        <div className="flex h-full w-max snap-x snap-mandatory gap-3 px-[14vw]">
+        <div className="flex h-[clamp(14rem,40dvh,21rem)] w-max snap-x snap-mandatory gap-3 px-[14vw]">
           {LOOPED_MOBILE_PERK_ARTWORK.map((perk, renderIndex) => {
             const index = renderIndex % MOBILE_PERK_ARTWORK.length;
             const isHighlighted = renderIndex === highlightRenderIndex;
-            const description = perk.id === "practice"
-              ? t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })
+            const perkImageOffset = perk.id === "themes"
+              ? "-translate-y-12"
               : perk.id === "scenario-ai"
-                ? t("pricing.featureAiScenariosDescription", { count: PLAN_LIMITS[plan].aiMonthlyMessages })
-                : t(perk.descriptionKey);
+                ? "-translate-y-10"
+              : perk.id === "priority-support"
+                ? "-translate-y-10"
+                : perk.id === "practice"
+                  ? "-translate-y-8"
+                  : perk.id === "learn-cards" || perk.id === "new-cards"
+                    ? "-translate-y-7"
+                    : "-translate-y-6";
+            const perkImageScale = isHighlighted
+              ? perk.id === "scenario-ai" ? "scale-[1.08]" : "scale-[1.16]"
+              : perk.id === "scenario-ai" ? "scale-[1.02]" : "scale-[1.08]";
 
             return (
               <article
@@ -1060,23 +1897,32 @@ function MobilePricingPerkCarousel({
                   cardRefs.current[renderIndex] = element;
                 }}
                 data-perk-index={index}
+                data-pricing-perk-card
                 data-highlighted={isHighlighted ? "true" : "false"}
                 className={cn(
                   "relative h-full w-[72vw] max-w-[19rem] snap-center snap-always rounded-[2rem] bg-[var(--pricing-mobile-surface)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                   isHighlighted ? "z-20 scale-100 opacity-100" : "z-0 scale-[0.86] opacity-55",
                 )}
               >
-                <Image
-                  src={perk.image}
-                  alt=""
-                  fill
-                  priority={renderIndex === MOBILE_PERK_ARTWORK.length}
-                  sizes="72vw"
-                  className={cn(
-                    "rounded-[2rem] object-cover transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    isHighlighted ? "scale-100 opacity-100" : "scale-[0.9] opacity-45 grayscale-[0.2]",
-                  )}
-                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0"
+                  style={{ clipPath: "inset(-100% 0 -100% 0)" }}
+                >
+                  <Image
+                    src={perk.image}
+                    alt=""
+                    fill
+                    priority={renderIndex === MOBILE_PERK_ARTWORK.length}
+                    sizes="72vw"
+                    className={cn(
+                      perkImageOffset,
+                      "object-contain transition-[transform,filter,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      perkImageScale,
+                      isHighlighted ? "opacity-100" : "opacity-45 grayscale-[0.2]",
+                    )}
+                  />
+                </div>
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-0 rounded-[2rem] [background:linear-gradient(to_top,rgba(8,9,9,0.98)_0%,rgba(8,9,9,0.9)_25%,rgba(8,9,9,0.46)_52%,transparent_76%)]"
@@ -1084,13 +1930,12 @@ function MobilePricingPerkCarousel({
                 <div className="relative z-10 flex h-full min-h-[6.5rem] flex-col items-center justify-end px-5 pb-5 text-center transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
                   <h2
                     className={cn(
-                      "text-xl font-semibold leading-none text-white transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      "text-2xl font-semibold leading-none text-white transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                       canUseSuperWater(locale) && "font-super-water",
                     )}
                   >
                     {formatSuperWaterText(locale, t(perk.titleKey))}
                   </h2>
-                  <p className="mt-2 max-w-[16rem] text-xs leading-4 text-white/80">{description}</p>
                 </div>
               </article>
             );
@@ -1127,7 +1972,7 @@ function MobileBillingCycleToggle({
     : null;
 
   return (
-    <div className="relative flex h-12 shrink-0 rounded-full bg-[var(--pricing-mobile-surface)] p-1">
+    <div className="relative flex h-12 shrink-0 rounded-full bg-[var(--pricing-mobile-button-surface)] p-1">
       <span
         aria-hidden="true"
         className={cn(
@@ -1163,26 +2008,21 @@ function MobileBillingCycleToggle({
 }
 
 function MobileSubscriptionCtaContent({
-  price,
-  cycle,
   hasFirstMonthTrial,
+  locale,
 }: {
-  price: string;
-  cycle: BillingCycle;
   hasFirstMonthTrial: boolean;
+  locale: LocaleCode;
 }) {
   const t = useT();
-  const period = cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth");
 
   return (
     <span className="flex flex-col items-center justify-center leading-tight">
-      <span className="text-base font-semibold">
-        {hasFirstMonthTrial ? t("pricing.ctaStartFirstMonthFreeTrial") : t("pricing.ctaSubscribe")}
-      </span>
-      <span className="mt-0.5 text-sm font-medium text-slate-950/55">
-        {hasFirstMonthTrial
-          ? t("pricing.ctaTrialAfter", { price, period })
-          : t("pricing.ctaPriceWithPeriod", { price, period })}
+      <span className="text-2xl font-semibold">
+        {formatPricingCtaText(
+          locale,
+          hasFirstMonthTrial ? t("pricing.ctaStartFirstMonthFreeTrial") : t("pricing.ctaSubscribe"),
+        )}
       </span>
     </span>
   );
@@ -1195,6 +2035,8 @@ interface MobilePricingViewProps {
   googlePlayPricing: GooglePlayPricingStatus;
   entitlements: ReturnType<typeof useSubscription>["entitlements"];
   locale: LocaleCode;
+  forceFirstMonthFree: boolean;
+  onRequestCheckout: (selection: CheckoutSelection) => void;
 }
 
 function MobilePricingView({
@@ -1204,6 +2046,8 @@ function MobilePricingView({
   googlePlayPricing,
   entitlements,
   locale,
+  forceFirstMonthFree,
+  onRequestCheckout,
 }: MobilePricingViewProps) {
   const t = useT();
   const [selectedOption, setSelectedOption] = useState<MobileOption>(DEFAULT_MOBILE_OPTION);
@@ -1227,81 +2071,84 @@ function MobilePricingView({
   const showsFirstMonthTrial =
     selectedOption.cycle === "monthly" &&
     selectedPrice != null &&
-    (currentPlan == null || currentPlan === "free");
+    (forceFirstMonthFree || currentPlan == null || currentPlan === "free");
   const ctaContent = selectedPrice ? (
     <MobileSubscriptionCtaContent
-      price={selectedPrice}
-      cycle={selectedOption.cycle}
       hasFirstMonthTrial={showsFirstMonthTrial}
+      locale={locale}
     />
   ) : undefined;
+  const ctaLabel = showsFirstMonthTrial
+    ? t("pricing.ctaStartFirstMonthFreeTrial")
+    : t("pricing.ctaSubscribe");
 
   return (
-    <div className="relative z-10 flex h-full flex-col overflow-hidden bg-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden">
-      <div className="flex min-h-0 -translate-y-1.5 flex-1 flex-col items-center justify-center gap-12">
-        <header
-          className="shrink-0 text-center"
-          data-mobile-pricing-heading
-          data-route-transition-surface
-          style={{
-            transform: "translateY(clamp(-3rem, calc((26.8125rem - 50dvh) * 0.5), 3rem))",
-          }}
-        >
-          <h1 className={cn("font-display text-[clamp(1.8rem,8vw,2.5rem)] font-semibold leading-[0.95] text-white", canUseSuperWater(locale) && "font-super-water")}>
-            {formatSuperWaterText(locale, t("pricing.title"))}
-          </h1>
-          <p className="mt-3 text-base font-semibold text-white">
-            {t("pricing.firstMonthFreeBanner")}
-          </p>
-        </header>
+    <div
+      className="relative z-10 flex h-full flex-col overflow-hidden bg-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white lg:hidden"
+      data-pricing-mobile-view
+    >
+      <PricingDotsBackground plan={selectedOption.plan} />
+
+      <div className="relative z-10 flex min-h-0 -translate-y-8 flex-1 flex-col items-center justify-center gap-12">
+        <div className="h-20 shrink-0" aria-hidden="true" />
 
         <div className="flex min-h-0 w-full min-w-0 shrink-0 items-center" data-route-transition-surface>
           <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
         </div>
       </div>
 
-      <div className="shrink-0">
+      <div
+        className="pointer-events-none absolute inset-x-8 top-0 z-20 flex flex-col items-center justify-center px-4 text-center"
+        data-pricing-heading
+        data-pricing-heading-mobile
+        data-route-transition-surface
+      >
+        <div className="relative z-10">
+          <PricingHeading locale={locale} />
+        </div>
+      </div>
+
+      <div className="relative z-10 -translate-y-8 shrink-0">
         <div className="grid grid-cols-2 gap-2">
           {(["basic", "pro"] as const).map((plan) => {
             const isSelected = selectedOption.plan === plan;
+            const planButtonImage = PRICING_PLAN_BUTTON_IMAGES[plan];
 
             return (
               <button
                 key={plan}
                 type="button"
                 onClick={() => handleSelect({ plan, cycle: selectedOption.cycle })}
-                className="relative isolate flex h-16 flex-col items-center justify-center overflow-hidden rounded-full border border-transparent px-3 text-center"
+                className="relative isolate flex h-20 flex-col items-center justify-center overflow-visible rounded-full border-0 bg-transparent px-3 text-center"
                 aria-pressed={isSelected}
                 data-mobile-pricing-plan-button={plan}
                 data-selected={isSelected ? "true" : "false"}
               >
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 rounded-full border border-transparent [background:linear-gradient(var(--pricing-mobile-surface),var(--pricing-mobile-surface))_padding-box,linear-gradient(180deg,var(--pricing-mobile-surface-outline-top),var(--pricing-mobile-surface-outline-bottom))_border-box]"
-                />
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "pointer-events-none absolute inset-0 transition-opacity duration-300 ease-in-out",
-                    isSelected ? "opacity-100" : "opacity-0",
-                  )}
+                  className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-16 -translate-y-1/2 overflow-hidden rounded-full border border-white/10"
                 >
-                  <Image
-                    src="/pricing-buttons/pricing-active-button-v2.png"
-                    alt=""
-                    fill
-                    sizes="(max-width: 1023px) 50vw, 0px"
-                    className="object-fill"
-                  />
+                  <PricingPlanButtonBackground plan={plan} isSelected={isSelected} />
                 </span>
                 <span
-                  className={cn(
-                    "relative z-10 font-display text-lg font-semibold leading-none transition-colors duration-300",
-                    isSelected ? "text-slate-950" : "text-white",
-                    canUseSuperWater(locale) && "font-super-water",
-                  )}
+                  className="relative z-10 flex h-16 w-full items-center justify-center overflow-visible"
                 >
-                  {formatSuperWaterText(locale, t(`pricing.${plan}`))}
+                  <Image
+                    src={planButtonImage.src}
+                    alt={t(`pricing.${plan}`)}
+                    width={planButtonImage.width}
+                    height={planButtonImage.height}
+                    sizes="(max-width: 1023px) 50vw, 0px"
+                    className="h-auto max-h-16 w-[92%] object-contain"
+                    style={{
+                      transform: isSelected
+                        ? "translateY(-0.5rem) scale(0.88)"
+                        : "translateY(0.25rem) scale(0.64)",
+                      filter: isSelected ? "saturate(1)" : "saturate(0)",
+                      transition: "transform 500ms cubic-bezier(0.85, 0, 0.15, 1), filter 500ms cubic-bezier(0.85, 0, 0.15, 1)",
+                      willChange: "transform, filter",
+                    }}
+                  />
                 </span>
                 <MobileOptionPrice
                   plan={plan}
@@ -1317,7 +2164,7 @@ function MobilePricingView({
           })}
         </div>
 
-      <div className="mt-2" data-route-transition-surface>
+      <div className="mt-2 hidden" data-route-transition-surface>
         <MobileBillingCycleToggle
           cycle={selectedOption.cycle}
           yearlyDiscountRate={yearlyDiscountRate}
@@ -1331,26 +2178,48 @@ function MobilePricingView({
         ) : !user ? (
           <Link
             href={`/register?next=${encodeURIComponent("/pricing")}`}
-            className={buttonClassName("primary", "lg", cn("h-14 w-full rounded-2xl border-0 text-base", PRICING_GRADIENT_BUTTON_CLASS))}
+            onClick={(event) => {
+              event.preventDefault();
+              onRequestCheckout({
+                plan: selectedOption.plan,
+                cycle: selectedOption.cycle,
+                ctaLabel,
+              });
+            }}
+            className={buttonClassName(
+              "primary",
+              "lg",
+              cn(
+                "w-full rounded-2xl border-0",
+                PRICING_PURCHASE_BUTTON_CLASS,
+                PRICING_PURCHASE_CTA_CLASS,
+                canUseSuperWater(locale) && "font-super-water",
+              ),
+            )}
           >
-            {ctaContent ?? t("pricing.ctaSubscribe")}
+            <PricingPlanCtaBackground plan={selectedOption.plan} />
+            <span className="relative z-10">
+              {ctaContent ?? formatPricingCtaText(locale, t("pricing.ctaSubscribe"))}
+            </span>
           </Link>
         ) : (
           <PurchaseButton
             plan={selectedOption.plan}
             cycle={selectedOption.cycle}
             currentPlan={currentPlan}
-            className="h-14 rounded-2xl text-base"
+            className={cn(PRICING_PURCHASE_CTA_CLASS, "rounded-2xl")}
+            locale={locale}
             showSubscribeForPaidUser={currentPlan === "basic" && selectedOption.plan === "pro"}
             ctaContent={ctaContent}
+            onRequestCheckout={() => onRequestCheckout({
+              plan: selectedOption.plan,
+              cycle: selectedOption.cycle,
+              ctaLabel,
+            })}
           />
         )}
       </div>
 
-      <div className="mt-2 flex shrink-0 items-center justify-center gap-3 text-[10px] text-white/45" data-route-transition-surface>
-        <Link href="/terms" className="underline underline-offset-2">{t("pricing.consentTerms")}</Link>
-        <Link href="/privacy" className="underline underline-offset-2">{t("pricing.consentPrivacy")}</Link>
-      </div>
       </div>
     </div>
   );

@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { CustomCardDirectionToggle } from "@/app/components/custom-card-direction-toggle";
 import {
   MobileCustomCardLanguagePicker,
   usesNonLatinWritingSystem,
 } from "@/app/components/mobile-custom-card-language-picker";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
@@ -16,7 +18,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { getLanguageDisplayName } from "@/i18n/labels";
-import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
+import type { CreateCardDirection, GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 const PREVIEW_EXPAND_DELAY_MS = 400;
@@ -31,6 +33,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const [term, setTerm] = useState("");
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(landingLanguage);
+  const [direction, setDirection] = useState<CreateCardDirection>("learning-to-native");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<VocabularyCard | null>(null);
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
@@ -48,11 +51,18 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
         language: getLanguageDisplayName(targetLanguage, locale),
       })
     : null;
+  const inputLanguage = direction === "native-to-learning" ? locale : targetLanguage;
+  const termPlaceholder = t("createCard.termPlaceholder", {
+    language: getLanguageDisplayName(inputLanguage, locale),
+  });
 
   useEffect(() => {
     if (!open) return;
 
-    const frame = window.requestAnimationFrame(() => setTargetLanguage(landingLanguage));
+    const frame = window.requestAnimationFrame(() => {
+      setTargetLanguage(landingLanguage);
+      setDirection("learning-to-native");
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [landingLanguage, open]);
 
@@ -126,11 +136,15 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     if (!normalized) return;
     setLoading(true); setError(""); clearCardAddedMessage(); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false);
     try {
-      const match = localCardRepository
-        .list({ language: targetLanguage, query: term })
-        .find((card) => normalizeSearch(card.term) === normalized);
+      const match = findCustomCardMatch({
+        cards: localCardRepository.list({ language: targetLanguage }),
+        term,
+        inputLanguage: locale,
+        targetLanguage,
+        direction,
+      });
       if (match) { showPreview(match); setTerm(""); return; }
-      const result = await generateCardRequest({ locale, term: term.trim(), targetLanguage });
+      const result = await generateCardRequest({ locale, term: term.trim(), targetLanguage, direction });
       setAiResponse(result); showPreview(buildPreviewVocabularyCard(result)); setTerm("");
     } catch (error) {
       const limitError = getSubscriptionLimitError(error);
@@ -251,9 +265,14 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
         </p>
       ) : null}
       <div className={cn("relative z-10 flex flex-1 flex-col pt-4 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}>
-        <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
-        <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("createCard.termPlaceholder")} className="mt-3 h-12 w-full rounded-md border border-brand bg-white px-3 text-black outline-none placeholder:text-black/50" />
-        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-white text-sm font-semibold text-black disabled:opacity-50">
+        <div className="mt-3">
+          <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
+        </div>
+        <div className="mt-3">
+          <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
+        </div>
+        <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={termPlaceholder} className="control-gradient-outline mt-3 h-12 w-full rounded-full px-3 text-black outline-none placeholder:text-black/50" />
+        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="control-gradient-outline mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-black disabled:opacity-50">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           {loading ? t("createCard.generating") : t("createCard.generate")}
         </button>

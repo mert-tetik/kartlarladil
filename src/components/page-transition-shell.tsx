@@ -7,6 +7,7 @@ import {
   subscribeRouteTransition,
 } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
+import { RouteLoadingState } from "@/components/route-loading-state";
 
 const COVER_DURATION_MS = ROUTE_TRANSITION_COVER_DURATION_MS;
 const ENTER_DURATION_MS = 480;
@@ -225,7 +226,16 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div aria-hidden="true" className="route-transition-curtain" />
+      <div
+        aria-hidden={transitionPhase !== "covering"}
+        className="route-transition-curtain"
+      >
+        {transitionPhase === "covering" ? (
+          <div className="route-transition-loading">
+            <RouteLoadingState idPrefix="route-transition-loading" />
+          </div>
+        ) : null}
+      </div>
       <main
         ref={mainRef}
         key={pathname}

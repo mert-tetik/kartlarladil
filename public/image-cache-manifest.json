@@ -1,5 +1,5 @@
 {
-  "version": "d469c04668f2a43438edbdb6e548562cc62681277f0cc3562e38dbe1da6f3a80",
+  "version": "91d629afae61c99be21a78f6ba26aec432157bce5cc2ff92d5f3569eb8f32c77",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -994,44 +994,456 @@
       "revision": "65070c9adcd9b840f13075605da9fd2f53555f2a14d33cb0c71be6ad392c72e9"
     },
     {
+      "url": "/pricing-buttons/pricing-pro-active-button-v2.png",
+      "revision": "7e5a21c9ab621061da9c1ab2576fe339d5d76e120d20dc59027f04dc2815ef54"
+    },
+    {
+      "url": "/pricing-buttons/pricing-pro-basic-button-v2.png",
+      "revision": "d0756d1a783318b1c549f99c3f0c274a687589aee0dc910844e2b6177f64d7b8"
+    },
+    {
       "url": "/pricing-page-bg.png",
       "revision": "48f7e3b806d22bf8feab6fd8ac0985c60035a2c022f35040d6933a77e093380b"
     },
     {
-      "url": "/pricing-perks/collection.png",
-      "revision": "2a0546a163e767d0ea160bd03f4a4ff2269d1c0bc26942bcb2f2d47a85a55d80"
+      "url": "/pricing-page-dots.png",
+      "revision": "20a8726d044f9461f1fb491c7ee17941ab08f305df32c62e30ae96475c3b42ef"
     },
     {
-      "url": "/pricing-perks/durum-ai-practice.png",
-      "revision": "6055dfb39e952998fb98419a40622d6f04c4ce946e55486668f7629e088147c3"
+      "url": "/pricing-perks/collection-transparent.png",
+      "revision": "73a3160c1644998338c354b73d888b3f10196210ba8632309bd4f4b45da25588"
     },
     {
-      "url": "/pricing-perks/games.png",
-      "revision": "856db67d5886c3083f6e51089c769fb3fc55027272e6476292659a139b612765"
+      "url": "/pricing-perks/durum-ai-practice-transparent.png",
+      "revision": "cf5d69c159d8fcf85c459b0b38a45573a74d13671cd5177b7f05a61eaf0cbd60"
     },
     {
-      "url": "/pricing-perks/learn-cards.png",
-      "revision": "d6672096618d4543570ea9468e749de00f3b7ddb82b860d6d45c22db96b5bd13"
+      "url": "/pricing-perks/games-transparent.png",
+      "revision": "ccd5a163f459e0554241f306488952de3a69ad1fd19f5c5e6a9533cce2692edf"
     },
     {
-      "url": "/pricing-perks/new-cards.png",
-      "revision": "aadb669577b1c038ea0ed7229ae86c30b097775f064f5cae8f23bfe2eafe435a"
+      "url": "/pricing-perks/learn-cards-transparent.png",
+      "revision": "383c4b587268f2f588af7f4e20425fe0400bf23738aa1f690e1613ff31a887b5"
     },
     {
-      "url": "/pricing-perks/practice.png",
-      "revision": "e93f730705f7b2ca3594d9b00d19e2ef114fa0d5d183802484f54b2ca514bbae"
+      "url": "/pricing-perks/new-cards-transparent.png",
+      "revision": "4a6de7a3ba5f13eb9fa264f5a34c4e354fed4f085c1042ffec1bc01eba780c2c"
     },
     {
-      "url": "/pricing-perks/priority-support.png",
-      "revision": "247b02811c7eb81cd78dd9b889c7beecd0f17caf5fa403c0d7049bd1f1382312"
+      "url": "/pricing-perks/practice-transparent.png",
+      "revision": "6d34d7a84a994834b388c774ac7d01616c8712e0fb14ba954325f45446d22e43"
     },
     {
-      "url": "/pricing-perks/review-cards2.png",
-      "revision": "d74bb34598cba7172d0b39d587f4a98ab8b2ba757049fb181d6570a50b0179d3"
+      "url": "/pricing-perks/priority-support-transparent.png",
+      "revision": "79a6bb40906328b9dac47b10f5b15441b6db4a8fddbce2d1990aec8564a800b2"
     },
     {
-      "url": "/pricing-perks/themes2.png",
-      "revision": "a1c219b4f95257e6e3018ad180c9191bde4fb1be2c2c547bbb87445503a93d95"
+      "url": "/pricing-perks/review-cards2-transparent.png",
+      "revision": "2421e9df2e7e8f020a555ada93e18e2d91854b846a6337598d6cbcca6f4f1802"
+    },
+    {
+      "url": "/pricing-perks/themes2-transparent.png",
+      "revision": "238845bcb7c16e348f7e8743a9019b8500ed64cbf61e4f2f900e72c0a250e1a8"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/1.png",
+      "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/10.png",
+      "revision": "220106a2271221e9f26d4f4cf18f507ce384169edec4b3def3e515d976aabd39"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/11.png",
+      "revision": "32d3fdceb01ad30a5147fbd346ae14814a252459b590dabbcc9be646a3bd3c8d"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/12.png",
+      "revision": "fb44f991d1ffa35c77fe97f03accb673ae935fc433f057052490081183c84b32"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/13.png",
+      "revision": "98b573e5fb1489bd6e530bf8f35277d299496ac58c1799d0d298252776fc368f"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/14.png",
+      "revision": "1fc61f1b4c55196c981545692485d1463c13dbec26a28dcb8848690b8e0f6a7d"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/15.png",
+      "revision": "114f83e6ec31717f71a21f539ddc57f82441b4e4539fbbfcf8eef3ed84d7f93c"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/16.png",
+      "revision": "471d418b1b0d7cdd4e2a6699ae96724d2d485baf3064b8d1f0d2ea3b3b129e95"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/17.png",
+      "revision": "50c394db0ab6ffee844f111cb09998f1e3fb1474015da41b957574b701ae30c4"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/18.png",
+      "revision": "d9feb31c1ab49bc890fccef56c7cf8f6e9d1dc1380a336d572007ecc1a6982d1"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/19.png",
+      "revision": "596e50ffb189497d6b3c323a67b64e3337d81f406594c461e262a8e82b24bad2"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/2.png",
+      "revision": "a8c1035b86575a1fef9cbb9ea0227e430bd8123d3374c955be3eea1cb50d6e96"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/20.png",
+      "revision": "9f5e5d7c78cb8219e3b3503d2879ae680df1477b7103b28705454e78a1c009ec"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/21.png",
+      "revision": "547ab0479c5eb4ef5a2521a62446e138249eff9982ceb84e01b2aa61d250a95d"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/22.png",
+      "revision": "f3de62c703b3991e3cc005c12f7af0b71204eda52d644ef1495f70f42e156d91"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/23.png",
+      "revision": "e81ddcd7efe21ea3ec73f6c13574099d55d82233e123aabeb17e1bd0353da46b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/24.png",
+      "revision": "480a9f12286be936affcd1cdbb551d30382ab7b8b4b80af044c14c9d1f8f30c3"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/25.png",
+      "revision": "4b9ed8d0a33db6685095ddec256207cb9366c7dd9e75cfe9493101d7d66f2569"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/26.png",
+      "revision": "dafc7d631c0f6432b9d9c4573f5153a1310486f482966ad4ad74aedcc21a13d6"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/27.png",
+      "revision": "6e8c2a15f566a1b87251beabae34c44f1b09796ebb05b7413c291e3ca5ed025e"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/28.png",
+      "revision": "abb24664bf2a15bd2079fccf2ba8d01b328e097636dbbd8e1c0e4f24e7d44aeb"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/29.png",
+      "revision": "6d1ed866b2cbff142a490abc3c2c56ec469fc44ccb260911596aaf5b7e97483b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/3.png",
+      "revision": "c0c3e88cb14cd3de81fc0020aec05dd763bceef02c14bc223c238326919a82fa"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/30.png",
+      "revision": "b4597f8d7e03ce6624c4497d0a541af26770c76da54d96f9dff749b02a9d97b2"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/31.png",
+      "revision": "c96ca9c7aba6ca73af98c4cf1b57dd47fb9bbf60776a2c081e24bc51d7ef7af7"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/32.png",
+      "revision": "b7c2e4a0cea8feee16012fd01ba2137cb000bdcd37370f818c6fb20e87d3eb8b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/33.png",
+      "revision": "636e8d93c1b448b7922867ae073bb094c052841d10da477f1a51a0d88d028618"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/34.png",
+      "revision": "2b9637cfcfb4a47f30d6ec899716a50755f7f38793d494460866daaf05b2ca5b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/35.png",
+      "revision": "74728e1a55c26cc417410c212ad8a5fb26051d59c60e3895680bdbc556aee17e"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/36.png",
+      "revision": "42cff5f88f8a93b9ae48c596b0c03fe5c18a19f101035f37a94d6ce3bff15cc6"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/37.png",
+      "revision": "8e4ae2082c248f47d11687b55ab4e96116d5462c459605a19ab1f63195a2bac5"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/38.png",
+      "revision": "bc047a2ad0912a7d073afb0e80db4f72cd61cb4e98373b06660a29f8267c14b6"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/39.png",
+      "revision": "cb591aae26c31269dfc92c8f17c735aa50cc0f82865a509f84ed2497c3b41ca7"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/4.png",
+      "revision": "fca64806977f86530b885b865b8bc393016b549d03294e38b3c574e0779da0b0"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/40.png",
+      "revision": "5ded12ae4906cadbef471b38f15d59899a9a86fc9b582449872ea6701d489bde"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/41.png",
+      "revision": "4e73437fa715428e3edad42891a4494d4926a137fadafe4c378e6577b5e97534"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/42.png",
+      "revision": "5cd04db9ddef296a7eb714e192551e9313101c0593ff8b2c3941bd4afa9db2fd"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/43.png",
+      "revision": "83203abfe6826b5bed3e743e4fec11798550cbb3c967a83bdee1ab03e02cca48"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/44.png",
+      "revision": "a99c7e83ed70bc5fabcbef749f3b57bb16d1911a204dc7e32f6c286beae811a6"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/45.png",
+      "revision": "5e6939b709a6f2ef7a8d76f07bd8675164548b6590aeeca1df6a92e288611d6b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/46.png",
+      "revision": "a5478a47dea6a0163846fd83a02a0032fbbfe4218c7c555aa2d1532ba7877601"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/47.png",
+      "revision": "a563fcec082e4f5c5e09f8679d6341f3a3d5bfc4cb47054db4b19aefc58fac6e"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/48.png",
+      "revision": "1620bc5cddba54a9ada917a93e63b4e66d5c65ce7f836d3082489a767f949f72"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/49.png",
+      "revision": "663042d6371b1cf0b7de74d3ce880d979c93757526029badda484fa9ead8bcd3"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/5.png",
+      "revision": "2c1a0a346e9ea3bc8cbf8efa0a4d9b0ba647429f229781b2b2e61a22a096a9d0"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/50.png",
+      "revision": "ca90291df2e421ee510df5874249543314b06cc84d1ee43c86cfd9ac1543d0fa"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/6.png",
+      "revision": "b094ba912a80b7ee3862b8d41444c8adbca55a958a1dca68d1f1f332c4eb75dc"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/7.png",
+      "revision": "43a9360f64f162eca1122e3a24274e1c5eec9ae4a64f05e3f260aa1a9c47d3db"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/8.png",
+      "revision": "2467d509104afb4197cacc45f575713583e6a6a362aae3803a3072073fb8c076"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames/9.png",
+      "revision": "f09a908ef69c7d6ae6120d0b149fbc956412899fe8a223cfed834d101f71c47b"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/1.png",
+      "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/10.png",
+      "revision": "15b07165e7e3203f9b6b30d23286add33f63ca0a46cee04a3cabd343f69ab15c"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/11.png",
+      "revision": "e8ac206525ae42e4b32202398cdcf460be368c3bda7fb6289963d249ff32b5fe"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/12.png",
+      "revision": "b7d608fad1f480132522ac0fdd044cbcaf6208d8a49ce5ff98d7ffeb029c6437"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/13.png",
+      "revision": "5734334b33f289b7a5c7333117980ea012b1acb87698064d81eaa41b854792ad"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/14.png",
+      "revision": "84c65943134c0128ef13ff28f85e9e3bb02aea3280522c3b1794a87405fd3ad9"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/15.png",
+      "revision": "ab3476f2b78d5b6b9f1361b499d3d38e0f7c49046da5d42d93c3d9b6a6fd96d6"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/16.png",
+      "revision": "5daa66a123262914f9b2e6cb5ca133ccae4e6837b4d72d15e7d474ac179f2be0"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/17.png",
+      "revision": "6f6cac82029d2778d87cf7f103fa53548d7442d5a92e89f1e9274305bb80cd8c"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/18.png",
+      "revision": "fd71419f65d0ca1a2c9c0ea2d55b695689dcc6982a912ba197a0ac66bf26ed42"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/19.png",
+      "revision": "c24baa8fb18b65d0bb9bbc16bcc95f397728f4d6aa1b670bdc65d4b91c6f6b4d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/2.png",
+      "revision": "a8c1035b86575a1fef9cbb9ea0227e430bd8123d3374c955be3eea1cb50d6e96"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/20.png",
+      "revision": "e4c566b9817ca10266bd0045d270910a3cb423539f07fb673c50c4e61e679632"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/21.png",
+      "revision": "528a389377522ae367f082cb027d038b7ddbf951d2c4de5a7b160c254bc1a89f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/22.png",
+      "revision": "71f9bd693af8c227b36a4a25b2e86133687ce0ff7e79a3cd8fae72fb0ef0f5fe"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/23.png",
+      "revision": "739c6a875493d757a5a98e5a6804131199674b30ca39de26f788d8b3e414d55b"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/24.png",
+      "revision": "fa05524d33baf10715878040b363866d37e71aa245886412fc7b688c80f29da0"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/25.png",
+      "revision": "102d1fa9f324e7b6758348ef4c780d135f0ab43f03a1904dc8406ea2ea95867e"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/26.png",
+      "revision": "2dc6d4b8b2e2a961681c697d94a5cd278dc6c5eef9bf98518c54e4f40b32742f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/27.png",
+      "revision": "ca13d69a1c77bc77244a6dbe4629c52025a846f31ee047de245daeb3cdea8801"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/28.png",
+      "revision": "26a21882cf8b260dfa4636f4d43d514319a210b78344ffe4ef002d89af94f4e4"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/29.png",
+      "revision": "ff846e5c3bab1139a430ff2506de7376e25f1e2191da04c8cab91a9013f56f36"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/3.png",
+      "revision": "626cca45ece4a33baca8f5fc3c757fbe642389e76843fe3abf61d84b032e6896"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/30.png",
+      "revision": "77dbd5e8054d4a8eda64395a27c725ed381f50b8350e995e160eac33ef6c8aba"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/31.png",
+      "revision": "c0ac33c9aa64b267d12bdb244eaa86c9f61eebb57fcf2f10eb16fad3bba63e0f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/32.png",
+      "revision": "b0abf8662a60d6596200aadb3e26ec5185b76ac0100bc58623b120c385c98359"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/33.png",
+      "revision": "724a685dfbb53b6b4725dc045f154d5ebefb4693b8d0b2ce513b7ef3ac63c281"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/34.png",
+      "revision": "3a9fc05b35e0f1a882a7aac1521f67e2df47487dc0d523a66ec057cb68c122b3"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/35.png",
+      "revision": "c9bc0bde4e7374986ce2cc0b0de421c71ab01cbc8f2df14172f3692fe0780847"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/36.png",
+      "revision": "ae7965d59871e41256b3ac1f2186982abd5aedae90a03ee68e8673d3bba6ccf1"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/37.png",
+      "revision": "073b3542e916f5b291c50b55361e9a089a32a7906b01475e8bfd1fed4147f681"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/38.png",
+      "revision": "fcabf36b3ef3386edb929b177d11db0273524ddb42141ba4ad1820f6fd12823a"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/39.png",
+      "revision": "066288705e57262b7c8331531e82431249a32427bfa2e87936392f71e6d13998"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/4.png",
+      "revision": "8082a9d19a6a19e1830bc92580edfc407b12cd0e03ba82c65d0f68cd8d105f67"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/40.png",
+      "revision": "6ed6e9e45a018fcc4da2b53edcf92692d9bc4ea46d58093d35449073b8f3035d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/41.png",
+      "revision": "983d5c31f12d163445733eb667a7e336e1fa6250688b433af8d40d59eb642002"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/42.png",
+      "revision": "ff3f58304de5ddb22feb67e3402cd3cd8523f8a52312a6538eac4b4b82ee587f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/43.png",
+      "revision": "4209d7a5b9c06dc95763a299d2fd7799a0aa3edb10b66ef36256902b7e21330f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/44.png",
+      "revision": "4314708152b5390f93aa50c00dd9438fc4e382982950d0f56e528717e81280c9"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/45.png",
+      "revision": "f0f68e9099b38f1e95dedeadc4cad372b5e163ae3f6b8d1948976d7316481f76"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/46.png",
+      "revision": "59b3ed618c072bea83801f657dd8bf612a0d527094f9e47c7deb0c7f941a021f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/47.png",
+      "revision": "dedbb25f8a0c71252cea26415d47e10b7580d215604743258c4edf3fd109771d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/48.png",
+      "revision": "270aa813b48b31646b6891f5e08663ed8d9fafe8e6c9ec639a3bcbc3bfb47e97"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/49.png",
+      "revision": "3698ab3c27e5d6dfd014e20f355466e1c4aef86135429cedc2116b1f53ca95ab"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/5.png",
+      "revision": "4536979ef36c46754303e91cae6a291c96fd89b974df19a62d029c5d176539c9"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/50.png",
+      "revision": "d19a6c8df1a5f01e09ec4175a8e033e2205eff436ef9424edc52b6e5bde4c386"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/6.png",
+      "revision": "555257457e6cad1c0ce4f61a1e4090b706fc8977e8ab53f4d15a78c7be20c0f4"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/7.png",
+      "revision": "7da87572aba7efdcde6c13a492d1c4d1c05c479673bc0b107f6dba4ba9c0061a"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/8.png",
+      "revision": "dfeb8832988dbfaf048db15082705d8735518adf78e13776a2295036325772eb"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames/9.png",
+      "revision": "5ebae21b742cdee65d3fcae873112805ee3f432d88e9d83ec7e07d91d7dc3a9c"
     },
     {
       "url": "/profile-pictures/pp_1.webp",
@@ -1286,6 +1698,606 @@
       "revision": "4ff05954cec6958c3e38e2b5a93eeb2191cf37a010b7e79864cd8e00ba7dfc30"
     },
     {
+      "url": "/serious-learner-offer-frames-v2/1.png",
+      "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/10.png",
+      "revision": "a305d5983c796e85aa8d0f8fd8731cfa4ad2da848384c19fe95e1c9a9137e3d8"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/11.png",
+      "revision": "f4fbb61622d1443411c6c2e1118268abdbc4ff34f160df6e3f8846879c834040"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/12.png",
+      "revision": "9947791984c0b2d9f1ee811e32f01b2f7524d21cda894b8b0424db06ef387588"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/13.png",
+      "revision": "bece2a2909a7a201c13d6381426d7f4ee710bf83c42ae7aab51b11fb85447821"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/14.png",
+      "revision": "58c37afb55cd0500dfa229c46e8eaf5724cc37f1e806a6091629dab4ff2b69e8"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/15.png",
+      "revision": "8c5ce630e2f169d06dfde85b911f1f2ca4071f211e644a64c824b87f92b382f4"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/16.png",
+      "revision": "41145de598807438516edcffd3a8a83b7722e82956b379b8434cca4be04189da"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/17.png",
+      "revision": "8b6f11e5283368a5dbc1e1e131dcdd4259fe43ce9096d054997c6aaba6fb2a6a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/18.png",
+      "revision": "36aaa17f96d86ef7e972292df949534bc83d68661ebfff6cad1a7e3e33f1ab61"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/19.png",
+      "revision": "145205f5fd54705e8c2ffbb4e964e132408bf47814def531fdc31994b144c190"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/2.png",
+      "revision": "a8c1035b86575a1fef9cbb9ea0227e430bd8123d3374c955be3eea1cb50d6e96"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/20.png",
+      "revision": "b0aa1e1dcb3d63947d36eed2eedb17c55e770dcbf147a0e4970e8dee6c713ff5"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/21.png",
+      "revision": "c4f77b1d6222e442ba44cb717e8aaf2efac0dfac3eb0adc96ad1d3f1dcec7394"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/22.png",
+      "revision": "e93dac3ac87c2e0ff94a501f9baf11ef48b326885672efd2ca0fe6fbd5bda41a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/23.png",
+      "revision": "d34b9069ce26dc4d72b39039d27e0f06f8ab335f27b243dc1d9d7dc6a831cb56"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/24.png",
+      "revision": "48fd31eeebe15cdeba4907142f78690e655e125e96dfc94a6c8654460b1bd4e6"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/25.png",
+      "revision": "72fee8e0100231f19f34e12658c7467b484e84ec5ed93155a7e241203bda3d7d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/26.png",
+      "revision": "9e3db68e18e7bc2933d56122c4b30c84222ffcb5429db8c6c7f8a398baf17662"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/27.png",
+      "revision": "8eb539c9734dddb798481cf1da6b139ad81a230d916904b7ccd6e77e523f7646"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/28.png",
+      "revision": "4f120b6122ab03e9e437e68de4e69eed867db75596c7e9281172486e578bbdaa"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/29.png",
+      "revision": "99ad5f2b7d64eabe8f0ee8c31a1aac8e40c149aaf2a5edf74747c27f60cd28eb"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/3.png",
+      "revision": "f1bf705008867dd9e500acae49f5db00388bfd8321f1817010faf0adb56773c7"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/30.png",
+      "revision": "ab9daf8b68f39a8d0f8dd8f13aae55bb8186dc7eef7af53ccd28e53ae8019068"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/31.png",
+      "revision": "86e1f9ea0d6ddb6ad6e8f3c5ab3abbd4c403155a8fc34e3fd93a385cebea6709"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/32.png",
+      "revision": "abf7a19b628bb6497b8301637728cb9072291b8a65c2ed06b02fcdec018aeaad"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/33.png",
+      "revision": "a0ed577db92b5d2d5ba3547f4de6629b6b5a35e251a6b204d5d67c8aae6d617f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/34.png",
+      "revision": "ae0fbc71fce72a8f96acfed5c55f9321ee67b575096c4628cd7c0e8e0b960988"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/35.png",
+      "revision": "2c03c2af54a963ddeb7f1d1338267efae691e1d746bb56468fbadcfc5395561f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/36.png",
+      "revision": "030968ab57973f75d1aef2da16e488c7bec48b7588b4d20dbbdbcd0ef1014fd6"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/37.png",
+      "revision": "3996928898d207267445b2ca78727f890decf4f2cb6e4d43b87f9cc1f627a9d1"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/38.png",
+      "revision": "279f01e66945242079739688fca1d1a7c158863ac9feaba69451d1031e9117a9"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/39.png",
+      "revision": "a9bb6f83df41d6ca691fcdb7d26f7ed40b256ca0c31b1f430934944ae631d25a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/4.png",
+      "revision": "26a56132ae653dcf28d0b8e69bab7425ab5ec283b319005894ff2afd813f47c1"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/40.png",
+      "revision": "d9337701fcf89b477db8d26c47f096d01e85381e39a9dbd2ce07e0efeea55ebd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/41.png",
+      "revision": "cdd2500a40fb9933d855acf622cf48825fee62293c28915104aae3caad339570"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/42.png",
+      "revision": "a9b88058d917582caa1ebf5639b5c6343058a64ace9737a3693fa1dea327c2b1"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/43.png",
+      "revision": "b0a838a00f19b75e3d93927224dc4c3421ccf9d68d67a15c8fb997d51a4d40b3"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/44.png",
+      "revision": "bc8b139d704e986d11597f5d302d48f4d1c66dce357ef8402543da46f316a79f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/45.png",
+      "revision": "d7c5cc3ac6e846d8b6e71b53cdc7cdee33bdb552a1cb0ca072621696ea584a6e"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/46.png",
+      "revision": "4b01264912ca12412686013bbe0b1491726b16eca47ddca1a784aa16986c477f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/47.png",
+      "revision": "113edfcc03c04143b022180fbe9e0251cc48b94add0338dca63a8a72b10f9b08"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/48.png",
+      "revision": "08d70f95d146d307fad1600c970fd3fe83c52e682b418d80790a82fbfab9b7de"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/49.png",
+      "revision": "fe22e1d2ef26b6e5d4b97e59641db1094d9cd8918291e1479f7d701034a603c0"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/5.png",
+      "revision": "68735af8fdb754dba5cc9308cd0a046ba2acf8c011479bad44689e26c8278bb4"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/50.png",
+      "revision": "3ba9d1cdde2aa27363e95bb208ed148b72da894586cfd33430bf0cd223da0e60"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/6.png",
+      "revision": "cd2a27b5787d1a1abf6289c7f04398f7f656f22657c9b22afb87cc75f86c7055"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/7.png",
+      "revision": "c2c4c8aafc4a6d98c81ab58e534c2aa5be6407c644be2b48d7e2935c9cf8c7f1"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/8.png",
+      "revision": "7f228173f95876407fe49ccc30d894540782bb483c41d2d444ac1ba86fb3b993"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v2/9.png",
+      "revision": "dd146f9457035df59b894fbfd4459cb98ed8a0c4045da028a2e329d99d41ba4c"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/1.png",
+      "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/10.png",
+      "revision": "bb0d0027e6c4452b8a666bff17ae0bdf7a8f41a1eb01b21f9b2f637d6e501f6a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/11.png",
+      "revision": "5b517bd160e7b6a18cfd79306ff4c7c2eb2faabf1d54918daeb30cc64a7ea3bd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/12.png",
+      "revision": "a1323da698f0f86dd7ec9802936928093775c44078b3418cf369219c0597cf07"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/13.png",
+      "revision": "518502aed33aca6cb14892cb6f72c7d1d3ed13f6e8ce3dc867f625a086f7b063"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/14.png",
+      "revision": "9abf2d8033b11fef12b575b9063cf4eb56e976b90bb16e51401b63792b952f8e"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/15.png",
+      "revision": "f7b58b976829a7fa6092331ad9f14b4aae4339facb9239a6c04a5582ad4b0f84"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/16.png",
+      "revision": "d83468801e99a6764fb6c9e1a8248234d8b72604031347e54f5c7e00b284cfa6"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/17.png",
+      "revision": "03756f69b97756a342b070004b586dd491e5ef8a6546f6450b9a21a9c80d0365"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/18.png",
+      "revision": "124c5af94a2d009daf2493f63d4ed4d9a5357aa03e6675e7c793cd4dac034a41"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/19.png",
+      "revision": "8fbf146fd0c0828c71de166fc2e7a8267072c29ca367e9f45d43e17ecd81b730"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/2.png",
+      "revision": "a8c1035b86575a1fef9cbb9ea0227e430bd8123d3374c955be3eea1cb50d6e96"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/20.png",
+      "revision": "f7f5260a044fb9981061543fda01b27aa47c7f84794c19acf504bf2662825f2d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/21.png",
+      "revision": "507a0583bb1accb96cbeeda30c4c5a4e071b14dc47b345a6e7edf5bbdbfd8689"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/22.png",
+      "revision": "bfd1914df30bee349624bc290f79661b716b45d9599878e15593f8d4e5e815e3"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/23.png",
+      "revision": "5e19f95a202ce69268769c55070777b46583add9e100c957f69a3b1762310410"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/24.png",
+      "revision": "c5261a63828de294f1d41a23272d16d094ee15784c2e3d725e1e946c1f51d1bf"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/25.png",
+      "revision": "5a353feaeec4a14fe2e14517d8e5de83f9ae0906bf8d4d359e6f7a46cbd1edae"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/26.png",
+      "revision": "208251753a0a27bbda49cb87a44f033f4811359ec504d19f88e82ef31e193f57"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/27.png",
+      "revision": "5aed5a14a16557d4bd8b27bee42c61f79f442937cd206e0a375f521aaecc9e9d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/28.png",
+      "revision": "ebd512261e142068a3feede0c01ec9a734a2cc3e2ed546b73ad856d1dc7a8353"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/29.png",
+      "revision": "b721b93ff02e937a52252f34b62d62db73d4619a70aa4350a7071bfc7a65b119"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/3.png",
+      "revision": "150b5e66a52f06aead3ab8020f13f4bc3a00e610b48844a75508907ee426c770"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/30.png",
+      "revision": "53ba9ce0a3622e6be3dfecde20a30a28d2e0f6af4b8233252d8a621473e376f7"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/31.png",
+      "revision": "ed6e2373402782f1023a6390387c8459a9fbffc9ec1e50d4947bcf03598690bd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/32.png",
+      "revision": "907f4c2a00c4bedd1d0dc9e7a0fe17dafaf68eaecf8ca11b72f46791a8a44dfc"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/33.png",
+      "revision": "f6669df1fc9d4c02a0800d4cbec71a427ae290e7e67118674621628637bc96db"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/34.png",
+      "revision": "43d60efd89cf60c169d8479855f8a3f178941d4acde443679cb60b6f33629f4d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/35.png",
+      "revision": "6d771c2920908161904f79eff5aecb60ce66e97275ffdf4f75ccc2df1a0efccc"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/36.png",
+      "revision": "8c197ebdaa6f6b95cc1ab8143c8d9f52e2370e4c1004db5beea0992c3e14c51b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/37.png",
+      "revision": "b92dbec9cc054e0b04aecac74c8c0f79ad8ae7866e1db9bc488e6ffcc4635146"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/38.png",
+      "revision": "69545b88184ebeb96ec7ba440ff0f63949e9c6587d0846cf0b0b6311d42e4a99"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/39.png",
+      "revision": "d86cd5fc61c1997018726fe44672f90d93d1f6e1e11f73b4feb1250b40a96db9"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/4.png",
+      "revision": "3082347f7de748e24f3d7927795430b6c4f424ebb7fed75dc936a53c1fda4ced"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/40.png",
+      "revision": "5b3587c0fe99ed9d296786be53855e0e8175763c23f050c70e80e6da53b84719"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/41.png",
+      "revision": "1c1276a5809d36525b8e78e7342d23b6ff30f76ee2a2888ecebd019f09935a3b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/42.png",
+      "revision": "fd6f9ed5a933a0e86dc1a34f0a31cdca829f3ba71529313214809240f650f1ca"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/43.png",
+      "revision": "d0f1eb82f62d720a42f8894a1dd7d1dcff5a598aa62835a74f93f91334d65d93"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/44.png",
+      "revision": "30104df4e353d4924371d8bf49e42d0f5c5aaeef2499e7cdc3f0a03d01300628"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/45.png",
+      "revision": "e8d4620d095829cb1765276bd4829bca55a6c2e6945eb932f361fbf4921c3020"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/46.png",
+      "revision": "dc9629be6de9bd6477b98b4c08222d6f45936b2dafacfb0984e74f6dc970eee5"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/47.png",
+      "revision": "33ee84eab7fa18e746ffd3ec68283f16d8260649df67a29be01c649e1ddb7434"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/48.png",
+      "revision": "95eb0e49df251027fc0fe150481c2fb753cc588532de6a284cd9c68ffe11c62f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/49.png",
+      "revision": "eb40e10e985f66bd644881620c6eee4aa9dc478e161b1d5e7171611369c01687"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/5.png",
+      "revision": "7922cfa01286113c1b59f3e5bc316d6722524ee9d15ef7b4ccea7cf7680ccd62"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/50.png",
+      "revision": "221edc023b9443e7ef4a6d0aa92a5a58b38972866dda35f4f08e97ad347937de"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/6.png",
+      "revision": "a0d8a6b76754e53adb3c1ef6e83db78f5d004caf4c07aa5f27ae14d02aa7c5bc"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/7.png",
+      "revision": "c35f50e89ef1ff3d36ca4e8a1c5fbace81ae7efcf064b7e07f0859de013a10b0"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/8.png",
+      "revision": "11b4a838526442b82819484ab216e000b007591db7f3e3a08d4fc2a95998e592"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v3/9.png",
+      "revision": "89dd024a6e4270bed4c74f962f1cb5bd40197d4addfcce00f71555eae47fb8f8"
+    },
+    {
+      "url": "/serious-learner-offer-frames/1.png",
+      "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
+    },
+    {
+      "url": "/serious-learner-offer-frames/10.png",
+      "revision": "a305d5983c796e85aa8d0f8fd8731cfa4ad2da848384c19fe95e1c9a9137e3d8"
+    },
+    {
+      "url": "/serious-learner-offer-frames/11.png",
+      "revision": "f4fbb61622d1443411c6c2e1118268abdbc4ff34f160df6e3f8846879c834040"
+    },
+    {
+      "url": "/serious-learner-offer-frames/12.png",
+      "revision": "9947791984c0b2d9f1ee811e32f01b2f7524d21cda894b8b0424db06ef387588"
+    },
+    {
+      "url": "/serious-learner-offer-frames/13.png",
+      "revision": "bece2a2909a7a201c13d6381426d7f4ee710bf83c42ae7aab51b11fb85447821"
+    },
+    {
+      "url": "/serious-learner-offer-frames/14.png",
+      "revision": "58c37afb55cd0500dfa229c46e8eaf5724cc37f1e806a6091629dab4ff2b69e8"
+    },
+    {
+      "url": "/serious-learner-offer-frames/15.png",
+      "revision": "8c5ce630e2f169d06dfde85b911f1f2ca4071f211e644a64c824b87f92b382f4"
+    },
+    {
+      "url": "/serious-learner-offer-frames/16.png",
+      "revision": "41145de598807438516edcffd3a8a83b7722e82956b379b8434cca4be04189da"
+    },
+    {
+      "url": "/serious-learner-offer-frames/17.png",
+      "revision": "8b6f11e5283368a5dbc1e1e131dcdd4259fe43ce9096d054997c6aaba6fb2a6a"
+    },
+    {
+      "url": "/serious-learner-offer-frames/18.png",
+      "revision": "36aaa17f96d86ef7e972292df949534bc83d68661ebfff6cad1a7e3e33f1ab61"
+    },
+    {
+      "url": "/serious-learner-offer-frames/19.png",
+      "revision": "145205f5fd54705e8c2ffbb4e964e132408bf47814def531fdc31994b144c190"
+    },
+    {
+      "url": "/serious-learner-offer-frames/2.png",
+      "revision": "a8c1035b86575a1fef9cbb9ea0227e430bd8123d3374c955be3eea1cb50d6e96"
+    },
+    {
+      "url": "/serious-learner-offer-frames/20.png",
+      "revision": "b0aa1e1dcb3d63947d36eed2eedb17c55e770dcbf147a0e4970e8dee6c713ff5"
+    },
+    {
+      "url": "/serious-learner-offer-frames/21.png",
+      "revision": "c4f77b1d6222e442ba44cb717e8aaf2efac0dfac3eb0adc96ad1d3f1dcec7394"
+    },
+    {
+      "url": "/serious-learner-offer-frames/22.png",
+      "revision": "e93dac3ac87c2e0ff94a501f9baf11ef48b326885672efd2ca0fe6fbd5bda41a"
+    },
+    {
+      "url": "/serious-learner-offer-frames/23.png",
+      "revision": "d34b9069ce26dc4d72b39039d27e0f06f8ab335f27b243dc1d9d7dc6a831cb56"
+    },
+    {
+      "url": "/serious-learner-offer-frames/24.png",
+      "revision": "48fd31eeebe15cdeba4907142f78690e655e125e96dfc94a6c8654460b1bd4e6"
+    },
+    {
+      "url": "/serious-learner-offer-frames/25.png",
+      "revision": "72fee8e0100231f19f34e12658c7467b484e84ec5ed93155a7e241203bda3d7d"
+    },
+    {
+      "url": "/serious-learner-offer-frames/26.png",
+      "revision": "9e3db68e18e7bc2933d56122c4b30c84222ffcb5429db8c6c7f8a398baf17662"
+    },
+    {
+      "url": "/serious-learner-offer-frames/27.png",
+      "revision": "8eb539c9734dddb798481cf1da6b139ad81a230d916904b7ccd6e77e523f7646"
+    },
+    {
+      "url": "/serious-learner-offer-frames/28.png",
+      "revision": "4f120b6122ab03e9e437e68de4e69eed867db75596c7e9281172486e578bbdaa"
+    },
+    {
+      "url": "/serious-learner-offer-frames/29.png",
+      "revision": "99ad5f2b7d64eabe8f0ee8c31a1aac8e40c149aaf2a5edf74747c27f60cd28eb"
+    },
+    {
+      "url": "/serious-learner-offer-frames/3.png",
+      "revision": "f1bf705008867dd9e500acae49f5db00388bfd8321f1817010faf0adb56773c7"
+    },
+    {
+      "url": "/serious-learner-offer-frames/30.png",
+      "revision": "ab9daf8b68f39a8d0f8dd8f13aae55bb8186dc7eef7af53ccd28e53ae8019068"
+    },
+    {
+      "url": "/serious-learner-offer-frames/31.png",
+      "revision": "86e1f9ea0d6ddb6ad6e8f3c5ab3abbd4c403155a8fc34e3fd93a385cebea6709"
+    },
+    {
+      "url": "/serious-learner-offer-frames/32.png",
+      "revision": "abf7a19b628bb6497b8301637728cb9072291b8a65c2ed06b02fcdec018aeaad"
+    },
+    {
+      "url": "/serious-learner-offer-frames/33.png",
+      "revision": "a0ed577db92b5d2d5ba3547f4de6629b6b5a35e251a6b204d5d67c8aae6d617f"
+    },
+    {
+      "url": "/serious-learner-offer-frames/34.png",
+      "revision": "ae0fbc71fce72a8f96acfed5c55f9321ee67b575096c4628cd7c0e8e0b960988"
+    },
+    {
+      "url": "/serious-learner-offer-frames/35.png",
+      "revision": "2c03c2af54a963ddeb7f1d1338267efae691e1d746bb56468fbadcfc5395561f"
+    },
+    {
+      "url": "/serious-learner-offer-frames/36.png",
+      "revision": "030968ab57973f75d1aef2da16e488c7bec48b7588b4d20dbbdbcd0ef1014fd6"
+    },
+    {
+      "url": "/serious-learner-offer-frames/37.png",
+      "revision": "3996928898d207267445b2ca78727f890decf4f2cb6e4d43b87f9cc1f627a9d1"
+    },
+    {
+      "url": "/serious-learner-offer-frames/38.png",
+      "revision": "279f01e66945242079739688fca1d1a7c158863ac9feaba69451d1031e9117a9"
+    },
+    {
+      "url": "/serious-learner-offer-frames/39.png",
+      "revision": "a9bb6f83df41d6ca691fcdb7d26f7ed40b256ca0c31b1f430934944ae631d25a"
+    },
+    {
+      "url": "/serious-learner-offer-frames/4.png",
+      "revision": "26a56132ae653dcf28d0b8e69bab7425ab5ec283b319005894ff2afd813f47c1"
+    },
+    {
+      "url": "/serious-learner-offer-frames/40.png",
+      "revision": "d9337701fcf89b477db8d26c47f096d01e85381e39a9dbd2ce07e0efeea55ebd"
+    },
+    {
+      "url": "/serious-learner-offer-frames/41.png",
+      "revision": "cdd2500a40fb9933d855acf622cf48825fee62293c28915104aae3caad339570"
+    },
+    {
+      "url": "/serious-learner-offer-frames/42.png",
+      "revision": "a9b88058d917582caa1ebf5639b5c6343058a64ace9737a3693fa1dea327c2b1"
+    },
+    {
+      "url": "/serious-learner-offer-frames/43.png",
+      "revision": "b0a838a00f19b75e3d93927224dc4c3421ccf9d68d67a15c8fb997d51a4d40b3"
+    },
+    {
+      "url": "/serious-learner-offer-frames/44.png",
+      "revision": "bc8b139d704e986d11597f5d302d48f4d1c66dce357ef8402543da46f316a79f"
+    },
+    {
+      "url": "/serious-learner-offer-frames/45.png",
+      "revision": "d7c5cc3ac6e846d8b6e71b53cdc7cdee33bdb552a1cb0ca072621696ea584a6e"
+    },
+    {
+      "url": "/serious-learner-offer-frames/46.png",
+      "revision": "4b01264912ca12412686013bbe0b1491726b16eca47ddca1a784aa16986c477f"
+    },
+    {
+      "url": "/serious-learner-offer-frames/47.png",
+      "revision": "113edfcc03c04143b022180fbe9e0251cc48b94add0338dca63a8a72b10f9b08"
+    },
+    {
+      "url": "/serious-learner-offer-frames/48.png",
+      "revision": "08d70f95d146d307fad1600c970fd3fe83c52e682b418d80790a82fbfab9b7de"
+    },
+    {
+      "url": "/serious-learner-offer-frames/49.png",
+      "revision": "fe22e1d2ef26b6e5d4b97e59641db1094d9cd8918291e1479f7d701034a603c0"
+    },
+    {
+      "url": "/serious-learner-offer-frames/5.png",
+      "revision": "68735af8fdb754dba5cc9308cd0a046ba2acf8c011479bad44689e26c8278bb4"
+    },
+    {
+      "url": "/serious-learner-offer-frames/50.png",
+      "revision": "3ba9d1cdde2aa27363e95bb208ed148b72da894586cfd33430bf0cd223da0e60"
+    },
+    {
+      "url": "/serious-learner-offer-frames/6.png",
+      "revision": "cd2a27b5787d1a1abf6289c7f04398f7f656f22657c9b22afb87cc75f86c7055"
+    },
+    {
+      "url": "/serious-learner-offer-frames/7.png",
+      "revision": "c2c4c8aafc4a6d98c81ab58e534c2aa5be6407c644be2b48d7e2935c9cf8c7f1"
+    },
+    {
+      "url": "/serious-learner-offer-frames/8.png",
+      "revision": "7f228173f95876407fe49ccc30d894540782bb483c41d2d444ac1ba86fb3b993"
+    },
+    {
+      "url": "/serious-learner-offer-frames/9.png",
+      "revision": "dd146f9457035df59b894fbfd4459cb98ed8a0c4045da028a2e329d99d41ba4c"
+    },
+    {
       "url": "/splash.png",
       "revision": "b5398ff29a40b19ef883927b3343222fc76234ea58aab5eb9aa57fdea8622de7"
     },
@@ -1304,6 +2316,10 @@
     {
       "url": "/subscriptions/plan-pro-v2.png",
       "revision": "daa81113ee7c6ad266fea31d3bb0d20b0f422ae4f3931c78a2b265e69573080a"
+    },
+    {
+      "url": "/subscriptions/serious-learner-basic.png",
+      "revision": "3243b74801e2237c5b4aac808c967ea914d9c895b40b305fb41a52eb4e85d9d8"
     },
     {
       "url": "/tutorial-post-practice/fifth-screen.png",

@@ -12,7 +12,7 @@ import { updateThemeAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { SubscriptionRestrictionSurface } from "@/features/subscriptions/components/subscription-restriction-surface";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { THEME_SWATCH_KEYS, THEMES, isPaidPlan, isThemePaid, type ThemeDefinition } from "@/lib/themes";
 
@@ -23,6 +23,7 @@ interface ThemePickerDialogProps {
 
 export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps) {
   const t = useT();
+  const { locale } = useLocale();
   const { theme, setTheme } = useTheme();
   const { entitlements } = useSubscription();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -208,7 +209,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
                     onOpenChange(false);
                   }}
                 >
-                  {t("limit.upgradeButtonFirstMonthFree")}
+                  {formatSuperWaterUppercaseText(locale, t("limit.upgradeButtonFirstMonthFree"))}
                 </Link>
                 <Button
                   variant="ghost"

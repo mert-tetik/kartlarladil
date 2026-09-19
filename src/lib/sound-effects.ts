@@ -9,6 +9,7 @@ export type SoundEffectName =
   | "quiz-complete"
   | "quiz-stars-complete"
   | "quiz-select"
+  | "rank-highlight"
   | "bonus-select"
   | "pricing-perk-select"
   | "card-swipe-right"
@@ -342,6 +343,26 @@ function quizSelect(context: AudioContext, now: number) {
   });
 }
 
+function rankHighlight(context: AudioContext, now: number) {
+  // A short, gentle ascending chime for moving between rank cards.
+  playTone(context, {
+    frequency: 330,
+    endFrequency: 495,
+    startTime: now,
+    duration: 0.1,
+    gain: 0.045,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    endFrequency: SCALE.C6,
+    startTime: now + 0.04,
+    duration: 0.13,
+    gain: 0.032,
+    type: "sine",
+  });
+}
+
 function bonusSelect(context: AudioContext, now: number) {
   // Compact, warm click with a tiny sparkle that stays pleasant when tapped repeatedly.
   playTone(context, {
@@ -503,6 +524,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "quiz-stars-complete": quizStarsComplete,
   "quiz-select": quizSelect,
+  "rank-highlight": rankHighlight,
   "bonus-select": bonusSelect,
   "pricing-perk-select": pricingPerkSelect,
   "card-swipe-right": cardSwipeRight,
