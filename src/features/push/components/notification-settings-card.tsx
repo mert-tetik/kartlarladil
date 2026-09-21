@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { NotificationToggle, usePushNotifications } from "@/features/push/components/push-notifications-provider";
 import { useT } from "@/i18n/locale-provider";
-import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 
 export function NotificationSettingsCard() {
   const t = useT();
   const { supported, isTwa, enabled, permission, busy, enableNotifications, disableNotifications } = usePushNotifications();
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageTone, setMessageTone] = useState<"success" | "error">("success");
+  const { showMessage } = useAppMessage();
 
   const description = !isTwa
     ? t("push.settings.twaOnlyDescription")
@@ -20,8 +18,6 @@ export function NotificationSettingsCard() {
         : t("push.settings.disabledDescription");
 
   async function handleToggle() {
-    setMessage(null);
-
     const result = enabled
       ? await disableNotifications()
       : await enableNotifications();
@@ -30,8 +26,7 @@ export function NotificationSettingsCard() {
       return;
     }
 
-    setMessage(result.message);
-    setMessageTone(result.ok ? "success" : "error");
+    showMessage(result.message, result.ok ? "success" : "error");
   }
 
   return (
@@ -56,17 +51,6 @@ export function NotificationSettingsCard() {
           <NotificationToggle enabled={enabled} disabled={busy || !supported} />
         </button>
       </div>
-
-      {message ? (
-        <p
-          className={cn(
-            "mt-4 text-sm font-medium",
-            messageTone === "success" ? "text-emerald-600" : "text-rose-600",
-          )}
-        >
-          {message}
-        </p>
-      ) : null}
     </div>
   );
 }

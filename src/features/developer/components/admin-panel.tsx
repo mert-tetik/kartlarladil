@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppMessage } from "@/components/app-message-provider";
 import {
   addUserCardAction,
   cancelUserSubscriptionAction,
@@ -235,7 +236,7 @@ export function AdminPanel({
     null;
   const [selectedDetail, setSelectedDetail] = useState<DeveloperUserDetail | null>(null);
   const [detailPending, setDetailPending] = useState(false);
-  const [detailError, setDetailError] = useState("");
+  const { showMessage } = useAppMessage();
   useEffect(() => {
     const userId = selected?.id ?? null;
     let current = true;
@@ -248,7 +249,6 @@ export function AdminPanel({
         return;
       }
 
-      setDetailError("");
       setDetailPending(true);
       try {
         const detail = await loadDeveloperUserDetailAction(userId);
@@ -258,7 +258,7 @@ export function AdminPanel({
       } catch {
         if (!current) return;
         setSelectedDetail(null);
-        setDetailError("Kullanıcı detayları yüklenemedi.");
+        showMessage("Kullanıcı detayları yüklenemedi.", "error");
         setDetailPending(false);
       }
     })();
@@ -266,7 +266,7 @@ export function AdminPanel({
     return () => {
       current = false;
     };
-  }, [selected?.id]);
+  }, [selected?.id, showMessage]);
 
   function grantSubscription() {
     if (!selected) return;
@@ -626,7 +626,6 @@ export function AdminPanel({
             pending={pending}
             selected={selected}
             selectedDetail={selectedDetail}
-            detailError={detailError}
             detailPending={detailPending}
             sourceKey={sourceKey}
             subscriptionPlan={subscriptionPlan}
@@ -732,7 +731,6 @@ function UserControlPanel({
   onDelete,
   selectedDetail,
   detailPending,
-  detailError,
 }: {
   selected: DeveloperUserSummary | null;
   subscriptionPlan: "basic" | "pro";
@@ -753,7 +751,6 @@ function UserControlPanel({
   onDelete: () => void;
   selectedDetail: DeveloperUserDetail | null;
   detailPending: boolean;
-  detailError: string;
 }) {
   if (!selected)
     return (
@@ -806,7 +803,6 @@ function UserControlPanel({
       </div>
       <UserDetailOverview
         detail={selectedDetail}
-        error={detailError}
         pending={detailPending}
       />
       <section className="p-5">
@@ -957,11 +953,9 @@ function UserControlPanel({
 function UserDetailOverview({
   detail,
   pending,
-  error,
 }: {
   detail: DeveloperUserDetail | null;
   pending: boolean;
-  error: string;
 }) {
   if (pending) {
     return (
@@ -973,14 +967,6 @@ function UserDetailOverview({
         <div className="h-16 animate-pulse rounded-lg bg-[#eef1eb]" />
         <div className="h-24 animate-pulse rounded-lg bg-[#eef1eb]" />
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <p className="border-b border-[#d9ddd4] p-5 text-xs leading-5 text-[#8a493d]" role="alert">
-        {error}
-      </p>
     );
   }
 

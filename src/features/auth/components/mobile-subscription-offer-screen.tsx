@@ -18,6 +18,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Palette,
+  ScanText,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
@@ -43,10 +44,11 @@ import {
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 
 const SERIOUS_LEARNER_FRAME_COUNT = 50;
 const SERIOUS_LEARNER_FRAME_FPS = 30;
-const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v3";
+const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v4";
 const SERIOUS_LEARNER_BASIC_COLOR = "#F4A300";
 
 interface MobileSubscriptionOfferScreenProps {
@@ -65,7 +67,7 @@ export function MobileSubscriptionOfferScreen({
   const localizedPricing = useLocalizedPricing(null, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const { purchase, isLoading: isGooglePlayLoading, isSupported } = useGooglePlayBilling();
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const { showMessage } = useAppMessage();
   const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [showFeatureScrollHint, setShowFeatureScrollHint] = useState(false);
   const featureListRef = useRef<HTMLUListElement>(null);
@@ -120,8 +122,6 @@ export function MobileSubscriptionOfferScreen({
   }, [fallbackPrice, googlePlayDetails, localized, locale]);
 
   async function handlePurchase() {
-    setPurchaseError(null);
-
     if (isTestMode) {
       presentPurchaseSuccess();
       onContinueFree();
@@ -134,12 +134,13 @@ export function MobileSubscriptionOfferScreen({
         presentPurchaseSuccess();
         onContinueFree();
       } catch (error) {
-        setPurchaseError(
+        showMessage(
           getGooglePlayErrorMessage(
             error,
             t("pricing.error.checkoutFailed"),
             t("pricing.error.clientAppUnavailable"),
           ),
+          "error",
         );
       }
       return;
@@ -245,8 +246,9 @@ export function MobileSubscriptionOfferScreen({
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={810} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages })} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages })} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1110} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
             </ul>
             {showFeatureScrollHint ? (
               <span
@@ -296,8 +298,6 @@ export function MobileSubscriptionOfferScreen({
               <p className="mt-2 text-center text-xs text-foreground-muted">
                 {t("pricing.googlePlayUnavailable")}
               </p>
-            ) : purchaseError ? (
-              <p className="mt-2 text-center text-xs text-rose-300">{purchaseError}</p>
             ) : null}
 
             <button
@@ -395,17 +395,20 @@ function SeriousLearnerOfferFeature({
   icon: Icon,
   locale,
   text,
+  unavailable,
 }: {
   introVisible: boolean;
   introDelay: number;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
   locale: Parameters<typeof formatSuperWaterText>[0];
   text: string;
+  unavailable?: boolean;
 }) {
   return (
     <li
       className={cn(
         "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        unavailable && "opacity-45 line-through",
         introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
       )}
       style={{ animationDelay: `${introDelay}ms` }}

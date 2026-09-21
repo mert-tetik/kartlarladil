@@ -72,7 +72,7 @@ describe("UpgradeDialog", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
-    expect(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("link", { name: /ILK AY UCRETSIZ/i })).toHaveAttribute("href", "/pricing");
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
   });
 
@@ -95,7 +95,7 @@ describe("UpgradeDialog", () => {
       onPricingNavigate,
     });
 
-    await user.click(screen.getByRole("link", { name: /İLK AY ÜCRETSİZ/i }));
+    await user.click(screen.getByRole("link", { name: /ILK AY UCRETSIZ/i }));
 
     expect(onPricingNavigate).toHaveBeenCalledOnce();
     expect(onOpenChange).toHaveBeenCalledWith(false);

@@ -2,6 +2,8 @@ import { vi } from "vitest";
 import {
   assertAndRecordAiUsage,
   assertCanUseAi,
+  consumeImageTextTranslation,
+  getImageTextTranslationUsage,
   recordAiUsageEvent,
 } from "@/features/subscriptions/ai-usage-service";
 
@@ -10,16 +12,18 @@ const mockInsert = vi.fn(() => Promise.resolve({ error: null }));
 const mockRpc = vi.fn<(...args: unknown[]) => Promise<{ data: string | null; error: Error | null }>>(
   () => Promise.resolve({ data: "ok", error: null }),
 );
+const mockQuery = {
+  eq: vi.fn(() => mockQuery),
+  gte: vi.fn(() => Promise.resolve({ count: mockCount(), error: null })),
+  then: (resolve: (value: { count: number; error: null }) => unknown) =>
+    Promise.resolve({ count: mockCount(), error: null }).then(resolve),
+};
 
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: vi.fn(() =>
     ({
       from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => Promise.resolve({ count: mockCount(), error: null })),
-          })),
-        })),
+        select: vi.fn(() => mockQuery),
         insert: mockInsert,
       })),
       rpc: mockRpc,
@@ -69,13 +73,15 @@ describe("assertCanUseAi", () => {
   });
 
   it("uses the pro plan limits", async () => {
-    mockCount.mockReturnValueOnce(149).mockReturnValueOnce(4499);
-
     expect(await assertCanUseAi("user-3", "pro")).toBeNull();
+    expect(mockCount).not.toHaveBeenCalled();
+  });
 
-    mockCount.mockReturnValueOnce(150).mockReturnValueOnce(4499);
+  it("counts each feature independently", async () => {
+    mockCount.mockReturnValueOnce(10).mockReturnValueOnce(0);
 
-    expect(await assertCanUseAi("user-3", "pro")).toBe("ai_daily_limit");
+    expect(await assertCanUseAi("user-4", "free", "chat")).toBe("ai_daily_limit");
+    expect(await assertCanUseAi("user-4", "free", "ask")).toBeNull();
   });
 });
 
@@ -90,9 +96,6 @@ describe("recordAiUsageEvent", () => {
     expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
       p_user_id: "user-1",
       p_event_type: "chat",
-      p_plan: "free",
-      p_daily_limit: 10,
-      p_monthly_limit: 200,
     });
   });
 
@@ -102,9 +105,6 @@ describe("recordAiUsageEvent", () => {
     expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
       p_user_id: "user-1",
       p_event_type: "ask",
-      p_plan: "basic",
-      p_daily_limit: 30,
-      p_monthly_limit: 900,
     });
   });
 });
@@ -123,9 +123,6 @@ describe("assertAndRecordAiUsage", () => {
     expect(mockRpc).toHaveBeenCalledWith("record_ai_usage_if_within_limit", {
       p_user_id: "user-1",
       p_event_type: "chat",
-      p_plan: "free",
-      p_daily_limit: 10,
-      p_monthly_limit: 200,
     });
   });
 
@@ -149,5 +146,48 @@ describe("assertAndRecordAiUsage", () => {
     mockRpc.mockResolvedValue({ data: null, error: new Error("db error") });
 
     await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow("db error");
+  });
+});
+
+describe("image text translation usage", () => {
+  beforeEach(() => {
+    mockRpc.mockReset();
+    mockRpc.mockResolvedValue({ data: "ok", error: null });
+    mockCount.mockReset();
+  });
+
+  it("uses the dedicated atomic RPC", async () => {
+    await consumeImageTextTranslation("user-1");
+
+    expect(mockRpc).toHaveBeenCalledWith("record_image_text_translation_if_available", {
+      p_user_id: "user-1",
+    });
+  });
+
+  it("returns a restriction code when the lifetime cap is reached", async () => {
+    mockRpc.mockResolvedValue({ data: "feature_limit", error: null });
+
+    await expect(consumeImageTextTranslation("user-1")).resolves.toBe("image_text_translate_limit");
+  });
+
+  it("reports remaining free-plan translation uses", async () => {
+    mockCount.mockReturnValueOnce(1);
+
+    await expect(getImageTextTranslationUsage("user-1", "free")).resolves.toEqual({
+      used: 1,
+      limit: 2,
+      remaining: 1,
+      canUse: true,
+    });
+  });
+
+  it("does not query usage for Pro", async () => {
+    await expect(getImageTextTranslationUsage("user-1", "pro")).resolves.toEqual({
+      used: 0,
+      limit: null,
+      remaining: null,
+      canUse: true,
+    });
+    expect(mockCount).not.toHaveBeenCalled();
   });
 });

@@ -15,6 +15,7 @@ import { getUserEntitlementsAction } from "@/features/subscriptions/subscription
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import type { UserEntitlements } from "@/types/domain";
+import { useAppMessage } from "@/components/app-message-provider";
 
 const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
 
@@ -65,6 +66,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
+  const { showMessage } = useAppMessage();
+
+  useEffect(() => {
+    if (error) {
+      showMessage(error, "error");
+    }
+  }, [error, showMessage]);
 
   const refreshEntitlements = useCallback(async () => {
     setIsLoading(true);

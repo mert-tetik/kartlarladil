@@ -26,6 +26,7 @@ import { CardPronunciationQueue } from "@/features/cards/components/card-pronunc
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { DailyStreakProvider } from "@/features/daily-streak/daily-streak-client";
 import { MobileDayStreakOverlayProvider } from "@/app/components/mobile-day-streak-overlay-provider";
+import { AppMessageProvider } from "@/components/app-message-provider";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -43,10 +44,11 @@ export function AppShell({
 }) {
   return (
     <LocaleProvider initialLocale={locale}>
-      <BodyScrollLock />
-      <MobileViewportController />
-      <GlobalTapVibration />
-      <AuthSessionProvider user={user}>
+      <AppMessageProvider>
+        <BodyScrollLock />
+        <MobileViewportController />
+        <GlobalTapVibration />
+        <AuthSessionProvider user={user}>
         <DailyStreakProvider>
           <TwaAnalyticsProvider>
             <SubscriptionProvider>
@@ -81,7 +83,8 @@ export function AppShell({
             </SubscriptionProvider>
           </TwaAnalyticsProvider>
         </DailyStreakProvider>
-      </AuthSessionProvider>
+        </AuthSessionProvider>
+      </AppMessageProvider>
     </LocaleProvider>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useT } from "@/i18n/locale-provider";
-import { cn } from "@/lib/utils";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { useAppMessage } from "@/components/app-message-provider";
+import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "@/types/domain";
 
 interface SubscriptionSettingsProps {
@@ -62,28 +63,30 @@ export function SubscriptionSettings({ plan }: SubscriptionSettingsProps) {
 
 function CustomerPortalButton() {
   const t = useT();
+  const { showMessage } = useAppMessage();
   const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
     status: "idle" as const,
     message: "",
   });
 
   useEffect(() => {
+    if (state.status === "error" && state.message) {
+      showMessage(state.message, "error");
+    }
+
     if (state.status === "success" && state.customerPortalUrl) {
       const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
       if (!portalWindow) {
         window.location.assign(state.customerPortalUrl);
       }
     }
-  }, [state]);
+  }, [showMessage, state]);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <Button type="submit" variant="secondary" size="md" disabled={pending}>
         {pending ? t("common.loading") : t("account.subscription.manage")}
       </Button>
-      {state.status === "error" ? (
-        <p className="max-w-sm text-sm text-rose-600">{state.message}</p>
-      ) : null}
     </form>
   );
 }
@@ -92,20 +95,19 @@ function RestorePurchasesButton() {
   const t = useT();
   const { isSupported, isLoading, restorePurchases } = useGooglePlayBilling();
   const { refreshEntitlements } = useSubscription();
-  const [message, setMessage] = useState<string | null>(null);
+  const { showMessage } = useAppMessage();
 
   if (!isSupported) {
     return null;
   }
 
   async function handleRestore() {
-    setMessage(null);
     try {
       await restorePurchases();
       await refreshEntitlements();
-      setMessage(t("account.subscription.restoreSuccess"));
+      showMessage(t("account.subscription.restoreSuccess"), "success");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("account.subscription.restoreError"));
+      showMessage(error instanceof Error ? error.message : t("account.subscription.restoreError"), "error");
     }
   }
 
@@ -120,11 +122,6 @@ function RestorePurchasesButton() {
       >
         {isLoading ? t("common.loading") : t("account.subscription.restorePurchases")}
       </Button>
-      {message ? (
-        <p className={cn("max-w-sm text-sm", message.includes(t("account.subscription.restoreSuccess")) ? "text-emerald-600" : "text-rose-600")}>
-          {message}
-        </p>
-      ) : null}
     </div>
   );
 }

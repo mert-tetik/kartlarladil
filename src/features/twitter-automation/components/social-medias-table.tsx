@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowDownUp, ArrowLeft, ArrowUp, Check, CircleAlert, Database, Plus, RefreshCw, Save, Search, Trash2 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAppMessage } from "@/components/app-message-provider";
 import { cn } from "@/lib/utils";
 
 type SocialMediaAccount = {
@@ -70,6 +71,7 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
   const [syncState, setSyncState] = useState<SyncState>("loading");
   const [activeId, setActiveId] = useState<number | "new" | null>(null);
   const [message, setMessage] = useState("");
+  const { showMessage } = useAppMessage();
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "id", direction: "asc" });
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
 
@@ -86,7 +88,8 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
       setSyncState("ready");
     } catch (error) {
       setSyncState("error");
-      setMessage(error instanceof Error ? error.message : "Supabase could not load social_medias.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "Supabase could not load social_medias.", "error");
     }
   }
 
@@ -133,7 +136,8 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
       setSyncState("ready");
     } catch (error) {
       setSyncState("error");
-      setMessage(error instanceof Error ? error.message : "The account could not be created in Supabase.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "The account could not be created in Supabase.", "error");
     } finally {
       setActiveId(null);
     }
@@ -158,7 +162,8 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
       setSyncState("ready");
     } catch (error) {
       setSyncState("error");
-      setMessage(error instanceof Error ? error.message : "The account could not be saved to Supabase.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "The account could not be saved to Supabase.", "error");
     } finally {
       setActiveId(null);
     }
@@ -185,7 +190,8 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
       setSyncState("ready");
     } catch (error) {
       setSyncState("error");
-      setMessage(error instanceof Error ? error.message : "The account could not be deleted from Supabase.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "The account could not be deleted from Supabase.", "error");
     } finally {
       setActiveId(null);
     }

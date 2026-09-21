@@ -14,6 +14,7 @@ import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibili
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
+import { formatSuperWaterText } from "@/lib/super-water";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode, ProgressStats } from "@/types/domain";
 
@@ -958,7 +959,7 @@ describe("QuizStation sound feedback", () => {
     await waitFor(() => {
         expect(
           document.querySelector("[data-quiz-mobile-feedback]"),
-        ).toHaveTextContent(`Dogru cevap: ${correctAnswer}`);
+        ).toHaveTextContent(`Dogru cevap: ${formatSuperWaterText("tr", correctAnswer)}`);
     });
   });
 

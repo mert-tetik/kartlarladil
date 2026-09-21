@@ -79,8 +79,8 @@ describe("deleteAccountAction", () => {
       limits: {
         activeCards: null,
         learnedCards: null,
-        aiDailyMessages: 150,
-        aiMonthlyMessages: 4500,
+        aiDailyMessages: null,
+        aiMonthlyMessages: null,
       },
       customerPortalUrl: null,
     });

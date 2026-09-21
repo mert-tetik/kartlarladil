@@ -227,7 +227,7 @@ function getLimitContent(
     case "free_learned_card_limit":
       return {
         title: t("limit.learnedCardLimitTitle"),
-        description: t("limit.learnedCardLimitDescription"),
+        description: t("limit.learnedCardLimitDescription").replace(/\b50\b/g, "100"),
         variant: "upgrade",
       };
     case "ai_daily_limit":
@@ -288,6 +288,12 @@ function getLimitContent(
       return {
         title: t("limit.scenarioSubscriptionTitle"),
         description: t("limit.scenarioSubscriptionDescription"),
+        variant: "upgrade",
+      };
+    case "image_text_translate_limit":
+      return {
+        title: t("limit.imageTextTranslateTitle"),
+        description: t("limit.imageTextTranslateDescription"),
         variant: "upgrade",
       };
     default:

@@ -363,7 +363,7 @@ function createEntitlements(plan: UserEntitlements["effectivePlan"] = "basic"): 
     customerPortalUrl: null,
     limits: {
       activeCards: plan === "free" ? 20 : null,
-      learnedCards: plan === "free" ? 50 : null,
+      learnedCards: plan === "free" ? 100 : null,
       aiDailyMessages: 10,
       aiMonthlyMessages: 200,
     },

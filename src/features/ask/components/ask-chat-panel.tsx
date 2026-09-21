@@ -32,6 +32,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, createId } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
 type TranslationStatus = "idle" | "loading" | "ready" | "error";
@@ -95,6 +96,7 @@ export function AskChatPanel({
 }) {
   const t = useT();
   const { locale: currentLocale } = useLocale();
+  const { showMessage } = useAppMessage();
 
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -246,7 +248,8 @@ export function AskChatPanel({
           return;
         }
 
-        replaceAssistantMessage(assistantMessage.id, getLocalizedErrorMessage(errorCode, t));
+        removePendingMessages(userMessage.id, assistantMessage.id);
+        showMessage(getLocalizedErrorMessage(errorCode, t), "error");
         return;
       }
 
@@ -261,7 +264,8 @@ export function AskChatPanel({
         const reply = typeof payload.reply === "string" ? payload.reply.trim() : "";
 
         if (!reply) {
-          replaceAssistantMessage(assistantMessage.id, t("ask.emptyResponse"));
+          removePendingMessages(userMessage.id, assistantMessage.id);
+          showMessage(t("ask.emptyResponse"), "error");
         } else {
           replaceAssistantMessage(assistantMessage.id, reply);
           setLanguageState({
@@ -288,11 +292,13 @@ export function AskChatPanel({
         streamedText += decoder.decode();
 
         if (streamedText.trim().length === 0) {
-          replaceAssistantMessage(assistantMessage.id, t("ask.emptyResponse"));
+          removePendingMessages(userMessage.id, assistantMessage.id);
+          showMessage(t("ask.emptyResponse"), "error");
         }
       }
     } catch {
-      replaceAssistantMessage(assistantMessage.id, t("ask.error"));
+      removePendingMessages(userMessage.id, assistantMessage.id);
+      showMessage(t("ask.error"), "error");
     } finally {
       setPending(false);
       textareaRef.current?.focus();
@@ -328,6 +334,7 @@ export function AskChatPanel({
 
       if (!response.ok) {
         updateMessageTranslation(message.id, { status: "error", requestedLocale: currentLocale });
+        showMessage(t("ask.translationError"), "error");
         return;
       }
 
@@ -337,6 +344,7 @@ export function AskChatPanel({
 
       if (!translation) {
         updateMessageTranslation(message.id, { status: "error", requestedLocale: currentLocale });
+        showMessage(t("ask.translationError"), "error");
         return;
       }
 
@@ -348,6 +356,7 @@ export function AskChatPanel({
       });
     } catch {
       updateMessageTranslation(message.id, { status: "error", requestedLocale: currentLocale });
+      showMessage(t("ask.translationError"), "error");
     }
   }
 
@@ -360,6 +369,12 @@ export function AskChatPanel({
   function replaceAssistantMessage(messageId: string, content: string) {
     setMessages((current) =>
       current.map((message) => (message.id === messageId ? { ...message, content } : message)),
+    );
+  }
+
+  function removePendingMessages(userMessageId: string, assistantMessageId: string) {
+    setMessages((current) =>
+      current.filter((message) => message.id !== userMessageId && message.id !== assistantMessageId),
     );
   }
 
@@ -731,7 +746,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "error") {
-    return <p className="mt-1.5 text-xs text-rose-600">{t("ask.translationError")}</p>;
+    return null;
   }
 
   return (

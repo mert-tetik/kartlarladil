@@ -46,6 +46,7 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { cn, createId } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import type {
   AiPracticeCharacter,
   AiPracticeMessage,
@@ -134,7 +135,6 @@ export function AiPracticeChatPanel({
   const [expandedEvaluationMessageId, setExpandedEvaluationMessageId] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
-  const [helpError, setHelpError] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -148,6 +148,7 @@ export function AiPracticeChatPanel({
   useAutoResizeTextarea(textareaRef, draft, !isRecording);
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const { refreshStats } = useProgressStats();
   const characterName = getCharacterName(character, language);
   const languageName = getLanguageDisplayName(language, locale);
@@ -236,7 +237,6 @@ export function AiPracticeChatPanel({
     setDraft("");
     setInterimTranscript("");
     setHelpOpen(false);
-    setHelpError(false);
     setPending(true);
 
     try {
@@ -261,17 +261,20 @@ export function AiPracticeChatPanel({
 
         if (errorCode === "ai_daily_limit" || errorCode === "ai_monthly_limit") {
           setLimitError(errorCode);
-          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id && message.id !== userMessage.id));
+          setDraft(content);
           return;
         }
 
         if (errorCode === "scenario_subscription_required") {
           setLimitError(errorCode);
-          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+          setMessages((current) => current.filter((message) => message.id !== assistantMessage.id && message.id !== userMessage.id));
+          setDraft(content);
           return;
         }
 
-        replaceAssistantMessage(assistantMessage.id, getLocalizedErrorMessage(errorCode, t));
+        removePendingMessages(userMessage.id, assistantMessage.id);
+        showMessage(getLocalizedErrorMessage(errorCode, t), "error");
         return;
       }
 
@@ -279,7 +282,8 @@ export function AiPracticeChatPanel({
         const payload = parseAiPracticeScenarioResponse(JSON.stringify(await response.json().catch(() => null)));
 
         if (!payload) {
-          replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.error"));
+          removePendingMessages(userMessage.id, assistantMessage.id);
+          showMessage(t("aiPractice.chat.error"), "error");
           return;
         }
 
@@ -306,13 +310,15 @@ export function AiPracticeChatPanel({
         streamedText += decoder.decode();
 
         if (streamedText.trim().length === 0) {
-          replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.emptyResponse"));
+          removePendingMessages(userMessage.id, assistantMessage.id);
+          showMessage(t("aiPractice.chat.emptyResponse"), "error");
         } else {
           await scoreUserMessage(userMessage, streamedText);
         }
       }
     } catch {
-      replaceAssistantMessage(assistantMessage.id, t("aiPractice.chat.error"));
+      removePendingMessages(userMessage.id, assistantMessage.id);
+      showMessage(t("aiPractice.chat.error"), "error");
     } finally {
       setPending(false);
       textareaRef.current?.focus();
@@ -396,8 +402,6 @@ export function AiPracticeChatPanel({
     }
 
     setHelpOpen(true);
-    setHelpError(false);
-
     if (latestUserMessage.helpSuggestions) {
       return;
     }
@@ -432,20 +436,20 @@ export function AiPracticeChatPanel({
           return;
         }
 
-        setHelpError(true);
+        showMessage(t("aiPractice.scenario.helpError"), "error");
         return;
       }
 
       const payload = parseAiPracticeScenarioHelpResponse(JSON.stringify(await response.json().catch(() => null)));
 
       if (!payload) {
-        setHelpError(true);
+        showMessage(t("aiPractice.scenario.helpError"), "error");
         return;
       }
 
       updateMessageHelpSuggestions(latestUserMessage.id, payload.suggestions);
     } catch {
-      setHelpError(true);
+      showMessage(t("aiPractice.scenario.helpError"), "error");
     } finally {
       setHelpLoading(false);
     }
@@ -486,6 +490,7 @@ export function AiPracticeChatPanel({
 
       if (!response.ok) {
         updateMessageTranslation(message.id, { status: "error", requestedLocale: locale });
+        showMessage(t("aiPractice.chat.translationError"), "error");
         return;
       }
 
@@ -495,6 +500,7 @@ export function AiPracticeChatPanel({
 
       if (!translation) {
         updateMessageTranslation(message.id, { status: "error", requestedLocale: locale });
+        showMessage(t("aiPractice.chat.translationError"), "error");
         return;
       }
 
@@ -506,6 +512,7 @@ export function AiPracticeChatPanel({
       });
     } catch {
       updateMessageTranslation(message.id, { status: "error", requestedLocale: locale });
+      showMessage(t("aiPractice.chat.translationError"), "error");
     }
   }
 
@@ -516,6 +523,12 @@ export function AiPracticeChatPanel({
   function replaceAssistantMessage(messageId: string, content: string) {
     setMessages((current) =>
       current.map((message) => (message.id === messageId ? { ...message, content } : message)),
+    );
+  }
+
+  function removePendingMessages(userMessageId: string, assistantMessageId: string) {
+    setMessages((current) =>
+      current.filter((message) => message.id !== userMessageId && message.id !== assistantMessageId),
     );
   }
 
@@ -691,7 +704,6 @@ export function AiPracticeChatPanel({
             latestUserMessage={getLatestUserMessage(messages)}
             open={helpOpen}
             loading={helpLoading}
-            error={helpError}
             pending={pending}
             onToggle={() => {
               if (helpOpen) {
@@ -1028,7 +1040,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "error") {
-    return <p className="mt-1.5 text-xs text-rose-600">{t("aiPractice.chat.translationError")}</p>;
+    return null;
   }
 
   return (
@@ -1042,7 +1054,6 @@ function ScenarioHelpMenu({
   latestUserMessage,
   open,
   loading,
-  error,
   pending,
   onToggle,
   onSelectSuggestion,
@@ -1050,7 +1061,6 @@ function ScenarioHelpMenu({
   latestUserMessage: ClientMessage | null;
   open: boolean;
   loading: boolean;
-  error: boolean;
   pending: boolean;
   onToggle: () => void;
   onSelectSuggestion: (suggestion: string) => void;
@@ -1109,8 +1119,6 @@ function ScenarioHelpMenu({
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               <span>{t("aiPractice.scenario.helpLoading")}</span>
             </div>
-          ) : error ? (
-            <p className="rounded-xl bg-background-muted px-3 py-2 text-xs text-foreground-muted">{t("aiPractice.scenario.helpError")}</p>
           ) : suggestions.length > 0 ? (
             <div className="grid gap-1.5">
               {suggestions.map((suggestion) => (

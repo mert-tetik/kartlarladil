@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import {
   BookOpen,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Gamepad2,
@@ -16,6 +17,7 @@ import {
   Headset,
   Layers,
   Palette,
+  ScanText,
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -43,6 +45,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { useAppMessage } from "@/components/app-message-provider";
 import {
   formatCurrency,
   getLocalizedPrice,
@@ -115,10 +118,8 @@ const SUBSCRIPTION_PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string>
 
 const SUBSCRIPTION_DETAILS_FRAME_COUNT = 50;
 const SUBSCRIPTION_DETAILS_FRAME_FPS = 30;
-const SUBSCRIPTION_DETAILS_FRAME_BASE_PATH = "/pricing-subscription-menu-frames";
-const SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH = "/pricing-subscription-menu-pro-frames";
-const SUBSCRIPTION_DETAILS_UI_INTRO_DURATION_MS = 520;
-const SUBSCRIPTION_DETAILS_UI_CTA_DELAY_MS = 1090;
+const SUBSCRIPTION_DETAILS_FRAME_BASE_PATH = "/pricing-subscription-menu-frames-v2";
+const SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH = "/pricing-subscription-menu-pro-frames-v2";
 
 type CheckoutSelection = {
   plan: Exclude<SubscriptionPlan, "free">;
@@ -513,19 +514,24 @@ function ManageSubscriptionButton({
   plan: Exclude<SubscriptionPlan, "free">;
 }) {
   const t = useT();
+  const { showMessage } = useAppMessage();
   const [state, formAction, pending] = useActionState(createCustomerPortalAction, {
     status: "idle" as const,
     message: "",
   });
 
   useEffect(() => {
+    if (state.status === "error" && state.message) {
+      showMessage(state.message, "error");
+    }
+
     if (state.status !== "success" || !state.customerPortalUrl) return;
 
     const portalWindow = window.open(state.customerPortalUrl, "_blank", "noopener,noreferrer");
     if (!portalWindow) {
       window.location.assign(state.customerPortalUrl);
     }
-  }, [state]);
+  }, [showMessage, state]);
 
   const buttonLabel = pending ? t("common.loading") : t("pricing.ctaManage");
 
@@ -543,7 +549,6 @@ function ManageSubscriptionButton({
       >
         {formatSuperWaterText(locale, buttonLabel)}
       </Button>
-      {state.status === "error" ? <p className="text-xs text-rose-100">{state.message}</p> : null}
     </form>
   );
 }
@@ -742,13 +747,25 @@ function PricingCard({
       ) : null}
 
       <ul className="mt-6 flex flex-1 flex-col gap-3">
+        {plan === "pro" ? (
+          <>
+            <Feature included>{t("pricing.featureUnlimitedTextTranslation")}</Feature>
+            <Feature included>{t("pricing.featureUnlimitedAiPractice")}</Feature>
+          </>
+        ) : (
+          <Feature included={false}>{t("pricing.featureUnlimitedTextTranslation")}</Feature>
+        )}
         <Feature included={plan !== "free"}>{t("pricing.featureCards")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearned")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureLearnedReview")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureThemes")}</Feature>
         <Feature included={plan !== "free"}>{t("pricing.featureGames")}</Feature>
-        <Feature included>{t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages })}</Feature>
-        <Feature included>{t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages })}</Feature>
+        {plan !== "pro" ? (
+          <>
+            <Feature included>{t("pricing.featureAiDaily", { count: PLAN_LIMITS[plan].aiDailyMessages ?? 0 })}</Feature>
+            <Feature included>{t("pricing.featureAiMonthly", { count: PLAN_LIMITS[plan].aiMonthlyMessages ?? 0 })}</Feature>
+          </>
+        ) : null}
       </ul>
 
       <div className="mt-8">
@@ -986,13 +1003,11 @@ function GooglePlayCheckoutButton({
   const t = useT();
   const { presentPurchaseSuccess } = useSubscription();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
+  const { showMessage } = useAppMessage();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
   const isCurrentPlan = currentPlan === plan;
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const handleClick = async () => {
-    setPurchaseError(null);
-
     if (isPaidUser) {
       window.open(
         GOOGLE_PLAY_SUBSCRIPTIONS_URL,
@@ -1011,12 +1026,13 @@ function GooglePlayCheckoutButton({
       }
 
       console.error("Google Play purchase failed:", error);
-      setPurchaseError(
+      showMessage(
         getGooglePlayErrorMessage(
           error,
           t("pricing.error.checkoutFailed"),
           t("pricing.error.clientAppUnavailable"),
         ),
+        "error",
       );
     }
   };
@@ -1061,8 +1077,6 @@ function GooglePlayCheckoutButton({
         <p className="text-center text-xs text-foreground-muted">
           {t("pricing.googlePlayUnavailable")}
         </p>
-      ) : purchaseError ? (
-        <p className="text-center text-xs text-rose-600">{purchaseError}</p>
       ) : null}
     </div>
   );
@@ -1144,23 +1158,33 @@ function SubscriptionDetailsOverlay({
   const period = selection.cycle === "yearly" ? t("pricing.perYear") : t("pricing.perMonth");
   const usesSuperWater = canUseSuperWater(locale);
   const featureListRef = useRef<HTMLUListElement | null>(null);
-  const [clippedFeatureIndexes, setClippedFeatureIndexes] = useState<number[]>([]);
+  const [showFeatureScrollHint, setShowFeatureScrollHint] = useState(false);
   const [isIntroComplete, setIsIntroComplete] = useState(false);
-  const [isIntroUiComplete, setIsIntroUiComplete] = useState(false);
   const handleIntroComplete = useCallback(() => setIsIntroComplete(true), []);
 
   useEffect(() => {
-    if (!isIntroComplete) {
-      setIsIntroUiComplete(false);
-      return;
-    }
+    const list = featureListRef.current;
+    if (!list) return;
 
-    const introTimer = window.setTimeout(
-      () => setIsIntroUiComplete(true),
-      SUBSCRIPTION_DETAILS_UI_CTA_DELAY_MS + SUBSCRIPTION_DETAILS_UI_INTRO_DURATION_MS,
-    );
+    const updateFeatureScrollHint = () => {
+      const hasMoreContent = list.scrollHeight > list.clientHeight + 4;
+      const isAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 4;
+      setShowFeatureScrollHint(hasMoreContent && !isAtBottom);
+    };
 
-    return () => window.clearTimeout(introTimer);
+    updateFeatureScrollHint();
+    list.addEventListener("scroll", updateFeatureScrollHint, { passive: true });
+    window.addEventListener("resize", updateFeatureScrollHint);
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateFeatureScrollHint);
+    resizeObserver?.observe(list);
+
+    return () => {
+      list.removeEventListener("scroll", updateFeatureScrollHint);
+      window.removeEventListener("resize", updateFeatureScrollHint);
+      resizeObserver?.disconnect();
+    };
   }, [isIntroComplete]);
 
   const handleClose = useCallback(() => {
@@ -1183,96 +1207,6 @@ function SubscriptionDetailsOverlay({
       }
     };
   }, [handleClose]);
-
-  const measureClippedFeatures = useCallback(() => {
-    const list = featureListRef.current;
-    if (!list) return;
-
-    const features = Array.from(
-      list.querySelectorAll<HTMLElement>("[data-pricing-details-feature]"),
-    );
-
-    // Temporarily reveal previously hidden rows so a resize can make them
-    // available again before measuring the current usable list area.
-    features.forEach((feature) => {
-      feature.hidden = false;
-    });
-
-    const listRect = list.getBoundingClientRect();
-    let visibleTop = Math.max(0, listRect.top);
-    let visibleBottom = Math.min(
-      listRect.bottom,
-      window.visualViewport?.height ?? window.innerHeight,
-      window.innerHeight,
-    );
-
-    let ancestor = list.parentElement;
-    while (ancestor && ancestor !== document.body) {
-      const computedStyle = window.getComputedStyle(ancestor);
-      const clipsVertically = ["hidden", "clip", "auto", "scroll"].includes(computedStyle.overflowY);
-      if (clipsVertically) {
-        const ancestorRect = ancestor.getBoundingClientRect();
-        visibleTop = Math.max(visibleTop, ancestorRect.top);
-        visibleBottom = Math.min(visibleBottom, ancestorRect.bottom);
-      }
-      ancestor = ancestor.parentElement;
-    }
-
-    const nextClippedIndexes = features
-      .filter((feature) => {
-        const rect = feature.getBoundingClientRect();
-        return (
-          rect.top < visibleTop - 0.25 ||
-          rect.bottom > visibleBottom + 0.25 ||
-          rect.left < listRect.left - 0.25 ||
-          rect.right > listRect.right + 0.25
-        );
-      })
-      .map((feature) => Number(feature.dataset.pricingDetailsFeature));
-
-    setClippedFeatureIndexes((previous) => (
-      previous.length === nextClippedIndexes.length &&
-      previous.every((index, position) => index === nextClippedIndexes[position])
-        ? previous
-        : nextClippedIndexes
-    ));
-  }, []);
-
-  useLayoutEffect(() => {
-    const list = featureListRef.current;
-    if (!list) return;
-
-    let frameId: number | null = null;
-    const scheduleMeasurement = () => {
-      if (frameId !== null) return;
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        measureClippedFeatures();
-      });
-    };
-
-    const overlay = list.closest<HTMLElement>("[data-pricing-subscription-details]");
-    const settleTimer = window.setTimeout(scheduleMeasurement, 700);
-    overlay?.addEventListener("animationend", scheduleMeasurement);
-    measureClippedFeatures();
-    const resizeObserver = typeof ResizeObserver === "undefined"
-      ? null
-      : new ResizeObserver(scheduleMeasurement);
-    resizeObserver?.observe(list);
-    window.addEventListener("resize", scheduleMeasurement);
-    window.visualViewport?.addEventListener("resize", scheduleMeasurement);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.clearTimeout(settleTimer);
-      overlay?.removeEventListener("animationend", scheduleMeasurement);
-      window.removeEventListener("resize", scheduleMeasurement);
-      window.visualViewport?.removeEventListener("resize", scheduleMeasurement);
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
-    };
-  }, [measureClippedFeatures]);
 
   const content = (
     <section
@@ -1357,15 +1291,40 @@ function SubscriptionDetailsOverlay({
             </p>
           </div>
 
-          <ul ref={featureListRef} className="mt-10 min-h-0 w-full max-w-xl flex-1 overflow-hidden grid content-start gap-y-0 gap-x-3 sm:grid-cols-2">
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={650} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(1)} index={1} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={710} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(2)} index={2} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={770} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(3)} index={3} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={830} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(4)} index={4} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(5)} index={5} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(6)} index={6} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS[selection.plan].aiDailyMessages })} />
-            <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} hidden={isIntroUiComplete && clippedFeatureIndexes.includes(7)} index={7} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS[selection.plan].aiMonthlyMessages })} />
-          </ul>
+          <div className="relative mt-10 min-h-0 w-full max-w-xl flex-1">
+            <ul ref={featureListRef} className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1">
+              {selection.plan === "pro" ? (
+                <>
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={650} index={1} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={710} index={2} icon={MessageCircle} locale={locale} text={t("pricing.featureUnlimitedAiPractice")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={770} index={3} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={830} index={4} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} index={5} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} index={6} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} index={7} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+                </>
+              ) : (
+                <>
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={650} index={1} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={710} index={2} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={770} index={3} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={830} index={4} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} index={5} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} index={6} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} index={7} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1070} index={8} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
+                </>
+              )}
+            </ul>
+            {showFeatureScrollHint ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-[-1.25rem] left-1/2 inline-flex size-10 -translate-x-1/2 items-center justify-center text-white"
+              >
+                <ChevronDown className="serious-learner-scroll-hint size-6" strokeWidth={2.75} />
+              </span>
+            ) : null}
+          </div>
 
           <div
             className={cn(
@@ -1504,7 +1463,7 @@ function SubscriptionDetailsFrameAnimation({
 }
 
 function SubscriptionDetailsFeature({
-  hidden = false,
+  unavailable = false,
   introVisible,
   introDelay,
   index,
@@ -1512,7 +1471,7 @@ function SubscriptionDetailsFeature({
   locale,
   text,
 }: {
-  hidden?: boolean;
+  unavailable?: boolean;
   introVisible: boolean;
   introDelay: number;
   index: number;
@@ -1522,10 +1481,10 @@ function SubscriptionDetailsFeature({
 }) {
   return (
     <li
-      hidden={hidden}
       data-pricing-details-feature={index}
       className={cn(
         "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        unavailable && "opacity-45 line-through",
         introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
       )}
       style={{ animationDelay: `${introDelay}ms` }}

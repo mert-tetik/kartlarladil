@@ -10,6 +10,7 @@ import { StarRating } from "@/features/reviews/components/star-rating";
 import { useLocale } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 
 interface ReviewSectionProps {
@@ -40,7 +41,7 @@ export function ReviewSection({ user, existingReview, t, variant = "desktop" }: 
   const [rating, setRating] = useState(existingReview?.rating ?? 0);
   const [comment, setComment] = useState(existingReview?.comment ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const { showMessage } = useAppMessage();
   const isSubmitDisabled = status === "loading" || rating < 1;
   const useSuperWater = canUseSuperWater(locale);
 
@@ -49,12 +50,11 @@ export function ReviewSection({ user, existingReview, t, variant = "desktop" }: 
 
     if (rating < 1 || rating > 5) {
       setStatus("error");
-      setErrorMessage(t.invalidRating);
+      showMessage(t.invalidRating, "error");
       return;
     }
 
     setStatus("loading");
-    setErrorMessage("");
 
     const result = await submitReviewAction(rating, comment);
 
@@ -62,7 +62,7 @@ export function ReviewSection({ user, existingReview, t, variant = "desktop" }: 
       setStatus("success");
     } else {
       setStatus("error");
-      setErrorMessage(result.message === "login_required" ? t.loginRequired : t.error);
+      showMessage(result.message === "login_required" ? t.loginRequired : t.error, "error");
     }
   };
 
@@ -117,10 +117,6 @@ export function ReviewSection({ user, existingReview, t, variant = "desktop" }: 
           className="w-full resize-none rounded-xl border border-border bg-[color-mix(in_oklab,var(--background),black_20%)] px-4 py-3 text-left text-sm leading-6 text-foreground placeholder:text-foreground-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
         />
       </div>
-
-      {status === "error" && errorMessage ? (
-        <p role="alert" className="text-sm font-medium text-red-600">{errorMessage}</p>
-      ) : null}
 
       {variant === "mobile" ? (
         <button

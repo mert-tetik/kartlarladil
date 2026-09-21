@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarClock, CircleAlert, ImageOff, LoaderCircle, RefreshC
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 
 type LoadingState = "loading" | "ready" | "error";
 type UploadPostScheduledPost = {
@@ -56,6 +57,7 @@ export function ScheduledPostsTable({ onBack }: { onBack: () => void }) {
   const [posts, setPosts] = useState<UploadPostScheduledPost[]>([]);
   const [state, setState] = useState<LoadingState>("loading");
   const [message, setMessage] = useState("");
+  const { showMessage } = useAppMessage();
   const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<UploadPostScheduledPost | null>(null);
 
@@ -70,7 +72,8 @@ export function ScheduledPostsTable({ onBack }: { onBack: () => void }) {
       setState("ready");
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "Upload-Post could not load scheduled posts.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "Upload-Post could not load scheduled posts.", "error");
     }
   }
 
@@ -106,7 +109,8 @@ export function ScheduledPostsTable({ onBack }: { onBack: () => void }) {
       setPosts((current) => current.filter((item) => item.jobId !== post.jobId));
       setMessage("Scheduled post cancelled in Upload-Post.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The scheduled post could not be cancelled.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "The scheduled post could not be cancelled.", "error");
     } finally {
       setCancellingJobId(null);
     }

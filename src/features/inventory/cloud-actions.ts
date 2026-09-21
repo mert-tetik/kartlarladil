@@ -258,7 +258,7 @@ export async function recordCloudPracticeAttemptAction(input: {
       if (limitError) {
         return {
           status: "error",
-          message: t("limit.learnedCardLimitDescription"),
+          message: t("limit.learnedCardLimitDescription").replace(/\b50\b/g, "100"),
           errorCode: limitError,
         };
       }
@@ -420,7 +420,7 @@ export async function migrateLocalInventoryToCloudAction(
       if (learnedLimit !== null && currentLearned + newLearned > learnedLimit) {
         return {
           status: "error",
-          message: t("limit.learnedCardLimitDescription"),
+          message: t("limit.learnedCardLimitDescription").replace(/\b50\b/g, "100"),
           errorCode: "free_learned_card_limit",
         };
       }
@@ -835,7 +835,7 @@ async function cloudError(
   if (systemMessage?.includes("free_learned_card_limit")) {
     return {
       status: "error",
-      message: t("limit.learnedCardLimitDescription"),
+          message: t("limit.learnedCardLimitDescription").replace(/\b50\b/g, "100"),
       errorCode: "free_learned_card_limit",
     };
   }

@@ -10,6 +10,7 @@ import {
 import { getAiPracticeScenario, getScenarioOpeningLine, getScenarioTitle } from "@/features/ai-practice/ai-practice-scenarios";
 import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practice-chat-panel";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
@@ -52,11 +53,15 @@ export default async function AiPracticeChatPage({ params, searchParams }: AiPra
     redirect("/ai-practice");
   }
 
-  await requireAuthUser(`/ai-practice/${rawLanguage}/${characterId}`);
+  const user = await requireAuthUser(`/ai-practice/${rawLanguage}/${characterId}`);
 
   const rawSearchParams = await searchParams;
   const isScenarioMode = rawSearchParams.mode === "scenario";
   const scenario = isScenarioMode ? getAiPracticeScenario(characterId) : null;
+
+  if (scenario && (await getUserEntitlements(user.id)).effectivePlan === "free") {
+    redirect(`/ai-practice/${rawLanguage}/character?mode=scenario`);
+  }
   const character = scenario
     ? getAiPracticeCharacter(scenario.characterId)
     : getAiPracticeCharacter(characterId);

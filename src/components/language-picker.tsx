@@ -35,7 +35,6 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
         onClick={() => setOpen(true)}
         className={cn(
           "mt-2 flex h-12 w-full items-center justify-between rounded-md border border-border bg-background-card px-3 text-sm font-semibold text-foreground-secondary transition-colors hover:border-foreground-muted",
-          error && "border-rose-300 ring-1 ring-rose-300",
         )}
       >
         <span className="flex items-center gap-2">
@@ -45,8 +44,6 @@ export function LanguagePicker({ name, label, value, onChange, error }: Language
         <ChevronDown className="size-4 text-foreground-muted" aria-hidden="true" />
       </button>
       <input type="hidden" name={name} value={value} />
-      {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
-
       {open ? (
         <>
           <button

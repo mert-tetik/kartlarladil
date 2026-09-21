@@ -31,6 +31,12 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { LANGUAGES } from "@/data/languages";
 import { TIER_STYLES } from "@/data/tiers";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import {
+  preloadQuizFeedbackMascotAnimation,
+  pickQuizFeedbackMascotAnimation,
+  QuizFeedbackMascotAnimationView,
+  type QuizFeedbackMascotAnimation,
+} from "@/features/quiz/components/quiz-feedback-mascot-animation";
 import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import {
   getCardTranslation,
@@ -2291,17 +2297,8 @@ export function QuizStation({
         <MobileQuizFeedback
           isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
           isCorrect={lastAnswerCorrect ?? false}
-          correctAnswer={
-            isBonusQuizItem(item)
-              ? undefined
-              : item.questionType === "text" || item.questionType === "sentence-completion"
-                ? item.question.correctAnswer
-                : item.questionType === "listening"
-                  ? item.question.correctAnswer
-                  : item.questionType === "true-false"
-                    ? item.question.actualMeaning
-                    : undefined
-          }
+          isBonus={isBonusQuizItem(item)}
+          correctAnswer={getFeedbackCorrectAnswer(item)}
           onNext={handleNext}
           showNextButton={!pendingStreak && !bonusFlightActive}
         />
@@ -2588,6 +2585,47 @@ function buildFallbackBonusQuestion(
 
 function isBonusQuizItem(item: QuizItem): item is BonusQuizItem {
   return item.isBonus === true;
+}
+
+function getFeedbackCorrectAnswer(item: QuizItem): string | undefined {
+  if (isBonusQuizItem(item)) {
+    const question = item.bonusQuestion;
+
+    if (question.kind === "imposter") {
+      return question.options.find((option) => option.id === question.correctOptionId)?.text;
+    }
+
+    if (
+      question.kind === "sentence-order" &&
+      question.acceptedTokenOrders.length === 1
+    ) {
+      const tokenById = new Map(
+        question.tokens.map((token) => [token.id, token.text]),
+      );
+      const acceptedOrder = question.acceptedTokenOrders[0] ?? [];
+      const sentence = acceptedOrder
+        .map((tokenId) => tokenById.get(tokenId))
+        .filter((token): token is string => Boolean(token))
+        .join(" ");
+
+      return sentence || undefined;
+    }
+
+    return undefined;
+  }
+
+  switch (item.questionType) {
+    case "choice":
+    case "definition":
+    case "listening":
+    case "text":
+    case "sentence-completion":
+      return item.question.correctAnswer;
+    case "true-false":
+      return item.question.actualMeaning;
+    default:
+      return undefined;
+  }
 }
 
 function getRegularQuizProgress(deck: QuizItem[], currentIndex: number) {
@@ -4359,12 +4397,14 @@ function TextQuestion({
 export function MobileQuizFeedback({
   isOpen,
   isCorrect,
+  isBonus = false,
   correctAnswer,
   onNext,
   showNextButton = true,
 }: {
   isOpen: boolean;
   isCorrect: boolean;
+  isBonus?: boolean;
   correctAnswer?: string;
   onNext: () => void;
   showNextButton?: boolean;
@@ -4375,6 +4415,37 @@ export function MobileQuizFeedback({
     isCorrect: boolean;
     correctAnswer: string;
   } | null>(null);
+  const [mascotAnimation, setMascotAnimation] = useState<QuizFeedbackMascotAnimation | null>(null);
+  const [mascotVisible, setMascotVisible] = useState(false);
+  const mascotAnimationRef = useRef<QuizFeedbackMascotAnimation | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const selectedAnimation = pickQuizFeedbackMascotAnimation(isBonus);
+      mascotAnimationRef.current = selectedAnimation;
+      setMascotAnimation(selectedAnimation);
+      setMascotVisible(false);
+
+      if (!selectedAnimation) return;
+
+      preloadQuizFeedbackMascotAnimation(selectedAnimation);
+      const entranceTimer = window.setTimeout(() => {
+        setMascotVisible(true);
+      }, 300);
+
+      return () => window.clearTimeout(entranceTimer);
+    }
+
+    if (!mascotAnimationRef.current) return;
+
+    const exitTimer = window.setTimeout(() => {
+      mascotAnimationRef.current = null;
+      setMascotVisible(false);
+      setMascotAnimation(null);
+    }, 300);
+
+    return () => window.clearTimeout(exitTimer);
+  }, [isBonus, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -4385,9 +4456,8 @@ export function MobileQuizFeedback({
   const display = snapshot ?? { isCorrect, correctAnswer: correctAnswer ?? "" };
   const feedbackText = display.isCorrect
     ? t("quiz.congratulations")
-    : display.correctAnswer
-      ? t("quiz.correctAnswerWithValue", { answer: display.correctAnswer })
-      : t("quiz.wrongAnswer");
+    : t("quiz.wrongAnswer");
+  const correctAnswerLabel = t("quiz.correctAnswerWithValue", { answer: "" }).trim();
 
   return (
     <div
@@ -4407,15 +4477,32 @@ export function MobileQuizFeedback({
           canUseSuperWater(locale) && "font-super-water",
         )}
       >
-        <div className="flex items-center gap-3">
+        {mascotAnimation && mascotVisible ? (
+          <div className="pointer-events-none absolute bottom-full left-2 z-0">
+            <QuizFeedbackMascotAnimationView animation={mascotAnimation} />
+          </div>
+        ) : null}
+        <div className="relative z-10 flex min-w-0 items-start gap-3">
           <QuizFeedbackStatusIcon isCorrect={display.isCorrect} />
-          <p className="text-base font-bold text-white">
-            {formatSuperWaterText(locale, feedbackText)}
-          </p>
+          <div className="min-w-0">
+            <p className="text-base font-bold text-white">
+              {formatSuperWaterText(locale, feedbackText)}
+            </p>
+            {!display.isCorrect && display.correctAnswer ? (
+              <div className="mt-1 flex flex-col text-sm leading-tight text-white/95">
+                <span className="font-semibold">
+                  {formatSuperWaterText(locale, correctAnswerLabel)}
+                </span>
+                <span className="mt-0.5 break-words">
+                  {` ${formatSuperWaterText(locale, display.correctAnswer)}`}
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
         <Button
           className={cn(
-            "shrink-0 rounded-full bg-white px-5 text-base font-bold hover:bg-white/90",
+            "relative z-10 shrink-0 rounded-full bg-white px-5 text-base font-bold hover:bg-white/90",
             display.isCorrect ? "text-emerald-600" : "text-rose-600",
             !showNextButton && "invisible pointer-events-none",
           )}

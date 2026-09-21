@@ -18,6 +18,7 @@ import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { LocaleCode } from "@/types/domain";
 
 function LeaderboardWorldPositions({
@@ -92,6 +93,7 @@ export function LeaderboardPageClient({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const { updateProfileField } = useAuthSession();
   const leaderboardConsentTestMode = useLeaderboardConsentTestMode();
   const [selectedMode, setSelectedMode] = useState<LeaderboardMode>(initialMode);
@@ -130,6 +132,12 @@ export function LeaderboardPageClient({
     setSelectedMode(initialMode);
     setDataMode(initialMode);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (error) {
+      showMessage(t("leaderboard.loadFailed"), "error");
+    }
+  }, [error, showMessage, t]);
 
   useEffect(() => {
     return () => {
@@ -270,9 +278,7 @@ export function LeaderboardPageClient({
                   <p className="text-sm font-medium">{t("common.loading")}</p>
                 </div>
               ) : !modeData && error ? (
-                <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-rose-600">
-                  {t("leaderboard.loadFailed")}
-                </div>
+                <div className="h-full" aria-hidden="true" />
               ) : !modeData?.canViewLeaderboard ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                   <div className="space-y-2">
@@ -307,11 +313,6 @@ export function LeaderboardPageClient({
                   >
                     {formatSuperWaterText(locale, t("leaderboard.allow"))}
                   </button>
-                  {consentError ? (
-                    <p className="text-xs font-medium text-rose-600">
-                      {t("leaderboard.loadFailed")}
-                    </p>
-                  ) : null}
                 </div>
               ) : modeData.entries.length === 0 ? (
                 <div className="flex h-full items-center justify-center px-4 text-center text-sm text-foreground-secondary">
@@ -379,11 +380,6 @@ export function LeaderboardPageClient({
                 </div>
               )}
 
-              {!modeLoading && error && modeData ? (
-                <p className="mt-3 text-center text-xs font-medium text-rose-600">
-                  {t("leaderboard.loadFailed")}
-                </p>
-              ) : null}
             </div>
           </div>
         </div>

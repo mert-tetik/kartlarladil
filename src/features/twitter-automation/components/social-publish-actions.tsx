@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LoaderCircle, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppMessage } from "@/components/app-message-provider";
 
 export type SocialPublishImageAsset = {
   dataUrl: string;
@@ -59,6 +60,7 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
   const [assets, setAssets] = useState<SocialPublishAsset[]>();
   const [state, setState] = useState<PublishState>("idle");
   const [message, setMessage] = useState("");
+  const { showMessage } = useAppMessage();
 
   useEffect(() => {
     void fetch("/api/twitter-automation/publish-targets", { cache: "no-store" })
@@ -95,7 +97,8 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
       setState("idle");
     } catch {
       setState("error");
-      setMessage("The generated media could not be prepared for publishing.");
+      setMessage("");
+      showMessage("The generated media could not be prepared for publishing.", "error");
     }
   }
 
@@ -127,7 +130,8 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
       setMessage(payload?.postUrl ? `Published successfully: ${payload.postUrl}` : payload?.requestId ? `Upload accepted by Upload-Post. Request: ${payload.requestId}` : payload?.jobId ? `Scheduled in Upload-Post. Job: ${payload.jobId}` : "Upload accepted by Upload-Post.");
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "The post could not be published.");
+      setMessage("");
+      showMessage(error instanceof Error ? error.message : "The post could not be published.", "error");
     }
   }
 
@@ -147,7 +151,7 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
         {selectedTarget?.status === "not_configured" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set the server-only Upload-Post API key before publishing.</p> : null}
         {selectedTarget?.status === "profile_required" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set this account&apos;s Upload-Post profile username in Social medias before publishing.</p> : null}
         {textOnly && !textOnlySupported ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Upload-Post needs an image or video for {selectedPlatform}. Choose a generated visual instead.</p> : null}
-        {message ? <p className={state === "sent" ? "mt-4 text-sm text-[#9be0b9]" : "mt-4 text-sm text-[#ffb9c1]"}>{message}</p> : null}
+        {message && state === "sent" ? <p className="mt-4 text-sm text-[#9be0b9]">{message}</p> : null}
         <div className="mt-5 flex justify-end gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => setSelectedPlatform(null)} type="button">Cancel</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={!selectedTarget || !draftCaption || !uploadPostReady || !textOnlySupported && textOnly || hasMediaGenerator && !assets?.length || state === "preparing" || state === "sending"} onClick={() => void publish()} type="button">{state === "sending" ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Send</Button></div>
       </section>
     </div> : null}

@@ -2,6 +2,11 @@ import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { normalizeGeneratedPronunciation } from "@/features/cards/card-pronunciation";
+import {
+  containsRequiredTargetScript,
+  requiresNativeWritingSystem,
+} from "@/features/cards/create-card-language";
+import { normalizeSearch } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
 export const CREATE_CARD_DIRECTIONS = ["native-to-learning", "learning-to-native"] as const;
@@ -55,6 +60,44 @@ export function matchesRequestedTargetLanguage(
   targetLanguage?: LanguageCode,
 ) {
   return !targetLanguage || card.language === targetLanguage;
+}
+
+export function matchesRequestedTargetWritingSystem(
+  card: Pick<GeneratedCardResponse, "term">,
+  targetLanguage?: LanguageCode,
+) {
+  return !targetLanguage || containsRequiredTargetScript(card.term, targetLanguage);
+}
+
+export function shouldRetryForDictionaryLemma(
+  card: Pick<GeneratedCardResponse, "term" | "termKind">,
+  inputTerm: string,
+  targetLanguage?: LanguageCode,
+) {
+  const inputIsSingleToken = inputTerm.trim().split(/\s+/u).length === 1;
+
+  if (!inputIsSingleToken) {
+    return false;
+  }
+
+  const candidateTerm = card.term.trim();
+
+  if (
+    candidateTerm.split(/\s+/u).length !== 1 ||
+    /[^\p{L}\p{M}'’ʼ-]/u.test(candidateTerm)
+  ) {
+    return true;
+  }
+
+  if (normalizeSearch(card.term) === normalizeSearch(inputTerm)) {
+    return true;
+  }
+
+  return Boolean(
+    card.termKind === "fixed_phrase" &&
+    targetLanguage &&
+    !requiresNativeWritingSystem(targetLanguage),
+  );
 }
 
 export function isSupportedCreateCardDirection(

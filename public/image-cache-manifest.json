@@ -1,5 +1,5 @@
 {
-  "version": "91d629afae61c99be21a78f6ba26aec432157bce5cc2ff92d5f3569eb8f32c77",
+  "version": "e7bbfedbaaa728b2f33b61876d2a4da68ab999fc1364a92b0f4615723e7ba0e8",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -1046,6 +1046,206 @@
       "revision": "238845bcb7c16e348f7e8743a9019b8500ed64cbf61e4f2f900e72c0a250e1a8"
     },
     {
+      "url": "/pricing-subscription-menu-frames-v2/1.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/10.png",
+      "revision": "8ef5e1c344da848d0628647787f95b2015ef213b9e5930ed038bbd2e3578b5da"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/11.png",
+      "revision": "6112d4f4ff5428e39d1137cf7a15a328bbe9c257e8eb3eba1c15ab0c006de0db"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/12.png",
+      "revision": "7dcaf728a43d05ec4cbdd3633dcb7d2fdc9b44f50b404303dc902f4792d0f694"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/13.png",
+      "revision": "b72e833c92a633179706b2e923a192f532a98912b9bfc33e9e55c9742a406edc"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/14.png",
+      "revision": "8df439455de996cd15e4267296527d5959ad8f39234205ce4c627562a09d3b29"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/15.png",
+      "revision": "5085265b88ab139c93981b0eb3688de3a0fb7a68a84c99764651d7a399d6a5bd"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/16.png",
+      "revision": "2a30bc403d401f65b1671db1fe3e7e628b188bf3cbfcd9f612018c790cf2c812"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/17.png",
+      "revision": "736c41b9cfbaa864a2a5b904b8c2f2ebb5261c67dd1581b38c618b3687754202"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/18.png",
+      "revision": "ad8b0a3bb70d675dbe7dc219fab8791a127afe5c55b7489b14c2792725a5b921"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/19.png",
+      "revision": "b70761c36c2534c2e4bd29445c19eb375fb6c6acc3a48544d98a25816d02c2e6"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/2.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/20.png",
+      "revision": "201271bf46456160ee5e4d4c8e59ca99ccd8de6063017e9b63fe7442b9df7b3d"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/21.png",
+      "revision": "cf704ce2208e63ab3c308be2a104a92f1dd88ff435be8663ac46ae0804b74840"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/22.png",
+      "revision": "8341ef5efd9268a9548236b934d481337fd1f2e8d7872951efe8747c7845ed0c"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/23.png",
+      "revision": "2bf0a3d8dcaff92bff6679ba80f010002250632925b6a141f0176c283fb82304"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/24.png",
+      "revision": "849cf1c9091623cdacdf9ab14b08a893108ea3d82e3759f658e88f71be7ab838"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/25.png",
+      "revision": "202dd5868293e49203d6d219fed69d9c902c9912f42afdde13f3f5d8f2adc6f7"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/26.png",
+      "revision": "65ae6597290d3362e387635d0556110a514cbe34fb0b69ff7eabd65dbe823df5"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/27.png",
+      "revision": "d7d962ae8799d23b0fbef66ce1f44f483088201b987f6aedb56346bdb0fc635c"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/28.png",
+      "revision": "00626b86403978057ed61aabda68e443afd756c30adc0a94ecdd3e88be9bf080"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/29.png",
+      "revision": "4dd2b683313c28c8a79aeff7448cbdeb5485750a4bb202082d152d5b15767713"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/3.png",
+      "revision": "77e766091d277ab485ace16d4e85b21d971c653f3c9db217fef13fb982defe45"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/30.png",
+      "revision": "d29a955246818b6355c6474b3cb7743903c34d31c69dbca265c8459defab3240"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/31.png",
+      "revision": "7dcf85d2c8eb41170be19378b51e10d88567596078f89b3338f261fc319f0f36"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/32.png",
+      "revision": "eff3689d64c3a4917eea87e365200e0feaa252b26ab50a53594ed47c882b4b11"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/33.png",
+      "revision": "a5b477cb8a9d0f10bdd06f050f46e35ffd66debc333d24100a30600987092d70"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/34.png",
+      "revision": "ccf042c6e689f09901f276107eda4afe7e9b7759ce7ffad671202777a27136b3"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/35.png",
+      "revision": "f8c14c27e3fef0d19b37e0f19a9c34add3aba1bfe7c5dc23617e83279ca9787b"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/36.png",
+      "revision": "fee0fce9b2f67d484707f425f638fd647a2fcabcd7e4b86f24ae3ee5393d2ec4"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/37.png",
+      "revision": "20cf89c8399b989a2524f83ca4226fb5ae59737e1a531dc116e0a3e5d5e35dbf"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/38.png",
+      "revision": "b12ebecfd8d8026ab9a5c80de4f4acb68d678860d5f049aab6e62e5ba4075b77"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/39.png",
+      "revision": "a31d0258cee178d967278c9f862850f7502172846a4a5ca4392ff8b7711c035d"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/4.png",
+      "revision": "8a41a2d64b66a22b13d57c0879713ede02f9315737e410ae31a4374c5b929bfa"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/40.png",
+      "revision": "d64cc972b80195e559d4f1d7979884247e27cb073d77ba4fcb2272c41a079efa"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/41.png",
+      "revision": "7f5d42e04e6d5f10c81d35b7687c3a741bd99c62eaf925ebecd7004513905cc3"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/42.png",
+      "revision": "c319afb4cc693c52c52b845f6823db78884eee60404a6a8c4397462742fc0cde"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/43.png",
+      "revision": "a83eb0141537ffb9cf154b784e68d0c3e69c4647df215038ade4a3d11499b68c"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/44.png",
+      "revision": "6e29bf1bb4a9c1bc2d52f3ca2801e7f91191377241e98304086c6612d6bbc3d2"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/45.png",
+      "revision": "eca84ae3c738b6a6e0bfe453835f67ab04a692a8810df46fa5d4655b1fbc2682"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/46.png",
+      "revision": "f79750423f03f7707048be1650ad80bf82deb582d20d21a32eada43e9e4bb7e4"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/47.png",
+      "revision": "7dffc9ecf24e2c48aec58bae349613dd12ccfe12780350d4ce9cdefadd443f22"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/48.png",
+      "revision": "8069343eebce23a7c49a596c9dd167b70711c44179be363917113d1caa35bcdd"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/49.png",
+      "revision": "d4e7b665f3131ce14acacbe6fefcab7dfe5e31862f1e56a11b88b10e020a14ef"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/5.png",
+      "revision": "02aba36999f66d2eae7f8adb00cfe022800f7857ec395090d565789b35e2de38"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/50.png",
+      "revision": "aee6d93ba305db5e7a08122a6910bd3048b13ff074760eca9721378a02546766"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/6.png",
+      "revision": "72ab777496d3e0161b968b313de81d8e17e1acf51af411cfdf315857f4b08cd0"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/7.png",
+      "revision": "7ddfc7d8bdf93cb2a1c09f1e1cf87a527c473049981a2b6b527c09ecf2c2af82"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/8.png",
+      "revision": "e2fa4ff160dbe1e885ec53f243cdec0e737c8266215f3f55819528f0fe355260"
+    },
+    {
+      "url": "/pricing-subscription-menu-frames-v2/9.png",
+      "revision": "3f7f5fc59ad5dc9b89b844fee98e7496df658cd2334614aa3087bec14ec1d370"
+    },
+    {
       "url": "/pricing-subscription-menu-frames/1.png",
       "revision": "4cd6a7824f651f3ad9022683d7f30a0361158ad48dcb2780ab7e3db41d10cf79"
     },
@@ -1244,6 +1444,206 @@
     {
       "url": "/pricing-subscription-menu-frames/9.png",
       "revision": "f09a908ef69c7d6ae6120d0b149fbc956412899fe8a223cfed834d101f71c47b"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/1.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/10.png",
+      "revision": "01f75ab07607cb36ae0c4997d3e9f2aa3ce645c94b45a0e002f458403471622f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/11.png",
+      "revision": "91fb46c5e86f3684f9da776212e443c3514f4e1ee5ce5ef35acafad584c94902"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/12.png",
+      "revision": "35a959912fd148295a5e8b4537a218b786fbdb8c6243c38ab2ba5ffe3b63e1ee"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/13.png",
+      "revision": "f8cc2143e78a7024bcbe5d5bafc48633adc8261a88e716c435cb1f91f6ae7d80"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/14.png",
+      "revision": "17ee011773047d2c2a26cdea880ac2a64a286b3b4583ee3ba8ba31b677c352f5"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/15.png",
+      "revision": "dafb88cc49e5c040e26e9a8946f3c2cee0d610ef1c09d03f1940e487f8268d8f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/16.png",
+      "revision": "3c230224d271c933aa0d4d03032832dd265fa1b34f706c430a2e5520fe632e29"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/17.png",
+      "revision": "3641c81a54a81eadea92496c22a6a53e0520a61b35bad6329185eda456bba98a"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/18.png",
+      "revision": "57907e24dd7d57fc396d99d901afb0b64483ea8eff44ece69080820564c7f400"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/19.png",
+      "revision": "193c85d60b02bd86bb45ddb377eeef3540c4e5a7206b2faf8318639b1de336c4"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/2.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/20.png",
+      "revision": "029d812e6b7f5e4975a72221874172e9705758c4a353953bb67b7696c0148f02"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/21.png",
+      "revision": "20858b76237a539747a3fdd8131f4545d11a8254767ed60954fdff24ad15d14a"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/22.png",
+      "revision": "3035f70df62043258dfbe30dd9e09e572a22f7e69a372613232913ac65a8356d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/23.png",
+      "revision": "817485157ed34139848ed2ca846fda0ed523ff1acc855421f52a47d0f0512391"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/24.png",
+      "revision": "3cd6e61a76c437ed93dedda9a8e8b0e3980a0568504fbe7026a761c08e716037"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/25.png",
+      "revision": "8190cf284a2e706724e15367f8c2591621381687924dc7615b8f4cb8357fca83"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/26.png",
+      "revision": "cecdae961a4c7803281f4f4ecef23d818ab21a0c5284ea4d1906a85f4bf27a27"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/27.png",
+      "revision": "d3fe473b7feea399343cc7ac9163c8d6dd10782778999acbe4b7972733d796e7"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/28.png",
+      "revision": "0bd953f47e0ec8aeac645bba8e8bc92e1a711a4d650b0631dcfb04b319908586"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/29.png",
+      "revision": "f512e622df02367ebf3c00f73fddcb0636677ea730294f28d396c2533295669c"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/3.png",
+      "revision": "81cdfbf7ede933ba5fe6366f411f63f5d2812b5d66af15e83a1ec47264337906"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/30.png",
+      "revision": "c533cd3ad270f1c8aa66082fc350c91091ec3ffd465f5d0271bc167a92a6a2ac"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/31.png",
+      "revision": "c9210b1b059fd938c93ab21932caa549a9d5ebb477046200a39c2d320ab4d0da"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/32.png",
+      "revision": "23284102ffb091b0c315ff41aa1f26b9ab2b3492d86efe63e3e15ec5d9673fc9"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/33.png",
+      "revision": "957e3632c7df9ee1740723eba0fa505d76d5ece28aab0036ea967d1e1aac3d78"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/34.png",
+      "revision": "2824f45906376db0623793ba8c52b63d9b4c5d23341b870d5b9f4ecedc78f781"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/35.png",
+      "revision": "2e6525046b2f623f6e00d6afa16ffa435e92aa59f03f29b5fb752bffadbd0107"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/36.png",
+      "revision": "eaa722d287be891cece10910797180d333547eda90b95c726b6d7cf175179067"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/37.png",
+      "revision": "40b9534477841a66d785276e23f4e38d274a7f3f4cf5f954513d1996af0db58f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/38.png",
+      "revision": "a86726a4ad5ca8d9ff2d3b616acaa7234ce35d04585e70f2691a204b8db56889"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/39.png",
+      "revision": "d5c4026aa0604fb4b871300048f6c8af0a837cb64fadbdd93d00bd5da14ce6ee"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/4.png",
+      "revision": "821517bbb3f5939998cbf866fc28cab20f8a6563875163c1f010ca86c5915921"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/40.png",
+      "revision": "5fcd0345f4ed1da3ccbbed752497506701a94354488b98fe53560d6e530f4733"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/41.png",
+      "revision": "e3345adb18af9367d48f1a30282e039253d748f34f639d935a54d1156341dda8"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/42.png",
+      "revision": "bddcf668584cf5ffb5c302ecf86874900b09f66a21bffaa85d5ce0525e6a2d70"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/43.png",
+      "revision": "6538a375ac931ce32b3b6e130d6db82667ab5b71e821fb5a2afc1e8a9744d74d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/44.png",
+      "revision": "dc192ae6fd8a46beb4e55e932b30c4a583374142d57fd42aea2b581a02c69e93"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/45.png",
+      "revision": "a61042d4dd88cf9b5b2e775e6b40fcc8b5437cf0d4fe510be088d7b76ce228fa"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/46.png",
+      "revision": "bf1c162139333fade06f7edddc1a489de915a5c600eaca97192fcaa7db96078f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/47.png",
+      "revision": "e3e874f4d7d6c082a70afd46d78242fe4a26c2470fa5d4276a274e798594b49d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/48.png",
+      "revision": "d6ec4e11d372830a38fac3dc02eda61aaa73d380bb24c57ec9af62e187aee233"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/49.png",
+      "revision": "455c6f922a6082380ae4a68efbca3318d77760015efd2348c9cecc818d5b647e"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/5.png",
+      "revision": "4dd6c39e98c13daf68a077ebe294084b54428c5040b96a29f70016d98d16332f"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/50.png",
+      "revision": "41cbbebf4b6a5ef61d6bd05cfa3e0a078c3b2cad068e90c60cb07710ee26ac4c"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/6.png",
+      "revision": "14503ef8256e78052b926ccfa57f574683b63aa993988b445d0300060eb545ab"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/7.png",
+      "revision": "278ef07d149855bc9a5860ca7008a70e68720c82531e1eb740599391c331412d"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/8.png",
+      "revision": "d29a2d9d37908a02b3a4a14177cd450cc80cd592c8be9e6d98f7ca701a04f775"
+    },
+    {
+      "url": "/pricing-subscription-menu-pro-frames-v2/9.png",
+      "revision": "65e3a0836fed7cdeee2b13fbc3066425c0f527b1d0741efe9d625d4807bc7e67"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames/1.png",
@@ -1520,6 +1920,2266 @@
     {
       "url": "/profile-pictures/pp_9.webp",
       "revision": "b3e8aa4011e1de2a3a47670d5816dbf760fb74333f478be4d5ebe276c483c3db"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/1.png",
+      "revision": "3cde0400bdbe1ddbc077cf9ec80564c34d4d18522981e88751c6e081ef77ec28"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/10.png",
+      "revision": "5885804b7ffb9003598d9aaec39414c526072a700a73ad7b428e92843bf84df6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/11.png",
+      "revision": "c25eb7e1a52387d015d956db0c544872429517e4a6cce00bfdf5408ad4ebe076"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/12.png",
+      "revision": "e01b689464d3a6b5b2a07a60d11b71e99b5a493d787086ddfda0c26c4ba2e176"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/13.png",
+      "revision": "aaf61dcc89215182f4c298f0349fbea291552cf42ab13aa6d915ee4418434bb8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/14.png",
+      "revision": "f10e22ac8eb5ff1ce42eb203e38c4413130226d97e7db81651eca588624d60f8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/15.png",
+      "revision": "4ddd4ca0a4a1331a330ee59c8c7e36dcc56c6da5924062ae9fcccc4d234ee452"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/16.png",
+      "revision": "672d5b4d5e4d9cce644fe6c7d3b824c2ecc7d912b4506d35e0a53ad989093447"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/17.png",
+      "revision": "cb791ab0115259324e4f6091823a114c87e3998b8610d6d6039e8e42d419a14d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/18.png",
+      "revision": "20d3d9fe77286ada0ae5b122a6c0b5afe067acb0d37e0292cc3d55bcd7ca2894"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/19.png",
+      "revision": "1fa12b521745454e47af796c589c0adb01365c32eb8ae31ded39e1f4279d0ea7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/2.png",
+      "revision": "49c2443fdab0536f94fbb48e5e7d5a351d6fbfa7bdedc243ccb2d75ccdde6527"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/20.png",
+      "revision": "9982fe6c451420cde4fe415d6d08a4b3ab71f0ad2892de4d29e4276e1de25d51"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/21.png",
+      "revision": "fe46f74128947a7fc6930df91f0c67bb3ce8dba8774739957686dc0a798ac47e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/22.png",
+      "revision": "5bba34ed0d2bc89541254e830e5e321fc5651b3927a71c14139807dd71a0fc5a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/23.png",
+      "revision": "7b91d5257c0c663bfbd401c4c3b3136d86dc0d529283a3cfb557dabca5f5e36b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/24.png",
+      "revision": "8cff729d5f0d99af805e7b96ccc14185f947659ccd73416eac6d61fa6488fcd8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/25.png",
+      "revision": "4fa5737682ef382ff279a8a1d7050e0e2ac765551da0771d6322022f6bf723e6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/26.png",
+      "revision": "0a6e82c94a2ba86d3cbd532bfb06887ae5b9e9960815b4d38f5333ff877dc357"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/27.png",
+      "revision": "152992437626d93d73b900a12e8525c22a5a35f6096db4105eeaf661e2571231"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/28.png",
+      "revision": "309a046d63914ec9e30497a0a657e3160103b8be4da34efccf90fd2ab5deca22"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/29.png",
+      "revision": "47f29f63432b31bbf49299f43c1b903bc1c732ca0d804f5c5d2e4de80836ffb6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/3.png",
+      "revision": "d6ef57ded737caf6fc9906dc6902d0cb7f5eb132a20ce09e8567b3663491362f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/30.png",
+      "revision": "d73cb2f42b3f7a347acd3747474375902a03b5125507c13d52fec1ac3e09f20b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/31.png",
+      "revision": "0d249e7aa579da97161cc6ba4b29d72b23cd686b0601e5a8f07d49f0db666739"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/32.png",
+      "revision": "e95f28efed3658b937bf183f802768b48852500c95194436964202e924c7fb50"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/33.png",
+      "revision": "b5f3daa71899c79a0d90ab8c054f7c0a5b9169105a0809fa1ee521ae697c5238"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/34.png",
+      "revision": "968d241e141aba417f46339343b2f9fa3cac60ceecf50f96485cdaa18b7daf64"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/35.png",
+      "revision": "cfa17629b6ec2d6eb8973918f1a5b9467d6ea98bc407acabcdba3dcc7a09f2dd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/36.png",
+      "revision": "ee090a5b4b10ba4a9a87f421573ba339095eee711036178bbd0edb3bb3c504e6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/37.png",
+      "revision": "9660f70b3a7f5b02641ca2a46f0dc2f219152492331a9ba562d0e6b9a22a6797"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/38.png",
+      "revision": "10c4cc1f96a22169b0544c9a582086b8b2a462d45f976256ab57d89675414b28"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/39.png",
+      "revision": "7332fbc2e577c114faef9cf4e026317147f659f9e2576a2da92a3160eef47980"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/4.png",
+      "revision": "1a9de6f25b9ddbe75d34e6d5f8fecf539f620592495313bba9e129d216ec269e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/40.png",
+      "revision": "47722d57a30c70c7e2f3b252db095e9a284b315dec1e48044534e18a68801a1a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/41.png",
+      "revision": "eeceb2ddd07f7249fb3053e1cf43eb13d0deaafda68de77a3fbb167827f53f09"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/42.png",
+      "revision": "c82b041a3c0187b7220b88bb45ff4ee6e1b66ad46a63224d1d8d1fe6c0fa562a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/43.png",
+      "revision": "2104e006f23ad50daf16c894ccce95a07df9f4db302972fb29893b4a32ee8ede"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/5.png",
+      "revision": "2549b66e30f6176c1c0bc44d1cda7f3202b307ceaf3cad7712915e196ed64cf1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/6.png",
+      "revision": "88024a39acc6d33966689d42d93cb732e8500bcc7a9f4c9f35e93f4a462d8948"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/7.png",
+      "revision": "f6d8f709d4b7738da2eb4bfae5c67f31bcaedc852d26e97c6c0ad1304ccb5c24"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/8.png",
+      "revision": "5623b57a382f22ea9074fc6afd23f315d096f93bd2a6ebec1d80b504ed02f40d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/9.png",
+      "revision": "821e82efe8b3d841d0721438fffbe45944db69650d1c43cd6d9900c8ae618340"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/1.png",
+      "revision": "00776c438d53e1010fe674acabcfd42aedd8e505fa2f618855a2cead426ba95a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/10.png",
+      "revision": "bef895ab3e3554cf847fcfc38045ce502318247335caef8d7fbe81cabb350ad1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/100.png",
+      "revision": "cf7050c2ba6edb9a19c8368d4567339038143c32c8b4c6586290c8198fe9d563"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/101.png",
+      "revision": "13eab30a290fe6b24adef27160bc03c996a595ae73576111cb435d5b25a457c4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/102.png",
+      "revision": "a54c37d3044a2962539027ef59db057a14b3498b94877969dae6732a92e78ac2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/103.png",
+      "revision": "a54c37d3044a2962539027ef59db057a14b3498b94877969dae6732a92e78ac2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/104.png",
+      "revision": "a54c37d3044a2962539027ef59db057a14b3498b94877969dae6732a92e78ac2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/11.png",
+      "revision": "2cf5d804c37288ee3e89c4cdb4f4ef2381cf9c2bed0f77c2196a68169de30fdc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/12.png",
+      "revision": "53ff5aa2425a6bf24a44334bdabaee5ca681738c13d29fb423b528c7430561ba"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/13.png",
+      "revision": "a6f31daa521dd882e1b31017a96949f149cc52d4f4e364855d4cccc1a18f6ede"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/14.png",
+      "revision": "69d87ec55d696d93326b0757139f211b751342b117f85cc7716f3a7b0ec84544"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/15.png",
+      "revision": "1ae37350eb7dd5f0a04de3531d86f16a4bd1140e32002193f5ed76d1c7e67064"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/16.png",
+      "revision": "cc02a9c3e9e8b36272792e8a0876aa083dbfb9c8dc064cb40ac29f662025c03b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/17.png",
+      "revision": "72209ffff4d20247f81ef11dca19ba6d4ebdd99e748498d0c1d359eb0e18b90e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/18.png",
+      "revision": "5eb7cf313ac7868864ce2c3e20207d6d93d984d5fc71680a15101683d897d2d4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/19.png",
+      "revision": "cd502aa56b16fd9ace428523e77dfadec6280d17c4ae578ad7346b07781c77c1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/2.png",
+      "revision": "239500bcd8765a7b8ccf8602b203bffb3a949101d807c1e20bf50e62f3e85f70"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/20.png",
+      "revision": "09298c083a6957ba379c103ad20efabcce67ec9cf0f78843bb540c71f0d8670c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/21.png",
+      "revision": "dd9fe9b4443b891c5e5bd031c66d10daea10191edb044521c101d58acf2a3aae"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/22.png",
+      "revision": "cc914cc60a7e5a938363267d1738c793ea103766148b734be8695cc6fdafd962"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/23.png",
+      "revision": "f21612efd1386aa0f1cc654958b03372e1691a1e4af04531c6a2006c55844154"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/24.png",
+      "revision": "4d2b737eba0bdc74399a2fdeab06cd115053aaab3070bf6dc9bfc4cf699913d9"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/25.png",
+      "revision": "8c8e1ebee47b3961873ffb6c5b0be135c93670902eee402a1a6a189ff426d20c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/26.png",
+      "revision": "5b5bfe254ce2184019cfca37b7458a85b502f0644430d39620a554afb8f02c71"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/27.png",
+      "revision": "aae2f0e87f3c61b5b9fcdd57b9d5da10cc38e2a15aa0c65edbea1d8a0077d6cf"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/28.png",
+      "revision": "b818a3891817a9a30bb366b3910ae6d09ad57c927147268ab981e23570ea5b2d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/29.png",
+      "revision": "5cb54ee4657b5133e4406ddc596bef51a37347810337decaf7906f0c48b9b812"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/3.png",
+      "revision": "902b77b429233463a6a069203d4c32f3d2a4d125874037c21d071b3513af20d5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/30.png",
+      "revision": "2c10f7b152db4a647bb87d44dcd059012a6dfc807620e59d2ff3fcc23b219bb6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/31.png",
+      "revision": "9c61690207977b7836f25daccc3c4a652195d88e56c8ad5f56d4bb9bf553de43"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/32.png",
+      "revision": "fafb55d77870a70b1e53dc9417916eaad279029228627962756af25572ffe2e0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/33.png",
+      "revision": "74177dadc76fa593da0ba259543524117de494f6c22ba1e0d962e1675f094abd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/34.png",
+      "revision": "39d339fe313a4787d7ed12d53ea84e054e447da6746f6e713bb61c1b40495b4b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/35.png",
+      "revision": "73bd34c1cbb9ee95e933da73be2d37167d0c7437ed69e8c9f79ae4174e194fd3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/36.png",
+      "revision": "86899f0b95ad0280fef2079208d3e79fb7f984241c405d331dae7854876b706f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/37.png",
+      "revision": "2b8beeaaaef94269422a6ec4c245b9150e48d0e27889b8997d776b4f019001ec"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/38.png",
+      "revision": "648dfd567cc2767b058f0c461ecf27d8f28d030d1756c26d452f9b9843451120"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/39.png",
+      "revision": "557d92c59027176c1fe26cace5e0eef11e3bede51cf6cabf04f7ceb615c30a50"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/4.png",
+      "revision": "3abfdc3d16a6273478475677d2ba08ae4cb436e9696a63e50c02038f4a06fd38"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/40.png",
+      "revision": "d6dfaf1d7f9a75471e79b5fb956f0738a6e1535946a01ddd0877949f5ec387e8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/41.png",
+      "revision": "c578396d1e24b976f42acdf7014cd4af128e89e809dd9cbb9eb4e602d40367a8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/42.png",
+      "revision": "8d191e14f694cd3d42532c79926dbfe158389f70ba3b2f4f926ec5d4cb9bdd5e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/43.png",
+      "revision": "5431eff8cf5c9d4327998f662958881fb6925fb270044e47f23c7d53c5107dbd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/44.png",
+      "revision": "6e6d8b344834c8ef1be9a164a49b36019ab9c830cf8ba6df1ef97a30e19c6ffc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/45.png",
+      "revision": "c2d94acad567e2f645f92a305bb94d7011175d50b9832d2731e5d88ee9899669"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/46.png",
+      "revision": "3a0624c66378fc1816b50e87f84399dd488d948873ee031179a53e216cc445ea"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/47.png",
+      "revision": "b0c91847e9a886a6683a855d4cef11b1d6d202279069a9e5c41206708b97a869"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/48.png",
+      "revision": "d50bc45c7e6edbb9c5da67723d0f006dc8b926518d7472afeae50eaeab3492e5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/49.png",
+      "revision": "a0897580a14c0d74b2ef0fb2f4c318be13d0130ad5e8b0313eee87837e26df4e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/5.png",
+      "revision": "1d6da1ab7d73379acd8e6af6333ac4b05ad87e1099d798e828ea8eed97edf88f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/50.png",
+      "revision": "ca6d6d3c47024f941b9d233fc57f68dfa85d660a1aa690088f186afa34b82408"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/51.png",
+      "revision": "a2ea8e913f6330f5af2535e2904d94ec0d2943513e897d6f583a301b2869d1ea"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/52.png",
+      "revision": "4537332b9f3c2f314331fda61879027577db66adc60637d140c60f31aa3c106d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/53.png",
+      "revision": "dfd0b18d0858e97f2ac7ca282722a9b7b1608b43742968c3d6d9ff2cef64cfdc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/54.png",
+      "revision": "e2f2303240620897e641633f531f647aeb5b6d9a2e6e169e47b450cd897df9a5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/55.png",
+      "revision": "aaad0199e17349e040c5e422acac46f62b19a942e5bbec7c8d6fedd8d676ee44"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/56.png",
+      "revision": "17a6d220644fb8d9047811eba517b09a961b65a8739afa260675571ba63010b1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/57.png",
+      "revision": "b7ee3eb0340b1856f3e6d002e526185c86e2c10fa0062d87dcbc20a9cdd30273"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/58.png",
+      "revision": "06ae8310ee744bbb2c3ab369d0348dc56960d2b968307aeaab544d5f87649e37"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/59.png",
+      "revision": "d9ce3d26d7b79c7af78252e448945ef8f69845afa42d372b91ada43bec2a8ac0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/6.png",
+      "revision": "67d8efb1b4d9d5750c0c2a175559b7d093572207c6d08dc463fff35f5b9e78f5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/60.png",
+      "revision": "d5964d403f91d9f4a5709b13fe06aab483df1521bcb550340ac690ca2505e0d7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/61.png",
+      "revision": "ffedceeb2da2d95ef2e5b51bdd6465c8da5a64f2e7e965914a55038187b3e0f3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/62.png",
+      "revision": "ecdce075cfd9bd7ef57ef537430d371d189a769480ae5b5d36e13afb735c72ec"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/63.png",
+      "revision": "cc5cd4156c7017db2b4ed489a8f5a3c82816504246dbecf526394c11b482d6e4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/64.png",
+      "revision": "b24ca119902304b3db975afd5f131a2030f71c462c594a60bcda9c3660352959"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/65.png",
+      "revision": "222dac288eb6455a2dc10e86ce6505e989aa41120750546ff14ec65d10cb2888"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/66.png",
+      "revision": "65b2d740716dffdaf8203a9e4bab5b9318ae2391b0e74d6c1b0b480838954b36"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/67.png",
+      "revision": "bc64c95eaa3ec56942b3b1bd95a4770606b5d153f18a5efc93e9afba88f3b8d8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/68.png",
+      "revision": "424bb84eb943f49fce166e7d7317d9525f762ad74444a4420eedae47dc595273"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/69.png",
+      "revision": "0340460d7e6af04a356778a49a7b6a9fd07ff2cebcbc2f9938a9495d973bce12"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/7.png",
+      "revision": "8c849ba7947b2f3ec1df3f67d6026aa7d0cc9232400e71996f9934f9417fe92a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/70.png",
+      "revision": "1db463381dde5a2d5f99d694d8e8620fbc051ffe3509c05b2c181e9a54ee34ef"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/71.png",
+      "revision": "4c2ad797df8fd0b17b8e7ee53d689091d5bb0beede25fe1e062103a900a572f7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/72.png",
+      "revision": "30783139b733a72bc1fe4fbb527e7516ac377b59fedcc631ab24f535331cf455"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/73.png",
+      "revision": "a84039c26b8462785d2fbf166f498fa29f8ffd394ff749a816e8992504bf5c7d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/74.png",
+      "revision": "dda43ae59ae2c4245af837ccebc298b1a3578a81d745141f71f7a6de05df0315"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/75.png",
+      "revision": "7aa7c444304c498c9f914efffbb88294645a2c5b5ff920578df2971f1a9c72da"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/76.png",
+      "revision": "7a01b30f54303644539e989b7b28b2b48fc9f846c37aa0f3c34683fdad259e88"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/77.png",
+      "revision": "1fdae8fae41ca55f63346850abe9ffd825ebcd363b1d70ac2ad4caaae6b6e73d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/78.png",
+      "revision": "7353eb597da77d80725f02bf2eac92af605c0159340ee2c2dc3ad3c364a6324d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/79.png",
+      "revision": "d06b22cca64a464b719123bde0fbad1757a3ac30f3fecda315b7b0cb16b8ce0d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/8.png",
+      "revision": "1270ee6f054f5531e070ec725dfab41a80553c09c501ad6c3aaf0153eef9e064"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/80.png",
+      "revision": "db07a594b264891fa169e01a6493a77087abfe9b11fce27073cf35ee93d5cd40"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/81.png",
+      "revision": "bb347d32446cbf940209feb6eac88f047a9c2ad7abc53d8f01a6822ffcc1a30f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/82.png",
+      "revision": "161cd40bc8810e9de55a2fb5538470adccd1e8b8b355c0aa753f09350a36c454"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/83.png",
+      "revision": "04b46e8989cc315bcb9397619dca8e4b3a4b341f18d3fffe652a9db7ac948751"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/84.png",
+      "revision": "98c389c9f599f2b3f89837b302c6c5a2cf7c1173b7220227c2df439241444656"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/85.png",
+      "revision": "949aee79091335f8a60da43e67548de9fc690eeb70b1613ff146a9de965a89fa"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/86.png",
+      "revision": "b0f1ecdff201f5b7ccd0e55ee6bd7c673e04a201c6a148ed135b43ab6ab7b405"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/87.png",
+      "revision": "142137dd1370d2952a60087a5dcf788de8753395a0479bb6c90c6db14797498b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/88.png",
+      "revision": "fc95db94f031ecc89b01297348ce65a083c9e5d865f54bfdb8f7d44da654ff43"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/89.png",
+      "revision": "b0e4faef8625c6ccc0080ee7ff118cade42d08938957d18ef46e4677aa18ce34"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/9.png",
+      "revision": "b52e6264f0a2ba41651eee69ea80321549c1f16870b829216093cc54222eaf7a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/90.png",
+      "revision": "f5fc0910d0d978258f556fb75091a4b9088d76f61aaaf49cfff07dcd999074ca"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/91.png",
+      "revision": "241b59ab6567491e610382a46700aa3f316683ca741ff2466471c9765d08b1e1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/92.png",
+      "revision": "8e025d51a08d61cec8b71e7f055c677c6922a30b0dc3e42875fcfd14a549718f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/93.png",
+      "revision": "ef5c40c1ae0351a44329c3402af41ddd8de7c5d1509bfe795de69d4a31025910"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/94.png",
+      "revision": "17430d0b52f8ddd8576111b70a57edcea3b1cd07a426f49b002161eca30d0449"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/95.png",
+      "revision": "bd4aa45976136b7c139db30fe0f6c30b60c4124df590a00802359017518808d3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/96.png",
+      "revision": "a1691803cf039aa9dce1c74ee95432b47210b66ba0e36bbb2adc89c3a39bb4c3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/97.png",
+      "revision": "8442f5e6e09cf18a60e8948356b0c4ccd87efb5edee215de2ca26cae434bdc64"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/98.png",
+      "revision": "bb005658b2680c2602ad5981f4bc1d53c1b63c0011c87e128a8d79864ac1518d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-1/99.png",
+      "revision": "7a6c9e07f91bbd54842d3c04f8db1758bd063f5ad98faa7167faaa16e5ffe10e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/1.png",
+      "revision": "f7c781aea2da01edb3014c6f06fecf1c9e7ca9a51518daf6cbe8ff34baedfb2a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/10.png",
+      "revision": "16714cc4e7ce8ad75a9e787acc8352d5722e702b5dba56c6443ea7a2f27aa3ca"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/11.png",
+      "revision": "bbd6a3c34a9b17d3df4a92c163d5d0620109f72566bc6141070d5db5966a492e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/12.png",
+      "revision": "a9bb24eb4e8cdb76b534d53c7352fe9656401d43a9f71faf05e7181804a6a60f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/13.png",
+      "revision": "f5ffdf4b8efd386f87877b8812113b7d6d9a9ec9947f744ad58f48ded3301262"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/14.png",
+      "revision": "10becbf01987d05100e5c07804f8a6786054c4b996d35464e5146b6f9a15e005"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/15.png",
+      "revision": "18fe0ebdccf9f1639cdc892eda12cd3909f081f33e02acb9bc734eb0ee658197"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/16.png",
+      "revision": "707e1f09a5297796d62a6b553bb9b8e086f283c406b74576d3b7e58bc1a4e640"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/17.png",
+      "revision": "fb029bfe864ce4d3daf88e639168a0b266a7e789f490e42ad92a18eac6e2a2cd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/18.png",
+      "revision": "a05cccb8ebd6166588a6585594a2bba321eed3457febc17652df047ac5119a5d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/19.png",
+      "revision": "2f5122f9d582f6202e0df423d2b606dcd1f2ea2b08839a751401d9b37c95323f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/2.png",
+      "revision": "f7c781aea2da01edb3014c6f06fecf1c9e7ca9a51518daf6cbe8ff34baedfb2a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/20.png",
+      "revision": "26590797e41fce5dec2b0665dd86ad892ed161770f850bc0fa7a99a6ab2f8c06"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/21.png",
+      "revision": "c91e1c43b65050f2f71ce2f701ea5d28bb33223c73ebdc807cfad270a70d0062"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/22.png",
+      "revision": "22d7e92beb9bc4bed03c3bb4fb37dcbc04b746ea8a755e579cf10f92860bede4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/23.png",
+      "revision": "5ae0af88c179bd5e1ae34a60c021b5daa5358a7f17179ec0eff900a7c6a57c5b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/24.png",
+      "revision": "c65336aeb74bf90d948a1ebf05a7341593d9e49fa5acce19fdf5868aa2c5171f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/25.png",
+      "revision": "bb0325155a8b98161be5e6db62510e4a708bf6b1f358268e9bde0d5e81dd6d8b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/26.png",
+      "revision": "58ff3b3e1acaa8a2fd59d5e0784cb6bfb793145f0c4cdf3f4208f7d52d0f2405"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/27.png",
+      "revision": "45b520c5658e3eb68e77037fff224f21edc30720708b9fa50740df4399114a6a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/28.png",
+      "revision": "aacce7c747ddf0b532d569f8dcd637367bcca5f99d4b9bfe859b57e63b31079c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/29.png",
+      "revision": "a1e9eeccf9786ab8ce3b5d4e9d62ad6c377d7a4fb605ea69f75f8b252c68dced"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/3.png",
+      "revision": "f7c781aea2da01edb3014c6f06fecf1c9e7ca9a51518daf6cbe8ff34baedfb2a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/30.png",
+      "revision": "bed36b421d2ca0764afec5e718ddf3e72235dc22bfcfb35899dae7c0acee78ae"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/31.png",
+      "revision": "ad79e2b6a3f4532e925658aa16b278a09379e5618a7d34e3b609af0d3c91d841"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/32.png",
+      "revision": "82e096c367f1875510ec14dbe59a6d1ac49b31671c2298905d8c0f13858fb914"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/33.png",
+      "revision": "c38767926bac854374749a2e3a0ed2cead55004512a88761d969850682443bf7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/34.png",
+      "revision": "3cb77e2e5419b93b709ea639b19021318a042c597fff1de212c95f21e3c10b9c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/35.png",
+      "revision": "f5ae54382d27517318660dbfe3e9a326929926f7e5c7f6caa01d2e418b22cb85"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/36.png",
+      "revision": "7b5131689e22262159f5da1abf630223acf11a82debaa367e385bb122145e4b2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/37.png",
+      "revision": "e2146538d0a8e6e689259e515fd58bbc86998ba518bd9b6531f7115c0f3b31ba"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/38.png",
+      "revision": "309a661ff606ba5d628b3094577858ff041de2c8b833fa54d3255a424cae7dd8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/39.png",
+      "revision": "a030944a864bf9fb54e0d5d20a793b6b45bc3154ab23076cd5f5aae104c24e24"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/4.png",
+      "revision": "f7c781aea2da01edb3014c6f06fecf1c9e7ca9a51518daf6cbe8ff34baedfb2a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/40.png",
+      "revision": "3a01979d80ab5d5232ce76d65b8158c2f45cd16c62da85fbe747d7660c2f736b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/41.png",
+      "revision": "4613768534dca0a1d1212fdc3bdcfed6ad2ac3798178d694abd6737d8e69f2d1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/42.png",
+      "revision": "18d73980df73bd3581e404cc347b9b401969a8f31ec8ef5e9fba624bcc2374f0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/43.png",
+      "revision": "c0cf417dad159fc5dcea58194226c4422bc8f31199b40dee243006b3e579d2cf"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/44.png",
+      "revision": "5b13b564caf04e160e80b5ba32714d4e3e060e2b36314cc4ac7987eb0a69f4ab"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/45.png",
+      "revision": "82c68189b031219ddcf6f424259b6ebcc58f80b7e40978460275e247e03cdc6e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/46.png",
+      "revision": "9341b788d9e372829cf306fd20a8c5b775c5836f05ee202df81f951ca2fb2d0d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/47.png",
+      "revision": "b8dfa3180dd8a2551433c99dc9931f32c6a9f354600b42044e9d64db43497bb4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/48.png",
+      "revision": "8980b9e408160940f68d37f4f96f35b6d46d86ec7b093c6d6b8ddff688a86d4a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/49.png",
+      "revision": "3c087b1aad0dca2e3c8d4203bbd9a1c4ea87046e07048b955d24f3c09915d39d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/5.png",
+      "revision": "4a74eb7d3d54f30e5fdaecbfbe023724b52acd23397e49a3ecd8592b814bfb24"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/50.png",
+      "revision": "5a4ea58372bfc6883a0e068d9a8573c365ff60685ccb7aba68b04e8cf9111d7b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/51.png",
+      "revision": "d0401a47b17593c17c040cc87a048c84d3df33c032be3abbe0f53558c8713d80"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/52.png",
+      "revision": "cbf1f4fd04170837cef2fc24ee6227459a08644061c3df7c68a2d43173b1acd8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/53.png",
+      "revision": "09c9a250c025be6faa2e0cfa2c6d7fea932acc57d24d4dfead2680dc96b2ce2b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/54.png",
+      "revision": "a4612f4019143f5ae7965c145833a8484758952b931d4ec7dc3eefd494ebf1f5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/55.png",
+      "revision": "04fd3b8f621e890afdda66cf392bee5958d28b078acb1990750069ff68f62ef1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/56.png",
+      "revision": "23949799d3ba0285657dfce3e9bb907645b6dfcad7afdb54104b89044bae8b5a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/57.png",
+      "revision": "654f8dc97dc88ee4a4f85c7254865a92055b0e1704613814ae164a8903e9d140"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/58.png",
+      "revision": "b790dc7a2210491fbe0cab814582e5b233c6550816467712472670b8617e35cc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/59.png",
+      "revision": "d87d211bea6e36726377e61b9dcbd1ca45ecb8e1eb000972b38d8345889979c4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/6.png",
+      "revision": "6f77efab915dda4fd9e18905ce4ee92fe9bd48b6af9d7e10e4410808c7ef4523"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/60.png",
+      "revision": "043e02add42338f4287bac7dd6a68f76dce5e47d484e4ba0a1bf46a90e0c40a5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/61.png",
+      "revision": "96552dbd3b30f7ca1e9292a0b587976019d7c838896812dd18d8b1526d96e5df"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/62.png",
+      "revision": "70c0e0764ea96c3e6e8f467bdcdbfa3d573c38b208ea4838635cca9ba88a1d50"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/63.png",
+      "revision": "b3a36671d9efe43a4ed0f77d50603508faeb53ee21cd65f896d4483da47d7189"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/64.png",
+      "revision": "9c4b90cec8f3f39e2c96fc46d8b56e7366fa2055461b49906aeb1f015f2f2f5f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/65.png",
+      "revision": "55c7d75b1533b27b8245ce99d8bd5ec412620df2781abc90c069ff308de94667"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/66.png",
+      "revision": "0cb7aa69c49b8deda3b7c5a90720ac95aa721e2c542400cedc34b97e9399d73a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/67.png",
+      "revision": "05557e1cd3548f05a6f3f3b06912aaff47b7cae5aee881c47a9d485a88d2766d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/68.png",
+      "revision": "109b2ccdb0f92c8251f74864124cbd0abcd74a70a0b4b6ffa61e5e5c64827b36"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/69.png",
+      "revision": "ac2236781c2121047fec56827256890e04688d8aff9d982be6bb9a4a145a9c0e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/7.png",
+      "revision": "0229408a6fec101b4938f16ce76e60b628bd9f1cb380506bdadf6b7d3bd371ea"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/70.png",
+      "revision": "c7edacac8db99d83b3e7b9096589b38e12866f243a6121e932ae672555f40998"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/71.png",
+      "revision": "672678af49f06852ed4b4c2fc028d13aef497185e11a5bc8c4ef9ddd61e1bd25"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/72.png",
+      "revision": "04abcd0d1540e76d7e885de07b20b372cbe274bebb85d7ca7102b201ae8348a3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/73.png",
+      "revision": "b264b3d20988af5e3a2a29940659f66c2a7fa086eb1e1f01a9584f733583ec3e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/74.png",
+      "revision": "5f27fcddd89f6db3c11dbe5cfa51255cf38f56c9a1b2921c8b58d5ffc0948f60"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/75.png",
+      "revision": "e682742247a469b4b38c01d28baaf3dc2ad1d0a803c34abf6ad81f2c0295a36b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/76.png",
+      "revision": "3475844f78beab6104a0e2b37d6896932c0a58f269a684032bfb578da26c9321"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/77.png",
+      "revision": "b27d48217e1bb9e0d7364897ae784aaff307858dccef1254a0f29ffdcc32a23d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/78.png",
+      "revision": "8ebd33639452e64f3615948ebbc1948d3be7822bd2f99e3f1ff942ef333928c6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/79.png",
+      "revision": "ac09b2a8ad2b81f3471a1b61aec585b55151e37e855ba931ecb35608ae68437d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/8.png",
+      "revision": "c16971a0ced6045db0c60370c2255abc4afcce443126868ac5cddea26fecaef6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/80.png",
+      "revision": "25e18cdee14a852c9e28bfb378f6cafdac18ce03c82000225147e0cf84c1ebcf"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/81.png",
+      "revision": "6e5a333f5562a5b0321b8e74252bd7634080909df566961ccca18cf4475cf46c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/82.png",
+      "revision": "41f5e5d5cea881e77e700fe84998b96d50715da7b7a2a34f674d826da5d49dde"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/83.png",
+      "revision": "6a210295eceec78d3921589726493bd51899c8a0ecada81e867778bc08a1e7f0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/84.png",
+      "revision": "5111c8f5804355ae27854e971e8694205583aec5645d8ad664c908500b1b4ba7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/85.png",
+      "revision": "fcf9b5625a86a725eb9ad77809f5f05fb3bd7aa80ef121bca7c0a092d6e3d84c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/86.png",
+      "revision": "7ad51a7da46c9a8bda5e676e748a2e0b4de8c4bcf52617de217fa5f050ddb8b7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/87.png",
+      "revision": "1d11ebe6c63abdfb1270bc20ba661e6a331314b8d4e895d4773b6ca29fee2056"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/88.png",
+      "revision": "7924d915fce69ebecfb8239070919c5f6a0e3aaba53cfbeaa076ec726ab29427"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/89.png",
+      "revision": "00e32b40c20b13571fb38ac05e2383daa7b3180412c5cfa7415c8a97c3488a4f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/9.png",
+      "revision": "7ed97ca935d81d0a25f5753bc44672815558999d28caf615236ae3cea5872c0e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/90.png",
+      "revision": "cba6d333df70b21c05c4614040385fc43ac7960989e53dfa0626841892238345"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/91.png",
+      "revision": "7e367a93b6e91f3cc66fbd2fe280b8724e8440db21045a264715dde806c432b1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/92.png",
+      "revision": "d7f3732a0594c8133bf48a3dee5eeaf45d1d652f42786e8f22c65550fd43e49b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/93.png",
+      "revision": "22d4dc0e4e1bdf8de664f4e87ca86b27aa5efa238c0b8667ffdc014b577c3a7f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/94.png",
+      "revision": "b3386248674d9d658f68333235514162f7853c4632b982d665730fa5bd09cb0e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/95.png",
+      "revision": "6665f728fa97ac7b3c609efb14ff3cd58ffeb52d6490313f454b583b98d0e821"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/96.png",
+      "revision": "c92668589cce93ba5e7c53a1dbb34adbad5cd73ecd9fb37c4ae3711cbc4bcfe3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-2/97.png",
+      "revision": "34b538227795ce925abe7f44ae7dc936c7fbdbad66ae39a85e2c1e61a77e55a6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/1.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/10.png",
+      "revision": "555768d6f8cded68c7024c7cbf859e4a8d5797530404adfc4f59b6b76625791c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/100.png",
+      "revision": "375cffd67ee68578026accee9576a9c27e10363225893c0e0efce5d1180dabd2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/101.png",
+      "revision": "49a9756a696de0ede02b3c56d604f274fbb50820415e51017b431d166e0491fc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/102.png",
+      "revision": "1eb5d673cc6fc84dea0f0bbe3e59365b9f857ea168d533600b14164a59cbe3ae"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/103.png",
+      "revision": "4d8f4810b6a0e46f287a610af8e07bcd86e79fd18bd6d2e630cdca170be90cb9"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/104.png",
+      "revision": "07ca98dc5d5acb7da0b2c9252ded2136da940cbc4ffbb7794a07bf49f5d5ea75"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/105.png",
+      "revision": "6ee8b9853c39ac11e73089d3e302e4d30909f19af9926213d6bc9c4b8e136b7a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/106.png",
+      "revision": "bcee283e6d82ad1a15099ca09bb79b538e8db16a42af98d75670f39628f1e53c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/107.png",
+      "revision": "0ca9f5b86c7c7516692fae3f9e36f1489a311d6d1153858a8c419afd6572281c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/108.png",
+      "revision": "e04acf0654afa2be8602f3a56858344617ea8195da745666b71ab6c7893be8df"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/109.png",
+      "revision": "8677e15db3bf4c621237be5dcaa72217ead279c10d52ef464001bfc69f6c04e4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/11.png",
+      "revision": "cd3286215969359cfa319a137355f866ef668c90a541552fc0856f1d0ca7dbf0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/110.png",
+      "revision": "3ea3fe3a3540f23f5b38ce8eeac48beb867c0018915575009296223c553b6c4a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/111.png",
+      "revision": "aca20c827dfd89abd6c1186a16317bc27404f690ef9bce56f9b341f613acbd70"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/112.png",
+      "revision": "f74dae544ee6fecc35de03887a975dd9ef80d6ebfb95aaccdd0b0ee920522e9c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/113.png",
+      "revision": "30f8b4a12b1f0c2c4a5eca7d6e6ac889b5e7a044d2afea39647e49d766d791ce"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/114.png",
+      "revision": "e96910329af89e43ee10b87c8dcafcad448c66d3c3d33a6cb7e411d4608ff6c1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/115.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/116.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/117.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/118.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/119.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/12.png",
+      "revision": "aaaf0a964fcde36a6528e220dda19bf2535beaf403796ff4f366b6e7e11d1c86"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/120.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/121.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/122.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/13.png",
+      "revision": "8c4003c4b11122844ae5bd79868d2d7eefa5f3f02b8f5620521c4cd15a577000"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/14.png",
+      "revision": "5238d4c847be5fd88f8dcda2329bcf42652300aa6a3e0cd91707c959721a1b5c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/15.png",
+      "revision": "d87a1935a7a278ffcbca290325c49ba5a9942517194c86c76b98fb1200cbb8e3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/16.png",
+      "revision": "0b75b4ee43e75acdd181af89ee50c1d008f8c2a8fd72d1c0f9edd82ec25267d0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/17.png",
+      "revision": "44b7a86a95480ffe6420a9657c2c5ce6feab06c2580bd20f497e8750c27d5993"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/18.png",
+      "revision": "0394f237e7095574cf37d964063abd7e802d00edeaf3815976a234e66508b717"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/19.png",
+      "revision": "73ccba1e348fbd8abacf330e2025fa5e7f44787ff08a86752fb32a80d2ee7504"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/2.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/20.png",
+      "revision": "29ee7350db24ffb6e8e453829fce818d6e9837778dbbc9afa6f2aa29205bee81"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/21.png",
+      "revision": "1b5f0ece7eb56cb1d205710471f2ffc715e766d98807889356f52b97cd7ee623"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/22.png",
+      "revision": "908127e07e19ccdaeb746fca8c0080600140498a2bf8f4f1b33184dd920ef4d3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/23.png",
+      "revision": "af04a9204794133d3a50dbdc3ab3f5c9b180d0747970ac214be93016a25a07ad"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/24.png",
+      "revision": "dcf4a879141c5e8c3c5f1af15b970185dd52974346f3ed50f434952b847d0b92"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/25.png",
+      "revision": "7f2f2c562a82241bd82f7e3994ea97dd4b2a992c5eacd1f0d80f42df7fe74bf0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/26.png",
+      "revision": "ff4f613da8b46d48dd1d93b313b60223d3732484d54d87ad92343be5ea5667a0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/27.png",
+      "revision": "9c0b7c6c101fa15f2def3e4f7635bfb50909f171ffca3fa06d7ea8cfa2ff456b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/28.png",
+      "revision": "c860755db8f106ce03ddc1e09828dfca7addb70f9e4fa74ba20fb63e349ce632"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/29.png",
+      "revision": "ec857f0bac06157e85997caa5f13513ba8bf44fe068bd55d87fd9c9dc9b13082"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/3.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/30.png",
+      "revision": "5521fe7e58cd9a00ea4cba02b6150025d68702cc43d5263a834eb36da6a203a6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/31.png",
+      "revision": "bb35c38b0d5e55e0a4a1fc5a4786a1f0b57b08e6e19cfc00c06a92dcc75433c5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/32.png",
+      "revision": "72dc34761d02f28a8e5d8d8240f8d1a6ea774cdd188869467ea7ee32cf307e47"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/33.png",
+      "revision": "a8d9bba9b7f86a355b4d90b03fbd9a60f74349ce1137e967bad7a69ec6e30de3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/34.png",
+      "revision": "56f52f5ca736e0a7eb491f3890bf676fb470b6a27a5c82d4f66f83d090a165dc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/35.png",
+      "revision": "1045cd24654842b706099e43bceb772e897875783dfc8a3146e12e8ac533c430"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/36.png",
+      "revision": "22164a2a6e7a7b0e0a96caae9005f316c4a0ea380a9f2aefe49c017d8481b360"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/37.png",
+      "revision": "5deb0b45f6313f4eba12bd8049a9531d6f3548697e5d877b145421befbe5ac8a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/38.png",
+      "revision": "fe624d75f3abd528eb737a0b1dd0fd58482d0b4433c9f264033a520d10aa8f27"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/39.png",
+      "revision": "e08719e9438e05b2b3c4fa76e45dcc7245eae1f84b52e4b2f48737dfe6ccd459"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/4.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/40.png",
+      "revision": "f48178ccb68f77451038173c06ad6ebee28b3e75dd75bf7499a95d12d4055eb4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/41.png",
+      "revision": "defa394d8f60c852e08db4c1cae19805274d655988578510f0149054084329eb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/42.png",
+      "revision": "c04311c350d4301ea7db363e47d5ec0f2e99caac2ca6bdb0e918c6d0fc009b26"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/43.png",
+      "revision": "098f151875d9a9dc430a2871fa715caa785267bc33d706b246b473f8b5e52786"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/44.png",
+      "revision": "08d2f7be447d0629f8306b40df3719344c55b2a3927696c9cdceee089b0d6ff1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/45.png",
+      "revision": "04cc909e76a837e3d688c2219e1a7b8afdc651660f76861423af708fdcd8b539"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/46.png",
+      "revision": "ea1cf5aacf910a8e192e010f4d88c6fc54f30dc6b462a92d534b3a05d73832b7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/47.png",
+      "revision": "10b8c575dc2e59441d31e3490920faca34879fdea7269a18c9356ce67da226c3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/48.png",
+      "revision": "aac00f7dd18ffed59f0b4da70f0a4805700694498a764e41bcdd150f58bde704"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/49.png",
+      "revision": "ef33cee027ef49a7ae2b2c2f074c9f7dbabe0167b3561c96811048df0e4eefb6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/5.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/50.png",
+      "revision": "79b2dba074eab402e2978cb834a306085ccb04be40e4412acf909b2cacf719dd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/51.png",
+      "revision": "55670f91ffc71047faeb3f1381fcb51e5b422555150409ac135b6ff0fff85e72"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/52.png",
+      "revision": "a78f7d33caaf2dffe9f08bac54dab4bc5f70b63e4ed462678e9d5375f6c5eaf4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/53.png",
+      "revision": "7fb463e45d93aa902b634ed69df60118a72d6854baa11e373a93f42461402b82"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/54.png",
+      "revision": "09cff3b424d7b6be47433ccf6f60c4332a208410d64e1afb4244956d2e26cd0d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/55.png",
+      "revision": "9ae73cfe1d151b9889d1b32aa44aabb0616704db2da454a1134cf475953e841f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/56.png",
+      "revision": "f1e19644b88ed2d2c6ddc6ff2b814f694c878401a859e848d5636dd64d445066"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/57.png",
+      "revision": "07389c31a2a6667f40014e54b62ab5c97392f4069c03130cd6cdbac294a9ca04"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/58.png",
+      "revision": "2b8c63b219e053d9f45a5f7f7427a7e2e18bdaa32afdbab637c553fd2d2de057"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/59.png",
+      "revision": "6994e1dd834e8e0b2f8f4f2dc577e42088a6469d18c3ff61a23a066d19fdf6df"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/6.png",
+      "revision": "55db443ea1f6bfb84f7e416553fadd54a36da163971a7b2861128b51197dfeb4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/60.png",
+      "revision": "82ebb7b364292773a80fbc662d50010428d70c04eb43dd6f36502f23fd8617bf"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/61.png",
+      "revision": "65d12cad4c88d299da3eb032c15dc6c4a6341c8f64a2fecd6ee12919a6bac202"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/62.png",
+      "revision": "5e87dfaf00e6888aafaba6d17e79aebfeae131093b00cc114b9363f9e83fe735"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/63.png",
+      "revision": "dea53a5e5b334f505ffd8d0a291f33bb06c1918f9d89f00d6b6af820cf29709d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/64.png",
+      "revision": "f1f92b0c69da94fb06bb624ad73d357dc8381e50f50844451d993c73f77e0253"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/65.png",
+      "revision": "df2a7d9ec6dc15d941cf00fe8ce3f78c68273b893a54cc7f3e7f87daa132cb9e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/66.png",
+      "revision": "893e0bc4309799afc0e0e21bbd03c256d1c18cbe04c91e9f7c519c068ce76f09"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/67.png",
+      "revision": "1df634b22a4b03572b2f25a34d0acb38825c1529b80bf3380f48b75ecacccf2e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/68.png",
+      "revision": "6382cfeaaace41eb3fdfbccbff2acee86321c80e70961cf6907c1d850ff86da0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/69.png",
+      "revision": "df60ab4b100afde54d4ba3d28f33071bba5803b5223d0666c8d9ee51f9f83463"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/7.png",
+      "revision": "10100b4ea749efab0309270ef30dda11b36cccdc767824c8d3de5a2de5db2579"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/70.png",
+      "revision": "0451b4f22728d5f7eb56d41b87b8269d3e61a21c05a8748e46bb8ffb9da0d5d5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/71.png",
+      "revision": "23ad7e1b18b8d6b01957a0063d44c25d72949c288d2ced474d9bce22b1b74222"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/72.png",
+      "revision": "6aa93f6d1e9d924636bb628206bc396d5035b7dcb47ab3e166646d581833ca6d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/73.png",
+      "revision": "09b82735b18b28d72779417b0e46162d03c04b85a092b5450eedf8d895131241"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/74.png",
+      "revision": "0320dbf4b4aa4fa228580cf0cfe7ffd89910e4571cd8618e38dfdf47af9153fd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/75.png",
+      "revision": "ca1b61da111020dfeea15c140ad166e4c3c0552bc5915135810aab6e0d837929"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/76.png",
+      "revision": "204aa3072a1b899f05e09bd4dbb449dc4e56d9e25de10d647c52f594efa9c3b1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/77.png",
+      "revision": "4c18d80d54fe6809323e378b0cfeb3dc36763a184520f2f3c2fd0d6580625559"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/78.png",
+      "revision": "bf580f78358ad570a2d2538751633792eb17d467ac43f6fb99991056a5b49479"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/79.png",
+      "revision": "1c6a6d97b6d6c6fe372bf490039c75a0036622db0a1ff45e2d894309498d2013"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/8.png",
+      "revision": "fa14db6b875ab96dab691d4c085c8f6864c969c906fc8dd2aeb452f0bf9fb792"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/80.png",
+      "revision": "d6cde3df8d2a870d2e7f562efb76b74b628cd117446abe9819e669084beba171"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/81.png",
+      "revision": "667075ca96d03a4ba4a98120a8461c7d0babfcdd03684ca43f8cdb947da29960"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/82.png",
+      "revision": "8ef3724bc05bcc0aa555128f52efc273f348a8c1d63a041a4a206bc583ca6563"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/83.png",
+      "revision": "99fc973723298c788e240ad47e8a6743c9b9ef702d9849f8f36225e66067ee3a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/84.png",
+      "revision": "5ec4376086349fe415a63e926745c81664acbe68ee171f019774dd42154fbf0f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/85.png",
+      "revision": "8b554151ec1931cd9ab946b70d47a3a59d466a78d2e2cb711204fad062e4c888"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/86.png",
+      "revision": "54ced71c4930650ea85c5c20b5a8dabe5111a229842ac229b31c6e62a4fcb574"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/87.png",
+      "revision": "3db22333d233fa3513e085bd1ef26f96fc22d6bb5b85d3c1261ee2259c17bd48"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/88.png",
+      "revision": "09d6e4ce0c9a3c289591c97612f11192f7ad0c5c438442bbf2bea22ef6603a7b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/89.png",
+      "revision": "bb6141ef6b57e0c7a39b2ad790a826b908224f9109267e140db351a4356b7253"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/9.png",
+      "revision": "3fd1f25e4b18a21aa487f5386ab9901af2f2b4d84ddfbbf5371beff72d1e28f5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/90.png",
+      "revision": "8b277b963326b7d6e20ca63603a167f3c08be316e7f47c8b4219139bb3d9d897"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/91.png",
+      "revision": "3c779726b26c44c34b550aa11c17e269e550c3cf0f91a9c41c37f4790a02b146"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/92.png",
+      "revision": "be66168d73fa38ca5e90a31dffd8d6d7af706ed00d72a6b5618e399827c9ffce"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/93.png",
+      "revision": "381b8ef9be427a549fdcdb69cd5cfff80a6eb2cd45ef3ce4ea5c0f8fa2e8dc49"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/94.png",
+      "revision": "8ee80e0141cbbd0b997180759c027d9381fed00407d54184076708e720d61817"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/95.png",
+      "revision": "44bcb961373a8237376dbd7b14cd3b6d4835f51ef959dd4eab39f69988cefa04"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/96.png",
+      "revision": "fd45750292719b3b5f92c381ee5ded377b79b40f01abceb620deeb9dd137e27d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/97.png",
+      "revision": "aca5ee78bfa3caee16aa4a56169bedd94db8a335013af8c3b2a511941e94a93e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/98.png",
+      "revision": "49ca7047f82e72833b3414de0173e54d9e782ce2eff73758df3792ac0e6f8c1b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-3/99.png",
+      "revision": "1f1cb171a4926db7d0373b81658c4946ab4c8c39bddf2baab9d75f890677dd00"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/1.png",
+      "revision": "5efff902206468e4df54d568e4b7e9a3fd7cb5713aaf3f00baef6ec16ed1c935"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/10.png",
+      "revision": "58540742384e590618852f917e721694ae646577a8db142c1f4263429be9c305"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/11.png",
+      "revision": "c7df4e7b0f49ca5f1ca74b8b7d964e66db143095165c8da45f322b73e616826e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/12.png",
+      "revision": "63b3eacc2981e49d7a48aef0915d67dbbc6caff2f689c3003306dc7bfb67bea1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/13.png",
+      "revision": "049a73d6a2a7488d5cfffa5dbeb00d80cb35f8f35b139790c108ce4f2e7627c9"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/14.png",
+      "revision": "3f18d532e20e380eb1638720af4096329c70d13c659b9e191f8f766455d9094a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/15.png",
+      "revision": "2e7be5a74e12d3cea10a9b87ad2f87b2f49290207416b82a14d6f06807d91049"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/16.png",
+      "revision": "539676bed0ef762f3094c2b46c65b0284749099b676b5e6e49051879b0616019"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/17.png",
+      "revision": "7357ab60ec4cfc609136fe7c64ba0ca15bf252b3660d67ffafff6cb69baa6a78"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/18.png",
+      "revision": "825ca509563cff19be6f82aa1c18a4e85f39ca0ad5de3e996dfec8c93d2e7ba1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/19.png",
+      "revision": "492c0dd856a90d6d22592d2d9f6a3c53c3105018d9faeeba372c0c0490b045fa"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/2.png",
+      "revision": "4a83263ed48137d2bbbf3b829200cfed1ab3ba9f6ba42f7cc9589e055489525a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/20.png",
+      "revision": "545ad8ab6e8790fc72e494fa9a3c9a0642ce0fc82177eaaa65f700efbfb468e6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/21.png",
+      "revision": "5e087c244768dd09cba476fabc5b6947f7c087f62a87b261cb6a2c929738b201"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/22.png",
+      "revision": "bbf1d85e91f167d41cf832f113d9b8c7d49a66244dfb4f23042d842e92cfb321"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/23.png",
+      "revision": "03b9682faa192cec4f962b2f67ed00ff33fd097383ad9370672b0af1f885fa4f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/24.png",
+      "revision": "7444c3c2228e12f894e2aa1250b16ce9cb8b1d76370094c37a6f9710dfaf83ef"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/25.png",
+      "revision": "9861f7d6b4100ad1b7a4b575939d5759e835d6ed9ddbe1a6a7f8e33af4f2de3f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/26.png",
+      "revision": "9f0c0a222518014b3a0053cc58341d0f207ea8cbf402de5265053c5f1a094980"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/27.png",
+      "revision": "2ef58aa426ad8a5df93c07fa340549fef45b82a16566a930e33bb6815920ceb8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/28.png",
+      "revision": "5c72117be815128298e0894231e92f043bf7bb89fdb62ef4178194168a0722ca"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/29.png",
+      "revision": "d0125619bf92d058b57424981ea759fab4e403b233c30f62c62d65df2be747ad"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/3.png",
+      "revision": "e40b36c2b4ed11e568481e25ac88ffdb13cb27e45e2fdffeaec9b5c44be9530f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/30.png",
+      "revision": "9f2fc6e7d9aa95ebee1e2e68552383894bac1e8fc3618dc3c3cfb6d16ed115a3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/31.png",
+      "revision": "4670c045b3c6c7329ccab14ab295c9b798edaa481570b5600e2133316013c72b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/32.png",
+      "revision": "bba8722d8f81f9cf164d304715dc1f2671c024df69ad0330394e590daec4a71c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/33.png",
+      "revision": "d4f36f3576386139acea0887df916869e544145f876872288b684b9820b92ff0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/34.png",
+      "revision": "4706642acdea918e0ba639474f1aac32c4a28b6233f4137720081629efd3eeed"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/35.png",
+      "revision": "ab5b10a4d06a54016d025fadac5cba92803cf01de3304566acf908d5ae45dac5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/36.png",
+      "revision": "e1c81dcabcb27852f602b95172bd275889668fb8ca41e9f78520ff182dee3460"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/37.png",
+      "revision": "4953964f6799d4ca077e0494621a19bc94783bb82ddb02870276ae67f559e1d1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/38.png",
+      "revision": "ca679de16b93514608d524960749862412b3eaac0de6585a06a274b0f18189a9"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/39.png",
+      "revision": "f79d4a509830523a5e45528e677920d82b2612370ca9cf8c7a2bc75255c9c144"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/4.png",
+      "revision": "5e79badb6f819c598b98acc04584e9a54e35ec32e8dc996f77aff2efe5588017"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/40.png",
+      "revision": "2c3e44f57573e8ca10d380ab4f576d87477e1d566e9747d6802e7ce431f05308"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/41.png",
+      "revision": "2bfa274953d50adc190f03cdd3e1d64d3b26a8c0834b7e509aab8ac1de273b91"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/42.png",
+      "revision": "aa1f8d14f2c229a119e67c0e15d6d32e8166c1b3ddbd026abbd01f23743d544a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/43.png",
+      "revision": "a1bc2bcf041083c631724d3bda130f50997ffa9406a5dc0a06131607bc146e77"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/44.png",
+      "revision": "7a7ba87e1d12d268294a1d7516029d4fd5eb468409d1c325bec08c40208491c6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/45.png",
+      "revision": "437312a6968aaec3145e9e734111ddb480d51bf2e92d74fdfc9a66b7d0c71052"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/46.png",
+      "revision": "505e5e5a79eb2b2dd11e520ad484d5e49876c0fd33d0571895453a241ab96004"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/47.png",
+      "revision": "92116f54680872dc776c9c3f32fb9d9779582bbe9f49bcef953a7ee9ace80c87"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/48.png",
+      "revision": "0750a28a597102f4796dd4d1c6054daa72d74bd7964ba06ec4cb013dc1a8a217"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/49.png",
+      "revision": "a7bf61c8295a14fe1c4ba8d8778227496a9ce8f47f5d9681a2cadfbc5b663e37"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/5.png",
+      "revision": "ee72481b04d8afb42a024da8939cd6a539ff88f0e48372a65098e2bbec869a89"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/50.png",
+      "revision": "c7b483dbf64eb83317b34a8bffaa766edaa78a9bf8352b1b4c7be9991648b3e4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/51.png",
+      "revision": "8bb0a2ac898f202e2e7cbe032dc3434e5e9a7037f3984274d425bdc47d8831dc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/52.png",
+      "revision": "00cdd27b76986df64429c186ce6ad86fdf931f135d0bffaa3a42930a4919f905"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/53.png",
+      "revision": "358f3d4c55d251d725990dd28970079232010d88000905796c3efde7b9ff0b4b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/54.png",
+      "revision": "4c2df6eb94b4b3441d66ebf9d1b4666a1e704d233db3aed4720fa8295456367e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/55.png",
+      "revision": "7035566c501174972f1dd0270b1fa27d59a29da8492786cfce01ae4093f4418e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/56.png",
+      "revision": "e1fde4c60974dd4d6b00e3fa262a851259c637be232cb9386e21192483b0dc4a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/57.png",
+      "revision": "8817d7a593fe1b8553e4ed14f143546a9246840b853742f3005cc4f9960d7725"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/58.png",
+      "revision": "0605118fddd2ac68b86f04035285f9051f1133b6b8fdabf066ae950ea9c6f88c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/59.png",
+      "revision": "8576d9c4f1809033f43702a8bc4b5d535b66de96dcd99a3effc089fbb78d2a27"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/6.png",
+      "revision": "4e1b1009eef0be52bdedd33b8c468c0cbf7d135c065bc5ce373ddab865e749f8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/60.png",
+      "revision": "d6c4ce7fde8477f25df72cabad35b9c676a99e49cdc1eb075552f7f15d0d7583"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/61.png",
+      "revision": "9383989baea02bc815a400855fd44e6513c38981ce9502748ff4977d63e451bc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/62.png",
+      "revision": "7620fdd300311b08a4017445d56ad75f07b6974dafdfa73cfc636c0012c545a2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/63.png",
+      "revision": "457ac2f6cf6a714487a230ee9c087dcb77e2de5bc52c788e8c716c89e1acb3a2"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/64.png",
+      "revision": "a1b13bac90ae5f56a70bddf74e4e01ac0ceacd6a6ee86915e0958ec7be049d76"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/65.png",
+      "revision": "b3baa4e5d09cc71757098fdd64fbb4e5bde99cae67e4a2a57359aa0d3c030f63"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/66.png",
+      "revision": "cd96fdf3b0ad320c774cb8933c76554b5296693a84898f74e8a03e6d3438073c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/67.png",
+      "revision": "0b870c38a503213e2a023538dd1392feb12c7a74cd2ef1beb740a549ecdec4e7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/68.png",
+      "revision": "bfc688ec16d0b2f5cbe474ea3e729af5d799a1bdf70a37d01cfe2aaef0b01292"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/69.png",
+      "revision": "b00831a144be2f11ae6e3f2ca05576ce17722beeaa3fb06e725d631b9904a1fa"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/7.png",
+      "revision": "3603d4d176761ef42ed384b05e2f91dc3cd3cb46df6d2a598be3eedadab7987c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/70.png",
+      "revision": "6f2fcb812274fea3ddf5617343ccc8874196ecc580a81cd6be368db7b13cef55"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/71.png",
+      "revision": "d8122c5a60fa936a33dfd57dda521c2b8e5652edce2c4a70db6ad15a4785e7ad"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/72.png",
+      "revision": "3294779f79da6b93917ce9f5e82f41b01dfa88e9c4c0012e996359d1e03de811"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/73.png",
+      "revision": "ea1427790c3419ea3b2cf3272b12f1765413346b87422fd56bce272039d19bfd"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/74.png",
+      "revision": "e4d950ff6f1b9253423522c70dcad409baa46febd03d14ca431a0cce796fc2eb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/75.png",
+      "revision": "3ca4defa4595819e5a1d51e2f6ec20a12c681bf2da1de75f0c2884e6c6824ada"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/76.png",
+      "revision": "009b87632c7ec3ca38d8770cad7c9343a4bccb89bc0df5a711334952380f6f41"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/77.png",
+      "revision": "4e76d32a4e583cbb43bd421518776c43a1b8166bc95c040a22ea199adcac6a97"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/78.png",
+      "revision": "29436441a4022d08839f6605fb75705a732adc6ba542980c21b5a9d38b233530"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/79.png",
+      "revision": "210e241755002aecb89e76b1bf083bfd2dd5525a7a79ea9937cc90328cf89fcb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/8.png",
+      "revision": "9c87668c63ef7f82a752f4a6af8ad42857579b619ac540c20f090c558bff0e35"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/80.png",
+      "revision": "d05afe3eb5a444a8f009848eb75b0fe48188f7736d9164eb6bed50d2ee8f403f"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/81.png",
+      "revision": "5b1c28de53165a4efe7cdd0762f122505752b5fbb387e52e0b20fb8cd21acb00"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/82.png",
+      "revision": "ca84cb9b5d3fa7d4cf184b8051f8f0147ad0f3d91ef278166b7c55d214ad69bc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/83.png",
+      "revision": "3c5e1d245c5fdb986dba302a985f4334542ad2f42224d8bb7ed0a7e851fcc29a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/84.png",
+      "revision": "ac1d3eb6b23d116e98c7da0e8a71047257c6aa74d6acc10b8c1dfe3f9886cf82"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/85.png",
+      "revision": "731dd81d774556ee4dc2caab1cf3979497aa95fd66ef3c884c355317e219022b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/86.png",
+      "revision": "ba55aa4892efafb5035c1aaeab8f54069e3f46c89932b865e925ab3467b860cf"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/87.png",
+      "revision": "0035b1f56fc23d9cf255a68e7bf12c827f48ce5afa9430e085290effd3423103"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/88.png",
+      "revision": "9230d4ecbc604cd977b7cc62c7082c9e782a1c64d620e1e8bba52a6c78eda5b3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/89.png",
+      "revision": "25bb597bd0364d925affdb3cf617a797fd1142184ed1e43fb7cbbfa046dea809"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/9.png",
+      "revision": "a30720d9daa9870948e477d690baeba34fcd6d8a03d27e3c3696e95f39c3e10d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/90.png",
+      "revision": "80b08a264a0445d8372f1211f715037ebf2bba1a2f8c4790a9cee44007f4417d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/91.png",
+      "revision": "127020495589aecfb5b9a28c81e996ceccbd046c5cf25dd6f3e434c8b3169a0a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/92.png",
+      "revision": "6a0a8db6acd90f60f03052fbc79cd120d0d9ed41ca3e66de93687e00e2e4586e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/93.png",
+      "revision": "48d56fd9759ef9518772bb5f17d52e8f58bdcd902af20782d23f5a40c2ffcf5c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/94.png",
+      "revision": "d4639f98c61657b7314abe89353bcc4623744ffbef5953d2f5d0d2f97fc05350"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-4/95.png",
+      "revision": "44b64d3eee5e3ce11390dd4a198a0318f53693ea548e8bfb8afdce2d7313e0e8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/1.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/10.png",
+      "revision": "8ef9a5f3616843e73a1f3e1a3d432247192f3d43a1807b31dfa804b60b1a659e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/100.png",
+      "revision": "2de0d83f7ff138978fe4902f2c1fc5b8f2fca3984c3f584f79b23d7e2abc50f4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/101.png",
+      "revision": "c43634bb5d6de98ab3fcd44867367bf496321ad9cf5856824b94ca650de158f3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/102.png",
+      "revision": "9c85478e82580501eafea3092d1d6873cf193132f56747245bb685e32cd30e3b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/103.png",
+      "revision": "c86ef858565b4cf241cbd8bec43c0bc2bcbeebd5ed8c35059e2212dfc41a81e6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/104.png",
+      "revision": "55b8f7d549c0c39d8a72f06c0e922145ec21b1ee550efc330b2df8f122dd82e3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/11.png",
+      "revision": "ba382f91f624ab14b8037f838094575e883e4dca910bc63933b790af6b251154"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/12.png",
+      "revision": "38fcbe2daa89d9edcc196f778efc4bfc3a2571a7c6d5dd33cd58c8c66a3294d0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/13.png",
+      "revision": "15f9193b45d97d9fb3b79d1468be68c7d7004df4b982e9acc76761fc3c6b8166"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/14.png",
+      "revision": "474d6effad09a7138f25e4ce96e7af9ed66d24d4607668f8789e6aff43987408"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/15.png",
+      "revision": "188b9d7bc4d3b7fa83f7d059571512f397f8eb63593bf10956a94614ad456516"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/16.png",
+      "revision": "ff2568bc0f3a33901066fac50f2e123d6bafdfa693bafe6f9e17eb66ac4429ee"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/17.png",
+      "revision": "86c21a994e6d10325e2de634f4ffc4334b9fbf2f4b030cdb7a40372c3c024e7a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/18.png",
+      "revision": "691000a30c8bfd028e3cdaec63a5a1bf4629388f3614209339c4b897929327eb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/19.png",
+      "revision": "526a12b2533d178e2bbabad593e90e3986fdc9d3c6f587bc77b561409f7821f1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/2.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/20.png",
+      "revision": "71f360adaa50767c81032839334f734d2c62b199d976ce010bf4c63c9f41f1d7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/21.png",
+      "revision": "ae5b0a2bd0e83b7e756962139d3ff6ec3819e8a729b5397edf1f821c4f64eb2d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/22.png",
+      "revision": "44060d1d1c8bd47916a5bd574e0bd9fb233091a464ffc622b2bcdf79d77f0dce"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/23.png",
+      "revision": "f0cfccf63e750fb86f98fae40bdabc49a3b59161c02c5d3f61116ac902f99d51"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/24.png",
+      "revision": "485de8776167d03930ccfec8911ecd04fc2040ba0f4cf3f5eb0242703a2bdfa5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/25.png",
+      "revision": "62c56f8e11ff5721d302fef85e8d11dda366dffab43967e0d2f79797b18af170"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/26.png",
+      "revision": "90172c78d6cacf437053228fe5531c591a8775c33a98de6c2ecec0f121a868d1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/27.png",
+      "revision": "6a06f8535a4a5b4eae2c15430e86de5e9d376ae9554b4c833e742c0c840c0a40"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/28.png",
+      "revision": "8828cc834b25b5032aeecd852e5b1b5d4615e46b066d4c33d532bd3fd9b6243d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/29.png",
+      "revision": "afc2c41d7a98cb53d3980c340faf38f82bc196774e671e33bea352b5c9d706da"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/3.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/30.png",
+      "revision": "3a0540f47ee70ce39de4a2c52f44be39c034bdffdb204cc933330ae8e6ef9144"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/31.png",
+      "revision": "16f6fcbe14dc4e494d6a31aa74cb3781fe9947c579eca979c3362b2bab65145d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/32.png",
+      "revision": "14f844480eec250f6fc49da0a858c47723a81cf231f5f0087f02abde80b3542e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/33.png",
+      "revision": "e2d09d0dd381ed78c8765d93432b1114a11cb586370eb49dd2c3e70b46150efc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/34.png",
+      "revision": "098b0f7473a42b573ddaa8c7c610a9bcf2a4ae1fa14505a1ae4b41baff33884a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/35.png",
+      "revision": "be360028c12ff468d9775af6d23a430f5afbfc2389654a00b5084ef3871687a3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/36.png",
+      "revision": "da4d2818a5b810f9859520fe39be57ba895c7234373f09e9c891ceb8a5ef6d9c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/37.png",
+      "revision": "0530bbbf333666747cb8921e8a64ed579e89a5eee6518f1c3f09e05a49dafe2c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/38.png",
+      "revision": "5cdf1d5881b085722607103a7b0630bf1fda4d753ce9c2b8ec3209486f16cfd5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/39.png",
+      "revision": "f7a15610ea34f66ef9c28cec6fe6b32c93a408adc9a134a8d9a398f55c232631"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/4.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/40.png",
+      "revision": "c54e1a748f03b2038ac0e3ecbfa9edcab9fa343fd0cfd8ce8c6aca7a34777788"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/41.png",
+      "revision": "d50611bb743a8e6f81a58e19b29ef1fec0b9e71b2bec2042dfaf598c359917c4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/42.png",
+      "revision": "bbd3bb45547243c46a2cb79e078d0d9b65782f5757f9b9e3ecf40ce781da5207"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/43.png",
+      "revision": "f32583622dc15f0737c7f603800e920ffad2b826eb6e94c808d7bb8c227428e6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/44.png",
+      "revision": "dd4ee666da0221960419df1839201581069357fcc261aff5b4b9b777096858b1"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/45.png",
+      "revision": "57e46ea27439697da86a9b2bbff2c22e22cb4463bb553970027a5d83bf0a30a6"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/46.png",
+      "revision": "c10a52979a0c3a8dcab66c52b21ea7b5c64cde7253b46e1e6da6d239acceccc8"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/47.png",
+      "revision": "642f2c6bc3f39d125d42213875fb8f05860c7967d8cb0f1edd8dba69ed32c0d4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/48.png",
+      "revision": "0e9a7ab552b987f90b525c0feaf775b23c6298b337a70e9889bfee721577773e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/49.png",
+      "revision": "c3f6196aad069d8669fe62910d4e0c52f6858bf6c3dd06b50f734b60ee5d8e61"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/5.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/50.png",
+      "revision": "2b188593edd09cb3a55ecc1b467e30741cbaa4ee361ac03915ecceed5861a33c"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/51.png",
+      "revision": "45e571029800ea3453a7d1c1d08698e9e250251ad60d00fcc53074f44a1dc3fc"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/52.png",
+      "revision": "61785ea96637d3892aabf14c23a2b84fcc6ea510e25d48718a182989e20f86f0"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/53.png",
+      "revision": "add108b8707c37284feb5325f49e6a2ff9e778ceeda52943a90f4d90a80ca515"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/54.png",
+      "revision": "b957fa05de015350107417b1a1260ed66f5d48ffc2885b857ab44ecb49876967"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/55.png",
+      "revision": "497bb2cfd75e04f39319368e03f7a1f6fe50d1e126cf6a4eed1fbb1ce8b5ed6b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/56.png",
+      "revision": "096e987f9a224fe2c2ea72d6c75c5e2696a9581f2706de18c8a7c53791722ebe"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/57.png",
+      "revision": "ff0add7453a0afce5c040c9913431e1ce4323ede285512297ba804888363c7d7"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/58.png",
+      "revision": "35fe0438d141fea3b1c96422898b771d57b89fdeab8effd535082562b72f3573"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/59.png",
+      "revision": "7af51611c913dbf26e837fb4509eb41403cb1fc38baf383eeb9dec1f42cf309b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/6.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/60.png",
+      "revision": "e81868c11652a6680d1cf447c7b27c7930a2181fd2aa221a942cac27a965effb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/61.png",
+      "revision": "991c3f797032f8fcf640fd2966e42b16d31434a87563ac4e6f5c7f83aacb0495"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/62.png",
+      "revision": "06ae130aad3c33cd591758208695cc9d77545b87786f0802303ed41e9705445d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/63.png",
+      "revision": "3959118b6336a326bd63fc35422c181ce21ca6bf7c12fd31780aa5c661234cff"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/64.png",
+      "revision": "a8327f1bebebcb5215a4b13e928b0f7de31445221d80a81b3f19fa0e27253548"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/65.png",
+      "revision": "cf05c7fffa7472b81beeac846a4b162c0dfa33cf2a5b27dbbdee2ee8ce88a381"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/66.png",
+      "revision": "cc0c65b891ca0827b392c62edac930014ffa993af610a106254c57705e9be7b4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/67.png",
+      "revision": "02313a02688cdd7a3282876bd599b00b98ffc4bb891819fe5d6e40351e127f52"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/68.png",
+      "revision": "84a14b939de901307dcc5a46fce47685d4487252d7958e6b61076ba1b13f8112"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/69.png",
+      "revision": "6ec5dc1a9c102835874dfac8b2135b45a2e903e487c6bdc300cd422b6ca3725b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/7.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/70.png",
+      "revision": "e77cf439e00d8a3790cd28528af8523b9307ff7e1737feadb2c87074dfd5c6ee"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/71.png",
+      "revision": "061bc8eedfc1e882756594c3bbe91d95f1e98c97e524c8b919a6e81681d08272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/72.png",
+      "revision": "830f5f81d1089e42e75b861dc01339d96a735887b9cdbbaeac22404a19e6234b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/73.png",
+      "revision": "78a3611c1f79ec2c8ff2d6851082c87d1e35acef8f6b31b408d9814ccc0a2a60"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/74.png",
+      "revision": "c83aed0f6c740a45833c5ffa3aa7d6f77f62b58cd8d9d17f5de8744472a71412"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/75.png",
+      "revision": "e6fc5a56759919ce41bca92cdeae3ae181309af133105bbe2d47d3d4116720b3"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/76.png",
+      "revision": "96d1dc49e3f0734d437a5af84a98e74fb6049ba7443c7e33cd43d0a167b5f072"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/77.png",
+      "revision": "a24459342cb749cb923f27b588f7583da0923c5061c9b7ccff7286b58b16cc00"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/78.png",
+      "revision": "a358e7f2d00de331047fdf44317e102e2fc9d9a049a9377c8c464c355480d393"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/79.png",
+      "revision": "ec4739e34472278f1822165dfe3e0cca320cd612f230b8f5f6484ee17ba9b9df"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/8.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/80.png",
+      "revision": "3db4b6766d973873526bd84796dd6cfee79740d31a23c2e3c737313bd41a5148"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/81.png",
+      "revision": "da6024faaab5ed0ca54157ecb18ca25624df461a3186c15ee3c554e30d5cdde5"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/82.png",
+      "revision": "2e8f20f057d5afbd0409b3bfbda4fec0dc4a61fe3d2283c57c0e959aa1818885"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/83.png",
+      "revision": "731bc80e1e411aadf4084455e7528e750d3aa2d4196187bdf32861bf050d4250"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/84.png",
+      "revision": "57056ee34dc794ad648dee3d5a9a91b34f69bcb30711ece6b106e28d9b91c155"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/85.png",
+      "revision": "98bc626d0c4089c741c40b3378b9d125a7a58ad35702d617c765fd9f4efb5388"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/86.png",
+      "revision": "1f1e7af809d14688e385c1f1b204c8cea4c5afe656c40a64a156de4b9d77d3fb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/87.png",
+      "revision": "c0242006574caa5a5829f37b9e20833083f409e681d4ebe6f708b1a9f50dcce9"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/88.png",
+      "revision": "868d1d1465714a32f77b182369f5b379322a1612e32c239730009f0032e6646e"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/89.png",
+      "revision": "335ebedc2900642a4c86b02601cb782e8a84e5c7626205851f716f2656b2cc9a"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/9.png",
+      "revision": "f33c6121bacd97cb766e087f0be5b9615ce061a0dda7dcd7449b31fd80209272"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/90.png",
+      "revision": "1b87fa3306e539b4f860b1a5df01f17bf281f8b76ecdd14db198b09c2affffd4"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/91.png",
+      "revision": "a223e5246a1e54078563632ae03e1b2a427962b9ef465f4c63cec20ea1a19d3b"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/92.png",
+      "revision": "8ceeca4ec3b52517526ffa6a9440d854163a84375b99bb28b4e32ce65e4484da"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/93.png",
+      "revision": "350904e5ebae16777286639e544a5b61d497e5c08928a81e8a1d5c52d287fc05"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/94.png",
+      "revision": "44885293bff7db9ca43b831c87b60a6679caf88bb3503dffabc27b858094244d"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/95.png",
+      "revision": "1cc18743a3f3363c762ce052ae3cf9d8ca2a2861400f71852d8d1b4054b50865"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/96.png",
+      "revision": "00fa7fadae1b50919da5f96a452ba22a93fe1ebce7413ed723a7e7e10f76d0eb"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/97.png",
+      "revision": "058d88cc9105362d6c70af0e69a39ed26280e0ec960b9bba8e45389b4461f436"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/98.png",
+      "revision": "f47775ea9a823adb5d4e74e470928d0143c03ed248e4a59df6e1898e51bc26aa"
+    },
+    {
+      "url": "/quiz-feedback-mascots-v1/animation-5/99.png",
+      "revision": "3a844c9c9ad01ba0916f5cb5f3b4dd27789622445dd61cce6f0a209764b7c5a5"
     },
     {
       "url": "/quiz/black_button.png",
@@ -2096,6 +4756,206 @@
     {
       "url": "/serious-learner-offer-frames-v3/9.png",
       "revision": "89dd024a6e4270bed4c74f962f1cb5bd40197d4addfcce00f71555eae47fb8f8"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/1.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/10.png",
+      "revision": "6a817fc226f840fcc2369a5d7895d9c5e08fff07234c9c2546f23f528d0c2b6e"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/11.png",
+      "revision": "5f6c553b7375a20b0731f6594d6d2c9bf3afc323ff2a7b7f8dfc7ac69347841a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/12.png",
+      "revision": "0dae01a6f836bd8d349d43fc517a94cde0994968e3c5d81669e94584ce18736a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/13.png",
+      "revision": "ef073462fd03365b31fa9c92a2e4711238f77d63046c22df66a2675d2986ced4"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/14.png",
+      "revision": "32963ed6ba36e717da6c1d6e318392f646037c0a5117367945c443fbb31d68cd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/15.png",
+      "revision": "2e26a97f7c6b7057053a69495d67345e69eb11c1f8c98297b508edc0cbd378cd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/16.png",
+      "revision": "3726ad3c3cdef604a3b37e94aa4d54df85125a35e20619a95901329665837563"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/17.png",
+      "revision": "67dc27a52bf67da4420a9b5edb9a8480669347f66182b5880706e241ed94e7c0"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/18.png",
+      "revision": "b4f76ab91c5e3ed0da86cb76689b9ff95304d5b62e37463691a8cce88cacfce2"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/19.png",
+      "revision": "e710f57675c384ff61ef51d3816ea32b0c765a98bbbf0e578d85383e64da730e"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/2.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/20.png",
+      "revision": "77e7de86f6d4f3c21ee9f6be9d1818b7167b7fdf0aa7ebdcbd6c8500d57ecfed"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/21.png",
+      "revision": "621d58258b4fb0e8cc484da63eab955576123f8a94ceb64dd45bd46511110d02"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/22.png",
+      "revision": "16f75dfe9c4218aee8d4ce400af654b3545270264029d6ba3f208b1ce05803e6"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/23.png",
+      "revision": "32412fbd56f119a8e095b3967495b67f79e75a9f17a2be1fbf31566c18e260e1"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/24.png",
+      "revision": "dca77fbb61e0b24b9480a7d9971c6210fdc1fbc1c1e71c339492e3ba7b008461"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/25.png",
+      "revision": "9a69a8fe0a328a587d05cd32a7cfbff2de7d3def45dbff580f3061c6b8781b6c"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/26.png",
+      "revision": "7be79287702fca1f4e2612dfca78534e8e3768fe78eed111e5ab9aca3015bde3"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/27.png",
+      "revision": "122a19b4625d39d945ac4389612833c9fc0ffd2b0a0dd4a6d7aa840e16f7f1b7"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/28.png",
+      "revision": "074eed38c49da513540c2d3852eda8976df20fe0c1ddfd1f49714b25ea07c1af"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/29.png",
+      "revision": "2f99e9ad26a557b28766c4b1556d44113c8eeb6e110d73115685b89561e91d9d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/3.png",
+      "revision": "ce111fd18f8a550b357fa46e060082f411aa26f415e8d8be23390d94058f37e0"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/30.png",
+      "revision": "9e4fa44181c207e8ce7a1f609de74a593e34217ccfd2154da675442719c3a53b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/31.png",
+      "revision": "ee64c03d841bf21812d3f484608aa6be1a25e256d7ac449e06ae54066d99e21f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/32.png",
+      "revision": "a25468050be42fab67537febdd481ac7e8436517b9d99c074ec59504f7f180c4"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/33.png",
+      "revision": "afd6861f4f922fdcf27d8bf7ee3b43fbe3380dc90f5da3400e3ddc923654404f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/34.png",
+      "revision": "10c950233552c7524490e5a5e9cd3813bd1e25c283a06387a06a4da10e9b0e47"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/35.png",
+      "revision": "f3987749a0f58df6fa0f68f83152330fa04e032d736a79960ad486e6aa2b72cd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/36.png",
+      "revision": "e22f733dea81e086cea5eb9c0f4dbd7eb2386637d8a3365b4ec3785c73034ad8"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/37.png",
+      "revision": "6aa83d8590d6cce1cb922fdfcb789a080fa99c9748ad3bd62d9a0b9355737e71"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/38.png",
+      "revision": "1e66074fa5a1c250b451e8bcae852c2c70c5bd3362f28904243bb70875b66e98"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/39.png",
+      "revision": "8d0e00af93dcea6de93ba6809dc9431af28cbe570841dee3091c0680bc71e3ce"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/4.png",
+      "revision": "bfd57f7fe56cf6109cec2005b0567e4f4c53b3222042201f9db07bfece1f629b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/40.png",
+      "revision": "ceae94bd0b87c9f3c422ac587e0626a843b6da474f34e72e7f96192828b5dd9b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/41.png",
+      "revision": "003e2adb6c585697b57fa58453a0345a14f39302c736f353fa30f36e487db730"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/42.png",
+      "revision": "4518a5c31d92f80410c217c3c9e1b40fd7f0a86e161eb32620f2a7d927d40100"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/43.png",
+      "revision": "82e4bbe2342dbe5b8436c66ffa95a4586a3eea721469d2cdf9c0d3898bd77c91"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/44.png",
+      "revision": "a2a7c477929d173385b9e87175fea91a946a31781cd0358ad973cc6d9af28189"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/45.png",
+      "revision": "93be470828f3662fb17e60f293412cb16672fe2567d7a942fe581fdea71c2a4b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/46.png",
+      "revision": "8a0ee87db0a19cbe8653229f3569a94b54407356f936dd52ed761791301ea220"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/47.png",
+      "revision": "2cb44e2370fb6fef82b4518983ae7c4e58a493a07b2a18c34e8ade41d76314f9"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/48.png",
+      "revision": "eef54dbea9adf01ffe772c206f3488f7adf32fb823e07d4df1409c1c8b88eddd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/49.png",
+      "revision": "3698daf1b0d779ee44d1d0b687fda194e43f7510b6bb4364f097ff9d156f55ff"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/5.png",
+      "revision": "1dd5a9b972839c52e6ce80dd8779f086f8c1df3c915a725144685de26a29b1b8"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/50.png",
+      "revision": "bc15ef46f97ab6f00af8b93474235a25a61a3e33abe96714c0234baf47b71dc3"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/6.png",
+      "revision": "9e4b3585b0f1576ad4be8211ee3ed03619522cda5ca007a527992b5df7d1d8f5"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/7.png",
+      "revision": "37a39572b6f5ec59d38686366e5370b708fe4324373c36374d385b905aa5c98f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/8.png",
+      "revision": "df4ef15b340a73abdc17b342e1efa232ca86a561c65a7364accbad9f0522e9fd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v4/9.png",
+      "revision": "9107d050e05613060e9f711c8508bf303730ffd17d74a47100aac1b37c33fa19"
     },
     {
       "url": "/serious-learner-offer-frames/1.png",

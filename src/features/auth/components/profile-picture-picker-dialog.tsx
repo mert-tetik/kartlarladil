@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { updateProfilePictureAction } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { ProfilePictureOptionGrid } from "@/features/auth/components/profile-picture-option-grid";
 import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { useT } from "@/i18n/locale-provider";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { useAppMessage } from "@/components/app-message-provider";
 
 interface ProfilePicturePickerDialogProps {
   open: boolean;
@@ -16,12 +17,11 @@ interface ProfilePicturePickerDialogProps {
 export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePicturePickerDialogProps) {
   const t = useT();
   const { user, updateProfileField } = useAuthSession();
-  const [error, setError] = useState<string | null>(null);
+  const { showMessage } = useAppMessage();
   const [isPending, startTransition] = useTransition();
   const selectedIndex = user?.profile.profilePictureIndex ?? 0;
 
   function handleClose() {
-    setError(null);
     onOpenChange(false);
   }
 
@@ -30,7 +30,6 @@ export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePictur
       return;
     }
 
-    setError(null);
     startTransition(async () => {
       const result = await updateProfilePictureAction(profilePictureIndex);
 
@@ -40,7 +39,7 @@ export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePictur
         return;
       }
 
-      setError(result.message);
+      showMessage(result.message, "error");
     });
   }
 
@@ -58,7 +57,6 @@ export function ProfilePicturePickerDialog({ open, onOpenChange }: ProfilePictur
       contentClassName="overflow-y-auto px-5 pb-6"
     >
       <ProfilePictureOptionGrid selectedIndex={selectedIndex} onSelect={handleSelect} disabled={isPending} />
-      {error ? <p role="alert" className="mt-4 text-sm font-semibold text-destructive">{error}</p> : null}
     </MobileBottomSheetShell>
   );
 }

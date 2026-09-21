@@ -54,6 +54,11 @@ function parseStreakRewardTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseStartTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseResultTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -80,6 +85,7 @@ export default async function LearnPage({
   const initialMode = parsePracticeMode(params.mode);
   const initialLanguage = parseLanguage(params.language);
   const learnedCelebrationTest = parseLearnedCelebrationTest(params["learned-celebration-test"]);
+  const startTest = parseStartTest(params["start-test"] ?? params["quiz-start-test"]);
   const streakTest = parseStreakTest(params["streak-test"]);
   const streakRewardTest = parseStreakRewardTest(params["streak-reward-test"]);
   const resultTest = parseResultTest(params["result-test"]);
@@ -97,6 +103,7 @@ export default async function LearnPage({
         initialMode={initialMode}
         initialLanguage={initialLanguage}
         learnedCelebrationTest={learnedCelebrationTest}
+        startTest={startTest}
         streakTest={streakTest}
         streakRewardTest={streakRewardTest}
         resultTest={resultTest}

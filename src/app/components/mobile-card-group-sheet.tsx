@@ -19,6 +19,7 @@ import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 interface MobileCardGroupSheetProps {
@@ -36,6 +37,7 @@ export function MobileCardGroupSheet({
 }: MobileCardGroupSheetProps) {
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const usesSuperWater = canUseSuperWater(locale);
   const displayText = (text: string) => formatSuperWaterText(locale, text);
   const cards = useInventoryStore((state) => state.cards);
@@ -44,7 +46,6 @@ export function MobileCardGroupSheet({
   const [addingCardId, setAddingCardId] = useState<string | null>(null);
   const [expandedGroupId, setExpandedGroupId] = useState<CardGroupIcon | null>(null);
   const [addedCounts, setAddedCounts] = useState<Partial<Record<CardGroupIcon, number>>>({});
-  const [errorGroupId, setErrorGroupId] = useState<CardGroupIcon | null>(null);
   const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
   const [selectedCardSourceRect, setSelectedCardSourceRect] = useState<DOMRect | null>(null);
   const [confirmationClosing, setConfirmationClosing] = useState(false);
@@ -76,13 +77,12 @@ export function MobileCardGroupSheet({
     if (addingGroupId !== null || addingCardId !== null || cardIds.length === 0) return;
 
     setAddingGroupId(groupId);
-    setErrorGroupId(null);
 
     try {
       const result = await addCards(cardIds);
 
       if (!result.ok) {
-        setErrorGroupId(groupId);
+        showMessage(t("cards.groups.error"), "error");
         return;
       }
 
@@ -97,7 +97,7 @@ export function MobileCardGroupSheet({
         });
       }
     } catch {
-      setErrorGroupId(groupId);
+      showMessage(t("cards.groups.error"), "error");
     } finally {
       setAddingGroupId(null);
     }
@@ -106,7 +106,6 @@ export function MobileCardGroupSheet({
   function requestAddGroup(groupId: CardGroupIcon, cardIds: string[], sourceRect: DOMRect | null = null) {
     if (addingGroupId !== null || addingCardId !== null || cardIds.length === 0) return;
 
-    setErrorGroupId(null);
     setConfirmationClosing(false);
     setPendingGroup({ groupId, cardIds, sourceRect });
   }
@@ -137,13 +136,12 @@ export function MobileCardGroupSheet({
     if (addingGroupId !== null || addingCardId !== null) return;
 
     setAddingCardId(cardId);
-    setErrorGroupId(null);
 
     try {
       const result = await addCards([cardId]);
 
       if (!result.ok) {
-        setErrorGroupId(groupId);
+        showMessage(t("cards.groups.error"), "error");
         return;
       }
 
@@ -151,7 +149,7 @@ export function MobileCardGroupSheet({
         onSubscriptionLimitReached?.("free_active_card_limit");
       }
     } catch {
-      setErrorGroupId(groupId);
+      showMessage(t("cards.groups.error"), "error");
     } finally {
       setAddingCardId(null);
     }
@@ -390,12 +388,7 @@ export function MobileCardGroupSheet({
                   {displayText(t("cards.groups.added", { count: formatNumber(locale, addedCount) }))}
                 </p>
               ) : null}
-              {errorGroupId === definition.id ? (
-                <p className="mt-2 pl-[3.75rem] text-xs font-semibold text-brand-foreground/85">
-                  {displayText(t("cards.groups.error"))}
-                </p>
-              ) : null}
-              </article>
+            </article>
             );
           })}
         </div>

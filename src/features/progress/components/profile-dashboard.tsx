@@ -24,7 +24,9 @@ import {
   getRankLabel,
   getTierLabel,
 } from "@/i18n/labels";
+import { useEffect } from "react";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { useAppMessage } from "@/components/app-message-provider";
 
 export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const { stats, loading, error } = useProgressStats();
@@ -34,6 +36,7 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const attempts = useInventoryStore((state) => state.attempts);
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const joinedCards = joinInventoryCards(cards);
   const learnedCards = joinedCards
     .filter((item) => item.inventory.status === "learned")
@@ -46,6 +49,12 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
     stats.learnedCards > 0 ||
     attempts.length > 0;
 
+  useEffect(() => {
+    if (error) {
+      showMessage(error, "error");
+    }
+  }, [error, showMessage]);
+
   if (loading && !canRenderCachedProgress) {
     return <EmptyState title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
   }
@@ -57,12 +66,6 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
           {t("profile.loadingDescription")}
         </div>
       ) : null}
-      {error ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-          {error}
-        </div>
-      ) : null}
-
       <section className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">

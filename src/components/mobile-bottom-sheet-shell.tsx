@@ -28,6 +28,7 @@ export interface MobileBottomSheetShellProps {
   onClose: () => void;
   title: string;
   visual: ReactNode;
+  subtitle?: ReactNode;
   children: ReactNode;
   contentRef?: Ref<HTMLDivElement>;
   onEntered?: () => void;
@@ -47,6 +48,7 @@ export function MobileBottomSheetShell({
   onClose,
   title,
   visual,
+  subtitle,
   children,
   contentRef,
   onEntered,
@@ -291,7 +293,7 @@ export function MobileBottomSheetShell({
             fullScreen && "justify-start border-b border-border bg-background-card/80 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]",
           )}
         >
-          {fullScreen ? (
+          {fullScreen && visual ? (
             <span
               data-mobile-bottom-sheet-visual
               className="mr-3 flex size-10 shrink-0 items-center justify-center rounded-full bg-background-muted text-foreground [&>svg]:!size-6"
@@ -299,16 +301,19 @@ export function MobileBottomSheetShell({
               {visual}
             </span>
           ) : null}
-          <h2
-            id={titleId}
-            className={cn(
-              "text-center text-3xl font-bold leading-none text-brand-foreground",
-              fullScreen && "pr-12 text-left text-xl text-foreground",
-              canUseSuperWater(locale) && "font-super-water",
-            )}
-          >
-            {formatSuperWaterText(locale, title)}
-          </h2>
+          <div className={cn("flex min-w-0 flex-col", fullScreen ? "h-12 items-start justify-center pr-12" : "items-center")}>
+            <h2
+              id={titleId}
+              className={cn(
+                "text-center text-3xl font-bold leading-none text-brand-foreground",
+                fullScreen && "text-left text-xl text-foreground",
+                canUseSuperWater(locale) && "font-super-water",
+              )}
+            >
+              {formatSuperWaterText(locale, title)}
+            </h2>
+            {subtitle ? <div className="mt-2 w-full">{subtitle}</div> : null}
+          </div>
           <Button
             variant="ghost"
             size="icon"

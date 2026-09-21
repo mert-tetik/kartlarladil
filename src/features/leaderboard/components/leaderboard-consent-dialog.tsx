@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 
 export function LeaderboardConsentDialog({
   open,
@@ -24,9 +25,16 @@ export function LeaderboardConsentDialog({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const phase = open ? "open" : "closed";
   const [hasOpened, setHasOpened] = useState(open);
   const [transformOrigin, setTransformOrigin] = useState("0px 0px");
+
+  useEffect(() => {
+    if (error) {
+      showMessage(t("leaderboard.loadFailed"), "error");
+    }
+  }, [error, showMessage, t]);
 
   useEffect(() => {
     if (!open) {
@@ -83,10 +91,6 @@ export function LeaderboardConsentDialog({
         <p className="mt-2 text-sm leading-6 text-white">
           {t("leaderboard.allowDescription")}
         </p>
-        {error ? (
-          <p className="mt-3 text-sm font-medium text-rose-600">{t("leaderboard.loadFailed")}</p>
-        ) : null}
-
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button
             type="button"

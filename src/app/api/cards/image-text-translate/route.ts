@@ -15,8 +15,7 @@ import {
   buildImageTextTranslateTextInput,
 } from "@/features/cards/image-text-translate-prompts";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { consumeImageTextTranslation } from "@/features/subscriptions/ai-usage-service";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 
 export const runtime = "nodejs";
@@ -25,46 +24,32 @@ export const dynamic = "force-dynamic";
 const MAX_IMAGES = 6;
 const MAX_IMAGE_DATA_URL_LENGTH = 5_500_000;
 const MAX_TOTAL_IMAGE_DATA_URL_LENGTH = 18_000_000;
-const MAX_OUTPUT_TOKENS = 3600;
+const MAX_OUTPUT_TOKENS = 6000;
 
 const IMAGE_TEXT_TRANSLATE_RESPONSE_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    detectedText: { type: "string", maxLength: 8000 },
-    translatedText: { type: "string", maxLength: 8000 },
-    questionAnswers: {
+    sentences: {
       type: "array",
-      maxItems: 20,
+      maxItems: 120,
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
-          question: { type: "string", minLength: 1, maxLength: 500 },
-          answer: { type: "string", minLength: 1, maxLength: 500 },
-          translatedQuestion: { type: "string", minLength: 1, maxLength: 500 },
-          translatedAnswer: { type: "string", minLength: 1, maxLength: 500 },
+          source: { type: "string", minLength: 1, maxLength: 1600 },
+          translation: { type: "string", minLength: 1, maxLength: 2000 },
+          separators: {
+            type: "array",
+            maxItems: 3,
+            items: { type: "string", enum: ["text", "paragraph", "question"] },
+          },
         },
-        required: ["question", "answer", "translatedQuestion", "translatedAnswer"],
-      },
-    },
-    entries: {
-      type: "array",
-      maxItems: 80,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          id: { type: "string", minLength: 1, maxLength: 80 },
-          source: { type: "string", minLength: 1, maxLength: 120 },
-          translation: { type: "string", minLength: 1, maxLength: 240 },
-          meaning: { type: "string", minLength: 1, maxLength: 300 },
-        },
-        required: ["id", "source", "translation", "meaning"],
+        required: ["source", "translation", "separators"],
       },
     },
   },
-  required: ["detectedText", "translatedText", "questionAnswers", "entries"],
+  required: ["sentences"],
 } as const;
 
 export async function POST(request: Request) {
@@ -97,23 +82,12 @@ export async function POST(request: Request) {
     }
   }
 
-  let entitlements;
-  try {
-    entitlements = await getUserEntitlements(user.id);
-    const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "translate");
-    if (aiLimitError) {
-      return jsonError(aiLimitError, 429);
-    }
-  } catch {
-    return jsonError("usage_unavailable", 503);
-  }
-
   const content: ResponseInputContent[] = [
     {
       type: "input_text",
       text: parsed.data.mode === "image"
-        ? buildImageTextTranslateImageInput(parsed.data.targetLanguage)
-        : buildImageTextTranslateTextInput(parsed.data.text ?? "", parsed.data.targetLanguage),
+        ? buildImageTextTranslateImageInput(parsed.data.targetLanguage, parsed.data.answerQuestions)
+        : buildImageTextTranslateTextInput(parsed.data.text ?? "", parsed.data.targetLanguage, parsed.data.answerQuestions),
     },
   ];
 
@@ -133,7 +107,7 @@ export async function POST(request: Request) {
       instructions: buildImageTextTranslateInstructions(parsed.data),
       input: [{ role: "user", content }],
       max_output_tokens: MAX_OUTPUT_TOKENS,
-        reasoning: { effort: "low" },
+      reasoning: { effort: "low" },
       stream: false,
       store: false,
       text: {
@@ -165,9 +139,28 @@ export async function POST(request: Request) {
     return jsonError("upstream_error", 502);
   }
 
-  const normalized = normalizeImageTextTranslateResponse(validated.data);
-  if (normalized.entries.length === 0) {
+  const normalized = normalizeImageTextTranslateResponse(validated.data, {
+    sourceLocale: parsed.data.targetLanguage,
+    translationLocale: parsed.data.locale,
+  });
+  if (normalized.sentences.length === 0) {
     return jsonError("no_text_detected", 422);
+  }
+
+  if (normalized.sentences.length > 120) {
+    return jsonError("upstream_error", 502);
+  }
+
+  // The two Free/Basic uses are consumed only after a complete, validated
+  // translation exists. The RPC serializes concurrent requests so a client
+  // cannot receive a third successful result by racing two requests.
+  try {
+    const usageError = await consumeImageTextTranslation(user.id);
+    if (usageError) {
+      return jsonError(usageError, 429);
+    }
+  } catch {
+    return jsonError("usage_unavailable", 503);
   }
 
   return Response.json(normalized, {

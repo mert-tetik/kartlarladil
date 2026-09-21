@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
 import type { AuthActionState } from "@/features/auth/auth-types";
+import { useAppMessage } from "@/components/app-message-provider";
 import { cn } from "@/lib/utils";
 
 export const inputClassName =
@@ -8,29 +12,33 @@ export const selectClassName =
   "h-11 w-full rounded-md border border-border bg-background-card px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground-muted focus:ring-2 focus:ring-border";
 
 export function FieldError({ message }: { message?: string }) {
-  if (!message) {
-    return null;
-  }
-
-  return <p className="mt-2 text-sm font-semibold text-rose-700">{message}</p>;
+  return null;
 }
 
 export function FormMessage({ state, message }: { state?: AuthActionState; message?: string }) {
   const text = message || state?.message;
+  const fieldError = state?.fieldErrors
+    ? Object.values(state.fieldErrors).flatMap((errors) => errors ?? [])[0]
+    : undefined;
+  const errorText = state?.status === "error" ? text || fieldError : undefined;
+  const { showMessage } = useAppMessage();
 
-  if (!text) {
+  useEffect(() => {
+    if (errorText) {
+      showMessage(errorText, "error");
+    }
+  }, [errorText, showMessage]);
+
+  if (!text || state?.status === "error") {
     return null;
   }
 
-  const status = state?.status ?? "success";
-
   return (
     <p
-      role={status === "error" ? "alert" : "status"}
+      role="status"
       className={cn(
         "rounded-md border px-3 py-2 text-sm leading-6",
-        status === "error" && "border-rose-200 bg-rose-50 text-rose-800",
-        status !== "error" && "border-emerald-200 bg-emerald-50 text-emerald-800",
+        "border-emerald-200 bg-emerald-50 text-emerald-800",
       )}
     >
       {text}

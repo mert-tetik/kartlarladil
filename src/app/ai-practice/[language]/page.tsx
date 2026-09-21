@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isLanguageCode } from "@/data/languages";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { AiPracticeTierSelection } from "@/features/ai-practice/components/ai-practice-tier-selection";
 import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
 import { getAiPracticeScenario } from "@/features/ai-practice/ai-practice-scenarios";
@@ -37,13 +38,17 @@ export default async function AiPracticeTierPage({ params, searchParams }: AiPra
     redirect("/ai-practice");
   }
 
-  await requireAuthUser(`/ai-practice/${rawLanguage}`);
+  const user = await requireAuthUser(`/ai-practice/${rawLanguage}`);
 
   const { character: rawCharacterId, mode: rawMode, scenario: rawScenarioId } = await searchParams;
   const characterId = typeof rawCharacterId === "string" ? rawCharacterId : null;
   const isScenarioMode = rawMode === "scenario";
   const scenarioId = typeof rawScenarioId === "string" ? rawScenarioId : null;
   const scenario = isScenarioMode && scenarioId ? getAiPracticeScenario(scenarioId) : null;
+
+  if (scenario && (await getUserEntitlements(user.id)).effectivePlan === "free") {
+    redirect(`/ai-practice/${rawLanguage}/character?mode=scenario`);
+  }
 
   if (isScenarioMode && !scenario) {
     redirect(`/ai-practice/${rawLanguage}/character`);

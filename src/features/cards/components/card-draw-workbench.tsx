@@ -36,6 +36,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 type CardDrawDismissKind = "skip" | "add";  
@@ -110,6 +111,13 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
+
+  useEffect(() => {
+    if (cloudError) {
+      showMessage(cloudError, "error");
+    }
+  }, [cloudError, showMessage]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -659,12 +667,6 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
         data-card-draw-scroll-area
       >
         <div className="mx-auto flex h-full max-w-7xl flex-col max-lg:px-4 max-lg:py-4 lg:px-0">
-          {cloudError ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-              {cloudError}
-            </div>
-          ) : null}
-
           <div className="max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col">
             {showCardGrid ? (
               <div

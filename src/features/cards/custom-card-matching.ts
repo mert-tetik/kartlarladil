@@ -1,5 +1,9 @@
 import { normalizeSearch } from "@/lib/utils";
 import type { CreateCardDirection } from "@/features/cards/create-card-schema";
+import {
+  normalizeTransliterationMatchKey,
+  requiresNativeWritingSystem,
+} from "@/features/cards/create-card-language";
 import type { LanguageCode, LocaleCode, VocabularyCard } from "@/types/domain";
 
 interface FindCustomCardMatchInput {
@@ -28,12 +32,13 @@ export function findCustomCardMatch({
       return false;
     }
 
-    if (direction === "learning-to-native" && normalizeSearch(card.term) === normalizedTerm) {
-      return true;
-    }
-
     if (direction === "learning-to-native") {
-      return false;
+      if (normalizeSearch(card.term) === normalizedTerm) {
+        return true;
+      }
+
+      return requiresNativeWritingSystem(targetLanguage)
+        && normalizeTransliterationMatchKey(card.pronunciation) === normalizeTransliterationMatchKey(term);
     }
 
     const directTranslation = card.translations[inputLanguage];

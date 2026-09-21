@@ -8,11 +8,11 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useGameProgressStore } from "@/features/games/game-progress-store";
 
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
+import { useAppMessage } from "@/components/app-message-provider";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { listUserMissionsAction } from "@/features/missions/mission-actions";
 import { enqueueMissionClaim, resumePendingMissionClaims } from "@/features/missions/mission-claim-queue";
@@ -51,8 +51,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
   const pendingClaimOwnerId = useMissionClaimStore((state) => state.pendingClaimOwnerId);
   const setClaimedIds = useMissionClaimStore((state) => state.setClaimedIds);
   const markClaimPending = useMissionClaimStore((state) => state.markClaimPending);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [claimError, setClaimError] = useState<string | null>(null);
+  const { showMessage } = useAppMessage();
   const [historicalRewards, setHistoricalRewards] = useState<{
     userId: string;
     rewards: Record<string, MissionReward>;
@@ -110,8 +109,6 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
   const syncMissions = useCallback(async () => {
     if (!user) return;
 
-    setLoadError(null);
-
     const result = await listUserMissionsAction(snapshot);
 
     if (result.status === "success") {
@@ -129,9 +126,9 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
       navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       return;
     } else {
-      setLoadError(result.message ?? t("missions.loadError"));
+      showMessage(result.message ?? t("missions.loadError"), "error");
     }
-  }, [router, snapshot, t, user, setClaimedIds]);
+  }, [router, showMessage, snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
     if (!user) {
@@ -163,8 +160,6 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     if (!mission) return;
 
     const { reward } = mission;
-    setClaimError(null);
-
     // Mount the reward UI before the server action can occupy the main thread.
     if (reward.kind === "chest") {
       const tier = CHEST_TIERS.find((item) => item.tier === reward.tier);
@@ -220,7 +215,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
         setRewardMode((current) => current?.missionId === missionId ? null : current);
         navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       } else {
-        setClaimError(result.message ?? t("missions.claimError"));
+        showMessage(result.message ?? t("missions.claimError"), "error");
         setRewardMode((current) => current?.missionId === missionId ? null : current);
       }
     }));
@@ -234,15 +229,6 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     return null;
   }
 
-  if (loadError) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-12 text-center">
-        <p className="text-sm text-foreground-secondary">{loadError}</p>
-        <Button onClick={() => void syncMissions()}>{t("common.retry")}</Button>
-      </div>
-    );
-  }
-
   if (missions.length === 0) {
     return (
       <EmptyState
@@ -254,7 +240,6 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
 
   return (
     <>
-      {claimError ? <p role="alert" className="text-sm text-destructive">{claimError}</p> : null}
       <div className={cn("grid grid-cols-2 gap-0 pb-8")}>
         {missions.map((mission) => (
           <MissionCard

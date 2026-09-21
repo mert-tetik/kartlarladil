@@ -10,6 +10,7 @@ import {
   usesNonLatinWritingSystem,
 } from "@/app/components/mobile-custom-card-language-picker";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import { createCustomCardFromGenerated } from "@/features/cards/custom-card-creation";
 import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
@@ -18,6 +19,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { getLanguageDisplayName } from "@/i18n/labels";
+import { useAppMessage } from "@/components/app-message-provider";
 import type { CreateCardDirection, GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
@@ -27,6 +29,7 @@ const PREVIEW_REVEAL_DELAY_MS = 1_170;
 export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached, landingLanguage }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; landingLanguage: LanguageCode }) {
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
   const addCard = useInventoryStore((state) => state.addCard);
   const cards = useInventoryStore((state) => state.cards);
@@ -37,15 +40,12 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<VocabularyCard | null>(null);
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
-  const [error, setError] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
-  const [cardAddedMessageVisible, setCardAddedMessageVisible] = useState(false);
   const [sheetElement, setSheetElement] = useState<HTMLDivElement | null>(null);
   const [sheetSize, setSheetSize] = useState({ width: 390, height: 660 });
   const returnTimer = useRef<number | null>(null);
-  const cardAddedMessageTimer = useRef<number | null>(null);
   const transliterationHint = usesNonLatinWritingSystem(targetLanguage)
     ? t("createCard.targetLanguage.transliterationHint", {
         language: getLanguageDisplayName(targetLanguage, locale),
@@ -80,7 +80,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
 
   useEffect(() => () => {
     if (returnTimer.current) window.clearTimeout(returnTimer.current);
-    if (cardAddedMessageTimer.current) window.clearTimeout(cardAddedMessageTimer.current);
   }, []);
 
   useEffect(() => {
@@ -101,31 +100,10 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   }, [sheetElement]);
 
   function handleClose() {
-    clearCardAddedMessage();
     onClose();
   }
 
-  function clearCardAddedMessage() {
-    if (cardAddedMessageTimer.current) {
-      window.clearTimeout(cardAddedMessageTimer.current);
-      cardAddedMessageTimer.current = null;
-    }
-    setCardAddedMessageVisible(false);
-  }
-
-  function showCardAddedMessage() {
-    if (cardAddedMessageTimer.current) {
-      window.clearTimeout(cardAddedMessageTimer.current);
-    }
-    setCardAddedMessageVisible(true);
-    cardAddedMessageTimer.current = window.setTimeout(() => {
-      setCardAddedMessageVisible(false);
-      cardAddedMessageTimer.current = null;
-    }, 3000);
-  }
-
   const showPreview = (card: VocabularyCard) => {
-    clearCardAddedMessage();
     setPreviewExpanded(false);
     setPreviewRevealed(false);
     setPreviewReturning(false);
@@ -134,7 +112,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   async function generate() {
     const normalized = normalizeSearch(term);
     if (!normalized) return;
-    setLoading(true); setError(""); clearCardAddedMessage(); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false);
+    setLoading(true); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false);
     try {
       const match = findCustomCardMatch({
         cards: localCardRepository.list({ language: targetLanguage }),
@@ -151,14 +129,12 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       if (limitError) {
         onSubscriptionLimitReached?.(limitError);
       } else {
-        setError(t("createCard.error.unknown"));
+        showMessage(t("createCard.error.unknown"), "error");
       }
     } finally { setLoading(false); }
   }
   function add() {
     if (!preview) return;
-    setError("");
-
     if (
       activeCardLimit !== null &&
       cards.filter((card) => card.status === "active").length >= activeCardLimit
@@ -168,31 +144,14 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     }
 
     if (aiResponse) {
-      const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-      const optimisticCard = { ...preview, id: optimisticId, sourceKey: optimisticId };
-
-      void createCustomCard({
-        language: aiResponse.language,
-        tier: aiResponse.tier,
-        termKind: aiResponse.termKind,
-        draft: {
-          term: aiResponse.term,
-          partOfSpeech: aiResponse.partOfSpeech,
-          pronunciation: aiResponse.pronunciation,
-          translations: aiResponse.translations,
-          example: aiResponse.example,
-          exampleTranslation: aiResponse.exampleTranslation,
-          definitions: aiResponse.definitions,
-          grammar: aiResponse.grammar,
-          termKind: aiResponse.termKind,
-        },
-        optimisticCard,
-      }).then(() => {
-        showCardAddedMessage();
+      void createCustomCardFromGenerated(aiResponse, createCustomCard).then(() => {
+        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
       }).catch((error: unknown) => {
         if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") {
           onSubscriptionLimitReached?.(error.errorCode);
+          return;
         }
+        showMessage(t("createCard.error.addFailed"), "error");
       });
 
       setTerm("");
@@ -206,11 +165,13 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           onSubscriptionLimitReached?.("free_active_card_limit");
           return;
         }
-        if (result.ok) {
-          showCardAddedMessage();
+        if (!result.ok) {
+          showMessage(t("createCard.error.addFailed"), "error");
+          return;
         }
+        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(preview.language, locale) }), "success");
       })
-      .catch(() => undefined);
+      .catch(() => showMessage(t("createCard.error.addFailed"), "error"));
     setTerm("");
     closePreview();
   }
@@ -250,20 +211,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       visual={<Plus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
       contentClassName="relative overflow-hidden p-5"
     >
-      {cardAddedMessageVisible || transliterationHint ? (
-        <p
-          className={cn(
-            "pointer-events-none absolute inset-x-5 bottom-[4.5rem] z-10 text-center text-xl font-bold leading-7 text-white",
-            cardAddedMessageVisible && "rounded-md bg-action-learn px-4 py-2 shadow-sm",
-            canUseSuperWater(locale) && "font-super-water",
-          )}
-        >
-          {formatSuperWaterText(
-            locale,
-            cardAddedMessageVisible ? t("createCard.success.added") : transliterationHint ?? "",
-          )}
-        </p>
-      ) : null}
       <div className={cn("relative z-10 flex flex-1 flex-col pt-4 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}>
         <div className="mt-3">
           <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
@@ -276,6 +223,16 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           {loading ? t("createCard.generating") : t("createCard.generate")}
         </button>
+        {transliterationHint ? (
+          <p
+            className={cn(
+              "pointer-events-none mt-2 text-center text-base font-bold leading-5 text-white",
+              canUseSuperWater(locale) && "font-super-water",
+            )}
+          >
+            {formatSuperWaterText(locale, transliterationHint)}
+          </p>
+        ) : null}
       </div>
       {preview ? (
         <>
@@ -290,7 +247,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           </div>
         </>
       ) : null}
-      {error ? <p role="alert" className="relative z-30 mt-3 text-sm text-destructive">{error}</p> : null}
     </MobileBottomSheetShell>
   );
 }

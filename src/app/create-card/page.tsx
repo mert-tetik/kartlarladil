@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CustomCardDirectionToggle } from "@/app/components/custom-card-direction-toggle";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import { createCustomCardFromGenerated } from "@/features/cards/custom-card-creation";
 import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
@@ -19,6 +20,7 @@ import type { TranslationKey } from "@/i18n/types";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
+import { useAppMessage } from "@/components/app-message-provider";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
 const CREATE_CARD_FRAME_CLASS_NAME =
@@ -29,6 +31,7 @@ export default function CreateCardPage() {
   const router = useRouter();
   const t = useT();
   const { locale } = useLocale();
+  const { showMessage } = useAppMessage();
   const createCustomCard = useInventoryStore((state) => state.createCustomCard);
   const addCard = useInventoryStore((state) => state.addCard);
   const cards = useInventoryStore((state) => state.cards);
@@ -44,10 +47,7 @@ export default function CreateCardPage() {
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [clientReady, setClientReady] = useState(false);
-  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [overlayVisible, setOverlayVisible] = useState(false);
 
@@ -60,26 +60,6 @@ export default function CreateCardPage() {
   useEffect(() => {
     setClientReady(true);
   }, []);
-
-  useEffect(() => {
-    if (!toast) {
-      setToastVisible(false);
-      return;
-    }
-
-    const showTimer = window.setTimeout(() => setToastVisible(true), 10);
-    let clearTimer: number | undefined;
-    const hideTimer = window.setTimeout(() => {
-      setToastVisible(false);
-      clearTimer = window.setTimeout(() => setToast(null), 300);
-    }, 1500);
-
-    return () => {
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
-      if (clearTimer) window.clearTimeout(clearTimer);
-    };
-  }, [toast]);
 
   useEffect(() => {
     if (!foundCard) {
@@ -98,7 +78,6 @@ export default function CreateCardPage() {
     if (!trimmedTerm) return;
 
     setLoading(true);
-    setErrorCode(null);
     setFoundCard(null);
     setAiResponse(null);
 
@@ -120,7 +99,7 @@ export default function CreateCardPage() {
       setAiResponse(result);
       setFoundCard(buildPreviewVocabularyCard(result));
     } catch (error) {
-      setErrorCode(getThrownErrorMessage(error));
+      showMessage(getErrorMessage(getThrownErrorMessage(error)), "error");
     } finally {
       setLoading(false);
     }
@@ -129,42 +108,22 @@ export default function CreateCardPage() {
   async function handleAdd() {
     if (!foundCard) return;
 
-    setErrorCode(null);
-
     if (aiResponse) {
-      const optimisticId = `pending-custom:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-      const optimisticCard = { ...foundCard, id: optimisticId, sourceKey: optimisticId };
-
-      const completeTimer = window.setTimeout(() => {
+      const complete = () => {
         setFoundCard(null);
         setAiResponse(null);
         setTerm("");
         setIsExiting(false);
-        setToast({ type: "success", message: t("createCard.success.added") });
-      }, 300);
+        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
+      };
 
-      void createCustomCard({
-        language: aiResponse.language,
-        tier: aiResponse.tier,
-        termKind: aiResponse.termKind,
-        draft: {
-          term: aiResponse.term,
-          partOfSpeech: aiResponse.partOfSpeech,
-          pronunciation: aiResponse.pronunciation,
-          translations: aiResponse.translations,
-          example: aiResponse.example,
-          exampleTranslation: aiResponse.exampleTranslation,
-          definitions: aiResponse.definitions,
-          grammar: aiResponse.grammar,
-          termKind: aiResponse.termKind,
-        },
-        optimisticCard,
+      void createCustomCardFromGenerated(aiResponse, createCustomCard).then(() => {
+        window.setTimeout(complete, 300);
       }).catch(() => {
-        window.clearTimeout(completeTimer);
         setFoundCard(null);
         setAiResponse(null);
         setIsExiting(false);
-        setToast({ type: "error", message: t("createCard.error.addFailed") });
+        showMessage(t("createCard.error.addFailed"), "error");
       });
 
       setIsExiting(true);
@@ -185,7 +144,7 @@ export default function CreateCardPage() {
         setAiResponse(null);
         setTerm("");
         setIsExiting(false);
-        setToast({ type: "success", message: t("createCard.success.added") });
+        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(foundCard.language, locale) }), "success");
       }, 300);
     } catch {
       setIsExiting(true);
@@ -193,7 +152,7 @@ export default function CreateCardPage() {
         setFoundCard(null);
         setAiResponse(null);
         setIsExiting(false);
-        setToast({ type: "error", message: t("createCard.error.addFailed") });
+        showMessage(t("createCard.error.addFailed"), "error");
       }, 300);
     } finally {
       setAdding(false);
@@ -205,7 +164,6 @@ export default function CreateCardPage() {
     window.setTimeout(() => {
       setFoundCard(null);
       setAiResponse(null);
-      setErrorCode(null);
       setIsExiting(false);
     }, 300);
   }
@@ -274,12 +232,6 @@ export default function CreateCardPage() {
             />
           </div>
 
-          {errorCode && (
-            <div role="alert" className="w-full rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-left text-sm text-destructive">
-              {getErrorMessage(errorCode)}
-            </div>
-          )}
-
           <Button
             size="lg"
             onClick={handleGenerate}
@@ -291,18 +243,6 @@ export default function CreateCardPage() {
           </Button>
         </div>
       </section>
-
-      {toast && (
-        <div
-          className={cn(
-            "fixed top-4 left-1/2 z-[60] -translate-x-1/2 transform rounded-lg px-4 py-2 shadow-lg transition-all duration-300 ease-out",
-            toastVisible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
-            toast.type === "success" ? "bg-emerald-500 text-white" : "bg-red-500 text-white",
-          )}
-        >
-          <p className="text-sm font-medium">{toast.message}</p>
-        </div>
-      )}
 
       {foundCard && (
         <div
@@ -333,12 +273,6 @@ export default function CreateCardPage() {
                 </div>
               </div>
             </div>
-
-            {errorCode && (
-              <div role="alert" className="w-full rounded-lg border border-red-400/30 bg-red-500/15 px-3 py-2 text-sm font-medium text-red-100">
-                {getErrorMessage(errorCode)}
-              </div>
-            )}
 
             <div
               className={cn(

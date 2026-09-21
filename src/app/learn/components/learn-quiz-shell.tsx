@@ -10,6 +10,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
 import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
+import { QuizStartTest } from "@/app/learn/components/quiz-start-test";
 import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
 import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
 import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
@@ -28,6 +29,7 @@ interface LearnQuizShellProps {
   initialMode: PracticeMode | null;
   initialLanguage?: LanguageCode | null;
   learnedCelebrationTest?: boolean;
+  startTest?: boolean;
   streakTest?: boolean;
   streakRewardTest?: boolean;
   resultTest?: boolean;
@@ -40,6 +42,7 @@ export function LearnQuizShell({
   initialMode,
   initialLanguage,
   learnedCelebrationTest = false,
+  startTest = false,
   streakTest = false,
   streakRewardTest = false,
   resultTest = false,
@@ -81,6 +84,10 @@ export function LearnQuizShell({
 
   if (learnedCelebrationTest) {
     return <LearnedCelebrationTest />;
+  }
+
+  if (startTest) {
+    return <QuizStartTest />;
   }
 
   if (streakTest) {

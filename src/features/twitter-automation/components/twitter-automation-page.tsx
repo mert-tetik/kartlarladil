@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
+import { useAppMessage } from "@/components/app-message-provider";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
@@ -334,6 +335,7 @@ function GeneratorModeOption({
 
 export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "test-automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
+  const { showMessage } = useAppMessage();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [studioMode, setStudioMode] = useState<StudioMode>("text");
   const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("fun-post");
@@ -396,6 +398,22 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const recentSelfFalseFriendsTermsRef = useRef<string[]>([]);
   const recentSelfExampleSentencesRef = useRef<string[]>([]);
   const recentSelfVocabularyProgressionTermsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const error = [
+      localImageRenderError,
+      funPostError,
+      aiImageError,
+      aiVideoError,
+      musicVideoError,
+      carouselError,
+      selfImageError,
+    ].find(Boolean);
+
+    if (error) {
+      showMessage(error, "error");
+    }
+  }, [aiImageError, aiVideoError, carouselError, funPostError, localImageRenderError, musicVideoError, selfImageError, showMessage]);
 
   const caption = isTextGenerator(generatorMode) ? funPost : isCarouselImageGenerator(generatorMode) ? carouselCaption : isSelfImageGenerator(generatorMode) ? selfImageCaption : card ? createWordOfTheDayCaption(card, nativeLanguage) : "";
   const generatorOptions = GENERATOR_OPTIONS[studioMode];
@@ -1762,7 +1780,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div>
                   {musicVideoPending ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <Video className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
                   <h2 className="mt-4 font-display text-2xl font-semibold">{isConfusedWordsVideoMode ? musicVideoStatus === "creating-image" ? "Writing the script and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical explainer" : musicVideoStatus === "failed" ? "Confused-words video generation failed" : "Create a confused-words video" : isOriginalMascotLearningVideoMode ? musicVideoStatus === "creating-image" ? "Writing the learning plan and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the Original mascot video" : musicVideoStatus === "failed" ? "Learning video generation failed" : `Create a ${originalMascotLearningVideoLabel(generatorMode).toLocaleLowerCase()} video` : isDialogueVideoMode ? musicVideoStatus === "creating-image" ? "Writing dialogue and preparing voices" : musicVideoStatus === "rendering" ? "Rendering the vertical dialogue" : musicVideoStatus === "failed" ? "Dialogue video generation failed" : generatorMode === "marketing-dialogue-video" ? "Create a FoxiesDeck dialogue" : "Create an everyday dialogue" : musicVideoStatus === "creating-image" ? "Creating the image source" : musicVideoStatus === "rendering" ? "Rendering a 30-second music video" : musicVideoStatus === "failed" ? "Music video generation failed" : "Create a music video"}</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{musicVideoError || (isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects six commonly confused words for three phases, then renders 24 spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : isOriginalMascotLearningVideoMode ? musicVideoStatus === "idle" ? "Original mascot rises smoothly into a dark 9:16 scene and explains the learning activity with AI voice." : "The learning plan, spoken scenes, and animation are being composed into a 9:16 video in the browser." : isDialogueVideoMode ? musicVideoStatus === "idle" ? "Each turn rises smoothly from the bottom of the frame, while its subtitle remains at the top." : "The dialogue, subtitles, and two mascot variations are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser.")}</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{isConfusedWordsVideoMode ? musicVideoStatus === "idle" ? "Choose a learning and native language. The studio selects six commonly confused words for three phases, then renders 24 spoken scenes in the browser." : "The mascots and TTS scenes are being composed into a 9:16 video in the browser." : isOriginalMascotLearningVideoMode ? musicVideoStatus === "idle" ? "Original mascot rises smoothly into a dark 9:16 scene and explains the learning activity with AI voice." : "The learning plan, spoken scenes, and animation are being composed into a 9:16 video in the browser." : isDialogueVideoMode ? musicVideoStatus === "idle" ? "Each turn rises smoothly from the bottom of the frame, while its subtitle remains at the top." : "The dialogue, subtitles, and two mascot variations are being composed into a 9:16 video in the browser." : musicVideoStatus === "idle" ? "Choose any image mode. Its visual keeps its original ratio and resolution, then receives a licensed social-video soundtrack." : "The video preserves the source image exactly while the soundtrack is rendered in the browser."}</p>
                 </div>
               </div>) : (aiVideoUrl ? <>
                 <video className="aspect-[9/16] max-h-[70dvh] w-full bg-[#100d0c] object-contain" controls playsInline src={aiVideoUrl} />
@@ -1782,7 +1800,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <img alt="Generated Word of the Day first frame" className="mx-auto mt-5 aspect-[9/16] max-h-[22rem] rounded-lg object-cover" src={aiVideoFirstFrameUrl} />
                   </> : null}
                   <h2 className="mt-4 font-display text-2xl font-semibold">{aiVideoStatus === "idle" ? "Create a Word of the Day video" : aiVideoStatus === "preparing" ? "GPT Image is creating the avatar frame" : aiVideoStatus === "failed" ? "Video generation failed" : "Kling Avatar is syncing the mascot to its voice"}</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{aiVideoError || (aiVideoStatus === "idle" ? "Kling Avatar turns the mascot into a native-language word explainer with lip sync." : "The card stays readable above the mascot while its spoken explanation is synchronized to the animation.")}</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{aiVideoStatus === "idle" ? "Kling Avatar turns the mascot into a native-language word explainer with lip sync." : "The card stays readable above the mascot while its spoken explanation is synchronized to the animation."}</p>
                   {aiVideoStatus === "queued" || aiVideoStatus === "running" ? <div className="mx-auto mt-5 h-2 max-w-xs overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#f5ac27] transition-[width] duration-500" style={{ width: `${Math.max(4, aiVideoProgress)}%` }} /></div> : null}
                 </div>
               </div>)}
@@ -1901,7 +1919,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <div className="flex items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><SocialPublishActions caption={caption} /></div>
                   </div>
                   <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
-                  {funPostError ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#ffb355]">{funPostError}</p> : null}
+                  
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
                 </div>
               ) : isCarouselImageGenerator(generatorMode) ? (
@@ -1938,7 +1956,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <div>
                       {isLoading ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
                       <h2 className="mt-4 font-display text-2xl font-semibold">{isLoading ? `Creating ${carouselSlideCount} carousel images` : isTierProgressionCarouselGenerator(generatorMode) ? "Create an A1 to C1 carousel" : "Create a vocabulary carousel"}</h2>
-                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{carouselError || (isLoading ? "Vocabulary cards are being prepared." : isTierProgressionCarouselGenerator(generatorMode) ? "Choose the learning and native languages. Each run creates a brand intro followed by A1, A2, B1, B2, and C1 card visuals without AI generation." : "Choose the learning and native languages. Each run creates a brand intro followed by six different 3:4 card visuals without AI generation.")}</p>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{isLoading ? "Vocabulary cards are being prepared." : isTierProgressionCarouselGenerator(generatorMode) ? "Choose the learning and native languages. Each run creates a brand intro followed by A1, A2, B1, B2, and C1 card visuals without AI generation." : "Choose the learning and native languages. Each run creates a brand intro followed by six different 3:4 card visuals without AI generation."}</p>
                     </div>
                   </div>}
                 </div>
@@ -1966,14 +1984,14 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <div>
                       {aiImagePending ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}
                       <h2 className="mt-4 font-display text-2xl font-semibold">{aiImagePending ? "GPT Image is creating your image" : "Create an AI image"}</h2>
-                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{aiImageError || aiImagePending ? aiImageError || "GPT Image is rendering the square visual with your FoxiesDeck brand references." : "Choose a campaign mode, language, and level. GPT writes the art direction, then GPT Image creates the square visual."}</p>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#cdbfb3]">{aiImagePending ? "GPT Image is rendering the square visual with your FoxiesDeck brand references." : "Choose a campaign mode, language, and level. GPT writes the art direction, then GPT Image creates the square visual."}</p>
                       {aiImagePending ? <div className="mx-auto mt-5 h-2 max-w-xs overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#f5ac27] transition-[width] duration-500" style={{ width: `${Math.max(4, aiImageProgress)}%` }} /></div> : null}
                     </div>
                   </div>}
                 </div>
               ) : isSelfImageGenerator(generatorMode) ? (selfCards.length > 0 || selfFalseFriends || selfExampleSentences || selfVocabularyProgression) ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                  {selfImageUrl ? <Image alt="Generated self visual" className={cn("h-auto w-full bg-black object-cover", selfImagePreview.aspectClassName)} height={selfImagePreview.height} src={selfImageUrl} unoptimized width={selfImagePreview.width} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{selfImageError || "Rendering self image..."}</p></div></div>}
+                  {selfImageUrl ? <Image alt="Generated self visual" className={cn("h-auto w-full bg-black object-cover", selfImagePreview.aspectClassName)} height={selfImagePreview.height} src={selfImageUrl} unoptimized width={selfImagePreview.width} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">Rendering self image...</p></div></div>}
                   <div
                     ref={selfImageExportRef}
                     data-social-self-image
@@ -1995,9 +2013,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   </div>
                 </div>
-              ) : <div className="grid min-h-80 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Composing self image..." : selfImageError || "No self image data was found."}</div> : generatorMode === "word-of-the-day-poster" ? card ? (
+              ) : <div className="grid min-h-80 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Composing self image..." : "No self image data was found."}</div> : generatorMode === "word-of-the-day-poster" ? card ? (
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                  {posterImageUrl ? <Image alt="Rendered Word of the Day poster" className="aspect-[4/3] w-full bg-black object-cover" height={768} src={posterImageUrl} unoptimized width={1024} /> : <div className="grid aspect-[4/3] place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering poster image..."}</p></div></div>}
+                  {posterImageUrl ? <Image alt="Rendered Word of the Day poster" className="aspect-[4/3] w-full bg-black object-cover" height={768} src={posterImageUrl} unoptimized width={1024} /> : <div className="grid aspect-[4/3] place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">Rendering poster image...</p></div></div>}
                   <div
                     ref={posterExportRef}
                     data-social-word-poster
@@ -2032,7 +2050,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                     <textarea className="mt-4 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
                   </div>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
-                    {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">{localImageRenderError || "Rendering card image..."}</p></div></div>}
+                    {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">Rendering card image...</p></div></div>}
                     <div ref={exportRef} className="pointer-events-none fixed left-0 top-0 -z-[9999] h-fit w-fit overflow-hidden">
                       <WordOfTheDayImage card={card} mode="card" nativeLanguage={nativeLanguage} />
                     </div>

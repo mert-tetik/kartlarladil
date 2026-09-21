@@ -198,20 +198,35 @@ export type LimitErrorCode =
   | "free_active_card_limit"
   | "free_learned_card_limit"
   | "ai_daily_limit"
-  | "ai_monthly_limit";
+  | "ai_monthly_limit"
+  | "image_text_translate_limit";
 
 export interface ActiveCardLimitDetails {
   addedCount: number;
   skippedCount: number;
 }
 
-export type AiUsageEventType = "chat" | "translate" | "ask" | "create_card" | "quiz_validate";
+export type AiUsageEventType =
+  | "chat"
+  | "translate"
+  | "ask"
+  | "create_card"
+  | "quiz_validate"
+  | "image_text_translate";
+
+export interface AiFeatureLimit {
+  daily: number | null;
+  monthly: number | null;
+}
 
 export interface PlanLimits {
   activeCards: number | null;
   learnedCards: number | null;
-  aiDailyMessages: number;
-  aiMonthlyMessages: number;
+  /** Legacy summary values kept for existing entitlement consumers. */
+  aiDailyMessages: number | null;
+  aiMonthlyMessages: number | null;
+  aiFeatureLimits?: Partial<Record<AiUsageEventType, AiFeatureLimit>>;
+  imageTextTranslations?: number | null;
 }
 
 export interface UserSubscription {
