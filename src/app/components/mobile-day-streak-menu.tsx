@@ -373,7 +373,7 @@ export function MobileDayStreakMenu({
                   style={getDayStreakEnterStyle(80)}
                   data-day-streak-current-streak
                 >
-                  {streak}
+                  {formatSuperWaterText(locale, formatNumber(locale, streak))}
                 </p>
               )}
               <h1

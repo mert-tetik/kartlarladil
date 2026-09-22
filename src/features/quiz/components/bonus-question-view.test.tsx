@@ -5,6 +5,7 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 import { BonusQuestionView } from "@/features/quiz/components/bonus-question-view";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 
 vi.mock("@/features/cards/card-speech", () => ({
   speakCardTerm: vi.fn(),
@@ -12,6 +13,10 @@ vi.mock("@/features/cards/card-speech", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/lib/vibration", () => ({
+  vibrate: vi.fn(),
 }));
 
 describe("BonusQuestionView", () => {
@@ -175,6 +180,39 @@ describe("BonusQuestionView", () => {
 
     fireEvent.click(container.querySelector<HTMLButtonElement>("[data-bonus-check]")!);
     expect(onSubmit).toHaveBeenCalledWith("matching", true);
+  });
+
+  it("uses a light vibration for selection and a stronger vibration for correct or incorrect matches", () => {
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer={false}
+          answerAccepted={null}
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const term = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-term="${id}"]`)!;
+    const meaning = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-meaning="${id}"]`)!;
+
+    fireEvent.click(term("a"));
+    expect(vibrate).toHaveBeenLastCalledWith("tap");
+
+    vi.mocked(vibrate).mockClear();
+    fireEvent.click(meaning("a"));
+    expect(vibrate).toHaveBeenLastCalledWith("correct");
+
+    vi.mocked(vibrate).mockClear();
+    fireEvent.click(term("b"));
+    expect(vibrate).toHaveBeenLastCalledWith("tap");
+
+    vi.mocked(vibrate).mockClear();
+    fireEvent.click(meaning("c"));
+    expect(vibrate).toHaveBeenLastCalledWith("incorrect");
   });
 
   it("colors matching buttons by correctness after checking", async () => {

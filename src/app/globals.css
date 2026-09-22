@@ -2465,6 +2465,22 @@ body:has([data-ask-page]) footer {
   animation: score-bobble 350ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@keyframes score-bobble-alt {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-score-bobble-alt {
+  animation: score-bobble-alt 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes gem-target-pulse {
   0% {
     transform: scale(1);
@@ -2788,23 +2804,18 @@ body:has([data-ask-page]) footer {
 @keyframes quiz-start-splash {
   0% {
     transform: translate3d(0, -100%, 0);
-    opacity: 1;
   }
   40% {
     transform: translate3d(0, 0, 0);
-    opacity: 1;
   }
   60% {
     transform: translate3d(0, 0, 0);
-    opacity: 1;
   }
   75% {
     transform: translate3d(0, 0, 0);
-    opacity: 1;
   }
   100% {
     transform: translate3d(0, 100%, 0);
-    opacity: 0;
   }
 }
 
@@ -3225,13 +3236,14 @@ body:has([data-ask-page]) footer {
 }
 
 @keyframes streak-reward-break {
-  0% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg); }
-  45% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1.16) rotate(-4deg); }
-  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.45) rotate(12deg); }
+  0% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 0; }
 }
 
 .animate-streak-reward-break {
-  animation: streak-reward-break 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: streak-reward-break 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, scale;
 }
 
 @keyframes streak-reward-enter {
@@ -3268,7 +3280,7 @@ body:has([data-ask-page]) footer {
 }
 
 .animate-streak-reward-video-exit {
-  animation: streak-reward-video-exit 160ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation: streak-reward-video-exit 250ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: opacity;
 }
 
@@ -3289,6 +3301,23 @@ body:has([data-ask-page]) footer {
 
 .animate-streak-reward-ui-enter {
   animation: streak-reward-ui-enter 520ms 900ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+@keyframes streak-reward-ui-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+.animate-streak-reward-ui-exit {
+  animation: streak-reward-ui-exit 300ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: opacity, transform;
 }

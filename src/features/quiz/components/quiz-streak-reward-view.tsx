@@ -6,6 +6,7 @@ import { Flame, Star } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
 import type { GemBalances, GemRewards } from "@/features/gems/gem-types";
@@ -19,11 +20,6 @@ import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import {
-  createStreakExitMotion,
-  stepRigidBody,
-  type RigidBodyState,
-} from "@/features/quiz/streak-rigid-body";
 
 interface QuizStreakRewardViewProps {
   streak: number;
@@ -47,27 +43,16 @@ type FlightIcon = {
   delay: number;
 };
 
-type RewardBreakMotion = {
-  number: RigidBodyState;
-  icon: RigidBodyState;
-};
-
-const BREAK_DELAY_MS = 1000;
+const REWARD_SCATTER_DELAY_MS = 2800;
 const LAST_START_MS = 780;
-const EXIT_DURATION_MS = 1000;
-const VIDEO_BREAK_BEFORE_END_MS = 1000;
-// The fallback matches the bundled reward video. It is only used if the browser
-// has not exposed the media duration at the moment playback starts.
+const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
+const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
+const VIDEO_AUDIO_MAX_VOLUME = 0.75;
+const VIDEO_FADE_OUT_DURATION_MS = 250;
 const STREAK_REWARD_VIDEO_DURATION_MS = 4064;
-const FALLBACK_BREAK_DELAY_MS = STREAK_REWARD_VIDEO_DURATION_MS - VIDEO_BREAK_BEFORE_END_MS;
-
-function motionStyle(motion: RigidBodyState): CSSProperties {
-  return {
-    transform: `translate3d(${motion.x}px, ${motion.y}px, 0) rotate(${motion.rotation}deg)`,
-    transformOrigin: "center",
-    willChange: "transform",
-  };
-}
+const POST_VIDEO_HOLD_DURATION_MS = 1000;
+const UI_EXIT_DELAY_AFTER_VIDEO_MS = 700;
+const MEDIA_FALLBACK_DELAY_MS = STREAK_REWARD_VIDEO_DURATION_MS + 2000;
 
 export function QuizStreakRewardView({
   streak,
@@ -84,22 +69,30 @@ export function QuizStreakRewardView({
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const videoDurationRef = useRef<number | null>(null);
-  const videoPlaybackStartedRef = useRef(false);
-  const videoClockIntervalRef = useRef<number | null>(null);
-  const videoStartPollRef = useRef<number | null>(null);
   const arrivedIconIdsRef = useRef(new Set<number>());
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
-  const animationFrameRef = useRef<number | null>(null);
   const breakTimerRef = useRef<number | null>(null);
+  const rewardTimerRef = useRef<number | null>(null);
+  const audioFadeInFrameRef = useRef<number | null>(null);
+  const audioFadeOutTimerRef = useRef<number | null>(null);
+  const audioFadeOutFrameRef = useRef<number | null>(null);
+  const uiExitTimerRef = useRef<number | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
+  const hardCompletionTimeoutRef = useRef<number | null>(null);
+  const rewardStartedRef = useRef(false);
   const breakStartedRef = useRef(false);
+  const audioFadeInStartedRef = useRef(false);
+  const audioFadeOutStartedRef = useRef(false);
+  const videoPlaybackStartedRef = useRef(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
-  const [breakMotion, setBreakMotion] = useState<RewardBreakMotion | null>(null);
+  const [rewardStarted, setRewardStarted] = useState(false);
+  const [videoExiting, setVideoExiting] = useState(false);
+  const [uiExiting, setUiExiting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
   const {
     balances: gemDisplayBalances,
@@ -112,6 +105,10 @@ export function QuizStreakRewardView({
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (testMode) {
@@ -148,24 +145,21 @@ export function QuizStreakRewardView({
     };
   }, [prepareGemRewardDisplay, quizSessionId, streak, testGemBalances, testGemRewards, testMode, updateProfileField, user]);
 
-  const startBreak = useCallback(() => {
-    if (breakStartedRef.current) return;
-    breakStartedRef.current = true;
+  const forceComplete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onCompleteRef.current();
+  }, []);
 
-    if (breakTimerRef.current !== null) {
-      window.clearTimeout(breakTimerRef.current);
-      breakTimerRef.current = null;
-    }
-    if (videoClockIntervalRef.current !== null) {
-      window.clearInterval(videoClockIntervalRef.current);
-      videoClockIntervalRef.current = null;
-    }
+  const startRewardScatter = useCallback(() => {
+    if (rewardStartedRef.current) return;
+    rewardStartedRef.current = true;
 
-    const bodies = createStreakExitMotion();
-    setBreakMotion({
-      number: { ...bodies.number },
-      icon: { ...bodies.icon },
-    });
+    if (rewardTimerRef.current !== null) {
+      window.clearTimeout(rewardTimerRef.current);
+      rewardTimerRef.current = null;
+    }
+    setRewardStarted(true);
     vibrate("streak-break");
 
     if (rewardRef.current && scoreRef.current) {
@@ -188,174 +182,199 @@ export function QuizStreakRewardView({
 
       setFlightIcons(icons);
     }
+  }, [points]);
 
-    let elapsed = 0;
-    let lastTimestamp: number | null = null;
-    const tick = (timestamp: number) => {
-      if (lastTimestamp === null) lastTimestamp = timestamp;
-      const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.032);
-      lastTimestamp = timestamp;
-      elapsed += delta * 1000;
+  const startVideoAudioFadeIn = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || audioFadeInStartedRef.current || audioFadeOutStartedRef.current) return;
 
-      stepRigidBody(bodies.number, delta);
-      stepRigidBody(bodies.icon, delta);
-      setBreakMotion({
-        number: { ...bodies.number },
-        icon: { ...bodies.icon },
-      });
+    audioFadeInStartedRef.current = true;
+    if (audioFadeInFrameRef.current !== null) {
+      window.cancelAnimationFrame(audioFadeInFrameRef.current);
+      audioFadeInFrameRef.current = null;
+    }
 
-      if (elapsed < EXIT_DURATION_MS) {
-        animationFrameRef.current = window.requestAnimationFrame(tick);
+    video.volume = 0;
+    const startedAt = performance.now();
+    const fade = (timestamp: number) => {
+      const progress = Math.min(
+        1,
+        (timestamp - startedAt) / VIDEO_AUDIO_FADE_IN_DURATION_MS,
+      );
+      video.volume = VIDEO_AUDIO_MAX_VOLUME * progress;
+
+      if (progress < 1) {
+        audioFadeInFrameRef.current = window.requestAnimationFrame(fade);
+      } else {
+        audioFadeInFrameRef.current = null;
+        video.volume = VIDEO_AUDIO_MAX_VOLUME;
       }
     };
 
-    animationFrameRef.current = window.requestAnimationFrame(tick);
-    completionTimeoutRef.current = window.setTimeout(() => {
-      if (completedRef.current) return;
-      completedRef.current = true;
-      onCompleteRef.current();
-    }, EXIT_DURATION_MS);
-  }, [points]);
+    audioFadeInFrameRef.current = window.requestAnimationFrame(fade);
+  }, []);
 
-  const scheduleBreak = useCallback((delayMs: number) => {
-    if (breakStartedRef.current || breakTimerRef.current !== null) return;
-    const normalizedDelay = Math.max(0, delayMs);
-    breakTimerRef.current = window.setTimeout(startBreak, normalizedDelay);
-  }, [startBreak]);
-
-  useEffect(() => {
-    // Never let a missed media event leave the reward overlay on its last
-    // frame. The bundled video has a fixed duration, so this watchdog is a
-    // deterministic fallback until the media clock can refine it.
-    scheduleBreak(FALLBACK_BREAK_DELAY_MS);
-  }, [scheduleBreak]);
-
-  const scheduleBreakFromVideo = useCallback(() => {
+  const startVideoAudioFadeOut = useCallback(() => {
     const video = videoRef.current;
-    const duration = video && Number.isFinite(video.duration) && video.duration > 0
-      ? video.duration
-      : (videoDurationRef.current ?? STREAK_REWARD_VIDEO_DURATION_MS / 1000);
-    if (!video || !videoPlaybackStartedRef.current) return;
+    if (!video || audioFadeOutStartedRef.current) return;
 
-    const remainingMs = Math.max(0, (duration - video.currentTime) * 1000);
-    scheduleBreak(Math.max(0, remainingMs - VIDEO_BREAK_BEFORE_END_MS));
-  }, [scheduleBreak]);
-
-  const checkVideoClock = useCallback(() => {
-    const video = videoRef.current;
-    const duration = video && Number.isFinite(video.duration) && video.duration > 0
-      ? video.duration
-      : (videoDurationRef.current ?? STREAK_REWARD_VIDEO_DURATION_MS / 1000);
-    if (!video || !videoPlaybackStartedRef.current || breakStartedRef.current) return;
-
-    const remainingMs = Math.max(0, (duration - video.currentTime) * 1000);
-    if (remainingMs <= VIDEO_BREAK_BEFORE_END_MS) {
-      startBreak();
+    audioFadeOutStartedRef.current = true;
+    if (audioFadeOutTimerRef.current !== null) {
+      window.clearTimeout(audioFadeOutTimerRef.current);
+      audioFadeOutTimerRef.current = null;
     }
-  }, [startBreak]);
+    if (audioFadeInFrameRef.current !== null) {
+      window.cancelAnimationFrame(audioFadeInFrameRef.current);
+      audioFadeInFrameRef.current = null;
+    }
+    if (audioFadeOutFrameRef.current !== null) {
+      window.cancelAnimationFrame(audioFadeOutFrameRef.current);
+      audioFadeOutFrameRef.current = null;
+    }
 
-  const startVideoClock = useCallback(() => {
-    checkVideoClock();
-    if (videoClockIntervalRef.current !== null) return;
-    // Media time is the source of truth. This catches the exact one-second
-    // threshold even when the browser emits `timeupdate` infrequently.
-    videoClockIntervalRef.current = window.setInterval(checkVideoClock, 16);
-  }, [checkVideoClock]);
+    const initialVolume = video.volume;
+    const startedAt = performance.now();
+    const fade = (timestamp: number) => {
+      const progress = Math.min(
+        1,
+        (timestamp - startedAt) / VIDEO_AUDIO_FADE_OUT_DURATION_MS,
+      );
+      video.volume = Math.max(0, initialVolume * (1 - progress));
 
-  const rescheduleBreakFromVideo = useCallback(() => {
+      if (progress < 1) {
+        audioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
+      } else {
+        audioFadeOutFrameRef.current = null;
+        video.volume = 0;
+      }
+    };
+
+    audioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
+  }, []);
+
+  const startBreak = useCallback(() => {
     if (breakStartedRef.current) return;
+    breakStartedRef.current = true;
+
+    if (!rewardStartedRef.current) startRewardScatter();
+    startVideoAudioFadeOut();
     if (breakTimerRef.current !== null) {
       window.clearTimeout(breakTimerRef.current);
       breakTimerRef.current = null;
     }
-    scheduleBreakFromVideo();
-  }, [scheduleBreakFromVideo]);
+    setVideoExiting(true);
+    uiExitTimerRef.current = window.setTimeout(() => {
+      setUiExiting(true);
+    }, VIDEO_FADE_OUT_DURATION_MS + UI_EXIT_DELAY_AFTER_VIDEO_MS);
+    completionTimeoutRef.current = window.setTimeout(() => {
+      forceComplete();
+    }, VIDEO_FADE_OUT_DURATION_MS + POST_VIDEO_HOLD_DURATION_MS);
+  }, [forceComplete, startRewardScatter, startVideoAudioFadeOut]);
 
-  const handleVideoMetadata = useCallback(() => {
+  const scheduleVideoFade = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
-    videoDurationRef.current = video.duration;
-
-    // Metadata is available before autoplay events are guaranteed to reach
-    // React. Establish the absolute fallback from the media duration here so
-    // a missed `play`/`timeupdate` event can never leave the screen frozen.
-    const remainingMs = Math.max(0, (video.duration - video.currentTime) * 1000);
-    scheduleBreak(Math.max(0, remainingMs - VIDEO_BREAK_BEFORE_END_MS));
-
-    if (!video.paused || video.currentTime > 0) {
-      videoPlaybackStartedRef.current = true;
-      rescheduleBreakFromVideo();
-      startVideoClock();
+    if (
+      breakStartedRef.current ||
+      !videoPlaybackStartedRef.current ||
+      !video ||
+      !Number.isFinite(video.duration) ||
+      video.duration <= 0
+    ) {
+      return;
     }
-  }, [rescheduleBreakFromVideo, scheduleBreak, startVideoClock]);
+
+    if (breakTimerRef.current !== null) {
+      window.clearTimeout(breakTimerRef.current);
+    }
+
+    const remainingMs = Math.max(0, (video.duration - video.currentTime) * 1000);
+    if (!audioFadeOutStartedRef.current) {
+      if (remainingMs <= VIDEO_AUDIO_FADE_OUT_DURATION_MS) {
+        startVideoAudioFadeOut();
+      } else {
+        if (audioFadeOutTimerRef.current !== null) {
+          window.clearTimeout(audioFadeOutTimerRef.current);
+        }
+        audioFadeOutTimerRef.current = window.setTimeout(
+          startVideoAudioFadeOut,
+          remainingMs - VIDEO_AUDIO_FADE_OUT_DURATION_MS,
+        );
+      }
+    }
+
+    breakTimerRef.current = window.setTimeout(
+      startBreak,
+      Math.max(0, remainingMs - VIDEO_FADE_OUT_DURATION_MS),
+    );
+  }, [startBreak, startVideoAudioFadeOut]);
 
   const handleVideoPlay = useCallback(() => {
     videoPlaybackStartedRef.current = true;
-    rescheduleBreakFromVideo();
-    startVideoClock();
-  }, [rescheduleBreakFromVideo, startVideoClock]);
+    startVideoAudioFadeIn();
+    scheduleVideoFade();
+  }, [scheduleVideoFade, startVideoAudioFadeIn]);
 
   const handleVideoTimeUpdate = useCallback(() => {
     const video = videoRef.current;
-    const duration = video && Number.isFinite(video.duration) && video.duration > 0
-      ? video.duration
-      : (videoDurationRef.current ?? STREAK_REWARD_VIDEO_DURATION_MS / 1000);
     if (!video) return;
 
-    // Autoplay can begin before React attaches the `play` listener during
-    // hydration. A real timeupdate is enough proof that the media clock is
-    // running, so do not wait for `onPlay` in that case.
+    // Covers autoplay starting before the play listener is delivered and keeps
+    // the fade timer aligned with the media clock if playback is delayed.
     if (!videoPlaybackStartedRef.current && (!video.paused || video.currentTime > 0)) {
       videoPlaybackStartedRef.current = true;
-      rescheduleBreakFromVideo();
-      startVideoClock();
     }
-    if (!duration || !videoPlaybackStartedRef.current) return;
 
-    const remainingMs = Math.max(0, (duration - video.currentTime) * 1000);
-    if (remainingMs <= VIDEO_BREAK_BEFORE_END_MS) {
-      startBreak();
-    }
-  }, [rescheduleBreakFromVideo, startBreak, startVideoClock]);
+    scheduleVideoFade();
+  }, [scheduleVideoFade]);
 
   useEffect(() => {
-    // This poll covers the same hydration race even when the first
-    // `timeupdate` event was emitted before React finished binding handlers.
-    const poll = window.setInterval(() => {
-      const video = videoRef.current;
-      if (!video || breakStartedRef.current) return;
-      if (video.paused || video.currentTime <= 0.02) return;
+    if (!mounted) return;
 
-      videoPlaybackStartedRef.current = true;
-      rescheduleBreakFromVideo();
-      startVideoClock();
-      window.clearInterval(poll);
-      videoStartPollRef.current = null;
-    }, 16);
-    videoStartPollRef.current = poll;
+    // Reward timing is independent from media loading/playback. The score and
+    // gem scatter starts three seconds after the screen opens. Video fade-out
+    // is scheduled from the real media clock, exactly 250ms before the final
+    // frame; the UI then remains visible for one second and fades during its
+    // final 300ms.
+    rewardTimerRef.current = window.setTimeout(startRewardScatter, REWARD_SCATTER_DELAY_MS);
+    hardCompletionTimeoutRef.current = window.setTimeout(() => {
+      if (completedRef.current) return;
+      if (!rewardStartedRef.current) startRewardScatter();
+      if (!breakStartedRef.current) startBreak();
+    }, MEDIA_FALLBACK_DELAY_MS);
 
     return () => {
-      window.clearInterval(poll);
-      if (videoStartPollRef.current === poll) videoStartPollRef.current = null;
+      if (hardCompletionTimeoutRef.current !== null) {
+        window.clearTimeout(hardCompletionTimeoutRef.current);
+        hardCompletionTimeoutRef.current = null;
+      }
     };
-  }, [rescheduleBreakFromVideo, startVideoClock]);
+  }, [mounted, startBreak, startRewardScatter]);
 
   useEffect(() => {
     return () => {
+      if (rewardTimerRef.current !== null) {
+        window.clearTimeout(rewardTimerRef.current);
+      }
+      if (audioFadeInFrameRef.current !== null) {
+        window.cancelAnimationFrame(audioFadeInFrameRef.current);
+      }
+      if (audioFadeOutTimerRef.current !== null) {
+        window.clearTimeout(audioFadeOutTimerRef.current);
+      }
+      if (audioFadeOutFrameRef.current !== null) {
+        window.cancelAnimationFrame(audioFadeOutFrameRef.current);
+      }
+      if (uiExitTimerRef.current !== null) {
+        window.clearTimeout(uiExitTimerRef.current);
+      }
       if (breakTimerRef.current !== null) {
         window.clearTimeout(breakTimerRef.current);
       }
-      if (videoClockIntervalRef.current !== null) {
-        window.clearInterval(videoClockIntervalRef.current);
-      }
-      if (videoStartPollRef.current !== null) {
-        window.clearInterval(videoStartPollRef.current);
-      }
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
-      }
       if (completionTimeoutRef.current !== null) {
         window.clearTimeout(completionTimeoutRef.current);
+      }
+      if (hardCompletionTimeoutRef.current !== null) {
+        window.clearTimeout(hardCompletionTimeoutRef.current);
       }
     };
   }, []);
@@ -375,47 +394,60 @@ export function QuizStreakRewardView({
     // Flight completion only updates the score and feedback while the video-aligned exit runs.
   }
 
-  return typeof document === "undefined" ? null : createPortal(
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[70] overflow-hidden bg-transparent" data-streak-reward-view aria-hidden="true">
       <video
+        ref={videoRef}
         className={cn(
           "pointer-events-none absolute inset-0 h-full w-full object-cover",
-          breakMotion ? "animate-streak-reward-video-exit" : "animate-streak-reward-video-enter",
+          videoExiting ? "animate-streak-reward-video-exit" : "animate-streak-reward-video-enter",
         )}
         src="/quiz/streak-reward-background-20260921.mp4"
         autoPlay
-        muted
         playsInline
         preload="auto"
-        onLoadedMetadata={handleVideoMetadata}
-        onCanPlay={handleVideoPlay}
         onPlay={handleVideoPlay}
         onPlaying={handleVideoPlay}
         onTimeUpdate={handleVideoTimeUpdate}
-        onError={() => scheduleBreak(BREAK_DELAY_MS)}
         aria-hidden="true"
       />
-      <div className="pointer-events-none absolute inset-0 animate-streak-reward-ui-enter">
+      <div className={cn(
+        "pointer-events-none absolute inset-0 animate-streak-reward-ui-enter",
+        uiExiting && "animate-streak-reward-ui-exit",
+      )}>
         <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
-          <div className="relative flex items-center justify-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-center text-white shadow-lg">
-            <Star className="size-5 fill-current" aria-hidden="true" />
-            <span ref={scoreRef} key={scorePulse} className={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water", scorePulse > 0 && "animate-score-bobble")}>
+          <div className="relative flex items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-white">
+            <MainPointsDisplayBackground pulse={scorePulse} />
+            <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
+            <span ref={scoreRef} className={cn(
+              "relative z-10 text-lg font-bold",
+              canUseSuperWater(locale) && "font-super-water",
+              scorePulse > 0 && (scorePulse % 2 === 0 ? "animate-score-bobble-alt" : "animate-score-bobble"),
+            )}>
               {formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
             </span>
           </div>
-          <RewardGemHud className="mt-2" balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} />
+          <div className="mt-2 flex justify-center">
+            <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} />
+          </div>
         </div>
-        <div ref={rewardRef} className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4">
+        <div ref={rewardRef} className={cn(
+          "absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4",
+          rewardStarted && "animate-streak-reward-break",
+        )}>
           <span
-            className="text-7xl font-black text-white sm:text-8xl lg:text-9xl"
-            style={breakMotion ? motionStyle(breakMotion.number) : undefined}
+            className={cn(
+              "text-7xl font-black text-white sm:text-8xl lg:text-9xl",
+              canUseSuperWater(locale) && "font-super-water",
+            )}
           >
-            {streak}
+            {formatSuperWaterText(locale, formatNumber(locale, streak))}
           </span>
           <Flame
-            className="size-16 animate-streak-fire text-red-500 sm:size-20"
+            className="size-16 animate-streak-fire text-white sm:size-20"
             fill="currentColor"
-            style={breakMotion ? motionStyle(breakMotion.icon) : undefined}
           />
         </div>
       </div>
@@ -427,7 +459,7 @@ export function QuizStreakRewardView({
           animationDelay: `${icon.delay}ms`,
         } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon)}><ScoreIcon size={32} /></span>
       ))}
-      {breakMotion ? (
+      {rewardStarted ? (
         <GemRewardFlight
           key={gemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
           rewards={gemRewards}

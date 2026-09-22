@@ -25,6 +25,7 @@ import {
 import { ScoreIcon } from "@/components/score-icon";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { RewardGemHud, type GemHudPulse } from "@/features/progress/components/reward-gem-hud";
+import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import type { GemBalances, GemRewards, GemType } from "@/features/gems/gem-types";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
@@ -677,13 +678,14 @@ export function BonusQuestionView({
       data-bonus-reward-hud
     >
       <div
-        className="animate-points-pop relative inline-flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"
+        className="animate-points-pop relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-white"
         data-bonus-reward-score
       >
-        <Star className="size-5 fill-current" aria-hidden="true" />
+        <MainPointsDisplayBackground pulse={scorePulse} />
+        <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
         <span
           className={cn(
-            "text-lg font-bold",
+            "relative z-10 text-lg font-bold",
             canUseSuperWater(locale) && "font-super-water",
             scorePulse > 0 && "animate-score-bobble",
           )}
@@ -694,7 +696,6 @@ export function BonusQuestionView({
       </div>
       <RewardGemHud
         animate
-        size="large"
         desktopVisible
         hudRole="reward"
         balances={gemBalances}
@@ -901,9 +902,12 @@ function MatchingBonus({
     playSoundEffect("bonus-select");
 
     if (!selectedMeaningId) {
+      vibrate("tap");
       setSelectedTermId(id);
       return;
     }
+
+    vibrate(id === selectedMeaningId ? "correct" : "incorrect");
 
     setMatches((current) => {
       const next = { ...current };
@@ -924,9 +928,12 @@ function MatchingBonus({
     playSoundEffect("bonus-select");
 
     if (!selectedTermId) {
+      vibrate("tap");
       setSelectedMeaningId(id);
       return;
     }
+
+    vibrate(selectedTermId === id ? "correct" : "incorrect");
 
     setMatches((current) => {
       const next = { ...current };

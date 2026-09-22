@@ -4,6 +4,9 @@ import { createPortal } from "react-dom";
 import { Flame } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { formatNumber } from "@/i18n/labels";
+import { useLocale } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import {
   createStreakExitMotion,
@@ -48,6 +51,8 @@ export function QuizStreakCelebrationView({
   streak,
   onComplete,
 }: QuizStreakCelebrationViewProps) {
+  const { locale } = useLocale();
+  const superWater = canUseSuperWater(locale);
   const streakBackgroundColor = getStreakBackgroundColor(streak);
   const [exiting, setExiting] = useState(false);
   const [exitMotion, setExitMotion] = useState<StreakExitMotion | null>(null);
@@ -168,7 +173,14 @@ export function QuizStreakCelebrationView({
               <span className="animate-streak-shockwave-core absolute left-1/2 top-1/2 size-5 rounded-full bg-current" />
             </span>
           )}
-          <span className="relative z-10 text-7xl font-black text-white sm:text-8xl lg:text-9xl">{streak}</span>
+          <span
+            className={cn(
+              "relative z-10 text-7xl font-black text-white sm:text-8xl lg:text-9xl",
+              superWater && "font-super-water",
+            )}
+          >
+            {formatSuperWaterText(locale, formatNumber(locale, streak))}
+          </span>
         </span>
         <span className="relative inline-flex size-16 items-center justify-center sm:size-20" data-streak-fire-shell>
           {shockwaveVisible && (

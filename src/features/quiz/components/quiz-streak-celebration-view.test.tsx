@@ -1,7 +1,9 @@
 import { act, render } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import confetti from "canvas-confetti";
 import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
+import { LocaleProvider } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 
 vi.mock("@/lib/vibration", () => ({
@@ -13,6 +15,14 @@ vi.mock("canvas-confetti", () => ({
 }));
 
 describe("QuizStreakCelebrationView animations", () => {
+  function renderView(props: ComponentProps<typeof QuizStreakCelebrationView>) {
+    return render(
+      <LocaleProvider initialLocale="tr">
+        <QuizStreakCelebrationView {...props} />
+      </LocaleProvider>,
+    );
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -24,7 +34,7 @@ describe("QuizStreakCelebrationView animations", () => {
   it("uses the staggered entrance and independent rigid-body exit motion", () => {
     const onComplete = vi.fn();
 
-    render(<QuizStreakCelebrationView streak={5} onComplete={onComplete} />);
+    renderView({ streak: 5, onComplete });
 
     const background = document.querySelector("[data-streak-celebration-background]");
     const number = document.querySelector("[data-streak-count]");
@@ -90,7 +100,7 @@ describe("QuizStreakCelebrationView animations", () => {
     [20, "#F59E0B"],
     [50, "#F59E0B"],
   ])("uses the %s streak tier color after the shockwave", (streak, color) => {
-    render(<QuizStreakCelebrationView streak={streak} />);
+    renderView({ streak });
 
     act(() => {
       vi.advanceTimersByTime(400);

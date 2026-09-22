@@ -16,6 +16,7 @@ import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
 import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
 import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
+import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/locale-provider";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
@@ -35,6 +36,7 @@ interface LearnQuizShellProps {
   resultTest?: boolean;
   resultMessageTest?: boolean;
   bonusTest?: boolean;
+  normalTest?: boolean;
 }
 
 export function LearnQuizShell({
@@ -48,6 +50,7 @@ export function LearnQuizShell({
   resultTest = false,
   resultMessageTest = false,
   bonusTest = false,
+  normalTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -72,7 +75,7 @@ export function LearnQuizShell({
   }, [initialMode]);
 
   useEffect(() => {
-    if (bonusTest) return;
+    if (bonusTest || normalTest) return;
 
     if (hydrated && cards.length === 0 && !redirectStartedRef.current) {
       if (!window.matchMedia("(max-width: 1023px)").matches) return;
@@ -80,7 +83,7 @@ export function LearnQuizShell({
       redirectStartedRef.current = true;
       navigateWithRouteTransition(() => router.replace("/"));
     }
-  }, [bonusTest, cards.length, hydrated, router]);
+  }, [bonusTest, cards.length, hydrated, normalTest, router]);
 
   if (learnedCelebrationTest) {
     return <LearnedCelebrationTest />;
@@ -108,6 +111,10 @@ export function LearnQuizShell({
 
   // Isolated test routes must remain available even when the visual-test
   // account has no persisted inventory. They provide their own fixture cards.
+  if (normalTest) {
+    return <NormalQuestionsTest />;
+  }
+
   if (bonusTest) {
     return <BonusQuestionsTest />;
   }

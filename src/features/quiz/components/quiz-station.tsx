@@ -75,6 +75,10 @@ import {
   requestCategoryBonusQuestion,
   requestSentenceBonusQuestion,
 } from "@/features/quiz/bonus-question-client";
+import {
+  BONUS_QUESTION_PROBABILITY,
+  getMaxBonusQuestionCount,
+} from "@/features/quiz/bonus-question-constants";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -143,6 +147,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
+import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 
 import {
@@ -293,32 +298,32 @@ interface BaseQuizItem {
   isBonus?: false;
 }
 
-interface ChoiceQuizItem extends BaseQuizItem {
+export interface ChoiceQuizItem extends BaseQuizItem {
   questionType: "choice";
   question: QuizQuestion;
 }
 
-interface ListeningQuizItem extends BaseQuizItem {
+export interface ListeningQuizItem extends BaseQuizItem {
   questionType: "listening";
   question: ListeningQuizQuestion;
 }
 
-interface DefinitionQuizItem extends BaseQuizItem {
+export interface DefinitionQuizItem extends BaseQuizItem {
   questionType: "definition";
   question: DefinitionQuizQuestion;
 }
 
-interface TextQuizItem extends BaseQuizItem {
+export interface TextQuizItem extends BaseQuizItem {
   questionType: "text";
   question: { correctAnswer: string };
 }
 
-interface TrueFalseQuizItem extends BaseQuizItem {
+export interface TrueFalseQuizItem extends BaseQuizItem {
   questionType: "true-false";
   question: TrueFalseQuizQuestion;
 }
 
-interface SentenceCompletionQuizItem extends BaseQuizItem {
+export interface SentenceCompletionQuizItem extends BaseQuizItem {
   questionType: "sentence-completion";
   question: SentenceCompletionQuizQuestion;
   character: AiPracticeCharacter;
@@ -332,6 +337,7 @@ interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
 }
 
 type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
+export type NormalQuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
 type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
 type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
 
@@ -856,34 +862,78 @@ export function QuizStation({
       const bonusLearnedCards = bonusInventoryCards
         .filter((item) => item.inventory.status === "learned")
         .map((item) => item.card);
+      const sessionId = createQuizSessionId();
+      const maxBonusQuestionCount = getMaxBonusQuestionCount(regularItems.length);
+      const bonusPlans = regularItems.map((_, index) => {
+        const preferredKind = getBonusKind(index);
+        const candidateKinds = [
+          preferredKind,
+          ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredKind)),
+        ];
+        let selectedKind = preferredKind;
+        let selectedBonusId = `${sessionId}-${selectedKind}-${index}`;
+        let selectedFallback: BonusQuestion | null = null;
+
+        for (const candidateKind of candidateKinds) {
+          const candidateBonusId = `${sessionId}-${candidateKind}-${index}`;
+          const candidateFallback = buildFallbackBonusQuestion(
+            candidateKind,
+            bonusCards,
+            language,
+            locale,
+            candidateBonusId,
+            bonusLearnedCards,
+          );
+
+          if (candidateFallback) {
+            selectedKind = candidateKind;
+            selectedBonusId = candidateBonusId;
+            selectedFallback = candidateFallback;
+            break;
+          }
+        }
+
+        return {
+          index,
+          kind: selectedKind,
+          bonusId: selectedBonusId,
+          fallback: selectedFallback,
+        };
+      });
+      const randomBonusPlans = shuffle(
+        bonusPlans.filter(
+          (plan) => plan.fallback && Math.random() < BONUS_QUESTION_PROBABILITY,
+        ),
+      );
+      const selectedBonusPlans = randomBonusPlans.slice(0, maxBonusQuestionCount);
+
+      // A quiz with available bonus content always gets at least one bonus,
+      // even when every independent probability roll misses.
+      if (selectedBonusPlans.length === 0 && maxBonusQuestionCount > 0) {
+        const availableBonusPlans = bonusPlans.filter((plan) => plan.fallback);
+        const forcedPlan =
+          availableBonusPlans[Math.floor(Math.random() * availableBonusPlans.length)];
+
+        if (forcedPlan) {
+          selectedBonusPlans.push(forcedPlan);
+        }
+      }
+
+      const selectedBonusIds = new Set(selectedBonusPlans.map((plan) => plan.bonusId));
       const items: QuizItem[] = [];
       const gptJobs: Array<{
         bonusId: string;
         kind: "sentence-order" | "category-sort";
       }> = [];
-      const sessionId = createQuizSessionId();
       const deckToken = bonusDeckTokenRef.current + 1;
       bonusDeckTokenRef.current = deckToken;
 
       regularItems.forEach((item, index) => {
         items.push(item);
 
-        if (Math.random() >= 1 / 3) {
-          return;
-        }
-
-        const kind = getBonusKind(index);
-        const bonusId = `${sessionId}-${kind}-${index}`;
-        const fallback = buildFallbackBonusQuestion(
-          kind,
-          bonusCards,
-          language,
-          locale,
-          bonusId,
-          bonusLearnedCards,
-        );
-
-        if (!fallback) return;
+        const plan = bonusPlans[index];
+        const fallback = plan?.fallback;
+        if (!plan || !selectedBonusIds.has(plan.bonusId) || !fallback) return;
 
         const anchor = regularItems[0] ?? item;
         items.push({
@@ -891,13 +941,13 @@ export function QuizStation({
           inventoryCard: anchor.inventoryCard,
           willLearn: false,
           isBonus: true,
-          bonusId,
-          questionType: `bonus-${kind}`,
+          bonusId: plan.bonusId,
+          questionType: `bonus-${plan.kind}`,
           bonusQuestion: fallback,
         });
 
-        if (kind === "sentence-order" || kind === "category-sort") {
-          gptJobs.push({ bonusId, kind });
+        if (plan.kind === "sentence-order" || plan.kind === "category-sort") {
+          gptJobs.push({ bonusId: plan.bonusId, kind: plan.kind });
         }
       });
 
@@ -3508,7 +3558,7 @@ function QuizQuestionActionRow({
   );
 }
 
-function ListeningQuestion({
+export function ListeningQuestion({
   item,
   showingAnswer,
   onAnswer,
@@ -3617,7 +3667,7 @@ function ListeningQuestion({
   );
 }
 
-function ChoiceQuestion({
+export function ChoiceQuestion({
   item,
   showingAnswer,
   showPrompt = true,
@@ -3722,7 +3772,7 @@ function ChoiceQuestion({
   );
 }
 
-function DefinitionQuestion({
+export function DefinitionQuestion({
   item,
   showingAnswer,
   onAnswer,
@@ -3912,7 +3962,7 @@ function QuizAnswerButton({
   );
 }
 
-function SentenceCompletionQuestion({
+export function SentenceCompletionQuestion({
   item,
   showingAnswer,
   isAiValidating,
@@ -4048,7 +4098,7 @@ function SentenceCompletionQuestion({
   );
 }
 
-function TrueFalseQuestion({
+export function TrueFalseQuestion({
   item,
   showingAnswer,
   showPrompt = true,
@@ -4185,7 +4235,7 @@ function TrueFalseQuestion({
   );
 }
 
-function TextQuestion({
+export function TextQuestion({
   item,
   textAnswer,
   textResult,
@@ -4663,13 +4713,14 @@ export function CelebrationView({
             data-quiz-celebration-score-group
           >
             <div
-              className="relative flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg"
+              className="relative flex items-center gap-2 rounded-full px-4 py-2 text-white"
               data-quiz-celebration-score
             >
-              <Star className="size-5 fill-current" aria-hidden="true" />
+              <MainPointsDisplayBackground pulse={scorePulse} />
+              <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
               <span
                 className={cn(
-                "text-lg font-bold",
+                "relative z-10 text-lg font-bold",
                   canUseSuperWater(locale) && "font-super-water",
                   scorePulse > 0 && "animate-score-bobble",
                 )}
@@ -4679,7 +4730,7 @@ export function CelebrationView({
                 {formatSuperWaterText(locale, formatPoints(locale, displayPoints))}
               </span>
             </div>
-            <RewardGemHud animate size="large" superWater={canUseSuperWater(locale)} />
+            <RewardGemHud animate superWater={canUseSuperWater(locale)} />
           </div>
 
           <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
@@ -5232,12 +5283,13 @@ export function ResultView({
           </div>
 
           <div className="mt-3">
-            <div className="relative inline-flex items-center gap-2 rounded-full border border-[var(--score-start)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
-              <Star className="size-5 fill-current" aria-hidden="true" />
+            <div className="relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-white">
+              <MainPointsDisplayBackground pulse={scorePulse} />
+              <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
               <span
                 ref={scoreRef}
                 className={cn(
-                  "text-lg font-bold",
+                  "relative z-10 text-lg font-bold",
                   canUseSuperWater(locale) && "font-super-water",
                   scorePulse > 0 && "animate-score-bobble",
                 )}

@@ -14,6 +14,7 @@ import { CHEST_TIER_OPENING_VIDEOS, type ChestTierDefinition } from "@/features/
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
+import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import { getScoreFlightAwardAtArrival, getScoreFlightIconCount } from "@/features/progress/score-flight";
 
 interface ChestOpeningViewProps {
@@ -67,6 +68,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
   const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
+  const [pointsDisplayPulse, setPointsDisplayPulse] = useState(0);
   const [pointsSourcePulse, setPointsSourcePulse] = useState(0);
   const [gemSourcePulse, setGemSourcePulse] = useState<Record<GemType, number>>({ blue: 0, green: 0, purple: 0 });
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
@@ -248,6 +250,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
       setDisplayPoints(
         stableTotalPoints + getScoreFlightAwardAtArrival(rewardPoints, iconCount, index + 1),
       );
+      setPointsDisplayPulse(index + 1);
       playSoundEffect("points");
       vibrate("tap");
       if (index === icons.length - 1) setPointsPhase("added");
@@ -297,9 +300,10 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
         )}>
           <div
             data-chest-total-points-shell
-            className="rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-white shadow-lg sm:px-5"
+            className="relative rounded-full px-4 py-2 text-white sm:px-5"
           >
-            <div className="flex items-center gap-2">
+            <MainPointsDisplayBackground pulse={pointsDisplayPulse} />
+            <div className="relative z-10 flex items-center gap-2">
               <ScoreIcon size={24} className="size-6 brightness-0 invert" />
               <span
                 ref={totalPointsRef}
@@ -307,7 +311,7 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
                 className={cn(
                   "text-lg font-bold sm:text-xl",
                   usesSuperWater && "font-super-water",
-                  pointsPhase === "added" && "animate-score-bobble",
+                  pointsDisplayPulse > 0 && (pointsDisplayPulse % 2 === 0 ? "animate-score-bobble-alt" : "animate-score-bobble"),
                 )}
               >
                 {formatRewardText(formatNumber(locale, displayPoints))}
@@ -316,7 +320,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
           </div>
           <RewardGemHud
             className="transition-[opacity,transform] duration-300 ease-out"
-            size="large"
             balances={gemDisplayBalances}
             pulse={gemPulse}
             superWater={usesSuperWater}

@@ -14,6 +14,7 @@ import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
 import type { GameName } from "../game-types";
@@ -231,11 +232,12 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
           />
         </div>
 
-        <div className="game-result-score relative flex items-center gap-2 rounded-full border border-[var(--score-highlight)]/30 bg-gradient-to-r from-[var(--score-start)] to-[var(--score-end)] px-4 py-2 text-white shadow-lg">
-          <Star className="size-5 fill-current" aria-hidden="true" />
+        <div className="game-result-score relative flex items-center gap-2 rounded-full px-4 py-2 text-white">
+          <MainPointsDisplayBackground pulse={scorePulse} />
+          <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
           <span
             className={cn(
-              "text-lg font-bold",
+              "relative z-10 text-lg font-bold",
               scorePulse > 0 && "animate-score-bobble",
             )}
             key={scorePulse}

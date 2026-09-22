@@ -74,6 +74,11 @@ function parseBonusTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseNormalTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 export default async function LearnPage({
   searchParams,
 }: {
@@ -91,6 +96,7 @@ export default async function LearnPage({
   const resultTest = parseResultTest(params["result-test"]);
   const resultMessageTest = parseResultMessageTest(params["result-message-test"]);
   const bonusTest = parseBonusTest(params["bonus-test"]);
+  const normalTest = parseNormalTest(params["normal-test"] ?? params["quiz-normal-test"]);
 
   return (
     <section
@@ -109,6 +115,7 @@ export default async function LearnPage({
         resultTest={resultTest}
         resultMessageTest={resultMessageTest}
         bonusTest={bonusTest}
+        normalTest={normalTest}
       />
     </section>
   );

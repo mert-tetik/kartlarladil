@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { cn } from "@/lib/utils";
 
 interface QuizStartSplashProps {
   onComplete: () => void;
@@ -18,7 +20,7 @@ export function QuizStartSplash({
   onCovered,
   onExited,
 }: QuizStartSplashProps) {
-  const t = useT();
+  const { locale, t } = useLocale();
   const onCompleteRef = useRef(onComplete);
   const onCoveredRef = useRef(onCovered);
   const onExitedRef = useRef(onExited);
@@ -66,8 +68,13 @@ export function QuizStartSplash({
       data-quiz-start-splash
       aria-hidden="true"
     >
-      <span className="break-words px-6 text-center text-5xl font-black uppercase tracking-widest text-white sm:text-6xl lg:text-7xl">
-        {t("quiz.startSplash")}
+      <span
+        className={cn(
+          "break-words px-6 text-center text-5xl font-bold tracking-widest text-white sm:text-6xl lg:text-7xl",
+          canUseSuperWater(locale) && "font-super-water",
+        )}
+      >
+        {formatSuperWaterUppercaseText(locale, t("quiz.startSplash"))}
       </span>
     </div>,
     document.body,
