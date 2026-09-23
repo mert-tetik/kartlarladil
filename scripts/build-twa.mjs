@@ -7,7 +7,7 @@
  * works from Git Bash / MSYS2 on Windows, where `bubblewrap build` fails to
  * resolve `gradlew.bat`.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -215,6 +215,35 @@ async function validateReleaseArtifacts({
   console.log("Release artifact validation passed.");
 }
 
+export function validateAssetPack({ jarExecutable, signedAab, indexPath, env }) {
+  const index = readJson(indexPath);
+  const expected = new Set(
+    index.assets.map(({ relativePath }) => `ui_media/assets/${relativePath}`),
+  );
+  const listing = execFileSync(jarExecutable, ["tf", signedAab], {
+    cwd: PROJECT_DIR,
+    env,
+    encoding: "utf8",
+  });
+  const actual = new Set(
+    listing
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.startsWith("ui_media/assets/")),
+  );
+  const missing = [...expected].filter((entry) => !actual.has(entry));
+  const unexpected = [...actual].filter((entry) => !expected.has(entry));
+
+  if (missing.length > 0 || unexpected.length > 0 || actual.size !== expected.size) {
+    throw new Error(
+      `AAB media pack mismatch: expected ${expected.size} assets, found ${actual.size}; ` +
+        `missing=${missing.length}, unexpected=${unexpected.length}`,
+    );
+  }
+
+  console.log(`Media pack validation passed: ${actual.size} indexed assets are in ui_media.`);
+}
+
 async function main() {
   if (!fileExists(PASSWORD_FILE)) {
     throw new Error(
@@ -400,21 +429,27 @@ async function main() {
     env,
   });
 
-  const publicDownloadDir = path.join(ROOT, "public", "download");
-  if (!fileExists(publicDownloadDir)) fs.mkdirSync(publicDownloadDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(PROJECT_DIR, signedApk),
-    path.join(publicDownloadDir, "app-release-signed.apk")
-  );
+  validateAssetPack({
+    jarExecutable: path.join(
+      jdkPath,
+      "bin",
+      process.platform === "win32" ? "jar.exe" : "jar",
+    ),
+    signedAab: path.join(PROJECT_DIR, signedAab),
+    indexPath: path.join(PROJECT_DIR, "app", "src", "main", "assets", "ui-media-index.json"),
+    env,
+  });
 
   console.log("\n✅ Build complete.");
   console.log(`Signed APK:  ${path.join(PROJECT_DIR, signedApk)} (universal, includes install-time media)`);
   console.log(`Base APK:    ${path.join(PROJECT_DIR, baseSignedApk)} (shell only)`);
   console.log(`Signed AAB:  ${path.join(PROJECT_DIR, signedAab)}`);
-  console.log(`Public download: ${path.join(publicDownloadDir, "app-release-signed.apk")}`);
+  console.log("The website distributes the app through Google Play; the APK remains a local release artifact.");
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

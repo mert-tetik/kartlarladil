@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Download } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
+import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { getInstallAppCopy } from "@/features/install-app/install-app-copy";
+import { TWA_PLAY_STORE_URL } from "@/features/install-app/twa-mode";
 import { randomInt } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -13,19 +14,19 @@ const MASCOT_COUNT = 17;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
-  const copy = getInstallAppCopy(locale);
+  const t = createTranslator(locale);
 
   return buildMetadata({
     locale,
-    title: copy.metaTitle,
-    description: copy.metaDescription,
+    title: t("install.playStore.title"),
+    description: t("install.playStore.description"),
     pathname: "/get-the-app",
   });
 }
 
 export default async function GetTheAppPage() {
   const locale = await getServerLocale();
-  const copy = getInstallAppCopy(locale);
+  const t = createTranslator(locale);
   const mascotIndex = randomInt(1, MASCOT_COUNT + 1);
   const mascotSrc = `/mascots/mascot${mascotIndex}.webp`;
 
@@ -43,24 +44,25 @@ export default async function GetTheAppPage() {
       </div>
 
       <h1 className="mt-8 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        {copy.title}
+        {t("install.playStore.title")}
       </h1>
 
       <p className="mt-4 text-base leading-7 text-foreground-secondary sm:text-lg sm:leading-8">
-        {copy.description}
+        {t("install.playStore.description")}
       </p>
 
       <a
-        href="/download/app-release-signed.apk"
-        download="foxiesdeck-app-release-signed.apk"
+        href={TWA_PLAY_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
         className={buttonClassName("primary", "lg", "mt-8 h-12 px-8 text-base")}
       >
-        <Download className="size-5" aria-hidden="true" />
-        {copy.buttonLabel}
+        <ExternalLink className="size-5" aria-hidden="true" />
+        {t("home.mobile.getFromPlayStore")}
       </a>
 
       <p className="mt-4 text-xs text-foreground-secondary">
-        Android cihazlara kurulum için APK dosyasıdır.
+        {t("install.playStore.note")}
       </p>
     </section>
   );

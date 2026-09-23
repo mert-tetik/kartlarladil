@@ -206,7 +206,6 @@ function buildProguardBridgeRules(packageName, existingRules) {
 }`);
   }
   if (rules.length === 0) return "";
-
   return `
 # The remote WebView calls these methods by JavaScript interface name.
 ${rules.join("\n")}

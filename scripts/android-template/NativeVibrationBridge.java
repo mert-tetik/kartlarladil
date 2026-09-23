@@ -32,7 +32,6 @@ public final class NativeVibrationBridge {
     public boolean vibrate(String serializedPattern) {
         long[] pattern = parsePattern(serializedPattern);
         if (pattern == null || pattern.length == 0) return false;
-
         mainHandler.post(() -> play(pattern));
         return true;
     }
@@ -45,7 +44,6 @@ public final class NativeVibrationBridge {
     private void play(long[] pattern) {
         Vibrator vibrator = getVibrator();
         if (vibrator == null || !vibrator.hasVibrator()) return;
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
         } else {
@@ -59,7 +57,6 @@ public final class NativeVibrationBridge {
                     (VibratorManager) context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
             return manager == null ? null : manager.getDefaultVibrator();
         }
-
         return (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
     }
 
@@ -75,12 +72,10 @@ public final class NativeVibrationBridge {
 
     private static long[] parsePattern(String serializedPattern) {
         if (serializedPattern == null || serializedPattern.length() == 0) return null;
-
         try {
             JSONArray values = new JSONArray(serializedPattern);
             int length = Math.min(values.length(), 32);
             if (length == 0) return null;
-
             long[] pattern = new long[length];
             for (int index = 0; index < length; index++) {
                 long value = values.optLong(index, 0L);

@@ -25,9 +25,7 @@ describe("vibration", () => {
     const browserVibrate = vi.fn();
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };
     setBrowserVibration(browserVibrate);
-
     vibrate("incorrect");
-
     expect(nativeVibrate).toHaveBeenCalledWith("[22,55,22]");
     expect(browserVibrate).not.toHaveBeenCalled();
     expect(isVibrationSupported()).toBe(true);
@@ -36,9 +34,7 @@ describe("vibration", () => {
   it("falls back to the browser vibration API outside the Android shell", () => {
     const browserVibrate = vi.fn();
     setBrowserVibration(browserVibrate);
-
     vibrate("tap");
-
     expect(browserVibrate).toHaveBeenCalledWith([22]);
     expect(isVibrationSupported()).toBe(true);
   });
@@ -47,9 +43,7 @@ describe("vibration", () => {
     const nativeVibrate = vi.fn(() => true);
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };
     setVibrationEnabled(false);
-
     vibrate("tap");
-
     expect(nativeVibrate).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,8 @@ const DEFAULT_TWA_PACKAGE_NAME = "com.LigidTools.Glidecore";
 export const TWA_PACKAGE_NAME =
   (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_TWA_PACKAGE_NAME) ||
   DEFAULT_TWA_PACKAGE_NAME;
+export const TWA_PLAY_STORE_URL =
+  `https://play.google.com/store/apps/details?id=${encodeURIComponent(TWA_PACKAGE_NAME)}`;
 
 // Keep the old package prefix so existing installs keep working after the
 // package rename. New installs use the configured/current package name.

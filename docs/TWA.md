@@ -70,8 +70,8 @@ The command performs all of the following:
 4. Builds the signed AAB and a signed universal APK that includes the
   install-time media pack for direct installation.
 5. Verifies that the manifest and Gradle version metadata match.
-6. Validates the AAB with bundletool and verifies the universal APK signature.
-7. Copies the universal APK to `public/download/app-release-signed.apk`.
+6. Validates the AAB with bundletool, verifies the universal APK signature, and
+   checks that every indexed media asset is present in the AAB asset pack.
 
 The build needs `bundletool-all-1.18.3.jar`. Set `BUNDLETOOL_JAR` to its path,
 or place that file in the system temporary directory.
@@ -83,6 +83,10 @@ Outputs:
 - `com.foxiesdeck/app-release-base-signed.apk` — base WebView shell only; it
   does not contain the install-time asset pack and is not the public download.
 - `com.foxiesdeck/app-release-bundle.aab` — Google Play upload.
+
+The website's `/get-the-app` route sends users to the Google Play listing. The
+universal APK remains a local direct-install/test artifact and is not copied
+into the website's static output.
 
 ## Domain verification
 
