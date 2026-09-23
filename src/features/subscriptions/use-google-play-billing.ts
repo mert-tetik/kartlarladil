@@ -13,8 +13,11 @@ export function useGooglePlayBilling() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const nativeBilling =
+    typeof window !== "undefined" ? window.FoxiesDeckNativeBilling ?? null : null;
   const isSupported =
-    typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+    nativeBilling !== null ||
+    (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function");
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -33,12 +36,20 @@ export function useGooglePlayBilling() {
 
   const getProductDetails = useCallback(
     async (sku: string | string[]) => {
+      if (nativeBilling) {
+        const skus = Array.isArray(sku) ? sku : [sku];
+        const details = parseNativeBillingResponse<DigitalGoodsItemDetails[]>(
+          nativeBilling.getDetails(JSON.stringify(skus)),
+        );
+        return Array.isArray(sku) ? details : (details[0] ?? null);
+      }
+
       const service = await getService();
       const skus = Array.isArray(sku) ? sku : [sku];
       const details = await service.getDetails(skus);
       return Array.isArray(sku) ? details : (details[0] ?? null);
     },
-    [getService],
+    [getService, nativeBilling],
   );
 
   const purchase = useCallback(
@@ -47,6 +58,26 @@ export function useGooglePlayBilling() {
       setError(null);
 
       try {
+        if (nativeBilling) {
+          const purchase = parseNativeBillingResponse<NativePurchaseResult>(
+            nativeBilling.purchase(sku),
+          );
+          if (purchase.status !== "success" || !purchase.purchaseToken) {
+            throw new Error(purchase.message || "Google Play purchase failed.");
+          }
+
+          const result = await verifyGooglePlayPurchaseAction(
+            purchase.purchaseToken,
+            purchase.itemId || sku,
+          );
+          if (result.status !== "success" || !result.data) {
+            throw new Error(result.message || "Purchase verification failed.");
+          }
+
+          await refreshEntitlements();
+          return result.data;
+        }
+
         const service = await getService();
         const details = await service.getDetails([sku]);
         const item = details[0];
@@ -100,7 +131,7 @@ export function useGooglePlayBilling() {
         setIsLoading(false);
       }
     },
-    [getService, refreshEntitlements],
+    [getService, nativeBilling, refreshEntitlements],
   );
 
   const restorePurchases = useCallback(async () => {
@@ -110,6 +141,30 @@ export function useGooglePlayBilling() {
     setError(null);
 
     try {
+      if (nativeBilling) {
+        const purchases = parseNativeBillingResponse<DigitalGoodsPurchaseDetails[]>(
+          nativeBilling.listPurchases(),
+        );
+
+        if (purchases.length === 0) return;
+
+        const result = await syncGooglePlayPurchasesAction(
+          purchases.map((purchase) => ({
+            purchaseToken: purchase.purchaseToken,
+            productId: purchase.itemId,
+          })),
+        );
+
+        if (result.status === "error") {
+          throw new Error(result.message || "Purchase restoration failed.");
+        }
+
+        if (result.data) {
+          await refreshEntitlements();
+        }
+        return;
+      }
+
       const service = await getService();
       const purchases = await service.listPurchases();
 
@@ -136,7 +191,7 @@ export function useGooglePlayBilling() {
     } finally {
       setIsLoading(false);
     }
-  }, [getService, isSupported, refreshEntitlements]);
+  }, [getService, isSupported, nativeBilling, refreshEntitlements]);
 
   return {
     isSupported,
@@ -147,4 +202,24 @@ export function useGooglePlayBilling() {
     purchase,
     restorePurchases,
   };
+}
+
+interface NativePurchaseResult {
+  status: "success" | "error";
+  itemId?: string;
+  purchaseToken?: string;
+  message?: string;
+}
+
+function parseNativeBillingResponse<T>(raw: string): T {
+  try {
+    const parsed = JSON.parse(raw) as { status?: string; message?: string };
+    if (parsed && parsed.status === "error") {
+      throw new Error(parsed.message || "Native Google Play Billing request failed.");
+    }
+    return parsed as T;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Native Google Play Billing returned an invalid response.");
+  }
 }
