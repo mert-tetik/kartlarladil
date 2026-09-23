@@ -400,18 +400,11 @@ async function main() {
     env,
   });
 
-  const publicDownloadDir = path.join(ROOT, "public", "download");
-  if (!fileExists(publicDownloadDir)) fs.mkdirSync(publicDownloadDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(PROJECT_DIR, signedApk),
-    path.join(publicDownloadDir, "app-release-signed.apk")
-  );
-
   console.log("\n✅ Build complete.");
   console.log(`Signed APK:  ${path.join(PROJECT_DIR, signedApk)} (universal, includes install-time media)`);
   console.log(`Base APK:    ${path.join(PROJECT_DIR, baseSignedApk)} (shell only)`);
   console.log(`Signed AAB:  ${path.join(PROJECT_DIR, signedAab)}`);
-  console.log(`Public download: ${path.join(publicDownloadDir, "app-release-signed.apk")}`);
+  console.log("The website distributes the app through Google Play; the APK remains a local release artifact.");
 }
 
 main().catch((err) => {
