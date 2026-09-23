@@ -49,7 +49,7 @@ The current release defaults are `com.LigidTools.Glidecore`, version name
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=133
+TWA_VERSION_CODE=134
 TWA_VERSION_NAME=4.3.20
 ```
 
