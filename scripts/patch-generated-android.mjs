@@ -39,7 +39,6 @@ function quoteGroovy(value) {
 function buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }) {
   return `plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
 }
 
 android {
@@ -104,9 +103,6 @@ dependencies {
     implementation 'com.google.android.play:asset-delivery:${ASSET_DELIVERY_VERSION}'
     implementation 'com.google.android.play:review:${PLAY_REVIEW_VERSION}'
 
-    implementation platform('com.google.firebase:firebase-bom:33.1.2')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'androidx.lifecycle:lifecycle-process:2.8.7'
 }
 `;
 }
@@ -211,6 +207,7 @@ async function patchJavaTemplates(projectDir, packageName) {
     "NativeBillingBridge.java",
     "NativeTextToSpeechBridge.java",
     "EventReceiverActivity.java",
+    "Application.java",
   ];
 
   for (const templateName of templateNames) {
@@ -262,6 +259,12 @@ export async function patchGeneratedAndroidProject(
     // The generated project normally has this file, but a clean custom
     // project should still be repairable.
   }
+  // Firebase Analytics is intentionally not part of the hybrid app. Remove
+  // stale rules from Bubblewrap-generated projects as well.
+  proguard = proguard
+    .split("\\n")
+    .filter((line) => !line.toLowerCase().includes("firebase"))
+    .join("\\n");
   if (!proguard.includes("NativeBillingBridge")) {
     await writeText(
       proguardPath,
