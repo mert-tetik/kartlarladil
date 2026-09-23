@@ -436,8 +436,12 @@ export function LandingTutorial() {
         complete();
       }
     };
-    document.addEventListener("click", handleTargetClick);
-    return () => document.removeEventListener("click", handleTargetClick);
+    // Capture the click before the real action's React handler can start a
+    // route transition and unmount this tutorial. The completion state must
+    // be persisted in the same click turn or the tutorial can reappear when
+    // the user returns from /learn.
+    document.addEventListener("click", handleTargetClick, true);
+    return () => document.removeEventListener("click", handleTargetClick, true);
   }, [complete, isLandingReady, isMobile, isTargetExiting, isVisible, pathname, startInvisibleTransition]);
 
   if (!isVisible || !isMobile || !isLandingReady || pathname !== "/") return null;

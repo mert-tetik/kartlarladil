@@ -31,6 +31,25 @@ function TutorialFixture() {
   );
 }
 
+function NavigatingTutorialFixture() {
+  const [navigated, setNavigated] = useState(false);
+
+  if (navigated) {
+    return <p data-testid="learn-route">learn route</p>;
+  }
+
+  return (
+    <>
+      <section data-mobile-landing-dashboard>
+        <button type="button" data-tutorial-target="start-learning" onClick={() => setNavigated(true)}>
+          start
+        </button>
+      </section>
+      <LandingTutorial />
+    </>
+  );
+}
+
 describe("LandingTutorial", () => {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
 
@@ -131,5 +150,26 @@ describe("LandingTutorial", () => {
 
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial]")).not.toBeInTheDocument());
     expect(useTutorialStore.getState().completed).toBe(true);
+  });
+
+  it("persists completion before the real start-learning handler unmounts the tutorial", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: false });
+    render(<NavigatingTutorialFixture />);
+
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
+    fireEvent.click(screen.getByRole("button", { name: "start" }));
+
+    expect(await screen.findByTestId("learn-route")).toBeInTheDocument();
+    expect(useTutorialStore.getState()).toMatchObject({
+      active: false,
+      completed: true,
+      step: 4,
+      testMode: false,
+    });
+
+    const stored = JSON.parse(window.localStorage.getItem("foxiesdeck:tutorial") ?? "{}") as {
+      state?: { active?: boolean; completed?: boolean; step?: number };
+    };
+    expect(stored.state).toMatchObject({ active: false, completed: true, step: 4 });
   });
 });
