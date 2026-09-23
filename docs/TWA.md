@@ -70,7 +70,8 @@ The command performs all of the following:
 4. Builds the signed AAB and a signed universal APK that includes the
   install-time media pack for direct installation.
 5. Verifies that the manifest and Gradle version metadata match.
-6. Validates the AAB with bundletool and verifies the universal APK signature.
+6. Validates the AAB with bundletool, verifies the universal APK signature, and
+   checks that every indexed media asset is present in the AAB asset pack.
 
 The build needs `bundletool-all-1.18.3.jar`. Set `BUNDLETOOL_JAR` to its path,
 or place that file in the system temporary directory.
