@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.widget.FrameLayout;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.PermissionRequest;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
     private WebView webView;
+    private FrameLayout contentRoot;
     private NativeBillingBridge billingBridge;
     private NativeTextToSpeechBridge textToSpeechBridge;
     private PermissionRequest pendingAudioPermissionRequest;
@@ -83,7 +85,16 @@ public class LauncherActivity extends Activity {
         textToSpeechBridge = new NativeTextToSpeechBridge(this);
         webView.addJavascriptInterface(textToSpeechBridge, "FoxiesDeckNativeSpeech");
 
-        setContentView(webView);
+        contentRoot = new FrameLayout(this);
+        contentRoot.setBackgroundColor(Color.BLACK);
+        contentRoot.addView(
+                webView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                )
+        );
+        setContentView(contentRoot);
         configureWindow();
         loadStartUrl(getIntent());
     }
@@ -98,7 +109,72 @@ public class LauncherActivity extends Activity {
                 controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
             }
         }
+        configureSystemBarInsets();
         setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
+    }
+
+    /**
+     * Keep the whole remote WebView inside the usable area. Android 15+ forces
+     * edge-to-edge for apps targeting API 35+, so relying on legacy decor-fit
+     * behavior leaves fixed web UI behind the status/navigation bars.
+     *
+     * The root consumes the dimensions it uses as padding before dispatching
+     * insets to WebView. This prevents WebView from applying the same system
+     * bar inset a second time through its CSS safe-area handling.
+     */
+    private void configureSystemBarInsets() {
+        contentRoot.setOnApplyWindowInsetsListener((view, insets) -> {
+            int left;
+            int top;
+            int right;
+            int bottom;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                int systemTypes = WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout();
+                android.graphics.Insets system = insets.getInsets(systemTypes);
+                int gestureTypes = WindowInsets.Type.systemGestures()
+                        | WindowInsets.Type.mandatorySystemGestures();
+                android.graphics.Insets gestures = insets.getInsets(gestureTypes);
+                left = Math.max(system.left, gestures.left);
+                top = system.top;
+                right = Math.max(system.right, gestures.right);
+                bottom = Math.max(system.bottom, gestures.bottom);
+            } else {
+                left = insets.getSystemWindowInsetLeft();
+                top = insets.getSystemWindowInsetTop();
+                right = insets.getSystemWindowInsetRight();
+                bottom = insets.getSystemWindowInsetBottom();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                        && insets.getDisplayCutout() != null) {
+                    android.view.DisplayCutout cutout = insets.getDisplayCutout();
+                    left = Math.max(left, cutout.getSafeInsetLeft());
+                    top = Math.max(top, cutout.getSafeInsetTop());
+                    right = Math.max(right, cutout.getSafeInsetRight());
+                    bottom = Math.max(bottom, cutout.getSafeInsetBottom());
+                }
+            }
+
+            view.setPadding(left, top, right, bottom);
+            return consumeSystemBarInsets(insets);
+        });
+        contentRoot.requestApplyInsets();
+    }
+
+    private WindowInsets consumeSystemBarInsets(WindowInsets insets) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            int systemTypes = WindowInsets.Type.systemBars()
+                    | WindowInsets.Type.displayCutout();
+            return new WindowInsets.Builder(insets)
+                    .setInsets(systemTypes, android.graphics.Insets.NONE)
+                    .build();
+        }
+
+        WindowInsets consumed = insets.consumeSystemWindowInsets();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            consumed = consumed.consumeDisplayCutout();
+        }
+        return consumed;
     }
 
     private void loadStartUrl(Intent intent) {
