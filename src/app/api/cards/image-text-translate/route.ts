@@ -15,16 +15,25 @@ import {
   buildImageTextTranslateTextInput,
 } from "@/features/cards/image-text-translate-prompts";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { consumeImageTextTranslation } from "@/features/subscriptions/ai-usage-service";
+import {
+  consumeImageTextTranslation,
+  getImageTextTranslationUsage,
+} from "@/features/subscriptions/ai-usage-service";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const MAX_IMAGES = 6;
-const MAX_IMAGE_DATA_URL_LENGTH = 5_500_000;
-const MAX_TOTAL_IMAGE_DATA_URL_LENGTH = 18_000_000;
+// Keep the JSON request comfortably below serverless request-body limits. The
+// client produces bounded JPEG data URLs, but these checks remain authoritative
+// for direct callers and malformed/oversized requests.
+const MAX_IMAGE_DATA_URL_LENGTH = 750_000;
+const MAX_TOTAL_IMAGE_DATA_URL_LENGTH = 4_000_000;
 const MAX_OUTPUT_TOKENS = 6000;
+const OPENAI_REQUEST_TIMEOUT_MS = 45_000;
 
 const IMAGE_TEXT_TRANSLATE_RESPONSE_JSON_SCHEMA = {
   type: "object",
@@ -82,6 +91,19 @@ export async function POST(request: Request) {
     }
   }
 
+  // This is an inexpensive fail-fast check. The post-response atomic RPC
+  // below remains authoritative because another request may win the quota
+  // race while OpenAI is processing this request.
+  try {
+    const entitlements = await getUserEntitlements(user.id);
+    const usage = await getImageTextTranslationUsage(user.id, entitlements.effectivePlan);
+    if (!usage.canUse) {
+      return jsonError("image_text_translate_limit", 429);
+    }
+  } catch {
+    return jsonError("usage_unavailable", 503);
+  }
+
   const content: ResponseInputContent[] = [
     {
       type: "input_text",
@@ -101,6 +123,11 @@ export async function POST(request: Request) {
   const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
 
   let response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENAI_REQUEST_TIMEOUT_MS);
+  const abortFromRequest = () => controller.abort();
+  request.signal.addEventListener("abort", abortFromRequest, { once: true });
+
   try {
     response = await openai.responses.create({
       model,
@@ -121,9 +148,12 @@ export async function POST(request: Request) {
       },
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
-    });
+    }, { signal: controller.signal });
   } catch {
     return jsonError("upstream_error", 502);
+  } finally {
+    clearTimeout(timeout);
+    request.signal.removeEventListener("abort", abortFromRequest);
   }
 
   const rawText = extractResponseOutputText(response) ?? "";

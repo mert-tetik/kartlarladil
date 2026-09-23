@@ -4,6 +4,17 @@ import { useCallback, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "foxiesdeck:vibration-enabled";
 
+interface NativeVibrationBridge {
+  vibrate: (serializedPattern: string) => boolean | void;
+  cancel?: () => void;
+}
+
+declare global {
+  interface Window {
+    FoxiesDeckNativeVibration?: NativeVibrationBridge;
+  }
+}
+
 export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-shockwave" | "streak-exit" | "word-challenge-correct" | "word-challenge-incorrect";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
@@ -39,8 +50,20 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "word-challenge-incorrect": [48, 34, 48, 34, 78],
 };
 
+function getNativeVibrationBridge(): NativeVibrationBridge | null {
+  if (typeof window === "undefined") return null;
+  const bridge = window.FoxiesDeckNativeVibration;
+  return bridge && typeof bridge.vibrate === "function" ? bridge : null;
+}
+
+function isBrowserVibrationSupported(): boolean {
+  return typeof navigator !== "undefined"
+    && "vibrate" in navigator
+    && typeof navigator.vibrate === "function";
+}
+
 export function isVibrationSupported(): boolean {
-  return typeof navigator !== "undefined" && "vibrate" in navigator && typeof navigator.vibrate === "function";
+  return getNativeVibrationBridge() !== null || isBrowserVibrationSupported();
 }
 
 function readEnabledState(): boolean {
@@ -77,6 +100,20 @@ export function vibrate(patternName: VibrationPatternName): void {
   if (!getVibrationEnabled()) return;
 
   const pattern = VIBRATION_PATTERNS[patternName];
+
+  const nativeBridge = getNativeVibrationBridge();
+  if (nativeBridge) {
+    try {
+      const serializedPattern = JSON.stringify(Array.isArray(pattern) ? pattern : [pattern]);
+      const accepted = nativeBridge.vibrate(serializedPattern);
+      if (accepted !== false) return;
+    } catch {
+      // Fall through to the browser API when the native bridge is unavailable.
+    }
+  }
+
+  if (!isBrowserVibrationSupported()) return;
+
   try {
     navigator.vibrate(pattern as VibratePattern);
   } catch {

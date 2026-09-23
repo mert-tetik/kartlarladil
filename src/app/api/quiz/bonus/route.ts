@@ -9,7 +9,7 @@ import {
   createAiPracticeSafetyIdentifier,
 } from "@/features/ai-practice/ai-practice-openai";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { isLanguageCode } from "@/data/languages";
+import { isLanguageCode, isLocaleCode } from "@/data/languages";
 import { getLanguageDisplayName } from "@/i18n/labels";
 
 export const runtime = "nodejs";
@@ -19,6 +19,8 @@ const REQUEST_TIMEOUT_MS = 7_500;
 const requestSchema = z.object({
   kind: z.enum(["sentence-order", "category-sort"]),
   language: z.string().min(2).max(8),
+  locale: z.string().min(2).max(8).optional(),
+  sentence: z.string().trim().min(2).max(180).optional(),
   cards: z.array(z.object({
     id: z.string().min(1).max(160),
     term: z.string().trim().min(1).max(100),
@@ -32,9 +34,13 @@ const SENTENCE_FORMAT = {
   schema: {
     type: "object",
     additionalProperties: false,
-    required: ["sentence", "tokens", "alternativeTokenOrders", "sourceCardId"],
+    required: ["sentence", "nativeSentence", "tokens", "alternativeTokenOrders", "sourceCardId"],
     properties: {
       sentence: { type: "string" },
+      nativeSentence: {
+        type: "string",
+        description: "The actual complete translation in the requested native language. Never use a placeholder or English instruction.",
+      },
       tokens: { type: "array", minItems: 2, maxItems: 14, items: { type: "string" } },
       alternativeTokenOrders: {
         type: "array",
@@ -115,13 +121,27 @@ export async function POST(request: Request) {
   if (!isLanguageCode(language)) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
+  if (parsed.data.kind === "sentence-order" && (!parsed.data.locale || !isLocaleCode(parsed.data.locale))) {
+    return Response.json({ errorCode: "invalid_request" }, { status: 400 });
+  }
 
   const languageName = getLanguageDisplayName(language, "en");
+  const nativeLanguageName = parsed.data.locale && isLocaleCode(parsed.data.locale)
+    ? getLanguageDisplayName(parsed.data.locale, "en")
+    : null;
   const cardList = parsed.data.cards.map((card) => `${card.id}: ${card.term}`).join("\n");
   const instructions = parsed.data.kind === "sentence-order"
     ? [
         "Create one short, natural vocabulary-learning example sentence.",
         `Write the sentence in ${languageName}.`,
+        `Also translate that exact sentence into ${nativeLanguageName}. Return the actual complete translation as nativeSentence.`,
+        "nativeSentence must be written in the requested native language. Never write an instruction, an explanation, or placeholder text such as 'translation of the sentence goes here'.",
+        ...(parsed.data.sentence
+          ? [
+              "Use the supplied sentence exactly as the sentence. Do not rewrite, shorten, expand, or replace it.",
+              `Supplied sentence: ${parsed.data.sentence}`,
+            ]
+          : []),
         "Use exactly one or more of the supplied card terms naturally.",
         "Return tokens in the exact order of the sentence. Each token should be a tappable chunk; keep punctuation attached to the nearest token.",
         "For languages without spaces, split the sentence into useful short chunks.",
@@ -148,7 +168,7 @@ export async function POST(request: Request) {
         model: process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL,
         instructions,
         input: "Return only the requested JSON object.",
-        max_output_tokens: parsed.data.kind === "sentence-order" ? 220 : 260,
+        max_output_tokens: parsed.data.kind === "sentence-order" ? 260 : 260,
         reasoning: { effort: "minimal" },
         store: false,
         text: {
@@ -174,6 +194,10 @@ export async function POST(request: Request) {
       if (!sentenceGenerated.success) return Response.json({ errorCode: "upstream_error" }, { status: 502 });
 
       const sentenceData = sentenceGenerated.data;
+      if (isPlaceholderNativeSentence(sentenceData.nativeSentence)) {
+        return Response.json({ errorCode: "upstream_error" }, { status: 502 });
+      }
+
       if (sentenceData.alternativeTokenOrders.length === 0) {
         return Response.json(sentenceData, { headers: { "Cache-Control": "no-store" } });
       }
@@ -204,6 +228,10 @@ export async function POST(request: Request) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function isPlaceholderNativeSentence(value: string) {
+  return /translation\s+of\s+the\s+sentence|goes\s+here|placeholder|write\s+the\s+translation/iu.test(value);
 }
 
 async function validateSentenceAlternatives(input: {

@@ -765,7 +765,9 @@ export function BonusQuestionView({
         </div>
         <h2
           className={cn(
-            "text-2xl font-semibold text-white sm:text-3xl",
+            question.kind === "sentence-order"
+              ? "text-4xl font-semibold text-white sm:text-5xl"
+              : "text-2xl font-semibold text-white sm:text-3xl",
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
@@ -1056,6 +1058,7 @@ function SentenceOrderBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
+  const { locale } = useLocale();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [displayTokens] = useState(() => shuffleSentenceTokens(question.tokens));
   const [returningTokenId, setReturningTokenId] = useState<string | null>(null);
@@ -1097,6 +1100,16 @@ function SentenceOrderBonus({
 
   return (
     <div className="flex w-full flex-col gap-3" data-bonus-sentence-order>
+      {question.nativeSentence ? (
+        <p
+          className={cn(
+            "w-full text-center text-base font-semibold text-white sm:text-lg",
+          )}
+          data-bonus-native-sentence
+        >
+          {formatSuperWaterText(locale, question.nativeSentence)}
+        </p>
+      ) : null}
       <div className="min-h-20 rounded-xl border border-border bg-background-card p-3 text-left" data-bonus-sentence-display>
         {selectedIds.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1634,7 +1647,7 @@ type FlightIcon = {
 const MATCHING_PAIR_COLORS = [
   { background: "#22c55e", foreground: "#ffffff" },
   { background: "#3b82f6", foreground: "#ffffff" },
-  { background: "#ef4444", foreground: "#ffffff" },
+  { background: "#8b5cf6", foreground: "#ffffff" },
   { background: "#eab308", foreground: "#111827" },
 ] as const;
 

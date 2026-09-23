@@ -6,7 +6,7 @@ import {
   getCardsForGroup,
   type CardGroupIcon,
 } from "@/features/cards/card-groups";
-import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 export { BONUS_QUESTION_POINTS, getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
 export type { BonusQuestionKind } from "@/features/quiz/bonus-question-constants";
@@ -35,6 +35,7 @@ export interface SentenceOrderToken {
 export interface SentenceOrderBonusQuestion {
   kind: "sentence-order";
   sentence: string;
+  nativeSentence?: string;
   tokens: SentenceOrderToken[];
   acceptedTokenOrders: string[][];
   sourceCardId: string;
@@ -82,6 +83,7 @@ export type BonusQuestion =
 
 export const generatedSentenceBonusSchema = z.object({
   sentence: z.string().trim().min(2).max(180),
+  nativeSentence: z.string().trim().min(2).max(240),
   tokens: z.array(z.string().trim().min(1).max(40)).min(2).max(14),
   alternativeTokenOrders: z.array(
     z.array(z.string().trim().min(1).max(40)).min(2).max(14),
@@ -321,10 +323,11 @@ function normalizeMatchingValue(value: string) {
 export function buildFallbackSentenceOrderQuestion(
   cards: VocabularyCard[],
   seed: string,
+  uiLocale: LocaleCode = "en",
 ): SentenceOrderBonusQuestion | null {
   const candidates = shuffle(cards).flatMap((card) =>
     card.examples
-      .map((example) => ({ card, sentence: example.sentence.trim() }))
+      .map((example) => ({ card, example, sentence: example.sentence.trim() }))
       .filter(({ sentence }) => sentence.split(/\s+/u).length >= 2),
   );
   const candidate = candidates[0];
@@ -339,10 +342,38 @@ export function buildFallbackSentenceOrderQuestion(
   return {
     kind: "sentence-order",
     sentence: candidate.sentence,
+    nativeSentence: getFallbackNativeExampleSentence(candidate.card, candidate.example.id, uiLocale),
     tokens,
     acceptedTokenOrders: [tokens.map((token) => token.id)],
     sourceCardId: candidate.card.id,
   };
+}
+
+function getFallbackNativeExampleSentence(
+  sourceCard: VocabularyCard,
+  exampleId: string,
+  uiLocale: LocaleCode,
+) {
+  const directTranslation = sourceCard.examples
+    .find((example) => example.id === exampleId)
+    ?.translation
+    .trim();
+  if (directTranslation) return directTranslation;
+
+  const nativeLanguage = sourceCard.language === uiLocale
+    ? getStudyLocale(sourceCard.language, uiLocale)
+    : uiLocale;
+  const nativeCard = VOCABULARY_CARDS.find((card) =>
+    card.language === nativeLanguage &&
+    card.englishKey === sourceCard.englishKey &&
+    card.tier === sourceCard.tier &&
+    card.termKind === sourceCard.termKind &&
+    card.partOfSpeech === sourceCard.partOfSpeech,
+  );
+  const matchingExample = nativeCard?.examples.find((example) => example.id === exampleId)
+    ?? nativeCard?.examples[0];
+
+  return matchingExample?.sentence.trim() || undefined;
 }
 
 export function buildFallbackCategoryBonusQuestion(
@@ -485,6 +516,7 @@ export function buildSentenceBonusFromGenerated(
   return {
     kind: "sentence-order",
     sentence: generated.sentence,
+    nativeSentence: generated.nativeSentence,
     tokens,
     acceptedTokenOrders,
     sourceCardId: sourceCard.id,

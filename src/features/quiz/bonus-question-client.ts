@@ -1,4 +1,4 @@
-import type { LanguageCode, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, LocaleCode, VocabularyCard } from "@/types/domain";
 import {
   generatedCategoryBonusSchema,
   generatedSentenceBonusSchema,
@@ -11,9 +11,18 @@ const REQUEST_TIMEOUT_MS = 8_000;
 
 export async function requestSentenceBonusQuestion(input: {
   language: LanguageCode;
+  locale: LocaleCode;
   cards: VocabularyCard[];
+  sentence?: string;
 }): Promise<GeneratedSentenceBonus | null> {
-  return requestBonus("sentence-order", input.language, input.cards, generatedSentenceBonusSchema);
+  return requestBonus(
+    "sentence-order",
+    input.language,
+    input.cards,
+    generatedSentenceBonusSchema,
+    input.locale,
+    input.sentence,
+  );
 }
 
 export async function requestCategoryBonusQuestion(input: {
@@ -28,6 +37,8 @@ async function requestBonus<T>(
   language: LanguageCode,
   cards: VocabularyCard[],
   schema: { safeParse: (value: unknown) => { success: boolean; data?: T } },
+  locale?: LocaleCode,
+  sentence?: string,
 ): Promise<T | null> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -39,6 +50,8 @@ async function requestBonus<T>(
       body: JSON.stringify({
         kind,
         language,
+        ...(locale ? { locale } : {}),
+        ...(sentence ? { sentence } : {}),
         cards: cards.slice(0, 40).map((card) => ({
           id: card.id,
           term: card.term,

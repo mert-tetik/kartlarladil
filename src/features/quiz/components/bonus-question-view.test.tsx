@@ -330,6 +330,7 @@ describe("BonusQuestionView", () => {
           question={{
             kind: "sentence-order",
             sentence: "I learn",
+            nativeSentence: "Ben öğreniyorum",
             sourceCardId: "card-a",
             acceptedTokenOrders: [["one", "two"]],
             tokens: [
@@ -348,6 +349,7 @@ describe("BonusQuestionView", () => {
 
     const token = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-sentence-token="${id}"]`)!;
     expect(document.body.querySelector("[data-bonus-sentence-decoration]")).toBeInTheDocument();
+    expect(container.querySelector("[data-bonus-native-sentence]")).toHaveTextContent("Ben ögreniyorum");
     fireEvent.click(token("one"));
     const selectedToken = container.querySelector("[data-bonus-sentence-selected=\"one\"]");
     expect(selectedToken).toBeInTheDocument();

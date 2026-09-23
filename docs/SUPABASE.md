@@ -42,6 +42,37 @@ Migrationlar:
 - `0014_remove_cards_catalog.sql`: `public.cards` kaldirimi ve source key cleanup'i.
 - `0015_allow_all_preferred_tier.sql`: `user_profiles.preferred_tier` alanina `"all"` secenegini ekler.
 - `0016_subscription_production_hardening.sql`: subscription trigger helper'ini hardened `security definer` ayarlariyla replace eder.
+- `20260920000000_subscription_feature_entitlements.sql`: feature-based AI quotas and image/text translation usage.
+- `20260922123828_repair_subscription_feature_entitlements.sql`: repairs legacy quota RPC deployments and refreshes PostgREST's schema cache.
+
+### Image text translation quota migration
+
+The image/text translation endpoint requires the service-role-only RPCs from
+`20260920000000_subscription_feature_entitlements.sql` and
+`20260922123828_repair_subscription_feature_entitlements.sql`. Apply pending
+migrations before deploying the endpoint:
+
+```bash
+npx supabase db push --project-ref <project-ref>
+```
+
+After deployment, verify both routines exist in the `public` schema:
+
+```sql
+select p.oid::regprocedure
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in (
+    'record_ai_usage_if_within_limit',
+    'record_image_text_translation_if_available'
+  );
+```
+
+The image translation routine serializes per-user reservations and allows
+Free/Basic users two lifetime successful translations; Pro bypasses that cap.
+The application records the reservation only after OpenAI output passes schema
+validation.
 
 Tablolar:
 

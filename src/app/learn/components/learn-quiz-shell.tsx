@@ -1,11 +1,12 @@
 "use client";
 
 import { GraduationCap, RotateCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
+import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { QuizPhase } from "@/features/quiz/components/quiz-station";
@@ -18,7 +19,8 @@ import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-messag
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
 import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
 import { cn } from "@/lib/utils";
-import { useT } from "@/i18n/locale-provider";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { useOptionalAuthSession } from "@/features/auth/auth-client";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { LanguageCode, PracticeMode } from "@/types/domain";
 
@@ -59,11 +61,41 @@ export function LearnQuizShell({
   const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudLoading = useInventoryStore((state) => state.cloudLoading);
+  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
+  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
+  const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const router = useRouter();
+  const authSession = useOptionalAuthSession();
+  const { locale } = useLocale();
   const t = useT();
   const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
+  // The store starts with `cloudLoadComplete: true` for guest/local use. An
+  // authenticated render can therefore not use that default as proof that
+  // the user's cloud inventory has loaded. Wait until cloud mode is enabled,
+  // the request has completed, and the returned inventory is associated with
+  // the current user before deciding that a quiz mode is empty.
+  const cloudInventoryReady = !authSession?.user
+    ? true
+    : cloudEnabled && cloudLoadComplete && ownerUserId === authSession.user.id;
+
+  const availablePracticeCards = useMemo(() => ({
+    active: filterInventoryCards({ cards, status: "active" }).filter(({ card }) => card.language !== locale),
+    learned: filterInventoryCards({ cards, status: "learned" }).filter(({ card }) => card.language !== locale),
+  }), [cards, locale]);
+
+  const hasUsableCardsForMode = useCallback(
+    (mode: PracticeMode) => availablePracticeCards[mode].length > 0,
+    [availablePracticeCards],
+  );
+
+  const redirectToLanding = useCallback(() => {
+    if (redirectStartedRef.current) return;
+    redirectStartedRef.current = true;
+    navigateWithRouteTransition(() => router.replace("/"));
+  }, [router]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -77,13 +109,28 @@ export function LearnQuizShell({
   useEffect(() => {
     if (bonusTest || normalTest) return;
 
-    if (hydrated && cards.length === 0 && !redirectStartedRef.current) {
-      if (!window.matchMedia("(max-width: 1023px)").matches) return;
-
-      redirectStartedRef.current = true;
-      navigateWithRouteTransition(() => router.replace("/"));
+    if (!hydrated || cloudLoading || !cloudInventoryReady) {
+      return;
     }
-  }, [bonusTest, cards.length, hydrated, normalTest, router]);
+
+    const hasAnyUsablePracticeCards =
+      hasUsableCardsForMode("active") || hasUsableCardsForMode("learned");
+    const selectedModeIsUnavailable = selectedMode !== null && !hasUsableCardsForMode(selectedMode);
+
+    if (!hasAnyUsablePracticeCards || selectedModeIsUnavailable) {
+      redirectToLanding();
+    }
+  }, [
+    bonusTest,
+    cloudInventoryReady,
+    cloudLoading,
+    hasUsableCardsForMode,
+    hydrated,
+    normalTest,
+    ownerUserId,
+    redirectToLanding,
+    selectedMode,
+  ]);
 
   if (learnedCelebrationTest) {
     return <LearnedCelebrationTest />;
@@ -119,7 +166,7 @@ export function LearnQuizShell({
     return <BonusQuestionsTest />;
   }
 
-  if (!hydrated && !canRenderPersistedPool) {
+  if ((!hydrated || cloudLoading || !cloudInventoryReady) && !canRenderPersistedPool) {
     return (
       <LearnQuizShellLoading
         title={title}
@@ -173,6 +220,10 @@ export function LearnQuizShell({
         ) : (
           <LearnModeSelection
             onSelect={(mode) => {
+              if (!hasUsableCardsForMode(mode)) {
+                redirectToLanding();
+                return;
+              }
               setSelectedMode(mode);
               setPhase("language");
             }}

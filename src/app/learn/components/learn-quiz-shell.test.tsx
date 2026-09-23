@@ -1,17 +1,26 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { LearnQuizShell } from "@/app/learn/components/learn-quiz-shell";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard } from "@/types/domain";
+
+const routerReplaceMock = vi.hoisted(() => vi.fn());
+const authSessionMock = vi.hoisted(() => ({ current: null as { user: AuthShellUser } | null }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/learn",
   useRouter: () => ({
     push: vi.fn(),
+    replace: routerReplaceMock,
     refresh: vi.fn(),
   }),
+}));
+
+vi.mock("@/features/auth/auth-client", () => ({
+  useOptionalAuthSession: () => authSessionMock.current,
 }));
 
 vi.mock("@/features/inventory/cloud-actions", () => ({
@@ -27,6 +36,8 @@ describe("LearnQuizShell", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    routerReplaceMock.mockReset();
+    authSessionMock.current = null;
     useInventoryStore.setState({
       cards: [],
       attempts: [],
@@ -93,6 +104,104 @@ describe("LearnQuizShell", () => {
     expect(screen.getByRole("heading", { name: /Hen/ })).toBeVisible();
     expect(screen.getByRole("link", { name: /Kart/ })).toHaveAttribute("href", "/card-draw");
     expect(screen.queryByText(/Nas/)).not.toBeInTheDocument();
+  });
+
+  it("redirects to the landing page when inventory has no quizable language", async () => {
+    useInventoryStore.setState({
+      cards: [createInventoryCard(englishCard.id)],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudLoadComplete: true,
+    });
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <LearnQuizShell
+          title="Learn cards"
+          description="Study your cards"
+          initialMode={null}
+        />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => expect(routerReplaceMock).toHaveBeenCalledWith("/"));
+  });
+
+  it("redirects instead of opening a mode with no usable cards", async () => {
+    useInventoryStore.setState({
+      cards: [{ ...createInventoryCard(englishCard.id), status: "learned" }],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudLoadComplete: true,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <LearnQuizShell
+          title="Kartları öğren"
+          description="Kartlarını çalış"
+          initialMode={null}
+        />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^Öğren/i }));
+    await waitFor(() => expect(routerReplaceMock).toHaveBeenCalledWith("/"));
+  });
+
+  it("waits for the authenticated cloud inventory before deciding it is empty", async () => {
+    const user: AuthShellUser = {
+      id: "user-1",
+      email: "user@example.com",
+      profile: {
+        displayName: null,
+        preferredLanguageCode: "en",
+        preferredUiLocale: "en",
+        preferredTier: "A1",
+        onboardingCompleted: true,
+        aiPracticePoints: 0,
+        chestPoints: 0,
+        pushMarketingEnabled: false,
+      },
+    };
+
+    useInventoryStore.setState({
+      cards: [],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudLoadComplete: true,
+      ownerUserId: null,
+    });
+
+    authSessionMock.current = { user };
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <LearnQuizShell
+          title="Learn cards"
+          description="Study your cards"
+          initialMode={null}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      useInventoryStore.setState({
+        cloudEnabled: true,
+        cloudLoadComplete: true,
+        ownerUserId: user.id,
+      });
+    });
+
+    await waitFor(() => expect(routerReplaceMock).toHaveBeenCalledWith("/"));
   });
 });
 

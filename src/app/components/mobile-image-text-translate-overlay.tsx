@@ -40,6 +40,7 @@ import type { LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types
 
 const MAX_UPLOAD_IMAGES = 6;
 const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024;
+const MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH = 600_000;
 const IMAGE_TEXT_TRANSLATE_OPENED_KEY = "foxiesdeck:image-text-translate-opened";
 const IMAGE_TEXT_TRANSLATE_TUTORIAL_EXIT_MS = 860;
 
@@ -1139,7 +1140,7 @@ function imageFileToDataUrl(file: File): Promise<string> {
       const image = new window.Image();
       image.onerror = () => reject(new Error("invalid_image"));
       image.onload = () => {
-        const maxDimension = 1800;
+        const maxDimension = 1600;
         const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -1152,7 +1153,35 @@ function imageFileToDataUrl(file: File): Promise<string> {
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.86));
+
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH && quality > 0.58) {
+          quality = Math.max(0.58, quality - 0.06);
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+
+        // A very detailed image can still exceed the request budget after
+        // quality reduction. Scale it down only in that uncommon case; text
+        // remains readable while six images stay within the server limit.
+        if (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH) {
+          const fallbackScale = Math.sqrt(MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH / dataUrl.length);
+          const fallbackWidth = Math.max(1, Math.floor(canvas.width * fallbackScale));
+          const fallbackHeight = Math.max(1, Math.floor(canvas.height * fallbackScale));
+          canvas.width = fallbackWidth;
+          canvas.height = fallbackHeight;
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, fallbackWidth, fallbackHeight);
+          context.drawImage(image, 0, 0, fallbackWidth, fallbackHeight);
+          dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        }
+
+        if (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH) {
+          reject(new Error("invalid_image"));
+          return;
+        }
+
+        resolve(dataUrl);
       };
       image.src = source;
     };

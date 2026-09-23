@@ -170,6 +170,14 @@ describe("image text translation usage", () => {
     await expect(consumeImageTextTranslation("user-1")).resolves.toBe("image_text_translate_limit");
   });
 
+  it("rejects an unexpected RPC result instead of treating usage as recorded", async () => {
+    mockRpc.mockResolvedValue({ data: "", error: null });
+
+    await expect(consumeImageTextTranslation("user-1")).rejects.toThrow(
+      "unexpected_image_text_translation_usage_result",
+    );
+  });
+
   it("reports remaining free-plan translation uses", async () => {
     mockCount.mockReturnValueOnce(1);
 

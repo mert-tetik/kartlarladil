@@ -85,6 +85,7 @@ describe("bonus quiz questions", () => {
   it("keeps fallback sentence questions local and validates GPT token order", () => {
     const fallback = buildFallbackSentenceOrderQuestion(ENGLISH_CARDS.slice(0, 12), "session-sentence");
     expect(fallback).not.toBeNull();
+    expect(fallback?.nativeSentence).toBeTruthy();
 
     const sentenceCard = ENGLISH_CARDS.find((card) => card.examples.some((example) => example.sentence.split(/\s+/u).length >= 2));
     const sentence = sentenceCard?.examples[0]?.sentence.trim();
@@ -94,6 +95,7 @@ describe("bonus quiz questions", () => {
     const generated = buildSentenceBonusFromGenerated(
       {
         sentence: sentence!,
+        nativeSentence: "I learn",
         tokens: sentence!.split(/\s+/u),
         alternativeTokenOrders: [],
         sourceCardId: sentenceCard!.id,
@@ -107,6 +109,7 @@ describe("bonus quiz questions", () => {
       buildSentenceBonusFromGenerated(
         {
           sentence: "This is not the token sequence",
+          nativeSentence: "Bu token dizisi değil",
           tokens: ["different", "tokens"],
           alternativeTokenOrders: [],
           sourceCardId: sentenceCard!.id,
@@ -123,6 +126,7 @@ describe("bonus quiz questions", () => {
     const question = buildSentenceBonusFromGenerated(
       {
         sentence: "This pizza is the best in town",
+        nativeSentence: "Bu pizza kasabadaki en iyisi",
         tokens: ["This", "pizza", "is", "the", "best", "in", "town"],
         alternativeTokenOrders: [["This", "is", "the", "best", "pizza", "in", "town"]],
         sourceCardId: sourceCard.id,
@@ -143,6 +147,7 @@ describe("bonus quiz questions", () => {
     const question = buildSentenceBonusFromGenerated(
       {
         sentence: "This pizza is the best in town",
+        nativeSentence: "Bu pizza kasabadaki en iyisi",
         tokens: ["This", "pizza", "is", "the", "best", "in", "town"],
         alternativeTokenOrders: [
           ["This", "is", "the", "best", "pizza", "in", "town"],

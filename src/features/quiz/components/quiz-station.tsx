@@ -485,6 +485,9 @@ export function QuizStation({
 }) {
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
+  const cloudLoading = useInventoryStore((state) => state.cloudLoading);
+  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const recordAnswer = useInventoryStore((state) => state.recordAnswer);
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
@@ -707,23 +710,39 @@ export function QuizStation({
     }).map((item) => item.card);
   }, [cards, mode, selectedLanguage]);
   const canRenderPersistedQuizSetup = cards.length > 0;
+  const cloudInventoryReady = cloudLoadComplete || (!cloudEnabled && canRenderPersistedQuizSetup);
   const interactionLocked = !hydrated;
 
   useEffect(() => {
+    const hasQuizCardsForCurrentSetup =
+      practiceLanguageStats.length > 0 &&
+      (!selectedLanguage || (selectedLanguage !== locale && availableCards.length > 0));
+
     if (
       !hydrated ||
-      mode !== "active" ||
-      languageStats.length > 0 ||
+      cloudLoading ||
+      !cloudInventoryReady ||
+      hasQuizCardsForCurrentSetup ||
+      (phase !== "language" && phase !== "count") ||
       redirectStartedRef.current
     ) {
       return;
     }
 
-    if (!window.matchMedia("(max-width: 1023px)").matches) return;
-
     redirectStartedRef.current = true;
     navigateWithRouteTransition(() => router.replace("/"));
-  }, [hydrated, languageStats.length, mode, router]);
+  }, [
+    availableCards.length,
+    cloudInventoryReady,
+    cloudLoading,
+    hydrated,
+    languageStats.length,
+    locale,
+    phase,
+    practiceLanguageStats.length,
+    router,
+    selectedLanguage,
+  ]);
 
   const buildDeck = useCallback(
     (
@@ -989,11 +1008,11 @@ export function QuizStation({
       void Promise.all(
         gptJobs.map(async (job) => {
           if (job.kind === "sentence-order") {
-            const generated = await requestSentenceBonusQuestion({ language, cards: bonusCards });
+            const generated = await requestSentenceBonusQuestion({ language, locale, cards: bonusCards });
             if (!generated || bonusDeckTokenRef.current !== deckToken) return;
 
             setDeck((current) => current.map((item, itemIndex) => {
-              if (!item.isBonus || item.bonusId !== job.bonusId || itemIndex <= currentIndexRef.current) {
+              if (!item.isBonus || item.bonusId !== job.bonusId) {
                 return item;
               }
               const generatedQuestion = buildSentenceBonusFromGenerated(
@@ -1001,7 +1020,40 @@ export function QuizStation({
                 bonusCards,
                 job.bonusId,
               );
-              return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
+              if (itemIndex <= currentIndexRef.current) {
+                if (
+                  itemIndex === currentIndexRef.current &&
+                  item.bonusQuestion.kind === "sentence-order" &&
+                  normalizeBonusSentence(item.bonusQuestion.sentence) === normalizeBonusSentence(generated.sentence)
+                ) {
+                  return {
+                    ...item,
+                    bonusQuestion: {
+                      ...item.bonusQuestion,
+                      nativeSentence: generated.nativeSentence,
+                    },
+                  };
+                }
+
+                return item;
+              }
+
+              if (generatedQuestion) return { ...item, bonusQuestion: generatedQuestion };
+
+              if (
+                item.bonusQuestion.kind === "sentence-order" &&
+                normalizeBonusSentence(item.bonusQuestion.sentence) === normalizeBonusSentence(generated.sentence)
+              ) {
+                return {
+                  ...item,
+                  bonusQuestion: {
+                    ...item.bonusQuestion,
+                    nativeSentence: generated.nativeSentence,
+                  },
+                };
+              }
+
+              return item;
             }));
             return;
           }
@@ -1806,7 +1858,7 @@ export function QuizStation({
     user?.id,
   ]);
 
-  if (!hydrated && !canRenderPersistedQuizSetup) {
+  if ((!hydrated || cloudLoading || !cloudInventoryReady) && !canRenderPersistedQuizSetup) {
     return (
       <EmptyState
         title={t("quiz.loadingTitle")}
@@ -2623,7 +2675,7 @@ function buildFallbackBonusQuestion(
   }
 
   if (kind === "sentence-order") {
-    return buildFallbackSentenceOrderQuestion(cards, seed);
+    return buildFallbackSentenceOrderQuestion(cards, seed, locale);
   }
 
   if (kind === "category-sort") {
@@ -2635,6 +2687,14 @@ function buildFallbackBonusQuestion(
 
 function isBonusQuizItem(item: QuizItem): item is BonusQuizItem {
   return item.isBonus === true;
+}
+
+function normalizeBonusSentence(value: string) {
+  return value
+    .trim()
+    .replace(/\s+([,.;!?])/gu, "$1")
+    .replace(/\s+/gu, " ")
+    .toLocaleLowerCase();
 }
 
 function getFeedbackCorrectAnswer(item: QuizItem): string | undefined {

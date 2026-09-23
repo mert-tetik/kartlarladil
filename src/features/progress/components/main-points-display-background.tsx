@@ -29,24 +29,24 @@ export function MainPointsDisplayBackground({
         <Image
           src="/main-points-display-background-left.png"
           alt=""
-          width={405}
-          height={776}
+          width={83}
+          height={160}
           className="h-full w-auto shrink-0 object-fill"
           aria-hidden="true"
         />
         <Image
           src="/main-points-display-background-center.png"
           alt=""
-          width={1217}
-          height={776}
+          width={251}
+          height={160}
           className="relative z-10 -mx-px h-full min-w-0 flex-1 object-fill"
           aria-hidden="true"
         />
         <Image
           src="/main-points-display-background-right.png"
           alt=""
-          width={405}
-          height={776}
+          width={83}
+          height={160}
           className="h-full w-auto shrink-0 object-fill"
           aria-hidden="true"
         />

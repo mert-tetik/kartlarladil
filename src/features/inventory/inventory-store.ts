@@ -59,6 +59,7 @@ interface InventoryState {
   hydrated: boolean;
   cloudEnabled: boolean;
   cloudLoading: boolean;
+  cloudLoadComplete: boolean;
   cloudError: string;
   activeCardLimit: number | null;
   pendingCardIds: Set<string>;
@@ -100,6 +101,7 @@ export const useInventoryStore = create<InventoryState>()(
       hydrated: false,
       cloudEnabled: false,
       cloudLoading: false,
+      cloudLoadComplete: true,
       cloudError: "",
       activeCardLimit: null,
       pendingCardIds: new Set(),
@@ -109,7 +111,16 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       setCloudEnabled(enabled) {
-        set({ cloudEnabled: enabled, cloudError: enabled ? get().cloudError : "" });
+        if (get().cloudEnabled === enabled) {
+          return;
+        }
+
+        set({
+          cloudEnabled: enabled,
+          cloudLoading: false,
+          cloudLoadComplete: !enabled,
+          cloudError: "",
+        });
       },
 
       setOwnerUserId(userId) {
@@ -129,7 +140,7 @@ export const useInventoryStore = create<InventoryState>()(
           return;
         }
 
-        set({ cloudLoading: true, cloudError: "" });
+        set({ cloudLoading: true, cloudLoadComplete: false, cloudError: "" });
 
         try {
           const [inventoryResult, customCardsResult] = await Promise.all([
@@ -145,7 +156,7 @@ export const useInventoryStore = create<InventoryState>()(
           }
 
           if (inventoryResult.status === "error" || !inventoryResult.data) {
-            set({ cloudLoading: false, cloudError: inventoryResult.message });
+            set({ cloudLoading: false, cloudLoadComplete: true, cloudError: inventoryResult.message });
             return;
           }
 
@@ -158,11 +169,13 @@ export const useInventoryStore = create<InventoryState>()(
             ),
             attempts: inventoryResult.data.attempts,
             cloudLoading: false,
+            cloudLoadComplete: true,
             cloudError: "",
           });
         } catch (error) {
           set({
             cloudLoading: false,
+            cloudLoadComplete: true,
             cloudError: error instanceof Error ? error.message : "Failed to load cloud inventory",
           });
         }
@@ -173,11 +186,11 @@ export const useInventoryStore = create<InventoryState>()(
           return;
         }
 
-        set({ cloudLoading: true, cloudError: "" });
+        set({ cloudLoading: true, cloudLoadComplete: false, cloudError: "" });
         const result = await migrateLocalInventoryToCloudAction(get().cards);
 
         if (result.status === "error" || !result.data) {
-          set({ cloudLoading: false, cloudError: result.message });
+          set({ cloudLoading: false, cloudLoadComplete: true, cloudError: result.message });
           return;
         }
 
@@ -185,6 +198,7 @@ export const useInventoryStore = create<InventoryState>()(
           cards: result.data.cards,
           attempts: result.data.attempts,
           cloudLoading: false,
+          cloudLoadComplete: true,
           cloudError: "",
         });
 

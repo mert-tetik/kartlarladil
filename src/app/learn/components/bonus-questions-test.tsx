@@ -7,8 +7,10 @@ import {
   buildFallbackSentenceOrderQuestion,
   buildImposterBonusQuestion,
   buildMatchingBonusQuestion,
+  buildSentenceBonusFromGenerated,
   type BonusQuestion,
 } from "@/features/quiz/bonus-questions";
+import { requestSentenceBonusQuestion } from "@/features/quiz/bonus-question-client";
 import {
   BonusQuestionIntro,
   BonusQuestionView,
@@ -26,7 +28,7 @@ function buildBonusTestQuestions(locale: Parameters<typeof buildMatchingBonusQue
   const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
   const questions = [
     buildMatchingBonusQuestion(languageCards, locale, "bonus-test-matching"),
-    buildFallbackSentenceOrderQuestion(languageCards, "bonus-test-sentence"),
+    buildFallbackSentenceOrderQuestion(languageCards, "bonus-test-sentence", locale),
     buildFallbackCategoryBonusQuestion(TEST_LANGUAGE, "bonus-test-category"),
     buildImposterBonusQuestion(TEST_LANGUAGE, "bonus-test-imposter"),
   ];
@@ -40,7 +42,38 @@ export function BonusQuestionsTest() {
   const session = useOptionalAuthSession();
   const [questions, setQuestions] = useState<BonusQuestion[]>([]);
   useEffect(() => {
-    setQuestions(buildBonusTestQuestions(locale));
+    const nextQuestions = buildBonusTestQuestions(locale);
+    setQuestions(nextQuestions);
+
+    let cancelled = false;
+    const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
+    const fallbackSentence = nextQuestions.find((question) => question.kind === "sentence-order");
+    void requestSentenceBonusQuestion({
+      language: TEST_LANGUAGE,
+      locale,
+      cards: languageCards,
+      sentence: fallbackSentence?.kind === "sentence-order" ? fallbackSentence.sentence : undefined,
+    }).then((generated) => {
+      if (!generated || cancelled) return;
+      const generatedQuestion = buildSentenceBonusFromGenerated(
+        generated,
+        languageCards,
+        "bonus-test-sentence",
+      );
+
+      setQuestions((current) => current.map((question) => {
+        if (question.kind !== "sentence-order") return question;
+        if (generatedQuestion) return generatedQuestion;
+
+        return normalizeBonusSentence(question.sentence) === normalizeBonusSentence(generated.sentence)
+          ? { ...question, nativeSentence: generated.nativeSentence }
+          : question;
+      }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [locale]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
@@ -141,4 +174,12 @@ export function BonusQuestionsTest() {
       />
     </div>
   );
+}
+
+function normalizeBonusSentence(value: string) {
+  return value
+    .trim()
+    .replace(/\s+([,.;!?])/gu, "$1")
+    .replace(/\s+/gu, " ")
+    .toLocaleLowerCase();
 }

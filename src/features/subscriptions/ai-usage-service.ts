@@ -87,7 +87,9 @@ export async function consumeImageTextTranslation(userId: string): Promise<Limit
   });
 
   if (error) throw error;
-  return data === "feature_limit" ? "image_text_translate_limit" : null;
+  if (data === "feature_limit") return "image_text_translate_limit";
+  if (data !== "ok") throw new Error("unexpected_image_text_translation_usage_result");
+  return null;
 }
 
 export async function getImageTextTranslationUsage(
