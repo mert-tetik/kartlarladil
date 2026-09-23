@@ -27,7 +27,7 @@ export default async function GetTheAppPage() {
   const locale = await getServerLocale();
   const copy = getInstallAppCopy(locale);
   const mascotIndex = randomInt(1, MASCOT_COUNT + 1);
-  const mascotSrc = `/mascots/mascot${mascotIndex}.png`;
+  const mascotSrc = `/mascots/mascot${mascotIndex}.webp`;
 
   return (
     <section className="mx-auto flex w-full max-w-md flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">

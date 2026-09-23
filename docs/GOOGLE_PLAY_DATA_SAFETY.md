@@ -44,7 +44,7 @@ FoxiesDeck does **not** intentionally collect:
 
 - Precise location
 - Contacts
-- Photos, videos, or audio recordings (microphone is used only for speech recognition in the browser and is not stored)
+- Photos, videos, or audio recordings (microphone is used only for speech recognition in the browser/WebView and is not stored by FoxiesDeck)
 - Health or financial information beyond purchase history
 
 ## Encryption

@@ -12,6 +12,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { patchGeneratedAndroidProject } from "./patch-generated-android.mjs";
+import { prepareHybridMedia } from "./prepare-hybrid-android.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -113,6 +115,106 @@ function run(cmd, args, options = {}) {
   });
 }
 
+function findBundletoolJar() {
+  const candidates = [
+    process.env.BUNDLETOOL_JAR,
+    path.join(ROOT, "bundletool-all-1.18.3.jar"),
+    path.join(os.tmpdir(), "bundletool-all-1.18.3.jar"),
+  ].filter(Boolean);
+
+  const resolved = candidates
+    .map((candidate) => path.resolve(candidate))
+    .find((candidate) => fileExists(candidate));
+
+  if (!resolved) {
+    throw new Error(
+      "bundletool-all-1.18.3.jar is required to produce the full-media universal APK. " +
+        "Set BUNDLETOOL_JAR to its path or place it in the system temp directory."
+    );
+  }
+  return resolved;
+}
+
+async function buildUniversalApk({
+  jdkPath,
+  bundletoolJar,
+  signedAab,
+  targetApk,
+  keystorePath,
+  keystoreAlias,
+  keystorePassword,
+  keyPassword,
+  env,
+}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "foxiesdeck-universal-"));
+  const apksPath = path.join(tempDir, "universal.apks");
+  const extractDir = path.join(tempDir, "extract");
+  fs.mkdirSync(extractDir, { recursive: true });
+
+  const javaExecutable = path.join(
+    jdkPath,
+    "bin",
+    process.platform === "win32" ? "java.exe" : "java",
+  );
+  const jarExecutable = path.join(
+    jdkPath,
+    "bin",
+    process.platform === "win32" ? "jar.exe" : "jar",
+  );
+
+  try {
+    console.log("Building full-media universal APK...");
+    await run(javaExecutable, [
+      "-jar",
+      bundletoolJar,
+      "build-apks",
+      `--bundle=${signedAab}`,
+      `--output=${apksPath}`,
+      "--mode=universal",
+      `--ks=${keystorePath}`,
+      `--ks-key-alias=${keystoreAlias}`,
+      `--ks-pass=pass:${keystorePassword}`,
+      `--key-pass=pass:${keyPassword}`,
+      "--overwrite",
+    ], { env });
+
+    await run(jarExecutable, ["xf", apksPath, "universal.apk"], {
+      cwd: extractDir,
+      env,
+    });
+
+    const universalPath = path.join(extractDir, "universal.apk");
+    if (!fileExists(universalPath)) {
+      throw new Error("bundletool did not produce universal.apk.");
+    }
+    fs.copyFileSync(universalPath, targetApk);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function validateReleaseArtifacts({
+  javaExecutable,
+  buildTools,
+  bundletoolJar,
+  signedAab,
+  signedApk,
+  env,
+}) {
+  console.log("Validating signed release artifacts...");
+  await run(
+    javaExecutable,
+    ["-jar", bundletoolJar, "validate", `--bundle=${signedAab}`],
+    { env, stdio: ["ignore", "ignore", "inherit"] },
+  );
+  await run(
+    path.join(buildTools, "apksigner.bat"),
+    ["verify", signedApk],
+    { env, stdio: ["ignore", "ignore", "inherit"] },
+  );
+  console.log("Release artifact validation passed.");
+}
+
 async function main() {
   if (!fileExists(PASSWORD_FILE)) {
     throw new Error(
@@ -148,7 +250,7 @@ async function main() {
   if (!buildTools) {
     throw new Error(
       "Android Build Tools not found. Install them with:\n" +
-        `  sdkmanager "build-tools;35.0.0"`
+        `  sdkmanager "build-tools;36.0.0"`
     );
   }
 
@@ -176,8 +278,41 @@ async function main() {
   }
 
   const manifest = readJson(path.join(PROJECT_DIR, "twa-manifest.json"));
+  const generatedProject = await patchGeneratedAndroidProject(PROJECT_DIR);
+  if (
+    String(manifest.packageId) !== generatedProject.packageName ||
+    String(manifest.host) !== generatedProject.host
+  ) {
+    throw new Error(
+      "Android identity metadata is inconsistent. Update twa-manifest.json " +
+        `(${manifest.packageId}/${manifest.host}) or the generated Gradle project ` +
+        `(${generatedProject.packageName}/${generatedProject.host}) before building.`,
+    );
+  }
+  if (
+    Number(manifest.appVersionCode) !== generatedProject.versionCode ||
+    String(manifest.appVersionName) !== generatedProject.versionName
+  ) {
+    throw new Error(
+      "Android version metadata is inconsistent. Update twa-manifest.json " +
+        `(${manifest.appVersionName}/${manifest.appVersionCode}) or the generated Gradle project ` +
+      `(${generatedProject.versionName}/${generatedProject.versionCode}) before building.`,
+    );
+  }
+
+  // Always create a fresh web build before indexing media. Otherwise an
+  // otherwise successful Android build could silently package an older .next
+  // output than the source currently checked out.
+  console.log("Building the Next.js website...");
+  await run(
+    process.platform === "win32" ? "npm.cmd" : "npm",
+    ["run", "build"],
+    { cwd: ROOT, env: process.env },
+  );
+  await prepareHybridMedia(PROJECT_DIR);
   const keystorePath = manifest.signingKey.path;
   const keystoreAlias = manifest.signingKey.alias;
+  const bundletoolJar = findBundletoolJar();
 
   const gradlew = process.platform === "win32" ? "./gradlew" : "./gradlew";
 
@@ -186,11 +321,12 @@ async function main() {
 
   const unsignedApk = "app/build/outputs/apk/release/app-release-unsigned.apk";
   const alignedApk = "app-release-unsigned-aligned.apk";
+  const baseSignedApk = "app-release-base-signed.apk";
   const signedApk = "app-release-signed.apk";
   const unsignedAab = "app/build/outputs/bundle/release/app-release.aab";
   const signedAab = "app-release-bundle.aab";
 
-  for (const f of [alignedApk, signedApk, signedAab]) {
+  for (const f of [alignedApk, baseSignedApk, signedApk, signedAab]) {
     if (fileExists(path.join(PROJECT_DIR, f))) fs.unlinkSync(path.join(PROJECT_DIR, f));
   }
 
@@ -213,7 +349,7 @@ async function main() {
     `--ks-pass=pass:${keystorePassword}`,
     `--key-pass=pass:${keyPassword}`,
     "--out",
-    signedApk,
+    baseSignedApk,
     alignedApk,
   ], { env });
 
@@ -239,6 +375,31 @@ async function main() {
 
   fs.copyFileSync(path.join(PROJECT_DIR, unsignedAab), path.join(PROJECT_DIR, signedAab));
 
+  await buildUniversalApk({
+    jdkPath,
+    bundletoolJar,
+    signedAab: path.join(PROJECT_DIR, signedAab),
+    targetApk: path.join(PROJECT_DIR, signedApk),
+    keystorePath,
+    keystoreAlias,
+    keystorePassword,
+    keyPassword,
+    env,
+  });
+
+  await validateReleaseArtifacts({
+    javaExecutable: path.join(
+      jdkPath,
+      "bin",
+      process.platform === "win32" ? "java.exe" : "java",
+    ),
+    buildTools,
+    bundletoolJar,
+    signedAab: path.join(PROJECT_DIR, signedAab),
+    signedApk: path.join(PROJECT_DIR, signedApk),
+    env,
+  });
+
   const publicDownloadDir = path.join(ROOT, "public", "download");
   if (!fileExists(publicDownloadDir)) fs.mkdirSync(publicDownloadDir, { recursive: true });
   fs.copyFileSync(
@@ -247,7 +408,8 @@ async function main() {
   );
 
   console.log("\n✅ Build complete.");
-  console.log(`Signed APK:  ${path.join(PROJECT_DIR, signedApk)}`);
+  console.log(`Signed APK:  ${path.join(PROJECT_DIR, signedApk)} (universal, includes install-time media)`);
+  console.log(`Base APK:    ${path.join(PROJECT_DIR, baseSignedApk)} (shell only)`);
   console.log(`Signed AAB:  ${path.join(PROJECT_DIR, signedAab)}`);
   console.log(`Public download: ${path.join(publicDownloadDir, "app-release-signed.apk")}`);
 }

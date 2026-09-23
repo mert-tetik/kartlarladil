@@ -39,7 +39,6 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
   "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
-  "rank-up-reveal": "/sounds/rank-up-reveal-elevenlabs-v4.mp3",
   "chest-open": "/sounds/chest.mp3",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",

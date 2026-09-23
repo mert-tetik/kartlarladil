@@ -156,7 +156,7 @@ describe("VocabularyCardView", () => {
     await user.click(screen.getByRole("button", { name: `${testCard.term} Sor` }));
 
     expect(mockOpenAsk).toHaveBeenCalledWith({
-      language: testCard.language,
+      contextLanguage: testCard.language,
       initialTerm: testCard.term,
     });
   });

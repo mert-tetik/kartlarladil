@@ -31,4 +31,13 @@ interface DigitalGoodsService {
 
 interface Window {
   getDigitalGoodsService?(provider: "https://play.google.com/billing"): Promise<DigitalGoodsService>;
+  FoxiesDeckNativeBilling?: {
+    getDetails(itemIdsJson: string): string;
+    listPurchases(): string;
+    purchase(itemId: string): string;
+  };
+  FoxiesDeckNativeSpeech?: {
+    speak(text: string, languageTag: string, rate: number): boolean;
+    stop(): void;
+  };
 }

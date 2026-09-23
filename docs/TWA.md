@@ -1,47 +1,60 @@
-# Trusted Web Activity (TWA) / Android APK
+# Android app / hybrid TWA build
 
-This project is configured as a Progressive Web App (PWA). You can wrap it in a Trusted Web Activity and publish it on Google Play or distribute the APK directly.
+FoxiesDeck keeps the website as the remotely served application UI, while the
+Android release uses a native WebView shell. Local UI media is packaged in a
+Play Asset Delivery install-time asset pack and transparently served through
+the WebView request interceptor.
 
-## What is already configured
+## What is included
 
-- `@ducanh2912/next-pwa` generates a service worker at build time.
-- `src/app/manifest.ts` exposes a web app manifest.
-- `public/icon-192.png`, `public/icon.png` and `public/icon-maskable.png` cover launcher icon requirements.
-- `src/app/.well-known/assetlinks.json/route.ts` serves the Digital Asset Links file for domain verification.
+- Next.js remains the source of truth for UI and server features.
+- `public/` media and `.next/static/media/` media are indexed and copied into
+  the `ui_media` install-time asset pack.
+- The native WebView intercepts same-origin image, font, audio and video
+  requests and serves matching files from the installed asset pack.
+- External links and OAuth provider pages open in the system browser; the
+  native billing bridge is not exposed to arbitrary external documents.
+- The existing Ask/AI Practice microphone flow can request Android audio
+  permission, but only for the trusted FoxiesDeck origin.
+- Video byte ranges are supported, so seeking and browser media buffering work
+  without downloading the media from the website.
+- The remote website is still loaded for HTML, API calls, authentication and
+  future website updates.
+- Google Play Billing 8.0.0 is exposed through the native bridge for the
+  Android app; server-side purchase verification remains in the web app.
+- Android WebView does not expose the browser Web Speech Synthesis API, so
+  card and chat pronunciation uses the native Android Text-to-Speech bridge in
+  the app; normal browsers keep using `speechSynthesis`.
 
-## Build the site
-
-Production build uses webpack because next-pwa relies on webpack:
+## Build the website
 
 ```bash
 npm run build
 ```
 
-The generated service worker files (`sw.js`, `workbox-*.js`) are created in `public/` during the build and ignored by Git.
+The production web build must be available at `https://www.foxiesdeck.com`.
 
-## Generate / refresh icons
-
-If you change `public/icon.png`, regenerate the PWA icon variants:
-
-```bash
-npm run pwa:icons
-```
-
-## Install Bubblewrap (one time)
-
-Bubblewrap CLI is already installed globally via `npm install -g @bubblewrap/cli`.
-
-On first run it may ask to install the JDK and Android SDK. Since this machine already has JDK 17, you can let it detect it or install its own copy interactively.
-
-## Initialize the Android project
-
-Run the init command and answer the interactive prompts:
+## Initialize or refresh the Android project
 
 ```bash
 npm run pwa:init
 ```
 
-This creates a new directory with the Bubblewrap project (`twa-manifest.json`, signing keys, etc.).
+The generated Android project is kept locally in `com.foxiesdeck/`. The
+repository-owned patcher then applies API 36, Billing 8, the hybrid WebView,
+and the `ui_media` asset pack configuration.
+
+The current release defaults are `com.LigidTools.Glidecore`, version name
+`4.3.20`, and version code `133`. They can be overridden for a release with:
+
+```bash
+TWA_PACKAGE_ID=com.LigidTools.Glidecore
+TWA_VERSION_CODE=133
+TWA_VERSION_NAME=4.3.20
+```
+
+Keep the signing keystore and its passwords safe. Losing the original signing
+identity prevents future Google Play updates.
 
 ## Build the APK / AAB
 
@@ -49,47 +62,75 @@ This creates a new directory with the Bubblewrap project (`twa-manifest.json`, s
 npm run pwa:build
 ```
 
+The command performs all of the following:
+
+1. Builds a fresh Next.js production output.
+2. Reapplies the Android/Play compatibility patch.
+3. Scans current web media and regenerates the asset index.
+4. Builds the signed AAB and a signed universal APK that includes the
+  install-time media pack for direct installation.
+5. Verifies that the manifest and Gradle version metadata match.
+6. Validates the AAB with bundletool and verifies the universal APK signature.
+7. Copies the universal APK to `public/download/app-release-signed.apk`.
+
+The build needs `bundletool-all-1.18.3.jar`. Set `BUNDLETOOL_JAR` to its path,
+or place that file in the system temporary directory.
+
 Outputs:
 
-- `app-release-signed.apk` — installable APK for testing
-- `app-release-bundle.aab` — upload bundle for Google Play
+- `com.foxiesdeck/app-release-signed.apk` — universal direct-install APK with
+  the bundled media included.
+- `com.foxiesdeck/app-release-base-signed.apk` — base WebView shell only; it
+  does not contain the install-time asset pack and is not the public download.
+- `com.foxiesdeck/app-release-bundle.aab` — Google Play upload.
 
-## Domain verification (hide the browser address bar)
+## Domain verification
 
-After `bubblewrap init`, Bubblewrap prints a **Digital Asset Links** JSON snippet.
+`src/app/.well-known/assetlinks.json/route.ts` serves the Digital Asset Links
+file. It must remain reachable without redirects at:
 
-1. Copy the `sha256_cert_fingerprints` value and package name.
-2. Set them in your environment:
-
-```bash
-TWA_PACKAGE_NAME=com.yourpackage.name
-TWA_SHA256_FINGERPRINT=AA:BB:CC:...
+```text
+https://www.foxiesdeck.com/.well-known/assetlinks.json
 ```
 
-3. Redeploy the site so that `/.well-known/assetlinks.json` returns the correct content.
-4. Rebuild the APK/AAB and reinstall.
+The current package is `com.LigidTools.Glidecore`. The Play app-signing
+certificate fingerprint and the local upload-key fingerprint must both be
+present in the production response.
 
-## Chrome enforcement
+## Release checklist
 
-The launcher activity is customized to force Chrome as the TWA provider:
-
-- `LauncherActivity.createTwaLauncher()` is overridden to pass `com.android.chrome` as the provider package. This prevents Samsung devices from opening the app in Samsung Internet even when Chrome is installed.
-- If Chrome is not installed, the app shows a toast and redirects the user to the Google Play Store to install Chrome instead of launching.
-- `AndroidManifest.xml` declares a `<queries>` block limited to `com.android.chrome` and keeps `DelegationService` always enabled/exported.
-
-When a `clientAppUnavailable` error is returned by Google Play Billing inside the TWA, the pricing UI shows a localized message asking the user to set Google Chrome as the default browser and try again.
+- Run `npm run build` and `npm run typecheck`.
+- Deploy the resulting Next.js build to `https://www.foxiesdeck.com` and
+  verify the live HTML before building the Android artifact. The Android shell
+  loads this remote HTML at startup.
+- Run `npm run pwa:build`.
+- Validate the AAB with bundletool and install it on an Android 16 device or
+  emulator.
+- After the remote page has loaded, disable network access and confirm that at
+  least one image and one video still come from the local asset pack. A cold
+  launch still needs network access for the remote HTML and API layer.
+- Upload the AAB to Play Internal Testing before production.
+- From the Play-installed build, test Google OAuth, subscription purchase and
+  restore, speech, deep links and a website-only update.
 
 ## Notes
 
-- The site must be served over HTTPS.
-- `assetlinks.json` must be accessible without redirects and with `Content-Type: application/json`.
-- Keep the Bubblewrap signing keystore safe; losing it prevents future updates on Google Play.
-
-## Google Play Data Safety
-
-The TWA must declare account creation and account deletion in Play Console. FoxiesDeck already implements both:
-
-- Account creation: `/register`, `/login`, `/register/preferences`.
-- Account deletion: `/account/settings` with `DeleteAccountForm`.
-
-See `docs/GOOGLE_PLAY_DATA_SAFETY.md` for the full checklist and recommended data-type declarations.
+- Media added or replaced in the website is included in the next AAB build.
+- A public media path whose filename stays the same is intentionally served
+  from the installed package until the next AAB update; publish a new AAB when
+  replacing such a file. Next.js imported media normally gets a new hashed URL
+  automatically.
+- A changed filename is treated as a new asset; old files are not served
+  unless they still exist in the current media index.
+- Install-time asset packs are downloaded by Google Play during installation,
+  so the first install still needs network access and sufficient free storage.
+  When an install-time download is larger than 200 MB, Google Play may require
+  Wi-Fi or an explicit user confirmation before continuing over mobile data;
+  this is a Play delivery rule, not a WebView media-cache failure.
+- The native Text-to-Speech engine still requires the requested language voice
+  data to be installed on the device; after that, pronunciation does not use
+  the website or a media download.
+- This is also valid for a non-game app: Google Play documents Play Asset
+  Delivery for apps over 200 MB, with install-time packs available at launch.
+  The current pack is approximately 234 MB including the packaged UI media.
+- The Android package identity must not be changed for an update release.

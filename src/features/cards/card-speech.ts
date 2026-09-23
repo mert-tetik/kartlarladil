@@ -22,11 +22,20 @@ export function getSpeechLanguage(language: LanguageCode) {
 }
 
 export function speakText(text: string, language: LanguageCode, options?: { rate?: number }) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+  if (typeof window === "undefined") {
     return false;
   }
 
   const lang = getSpeechLanguage(language);
+  const nativeSpeech = window.FoxiesDeckNativeSpeech;
+  if (nativeSpeech) {
+    return nativeSpeech.speak(text, lang, options?.rate ?? 0.95);
+  }
+
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    return false;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   const matchingVoice = findMatchingVoice(lang);
 

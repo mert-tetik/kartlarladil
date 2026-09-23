@@ -23,17 +23,22 @@ import {
   TwaGenerator,
   TwaManifest,
 } from "@bubblewrap/core";
+import { patchGeneratedAndroidProject } from "./patch-generated-android.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
 const TARGET_HOST = process.env.TWA_HOST || "www.foxiesdeck.com";
 const TARGET_START_URL = process.env.TWA_START_URL || "/";
-const PACKAGE_ID = process.env.TWA_PACKAGE_ID || "com.foxiesdeck";
+// Keep fresh generations on the package currently used by the published
+// Android integration. Changing this value creates a different Play app
+// identity, so callers can still override it explicitly with TWA_PACKAGE_ID.
+const PACKAGE_ID =
+  process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : undefined;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME;
+  : 133;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.20";
 const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
   ? path.resolve(process.env.TWA_KEYSTORE_PATH)
   : undefined;
@@ -246,6 +251,11 @@ async function main() {
         if (pct % 10 === 0) console.log(`  Progress: ${pct}%`);
       }
     );
+
+    // Bubblewrap currently generates target SDK 35 and Billing 7.x through
+    // its Digital Goods helper. Apply the repository-owned Play requirements
+    // after generation so a fresh init is reproducible.
+    await patchGeneratedAndroidProject(PROJECT_DIR);
 
     const manifestContents = await fs.readFile(manifestFile);
     const checksum = crypto
