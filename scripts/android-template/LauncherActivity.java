@@ -26,6 +26,7 @@ public class LauncherActivity extends Activity {
     private FrameLayout contentRoot;
     private NativeBillingBridge billingBridge;
     private NativeTextToSpeechBridge textToSpeechBridge;
+    private NativeVibrationBridge vibrationBridge;
     private PermissionRequest pendingAudioPermissionRequest;
 
     @Override
@@ -84,6 +85,8 @@ public class LauncherActivity extends Activity {
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
         textToSpeechBridge = new NativeTextToSpeechBridge(this);
         webView.addJavascriptInterface(textToSpeechBridge, "FoxiesDeckNativeSpeech");
+        vibrationBridge = new NativeVibrationBridge(this);
+        webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");
 
         contentRoot = new FrameLayout(this);
         contentRoot.setBackgroundColor(Color.BLACK);
@@ -238,6 +241,7 @@ public class LauncherActivity extends Activity {
         if (webView != null) {
             webView.removeJavascriptInterface("FoxiesDeckNativeBilling");
             webView.removeJavascriptInterface("FoxiesDeckNativeSpeech");
+            webView.removeJavascriptInterface("FoxiesDeckNativeVibration");
             webView.stopLoading();
             webView.destroy();
             webView = null;
@@ -249,6 +253,10 @@ public class LauncherActivity extends Activity {
         if (textToSpeechBridge != null) {
             textToSpeechBridge.close();
             textToSpeechBridge = null;
+        }
+        if (vibrationBridge != null) {
+            vibrationBridge.close();
+            vibrationBridge = null;
         }
         super.onDestroy();
     }

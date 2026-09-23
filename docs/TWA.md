@@ -45,12 +45,12 @@ repository-owned patcher then applies API 36, Billing 8, the hybrid WebView,
 and the `ui_media` asset pack configuration.
 
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.21`, and version code `135`. They can be overridden for a release with:
+`4.3.22`, and version code `136`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=135
-TWA_VERSION_NAME=4.3.21
+TWA_VERSION_CODE=136
+TWA_VERSION_NAME=4.3.22
 ```
 
 Keep the signing keystore and its passwords safe. Losing the original signing

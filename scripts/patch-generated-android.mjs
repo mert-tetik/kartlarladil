@@ -115,6 +115,7 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.vending.BILLING" />
 
@@ -191,13 +192,23 @@ assetPack {
 }
 `;
 
-function buildProguardBridgeRules(packageName) {
+function buildProguardBridgeRules(packageName, existingRules) {
+  const rules = [];
+  if (!existingRules.includes("NativeBillingBridge")) {
+    rules.push(`-keep class ${packageName}.NativeBillingBridge { *; }`);
+  }
+  if (!existingRules.includes("NativeVibrationBridge")) {
+    rules.push(`-keep class ${packageName}.NativeVibrationBridge { *; }`);
+  }
+  if (!existingRules.includes("@android.webkit.JavascriptInterface")) {
+    rules.push(`-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}`);
+  }
+  if (rules.length === 0) return "";
   return `
 # The remote WebView calls these methods by JavaScript interface name.
--keep class ${packageName}.NativeBillingBridge { *; }
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
+${rules.join("\n")}
 `;
 }
 
@@ -210,6 +221,7 @@ async function patchJavaTemplates(projectDir, packageName) {
     "NativeMediaStore.java",
     "NativeBillingBridge.java",
     "NativeTextToSpeechBridge.java",
+    "NativeVibrationBridge.java",
     "EventReceiverActivity.java",
   ];
 
@@ -262,10 +274,11 @@ export async function patchGeneratedAndroidProject(
     // The generated project normally has this file, but a clean custom
     // project should still be repairable.
   }
-  if (!proguard.includes("NativeBillingBridge")) {
+  const missingBridgeRules = buildProguardBridgeRules(packageName, proguard);
+  if (missingBridgeRules) {
     await writeText(
       proguardPath,
-      `${proguard.trimEnd()}\n${buildProguardBridgeRules(packageName)}`,
+      `${proguard.trimEnd()}${missingBridgeRules}`,
     );
   }
 
