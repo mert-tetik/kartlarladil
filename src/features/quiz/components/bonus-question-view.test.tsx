@@ -98,6 +98,7 @@ describe("BonusQuestionView", () => {
   it("mounts the point flight icons after reward geometry is available", async () => {
     const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
       if (this.hasAttribute("data-bonus-reward-source")) return { left: 120, top: 240, width: 160, height: 104 } as DOMRect;
+      if (this.hasAttribute("data-quiz-total-score")) return { left: 20, top: 20, width: 100, height: 40 } as DOMRect;
       if (this.hasAttribute("data-bonus-reward-score")) return { left: 600, top: 32, width: 120, height: 48 } as DOMRect;
       if (this.hasAttribute("data-bonus-reward-flight-source")) return { left: 399.5, top: 899.5, width: 1, height: 1 } as DOMRect;
       return { left: 0, top: 0, width: 0, height: 0 } as DOMRect;
@@ -107,6 +108,7 @@ describe("BonusQuestionView", () => {
       render(
         <StrictMode>
           <LocaleProvider initialLocale="en">
+            <div data-quiz-total-score />
             <BonusQuestionView
               question={matchingQuestion}
               showingAnswer
@@ -128,6 +130,8 @@ describe("BonusQuestionView", () => {
       expect(document.body.querySelector("[data-bonus-reward-flight-source]")).toBeInTheDocument();
       expect(document.body.querySelector(".animate-quiz-score-icon-flight"))
         .toHaveStyle({ "--score-flight-start-x": "400px", "--score-flight-start-y": "900px" });
+      expect(document.body.querySelector(".animate-quiz-score-icon-flight"))
+        .toHaveStyle({ "--score-flight-target-x": "660px", "--score-flight-target-y": "56px" });
     } finally {
       rectSpy.mockRestore();
     }

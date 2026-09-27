@@ -32,17 +32,17 @@
   --brand: #f76808;
   --brand-hover: color-mix(in oklab, var(--brand) 85%, black);
   --brand-foreground: #ffffff;
-  --background: #f8fafc;
-  --background-card: #ffffff;
-  --background-muted: #f1f5f9;
-  --background-inverse: #0f172a;
-  --foreground: #0f172a;
-  --foreground-secondary: #475569;
-  --foreground-muted: #94a3b8;
-  --foreground-inverse: #ffffff;
-  --foreground-inverse-secondary: #cbd5e1;
-  --foreground-inverse-muted: #94a3b8;
-  --border: #e2e8f0;
+  --background: #090909;
+  --background-card: #121212;
+  --background-muted: #1a1a1a;
+  --background-inverse: #f5f5f5;
+  --foreground: #fafafa;
+  --foreground-secondary: #a3a3a3;
+  --foreground-muted: #525252;
+  --foreground-inverse: #090909;
+  --foreground-inverse-secondary: #404040;
+  --foreground-inverse-muted: #525252;
+  --border: #262626;
   --ring-brand: #f76808;
   --action-learn: #10b981;
   --action-learn-hover: #059669;
@@ -51,21 +51,21 @@
   --action-draw: #facc15;
   --action-custom: #f43f5e;
   --action-learned: #0ea5e9;
-  --action-inactive: #e2e8f0;
+  --action-inactive: #404040;
   --accent-primary: #f76808;
   --accent-secondary: #0ea5e9;
   --accent-tertiary: #10b981;
   --accent-quaternary: #8b5cf6;
   --tier-a1: #10b981;
-  --tier-a1-text: #059669;
+  --tier-a1-text: #34d399;
   --tier-a2: #0ea5e9;
-  --tier-a2-text: #0284c7;
+  --tier-a2-text: #38bdf8;
   --tier-b1: #8b5cf6;
-  --tier-b1-text: #7c3aed;
+  --tier-b1-text: #a78bfa;
   --tier-b2: #f59e0b;
-  --tier-b2-text: #d97706;
+  --tier-b2-text: #fbbf24;
   --tier-c1: #f43f5e;
-  --tier-c1-text: #e11d48;
+  --tier-c1-text: #fb7185;
   --reward-start: #f59e0b;
   --reward-end: #f97316;
   --rank-start: #fbbf24;
@@ -1405,6 +1405,22 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: transform, opacity;
 }
 
+.quiz-count-option-position-enter {
+  pointer-events: auto;
+  animation: quiz-count-option-position-in 680ms cubic-bezier(0.85, 0, 0.15, 1) var(--quiz-count-option-delay, 0ms) both;
+  will-change: transform;
+}
+
+@keyframes quiz-count-option-position-in {
+  0% {
+    transform: translate3d(0, 115vh, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @keyframes quiz-count-option-scale-in {
   0% {
     transform: scale(1.28);
@@ -1460,15 +1476,56 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   overflow: hidden;
 }
 
-.mission-card--claimed > :not(.mission-card-shine) {
+.mission-card-claimed-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 210ms cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.mission-card-claimed-wash--visible {
+  opacity: 1;
+}
+
+.mission-card--claimed > :not(.mission-card-shine):not([data-mission-claimed-wash]):not([data-mission-claimed-label]) {
   opacity: 0.55;
   filter: grayscale(0.35) saturate(0.65);
+  transition:
+    opacity 210ms cubic-bezier(0.85, 0, 0.15, 1),
+    filter 210ms cubic-bezier(0.85, 0, 0.15, 1);
 }
 
 .mission-card--claimed > [data-mission-claimed-label] {
   opacity: 1;
   filter: none;
   color: #fff;
+  transform-origin: center;
+  animation: mission-claimed-label-enter 240ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+@keyframes mission-claimed-label-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-card-claimed-wash,
+  .mission-card--claimed > :not(.mission-card-shine):not([data-mission-claimed-wash]):not([data-mission-claimed-label]) {
+    transition-duration: 1ms;
+  }
+
+  .mission-card--claimed > [data-mission-claimed-label] {
+    animation-duration: 1ms;
+  }
 }
 
 .mission-card-shine::after {
@@ -1803,6 +1860,50 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   transform: translateY(6px) scale(0);
 }
 
+/* The isolated Learn test routes use the same bottom action treatment at every viewport size. */
+[data-normal-test] [data-quiz-bottom-actions] {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 55;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+  background: var(--background);
+  border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+}
+
+[data-normal-test] [data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
+  height: 4rem;
+  min-height: 4rem;
+}
+
+@media (max-width: 1023px) {
+  /* Keep the skip/reroll controls attached to the mobile viewport in Learn.
+     Quiz action rows are portaled to body on the real Learn screen so route
+     transition transforms cannot create a smaller fixed-position viewport. */
+  [data-quiz-bottom-actions] {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 55;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+    background: var(--background);
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+
+  [data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
+    height: 4rem;
+    min-height: 4rem;
+  }
+
+  [data-learn-page] [data-quiz-mobile-feedback] {
+    z-index: 70;
+  }
+}
+
 .animate-quiz-card-progress-reveal {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }
@@ -2119,6 +2220,25 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
     transform: none;
     will-change: auto;
   }
+
+  /* Remove the transformed containing block so quiz-fixed controls anchor to
+     the actual viewport instead of the Learn section's reserved nav height. */
+  [data-learn-page]:has([data-learn-quiz-page]) {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .page-transition-shell:has([data-learn-page]) {
+    transform: none;
+    will-change: auto;
+  }
+
+  /* Learn setup, count selection, and result screens hide the mobile navbar,
+     so they must use the full viewport instead of reserving its old space. */
+  body:has([data-learn-page]):not(:has([data-quiz-session-progress])) [data-learn-page] {
+    height: 100dvh;
+  }
 }
 
 /* Hide the Learn page header and site footer while a quiz or result screen is active */
@@ -2129,8 +2249,14 @@ body:has([data-learn-page]) footer {
 }
 
 @media (max-width: 1023px) {
-  body:has([data-learn-quiz-page="quiz"]) [data-route-transition-navigation] {
+  /* Keep the app navbar out of Learn setup/result states. The quiz's own
+     progress bar is the only state in which the navbar may be present. */
+  body:has([data-learn-page]) [data-route-transition-navigation] {
     display: none;
+  }
+
+  body:has([data-learn-page]):has([data-quiz-session-progress]) [data-route-transition-navigation] {
+    display: block;
   }
 }
 
@@ -2479,6 +2605,20 @@ body:has([data-ask-page]) footer {
 
 .animate-score-bobble-alt {
   animation: score-bobble-alt 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-score-pulse-group] > svg.lucide-star:first-child {
+  position: relative;
+  top: 4px;
+}
+
+[data-score-pulse-group] > span:last-child {
+  position: relative;
+  top: 4px;
+}
+
+[data-main-points-display] [data-score-pulse-group] > span:last-child {
+  top: 2px;
 }
 
 @keyframes gem-target-pulse {
@@ -2974,36 +3114,253 @@ body:has([data-ask-page]) footer {
   transform-origin: center;
 }
 
-@keyframes rank-details-overlay-enter {
+@keyframes card-grammar-details-panel-enter {
   0% {
-    transform: scale(0.92);
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
   }
 
   100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes card-grammar-details-panel-exit {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.card-grammar-details-overlay-enter [data-card-grammar-details-panel="top"] {
+  animation: card-grammar-details-panel-enter 520ms cubic-bezier(0.85, 0, 0.15, 1) 0ms both;
+  position: relative;
+  z-index: 3;
+  will-change: opacity, transform;
+}
+
+.card-grammar-details-overlay-enter [data-card-grammar-details-panel="middle"] {
+  animation: card-grammar-details-panel-enter 520ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both;
+  position: relative;
+  z-index: 2;
+  will-change: opacity, transform;
+}
+
+.card-grammar-details-overlay-enter [data-card-grammar-details-panel="bottom"] {
+  animation: card-grammar-details-panel-enter 520ms cubic-bezier(0.85, 0, 0.15, 1) 280ms both;
+  position: relative;
+  z-index: 1;
+  will-change: opacity, transform;
+}
+
+.card-grammar-details-overlay-exit [data-card-grammar-details-panel="bottom"] {
+  animation: card-grammar-details-panel-exit 520ms cubic-bezier(0.85, 0, 0.15, 1) 0ms both;
+  position: relative;
+  z-index: 1;
+  will-change: opacity, transform;
+}
+
+.card-grammar-details-overlay-exit [data-card-grammar-details-panel="middle"] {
+  animation: card-grammar-details-panel-exit 520ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both;
+  position: relative;
+  z-index: 2;
+  will-change: opacity, transform;
+}
+
+.card-grammar-details-overlay-exit [data-card-grammar-details-panel="top"] {
+  animation: card-grammar-details-panel-exit 520ms cubic-bezier(0.85, 0, 0.15, 1) 280ms both;
+  position: relative;
+  z-index: 3;
+  will-change: opacity, transform;
+}
+
+@keyframes rank-details-rank-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  68% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+
+  100% {
+    opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes rank-details-background-enter {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes rank-details-gradient-enter {
+  0% {
+    opacity: 0;
+    filter: saturate(0.72);
+  }
+
+  100% {
+    opacity: 1;
+    filter: saturate(1);
+  }
+}
+
+@keyframes rank-details-ui-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.82);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rank-details-ui-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.72);
   }
 }
 
 @keyframes rank-details-overlay-exit {
   0% {
-    transform: scale(1);
+    transform: translate3d(0, 0, 0);
   }
 
   100% {
-    transform: scale(0.92);
+    transform: translate3d(0, 100%, 0);
   }
 }
 
-.rank-details-overlay-enter {
-  animation: rank-details-overlay-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+.rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-visual-motion] {
+  animation: rank-details-rank-enter 600ms cubic-bezier(0.85, 0, 0.15, 1) 120ms both;
   transform-origin: center;
-  will-change: transform;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter {
+  animation: rank-details-background-enter 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity;
+}
+
+.rank-details-overlay-enter [data-rank-details-gradient] {
+  animation: rank-details-gradient-enter 720ms cubic-bezier(0.85, 0, 0.15, 1) 400ms both;
+  will-change: filter, opacity;
+}
+
+.rank-details-overlay-enter [data-rank-details-radial] {
+  animation: rank-details-gradient-enter 720ms cubic-bezier(0.85, 0, 0.15, 1) 400ms both;
+  will-change: filter, opacity;
+}
+
+.rank-details-overlay-enter [data-rank-details-ui="header"] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 1000ms both;
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter [data-rank-details-ui="close"] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 1080ms both;
+  transform-origin: top right;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-label] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 480ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-requirement] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 680ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-progress-motion] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 840ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-enter [data-rank-details-ui="position"] {
+  animation: rank-details-ui-enter 440ms cubic-bezier(0.85, 0, 0.15, 1) 1260ms both;
+  transform-origin: bottom center;
+  will-change: opacity, transform;
 }
 
 .rank-details-overlay-exit {
-  animation: rank-details-overlay-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
-  transform-origin: center;
+  animation: rank-details-overlay-exit 380ms cubic-bezier(0.85, 0, 0.15, 1) 480ms both;
+  transform-origin: top center;
   will-change: transform;
+}
+
+.rank-details-overlay-exit [data-rank-details-ui="header"] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 0ms both;
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-details-ui="close"] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 70ms both;
+  transform-origin: top right;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-visual-motion] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-label] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 120ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-requirement] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 220ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-progress-motion] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 270ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.rank-details-overlay-exit [data-rank-details-ui="position"] {
+  animation: rank-details-ui-exit 180ms cubic-bezier(0.85, 0, 0.15, 1) 220ms both;
+  transform-origin: bottom center;
+  will-change: opacity, transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3033,7 +3390,37 @@ body:has([data-ask-page]) footer {
   .rank-details-overlay-enter,
   .rank-details-overlay-exit {
     animation: none;
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-visual-motion],
+  .rank-details-overlay-enter [data-rank-details-gradient],
+  .rank-details-overlay-enter [data-rank-details-radial],
+  .rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-label],
+  .rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-requirement],
+  .rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-details-rank-progress-motion],
+  .rank-details-overlay-enter [data-rank-details-ui],
+  .rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-visual-motion],
+  .rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-label],
+  .rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-requirement],
+  .rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-details-rank-progress-motion],
+  .rank-details-overlay-exit [data-rank-details-ui] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .rank-details-overlay-enter [data-rank-index][data-highlighted="true"] [data-rank-visual-motion],
+  .rank-details-overlay-exit [data-rank-index][data-highlighted="true"] [data-rank-visual-motion] {
     transform: scale(1);
+  }
+
+  .card-grammar-details-overlay-enter [data-card-grammar-details-panel],
+  .card-grammar-details-overlay-exit [data-card-grammar-details-panel] {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 

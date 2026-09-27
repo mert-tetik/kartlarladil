@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { getStudyLocale } from "@/features/cards/card-localization";
 import {
@@ -17,6 +18,7 @@ import {
   DefinitionQuestion,
   ListeningQuestion,
   MobileQuizFeedback,
+  MobileQuizTopBar,
   SentenceCompletionQuestion,
   TextQuestion,
   TrueFalseQuestion,
@@ -29,6 +31,7 @@ import {
   type TrueFalseQuizItem,
 } from "@/features/quiz/components/quiz-station";
 import { useLocale } from "@/i18n/locale-provider";
+import { cn } from "@/lib/utils";
 import type { InventoryCard, LocaleCode, VocabularyCard } from "@/types/domain";
 
 const TEST_LANGUAGE = "en" as const;
@@ -210,49 +213,122 @@ export function NormalQuestionsTest() {
     showingAnswer,
     onAnswer: handleAnswer,
     onSkip: handleSkip,
+    rerollAction: {
+      onReroll: () => undefined,
+      disabled: true,
+      loading: false,
+    },
     onNext: handleNext,
     showNextButton: true,
   };
+  const isCardFirstQuestion =
+    question.questionType === "choice" ||
+    question.questionType === "listening" ||
+    question.questionType === "true-false";
+  const isDefinitionQuestion = question.questionType === "definition";
+  const isSentenceCompletionQuestion = question.questionType === "sentence-completion";
+  const card = (
+    <div className="relative aspect-[3/4] w-[min(285px,calc((100vw-3rem)/2))] max-w-full shrink-0">
+      <VocabularyCardView
+        card={question.card}
+        inventory={question.inventoryCard}
+        owned
+        initialFace="back"
+        face={showingAnswer ? "front" : "back"}
+        flippable={false}
+        footerMode="empty"
+        className="h-full w-full min-h-0 max-sm:min-h-0"
+      />
+    </div>
+  );
+  const compactCard = (
+    <div className="origin-bottom scale-[0.78]">{card}</div>
+  );
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex min-h-0 flex-col overflow-y-auto bg-background px-4 py-6 lg:justify-center"
+      className="fixed inset-0 z-[100] flex min-h-0 flex-col overflow-y-auto bg-background px-4 py-6 max-lg:pt-20 lg:justify-center"
       data-normal-test
+      data-learn-quiz-page="quiz"
       data-normal-test-kind={question.questionType}
       data-normal-test-index={questionIndex}
     >
-      <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center py-4">
-        {question.questionType === "choice" ? (
-          <ChoiceQuestion {...commonProps} promptClassName="max-lg:hidden" />
-        ) : question.questionType === "listening" ? (
-          <ListeningQuestion {...commonProps} />
-        ) : question.questionType === "definition" ? (
-          <DefinitionQuestion {...commonProps} isFirstQuestion />
-        ) : question.questionType === "true-false" ? (
-          <TrueFalseQuestion {...commonProps} promptClassName="max-lg:hidden" />
-        ) : question.questionType === "sentence-completion" ? (
-          <SentenceCompletionQuestion
-            {...commonProps}
-            isAiValidating={false}
-            aiValidatingAnswer={null}
-            selectedAnswer={lastAnswer}
-            answerAccepted={answerAccepted}
-          />
-        ) : (
-          <TextQuestion
-            {...commonProps}
-            textAnswer={textAnswer}
-            textResult={textResult}
-            isAiValidating={false}
-            onChange={setTextAnswer}
-            onSubmitText={handleTextSubmit}
-            isFirstQuestion
-          />
-        )}
+      <MobileQuizTopBar
+        currentIndex={questionIndex}
+        total={Math.max(questions.length, 1)}
+        totalPoints={0}
+        scorePulse={0}
+        questionPrompt={null}
+        onExit={() => undefined}
+      />
+      <div
+        className="mx-auto flex min-h-full w-full max-w-5xl flex-col items-center justify-center gap-3 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:py-0"
+        data-quiz-mobile-layout={question.questionType}
+      >
+        <div
+          className={cn(
+            "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+            isCardFirstQuestion ? "order-3 max-lg:pb-3" : "order-1",
+          )}
+          data-quiz-mobile-question
+        >
+          <div className="flex flex-1 flex-col justify-center">
+            {question.questionType === "choice" ? (
+              <ChoiceQuestion {...commonProps} promptClassName="max-lg:hidden" />
+            ) : question.questionType === "listening" ? (
+              <ListeningQuestion {...commonProps} />
+            ) : question.questionType === "definition" ? (
+              <DefinitionQuestion {...commonProps} isFirstQuestion />
+            ) : question.questionType === "true-false" ? (
+              <TrueFalseQuestion {...commonProps} promptClassName="max-lg:hidden" />
+            ) : question.questionType === "sentence-completion" ? (
+              <SentenceCompletionQuestion
+                {...commonProps}
+                isAiValidating={false}
+                aiValidatingAnswer={null}
+                selectedAnswer={lastAnswer}
+                answerAccepted={answerAccepted}
+                mobileCard={compactCard}
+              />
+            ) : (
+              <TextQuestion
+                {...commonProps}
+                textAnswer={textAnswer}
+                textResult={textResult}
+                isAiValidating={false}
+                onChange={setTextAnswer}
+                onSubmitText={handleTextSubmit}
+                isFirstQuestion
+              />
+            )}
+          </div>
+        </div>
+
+        {!isDefinitionQuestion && !isSentenceCompletionQuestion ? (
+          <div className="order-2 flex items-center justify-center lg:hidden" data-quiz-mobile-card-slot>
+            {card}
+          </div>
+        ) : null}
+
+        <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
+          <div className="relative h-[440px] w-auto transform-gpu">
+            <VocabularyCardView
+              card={question.card}
+              inventory={question.inventoryCard}
+              owned
+              initialFace="back"
+              face={showingAnswer ? "front" : "back"}
+              flippable={false}
+              footerMode="empty"
+              className="h-full w-auto min-h-0 max-w-full"
+            />
+          </div>
+        </div>
       </div>
       <MobileQuizFeedback
         isOpen={showingAnswer && answerAccepted !== null}
         isCorrect={answerAccepted ?? false}
+        forceMascotAnimation
         correctAnswer={getCorrectAnswer(question)}
         onNext={handleNext}
         showNextButton

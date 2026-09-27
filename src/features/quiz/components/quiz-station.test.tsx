@@ -23,6 +23,16 @@ const progressStatsMock = vi.hoisted(() => ({
   refreshStats: vi.fn(async () => undefined),
 }));
 
+const routerMock = vi.hoisted(() => ({
+  push: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
+}));
+
+const leaderboardOverlayMock = vi.hoisted(() => ({
+  openLeaderboard: vi.fn(),
+}));
+
 const mathRandomSpy = vi.spyOn(Math, "random");
 
 beforeEach(() => {
@@ -30,6 +40,10 @@ beforeEach(() => {
   document.cookie = `${LOCALE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
   mathRandomSpy.mockReset();
   mathRandomSpy.mockReturnValue(0.75);
+  routerMock.push.mockReset();
+  routerMock.replace.mockReset();
+  routerMock.refresh.mockReset();
+  leaderboardOverlayMock.openLeaderboard.mockReset();
   progressStatsMock.stats = null;
   progressStatsMock.refreshStats.mockReset();
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
@@ -45,11 +59,7 @@ afterEach(() => {
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/learn",
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-  }),
+  useRouter: () => routerMock,
 }));
 
 vi.mock("@/features/inventory/cloud-actions", () => ({
@@ -121,6 +131,10 @@ vi.mock("@/features/leaderboard/use-leaderboard", () => ({
     error: "",
     refresh: vi.fn(),
   }),
+}));
+
+vi.mock("@/features/leaderboard/components/leaderboard-overlay-provider", () => ({
+  useLeaderboardOverlay: () => leaderboardOverlayMock,
 }));
 
 vi.mock("@/features/quiz/components/quiz-start-splash", () => ({
@@ -305,142 +319,59 @@ describe("ResultView star rating", () => {
     expect(screen.queryByText("10x streak! +40 points")).not.toBeInTheDocument();
   });
 
-  it("plays a points cue and haptic feedback as each star lands", async () => {
-    vi.useFakeTimers();
-    renderResultView(0, 5);
+  it("does not display or award points on the result screen", async () => {
     vi.clearAllMocks();
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(800);
-    });
-
-    expect(playSoundEffect).toHaveBeenCalledWith("points");
-    expect(vibrate).toHaveBeenCalledWith("tap");
-  });
-
-  it("starts the persistent result score flight one second after the stars finish", async () => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-
-    render(
-      <LocaleProvider initialLocale="tr">
-        <ResultView
-          mode="active"
-          results={{
-            correct: VOCABULARY_CARDS.slice(0, 10),
-            incorrect: [],
-            learned: [],
-          }}
-          selectedCount={10}
-          chestOpened={false}
-          quizSessionId="00000000-0000-4000-8000-000000000001"
-          onRestart={vi.fn()}
-          onExit={vi.fn()}
-        />
-      </LocaleProvider>,
-    );
+    renderResultView(10, 0);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_240 + 999);
+      await Promise.resolve();
     });
+
+    expect(document.querySelector("[data-result-score-display]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-reward-gem-hud]")).not.toBeInTheDocument();
     expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(0);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
-    });
-    expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(3);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_480);
-    });
-
-    expect(document.querySelector("[data-result-score-display]")).toHaveTextContent("5");
-    expect(awardQuizResultPoints).toHaveBeenCalledTimes(1);
-    expect(playSoundEffect).toHaveBeenCalledWith("points");
-    expect(vibrate).toHaveBeenCalledWith("tap");
-  });
-
-  it("does not award result stars for a learned review", async () => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-
-    render(
-      <LocaleProvider initialLocale="tr">
-        <ResultView
-          mode="learned"
-          results={{
-            correct: VOCABULARY_CARDS.slice(0, 10),
-            incorrect: [],
-            learned: [],
-          }}
-          selectedCount={10}
-          chestOpened={false}
-          quizSessionId="00000000-0000-4000-8000-000000000002"
-          onRestart={vi.fn()}
-          onExit={vi.fn()}
-        />
-      </LocaleProvider>,
-    );
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
     expect(awardQuizResultPoints).not.toHaveBeenCalled();
-    expect(document.querySelectorAll("[data-result-score-flight]")).toHaveLength(0);
+    expect(playSoundEffect).not.toHaveBeenCalledWith("points");
+    expect(vibrate).not.toHaveBeenCalledWith("tap");
   });
 
-  it("does not request a second reward when the same result session remounts", async () => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-    const sessionId = "00000000-0000-4000-8000-000000000006";
+  it("keeps result action icons large, thick, and fills the learned icon", () => {
+    renderResultView(8, 2, 1);
 
-    const view = render(
-      <LocaleProvider initialLocale="tr">
-        <ResultView
-          mode="active"
-          results={{
-            correct: VOCABULARY_CARDS.slice(0, 10),
-            incorrect: [],
-            learned: [],
-          }}
-          selectedCount={10}
-          chestOpened={false}
-          quizSessionId={sessionId}
-          onRestart={vi.fn()}
-          onExit={vi.fn()}
-        />
-      </LocaleProvider>,
-    );
+    const correctIcon = document.querySelector('[data-result-card="correct"] svg');
+    const incorrectIcon = document.querySelector('[data-result-card="incorrect"] svg');
+    const learnedIcon = document.querySelector('[data-result-card="learned"] svg');
 
-    await act(async () => {
-      await Promise.resolve();
-    });
-    view.unmount();
+    expect(correctIcon).toHaveClass("size-8", "stroke-[3.5]");
+    expect(incorrectIcon).toHaveClass("size-8", "stroke-[3.5]");
+    expect(learnedIcon).toHaveClass("size-8", "fill-current");
+  });
 
+  it("uses the result tone on the menu close bar", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
-          mode="active"
-          results={{
-            correct: VOCABULARY_CARDS.slice(0, 10),
-            incorrect: [],
-            learned: [],
-          }}
-          selectedCount={10}
-          chestOpened={false}
-          quizSessionId={sessionId}
-          onRestart={vi.fn()}
-          onExit={vi.fn()}
-        />
+        <AuthSessionProvider user={testUser}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 8),
+              incorrect: VOCABULARY_CARDS.slice(8, 10),
+              learned: VOCABULARY_CARDS.slice(10, 11),
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
       </LocaleProvider>,
     );
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    fireEvent.click(document.querySelector('[data-result-card="correct"]')!);
 
-    expect(awardQuizResultPoints).toHaveBeenCalledTimes(1);
+    expect(document.querySelector("[data-result-menu-accent]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-result-menu-header]")).toHaveClass("bg-emerald-500");
   });
 
   it("shows the leaderboard standing and worldwide label in the result header", () => {
@@ -458,7 +389,53 @@ describe("ResultView star rating", () => {
     );
 
     expect(screen.getByText("20. siradasin!")).toBeInTheDocument();
-    expect(screen.getByText("Dunya uzerinde")).toBeInTheDocument();
+    expect(screen.getByText("Dünya üzerinde")).toBeInTheDocument();
+
+    const scope = document.querySelector("[data-leaderboard-scope]");
+    const standing = document.querySelector("[data-leaderboard-standing]");
+    expect(scope).toBeInTheDocument();
+    expect(standing).toBeInTheDocument();
+    expect(scope!.compareDocumentPosition(standing!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("opens the leaderboard overlay from the standing without navigating", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
+          selectedCount={10}
+          chestOpened={false}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(document.querySelector("[data-leaderboard-standing]")!);
+
+    expect(leaderboardOverlayMock.openLeaderboard).toHaveBeenCalledTimes(1);
+    expect(routerMock.push).not.toHaveBeenCalledWith("/leaderboard");
+  });
+
+  it("renders only the foreground rank artwork in the result", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ResultView
+          mode="active"
+          results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
+          selectedCount={10}
+          chestOpened={false}
+          onRestart={vi.fn()}
+          onExit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const rankImages = Array.from(document.querySelectorAll("[data-quiz-result-view] img"))
+      .filter((image) => image.getAttribute("src")?.includes("/ranks/"));
+
+    expect(rankImages).toHaveLength(1);
   });
 
   it("sends the quiz completed analytics event with summary params", () => {
@@ -979,6 +956,33 @@ describe("QuizStation sound feedback", () => {
     expect(document.querySelector('[data-quiz-question-content="sentence-completion"] img')).toBeInTheDocument();
   });
 
+  it("reserves the sentence card slot before feedback so the prompt does not reflow", async () => {
+    mathRandomSpy.mockReset().mockReturnValue(0.2);
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ã„Â°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="sentence-completion"]')).toBeInTheDocument();
+    });
+
+    const cardSlot = document.querySelector<HTMLElement>("[data-quiz-mobile-card-slot]");
+    expect(cardSlot).toBeInTheDocument();
+    expect(cardSlot).toHaveClass("invisible");
+    expect(cardSlot?.querySelector('[data-quiz-mobile-card-kind="sentence-completion"]')).toBeInTheDocument();
+
+    const canonicalOption = Array.from(document.querySelectorAll<HTMLElement>("[data-quiz-sentence-option]")).find(
+      (option) => option.textContent?.trim() === testCard.term,
+    );
+    expect(canonicalOption).toBeDefined();
+
+    fireEvent.click(canonicalOption!);
+
+    await waitFor(() => {
+      expect(cardSlot).not.toHaveClass("invisible");
+    });
+  });
+
   it("does not call AI validation for the canonical sentence completion answer", async () => {
     const fetchSpy = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }));
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
@@ -1159,15 +1163,18 @@ describe("QuizStation sound feedback", () => {
 
     const bar = document.querySelector<HTMLElement>("[data-mobile-quiz-top-bar]");
     const progress = bar?.querySelector<HTMLElement>("[data-quiz-session-progress]");
-    const progressTrack = progress?.querySelector<HTMLElement>("div");
-    const progressIndicator = progressTrack?.firstElementChild;
+    const progressTrack = progress?.querySelector<HTMLElement>("div.relative > div");
+    const progressIndicator = progress?.querySelector<HTMLElement>("[data-progress-indicator]");
 
     expect(bar).toBeInTheDocument();
     expect(document.querySelector("[data-mobile-quiz-top-bars]")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Çık" })).toBeInTheDocument();
     expect(progress).toHaveAttribute("aria-valuenow", "1");
     expect(progressTrack).toHaveClass("h-3.5", "rounded-full");
-    expect(progressIndicator).toHaveClass("bg-gradient-to-r", "from-amber-300", "to-orange-500");
+    expect(progressIndicator).toHaveClass("bg-amber-400");
+    expect(progressIndicator).not.toHaveClass("bg-gradient-to-r");
+    expect(bar?.querySelector("[data-quiz-progress-midpoint]")).toHaveClass("bg-amber-400");
+    expect(bar?.querySelector("[data-quiz-progress-end]")).toHaveClass("bg-amber-400");
     expect(bar?.querySelector("[data-quiz-total-score]")).toHaveTextContent("0");
   });
 

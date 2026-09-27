@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Star } from "lucide-react";
 import {
@@ -15,17 +15,9 @@ import {
   type SentenceOrderBonusQuestion,
 } from "@/features/quiz/bonus-questions";
 import { getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
-import {
-  getScoreFlightAwardAtArrival,
-  getChestRewardFlightMotion,
-  getScoreFlightIconCount,
-  SCORE_FLIGHT_DURATION_MS,
-  SCORE_FLIGHT_LAST_START_MS,
-} from "@/features/progress/score-flight";
-import { ScoreIcon } from "@/components/score-icon";
-import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
+import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import { RewardGemHud, type GemHudPulse } from "@/features/progress/components/reward-gem-hud";
-import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import type { GemBalances, GemRewards, GemType } from "@/features/gems/gem-types";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
@@ -38,6 +30,7 @@ import { formatNumber } from "@/i18n/labels";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import type { LanguageCode } from "@/types/domain";
+import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
@@ -677,23 +670,13 @@ export function BonusQuestionView({
       className="pointer-events-none absolute inset-0 z-[70] flex flex-col items-center justify-center gap-1"
       data-bonus-reward-hud
     >
-      <div
-        className="animate-points-pop relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-white"
+      <MainPointsDisplay
+        className="animate-points-pop"
+        pulse={scorePulse}
         data-bonus-reward-score
-      >
-        <MainPointsDisplayBackground pulse={scorePulse} />
-        <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
-        <span
-          className={cn(
-            "relative z-10 text-lg font-bold",
-            canUseSuperWater(locale) && "font-super-water",
-            scorePulse > 0 && "animate-score-bobble",
-          )}
-          key={scorePulse}
-        >
-          {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
-        </span>
-      </div>
+        valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
+        value={formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
+      />
       <RewardGemHud
         animate
         desktopVisible
@@ -810,25 +793,28 @@ export function BonusQuestionView({
       {rewardHudPortal}
       {rewardFlightSource}
 
-      {showingAnswer && answerAccepted && rewardReady && showPointFlight
-        ? <BonusPointFlight
-            points={points}
-            sourceRef={flightSourceRef}
-            onFlightStart={onFlightStart}
-            onPointArrive={onPointArrive}
-            onComplete={onFlightComplete}
-          />
-        : null}
-
-      {showingAnswer && answerAccepted && rewardReady && gemRewards?.length
-        ? <GemRewardFlight
-            rewards={gemRewards}
-            sourceRef={flightSourceRef}
-            targetSelector='[data-reward-gem-hud-role="main"] [data-reward-gem-target]'
-            sourceOrigin="center"
-            arrivalSoundEffect="gem-loot"
+      {rewardFlightReady
+        ? <RewardScatter
+            points={showPointFlight ? {
+              amount: points,
+              source: flightSourceRef,
+              targetSelector: "[data-bonus-reward-score]",
+              placement: { origin: "center" },
+              zIndex: 80,
+            } : null}
+            gems={{
+              rewards: gemRewards ?? [],
+              source: flightSourceRef,
+              targetSelector: '[data-reward-gem-hud-role="reward"] [data-reward-gem-target]',
+              placement: { origin: "center" },
+              arrivalSoundEffect: "gem-loot",
+              zIndex: 112,
+            }}
+            onPointsStart={onFlightStart}
+            onPointsArrive={(awardedTotal) => onPointArrive?.(awardedTotal)}
+            onPointsComplete={onFlightComplete}
             onGemArrive={onGemArrive}
-            onComplete={onGemFlightComplete}
+            onGemsComplete={onGemFlightComplete}
           />
         : null}
     </div>
@@ -1471,178 +1457,34 @@ function BonusCheckButton({
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
   return (
-    <div className={cn("mt-1 flex w-full gap-2", showingAnswer && "pointer-events-none")}>
-      <QuizSkipButton
-        className="min-w-0 flex-1"
-        disabled={showingAnswer}
-        hidden={showingAnswer}
-        onClick={onSkip}
-      />
-      <div
-        className={cn(
-          "quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]",
-          disabled && "quiz-action-depth--locked",
-        )}
-        data-quiz-action-hidden={showingAnswer}
-      >
-        <Button
-          type="button"
-          disabled={disabled || showingAnswer}
-          onClick={onClick}
-          className="quiz-action-scale w-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-100"
-          data-quiz-action-hidden={showingAnswer}
-          data-bonus-check
+    <QuizMobileActionPortal>
+      <div className="mt-1 flex w-full gap-2" data-quiz-bottom-actions>
+        <QuizSkipButton
+          className="min-w-0 flex-1"
+          disabled={showingAnswer}
+          onClick={onSkip}
+        />
+        <div
+          className={cn(
+            "quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]",
+            disabled && "quiz-action-depth--locked",
+            showingAnswer && "hidden",
+          )}
         >
-          {copy.check}
-        </Button>
+          <Button
+            type="button"
+            disabled={disabled || showingAnswer}
+            onClick={onClick}
+            className="quiz-action-scale w-full bg-brand text-brand-foreground hover:bg-brand-hover disabled:opacity-100"
+            data-bonus-check
+          >
+            {copy.check}
+          </Button>
+        </div>
       </div>
-    </div>
+    </QuizMobileActionPortal>
   );
 }
-
-function BonusPointFlight({
-  points,
-  sourceRef,
-  onFlightStart,
-  onPointArrive,
-  onComplete,
-}: {
-  points: number;
-  sourceRef: RefObject<HTMLDivElement | null>;
-  onFlightStart?: () => void;
-  onPointArrive?: (points: number) => void;
-  onComplete?: () => void;
-}) {
-  const [icons, setIcons] = useState<FlightIcon[]>([]);
-  const completedRef = useRef(false);
-  const arrivedRef = useRef(new Set<number>());
-  const onFlightStartRef = useRef(onFlightStart);
-  const onPointArriveRef = useRef(onPointArrive);
-  const onCompleteRef = useRef(onComplete);
-
-  useEffect(() => {
-    onFlightStartRef.current = onFlightStart;
-    onPointArriveRef.current = onPointArrive;
-    onCompleteRef.current = onComplete;
-  }, [onComplete, onFlightStart, onPointArrive]);
-
-  useEffect(() => {
-    const activeTimers: number[] = [];
-    completedRef.current = false;
-    arrivedRef.current.clear();
-    onFlightStartRef.current?.();
-    let cancelled = false;
-    let geometryAttempt = 0;
-    let frame: number | null = null;
-
-    const startFlightWhenReady = () => {
-      if (cancelled) return;
-
-      const source = sourceRef.current?.getBoundingClientRect();
-      const targetElement = document
-        .querySelector<HTMLElement>("[data-quiz-total-score]")
-        ?? document.querySelector<HTMLElement>("[data-bonus-reward-score]");
-      const target = targetElement?.getBoundingClientRect();
-      if (!source || !target || source.width === 0 || source.height === 0 || target.width === 0 || target.height === 0) {
-        if (geometryAttempt < 60) {
-          geometryAttempt += 1;
-          frame = window.requestAnimationFrame(startFlightWhenReady);
-          return;
-        }
-        finishFlight(0);
-        return;
-      }
-
-      const targetX = target.left + target.width / 2;
-      const targetY = target.top + target.height / 2;
-      const iconCount = getScoreFlightIconCount(points);
-      const nextIcons = Array.from({ length: iconCount }, (_, index) => {
-        const motion = getChestRewardFlightMotion(source, index, iconCount);
-        return {
-          id: index,
-          ...motion,
-          startX: source.left + source.width / 2,
-          startY: source.top + source.height / 2,
-          targetX,
-          targetY,
-        };
-      });
-      setIcons(nextIcons);
-      const finishTimer = window.setTimeout(
-        () => finishFlight(nextIcons.length),
-        SCORE_FLIGHT_LAST_START_MS + SCORE_FLIGHT_DURATION_MS + 500,
-      );
-      activeTimers.push(finishTimer);
-    };
-
-    frame = window.requestAnimationFrame(startFlightWhenReady);
-
-    return () => {
-      cancelled = true;
-      if (frame !== null) window.cancelAnimationFrame(frame);
-      activeTimers.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, [points, sourceRef]);
-
-  function finishFlight(iconCount: number) {
-    if (completedRef.current) return;
-    completedRef.current = true;
-    onCompleteRef.current?.();
-    setIcons([]);
-    if (iconCount === 0) return;
-  }
-
-  function handleIconEnd(iconId: number) {
-    if (arrivedRef.current.has(iconId)) return;
-    arrivedRef.current.add(iconId);
-    const arrivalIndex = arrivedRef.current.size;
-    onPointArriveRef.current?.(getScoreFlightAwardAtArrival(points, icons.length, arrivalIndex));
-    playSoundEffect("points");
-    vibrate("tap");
-
-    if (arrivalIndex === icons.length) {
-      finishFlight(icons.length);
-    }
-  }
-
-  if (icons.length === 0) return null;
-
-  return createPortal(
-    <>
-      {icons.map((icon) => (
-        <span
-          key={icon.id}
-          aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-[80] animate-quiz-score-icon-flight"
-          onAnimationEnd={() => handleIconEnd(icon.id)}
-          style={{
-            "--score-flight-start-x": `${icon.startX}px`,
-            "--score-flight-start-y": `${icon.startY}px`,
-            "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
-            "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
-            "--score-flight-target-x": `${icon.targetX}px`,
-            "--score-flight-target-y": `${icon.targetY}px`,
-            animationDelay: `${icon.delay}ms`,
-          } as CSSProperties}
-        >
-          <ScoreIcon size={32} />
-        </span>
-      ))}
-    </>,
-    document.body,
-  );
-}
-
-type FlightIcon = {
-  id: number;
-  startX: number;
-  startY: number;
-  scatterX: number;
-  scatterY: number;
-  targetX: number;
-  targetY: number;
-  delay: number;
-};
 
 const MATCHING_PAIR_COLORS = [
   { background: "#22c55e", foreground: "#ffffff" },

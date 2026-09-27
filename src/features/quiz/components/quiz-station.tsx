@@ -84,25 +84,17 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import {
   useAuthSession,
-  useOptionalAuthSession,
   useRequireAuthAction,
 } from "@/features/auth/auth-client";
-import { getPointsForTier } from "@/features/progress/progress-stats";
+import { getPointsForTier, RANK_ACCENT_COLORS } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import { RankUpMenu } from "@/features/progress/components/rank-progress-popover";
 import { acknowledgeRankUp, setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
-import {
-  getScoreFlightAwardAtArrival,
-  getScoreFlightMotion,
-  getScoreFlightIconCount,
-  SCORE_FLIGHT_DURATION_MS,
-} from "@/features/progress/score-flight";
-import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
 import {
   awardChestPoints,
   awardQuizBonusPoints,
-  awardQuizResultPoints,
   awardQuizStreakPoints,
 } from "@/features/quiz/actions";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
@@ -110,8 +102,7 @@ import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gems/gem-types";
-import { awardProgressGemRewardAction, spendGemAction } from "@/features/gems/gem-actions";
-import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
+import { spendGemAction } from "@/features/gems/gem-actions";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
@@ -147,7 +138,9 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { QuizSkipButton } from "@/features/quiz/components/quiz-skip-button";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
-import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
+import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
+import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { ScorePulse } from "@/features/progress/components/score-pulse";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 
 import {
@@ -276,12 +269,6 @@ const RESULT_CARD_BACKGROUNDS = {
   learned: "/quiz/result-cards/learned.png",
 } as const;
 
-const quizResultRewardPromises = new Map<
-  string,
-  ReturnType<typeof awardQuizResultPoints>
->();
-const quizResultRewardedSessions = new Set<string>();
-
 const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
@@ -289,6 +276,8 @@ const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
+const QUIZ_CARD_COMPACT_SCALE = 0.78;
+const QUIZ_CARD_CENTER_SCALE = 1.35;
 
 interface BaseQuizItem {
   card: VocabularyCard;
@@ -1914,10 +1903,9 @@ export function QuizStation({
   if (phase === "count" && selectedLanguage) {
     return (
       <div className="flex flex-1 flex-col items-stretch">
-        <CountSelection
-          mode={mode}
-          language={selectedLanguage}
-          availableCount={availableCards.length}
+          <CountSelection
+            mode={mode}
+            availableCount={availableCards.length}
           selectedCount={selectedCount}
           locked={interactionLocked}
           onPrepare={(count) => {
@@ -1966,7 +1954,6 @@ export function QuizStation({
             results={results}
             selectedCount={selectedCount}
             chestOpened={chestOpened}
-            quizSessionId={quizSessionId ?? undefined}
             streakRewardStreak={getRewardableQuizStreak(maxStreak)}
             streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
             locked={false}
@@ -2303,22 +2290,23 @@ export function QuizStation({
                   onNext={handleNext}
                   showNextButton={!pendingStreak}
                   mobileCard={(
-                    cardFeedbackStage !== "idle" ? (
-                      <div
-                        className="flex items-end justify-center lg:hidden"
-                        data-quiz-mobile-card-slot
-                      >
-                        <MobileQuizCard
-                          item={item}
-                          compact
-                          progressAnimation
-                          face={showingAnswer ? "front" : "back"}
-                          feedbackStage={cardFeedbackStage}
-                          footerMode={cardFooterMode}
-                          footerProgressCount={cardFooterProgressCount}
-                        />
-                      </div>
-                    ) : null
+                    <div
+                      className={cn(
+                        "flex items-end justify-center lg:hidden",
+                        cardFeedbackStage === "idle" && "invisible",
+                      )}
+                      data-quiz-mobile-card-slot
+                    >
+                      <MobileQuizCard
+                        item={item}
+                        compact
+                        progressAnimation
+                        face={showingAnswer ? "front" : "back"}
+                        feedbackStage={cardFeedbackStage}
+                        footerMode={cardFooterMode}
+                        footerProgressCount={cardFooterProgressCount}
+                      />
+                    </div>
                   )}
                 />
               ) : (
@@ -2364,8 +2352,12 @@ export function QuizStation({
               className={cn(
                 "relative h-[440px] w-auto transform-gpu transition-transform duration-200 ease-out will-change-transform focus:outline-none",
                 (item.questionType === "definition" || item.questionType === "sentence-completion") &&
-                  "origin-bottom scale-[0.78]",
-                cardFeedbackStage !== "idle" && "z-20 -translate-x-16 scale-[1.1]",
+                  "origin-bottom",
+                cardFeedbackStage !== "idle"
+                  ? "z-20 -translate-x-16 scale-[1.1]"
+                  : (item.questionType === "definition" || item.questionType === "sentence-completion")
+                    ? "scale-[0.78]"
+                    : undefined,
               )}
               data-quiz-card-feedback={cardFeedbackStage}
               aria-hidden="true"
@@ -2563,6 +2555,9 @@ function MobileQuizCard({
         y: window.innerHeight / 2 - (floatingFrame.origin.top + floatingFrame.origin.height / 2),
       }
     : null;
+  const centeredCardScale = compact
+    ? QUIZ_CARD_CENTER_SCALE / QUIZ_CARD_COMPACT_SCALE
+    : QUIZ_CARD_CENTER_SCALE;
   const floatingStyle: CSSProperties | undefined = floatingFrame
     ? {
         left: floatingFrame.origin.left,
@@ -2571,7 +2566,7 @@ function MobileQuizCard({
         height: floatingFrame.origin.height,
         transformOrigin: "center",
         transform: isCentered && centerOffset
-          ? `translate3d(${centerOffset.x}px, ${centerOffset.y}px, 0) scale(1.35)`
+          ? `translate3d(${centerOffset.x}px, ${centerOffset.y}px, 0) scale(${centeredCardScale})`
           : `translate3d(${returnOffset.x}px, ${returnOffset.y}px, 0) scale(1)`,
       }
     : undefined;
@@ -2605,9 +2600,11 @@ function MobileQuizCard({
       <div
         className={cn(
           "h-full w-full",
-          progressAnimation && "animate-quiz-card-progress-void",
+          progressAnimation && floatingFrame !== null && isCentered && "animate-quiz-card-progress-void",
         )}
-        data-quiz-card-progress-animation={progressAnimation ? "true" : undefined}
+        data-quiz-card-progress-animation={
+          progressAnimation && floatingFrame !== null && isCentered ? "true" : undefined
+        }
       >
         <div
           className="h-full w-full transition-[height,transform] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -2877,7 +2874,6 @@ export function LanguageSelection({
 
 export function CountSelection({
   mode,
-  language,
   availableCount,
   selectedCount,
   locked = false,
@@ -2885,7 +2881,6 @@ export function CountSelection({
   onSelect,
 }: {
   mode: PracticeMode;
-  language: LanguageCode;
   availableCount: number;
   selectedCount: number | null;
   locked?: boolean;
@@ -2900,7 +2895,6 @@ export function CountSelection({
   const t = useT();
   const useSuperWater = canUseSuperWater(locale);
   const showChestTiers = mode === "active";
-  const languageName = getLanguageDisplayName(language, locale);
   const [launch, setLaunch] = useState<CountLaunch | null>(null);
   const [showLaunchSplash, setShowLaunchSplash] = useState(false);
   const [hideLaunchCover, setHideLaunchCover] = useState(false);
@@ -3135,21 +3129,6 @@ export function CountSelection({
               >
                 {formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
               </h2>
-              <p
-                className={cn(
-                  "max-w-3xl text-[clamp(1.25rem,3.2vw,2.5rem)] font-semibold leading-tight text-white/95",
-                  introStarted && "mission-details-overlay__item",
-                )}
-                style={introStarted ? { animationDelay: "390ms" } : undefined}
-              >
-                {formatSuperWaterText(
-                  locale,
-                  t("quiz.countAvailable", {
-                    language: languageName,
-                    count: availableCount,
-                  }),
-                )}
-              </p>
               {locked ? (
                 <p
                   className={cn(
@@ -3190,7 +3169,7 @@ export function CountSelection({
                 useSuperWater && "font-super-water",
                 selectedCount === count &&
                   "ring-inset ring-2 ring-white/30 brightness-110",
-                introPhase !== "ready" && "quiz-count-option-enter",
+                introPhase !== "ready" && "quiz-count-option-position-enter",
                 launch && launch.count !== count && "relative z-[80] pointer-events-none disabled:opacity-100",
                 launch && launch.count === count && "opacity-0",
               )}
@@ -3414,7 +3393,7 @@ function QuizProgressHeader({
   );
 }
 
-function MobileQuizTopBar({
+export function MobileQuizTopBar({
   currentIndex,
   total,
   totalPoints,
@@ -3436,8 +3415,7 @@ function MobileQuizTopBar({
   const quizProgress = Math.min(100, ((currentIndex + 1) / total) * 100);
   const currentQuestion = currentIndex + 1;
   const midpointQuestion = Math.ceil(total / 2);
-  const progressMarkerClass =
-    "bg-gradient-to-r from-[var(--rank-start)] via-[var(--premium-start)] to-[var(--rank-end)]";
+  const progressMarkerClass = "bg-amber-400";
   const trackMarkerClass = "bg-[#262626]";
 
   return (
@@ -3472,7 +3450,7 @@ function MobileQuizTopBar({
             <Progress
               value={quizProgress}
               className="h-3.5 rounded-full bg-[#262626]"
-              indicatorClassName="bg-gradient-to-r from-[var(--rank-start)] via-[var(--premium-start)] to-[var(--rank-end)] transition-[width] duration-300 ease-out"
+              indicatorClassName="bg-amber-400 transition-[width] duration-300 ease-out"
             />
             <span
               className={cn(
@@ -3498,14 +3476,16 @@ function MobileQuizTopBar({
         </div>
 
         <div
-          className="inline-flex shrink-0 items-center gap-1.5"
+          className="inline-flex shrink-0 items-center justify-center gap-0"
           aria-label={formatPoints(locale, totalPoints)}
           data-quiz-total-score
         >
-          <ScoreIcon size={22} className="size-[22px]" />
-          <span className={cn("bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent", canUseSuperWater(locale) && "font-super-water", scorePulse > 0 && "animate-score-bobble")} key={scorePulse}>
-            {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
-          </span>
+          <ScorePulse pulse={scorePulse} className="gap-1.5">
+            <ScoreIcon size={22} className="size-[22px]" />
+            <span className={cn("bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent", canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
+            </span>
+          </ScorePulse>
         </div>
       </div>
 
@@ -3596,25 +3576,29 @@ function QuizQuestionActionRow({
   onSkip,
   skipDisabled,
   rerollAction,
-  hidden = false,
   className,
 }: {
   onSkip: () => void;
   skipDisabled: boolean;
   rerollAction?: QuizRerollAction;
-  hidden?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn("mt-1 flex w-full gap-2 sm:mt-2", className)} data-quiz-question-actions data-quiz-reroll-action>
-      <QuizSkipButton
-        className="min-w-0 flex-1"
-        disabled={skipDisabled || hidden}
-        hidden={hidden}
-        onClick={onSkip}
-      />
-      {rerollAction ? <QuizRerollButton action={rerollAction} hidden={hidden} /> : null}
-    </div>
+    <QuizMobileActionPortal>
+      <div
+        className={cn("mt-1 flex w-full gap-2 sm:mt-2", className)}
+        data-quiz-question-actions
+        data-quiz-bottom-actions
+        data-quiz-reroll-action
+      >
+        <QuizSkipButton
+          className="min-w-0 flex-1"
+          disabled={skipDisabled}
+          onClick={onSkip}
+        />
+        {rerollAction ? <QuizRerollButton action={rerollAction} /> : null}
+      </div>
+    </QuizMobileActionPortal>
   );
 }
 
@@ -3706,7 +3690,6 @@ export function ListeningQuestion({
       <QuizQuestionActionRow
         skipDisabled={showingAnswer}
         rerollAction={rerollAction}
-        hidden={showingAnswer}
         onSkip={onSkip}
       />
 
@@ -3811,7 +3794,6 @@ export function ChoiceQuestion({
       <QuizQuestionActionRow
         skipDisabled={showingAnswer}
         rerollAction={rerollAction}
-        hidden={showingAnswer}
         onSkip={onSkip}
       />
 
@@ -3950,7 +3932,6 @@ export function DefinitionQuestion({
       <QuizQuestionActionRow
         skipDisabled={showingAnswer}
         rerollAction={rerollAction}
-        hidden={showingAnswer}
         onSkip={onSkip}
       />
 
@@ -4136,7 +4117,6 @@ export function SentenceCompletionQuestion({
       <QuizQuestionActionRow
         skipDisabled={showingAnswer || isAiValidating}
         rerollAction={rerollAction}
-        hidden={showingAnswer}
         onSkip={onSkip}
         className="max-lg:-mt-1"
       />
@@ -4250,7 +4230,6 @@ export function TrueFalseQuestion({
       <QuizQuestionActionRow
         skipDisabled={showingAnswer}
         rerollAction={rerollAction}
-        hidden={showingAnswer}
         onSkip={onSkip}
       />
 
@@ -4452,10 +4431,7 @@ export function TextQuestion({
           ) : null}
 
           <div
-            className={cn(
-              "mt-4 flex w-full flex-col gap-2 sm:mt-4 lg:mt-5",
-              showingAnswer && "pointer-events-none",
-            )}
+            className="mt-4 flex w-full flex-col gap-2 sm:mt-4 lg:mt-5"
             data-quiz-question-actions
             data-quiz-reroll-action
           >
@@ -4482,21 +4458,24 @@ export function TextQuestion({
                 )}
               </Button>
             </div>
-            <div className="flex w-full gap-2">
-              <QuizSkipButton
-                className="min-w-0 flex-[0.8]"
-                disabled={isAiValidating}
-                hidden={showingAnswer}
-                onClick={onSkip}
-              />
-              {rerollAction ? (
-                <QuizRerollButton
-                  action={rerollAction}
-                  className="flex-[1.2]"
-                  hidden={showingAnswer}
+            <QuizMobileActionPortal>
+              <div
+                className="flex w-full gap-2"
+                data-quiz-bottom-actions
+              >
+                <QuizSkipButton
+                  className="min-w-0 flex-[0.8]"
+                  disabled={isAiValidating || showingAnswer}
+                  onClick={onSkip}
                 />
-              ) : null}
-            </div>
+                {rerollAction ? (
+                  <QuizRerollButton
+                    action={rerollAction}
+                    className="flex-[1.2]"
+                  />
+                ) : null}
+              </div>
+            </QuizMobileActionPortal>
           </div>
         </div>
       </div>
@@ -4508,6 +4487,7 @@ export function MobileQuizFeedback({
   isOpen,
   isCorrect,
   isBonus = false,
+  forceMascotAnimation = false,
   correctAnswer,
   onNext,
   showNextButton = true,
@@ -4515,6 +4495,7 @@ export function MobileQuizFeedback({
   isOpen: boolean;
   isCorrect: boolean;
   isBonus?: boolean;
+  forceMascotAnimation?: boolean;
   correctAnswer?: string;
   onNext: () => void;
   showNextButton?: boolean;
@@ -4531,7 +4512,10 @@ export function MobileQuizFeedback({
 
   useEffect(() => {
     if (isOpen) {
-      const selectedAnimation = pickQuizFeedbackMascotAnimation(isBonus);
+      const selectedAnimation = pickQuizFeedbackMascotAnimation(
+        isBonus,
+        forceMascotAnimation ? 0 : undefined,
+      );
       mascotAnimationRef.current = selectedAnimation;
       setMascotAnimation(selectedAnimation);
       setMascotVisible(false);
@@ -4555,7 +4539,7 @@ export function MobileQuizFeedback({
     }, 300);
 
     return () => window.clearTimeout(exitTimer);
-  }, [isBonus, isOpen]);
+  }, [forceMascotAnimation, isBonus, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -4572,7 +4556,7 @@ export function MobileQuizFeedback({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[60] flex flex-col justify-end transition-opacity duration-300 max-lg:flex lg:hidden",
+        "fixed inset-0 z-[70] flex flex-col justify-end transition-opacity duration-300 max-lg:flex lg:hidden",
         isOpen ? "opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!isOpen}
@@ -4581,7 +4565,7 @@ export function MobileQuizFeedback({
     >
       <div
         className={cn(
-          "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-4 shadow-lg transition-transform duration-300",
+          "relative flex min-h-24 w-full items-center justify-between gap-4 rounded-t-2xl p-5 shadow-lg transition-transform duration-300",
           display.isCorrect ? "bg-emerald-500" : "bg-rose-500",
           isOpen ? "translate-y-0" : "translate-y-full",
           canUseSuperWater(locale) && "font-super-water",
@@ -4592,7 +4576,12 @@ export function MobileQuizFeedback({
             <QuizFeedbackMascotAnimationView animation={mascotAnimation} />
           </div>
         ) : null}
-        <div className="relative z-10 flex min-w-0 items-start gap-3">
+        <div
+          className={cn(
+            "relative z-10 flex min-w-0 gap-3",
+            display.isCorrect || !display.correctAnswer ? "items-center" : "items-start",
+          )}
+        >
           <QuizFeedbackStatusIcon isCorrect={display.isCorrect} />
           <div className="min-w-0">
             <p className="text-base font-bold text-white">
@@ -4663,15 +4652,11 @@ export function CelebrationView({
   const [cardFace, setCardFace] = useState<"front" | "back">("back");
   const [displayPoints, setDisplayPoints] = useState(basePoints);
   const [scorePulse, setScorePulse] = useState(0);
-  const [flightIcons, setFlightIcons] = useState<ScoreFlightIcon[]>([]);
   const [isClosing, setIsClosing] = useState(false);
   const hasTriggered = useRef(false);
-  const hasStartedPointFlight = useRef(false);
   const onContinueRef = useRef(onContinue);
   const closeTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
-  const startTimerRef = useRef<number | null>(null);
-  const arrivalTimersRef = useRef<number[]>([]);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
@@ -4712,52 +4697,12 @@ export function CelebrationView({
     });
   }, []);
 
-  useLayoutEffect(() => {
-    if (hasStartedPointFlight.current) return;
-
-    startTimerRef.current = window.setTimeout(() => {
-      if (hasStartedPointFlight.current) return;
-      if (!cardRef.current || !scoreRef.current) return;
-
-      hasStartedPointFlight.current = true;
-
-      const cardBounds = cardRef.current.getBoundingClientRect();
-      const scoreBounds = scoreRef.current.getBoundingClientRect();
-      const targetX = scoreBounds.left + scoreBounds.width / 2;
-      const targetY = scoreBounds.top + scoreBounds.height / 2;
-      const iconCount = getScoreFlightIconCount(gainedPoints);
-      const nextIcons = Array.from({ length: iconCount }, (_, index) => {
-        return {
-          id: index,
-          ...getScoreFlightMotion(cardBounds, index, iconCount),
-          targetX,
-          targetY,
-        };
-      });
-
-      setFlightIcons(nextIcons);
-      arrivalTimersRef.current = nextIcons.map((icon, index) => window.setTimeout(() => {
-        setDisplayPoints(
-          basePoints + getScoreFlightAwardAtArrival(gainedPoints, iconCount, index + 1),
-        );
-        setScorePulse(index + 1);
-        playSoundEffect("points");
-        vibrate("tap");
-
-        if (index === nextIcons.length - 1) {
-          void refreshStats();
-          closeTimerRef.current = window.setTimeout(() => setIsClosing(true), 420);
-        }
-      }, icon.delay + SCORE_FLIGHT_DURATION_MS));
-    }, 1000);
-
+  useEffect(() => {
     return () => {
-      if (startTimerRef.current !== null) window.clearTimeout(startTimerRef.current);
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
       if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
-      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [basePoints, gainedPoints, refreshStats]);
+  }, []);
 
   return (
     <div
@@ -4772,24 +4717,13 @@ export function CelebrationView({
             className="flex flex-col items-center justify-center gap-1 pt-1 sm:pt-2"
             data-quiz-celebration-score-group
           >
-            <div
-              className="relative flex items-center gap-2 rounded-full px-4 py-2 text-white"
+            <MainPointsDisplay
+              targetRef={scoreRef}
+              pulse={scorePulse}
               data-quiz-celebration-score
-            >
-              <MainPointsDisplayBackground pulse={scorePulse} />
-              <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
-              <span
-                className={cn(
-                "relative z-10 text-lg font-bold",
-                  canUseSuperWater(locale) && "font-super-water",
-                  scorePulse > 0 && "animate-score-bobble",
-                )}
-                key={scorePulse}
-                ref={scoreRef}
-              >
-                {formatSuperWaterText(locale, formatPoints(locale, displayPoints))}
-              </span>
-            </div>
+              valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
+              value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
+            />
             <RewardGemHud animate superWater={canUseSuperWater(locale)} />
           </div>
 
@@ -4827,43 +4761,20 @@ export function CelebrationView({
           </div>
         </div>
       </div>
-      {flightIcons.length > 0
-        ? createPortal(
-            flightIcons.map((icon) => (
-              <span
-                key={icon.id}
-                aria-hidden="true"
-                className="pointer-events-none fixed left-0 top-0 z-50 animate-quiz-score-icon-flight"
-                style={{
-                  "--score-flight-start-x": `${icon.startX}px`,
-                  "--score-flight-start-y": `${icon.startY}px`,
-                  "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
-                  "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
-                  "--score-flight-target-x": `${icon.targetX}px`,
-                  "--score-flight-target-y": `${icon.targetY}px`,
-                  animationDelay: `${icon.delay}ms`,
-                } as CSSProperties}
-              >
-                <ScoreIcon size={32} />
-              </span>
-            )),
-            document.body,
-          )
-        : null}
+      <RewardScatter
+        points={{ amount: gainedPoints, source: cardRef, target: scoreRef, startDelayMs: 1000, zIndex: 50 }}
+        onPointsArrive={(awardedTotal, arrivalIndex) => {
+          setDisplayPoints(basePoints + awardedTotal);
+          setScorePulse(arrivalIndex);
+        }}
+        onPointsComplete={() => {
+          void refreshStats();
+          closeTimerRef.current = window.setTimeout(() => setIsClosing(true), 420);
+        }}
+      />
     </div>
   );
 }
-
-type ScoreFlightIcon = {
-  id: number;
-  startX: number;
-  startY: number;
-  scatterX: number;
-  scatterY: number;
-  targetX: number;
-  targetY: number;
-  delay: number;
-};
 
 function useIsMounted() {
   return useSyncExternalStore(
@@ -4907,7 +4818,6 @@ export function ResultView({
   results,
   selectedCount,
   chestOpened,
-  quizSessionId,
   streakRewardStreak = 0,
   streakRewardPoints = 0,
   locked,
@@ -4918,7 +4828,6 @@ export function ResultView({
   results: QuizResult;
   selectedCount: number | null;
   chestOpened: boolean;
-  quizSessionId?: string;
   streakRewardStreak?: number;
   streakRewardPoints?: number;
   locked?: boolean;
@@ -4927,43 +4836,14 @@ export function ResultView({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const session = useOptionalAuthSession();
-  const user = session?.user ?? null;
-  const refreshProfile = session?.refreshProfile;
-  const updateProfileField = session?.updateProfileField;
-  const { stats, refreshStats } = useProgressStats();
+  const { stats } = useProgressStats();
   const { openLeaderboard } = useLeaderboardOverlay();
   const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
-  const router = useRouter();
   const { data: leaderboardData } = useLeaderboardData({ refreshOnMount: true });
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
   const hasTriggeredResult = useRef(false);
-  const resultRewardPromiseRef = useRef<ReturnType<typeof awardQuizResultPoints> | null>(null);
-  const resultGemRewardStartedRef = useRef(false);
-  const resultBasePointsRef = useRef(stats.totalPoints);
-  const starSourceRef = useRef<HTMLDivElement | null>(null);
-  const scoreRef = useRef<HTMLSpanElement | null>(null);
-  const flightStartedRef = useRef(false);
-  const flightIconCountRef = useRef(0);
-  const arrivedFlightIconsRef = useRef(new Set<number>());
-  const arrivalTimersRef = useRef<number[]>([]);
-  const handleResultPointFlightEndRef = useRef<(iconId: number) => void>(() => {});
-  const [displayPoints, setDisplayPoints] = useState(stats.totalPoints);
-  const [scorePulse, setScorePulse] = useState(0);
-  const [flightIcons, setFlightIcons] = useState<ScoreFlightIcon[]>([]);
-  const [starsRevealedAt, setStarsRevealedAt] = useState<number | null>(null);
-  const [resultRewardAwarded, setResultRewardAwarded] = useState(false);
-  const [resultGemRewards, setResultGemRewards] = useState<GemRewards>([]);
-  const resultGemFinalBalancesRef = useRef<GemBalances | null>(null);
-  const {
-    balances: resultGemDisplayBalances,
-    pulse: resultGemPulse,
-    prepare: prepareResultGemDisplay,
-    handleGemArrive: handleResultGemArrive,
-    finish: finishResultGemDisplay,
-  } = useGemRewardDisplay();
   const performance = getQuizPerformanceSummary(
     mode,
     results,
@@ -4978,14 +4858,15 @@ export function ResultView({
     if (accuracy >= 40) return 2;
     return 1;
   }, [performance.accuracy]);
-  const resultCardCount = selectedCount ?? 10;
-  const resultRewardPoints = getQuizResultRewardPoints(starRating, resultCardCount) ?? 0;
   const leaderboardStanding = leaderboardData
     ? t("leaderboard.yourStanding", {
         position: formatNumber(locale, leaderboardData.viewer.position),
       })
     : t("leaderboard.positionLoading");
   const rankLabel = getRankLabel(stats.rank, locale);
+  const rankAccentColor =
+    RANK_ACCENT_COLORS[stats.rank.id as keyof typeof RANK_ACCENT_COLORS] ??
+    RANK_ACCENT_COLORS.baslangic;
   const formatResultDisplayText = (text: string) =>
     canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
   const runAfterDailyStreakReminder = useCallback(
@@ -4998,196 +4879,6 @@ export function ResultView({
       dayStreakOverlay.requestAutoOpenAfterQuizResult(action);
     },
     [dayStreakOverlay],
-  );
-
-  useEffect(() => {
-    if (mode !== "active" || !quizSessionId || resultRewardPromiseRef.current) {
-      return;
-    }
-
-    const rewardPromise =
-      quizResultRewardPromises.get(quizSessionId) ??
-      awardQuizResultPoints(quizSessionId, starRating, resultCardCount);
-    if (!quizResultRewardPromises.has(quizSessionId)) {
-      quizResultRewardPromises.set(quizSessionId, rewardPromise);
-    }
-    resultRewardPromiseRef.current = rewardPromise;
-
-    let active = true;
-    void rewardPromise
-      .then((result) => {
-        if (!result.success) {
-          return;
-        }
-
-        refreshLeaderboardPositions();
-
-        if (result.awarded && !quizResultRewardedSessions.has(quizSessionId)) {
-          quizResultRewardedSessions.add(quizSessionId);
-          if (active) {
-            setResultRewardAwarded(true);
-          }
-        }
-      })
-      .catch(() => {
-        // The result remains usable when the persistent reward cannot be saved.
-        quizResultRewardPromises.delete(quizSessionId);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [mode, quizSessionId, resultCardCount, starRating]);
-
-  useEffect(() => {
-    if (
-      mode !== "active" ||
-      !quizSessionId ||
-      !user ||
-      !updateProfileField ||
-      resultGemRewardStartedRef.current
-    ) {
-      return;
-    }
-
-    resultGemRewardStartedRef.current = true;
-    let active = true;
-
-    void awardProgressGemRewardAction({
-      source: "quiz-result",
-      claimKey: `quiz-result:${quizSessionId}`,
-      stars: starRating,
-      cardCount: resultCardCount,
-    }).then((result) => {
-      if (!active || !result.success) return;
-
-      const rewards = result.awarded ? result.rewards ?? [] : [];
-      if (result.balances) {
-        resultGemFinalBalancesRef.current = result.balances;
-        prepareResultGemDisplay(result.balances, rewards);
-        updateProfileField({
-          blueGems: result.balances.blue,
-          greenGems: result.balances.green,
-          purpleGems: result.balances.purple,
-        });
-      }
-      if (result.awarded && result.rewards?.length) {
-        setResultGemRewards(result.rewards);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [
-    mode,
-    prepareResultGemDisplay,
-    quizSessionId,
-    resultCardCount,
-    starRating,
-    updateProfileField,
-    user,
-  ]);
-
-  const startResultPointFlight = useCallback(() => {
-    if (flightStartedRef.current || !starSourceRef.current || !scoreRef.current) {
-      return;
-    }
-
-    flightStartedRef.current = true;
-    const sourceBounds = starSourceRef.current.getBoundingClientRect();
-    const scoreBounds = scoreRef.current.getBoundingClientRect();
-    const targetX = scoreBounds.left + scoreBounds.width / 2;
-    const targetY = scoreBounds.top + scoreBounds.height / 2;
-    const iconCount = getScoreFlightIconCount(resultRewardPoints);
-    const latestStart = 780;
-
-    flightIconCountRef.current = iconCount;
-    arrivedFlightIconsRef.current.clear();
-    const nextIcons = Array.from({ length: iconCount }, (_, index) => {
-      const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-      const startX = sourceBounds.left + sourceBounds.width * (0.15 + Math.random() * 0.7);
-      const startY = sourceBounds.top + sourceBounds.height * (0.2 + Math.random() * 0.6);
-
-      return {
-        id: index,
-        startX,
-        startY,
-        scatterX: (Math.random() - 0.5) * 150,
-        scatterY: -35 - Math.random() * 100,
-        targetX,
-        targetY,
-        delay: Math.round(ratio * latestStart),
-      };
-    });
-
-    setFlightIcons(nextIcons);
-    arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    arrivalTimersRef.current = nextIcons.map((icon) =>
-      window.setTimeout(
-        () => handleResultPointFlightEndRef.current(icon.id),
-        icon.delay + 700,
-      ),
-    );
-  }, [resultRewardPoints]);
-
-  useEffect(() => {
-    if (
-      mode !== "active" ||
-      !resultRewardAwarded ||
-      starsRevealedAt === null ||
-      flightStartedRef.current
-    ) {
-      return;
-    }
-
-    const elapsed = Date.now() - starsRevealedAt;
-    const timer = window.setTimeout(
-      startResultPointFlight,
-      Math.max(0, 1000 - elapsed),
-    );
-
-    return () => window.clearTimeout(timer);
-  }, [mode, resultRewardAwarded, starsRevealedAt, startResultPointFlight]);
-
-  const handleResultPointFlightEnd = useCallback(
-    (iconId: number) => {
-      if (arrivedFlightIconsRef.current.has(iconId)) {
-        return;
-      }
-
-      arrivedFlightIconsRef.current.add(iconId);
-      const arrivalIndex = arrivedFlightIconsRef.current.size;
-      const iconCount = flightIconCountRef.current;
-
-      setDisplayPoints(
-        resultBasePointsRef.current +
-          getScoreFlightAwardAtArrival(resultRewardPoints, iconCount, arrivalIndex),
-      );
-      setScorePulse(arrivalIndex);
-      playSoundEffect("points");
-      vibrate("tap");
-
-      if (arrivalIndex === iconCount) {
-        arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-        arrivalTimersRef.current = [];
-        void refreshStats();
-        refreshLeaderboardPositions();
-        setFlightIcons([]);
-      }
-    },
-    [refreshStats, resultRewardPoints],
-  );
-
-  useEffect(() => {
-    handleResultPointFlightEndRef.current = handleResultPointFlightEnd;
-  }, [handleResultPointFlightEnd]);
-
-  useEffect(
-    () => () => {
-      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    },
-    [],
   );
 
   useEffect(() => {
@@ -5276,55 +4967,52 @@ export function ResultView({
       data-quiz-result-view
       className="relative mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center overflow-hidden p-4 sm:p-6 max-lg:p-0"
     >
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-black" aria-hidden="true">
-        <RankIcon
-          icon={stats.rank.icon}
-          className="absolute left-1/2 top-1/2 h-auto w-[115vw] max-w-none -translate-x-1/2 -translate-y-1/2 blur-md saturate-125 opacity-35"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-black/35" />
-      </div>
       <div
         data-quiz-result-panel
         data-testid="quiz-result-panel"
         className="animate-screen-pop relative z-10 flex w-full max-w-md flex-col items-center rounded-2xl border border-border bg-background-card px-4 py-4 text-center shadow-sm sm:px-6 sm:py-6 max-lg:max-w-none max-lg:translate-y-2 max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent max-lg:px-5 max-lg:py-4"
       >
-        <div className="flex flex-col items-center gap-2.5 max-lg:gap-2">
+        <div className="flex -translate-y-6 flex-col items-center gap-2.5 max-lg:gap-2 sm:-translate-y-7">
           <button
             type="button"
             onClick={() => {
-              navigateWithRouteTransition(() => router.push("/leaderboard"));
+              openLeaderboard();
             }}
-            className="flex flex-col items-center gap-1 text-brand"
+            disabled={locked}
+            aria-label={t("leaderboard.title")}
+            className="flex -translate-y-3 flex-col items-center gap-1 text-brand transition-opacity disabled:pointer-events-none disabled:opacity-50 sm:-translate-y-4"
           >
+            <span
+              data-leaderboard-scope
+              className="font-super-water text-sm font-bold text-white sm:text-base"
+            >
+              {formatResultDisplayText(t("leaderboard.scope"))}
+            </span>
             <span
               data-leaderboard-standing
               className={cn(
-                "bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-[2.6rem] font-bold leading-none text-transparent sm:text-5xl",
+                "text-[2.6rem] font-bold leading-none text-yellow-400 sm:text-5xl",
                 canUseSuperWater(locale) && "font-super-water",
               )}
             >
               {formatResultDisplayText(leaderboardStanding)}
             </span>
-            <span
-              data-leaderboard-scope
-              className="text-xs font-medium text-foreground-secondary sm:text-sm"
-            >
-              {t("leaderboard.scope")}
-            </span>
           </button>
           <div className="relative flex h-36 w-full items-center justify-center sm:h-52">
             <RankIcon
               icon={stats.rank.icon}
-              className="relative z-10 size-24 animate-trophy-intro-grow drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)] sm:size-32"
+              className="relative z-10 size-32 animate-trophy-intro-grow drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)] sm:size-40"
               sizes="(max-width: 640px) 160px, 220px"
             />
           </div>
           <h2
             className={cn(
-              "text-xl font-bold text-foreground sm:text-2xl",
+              "translate-y-2 scale-[1.35] text-2xl font-bold sm:translate-y-3 sm:text-3xl",
               canUseSuperWater(locale) && "font-super-water",
             )}
+            style={{
+              color: `color-mix(in srgb, ${rankAccentColor} 65%, white)`,
+            }}
           >
             {formatResultDisplayText(rankLabel)}
           </h2>
@@ -5334,33 +5022,12 @@ export function ResultView({
           className="flex w-full translate-y-2 flex-col items-center"
           data-result-lower-section
         >
-          <div ref={starSourceRef} className="relative flex items-center justify-center">
+          <div className="relative flex -translate-y-4 items-center justify-center sm:-translate-y-5">
             <QuizStarRating
               rating={starRating}
               className="mt-0.5"
-              onRevealComplete={() => setStarsRevealedAt(Date.now())}
             />
           </div>
-
-          <div className="mt-3">
-            <div className="relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-white">
-              <MainPointsDisplayBackground pulse={scorePulse} />
-              <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
-              <span
-                ref={scoreRef}
-                className={cn(
-                  "relative z-10 text-lg font-bold",
-                  canUseSuperWater(locale) && "font-super-water",
-                  scorePulse > 0 && "animate-score-bobble",
-                )}
-                key={scorePulse}
-                data-result-score-display
-              >
-                {formatSuperWaterText(locale, formatPoints(locale, displayPoints))}
-              </span>
-            </div>
-          </div>
-          <RewardGemHud className="mt-2" balances={resultGemDisplayBalances} pulse={resultGemPulse} animate superWater={canUseSuperWater(locale)} />
 
           <div
             className={cn(
@@ -5417,48 +5084,6 @@ export function ResultView({
         </div>
       </div>
 
-      {flightIcons.length > 0
-        ? createPortal(
-            flightIcons.map((icon) => (
-              <span
-                key={icon.id}
-                aria-hidden="true"
-                data-result-score-flight
-                className="pointer-events-none fixed left-0 top-0 z-50 animate-quiz-score-icon-flight"
-                onAnimationEnd={() => handleResultPointFlightEnd(icon.id)}
-                style={{
-                  "--score-flight-start-x": `${icon.startX}px`,
-                  "--score-flight-start-y": `${icon.startY}px`,
-                  "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
-                  "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
-                  "--score-flight-target-x": `${icon.targetX}px`,
-                  "--score-flight-target-y": `${icon.targetY}px`,
-                  animationDelay: `${icon.delay}ms`,
-                } as CSSProperties}
-              >
-                <ScoreIcon size={32} />
-              </span>
-            )),
-            document.body,
-          )
-        : null}
-
-      <GemRewardFlight
-        key={resultGemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
-        rewards={starsRevealedAt !== null ? resultGemRewards : null}
-        sourceRef={starSourceRef}
-        startDelayMs={
-          starsRevealedAt === null
-            ? 1000
-            : Math.max(0, 1000 - (Date.now() - starsRevealedAt))
-        }
-        onGemArrive={handleResultGemArrive}
-        onComplete={() => {
-          finishResultGemDisplay(resultGemFinalBalancesRef.current);
-          void refreshProfile?.();
-        }}
-      />
-
       {openMenu ? (
         <ResultMenu
           title={menuConfig[openMenu].title}
@@ -5486,16 +5111,12 @@ function ResultCard({
   disabled?: boolean;
   onClick?: () => void;
 }) {
-  const { locale } = useLocale();
-  const displayLabel = canUseSuperWater(locale)
-    ? formatSuperWaterText(locale, label).toLocaleUpperCase("en-US")
-    : label.toLocaleUpperCase(locale);
-
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
+      aria-label={label}
       data-result-card={resultKey}
       style={{
         backgroundImage: `url('${RESULT_CARD_BACKGROUNDS[resultKey]}')`,
@@ -5510,14 +5131,15 @@ function ResultCard({
           : "cursor-pointer hover:brightness-105 active:brightness-95",
       )}
     >
-      <Icon className="mx-auto size-4 sm:size-5" aria-hidden="true" />
-      <p className="mt-0.5 text-lg font-bold sm:text-xl">{count}</p>
-      <p className={cn(
-        "text-[10px] font-semibold uppercase text-white/90 sm:text-xs",
-        canUseSuperWater(locale) && "font-super-water",
-      )}>
-        {displayLabel}
-      </p>
+      <Icon
+        className={cn(
+          "mx-auto size-8 shrink-0 sm:size-9",
+          resultKey === "learned" ? "fill-current" : "stroke-[3.5]",
+        )}
+        strokeWidth={resultKey === "learned" ? 2.5 : 3.5}
+        aria-hidden="true"
+      />
+      <p className="mt-1 text-2xl font-bold sm:text-3xl">{count}</p>
     </button>
   );
 }
@@ -5629,20 +5251,22 @@ function ResultMenu({
         data-result-menu-panel
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={cn("h-2 w-full shrink-0", toneClassName[tone])} data-result-menu-accent />
         <div
           className="pointer-events-none absolute inset-x-0 top-1/2 -z-10 h-3 -translate-y-1/2 bg-black dark:bg-white"
           aria-hidden="true"
         />
         <div
-          className="flex shrink-0 items-center justify-between border-b border-border bg-background-card p-4"
+          className={cn(
+            "flex shrink-0 items-center justify-between border-b border-white/20 p-4 text-white",
+            toneClassName[tone],
+          )}
           data-result-menu-header
         >
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
+            className="inline-flex size-9 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 hover:text-white"
             aria-label={t("common.close")}
           >
             <X className="size-5" aria-hidden="true" />
