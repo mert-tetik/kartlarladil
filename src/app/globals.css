@@ -545,7 +545,7 @@ button:disabled,
 
 .mobile-main-nav-frame {
   background: var(--background-card);
-  bottom: 0;
+  bottom: 14px;
   contain: layout style;
   height: var(--mobile-nav-bar-height);
   left: 0;
@@ -1864,7 +1864,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 [data-normal-test] [data-quiz-bottom-actions] {
   position: fixed;
   inset-inline: 0;
-  bottom: 0;
+  bottom: 4px;
   z-index: 55;
   width: 100%;
   margin: 0;
@@ -1885,7 +1885,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   [data-quiz-bottom-actions] {
     position: fixed;
     inset-inline: 0;
-    bottom: 0;
+    bottom: 14px;
     z-index: 55;
     width: 100%;
     margin: 0;

@@ -9,7 +9,7 @@ import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empt
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
-import type { QuizPhase } from "@/features/quiz/components/quiz-station";
+import type { NormalQuizItem, QuizPhase } from "@/features/quiz/components/quiz-station";
 import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
 import { QuizStartTest } from "@/app/learn/components/quiz-start-test";
 import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
@@ -39,6 +39,7 @@ interface LearnQuizShellProps {
   resultMessageTest?: boolean;
   bonusTest?: boolean;
   normalTest?: boolean;
+  normalQuestionType?: NormalQuizItem["questionType"] | null;
 }
 
 export function LearnQuizShell({
@@ -53,6 +54,7 @@ export function LearnQuizShell({
   resultMessageTest = false,
   bonusTest = false,
   normalTest = false,
+  normalQuestionType = null,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -204,6 +206,7 @@ export function LearnQuizShell({
             key={selectedMode}
             mode={selectedMode}
             initialLanguage={initialLanguage ?? undefined}
+            normalQuestionType={normalQuestionType}
             onPhaseChange={setPhase}
             onBackToMode={() => {
               setSelectedMode(null);

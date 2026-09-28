@@ -79,6 +79,24 @@ function parseNormalTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseNormalQuestionType(
+  value: string | string[] | undefined,
+): "choice" | "listening" | "definition" | "true-false" | "sentence-completion" | "text" | null {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  const questionTypes = [
+    "choice",
+    "listening",
+    "definition",
+    "true-false",
+    "sentence-completion",
+    "text",
+  ] as const;
+
+  return questionTypes.includes(rawValue as (typeof questionTypes)[number])
+    ? (rawValue as (typeof questionTypes)[number])
+    : null;
+}
+
 export default async function LearnPage({
   searchParams,
 }: {
@@ -96,7 +114,14 @@ export default async function LearnPage({
   const resultTest = parseResultTest(params["result-test"]);
   const resultMessageTest = parseResultMessageTest(params["result-message-test"]);
   const bonusTest = parseBonusTest(params["bonus-test"]);
-  const normalTest = parseNormalTest(params["normal-test"] ?? params["quiz-normal-test"]);
+  const normalTestValue = params["normal-test"] ?? params["quiz-normal-test"];
+  const normalQuestionType = parseNormalQuestionType(
+    params["normal-question"] ??
+      params["normal-test-question"] ??
+      params["quiz-normal-question"] ??
+      params["quiz-normal-test-question"],
+  );
+  const normalTest = parseNormalTest(normalTestValue);
 
   return (
     <section
@@ -116,6 +141,7 @@ export default async function LearnPage({
         resultMessageTest={resultMessageTest}
         bonusTest={bonusTest}
         normalTest={normalTest}
+        normalQuestionType={normalQuestionType}
       />
     </section>
   );

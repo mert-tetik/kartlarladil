@@ -17,6 +17,7 @@ import { awardQuizResultPoints } from "@/features/quiz/actions";
 import { formatSuperWaterText } from "@/lib/super-water";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LocaleCode, ProgressStats } from "@/types/domain";
+import type { NormalQuizItem } from "@/features/quiz/components/quiz-station";
 
 const progressStatsMock = vi.hoisted(() => ({
   stats: null as ProgressStats | null,
@@ -867,6 +868,18 @@ describe("QuizStation sound feedback", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
   });
 
+  it("can force one normal question type through the real quiz flow", async () => {
+    renderQuizStation("tr", "text");
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-mobile-layout="text"]')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector('[data-quiz-mobile-layout="choice"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-quiz-mobile-layout="text"]')).toBeInTheDocument();
+  });
+
   it("renders the mobile choice prompt directly below the quiz bar", async () => {
     renderQuizStation();
     await startChoiceQuiz();
@@ -876,10 +889,17 @@ describe("QuizStation sound feedback", () => {
     const cardSlot = layout?.querySelector("[data-quiz-mobile-card-slot]");
     const card = layout?.querySelector("[data-quiz-mobile-card]");
     const question = layout?.querySelector("[data-quiz-mobile-question]");
+    const quizPage = document.querySelector("[data-learn-quiz-page]");
 
     expect(prompt).toBeInTheDocument();
     expect(prompt?.closest("[data-mobile-quiz-top-bar]")).not.toBeInTheDocument();
-    expect(prompt?.closest("[data-mobile-quiz-question-prompt]")).toBeInTheDocument();
+    const promptPanel = prompt?.closest("[data-mobile-quiz-question-prompt]");
+    expect(promptPanel).toBeInTheDocument();
+    expect(promptPanel).toHaveClass("bg-background");
+    expect(promptPanel).not.toHaveClass("border-t", "border-white/10", "bg-black");
+    expect(quizPage).toHaveClass(
+      "max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))]",
+    );
     expect(cardSlot).toHaveClass("order-2");
     expect(question).toHaveClass("order-3");
     expect(card).toHaveClass("w-[min(285px,calc((100vw-3rem)/2))]");
@@ -1510,11 +1530,14 @@ describe("QuizStation sound feedback", () => {
   });
 });
 
-function renderQuizStation(locale: LocaleCode = "tr") {
+function renderQuizStation(
+  locale: LocaleCode = "tr",
+  normalQuestionType?: NormalQuizItem["questionType"],
+) {
   render(
     <LocaleProvider initialLocale={locale}>
       <AuthSessionProvider user={testUser}>
-        <QuizStation mode="active" />
+        <QuizStation mode="active" normalQuestionType={normalQuestionType} />
       </AuthSessionProvider>
     </LocaleProvider>,
   );

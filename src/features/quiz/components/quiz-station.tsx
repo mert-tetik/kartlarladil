@@ -464,11 +464,13 @@ function getQuizResultMessageKey(
 export function QuizStation({
   mode,
   initialLanguage,
+  normalQuestionType,
   onPhaseChange,
   onBackToMode,
 }: {
   mode: PracticeMode;
   initialLanguage?: LanguageCode;
+  normalQuestionType?: NormalQuizItem["questionType"] | null;
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
 }) {
@@ -747,14 +749,77 @@ export function QuizStation({
         language,
         status: mode,
       }).map((item) => item.card);
-      const limited = count ? source.slice(0, count) : source;
+      const limited = normalQuestionType || !count ? source : source.slice(0, count);
       const shuffled = shuffle(limited);
       const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
 
-      const regularItems: QuizItem[] = shuffled.map((card, index) => {
+      const regularItems: QuizItem[] = shuffled.map((card, index): QuizItem | null => {
         const inventoryCard = cards.find((item) => item.cardId === card.id)!;
         const requirement = getTierRequirement(card.tier);
         const answerLocale = getStudyLocale(card.language, locale);
+
+        if (normalQuestionType) {
+          const willLearn =
+            inventoryCard.status !== "learned" &&
+            inventoryCard.correctCount + 1 >= requirement;
+          const forceLearned = mode === "active" && hasNoLearnedCards && index === 0;
+
+          switch (normalQuestionType) {
+            case "choice":
+              return {
+                card,
+                inventoryCard,
+                questionType: "choice",
+                question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
+                willLearn,
+                forceLearned,
+              };
+            case "listening": {
+              const question = buildListeningQuizQuestion(card, [...VOCABULARY_CARDS, ...source]);
+              return question
+                ? { card, inventoryCard, questionType: "listening", question, willLearn, forceLearned }
+                : null;
+            }
+            case "definition": {
+              const question = buildDefinitionQuizQuestion(card, VOCABULARY_CARDS, answerLocale);
+              return question
+                ? { card, inventoryCard, questionType: "definition", question, willLearn, forceLearned }
+                : null;
+            }
+            case "text":
+              return {
+                card,
+                inventoryCard,
+                questionType: "text",
+                question: { correctAnswer: card.term },
+                willLearn,
+                forceLearned,
+              };
+            case "true-false":
+              return {
+                card,
+                inventoryCard,
+                questionType: "true-false",
+                question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
+                willLearn,
+                forceLearned,
+              };
+            case "sentence-completion": {
+              const question = buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS);
+              return question
+                ? {
+                    card,
+                    inventoryCard,
+                    questionType: "sentence-completion",
+                    question,
+                    character: getRandomQuizCharacter(),
+                    willLearn,
+                    forceLearned,
+                  }
+                : null;
+          }
+          }
+        }
 
         // First impression: when the user has no learned cards yet, the very first quiz card
         // is answered as a normal multiple-choice question and becomes learned immediately on success.
@@ -859,7 +924,7 @@ export function QuizStation({
           ),
           willLearn: false,
         };
-      });
+      }).filter((item): item is QuizItem => item !== null).slice(0, count ?? undefined);
 
       const bonusInventoryCards = filterInventoryCards({
         cards,
@@ -871,7 +936,9 @@ export function QuizStation({
         .filter((item) => item.inventory.status === "learned")
         .map((item) => item.card);
       const sessionId = createQuizSessionId();
-      const maxBonusQuestionCount = getMaxBonusQuestionCount(regularItems.length);
+      const maxBonusQuestionCount = normalQuestionType
+        ? 0
+        : getMaxBonusQuestionCount(regularItems.length);
       const bonusPlans = regularItems.map((_, index) => {
         const preferredKind = getBonusKind(index);
         const candidateKinds = [
@@ -1063,7 +1130,7 @@ export function QuizStation({
         }),
       );
     },
-    [cards, clearCardProgressFeedback, mode, locale, stats.rank, stats.totalPoints],
+    [cards, clearCardProgressFeedback, mode, locale, normalQuestionType, stats.rank, stats.totalPoints],
   );
 
   useEffect(() => {
@@ -2155,7 +2222,7 @@ export function QuizStation({
       ) : null}
       <div
         className={cn(
-          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
+          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
           mobileQuestionPrompt
             ? "max-lg:top-[calc(var(--app-header-height)+3.5rem)]"
             : "max-lg:top-[var(--app-header-height)]",
@@ -3492,14 +3559,14 @@ export function MobileQuizTopBar({
       {questionPrompt ? (
         <div
           className={cn(
-            "fixed inset-x-0 top-[var(--app-header-height)] z-[55] flex h-14 items-center border-t border-white/10 bg-black px-4 py-1.5 lg:hidden",
+            "fixed inset-x-0 top-[var(--app-header-height)] z-[55] flex h-14 items-center bg-background px-4 py-1.5 lg:hidden",
             entryAnimated && "mission-details-overlay__item",
           )}
           data-mobile-quiz-question-prompt
         >
           <p
             className={cn(
-              "line-clamp-2 w-full translate-x-2 text-left text-xl font-bold leading-tight text-white",
+              "line-clamp-2 w-full translate-x-2 text-left text-xl font-bold leading-tight text-foreground",
               canUseSuperWater(locale) && "font-super-water",
             )}
             data-quiz-mobile-prompt
