@@ -6,6 +6,7 @@ import { LOCALE_CODES } from "@/data/languages";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { mapDbCustomCardToVocabularyCard } from "@/features/cards/custom-card-mapper";
 import type { DbCustomCard, GeneratedCardDraft } from "@/features/cards/custom-card-types";
+import { generatedCardSchema } from "@/features/cards/create-card-schema";
 import { applyAnswerProgress } from "@/features/quiz/quiz-engine";
 import { calculateProgressStats } from "@/features/progress/progress-stats";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   InventoryCard,
@@ -108,32 +110,18 @@ export async function addCloudInventoryCardAction(sourceKey: string): Promise<Cl
     const t = await getCloudActionText();
     const entitlements = await getUserEntitlements(user.id);
 
-    if (entitlements.effectivePlan === "free") {
-      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
-      const limitError = checkLimit(activeCount, entitlements.limits.activeCards, "free_active_card_limit");
-
-      if (limitError) {
-        return {
-          status: "error",
-          message: t("limit.activeCardLimitDescription"),
-          errorCode: limitError,
-        };
-      }
-    }
-
-    const { error } = await supabase.from("user_cards").upsert(
-      {
-        user_id: user.id,
-        card_source_key: card.sourceKey,
-      },
-      {
-        ignoreDuplicates: true,
-        onConflict: "user_id,card_source_key",
-      },
+    const result = await addUserCardsWithActiveLimit(
+      user.id,
+      [card.sourceKey],
+      getActiveCardLimit(entitlements),
     );
 
-    if (error) {
-      throw error;
+    if (result.remainingCardIds.length > 0) {
+      return {
+        status: "error",
+        message: t("limit.activeCardLimitDescription"),
+        errorCode: "free_active_card_limit",
+      };
     }
 
     revalidateProgressPaths();
@@ -170,47 +158,12 @@ export async function addCloudInventoryCardsAction(
       };
     }
 
-    const { data: existingRows, error: existingError } = await supabase
-      .from("user_cards")
-      .select("card_source_key")
-      .eq("user_id", user.id)
-      .in("card_source_key", uniqueSourceKeys)
-      .returns<Array<{ card_source_key: string }>>();
-
-    if (existingError) {
-      throw existingError;
-    }
-
-    const existingKeys = new Set((existingRows ?? []).map((row) => row.card_source_key));
-    const newSourceKeys = uniqueSourceKeys.filter((sourceKey) => !existingKeys.has(sourceKey));
     const entitlements = await getUserEntitlements(user.id);
-    let allowedSourceKeys = newSourceKeys;
-
-    if (entitlements.effectivePlan === "free") {
-      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
-      const activeCardLimit = entitlements.limits.activeCards;
-      const availableSlots = activeCardLimit === null
-        ? newSourceKeys.length
-        : Math.max(0, activeCardLimit - activeCount);
-      allowedSourceKeys = newSourceKeys.slice(0, availableSlots);
-    }
-
-    if (allowedSourceKeys.length > 0) {
-      const { error: upsertError } = await supabase.from("user_cards").upsert(
-        allowedSourceKeys.map((cardSourceKey) => ({
-          user_id: user.id,
-          card_source_key: cardSourceKey,
-        })),
-        {
-          ignoreDuplicates: true,
-          onConflict: "user_id,card_source_key",
-        },
-      );
-
-      if (upsertError) {
-        throw upsertError;
-      }
-    }
+    const { addedCardIds, remainingCardIds } = await addUserCardsWithActiveLimit(
+      user.id,
+      uniqueSourceKeys,
+      getActiveCardLimit(entitlements),
+    );
 
     revalidateProgressPaths();
 
@@ -219,8 +172,8 @@ export async function addCloudInventoryCardsAction(
       message: "",
       data: {
         ...(await listCloudInventory(supabase, user)),
-        addedCardIds: allowedSourceKeys,
-        remainingCardIds: newSourceKeys.slice(allowedSourceKeys.length),
+        addedCardIds,
+        remainingCardIds,
       },
     };
   } catch (error) {
@@ -498,6 +451,25 @@ export async function createCustomCardAction(input: {
   try {
     const { supabase, user } = await getAuthedSupabase();
     const t = await getCloudActionText();
+    const parsedDraft = generatedCardSchema.safeParse({
+      ...input.draft,
+      language: input.language,
+      tier: input.tier,
+      termKind: input.termKind,
+      examples: input.draft.examples.map((example) => ({
+        sentence: example.example,
+        translation: example.translation,
+      })),
+    });
+
+    if (!parsedDraft.success) {
+      return {
+        status: "error",
+        message: t("createCard.error.invalid_request"),
+      };
+    }
+
+    const draft = parsedDraft.data;
     const entitlements = await getUserEntitlements(user.id);
 
     if (entitlements.effectivePlan === "free") {
@@ -521,17 +493,17 @@ export async function createCustomCardAction(input: {
       source_key: sourceKey,
       language: input.language,
       tier: input.tier,
-      term: input.draft.term,
+      term: draft.term,
       term_kind: input.termKind,
-      translations: input.draft.translations,
+      translations: draft.translations,
       translation_meanings: Object.fromEntries(
-        LOCALE_CODES.map((code) => [code, [input.draft.translations[code]]]),
+        LOCALE_CODES.map((code) => [code, [draft.translations[code]]]),
       ),
-      part_of_speech: input.draft.partOfSpeech,
-      pronunciation: input.draft.pronunciation,
-      examples: [{ example: input.draft.example, translation: input.draft.exampleTranslation }],
-      definitions: input.draft.definitions ?? {},
-      grammar: { notes: input.draft.grammar },
+      part_of_speech: draft.partOfSpeech,
+      pronunciation: draft.pronunciation,
+      examples: draft.examples.map((example) => ({ example: example.sentence, translation: example.translation })),
+      definitions: draft.definitions,
+      grammar: { notes: draft.grammar },
       created_at: now,
     };
 
@@ -555,24 +527,33 @@ export async function createCustomCardAction(input: {
       throw insertError;
     }
 
-    const { error: inventoryError } = await supabase.from("user_cards").upsert(
-      {
-        user_id: user.id,
-        card_source_key: sourceKey,
-      },
-      {
-        ignoreDuplicates: true,
-        onConflict: "user_id,card_source_key",
-      },
-    );
+    try {
+      const { remainingCardIds } = await addUserCardsWithActiveLimit(
+        user.id,
+        [sourceKey],
+        getActiveCardLimit(entitlements),
+      );
 
-    if (inventoryError) {
+      if (remainingCardIds.length > 0) {
+        await supabase
+          .from("custom_cards")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source_key", sourceKey);
+
+        return {
+          status: "error",
+          message: t("limit.activeCardLimitDescription"),
+          errorCode: "free_active_card_limit",
+        };
+      }
+    } catch (error) {
       await supabase
         .from("custom_cards")
         .delete()
         .eq("user_id", user.id)
         .eq("source_key", sourceKey);
-      throw inventoryError;
+      throw error;
     }
 
     revalidateProgressPaths();
@@ -761,6 +742,49 @@ async function fetchCustomCards(
 
 function buildCustomCardSourceKey(userId: string): string {
   return `custom:${userId}:${randomUUID()}`;
+}
+
+function getActiveCardLimit(entitlements: Awaited<ReturnType<typeof getUserEntitlements>>) {
+  return entitlements.effectivePlan === "free" ? entitlements.limits.activeCards : null;
+}
+
+interface AtomicUserCardAddResult {
+  addedCardIds: string[];
+  remainingCardIds: string[];
+}
+
+async function addUserCardsWithActiveLimit(
+  userId: string,
+  sourceKeys: string[],
+  activeCardLimit: number | null,
+): Promise<AtomicUserCardAddResult> {
+  const { data, error } = await createSupabaseAdminClient().rpc("add_user_cards_with_active_limit", {
+    p_user_id: userId,
+    p_source_keys: sourceKeys,
+    p_active_card_limit: activeCardLimit,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("invalid_atomic_user_card_add_result");
+  }
+
+  const result = data as { added_card_ids?: unknown; remaining_card_ids?: unknown };
+  const addedCardIds = parseRpcStringArray(result.added_card_ids);
+  const remainingCardIds = parseRpcStringArray(result.remaining_card_ids);
+
+  return { addedCardIds, remainingCardIds };
+}
+
+function parseRpcStringArray(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    throw new Error("invalid_atomic_user_card_add_result");
+  }
+
+  return value;
 }
 
 async function toInventoryViews(

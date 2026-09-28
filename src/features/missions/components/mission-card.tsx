@@ -14,7 +14,8 @@ import {
 } from "@/lib/super-water";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
-import type { MissionDefinition, MissionStatus } from "@/features/missions/mission-types";
+import { GEM_ASSETS } from "@/features/gems/gem-types";
+import type { MissionDefinition, MissionReward, MissionStatus } from "@/features/missions/mission-types";
 
 export const MISSION_CARD_GRADIENTS = [
   { top: "#008f6a", bottom: "#14d49a" },
@@ -27,12 +28,51 @@ export const MISSION_CARD_GRADIENTS = [
 
 const MISSION_POINT_TIER_LIMITS = [125, 375] as const;
 
-export function getMissionCardBackground(index: number, isClaimed: boolean) {
+const MISSION_POINTS_GRADIENT = { top: "#b84a00", bottom: "#ffad24" } as const;
+
+const MISSION_CHEST_GRADIENTS = {
+  wood: { top: "#6f3515", bottom: "#c77732" },
+  iron: { top: "#374151", bottom: "#94a3b8" },
+  gold: { top: "#8a5200", bottom: "#f4c542" },
+  diamond: { top: "#0e6178", bottom: "#67e8f9" },
+  emerald: { top: "#056247", bottom: "#34d399" },
+  ruby: { top: "#861337", bottom: "#fb7185" },
+} as const;
+
+const MISSION_GEM_GRADIENTS = {
+  blue: { top: "#075985", bottom: "#38bdf8" },
+  green: { top: "#4b991e", bottom: "#73E32D" },
+  purple: { top: "#581c87", bottom: "#c084fc" },
+} as const;
+
+const MISSION_LOCK_ASSETS = {
+  points: "/missions/mission-points-lock-v1.png",
+  gems: {
+    blue: "/missions/mission-blue-gem-lock-v1.png",
+    green: "/missions/mission-green-gem-lock-v1.png",
+    purple: "/missions/mission-purple-gem-lock-v1.png",
+  },
+  fallback: "/missions/mission-lock-icon-v3.png",
+} as const;
+
+export function getMissionLockImageSrc(reward: MissionReward) {
+  if (reward.kind === "points") return MISSION_LOCK_ASSETS.points;
+  if (reward.kind === "gems") return MISSION_LOCK_ASSETS.gems[reward.gemType];
+  return MISSION_LOCK_ASSETS.fallback;
+}
+
+export function getMissionCardBackground(index: number, isClaimed: boolean, reward?: MissionReward) {
   if (isClaimed) {
     return "linear-gradient(180deg, #303030 0%, #171717 100%)";
   }
 
-  const gradient = MISSION_CARD_GRADIENTS[index % MISSION_CARD_GRADIENTS.length];
+  const gradient = reward?.kind === "points"
+    ? MISSION_POINTS_GRADIENT
+    : reward?.kind === "chest"
+      ? MISSION_CHEST_GRADIENTS[reward.tier]
+      : reward?.kind === "gems"
+        ? MISSION_GEM_GRADIENTS[reward.gemType]
+      : MISSION_CARD_GRADIENTS[index % MISSION_CARD_GRADIENTS.length];
   return `linear-gradient(180deg, ${gradient.top} 0%, ${gradient.top} 42%, ${gradient.bottom} 100%)`;
 }
 
@@ -74,10 +114,11 @@ export function MissionCard({
   const t = useT();
   const { locale } = useLocale();
   const progressPercent = Math.min(100, Math.round((progress / requirement) * 100));
-  const isWaiting = status === "waiting";
-  const isClaimed = status === "claimed";
+  const isClaimed = status === "claimed" || claiming;
+  const isWaiting = status === "waiting" && !claiming;
   const isLocked = status === "locked";
-  const isClickable = (isWaiting && !claiming) || isLocked || isClaimed;
+  const isRewardLock = reward.kind === "points" || reward.kind === "gems";
+  const isClickable = !claiming && (isWaiting || isLocked || isClaimed);
   const shouldShowRewardDisplay = !isLocked || reward.kind === "chest";
   const description = getMissionDescription(t, type, requirement, locale, game, characterId);
   const descriptionDisplay = canUseSuperWater(locale)
@@ -116,24 +157,34 @@ export function MissionCard({
   return (
     <div
       data-mission-card={missionId}
-      data-mission-status={status}
+      data-mission-status={isClaimed ? "claimed" : status}
+      data-mission-reward-kind={reward.kind}
+      data-mission-reward-tier={reward.kind === "chest" ? reward.tier : undefined}
+      data-mission-reward-gem-type={reward.kind === "gems" ? reward.gemType : undefined}
+      data-mission-reward-gem-amount={reward.kind === "gems" ? reward.amount : undefined}
       role="button"
       tabIndex={isClickable ? 0 : -1}
-      aria-label={isWaiting ? t("missions.claim") : description}
+      aria-label={isClaimed ? t("missions.claimed") : isWaiting ? t("missions.claim") : description}
       onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect())}
       onKeyDown={handleKeyDown}
       style={{
         aspectRatio: "4 / 5",
-        backgroundImage: getMissionCardBackground(index, isClaimed),
+        backgroundImage: getMissionCardBackground(index, false, reward),
       }}
       className={cn(
         "relative flex min-w-0 flex-col overflow-visible border border-white/15 px-3 py-3 text-center text-white shadow-none transition-transform duration-300 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-white",
         isClaimed && "mission-card--claimed",
         canUseSuperWater(locale) && "font-super-water",
         isClickable && "cursor-pointer active:scale-[0.98]",
-        claiming && "cursor-wait opacity-90",
+        claiming && "cursor-wait",
       )}
     >
+      <span
+        aria-hidden="true"
+        data-mission-claimed-wash
+        className={cn("mission-card-claimed-wash", isClaimed && "mission-card-claimed-wash--visible")}
+        style={{ backgroundImage: "linear-gradient(180deg, #303030 0%, #171717 100%)" }}
+      />
       {isWaiting ? <span aria-hidden="true" data-mission-card-shine className="mission-card-shine" /> : null}
 
       <div className="relative z-10 flex min-h-[3.25rem] items-center justify-center px-1 text-center">
@@ -165,10 +216,27 @@ export function MissionCard({
         >
           {shouldShowRewardDisplay ? (
             reward.kind === "chest" ? (
-              <ChestIcon tier={reward.tier} hideLid={isClaimed} className="size-[6.25rem] drop-shadow-sm" />
+              <ChestIcon tier={reward.tier} hideLid={isClaimed} className="relative -top-1 scale-[1.15] size-[6.25rem] drop-shadow-sm" />
+            ) : reward.kind === "gems" ? (
+              <div className="flex flex-col items-center justify-center gap-1">
+                <Image
+                  src={GEM_ASSETS[reward.gemType]}
+                  alt=""
+                  width={76}
+                  height={76}
+                  className="size-[4.75rem] object-contain drop-shadow-sm"
+                  aria-hidden="true"
+                />
+                <span
+                  data-mission-gem-amount-label
+                  className="relative -top-1 text-[2.125rem] font-bold leading-none text-white"
+                >
+                  +{reward.amount}
+                </span>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-1">
-                <PointsRewardStack tier={getMissionPointTier(reward.amount)} />
+                <PointsRewardStack tier={getMissionPointTier(reward.amount)} className="scale-[1.15]" />
                 <span className="relative -top-2 text-xl font-bold leading-none text-white">+{reward.amount}</span>
               </div>
             )
@@ -178,11 +246,15 @@ export function MissionCard({
         {isLocked ? (
           <div className="absolute inset-0 z-30 flex items-center justify-center drop-shadow-sm">
             <Image
-              src="/missions/mission-lock-icon-v3.png"
+              src={getMissionLockImageSrc(reward)}
               alt=""
-              width={128}
-              height={128}
-              className="h-[6rem] w-auto object-contain"
+              data-mission-lock-asset={getMissionLockImageSrc(reward)}
+              width={512}
+              height={512}
+              className={cn(
+                "w-auto scale-[1.3] object-contain",
+                isRewardLock ? "h-[7.2rem]" : "h-[6rem]",
+              )}
               aria-hidden="true"
             />
           </div>

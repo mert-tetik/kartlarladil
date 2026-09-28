@@ -54,8 +54,10 @@ The JSON object must follow this exact shape:
   "translations": {
 ${LOCALE_CODES.map((code) => `    "${code}": "translation in ${code}"`).join(",\n")}
   },
-  "example": "one natural example sentence in the target language",
-  "exampleTranslation": "English translation of the example sentence",
+  "examples": [
+    { "sentence": "first natural example sentence in the target language", "translation": "English translation of the first example" },
+    { "sentence": "second natural example sentence in a distinct context", "translation": "English translation of the second example" }
+  ],
   "definitions": {
 ${LOCALE_CODES.map((code) => `    "${code}": "a short, clear definition of the target term written in ${code}"`).join(",\n")}
   },
@@ -69,7 +71,7 @@ Rules:
 - ${canonicalScriptRule}
 - ${lemmaRule}
 - Preserve the input's lexical granularity and register. A single-word input must produce one canonical target-language word, not a synonym, polite alternative, inflected variant, or longer phrase. A multi-word input must remain a phrase with the same meaning and boundaries.
-- The example must use the canonical term naturally.
+- Return exactly two example sentences in the target language. Each sentence must visibly use the canonical term itself or a natural grammatical inflection of that same term; never replace it with a synonym or a related word. Both must demonstrate the requested sense in different, realistic contexts. Make their wording, sentence structure, and context distinct; never repeat or lightly rephrase the same sentence. Give each a concise, accurate English translation.
 - Provide one short, clear, single-meaning definition for every locale key in definitions. Write each definition in that locale's language; explain the term rather than translating it.
 - Definitions must not include examples, synonyms, numbering, labels, notes, or meta commentary.
 - Always provide a pronunciation. It must show how a Turkish speaker should read the term in the selected target language, not in English unless that target language is English.

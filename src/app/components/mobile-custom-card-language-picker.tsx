@@ -57,6 +57,7 @@ export function MobileCustomCardLanguagePicker({
         onSelect={onChange}
         showCounts={false}
         optionStyle="navbar"
+        tutorialLayer="custom-card"
       />
     </>
   );

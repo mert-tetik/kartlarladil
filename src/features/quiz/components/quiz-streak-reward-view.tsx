@@ -1,22 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Flame, Star } from "lucide-react";
-import { ScoreIcon } from "@/components/score-icon";
+import { Flame } from "lucide-react";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
-import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
-import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
+import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
+import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
 import type { GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale } from "@/i18n/locale-provider";
-import {
-  getScoreFlightAwardAtArrival,
-  getScoreFlightIconCount,
-} from "@/features/progress/score-flight";
-import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
@@ -32,19 +26,7 @@ interface QuizStreakRewardViewProps {
   onComplete: () => void;
 }
 
-type FlightIcon = {
-  id: number;
-  startX: number;
-  startY: number;
-  scatterX: number;
-  scatterY: number;
-  targetX: number;
-  targetY: number;
-  delay: number;
-};
-
 const REWARD_SCATTER_DELAY_MS = 2800;
-const LAST_START_MS = 780;
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
 const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
 const VIDEO_AUDIO_MAX_VOLUME = 0.75;
@@ -67,9 +49,8 @@ export function QuizStreakRewardView({
   const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
-  const scoreRef = useRef<HTMLDivElement>(null);
+  const scoreRef = useRef<HTMLSpanElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const arrivedIconIdsRef = useRef(new Set<number>());
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   const breakTimerRef = useRef<number | null>(null);
@@ -87,7 +68,6 @@ export function QuizStreakRewardView({
   const videoPlaybackStartedRef = useRef(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
-  const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
   const [videoExiting, setVideoExiting] = useState(false);
@@ -161,28 +141,7 @@ export function QuizStreakRewardView({
     }
     setRewardStarted(true);
     vibrate("streak-break");
-
-    if (rewardRef.current && scoreRef.current) {
-      const source = rewardRef.current.getBoundingClientRect();
-      const target = scoreRef.current.getBoundingClientRect();
-      const iconCount = getScoreFlightIconCount(points);
-      const targetX = target.left + target.width / 2;
-      const targetY = target.top + target.height / 2;
-      const icons = Array.from({ length: iconCount }, (_, index) => {
-        const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-        const startX = source.left + source.width * (0.22 + Math.random() * 0.56);
-        const startY = source.top + source.height * (0.22 + Math.random() * 0.56);
-        return {
-          id: index, startX, startY, targetX, targetY,
-          scatterX: (Math.random() - 0.5) * 150,
-          scatterY: -35 - Math.random() * 100,
-          delay: Math.round(ratio * LAST_START_MS),
-        };
-      });
-
-      setFlightIcons(icons);
-    }
-  }, [points]);
+  }, []);
 
   const startVideoAudioFadeIn = useCallback(() => {
     const video = videoRef.current;
@@ -379,21 +338,6 @@ export function QuizStreakRewardView({
     };
   }, []);
 
-  function handleFlightEnd(icon: FlightIcon) {
-    if (arrivedIconIdsRef.current.has(icon.id)) return;
-    arrivedIconIdsRef.current.add(icon.id);
-
-    const arrivalIndex = arrivedIconIdsRef.current.size;
-    setDisplayPoints(
-      totalPoints + getScoreFlightAwardAtArrival(points, flightIcons.length, arrivalIndex),
-    );
-    setScorePulse(arrivalIndex);
-    playSoundEffect("points");
-    vibrate("tap");
-
-    // Flight completion only updates the score and feedback while the video-aligned exit runs.
-  }
-
   if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
@@ -418,25 +362,21 @@ export function QuizStreakRewardView({
         uiExiting && "animate-streak-reward-ui-exit",
       )}>
         <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
-          <div className="relative flex items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-white">
-            <MainPointsDisplayBackground pulse={scorePulse} />
-            <Star className="relative z-10 size-5 fill-current" aria-hidden="true" />
-            <span ref={scoreRef} className={cn(
-              "relative z-10 text-lg font-bold",
-              canUseSuperWater(locale) && "font-super-water",
-              scorePulse > 0 && (scorePulse % 2 === 0 ? "animate-score-bobble-alt" : "animate-score-bobble"),
-            )}>
-              {formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
-            </span>
-          </div>
+          <MainPointsDisplay
+            targetRef={scoreRef}
+            pulse={scorePulse}
+            className="text-center"
+            valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
+            value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
+          />
           <div className="mt-2 flex justify-center">
-            <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} />
+            <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} hudRole="reward" />
           </div>
         </div>
         <div ref={rewardRef} className={cn(
           "absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4",
           rewardStarted && "animate-streak-reward-break",
-        )}>
+        )} data-quiz-streak-scatter-source>
           <span
             className={cn(
               "text-7xl font-black text-white sm:text-8xl lg:text-9xl",
@@ -451,22 +391,28 @@ export function QuizStreakRewardView({
           />
         </div>
       </div>
-      {flightIcons.map((icon) => (
-        <span key={icon.id} className="pointer-events-none fixed left-0 top-0 z-[71] animate-quiz-score-icon-flight" style={{
-          "--score-flight-start-x": `${icon.startX}px`, "--score-flight-start-y": `${icon.startY}px`,
-          "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`, "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
-          "--score-flight-target-x": `${icon.targetX}px`, "--score-flight-target-y": `${icon.targetY}px`,
-          animationDelay: `${icon.delay}ms`,
-        } as CSSProperties} onAnimationEnd={() => handleFlightEnd(icon)}><ScoreIcon size={32} /></span>
-      ))}
       {rewardStarted ? (
-        <GemRewardFlight
-          key={gemRewards.map((item) => `${item.type}-${item.amount}`).join("|") || "no-gem-reward"}
-          rewards={gemRewards}
-          sourceRef={rewardRef}
-          startDelayMs={0}
+        <RewardScatter
+          points={{
+            amount: points,
+            source: rewardRef,
+            target: scoreRef,
+            placement: { origin: "random", spreadX: 0.56, spreadY: 0.56 },
+            zIndex: 71,
+          }}
+          gems={{
+            rewards: gemRewards,
+            source: rewardRef,
+            targetSelector: '[data-reward-gem-hud-role="reward"] [data-reward-gem-target]',
+            placement: { origin: "random", spreadX: 0.55, spreadY: 0.35 },
+            zIndex: 112,
+          }}
+          onPointsArrive={(awardedTotal, arrivalIndex) => {
+            setDisplayPoints(totalPoints + awardedTotal);
+            setScorePulse(arrivalIndex);
+          }}
           onGemArrive={handleGemArrive}
-          onComplete={() => {
+          onGemsComplete={() => {
             finishGemRewardDisplay(gemFinalBalancesRef.current);
             void refreshProfile();
           }}

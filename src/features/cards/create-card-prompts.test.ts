@@ -26,6 +26,11 @@ describe("mobile custom card target language", () => {
     expect(instructions).toContain('Set language to exactly "ru"');
     expect(instructions).toContain('"definitions"');
     expect(instructions).toContain("definition for every locale key");
+    expect(instructions).toContain('"examples"');
+    expect(instructions).toContain("exactly two example sentences");
+    expect(instructions).toContain("different, realistic contexts");
+    expect(instructions).toContain("visibly use the canonical term itself or a natural grammatical inflection");
+    expect(instructions).toContain("never replace it with a synonym or a related word");
     expect(instructions).toContain('Russian "ya ne znayu" becomes "я не знаю"');
     expect(instructions).toContain('Russian "slu\u015fat", "slushat", and "slushat\'" mean "слушать"');
     expect(instructions).toContain("standard dictionary lemma");

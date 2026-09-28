@@ -160,7 +160,11 @@ export function MobileLandingCardCenter({
                 }}
               />
             )) : (
-              <p className="px-4 py-10 text-center text-sm text-foreground-secondary">{t("inventory.emptyAnyDescription")}</p>
+              <p className="px-4 py-10 text-center text-sm text-foreground-secondary">
+                {t("home.mobile.noWordsInLanguage", {
+                  language: getLanguageDisplayName(selectedLanguage, locale),
+                })}
+              </p>
             )}
           </div>
         </div>

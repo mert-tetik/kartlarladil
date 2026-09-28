@@ -1,0 +1,11 @@
+{
+  "kind": "card-pronunciations",
+  "model": "gpt-5.4-nano",
+  "requestBatchSize": 20,
+  "cardCount": 37,
+  "remainingCardCount": 0,
+  "requestCount": 2,
+  "batchId": "batch_6ab905334bd4819091ac444186a6a502",
+  "inputFileId": "file-PbCbFsx9KhHK8nvuXKEmC5",
+  "createdAt": "2026-09-27T11:59:47.968Z"
+}

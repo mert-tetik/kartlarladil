@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 
-function renderShell(onClose = vi.fn()) {
+function renderShell(onClose = vi.fn(), tone: "brand" | "lime" | "purple" | "mission" = "brand") {
   render(
     <LocaleProvider initialLocale="en">
       <MobileBottomSheetShell
@@ -11,6 +11,7 @@ function renderShell(onClose = vi.fn()) {
         onClose={onClose}
         title="Shared menu"
         visual={<span data-testid="shared-visual" />}
+        tone={tone}
       >
         <p>Menu content</p>
       </MobileBottomSheetShell>
@@ -29,6 +30,48 @@ describe("MobileBottomSheetShell", () => {
     expect(screen.getByTestId("shared-visual")).toBeInTheDocument();
     expect(screen.getByText("Menu content")).toBeInTheDocument();
     expect(screen.getByTestId("shared-visual").closest("[data-mobile-bottom-sheet-visual]")).not.toBeNull();
+  });
+
+  it("supports a lime tone for menus that need a dedicated color", async () => {
+    renderShell(vi.fn(), "lime");
+
+    const dialog = await screen.findByRole("dialog", { name: "Shared menu" });
+    const panel = dialog.querySelector("[data-mobile-bottom-sheet-panel]");
+
+    expect(panel).toHaveClass("bg-lime-400", "text-lime-950");
+    expect(screen.getByRole("heading", { name: "Shared menu" })).toHaveClass("text-lime-950");
+  });
+
+  it("supports a purple tone with the standard light-purple decoration", async () => {
+    renderShell(vi.fn(), "purple");
+
+    const dialog = await screen.findByRole("dialog", { name: "Shared menu" });
+    const panel = dialog.querySelector("[data-mobile-bottom-sheet-panel]");
+    const decoration = panel?.querySelector("div[aria-hidden='true']");
+    const circle = panel?.querySelector("[data-mobile-bottom-sheet-protrusion] > span[aria-hidden='true']");
+
+    expect(panel).toHaveClass("bg-purple-600", "text-white");
+    expect(screen.getByRole("heading", { name: "Shared menu" })).toHaveClass("text-white");
+    expect(decoration?.getAttribute("style")).toContain("rgb(147, 51, 234)");
+    expect(decoration?.getAttribute("style")).not.toContain("82% 82%");
+    expect(decoration).toHaveStyle({ opacity: "1" });
+    expect(circle?.getAttribute("style")).toContain("background-color: white");
+  });
+
+  it("supports the mission gold tone", async () => {
+    renderShell(vi.fn(), "mission");
+
+    const dialog = await screen.findByRole("dialog", { name: "Shared menu" });
+    const panel = dialog.querySelector("[data-mobile-bottom-sheet-panel]");
+    const protrusion = panel?.querySelector("[data-mobile-bottom-sheet-protrusion] > span:first-child");
+    const circle = panel?.querySelector("[data-mobile-bottom-sheet-protrusion] > span[aria-hidden='true']");
+    const closeButton = panel?.querySelector("button[aria-label='Close']");
+
+    expect(panel).toHaveClass("bg-[#ffb833]", "text-[#2E240F]");
+    expect(screen.getByRole("heading", { name: "Shared menu" })).toHaveClass("text-white");
+    expect(closeButton).toHaveClass("text-white/90");
+    expect(protrusion?.getAttribute("style")).toContain("background-color: rgb(255, 184, 51)");
+    expect(circle?.getAttribute("style")).toContain("color-mix(in srgb, rgb(255, 184, 51) 62%, white)");
   });
 
   it("closes from the backdrop, close button, and Escape", async () => {

@@ -12,6 +12,12 @@ the WebView request interceptor.
   the `ui_media` install-time asset pack.
 - The native WebView intercepts same-origin image, font, audio and video
   requests and serves matching files from the installed asset pack.
+- Asset resolution is local-first: an indexed and readable AAB asset is
+  returned directly by the native interceptor, without a web request. If the
+  old AAB does not contain a newly deployed media path, or its local copy is
+  unreadable, the interceptor returns control to WebView and the exact same
+  URL is loaded from the website as a remote fallback. The native logcat tag
+  `FoxiesDeckMedia` reports both local serving and fallback decisions.
 - External links and OAuth provider pages open in the system browser; the
   native billing bridge is not exposed to arbitrary external documents.
 - The existing Ask/AI Practice microphone flow can request Android audio
@@ -25,6 +31,24 @@ the WebView request interceptor.
 - Android WebView does not expose the browser Web Speech Synthesis API, so
   card and chat pronunciation uses the native Android Text-to-Speech bridge in
   the app; normal browsers keep using `speechSynthesis`.
+
+## Firebase Analytics
+
+- The Android shell includes Firebase Analytics. Native review/event callbacks
+  are sent by `EventReceiverActivity`.
+- The matching Android `google-services.json` belongs at
+  `com.foxiesdeck/app/google-services.json`. The generated Android project is
+  ignored by Git, so keep this file backed up locally. `pwa:init` preserves and
+  validates its Android app ID and required Firebase identifiers. The optional
+  `services.analytics_service` metadata is not used to infer whether Analytics
+  is enabled; confirm that separately in Firebase Console.
+- Analytics must also be enabled for the Firebase project in Firebase Console;
+  successful Gradle configuration alone cannot prove event delivery. Verify a
+  Play-installed test build in Firebase Analytics DebugView before treating
+  runtime collection as confirmed.
+- Advertising-ID collection is disabled and the merged manifest removes the
+  Advertising ID permissions. The app does not use ads; do not declare that it
+  uses the Advertising ID in Play Console unless that changes.
 
 ## Build the website
 
@@ -45,12 +69,12 @@ repository-owned patcher then applies API 36, Billing 8, the hybrid WebView,
 and the `ui_media` asset pack configuration.
 
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.22`, and version code `136`. They can be overridden for a release with:
+`4.3.24`, and version code `138`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=136
-TWA_VERSION_NAME=4.3.22
+TWA_VERSION_CODE=138
+TWA_VERSION_NAME=4.3.24
 ```
 
 Keep the signing keystore and its passwords safe. Losing the original signing

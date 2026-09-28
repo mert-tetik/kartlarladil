@@ -1,0 +1,19 @@
+{
+  "kind": "card-definitions",
+  "model": "gpt-5.4-nano",
+  "requestBatchSize": 100,
+  "maxRequestsPerBatch": 50,
+  "requestCount": 4,
+  "conceptCount": 5038,
+  "localeCount": 14,
+  "batchCount": 1,
+  "batches": [
+    {
+      "batchId": "batch_6ab8fe1269cc8190b56b2a3c8d726477",
+      "inputFileId": "file-NLVBu7BR9UiQZZkqJ1jeD1",
+      "inputPath": "scripts\\data\\card-definitions-final-20260927\\batches\\card-definitions-001.jsonl",
+      "requestCount": 4
+    }
+  ],
+  "createdAt": "2026-09-27T11:29:22.588Z"
+}

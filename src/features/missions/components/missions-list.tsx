@@ -30,6 +30,14 @@ import { MissionCard } from "./mission-card";
 import { MissionRewardOverlay } from "./mission-reward-overlay";
 import { MissionDetailsOverlay, type MissionDetailsData } from "./mission-details-overlay";
 import {
+  completeMissionRewardAnimation,
+  enqueueMissionRewardAnimation,
+  getActiveMissionRewardAnimations,
+  removeMissionRewardAnimation,
+  settleMissionRewardAnimation,
+  type MissionRewardAnimationEntry,
+} from "../mission-reward-queue";
+import {
   getMissionNavigationHref,
   type MissionNavigationTarget,
 } from "../mission-navigation";
@@ -56,16 +64,13 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     userId: string;
     rewards: Record<string, MissionReward>;
   } | null>(null);
-  const [rewardMode, setRewardMode] = useState<
-    | { missionId: string; kind: "chest"; tier: import("@/features/quiz/chest-rewards").ChestTierDefinition; gemReward?: import("@/features/gems/gem-types").ChestRewardOutcome }
-    | { missionId: string; kind: "points"; amount: number; source?: DOMRect }
-    | null
-  >(null);
+  const [rewardQueue, setRewardQueue] = useState<MissionRewardAnimationEntry[]>([]);
   const [missionDetails, setMissionDetails] = useState<{
     mission: MissionDetailsData;
     sourceRect: DOMRect;
   } | null>(null);
   const hasResumedPendingClaimsRef = useRef(false);
+  const rewardModes = getActiveMissionRewardAnimations(rewardQueue);
 
   function handleMissionNavigate(target: MissionNavigationTarget) {
     if (onMissionNavigate) {
@@ -167,12 +172,23 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
 
       flushSync(() => {
         markClaimPending(missionId, userId);
-        setRewardMode({ missionId, kind: "chest", tier });
+        setRewardQueue((queue) => enqueueMissionRewardAnimation(queue, { missionId, kind: "chest", tier }));
+      });
+    } else if (reward.kind === "gems") {
+      flushSync(() => {
+        markClaimPending(missionId, userId);
+        setRewardQueue((queue) => enqueueMissionRewardAnimation(queue, {
+          missionId,
+          kind: "gems",
+          gemType: reward.gemType,
+          amount: reward.amount,
+          source,
+        }));
       });
     } else {
       flushSync(() => {
         markClaimPending(missionId, userId);
-        setRewardMode({ missionId, kind: "points", amount: reward.amount, source });
+        setRewardQueue((queue) => enqueueMissionRewardAnimation(queue, { missionId, kind: "points", amount: reward.amount, source }));
       });
     }
 
@@ -200,29 +216,28 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
           });
         }
         if (result.gemRewards?.length && reward.kind === "chest") {
-          setRewardMode((current) => current?.missionId === missionId && current.kind === "chest"
-            ? {
-                ...current,
-                gemReward: {
-                  points: result.points ?? 0,
-                  rewards: result.gemRewards!,
-                  balances: result.balances,
-                },
-              }
-            : current);
+          setRewardQueue((queue) => settleMissionRewardAnimation(queue, missionId, {
+            points: result.points ?? 0,
+            rewards: result.gemRewards!,
+            balances: result.balances,
+          }));
+        } else if (reward.kind === "gems" && result.balances) {
+          setRewardQueue((queue) => settleMissionRewardAnimation(queue, missionId, undefined, result.balances));
+        } else {
+          setRewardQueue((queue) => settleMissionRewardAnimation(queue, missionId));
         }
       } else if (result.message === "auth_required") {
-        setRewardMode((current) => current?.missionId === missionId ? null : current);
+        setRewardQueue((queue) => removeMissionRewardAnimation(queue, missionId));
         navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
       } else {
         showMessage(result.message ?? t("missions.claimError"), "error");
-        setRewardMode((current) => current?.missionId === missionId ? null : current);
+        setRewardQueue((queue) => removeMissionRewardAnimation(queue, missionId));
       }
     }));
   }
 
-  const handleRewardComplete = useCallback(() => {
-    setRewardMode(null);
+  const handleRewardComplete = useCallback((missionId: string) => {
+    setRewardQueue((queue) => completeMissionRewardAnimation(queue, missionId));
   }, []);
 
   if (!user) {
@@ -273,7 +288,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
         ))}
       </div>
 
-      <MissionRewardOverlay mode={rewardMode} onComplete={handleRewardComplete} />
+      <MissionRewardOverlay modes={rewardModes} onComplete={handleRewardComplete} />
       <MissionDetailsOverlay
         mission={missionDetails?.mission ?? null}
         sourceRect={missionDetails?.sourceRect ?? null}

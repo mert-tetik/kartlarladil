@@ -26,6 +26,7 @@ const {
   requestGooglePlayReviewMock,
   routerPushMock,
   subscriptionPlanMock,
+  dayStreakOverlayMock,
   useLeaderboardDataMock,
 } = vi.hoisted(() => ({
   consumePlayReviewEligibilityMock: vi.fn(),
@@ -37,6 +38,14 @@ const {
   requestGooglePlayReviewMock: vi.fn(),
   routerPushMock: vi.fn(),
   subscriptionPlanMock: { value: "free" as SubscriptionPlan },
+  dayStreakOverlayMock: {
+    value: null as null | {
+      snapshot: { currentStreak: number } | null;
+      loading: boolean;
+      isOpen: boolean;
+      openDayStreak: () => void;
+    },
+  },
   useLeaderboardDataMock: vi.fn(),
 }));
 
@@ -49,6 +58,10 @@ vi.mock("next/navigation", () => ({
   }),
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@/components/theme-provider", () => ({
+  useTheme: () => ({ mode: "dark" }),
 }));
 
 vi.mock("@/features/auth/auth-client", () => ({
@@ -85,6 +98,10 @@ vi.mock("@/features/subscriptions/subscription-client", () => ({
 
 vi.mock("@/features/leaderboard/use-leaderboard", () => ({
   useLeaderboardData: useLeaderboardDataMock,
+}));
+
+vi.mock("@/app/components/mobile-day-streak-overlay-provider", () => ({
+  useOptionalMobileDayStreakOverlay: () => dayStreakOverlayMock.value,
 }));
 
 vi.mock("@/features/install-app/use-twa-mode", () => ({
@@ -147,6 +164,7 @@ describe("MobileLandingDashboard language sync", () => {
     consumePlayReviewEligibilityMock.mockReturnValue(null);
     requestGooglePlayReviewMock.mockReset();
     subscriptionPlanMock.value = "free";
+    dayStreakOverlayMock.value = null;
     refreshEntitlementsMock.mockReset();
     refreshEntitlementsMock.mockImplementation(async () => ({
       effectivePlan: subscriptionPlanMock.value,
@@ -175,6 +193,41 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
+  });
+
+  it("silently loads the daily streak count without a spinner", () => {
+    dayStreakOverlayMock.value = {
+      snapshot: null,
+      loading: true,
+      isOpen: false,
+      openDayStreak: vi.fn(),
+    };
+
+    const { rerender } = render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    const count = document.querySelector("[data-mobile-day-streak-count]");
+    expect(count).toBeEmptyDOMElement();
+    expect(count?.querySelector('[role="status"]')).not.toBeInTheDocument();
+
+    dayStreakOverlayMock.value = {
+      snapshot: { currentStreak: 5 },
+      loading: true,
+      isOpen: false,
+      openDayStreak: vi.fn(),
+    };
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    expect(count).toHaveTextContent("5");
+    expect(count?.querySelector('[role="status"]')).not.toBeInTheDocument();
   });
 
   it("keeps the landing language valid when any card-add action is clicked", () => {

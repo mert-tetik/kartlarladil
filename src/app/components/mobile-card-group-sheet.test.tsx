@@ -49,6 +49,8 @@ describe("MobileCardGroupSheet", () => {
 
     expect(screen.getByRole("heading", { name: "School" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Technology" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "School" })).toHaveClass("text-white");
+    expect(screen.getByRole("button", { name: "School Add group" })).toHaveClass("min-h-11", "bg-lime-400", "text-black");
 
     const schoolToggle = screen.getByRole("button", { name: /SchoolWords about School/ });
     expect(schoolToggle).toHaveAttribute("aria-expanded", "false");

@@ -2,13 +2,21 @@
 
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Camera, Check, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, X } from "lucide-react";
+import type { Area } from "react-easy-crop";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { cropImageToDataUrl } from "@/app/components/image-crop";
 import { MobileCustomCardLanguagePicker } from "@/app/components/mobile-custom-card-language-picker";
+import { MobileImageCropSheet } from "@/app/components/mobile-image-crop-sheet";
 import { LanguageFlag } from "@/components/language-flag";
 import { createCustomCardFromGenerated } from "@/features/cards/custom-card-creation";
+import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
+import {
+  CardGrammarDetailsButton,
+  CardGrammarDetailsOverlay,
+} from "@/features/cards/components/card-grammar-details-overlay";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import type {
@@ -40,7 +48,6 @@ import type { LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types
 
 const MAX_UPLOAD_IMAGES = 6;
 const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024;
-const MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH = 600_000;
 const IMAGE_TEXT_TRANSLATE_OPENED_KEY = "foxiesdeck:image-text-translate-opened";
 const IMAGE_TEXT_TRANSLATE_TUTORIAL_EXIT_MS = 860;
 
@@ -48,6 +55,15 @@ interface UploadedImage {
   id: string;
   name: string;
   dataUrl: string;
+}
+
+interface CropQueueItem {
+  id: string;
+  file: File;
+}
+
+interface ActiveCropItem extends CropQueueItem {
+  sourceUrl: string;
 }
 
 type WordStatus = "idle" | "loading" | "adding" | "added" | "error";
@@ -102,7 +118,9 @@ export function MobileImageTextTranslateOverlay({
   const [wordDetail, setWordDetail] = useState<WordDetail | null>(null);
   const [wordStatus, setWordStatus] = useState<WordStatus>("idle");
   const [loading, setLoading] = useState(false);
-  const [pendingImageCount, setPendingImageCount] = useState(0);
+  const [cropQueue, setCropQueue] = useState<CropQueueItem[]>([]);
+  const [activeCrop, setActiveCrop] = useState<ActiveCropItem | null>(null);
+  const [cropConfirming, setCropConfirming] = useState(false);
   const [showFirstOpenTutorial, setShowFirstOpenTutorial] = useState(false);
   const [isFirstOpenTutorialExiting, setIsFirstOpenTutorialExiting] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -140,7 +158,9 @@ export function MobileImageTextTranslateOverlay({
       setShowFirstOpenTutorial(false);
       setIsFirstOpenTutorialExiting(false);
       setLoading(false);
-      setPendingImageCount(0);
+      setCropQueue([]);
+      setActiveCrop(null);
+      setCropConfirming(false);
       setConfirmationClosing(false);
       return;
     }
@@ -159,6 +179,16 @@ export function MobileImageTextTranslateOverlay({
     }
     setShowFirstOpenTutorial(!hasOpenedBefore);
   }, [landingLanguage, open]);
+
+  useEffect(() => {
+    const sourceUrl = activeCrop?.sourceUrl;
+
+    return () => {
+      if (sourceUrl) {
+        URL.revokeObjectURL(sourceUrl);
+      }
+    };
+  }, [activeCrop?.sourceUrl]);
 
   function handleFirstOpenTutorialContinue() {
     if (isFirstOpenTutorialExiting) return;
@@ -260,36 +290,63 @@ export function MobileImageTextTranslateOverlay({
     setDeleteLoading(false);
   }
 
-  async function handleFileSelection(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0 || pendingImageCount > 0) return;
+  function handleFileSelection(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0 || activeCrop || cropQueue.length > 0) return;
 
-    const availableSlots = MAX_UPLOAD_IMAGES - images.length;
+    const availableSlots = MAX_UPLOAD_IMAGES - images.length - (activeCrop ? 1 : 0) - cropQueue.length;
     if (availableSlots <= 0) {
       showMessage(getErrorMessage("image_limit", t), "error");
       return;
     }
 
     const files = Array.from(fileList).slice(0, availableSlots);
-    setPendingImageCount(files.length);
-    try {
-      for (const file of files) {
-        if (!file.type.startsWith("image/") || file.size > MAX_FILE_SIZE_BYTES) {
-          showMessage(getErrorMessage("invalid_image", t), "error");
-          continue;
-        }
+    const validFiles: CropQueueItem[] = [];
 
-        try {
-          const dataUrl = await imageFileToDataUrl(file);
-          setImages((current) => [
-            ...current,
-            { id: createClientId(), name: file.name, dataUrl },
-          ].slice(0, MAX_UPLOAD_IMAGES));
-        } catch {
-          showMessage(getErrorMessage("invalid_image", t), "error");
-        }
+    for (const file of files) {
+      if (!file.type.startsWith("image/") || file.size > MAX_FILE_SIZE_BYTES) {
+        showMessage(getErrorMessage("invalid_image", t), "error");
+        continue;
       }
+
+      validFiles.push({ id: createClientId(), file });
+    }
+
+    if (validFiles.length > 0) {
+      const [firstCrop, ...remainingQueue] = validFiles;
+      setCropQueue(remainingQueue);
+      setActiveCrop({
+        ...firstCrop,
+        sourceUrl: URL.createObjectURL(firstCrop.file),
+      });
+    }
+  }
+
+  function cancelImageCrop() {
+    setCropQueue([]);
+    setActiveCrop(null);
+    setCropConfirming(false);
+  }
+
+  async function confirmImageCrop(cropArea: Area) {
+    if (!activeCrop || cropConfirming) return;
+
+    setCropConfirming(true);
+    try {
+      const dataUrl = await cropImageToDataUrl(activeCrop.sourceUrl, cropArea);
+      setImages((current) => [
+        ...current,
+        { id: activeCrop.id, name: activeCrop.file.name, dataUrl },
+      ].slice(0, MAX_UPLOAD_IMAGES));
+      const [nextCrop, ...remainingQueue] = cropQueue;
+      setCropQueue(remainingQueue);
+      setActiveCrop(nextCrop
+        ? { ...nextCrop, sourceUrl: URL.createObjectURL(nextCrop.file) }
+        : null);
+    } catch {
+      showMessage(getErrorMessage("invalid_image", t), "error");
+      cancelImageCrop();
     } finally {
-      setPendingImageCount(0);
+      setCropConfirming(false);
     }
   }
 
@@ -505,8 +562,8 @@ export function MobileImageTextTranslateOverlay({
   const activeDetailNativeLocale = detailTranslation?.nativeLocale ?? locale;
   const sourceLanguageName = getLanguageDisplayName(activeDetailSourceLanguage, activeDetailNativeLocale);
   const nativeLanguageName = getLanguageDisplayName(activeDetailNativeLocale, activeDetailNativeLocale);
-  const uploadedImageCount = images.length + pendingImageCount;
-  const uploadedImageColumns = Math.min(Math.max(uploadedImageCount, 1), MAX_UPLOAD_IMAGES);
+  const uploadedImageColumns = Math.min(Math.max(images.length, 1), MAX_UPLOAD_IMAGES);
+  const cropInProgress = activeCrop !== null || cropQueue.length > 0;
   const translationLocked = translationUsage !== null && !translationUsage.canUse;
 
   return (
@@ -523,7 +580,7 @@ export function MobileImageTextTranslateOverlay({
         panelClassName="image-text-translate-surface bg-background text-foreground"
         contentClassName="min-h-0 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
       >
-      <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col gap-4">
+      <div className="relative z-10 mx-auto my-auto flex w-full max-w-xl flex-col gap-4">
         <SegmentedToggle
           value={mode}
           onChange={setMode}
@@ -563,7 +620,7 @@ export function MobileImageTextTranslateOverlay({
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  disabled={pendingImageCount > 0}
+                  disabled={cropInProgress}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-0 bg-action-learn px-3 text-sm font-semibold text-white transition-colors hover:bg-action-learn-hover active:scale-[0.98]"
                 >
                   <Camera className="size-5" aria-hidden="true" />
@@ -572,7 +629,7 @@ export function MobileImageTextTranslateOverlay({
                 <button
                   type="button"
                   onClick={() => galleryInputRef.current?.click()}
-                  disabled={pendingImageCount > 0}
+                  disabled={cropInProgress}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-0 bg-action-learned px-3 text-sm font-semibold text-white transition-colors hover:bg-action-review-hover active:scale-[0.98]"
                 >
                   <Upload className="size-5" aria-hidden="true" />
@@ -587,17 +644,12 @@ export function MobileImageTextTranslateOverlay({
               <p className="text-sm font-semibold text-foreground">
                 {t("imageTranslate.uploadedImages", { count: images.length, max: MAX_UPLOAD_IMAGES })}
               </p>
-              {images.length > 0 || pendingImageCount > 0 ? (
+              {images.length > 0 ? (
                 <div
                   className="grid h-20 items-center gap-1 overflow-hidden"
                   style={{ gridTemplateColumns: `repeat(${uploadedImageColumns}, minmax(0, 1fr))` }}
                   aria-label={t("imageTranslate.uploadedImages", { count: images.length, max: MAX_UPLOAD_IMAGES })}
                 >
-                  {Array.from({ length: pendingImageCount }, (_, index) => (
-                    <div key={`pending-image-${index}`} role="status" aria-label={t("imageTranslate.loadingImage")} className="relative aspect-square w-full max-h-[4.5rem] max-w-[4.5rem] justify-self-start overflow-hidden rounded-lg border-2 border-dashed border-white bg-background-muted">
-                      <span className="absolute inset-0 flex items-center justify-center text-foreground-secondary"><Loader2 className="size-7 animate-spin" aria-hidden="true" /></span>
-                    </div>
-                  ))}
                   {images.map((image) => (
                     <button key={image.id} type="button" onClick={() => removeImage(image.id)} aria-label={`${t("imageTranslate.removeImage")}: ${image.name}`} className="group relative aspect-square w-full max-h-[4.5rem] max-w-[4.5rem] justify-self-start overflow-hidden rounded-lg border-2 border-white bg-background-muted shadow-sm transition-transform active:scale-95">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -661,6 +713,13 @@ export function MobileImageTextTranslateOverlay({
         </button>
       </div>
       </MobileBottomSheetShell>
+      <MobileImageCropSheet
+        key={activeCrop?.id ?? "image-crop"}
+        open={activeCrop !== null}
+        imageUrl={activeCrop?.sourceUrl ?? ""}
+        onCancel={cancelImageCrop}
+        onConfirm={confirmImageCrop}
+      />
       <MobileBottomSheetShell
         open={showTranslationsList}
         onClose={() => setShowTranslationsList(false)}
@@ -899,6 +958,11 @@ function WordDetailOverlay({
   const tier = wordDetail.existingCard?.tier ?? wordDetail.generatedCard?.tier;
   const tierColor = tier ? TIER_COLOR_VARIABLES[tier] : "var(--background-card)";
   const darkTierColor = tier ? `color-mix(in oklab, ${tierColor} 72%, #000)` : tierColor;
+  const grammarCard = useMemo(
+    () => wordDetail.existingCard ?? (wordDetail.generatedCard ? buildPreviewVocabularyCard(wordDetail.generatedCard) : null),
+    [wordDetail.existingCard, wordDetail.generatedCard],
+  );
+  const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
 
   return (
     <div
@@ -910,11 +974,18 @@ function WordDetailOverlay({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div
-        className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-white/30 p-4 text-white shadow-lg transition-[background-color] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
-        style={{ backgroundColor: darkTierColor }}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
+      <div className="relative w-full max-w-md">
+        {grammarCard ? (
+          <CardGrammarDetailsButton
+            onClick={() => setGrammarDetailsOpen(true)}
+            className="absolute left-0 top-[-3.25rem] z-10"
+          />
+        ) : null}
+        <div
+          className="max-h-[calc(100dvh-3rem)] w-full overflow-y-auto rounded-3xl border border-white/30 p-4 text-white shadow-lg transition-[background-color] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
+          style={{ backgroundColor: darkTierColor }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase text-white/75">{t("imageTranslate.wordDetails")}</p>
@@ -944,6 +1015,14 @@ function WordDetailOverlay({
           {wordStatus === "adding" ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : wordStatus === "added" ? <Check className="size-5" aria-hidden="true" /> : <BookOpen className="size-5" aria-hidden="true" />}
           {wordStatus === "adding" ? t("imageTranslate.adding") : wordStatus === "added" ? t("imageTranslate.added") : t("imageTranslate.add")}
         </button>
+        </div>
+        <CardGrammarDetailsOverlay
+          card={grammarCard}
+          previewPayload={wordDetail.generatedCard ?? null}
+          open={grammarDetailsOpen}
+          nativeLocale={translation.nativeLocale}
+          onClose={() => setGrammarDetailsOpen(false)}
+        />
       </div>
     </div>
   );
@@ -1124,69 +1203,6 @@ function createClientId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `image-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function imageFileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("invalid_image"));
-    reader.onload = () => {
-      const source = typeof reader.result === "string" ? reader.result : "";
-      if (!source) {
-        reject(new Error("invalid_image"));
-        return;
-      }
-
-      const image = new window.Image();
-      image.onerror = () => reject(new Error("invalid_image"));
-      image.onload = () => {
-        const maxDimension = 1600;
-        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-        const context = canvas.getContext("2d");
-        if (!context) {
-          reject(new Error("invalid_image"));
-          return;
-        }
-        context.fillStyle = "#ffffff";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-        let quality = 0.82;
-        let dataUrl = canvas.toDataURL("image/jpeg", quality);
-        while (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH && quality > 0.58) {
-          quality = Math.max(0.58, quality - 0.06);
-          dataUrl = canvas.toDataURL("image/jpeg", quality);
-        }
-
-        // A very detailed image can still exceed the request budget after
-        // quality reduction. Scale it down only in that uncommon case; text
-        // remains readable while six images stay within the server limit.
-        if (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH) {
-          const fallbackScale = Math.sqrt(MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH / dataUrl.length);
-          const fallbackWidth = Math.max(1, Math.floor(canvas.width * fallbackScale));
-          const fallbackHeight = Math.max(1, Math.floor(canvas.height * fallbackScale));
-          canvas.width = fallbackWidth;
-          canvas.height = fallbackHeight;
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, fallbackWidth, fallbackHeight);
-          context.drawImage(image, 0, 0, fallbackWidth, fallbackHeight);
-          dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-        }
-
-        if (dataUrl.length > MAX_COMPRESSED_IMAGE_DATA_URL_LENGTH) {
-          reject(new Error("invalid_image"));
-          return;
-        }
-
-        resolve(dataUrl);
-      };
-      image.src = source;
-    };
-    reader.readAsDataURL(file);
-  });
 }
 
 function getErrorCode(error: unknown) {

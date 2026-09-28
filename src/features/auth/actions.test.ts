@@ -1,4 +1,8 @@
-import { deleteAccountAction, updateLanguagePreferenceAction } from "@/features/auth/actions";
+import {
+  deleteAccountAction,
+  updateLanguagePreferenceAction,
+  updateMobileLoginLanguagePreferencesAction,
+} from "@/features/auth/actions";
 import { DELETE_ACCOUNT_CONFIRMATION } from "@/features/auth/auth-schemas";
 import { vi } from "vitest";
 
@@ -142,6 +146,59 @@ describe("updateLanguagePreferenceAction", () => {
       value: "ocean",
     });
 
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateMobileLoginLanguagePreferencesAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "test@example.com" } },
+      error: null,
+    });
+    mockEq.mockResolvedValue({ error: null });
+    mockUpdate.mockReturnValue({ eq: mockEq });
+    mockFrom.mockReturnValue({ update: mockUpdate });
+  });
+
+  it("updates both languages but leaves avatar, tier, and onboarding state untouched", async () => {
+    const formData = new FormData();
+    formData.set("preferredUiLocale", "de");
+    formData.set("preferredLanguageCode", "ja");
+
+    const result = await updateMobileLoginLanguagePreferencesAction(
+      { status: "idle", message: "" },
+      formData,
+    );
+
+    expect(result.status).toBe("success");
+    expect(mockFrom).toHaveBeenCalledWith("user_profiles");
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    const update = mockUpdate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(update).sort()).toEqual([
+      "preferred_language_code",
+      "preferred_ui_locale",
+      "updated_at",
+    ]);
+    expect(update).toMatchObject({
+      preferred_language_code: "ja",
+      preferred_ui_locale: "de",
+    });
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("rejects matching native and learning languages before touching Supabase", async () => {
+    const formData = new FormData();
+    formData.set("preferredUiLocale", "en");
+    formData.set("preferredLanguageCode", "en");
+
+    const result = await updateMobileLoginLanguagePreferencesAction(
+      { status: "idle", message: "" },
+      formData,
+    );
+
+    expect(result.status).toBe("error");
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });

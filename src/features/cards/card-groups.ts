@@ -31,7 +31,27 @@ export type CardGroupIcon =
   | "commonVerbs"
   | "adjectives"
   | "emergency"
-  | "social";
+  | "social"
+  | "vegetables"
+  | "drinks"
+  | "grainsLegumes"
+  | "nutsSeeds"
+  | "desserts"
+  | "kitchenUtensils"
+  | "householdItems"
+  | "roomsFurniture"
+  | "cityPlaces"
+  | "buildings"
+  | "nature"
+  | "geography"
+  | "transportVehicles"
+  | "pharmacyMedicine"
+  | "personality"
+  | "appearance"
+  | "communication"
+  | "advancedVerbs"
+  | "technologyDevices"
+  | "internetSocialMedia";
 
 export interface CardGroupDefinition {
   id: CardGroupIcon;
@@ -71,6 +91,26 @@ export const CARD_GROUP_IMAGE_PATHS: Record<CardGroupIcon, string> = {
   adjectives: "/card-groups/adjectives.webp",
   emergency: "/card-groups/emergency.webp",
   social: "/card-groups/social.webp",
+  vegetables: "/card-groups/vegetables.webp",
+  drinks: "/card-groups/drinks.webp",
+  grainsLegumes: "/card-groups/grainsLegumes.webp",
+  nutsSeeds: "/card-groups/nutsSeeds.webp",
+  desserts: "/card-groups/desserts.webp",
+  kitchenUtensils: "/card-groups/kitchenUtensils.webp",
+  householdItems: "/card-groups/householdItems.webp",
+  roomsFurniture: "/card-groups/roomsFurniture.webp",
+  cityPlaces: "/card-groups/cityPlaces.webp",
+  buildings: "/card-groups/buildings.webp",
+  nature: "/card-groups/nature.webp",
+  geography: "/card-groups/geography.webp",
+  transportVehicles: "/card-groups/transportVehicles.webp",
+  pharmacyMedicine: "/card-groups/pharmacyMedicine.webp",
+  personality: "/card-groups/personality.webp",
+  appearance: "/card-groups/appearance.webp",
+  communication: "/card-groups/communication.webp",
+  advancedVerbs: "/card-groups/advancedVerbs.webp",
+  technologyDevices: "/card-groups/technologyDevices.webp",
+  internetSocialMedia: "/card-groups/internetSocialMedia.webp",
 };
 
 const group = <T extends CardGroupIcon>(
@@ -87,113 +127,113 @@ export const CARD_GROUPS: readonly CardGroupDefinition[] = [
   group("school", [
     "school", "student", "teacher", "class", "classroom", "lesson", "book", "exam", "homework",
     "university", "college", "library", "study", "learn", "subject", "course", "principal", "pupil",
-    "professor", "campus", "notebook", "pencil", "pen",
+    "professor", "campus", "notebook", "pencil", "pen", "classmate", "semester",
   ]),
   group("business", [
     "business", "company", "office", "meeting", "manager", "customer", "client", "job",
     "work", "career", "project", "team", "salary", "market", "contract", "employee", "employer",
-    "department", "director", "boss", "staff", "finance", "profit", "trade", "industry",
+    "department", "director", "boss", "staff", "finance", "profit", "trade", "industry", "invoice",
   ]),
   group("restaurant", [
     "restaurant", "menu", "waiter", "table", "order", "bill", "dish", "meal",
     "breakfast", "lunch", "dinner", "coffee", "water", "food", "chef", "cook", "kitchen",
-    "fork", "spoon", "plate", "recipe", "reservation", "receipt",
+    "fork", "spoon", "plate", "recipe", "reservation", "receipt", "dessert", "napkin",
   ]),
   group("shopping", [
     "shop", "store", "buy", "sell", "price", "cost", "money", "cash", "card", "market",
     "customer", "size", "clothes", "mall", "basket", "receipt", "discount", "sale", "cheap",
-    "expensive", "online",
+    "expensive", "online", "refund", "checkout", "cashier",
   ]),
   group("fruits", [
     "apple", "banana", "orange", "lemon", "fruit", "tomato", "grape", "strawberry", "blueberry",
-    "watermelon", "pineapple", "mango", "peach", "pear", "cherry",
+    "watermelon", "pineapple", "mango", "peach", "pear", "cherry", "apricot", "fig", "raspberry", "kiwi", "coconut",
   ]),
   group("months", [
     "january", "february", "march", "april", "may", "june", "july", "august",
-    "september", "october", "november", "december",
+    "september", "october", "november", "december", "calendar",
   ]),
   group("travel", [
     "travel", "trip", "journey", "ticket", "train", "airport", "hotel", "passport",
     "map", "tourist", "vacation", "flight", "station", "beach", "border", "guide", "destination",
-    "departure", "arrival", "visa",
+    "departure", "arrival", "visa", "luggage", "suitcase", "hostel", "customs",
   ]),
   group("home", [
     "home", "house", "room", "kitchen", "bathroom", "bedroom", "door", "window", "table",
     "chair", "bed", "wall", "floor", "garden", "key", "apartment", "lamp", "shelf", "roof",
-    "ceiling", "furniture",
+    "ceiling", "furniture", "sofa", "wardrobe", "drawer", "pillow", "balcony",
   ]),
   group("health", [
     "health", "doctor", "hospital", "medicine", "pain", "head", "hand", "foot", "heart",
     "body", "sick", "ill", "exercise", "sleep", "blood", "nurse", "patient", "treatment",
-    "symptom", "fever", "disease", "temperature",
+    "symptom", "fever", "disease", "temperature", "allergy", "cough", "bandage", "pharmacy",
   ]),
   group("technology", [
     "computer", "phone", "internet", "website", "email", "message", "screen", "keyboard",
     "software", "program", "file", "password", "camera", "video", "technology", "app", "data",
-    "network", "battery", "browser", "download", "cloud", "code", "database",
+    "network", "battery", "browser", "download", "cloud", "code", "database", "charger", "microphone", "folder", "upload",
   ]),
   group("emotions", [
     "emotion", "feeling", "happy", "sad", "angry", "afraid", "excited", "surprised", "worried",
-    "proud", "calm", "hope", "love", "hate", "smile",
+    "proud", "calm", "hope", "love", "hate", "smile", "sadness",
   ]),
   group("body", [
     "body", "head", "face", "eye", "ear", "nose", "mouth", "hair", "arm", "leg", "hand", "foot",
-    "finger", "skin", "tooth",
+    "finger", "skin", "tooth", "teeth",
   ]),
   group("clothes", [
     "clothes", "shirt", "dress", "coat", "jacket", "shoe", "sock", "hat", "skirt", "trousers", "wear",
-    "pocket", "button",
+    "pocket", "button", "scarf", "boots",
   ]),
   group("family", [
     "family", "mother", "father", "parent", "son", "daughter", "brother", "sister", "husband", "wife",
-    "child", "baby", "friend", "people", "person",
+    "child", "baby", "friend", "people", "person", "nephew", "niece", "neighbor",
   ]),
   group("weather", [
     "weather", "rain", "snow", "wind", "cloud", "sun", "storm", "hot", "cold", "warm", "sky", "air",
-    "season",
+    "season", "fog", "sunny", "rainy", "windy",
   ]),
   group("animals", [
     "animal", "dog", "cat", "bird", "horse", "cow", "sheep", "fish", "mouse", "bear", "lion", "chicken",
-    "insect",
+    "insect", "rabbit", "duck", "goat", "wolf",
   ]),
   group("transport", [
     "transport", "car", "bus", "train", "taxi", "bicycle", "bike", "motorcycle", "ship", "boat", "plane",
-    "airport", "station", "road", "drive",
+    "airport", "station", "road", "drive", "tram", "subway", "scooter", "ferry",
   ]),
   group("directions", [
     "direction", "left", "right", "straight", "north", "south", "east", "west", "near", "far", "corner",
-    "street", "place", "address", "map",
+    "street", "place", "address", "map", "center",
   ]),
   group("routines", [
     "routine", "wake", "morning", "wash", "shower", "eat", "drink", "go", "come", "work", "start", "finish",
-    "sleep", "everyday", "daily",
+    "sleep", "everyday", "daily", "commute",
   ]),
   group("sports", [
     "sport", "football", "soccer", "basketball", "tennis", "game", "team", "player", "win", "lose", "run",
-    "swim", "ball", "race", "exercise",
+    "swim", "ball", "race", "exercise", "volleyball", "cycling", "skating",
   ]),
   group("hobbies", [
     "hobby", "read", "reading", "draw", "drawing", "paint", "sing", "dance", "travel", "cook", "cooking",
-    "photograph", "garden", "collect", "play",
+    "photograph", "garden", "collect", "play", "hiking", "knitting",
   ]),
   group("musicMovies", [
     "music", "song", "movie", "film", "actor", "actress", "show", "concert", "band", "guitar", "piano",
-    "radio", "listen", "watch", "story",
+    "radio", "listen", "watch", "story", "violin", "flute", "lyrics", "playlist",
   ]),
   group("cooking", [
     "cook", "kitchen", "food", "recipe", "ingredient", "salt", "sugar", "bread", "rice", "meat", "chicken",
-    "vegetable", "fruit", "knife", "plate",
+    "vegetable", "fruit", "knife", "plate", "garlic", "dessert", "pasta", "lentil",
   ]),
   group("jobs", [
     "job", "work", "career", "profession", "doctor", "teacher", "engineer", "driver", "artist", "writer", "chef",
-    "nurse", "lawyer", "farmer", "worker",
+    "nurse", "lawyer", "farmer", "worker", "electrician", "receptionist",
   ]),
   group("colorsShapes", [
     "red", "blue", "green", "yellow", "black", "white", "orange", "purple", "circle", "square", "line", "shape",
-    "round", "light",
+    "round", "light", "gray", "triangle", "rectangle",
   ]),
   group("numbersTime", [
-    "number", "one", "time", "hour", "minute", "second", "day", "week", "month", "year", "today", "tomorrow",
+    "number", "one", "time", "hour", "minute", "second", "day", "week", "month", "year", "today", "tomorrow", "zero", "two", "three", "four", "five", "calendar",
   ]),
   group("commonVerbs", [
     "be", "have", "do", "make", "go", "come", "take", "give", "get", "know", "think", "want", "need", "look",
@@ -210,6 +250,81 @@ export const CARD_GROUPS: readonly CardGroupDefinition[] = [
   group("social", [
     "hello", "goodbye", "please", "thanks", "sorry", "welcome", "question", "answer", "conversation", "talk",
     "speak", "say", "agree", "invite",
+  ]),
+  group("vegetables", [
+    "vegetable", "carrot", "potato", "onion", "tomato", "pepper", "bean", "cucumber", "lettuce", "mushroom", "spinach", "broccoli", "cabbage", "pumpkin", "zucchini", "celery",
+  ]),
+  group("drinks", [
+    "drink", "water", "coffee", "tea", "juice", "milk", "beer", "wine", "bottle", "cup", "lemonade", "soda", "cocoa", "smoothie",
+  ]),
+  group("grainsLegumes", [
+    "bread", "rice", "flour", "wheat", "grain", "bean", "pasta", "lentil", "cereal", "oat",
+  ]),
+  group("nutsSeeds", [
+    "nut", "seed", "almond", "peanut", "walnut", "pistachio", "cashew", "hazelnut", "chestnut", "coconut",
+  ]),
+  group("desserts", [
+    "cake", "chocolate", "biscuit", "sugar", "sweet", "cookie", "candy", "pie", "pudding", "donut", "muffin", "honey", "pastry",
+  ]),
+  group("kitchenUtensils", [
+    "knife", "fork", "spoon", "plate", "bowl", "cup", "glass", "pan", "pot", "oven", "kitchen", "recipe", "dish",
+    "stove", "ladle", "whisk", "grater", "tongs", "spatula",
+  ]),
+  group("householdItems", [
+    "furniture", "table", "chair", "lamp", "shelf", "door", "window", "key", "clock", "mirror", "towel", "blanket",
+    "carpet", "basket", "box", "clean", "detergent", "broom", "drawer", "pillow",
+  ]),
+  group("roomsFurniture", [
+    "room", "house", "home", "bedroom", "bathroom", "kitchen", "bed", "chair", "table", "shelf", "desk", "garden", "sofa", "wardrobe", "balcony", "hallway", "armchair", "cushion",
+  ]),
+  group("cityPlaces", [
+    "city", "street", "road", "park", "bank", "hospital", "school", "library", "station", "airport", "shop", "store",
+    "market", "restaurant", "hotel", "museum", "theater", "subway", "pharmacy", "bakery", "bookstore",
+  ]),
+  group("buildings", [
+    "building", "house", "apartment", "office", "school", "hospital", "hotel", "church", "bridge", "tower", "factory",
+    "station", "castle", "wall", "roof", "skyscraper", "stairs",
+  ]),
+  group("nature", [
+    "nature", "tree", "flower", "plant", "forest", "river", "lake", "sea", "mountain", "hill", "beach", "island", "field",
+    "grass", "garden", "earth", "stone", "rock", "animal", "waterfall", "volcano", "desert",
+  ]),
+  group("geography", [
+    "country", "city", "world", "earth", "land", "sea", "ocean", "river", "mountain", "island", "border", "capital", "map",
+    "north", "south", "east", "west", "continent", "latitude", "longitude",
+  ]),
+  group("transportVehicles", [
+    "car", "bus", "train", "taxi", "bicycle", "bike", "motorcycle", "ship", "boat", "plane", "truck", "van", "vehicle",
+    "road", "drive", "ride", "helicopter", "rocket",
+  ]),
+  group("pharmacyMedicine", [
+    "medicine", "drug", "pill", "tablet", "prescription", "doctor", "nurse", "hospital", "patient", "pain", "fever", "cold",
+    "treatment", "health", "pharmacy", "cough", "allergy", "bandage",
+  ]),
+  group("personality", [
+    "personality", "kind", "friendly", "polite", "honest", "brave", "calm", "lazy", "clever", "smart", "shy", "serious",
+    "funny", "rude", "patient", "active", "hardworking", "selfish",
+  ]),
+  group("appearance", [
+    "appearance", "beautiful", "pretty", "ugly", "tall", "short", "young", "old", "thin", "fat", "hair", "face", "eye",
+    "blonde", "dark", "clean", "handsome", "beard", "moustache", "glasses",
+  ]),
+  group("communication", [
+    "communication", "talk", "speak", "say", "tell", "ask", "answer", "question", "explain", "listen", "conversation", "message",
+    "email", "call", "write", "read", "agree", "disagree", "pronunciation",
+  ]),
+  group("advancedVerbs", [
+    "achieve", "admit", "advise", "afford", "allow", "appear", "avoid", "compare", "consider", "continue", "depend", "describe",
+    "develop", "encourage", "improve", "include", "increase", "manage", "mention", "offer", "prefer", "prevent", "provide",
+    "realize", "recommend", "reduce", "require", "suggest", "analyze",
+  ]),
+  group("technologyDevices", [
+    "computer", "phone", "laptop", "tablet", "screen", "keyboard", "camera", "printer", "device", "machine", "battery", "internet",
+    "website", "app", "software", "program", "headset", "router",
+  ]),
+  group("internetSocialMedia", [
+    "internet", "website", "email", "message", "account", "password", "online", "social", "media", "post", "share", "like",
+    "follow", "friend", "network", "video", "download", "chat", "upload", "livestream", "username", "hashtag", "notification",
   ]),
 ] as const;
 

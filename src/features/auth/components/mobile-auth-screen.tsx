@@ -19,7 +19,7 @@ export function MobileAuthScreen() {
 
   if (mode === "email") {
     return (
-      <div className="animate-screen-pop flex w-full max-w-sm flex-col">
+      <div className="animate-screen-pop mx-auto flex w-full max-w-sm flex-col">
         <MobileEmailAuthForm
           authType={authType}
           onToggleAuthType={() => setAuthType((current) => (current === "login" ? "register" : "login"))}
@@ -30,7 +30,7 @@ export function MobileAuthScreen() {
   }
 
   return (
-    <div className="animate-screen-pop flex w-full max-w-sm flex-col items-center text-center">
+    <div className="animate-screen-pop mx-auto flex w-full max-w-sm flex-col items-center text-center">
       <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
         <Image
           src="/splash.png"
@@ -48,7 +48,7 @@ export function MobileAuthScreen() {
 
       <div className="mt-10 flex w-full flex-col gap-3">
         <GoogleSignInButton
-          nextPath="/?showOffer=1"
+          nextPath="/?mobileLanguageRefresh=1&showOffer=1"
           label={t("auth.google.signIn")}
         />
 

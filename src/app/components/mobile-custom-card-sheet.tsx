@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import {
+  CardGrammarDetailsButton,
+  CardGrammarDetailsOverlay,
+} from "@/features/cards/components/card-grammar-details-overlay";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { CustomCardDirectionToggle } from "@/app/components/custom-card-direction-toggle";
 import {
@@ -43,6 +47,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
+  const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
   const [sheetElement, setSheetElement] = useState<HTMLDivElement | null>(null);
   const [sheetSize, setSheetSize] = useState({ width: 390, height: 660 });
   const returnTimer = useRef<number | null>(null);
@@ -100,6 +105,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   }, [sheetElement]);
 
   function handleClose() {
+    setGrammarDetailsOpen(false);
     onClose();
   }
 
@@ -112,7 +118,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   async function generate() {
     const normalized = normalizeSearch(term);
     if (!normalized) return;
-    setLoading(true); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false);
+    setLoading(true); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setGrammarDetailsOpen(false);
     try {
       const match = findCustomCardMatch({
         cards: localCardRepository.list({ language: targetLanguage }),
@@ -184,6 +190,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   };
   function closePreview() {
     if (!preview || previewReturning) return;
+    setGrammarDetailsOpen(false);
     setPreviewRevealed(false);
     setPreviewReturning(true);
     returnTimer.current = window.setTimeout(() => {
@@ -206,12 +213,13 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       title={t("createCard.mobileTitle")}
       panelLabel={t("createCard.mobileTitle")}
       tutorialLayer="custom-card"
+      tone="purple"
       panelClassName="h-[78dvh] max-h-[94dvh]"
       contentRef={setSheetElement}
-      visual={<Plus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
+      visual={<Plus className="size-[3.25rem] stroke-[3.25] text-purple-600" aria-hidden="true" />}
       contentClassName="relative overflow-hidden p-5"
     >
-      <div className={cn("relative z-10 flex flex-1 flex-col pt-4 transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100")}>
+      <div className={cn("relative z-10 flex flex-1 flex-col justify-center transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "-translate-y-6 opacity-100")}>
         <div className="mt-3">
           <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
         </div>
@@ -219,8 +227,8 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
         </div>
         <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={termPlaceholder} className="control-gradient-outline mt-3 h-12 w-full rounded-full px-3 text-black outline-none placeholder:text-black/50" />
-        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="control-gradient-outline mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-black disabled:opacity-50">
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="control-gradient-outline mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-lg font-semibold font-super-water text-black disabled:opacity-50">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
           {loading ? t("createCard.generating") : t("createCard.generate")}
         </button>
         {transliterationHint ? (
@@ -236,17 +244,35 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       </div>
       {preview ? (
         <>
-          <div className="absolute z-20 h-[253px] w-[190px]" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}>
+          <div
+            className="absolute left-8 right-8 z-30 mx-auto max-w-[24rem]"
+            style={{ top: `${previewTarget.top + previewTarget.height + 12}px` }}
+          >
+            <CardGrammarDetailsButton
+              onClick={() => setGrammarDetailsOpen(true)}
+              showIcon={false}
+              className="h-12 w-full max-w-none justify-center rounded-md border-0 bg-white px-3 text-lg font-semibold text-black shadow-none backdrop-blur-none hover:bg-white/90 hover:text-black"
+            />
+          </div>
+          <div className="absolute z-20 h-[253px] w-[190px] -translate-y-8" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}>
             <div className={cn("size-full origin-top-left transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", previewReturning && "opacity-0")} style={{ transform: previewTransform }}>
               <VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" />
             </div>
           </div>
-          <div className={cn("absolute inset-x-5 z-20 grid grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 24}px` }}>
-            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={closePreview} className={cn("h-12 rounded-md bg-black text-lg font-semibold text-white disabled:pointer-events-none", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, t("common.back"))}</button>
+          <div className={cn("absolute left-8 right-8 z-20 mx-auto grid max-w-[24rem] grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 72}px` }}>
+            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={closePreview} className={cn("h-12 rounded-md bg-red-600 text-lg font-semibold text-white hover:bg-red-500 disabled:pointer-events-none", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, t("common.back"))}</button>
             <button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-md bg-action-learn text-lg font-semibold text-white disabled:opacity-50", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add"))}</button>
           </div>
         </>
       ) : null}
+      <CardGrammarDetailsOverlay
+        card={preview}
+        previewPayload={aiResponse}
+        open={grammarDetailsOpen}
+        nativeLocale={locale}
+        tutorialLayer="custom-card"
+        onClose={() => setGrammarDetailsOpen(false)}
+      />
     </MobileBottomSheetShell>
   );
 }

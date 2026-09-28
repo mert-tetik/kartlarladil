@@ -21,6 +21,8 @@ import {
 } from "@/features/progress/progress-stats";
 import { getProfilePointTotal } from "@/features/progress/point-sources";
 import { trackPointMilestones } from "@/lib/twa-analytics-events";
+import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
+import { usePathname } from "next/navigation";
 import type { ProgressStats } from "@/types/domain";
 
 const CLOUD_MIGRATION_KEY = "foxiesdeck:cloud-migrated:v1";
@@ -62,6 +64,8 @@ function writeCachedProgressStats(stats: ProgressStats) {
 }
 
 export function ProgressStatsProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isVisualTestMode = isMissionVisualTestRoute(pathname);
   const { user, refreshProfile } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
@@ -89,6 +93,13 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isVisualTestMode) {
+      migrationStartedRef.current = false;
+      setCloudEnabled(false);
+      setActiveCardLimit(null);
+      return;
+    }
+
     setCloudEnabled(Boolean(user));
     setActiveCardLimit(entitlements?.limits.activeCards ?? null);
 
@@ -99,10 +110,10 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
         clearLocalInventory();
       }
     }
-  }, [setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
+  }, [isVisualTestMode, setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
 
   useEffect(() => {
-    if (!user || !hydrated || migrationStartedRef.current) {
+    if (isVisualTestMode || !user || !hydrated || migrationStartedRef.current) {
       return;
     }
 
@@ -136,7 +147,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       state.setOwnerUserId(user.id);
       window.localStorage.setItem(migrationKey, "1");
     })();
-  }, [cards.length, hydrated, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
+  }, [cards.length, hydrated, isVisualTestMode, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
 
   const computedStats = useMemo(() => {
     if (!hydrated) {
@@ -174,7 +185,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!hydrated || cloudLoading) {
+    if (isVisualTestMode || !hydrated || cloudLoading) {
       return;
     }
 
@@ -188,14 +199,18 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
 
     trackPointMilestones(previousPoints, nextPoints);
     trackedPointsRef.current = nextPoints;
-  }, [cloudLoading, computedStats.totalPoints, hydrated]);
+  }, [cloudLoading, computedStats.totalPoints, hydrated, isVisualTestMode]);
 
   const refreshStats = useCallback(async () => {
+    if (isVisualTestMode) {
+      return;
+    }
+
     if (user) {
       await refreshProfile();
       await loadCloudInventory();
     }
-  }, [loadCloudInventory, refreshProfile, user]);
+  }, [isVisualTestMode, loadCloudInventory, refreshProfile, user]);
 
   const value = useMemo(
     () => ({

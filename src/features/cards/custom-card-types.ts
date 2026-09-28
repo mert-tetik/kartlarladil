@@ -23,9 +23,8 @@ export interface GeneratedCardDraft {
   partOfSpeech: string;
   pronunciation: string;
   translations: Record<string, string>;
-  example: string;
-  exampleTranslation: string;
-  definitions?: Record<string, string>;
+  examples: Array<{ example: string; translation: string }>;
+  definitions: Record<string, string>;
   grammar: string[];
   termKind: TermKind;
 }

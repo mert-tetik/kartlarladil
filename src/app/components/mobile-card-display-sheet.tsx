@@ -4,6 +4,10 @@ import { useEffect, useRef, useState, type ReactNode, type MouseEvent as ReactMo
 import Image from "next/image";
 import { MessageCircleQuestion, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import {
+  CardGrammarDetailsButton,
+  CardGrammarDetailsOverlay,
+} from "@/features/cards/components/card-grammar-details-overlay";
 import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -17,6 +21,7 @@ import { GEM_ASSETS, type GemType } from "@/features/gems/gem-types";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
+import { canUseSuperWater } from "@/lib/super-water";
 
 interface MobileCardDisplaySheetProps {
   card: VocabularyCard | null;
@@ -30,6 +35,14 @@ interface MobileCardDisplaySheetProps {
 const CARD_DISPLAY_ENTER_DELAY_MS = 520;
 const CARD_DISPLAY_CONTENT_STEP_MS = 70;
 const CARD_DISPLAY_CLOSE_ANIMATION_MS = 860;
+
+const TIER_COLORS: Record<VocabularyCard["tier"], string> = {
+  A1: "var(--tier-a1)",
+  A2: "var(--tier-a2)",
+  B1: "var(--tier-b1)",
+  B2: "var(--tier-b2)",
+  C1: "var(--tier-c1)",
+};
 
 export function MobileCardDisplaySheet({
   card,
@@ -54,6 +67,7 @@ export function MobileCardDisplaySheet({
   const [presented, setPresented] = useState(Boolean(isOpen && card));
   const [entered, setEntered] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
   const confirmationCloseTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -67,6 +81,7 @@ export function MobileCardDisplaySheet({
       return () => window.cancelAnimationFrame(frame);
     }
 
+    setGrammarDetailsOpen(false);
     if (!presented) return;
 
     setClosing(true);
@@ -113,7 +128,7 @@ export function MobileCardDisplaySheet({
   }
 
   const actionButtonClass =
-    "inline-flex size-10 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60";
+    "inline-flex size-10 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-white/85";
 
   const blueBalance = user?.profile.blueGems ?? 0;
   const purpleBalance = user?.profile.purpleGems ?? 0;
@@ -196,39 +211,47 @@ export function MobileCardDisplaySheet({
       onClick={handleBackdropClick}
       data-mobile-card-display-sheet
       data-tutorial-layer={tutorialLayer}
+      data-tutorial-layer-portal={tutorialLayer}
     >
       <div
-        className={cn("relative mx-auto flex min-h-full w-full max-w-[320px] flex-col items-center justify-center py-14", positionClassName)}
+        className={cn("relative mx-auto flex min-h-full w-full max-w-[340px] -translate-y-8 flex-col items-center justify-center py-14", positionClassName)}
         onClick={(event) => event.stopPropagation()}
       >
         {renderContentItem(
           0,
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleAskClick}
-              aria-label={`${currentCard.term} ${t("cards.ask")}`}
-              title={t("cards.ask")}
-              className={actionButtonClass}
-            >
-              <MessageCircleQuestion className="size-5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t("common.close")}
-              title={t("common.close")}
-              className={actionButtonClass}
-            >
-              <X className="size-5" aria-hidden="true" />
-            </button>
+          <div className="mx-auto flex w-full max-w-[340px] -translate-y-9 items-center justify-between gap-3">
+            <CardGrammarDetailsButton
+              onClick={() => setGrammarDetailsOpen(true)}
+              showIcon={false}
+              className="h-10 w-[11.5rem] max-w-none justify-center border-black/10 bg-white text-sm leading-none text-black hover:bg-white/90"
+            />
+            <div className="flex shrink-0 items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleAskClick}
+                aria-label={`${currentCard.term} ${t("cards.ask")}`}
+                title={t("cards.ask")}
+                className={actionButtonClass}
+              >
+                <MessageCircleQuestion className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t("common.close")}
+                title={t("common.close")}
+                className={actionButtonClass}
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
           </div>,
-          "absolute right-0 top-2",
+          "w-full",
         )}
 
         {renderContentItem(
           1,
-          <div className="w-full max-w-[260px]" onClick={handleCardAreaClick}>
+          <div className="mx-auto w-full max-w-[260px]" onClick={handleCardAreaClick}>
             <VocabularyCardView
               card={currentCard}
               inventory={inventory}
@@ -247,9 +270,15 @@ export function MobileCardDisplaySheet({
         {definition ? (
           renderContentItem(
             2,
-            <div className="mt-3 flex w-full max-w-[300px] flex-col gap-2.5" data-card-supporting-content>
+            <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2.5" data-card-supporting-content>
               <section className="w-full px-2 py-1 text-center" data-card-definition>
-                <p className="text-[0.68rem] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <p
+                  className={cn(
+                    "text-base font-bold uppercase tracking-wider",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}
+                  style={{ color: TIER_COLORS[currentCard.tier] }}
+                >
                   {t("cards.definition")}
                 </p>
                 <p className="mt-1 text-sm font-semibold leading-5 text-foreground dark:text-white">
@@ -263,10 +292,10 @@ export function MobileCardDisplaySheet({
 
         {renderContentItem(
           3,
-          <div className="mt-3 flex w-full max-w-[300px] flex-col gap-2" data-card-gem-actions>
-            <GemCardAction type="blue" cost={10} balance={blueBalance} disabled={!user || blueBalance < 10 || !inventory} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
+          <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2" data-card-gem-actions>
+            <GemCardAction type="blue" cost={10} disabled={!user || blueBalance < 10 || !inventory} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
             {inventory?.status === "active" ? (
-              <GemCardAction type="purple" cost={2} balance={purpleBalance} disabled={!user || purpleBalance < 2} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
+              <GemCardAction type="purple" cost={2} disabled={!user || purpleBalance < 2} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
             ) : null}
           </div>,
           "w-full",
@@ -300,21 +329,25 @@ export function MobileCardDisplaySheet({
         </div>
       ) : null}
 
+      <CardGrammarDetailsOverlay
+        card={currentCard}
+        open={grammarDetailsOpen}
+        nativeLocale={locale}
+        tutorialLayer={tutorialLayer}
+        onClose={() => setGrammarDetailsOpen(false)}
+      />
+
     </div>
   );
 }
 
-function GemCardAction({ type, cost, balance, disabled, label, onClick }: { type: GemType; cost: number; balance: number; disabled: boolean; label: string; onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void }) {
+function GemCardAction({ type, cost, disabled, label, onClick }: { type: GemType; cost: number; disabled: boolean; label: string; onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40", type === "blue" ? "bg-[#268cff]" : "bg-[#9b31dc]")}>
+    <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-11 w-[calc(100%+1rem)] max-w-[calc(100vw-2rem)] items-center gap-2 self-center rounded-2xl px-3 py-2 text-left text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-100 disabled:[&_span]:opacity-67 disabled:[&_img]:opacity-67", type === "blue" ? "bg-[#268cff] disabled:bg-[#14518f]/[0.86]" : "bg-[#9b31dc] disabled:bg-[#5b1d82]/[0.86]")}>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label={`${cost}`}>
         <span>{cost}</span>
         <Image src={GEM_ASSETS[type]} alt="" width={24} height={24} className="size-6 object-contain" />
-      </span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-xs text-white/80">
-        <span>{balance}/{cost}</span>
-        <Image src={GEM_ASSETS[type]} alt="" width={16} height={16} className="size-4 object-contain" />
       </span>
     </button>
   );

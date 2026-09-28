@@ -58,9 +58,11 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import {
   TUTORIAL_CARD_LAYER_CLOSED_EVENT,
   TUTORIAL_CARD_LAYER_OPENED_EVENT,
+  TUTORIAL_CARD_LAYER_REQUESTED_EVENT,
   type TutorialCardLayer,
   type TutorialCardLayerClosedDetail,
   type TutorialCardLayerOpenedDetail,
+  type TutorialCardLayerRequestedDetail,
 } from "@/features/tutorial/tutorial-card-session";
 import {
   getMissionNavigationHref,
@@ -109,7 +111,6 @@ export function MobileLandingDashboard() {
   const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
   const dayStreakOpen = dayStreakOverlay?.isOpen ?? false;
   const dayStreakSnapshot = dayStreakOverlay?.snapshot ?? null;
-  const dailyStreakLoading = dayStreakOverlay?.loading ?? false;
   const openDayStreak = dayStreakOverlay?.openDayStreak ?? (() => undefined);
   const { stats } = useProgressStats();
   const { locale, setLocale } = useLocale();
@@ -178,7 +179,6 @@ export function MobileLandingDashboard() {
     language: LanguageCode;
   } | null>(null);
 
-  const showDailyStreakLoading = Boolean(user) && (dailyStreakLoading || dayStreakSnapshot === null);
   const showSeriesPositionLoading = Boolean(user) && leaderboardLoading;
 
   useEffect(() => {
@@ -186,6 +186,19 @@ export function MobileLandingDashboard() {
   }, [selectedLanguage]);
 
   useEffect(() => {
+    function handleLayerRequested(event: Event) {
+      const detail = (event as CustomEvent<TutorialCardLayerRequestedDetail>).detail;
+      if (!detail?.layer) return;
+
+      if (detail.layer === "draw-cards") {
+        setSwipeDeckOpen(true);
+      } else if (detail.layer === "custom-card") {
+        setCustomCardOpen(true);
+      } else if (detail.layer === "card-groups") {
+        setGroupCardOpen(true);
+      }
+    }
+
     function handleLayerOpened(event: Event) {
       const detail = (event as CustomEvent<TutorialCardLayerOpenedDetail>).detail;
       if (!detail?.layer) return;
@@ -222,9 +235,11 @@ export function MobileLandingDashboard() {
       }
     }
 
+    window.addEventListener(TUTORIAL_CARD_LAYER_REQUESTED_EVENT, handleLayerRequested);
     window.addEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
     window.addEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
     return () => {
+      window.removeEventListener(TUTORIAL_CARD_LAYER_REQUESTED_EVENT, handleLayerRequested);
       window.removeEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
       window.removeEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
     };
@@ -752,20 +767,14 @@ export function MobileLandingDashboard() {
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
-          {showDailyStreakLoading ? (
-            <Loader2
-              className="size-4 animate-spin text-white"
-              role="status"
-              aria-label={t("common.loading")}
-            />
-          ) : (
+          {dayStreakSnapshot !== null || !user ? (
             <span>
               {formatSuperWaterText(
                 locale,
                 formatNumber(locale, dayStreakSnapshot?.currentStreak ?? 0),
               )}
             </span>
-          )}
+          ) : null}
         </span>
       </button>
 

@@ -23,6 +23,65 @@ const MOBILE_BOTTOM_SHEET_CIRCLE_COLOR = "color-mix(in srgb, var(--brand) 62%, w
 const MOBILE_BOTTOM_SHEET_ANIMATION_MS = 360;
 const MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS = 32;
 
+export type MobileBottomSheetTone = "brand" | "lime" | "purple" | "mission";
+
+const MOBILE_BOTTOM_SHEET_TONES: Record<MobileBottomSheetTone, {
+  panelClassName: string;
+  foregroundClassName: string;
+  closeClassName: string;
+  decorationStart: string;
+  decorationEnd: string;
+  protrusionColor: string;
+  circleColor: string;
+  decorationOpacity: number;
+  bottomRightGlow: string | null;
+}> = {
+  brand: {
+    panelClassName: "bg-brand text-brand-foreground",
+    foregroundClassName: "text-brand-foreground",
+    closeClassName: "text-brand-foreground/90 hover:bg-white/15 hover:text-brand-foreground",
+    decorationStart: MOBILE_BOTTOM_SHEET_GRADIENT_START,
+    decorationEnd: "color-mix(in srgb, var(--brand) 97%, white)",
+    protrusionColor: MOBILE_BOTTOM_SHEET_GRADIENT_START,
+    circleColor: MOBILE_BOTTOM_SHEET_CIRCLE_COLOR,
+    decorationOpacity: 0.8,
+    bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+  },
+  lime: {
+    panelClassName: "bg-lime-400 text-lime-950",
+    foregroundClassName: "text-lime-950",
+    closeClassName: "text-lime-950/90 hover:bg-lime-300 hover:text-lime-950",
+    decorationStart: "color-mix(in srgb, #a3e635 92%, white)",
+    decorationEnd: "color-mix(in srgb, #a3e635 97%, white)",
+    protrusionColor: "color-mix(in srgb, #a3e635 92%, white)",
+    circleColor: "color-mix(in srgb, #a3e635 62%, white)",
+    decorationOpacity: 0.8,
+    bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+  },
+  purple: {
+    panelClassName: "bg-purple-600 text-white",
+    foregroundClassName: "text-white",
+    closeClassName: "text-white/90 hover:bg-white/15 hover:text-white",
+    decorationStart: "color-mix(in srgb, #9333ea 92%, white)",
+    decorationEnd: "color-mix(in srgb, #9333ea 97%, white)",
+    protrusionColor: "color-mix(in srgb, #9333ea 92%, white)",
+    circleColor: "white",
+    decorationOpacity: 1,
+    bottomRightGlow: null,
+  },
+  mission: {
+    panelClassName: "bg-[#ffb833] text-[#2E240F]",
+    foregroundClassName: "text-white",
+    closeClassName: "text-white/90 hover:bg-white/15 hover:text-white",
+    decorationStart: "color-mix(in srgb, #ffb833 92%, white)",
+    decorationEnd: "color-mix(in srgb, #ffb833 97%, white)",
+    protrusionColor: "#ffb833",
+    circleColor: "color-mix(in srgb, #ffb833 62%, white)",
+    decorationOpacity: 0.8,
+    bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+  },
+};
+
 export interface MobileBottomSheetShellProps {
   open: boolean;
   onClose: () => void;
@@ -39,8 +98,10 @@ export interface MobileBottomSheetShellProps {
   fullScreen?: boolean;
   showPanelDecoration?: boolean;
   titleId?: string;
+  titleClassName?: string;
   panelLabel?: string;
   tutorialLayer?: string;
+  tone?: MobileBottomSheetTone;
 }
 
 export function MobileBottomSheetShell({
@@ -59,8 +120,10 @@ export function MobileBottomSheetShell({
   fullScreen = false,
   showPanelDecoration = true,
   titleId,
+  titleClassName,
   panelLabel,
   tutorialLayer,
+  tone = "brand",
 }: MobileBottomSheetShellProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -78,6 +141,8 @@ export function MobileBottomSheetShell({
   const hasBeenOpenedRef = useRef(false);
   onEnteredRef.current = onEntered;
   onExitedRef.current = onExited;
+
+  const toneStyles = MOBILE_BOTTOM_SHEET_TONES[tone];
 
   useEffect(() => {
     if (open) {
@@ -209,11 +274,12 @@ export function MobileBottomSheetShell({
         ref={contentRef}
         data-mobile-bottom-sheet-panel
         className={cn(
-          "relative z-10 isolate flex w-full flex-col bg-brand text-brand-foreground shadow-sm",
+        "relative z-10 isolate flex w-full flex-col shadow-sm",
           fullScreen
             ? "h-full max-h-none overflow-hidden rounded-none"
             : "max-h-[calc(100dvh-var(--app-header-height)-3rem)] overflow-visible rounded-t-[2rem]",
           isDragging ? "transition-none" : "transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          toneStyles.panelClassName,
           panelClassName,
         )}
         style={{ transform: entered ? `translateY(${dragY}px)` : "translateY(100%)" }}
@@ -221,15 +287,16 @@ export function MobileBottomSheetShell({
         {showPanelDecoration && !fullScreen ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-t-[2rem] opacity-80"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-t-[2rem]"
             style={{
+              opacity: toneStyles.decorationOpacity,
               backgroundImage: [
-                `linear-gradient(to bottom, ${MOBILE_BOTTOM_SHEET_GRADIENT_START} 0%, color-mix(in srgb, var(--brand) 97%, white) 24%, transparent 62%)`,
+                `linear-gradient(to bottom, ${toneStyles.decorationStart} 0%, ${toneStyles.decorationEnd} 24%, transparent 62%)`,
                 "radial-gradient(circle at 12% 25%, rgb(255 255 255 / 0.2) 0, rgb(255 255 255 / 0.08) 11%, transparent 28%)",
                 "radial-gradient(circle at 88% 39%, rgb(255 255 255 / 0.16) 0, rgb(255 255 255 / 0.06) 12%, transparent 30%)",
                 "radial-gradient(circle at 18% 67%, rgb(255 255 255 / 0.14) 0, rgb(255 255 255 / 0.05) 12%, transparent 27%)",
-                "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
-              ].join(", "),
+                toneStyles.bottomRightGlow,
+              ].filter((background): background is string => Boolean(background)).join(", "),
             }}
           />
         ) : null}
@@ -256,7 +323,7 @@ export function MobileBottomSheetShell({
               <span
                 className="absolute inset-0"
                 style={{
-                  backgroundColor: MOBILE_BOTTOM_SHEET_GRADIENT_START,
+              backgroundColor: toneStyles.protrusionColor,
                   maskImage: "url('/missions/cikinti-v2.png')",
                   WebkitMaskImage: "url('/missions/cikinti-v2.png')",
                   maskPosition: "center",
@@ -271,7 +338,7 @@ export function MobileBottomSheetShell({
                 aria-hidden="true"
                 className="absolute left-1/2 top-[28%] size-16 rounded-full"
                 style={{
-                  backgroundColor: MOBILE_BOTTOM_SHEET_CIRCLE_COLOR,
+                  backgroundColor: toneStyles.circleColor,
                   transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.circleY}px, 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.circleScale})`,
                   transformOrigin: "50% 50%",
                 }}
@@ -305,7 +372,9 @@ export function MobileBottomSheetShell({
             <h2
               id={titleId}
               className={cn(
-                "text-center text-3xl font-bold leading-none text-brand-foreground",
+                "text-center text-3xl font-bold leading-none",
+                toneStyles.foregroundClassName,
+                titleClassName,
                 fullScreen && "text-left text-xl text-foreground",
                 canUseSuperWater(locale) && "font-super-water",
               )}
@@ -320,7 +389,8 @@ export function MobileBottomSheetShell({
             onClick={closeSheet}
             aria-label={t("common.close")}
             className={cn(
-              "!size-12 absolute text-brand-foreground/90 hover:bg-white/15 hover:text-brand-foreground",
+              "!size-12 absolute",
+              toneStyles.closeClassName,
               fullScreen
                 ? "right-2 top-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground hover:bg-background-muted hover:text-foreground"
                 : "right-2 top-[-2.25rem]",

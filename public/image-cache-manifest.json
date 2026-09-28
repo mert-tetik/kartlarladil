@@ -1,5 +1,5 @@
 {
-  "version": "866370f98738f658f83ae045244038ccdeb218bff8f80f135ace9b210b34513b",
+  "version": "d323643787ba66089a2710ccd7cc50a789939f6196c1d5bb7dd7578b59da9d1f",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -263,19 +263,35 @@
     },
     {
       "url": "/card-groups/adjectives.webp",
-      "revision": "b1ea00b4cdeddc04bc8eabcdd890ed5819dd3241e9ae9503e91f4e700f0b123f"
+      "revision": "4b0d618f4d243ac90f9f6091c6d5586b2446f10b07cccc588e51eeb8bb3b45f9"
+    },
+    {
+      "url": "/card-groups/advancedVerbs.webp",
+      "revision": "32f7824feb98902d94d428ff6fe6581aeb9430480ad47a45d1b61d103b860ec9"
     },
     {
       "url": "/card-groups/animals.webp",
       "revision": "6777354fd69cff0e4693422c500e0eb395edf0f6bb2ac1d0482f4457bec916e5"
     },
     {
+      "url": "/card-groups/appearance.webp",
+      "revision": "6310a88877189fab55849c27b4c0228c0be66c3d2aa418346bafe77191fc7170"
+    },
+    {
       "url": "/card-groups/body.webp",
       "revision": "f9f38fbe5bb419f68e960a01b251ac697aae4a9651660a60806613b38e336309"
     },
     {
+      "url": "/card-groups/buildings.webp",
+      "revision": "e2e8e3391e8da48fcb844c290edf7bec6c141dfa71da04d369f1f548e6310939"
+    },
+    {
       "url": "/card-groups/business.webp",
       "revision": "492f9ee2f7a21000fcc9db122af907a2ff71ad4ab5a0b634371ac8dca2d4825b"
+    },
+    {
+      "url": "/card-groups/cityPlaces.webp",
+      "revision": "0ed9764dcb8d6195a671bac5b2befd76308f100db7d9e70cc215539a1411b1ec"
     },
     {
       "url": "/card-groups/clothes.webp",
@@ -290,12 +306,24 @@
       "revision": "5e3cd63fe022c31a2ffe10e7c7794a695cacff90ec6d5d49f1b2bc7a5bc458ba"
     },
     {
+      "url": "/card-groups/communication.webp",
+      "revision": "c2340f385bf4b09c5dfb26e9a875d254b85197be53114e96a1e7589297fbe1ba"
+    },
+    {
       "url": "/card-groups/cooking.webp",
       "revision": "2b96ab52c4e796bba68ecd37a6212a5b122464caf2cc8c531cffb324d474f8ac"
     },
     {
+      "url": "/card-groups/desserts.webp",
+      "revision": "f4c46e26b09b1129f54228d16506bd265b0091c645882c72acbecfd3429d025f"
+    },
+    {
       "url": "/card-groups/directions.webp",
       "revision": "d08b918c927ea6c3b0f23ae622aa87b4b31d0f35b19dcbf0fdd07225ddaa4b9f"
+    },
+    {
+      "url": "/card-groups/drinks.webp",
+      "revision": "c112cf2c62d09cf2bd173ae05b3deea4bda368297c20a8029616dc00e0a9bbfa"
     },
     {
       "url": "/card-groups/emergency.webp",
@@ -314,20 +342,40 @@
       "revision": "f800cfec0bf4fad038df5fbc96470cd9893d85f653e8ca1972dca7e94a570181"
     },
     {
+      "url": "/card-groups/geography.webp",
+      "revision": "360ebcfddc29ad0501fdd43747e21b0cfe6d9f68461963464dca068bbba3c692"
+    },
+    {
+      "url": "/card-groups/grainsLegumes.webp",
+      "revision": "6bb6ed8f59d9d4801e82c2cfa780b544f5f767418d2746dc62e6cc93b867f234"
+    },
+    {
       "url": "/card-groups/health.webp",
       "revision": "e489d1c7792de68463f4a3978925864092fed550e845c37a69f9693cdfb2e6b9"
     },
     {
       "url": "/card-groups/hobbies.webp",
-      "revision": "4b0d618f4d243ac90f9f6091c6d5586b2446f10b07cccc588e51eeb8bb3b45f9"
+      "revision": "cda044ee94dfa461fee9ea29c654f163487b5f6415eeec9e61f42f8b2d41733e"
     },
     {
       "url": "/card-groups/home.webp",
       "revision": "2f226e10c0e5bbc7178c1c2e9da696b1885f45c9a23cea9ff11485064c336ac3"
     },
     {
+      "url": "/card-groups/householdItems.webp",
+      "revision": "3457bd8b964c3629317cf2d989a9c5df60f6b6b1444324b4fe87a6893d971b16"
+    },
+    {
+      "url": "/card-groups/internetSocialMedia.webp",
+      "revision": "275d58c9e5d30a64471d65b398597339443426d5012c99ceead5c648aba4b4ab"
+    },
+    {
       "url": "/card-groups/jobs.webp",
       "revision": "b195fdb8316f80a5daf448435dda92915a8a724461be9a04b1e1a3d7ce3eb4ab"
+    },
+    {
+      "url": "/card-groups/kitchenUtensils.webp",
+      "revision": "c325fa4fffb6dcd659f44efc00695262444dbfbaa497ff5b8cd8bee841bde7b2"
     },
     {
       "url": "/card-groups/months.webp",
@@ -338,12 +386,32 @@
       "revision": "f3f4c143ade906ec3c9782dd76da298bd3aea64aad5ed15dd1d62b119caa48e9"
     },
     {
+      "url": "/card-groups/nature.webp",
+      "revision": "a607d464825e14805d5b020ff5174f13c4d77d9aa8bfe39c022700ba2d57ab01"
+    },
+    {
       "url": "/card-groups/numbersTime.webp",
       "revision": "1461563740ce338079d71223821585a70d7480837fae03101f688a64d9cf9d20"
     },
     {
+      "url": "/card-groups/nutsSeeds.webp",
+      "revision": "3b0b6a7597d8ad181504ffbd36e25afb71d4c6d743d9b6104031ce24fc416dc7"
+    },
+    {
+      "url": "/card-groups/personality.webp",
+      "revision": "71179944adcae8e4202181d9ae4c256af89797713becbfacbc70d6dbe37f5515"
+    },
+    {
+      "url": "/card-groups/pharmacyMedicine.webp",
+      "revision": "6e66bb50359a7ba66bc0b19ebf47ff216394c7777ccfde7fcfc106b6437da061"
+    },
+    {
       "url": "/card-groups/restaurant.webp",
       "revision": "10137799c892dafe032607882658969e42381076348257e377ccc6b1bc44622e"
+    },
+    {
+      "url": "/card-groups/roomsFurniture.webp",
+      "revision": "ebcb2c21fb8994e2a9722a64e8274755708ac9c09a89f7f888d7fc2efff249b9"
     },
     {
       "url": "/card-groups/routines.webp",
@@ -370,12 +438,24 @@
       "revision": "c521608541f6c017342423256f9a474d3a5da9b9676bd98b355f748868b34927"
     },
     {
+      "url": "/card-groups/technologyDevices.webp",
+      "revision": "2778c66b4848186a3120b048e9a56e52448260f4fdef320dc87683bc8850fb28"
+    },
+    {
       "url": "/card-groups/transport.webp",
       "revision": "f2353e53e8392ac6960e2afb26a72f1c6e4d32ecdc73e455ea5fa770affb02ba"
     },
     {
+      "url": "/card-groups/transportVehicles.webp",
+      "revision": "6ade18338acd6b92e6171779c9c4be0fc513c9bad2cb1a0c5fa02ffbfa2a1293"
+    },
+    {
       "url": "/card-groups/travel.webp",
       "revision": "b08a327b53ad199db65d2179197fa73dac4ae83e372c11b3bb00935704bfd552"
+    },
+    {
+      "url": "/card-groups/vegetables.webp",
+      "revision": "ca5e4c4b71544719476db5102c16bcc3ca096abdb342896ffcaeda2e3ca7c922"
     },
     {
       "url": "/card-groups/weather.webp",
@@ -698,6 +778,10 @@
       "revision": "d7a071bbafc4e21aefb4ea439c0d041d33bb6b83119773d9dd897258dae2e73b"
     },
     {
+      "url": "/leaderboard/points-background.png",
+      "revision": "470ab67c6a2e766ec886d63739d30f6ae2ef2e35bb2508eb6513c59998848929"
+    },
+    {
       "url": "/leaderboard/series-leaderboard-icon.png",
       "revision": "599b42bfb6f5b9e69c721779b05faccb424c2f6569b984f04f717bc78cf0f15b"
     },
@@ -834,12 +918,28 @@
       "revision": "dfbeaff2168acc339ea25a938b934d4f4249904c7aeb330c83e11652c5df0e7c"
     },
     {
+      "url": "/missions/mission-blue-gem-lock-v1.png",
+      "revision": "de726bbc8b14a7911094746dceb2d9a883e7e2029136b1016bee1f56c0e69206"
+    },
+    {
       "url": "/missions/mission-claim-bubble-check-v4.png",
       "revision": "9757b70309a6b87f7601ff76bf9606603a354a9a29f81d3073c7d77231937aba"
     },
     {
+      "url": "/missions/mission-green-gem-lock-v1.png",
+      "revision": "fe05cdd0f1c579ab9bac594de8d9dc594c6df1e2f280f8f1c5d28db873bdb7d9"
+    },
+    {
       "url": "/missions/mission-lock-icon-v3.png",
       "revision": "6c164a459f8fe1f33c457968ae33d6ab5c4a8c905a826449edb80bbd569553be"
+    },
+    {
+      "url": "/missions/mission-points-lock-v1.png",
+      "revision": "27e3b474e17fe040199c16b22ba022c5b5e6489a8e32096b901add4886ed23f0"
+    },
+    {
+      "url": "/missions/mission-purple-gem-lock-v1.png",
+      "revision": "87da33a5df142aabb242d36454f509312d77bd01f5287fbc40c0fc8a659ea76b"
     },
     {
       "url": "/mobile-nav-icons/color-palette.png",
@@ -922,48 +1022,52 @@
       "revision": "238845bcb7c16e348f7e8743a9019b8500ed64cbf61e4f2f900e72c0a250e1a8"
     },
     {
+      "url": "/pricing-perks/unlimited-text-translation.png",
+      "revision": "7e5206bbc0df1df973cab75f23db12093eeee75408fe92f3ece6bf41b092caad"
+    },
+    {
       "url": "/pricing-subscription-menu-frames-v2/1.png",
       "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/10.png",
-      "revision": "8ef5e1c344da848d0628647787f95b2015ef213b9e5930ed038bbd2e3578b5da"
+      "revision": "5cc1f9606ca3b59ed99458ce96d9f040bb6104ca1f9a2eaeb8a7db30dcbc63d0"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/11.png",
-      "revision": "6112d4f4ff5428e39d1137cf7a15a328bbe9c257e8eb3eba1c15ab0c006de0db"
+      "revision": "0c6b0661c9790b80e15adfe49ca9a84b969ddcdf59f96b6dbb84ef9fa0e03ed5"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/12.png",
-      "revision": "7dcaf728a43d05ec4cbdd3633dcb7d2fdc9b44f50b404303dc902f4792d0f694"
+      "revision": "17b60011d887aa08b75f71431555c3e4ff2367581be3c10b8abf73573d20dc53"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/13.png",
-      "revision": "b72e833c92a633179706b2e923a192f532a98912b9bfc33e9e55c9742a406edc"
+      "revision": "64142736448ddff5cc353d36d292f9903040ad5d2b5d7d1664e03d8294a01000"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/14.png",
-      "revision": "8df439455de996cd15e4267296527d5959ad8f39234205ce4c627562a09d3b29"
+      "revision": "f3d1ecbffe150197bc96ff1a896dd116179868ff6787a65e6aca309170bc666a"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/15.png",
-      "revision": "5085265b88ab139c93981b0eb3688de3a0fb7a68a84c99764651d7a399d6a5bd"
+      "revision": "148b9bdf757a0e0a12e71825d32520af19a12965814e34d95aedc0b51d83f819"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/16.png",
-      "revision": "2a30bc403d401f65b1671db1fe3e7e628b188bf3cbfcd9f612018c790cf2c812"
+      "revision": "e1ef737892ce8fba8dbaefd2436b8392376dcd669f64ea7f1482d114bdaf67ef"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/17.png",
-      "revision": "736c41b9cfbaa864a2a5b904b8c2f2ebb5261c67dd1581b38c618b3687754202"
+      "revision": "d54098cee36d6bd6deaa3c2b449a850905dd4608dd8330b422be7ea3268fc86a"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/18.png",
-      "revision": "ad8b0a3bb70d675dbe7dc219fab8791a127afe5c55b7489b14c2792725a5b921"
+      "revision": "8dd9701aaa71af59d0f99e545507096edc53f3dbb9b2c1516c459375d8e9f4cd"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/19.png",
-      "revision": "b70761c36c2534c2e4bd29445c19eb375fb6c6acc3a48544d98a25816d02c2e6"
+      "revision": "e15f15816eeb7fe257656a0b4a3e6dc79197fab424966c5e528b939504e4df43"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/2.png",
@@ -971,107 +1075,107 @@
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/20.png",
-      "revision": "201271bf46456160ee5e4d4c8e59ca99ccd8de6063017e9b63fe7442b9df7b3d"
+      "revision": "f99346bee1b46e36bbea6f9b73518a6828aa445a7b250ef225697d2f75612179"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/21.png",
-      "revision": "cf704ce2208e63ab3c308be2a104a92f1dd88ff435be8663ac46ae0804b74840"
+      "revision": "949bb40dc10904948007a38c228692d3606dea82dba3df767cac78bcb3d3ec4b"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/22.png",
-      "revision": "8341ef5efd9268a9548236b934d481337fd1f2e8d7872951efe8747c7845ed0c"
+      "revision": "5af261d76c0b877a76cde5fe4f49e696ab294ceba15f26a85445c500611e7a8b"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/23.png",
-      "revision": "2bf0a3d8dcaff92bff6679ba80f010002250632925b6a141f0176c283fb82304"
+      "revision": "828761d6027e1b9d807e29bacde325832279886c5c108cd6a7f3b8bc4a8ce259"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/24.png",
-      "revision": "849cf1c9091623cdacdf9ab14b08a893108ea3d82e3759f658e88f71be7ab838"
+      "revision": "5f5889ab56c33f69dc1b009fa73a5795a468c2c5e35f397f64cdbf25f95e000a"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/25.png",
-      "revision": "202dd5868293e49203d6d219fed69d9c902c9912f42afdde13f3f5d8f2adc6f7"
+      "revision": "cdd42bc91e60d6742c8e7be4d17e26e81feb05ba4d3b23f68d618e2f70cb5640"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/26.png",
-      "revision": "65ae6597290d3362e387635d0556110a514cbe34fb0b69ff7eabd65dbe823df5"
+      "revision": "87798d2a49b88aec3af83cdb57a14e64c8ddbb346bd1357544b0417e4bdc98ed"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/27.png",
-      "revision": "d7d962ae8799d23b0fbef66ce1f44f483088201b987f6aedb56346bdb0fc635c"
+      "revision": "1386b5d4fd194e6a898358ca82b9661ad866f4e8bb6ca3ddde9a65468a7521fb"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/28.png",
-      "revision": "00626b86403978057ed61aabda68e443afd756c30adc0a94ecdd3e88be9bf080"
+      "revision": "8e02bb5d5068888d399bfa0abbb0fb49122df1790cc75b9881c8df42f2d671bd"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/29.png",
-      "revision": "4dd2b683313c28c8a79aeff7448cbdeb5485750a4bb202082d152d5b15767713"
+      "revision": "8429838db22b80d2ac4d9bf8196016aca4d8230d049104e0f8abc4c5086bd205"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/3.png",
-      "revision": "77e766091d277ab485ace16d4e85b21d971c653f3c9db217fef13fb982defe45"
+      "revision": "4d49af159142b51025c694399ecb88f270b76c1340f1abe700f7fb6d25970313"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/30.png",
-      "revision": "d29a955246818b6355c6474b3cb7743903c34d31c69dbca265c8459defab3240"
+      "revision": "fd7e77cc5282ca0a697ee914dfa05541a05b1162e7cb1176e5787449300f9679"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/31.png",
-      "revision": "7dcf85d2c8eb41170be19378b51e10d88567596078f89b3338f261fc319f0f36"
+      "revision": "4cbd8aef2620cd3ef5d8fd3e9c99c1174a4d1fc4b5585830e5ddf3fc9081b151"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/32.png",
-      "revision": "eff3689d64c3a4917eea87e365200e0feaa252b26ab50a53594ed47c882b4b11"
+      "revision": "cdeca64a4af2f9885b8377d85292d264b5f1935c0dc4380b285192539abadb79"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/33.png",
-      "revision": "a5b477cb8a9d0f10bdd06f050f46e35ffd66debc333d24100a30600987092d70"
+      "revision": "6b54a631f19f738fee232a51eec04a02d4758f1f1221d2dac7f1e51f2bd0c18d"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/34.png",
-      "revision": "ccf042c6e689f09901f276107eda4afe7e9b7759ce7ffad671202777a27136b3"
+      "revision": "fede8df7bbf58ee0b8748dba7990c6cc6c686ba18ee7ca7c2399ddfcad45c813"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/35.png",
-      "revision": "f8c14c27e3fef0d19b37e0f19a9c34add3aba1bfe7c5dc23617e83279ca9787b"
+      "revision": "d41d457eb7cc4d8123d65d4f31fdfc1c9c91c1a66de8e4110dfe3e7ad99283ca"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/36.png",
-      "revision": "fee0fce9b2f67d484707f425f638fd647a2fcabcd7e4b86f24ae3ee5393d2ec4"
+      "revision": "1b70f004ecc8e6ab01411ce32aa8985c411d1236ccc0b5682d09188407eac2dc"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/37.png",
-      "revision": "20cf89c8399b989a2524f83ca4226fb5ae59737e1a531dc116e0a3e5d5e35dbf"
+      "revision": "e595b928448154ae9557abbc732d7551d2d374684197e4a9e8fc4572245df8fb"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/38.png",
-      "revision": "b12ebecfd8d8026ab9a5c80de4f4acb68d678860d5f049aab6e62e5ba4075b77"
+      "revision": "8f5c704f6be042e0dc41e0c9322ad43d50afde4b9e7b47485c623d3db54fa35b"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/39.png",
-      "revision": "a31d0258cee178d967278c9f862850f7502172846a4a5ca4392ff8b7711c035d"
+      "revision": "6885d7c34641696d08cab5fd8a0099b3b8dee359b3a222222585684edcc45f84"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/4.png",
-      "revision": "8a41a2d64b66a22b13d57c0879713ede02f9315737e410ae31a4374c5b929bfa"
+      "revision": "f926d7bec2ff9b62ad6e80d1ada315bb3cee4bc3463f2178aef9bfd1597f8b60"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/40.png",
-      "revision": "d64cc972b80195e559d4f1d7979884247e27cb073d77ba4fcb2272c41a079efa"
+      "revision": "d299ee7696bbea32d8948bec64d25c6a9c20eab75365eff622ef48668a30b44e"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/41.png",
-      "revision": "7f5d42e04e6d5f10c81d35b7687c3a741bd99c62eaf925ebecd7004513905cc3"
+      "revision": "23045cc45f2c8b554faac04e9a7d706d342eda82f7a57596715aa8c4f8363643"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/42.png",
-      "revision": "c319afb4cc693c52c52b845f6823db78884eee60404a6a8c4397462742fc0cde"
+      "revision": "91dc7679356d71526d1495599f2cef0cf75b822a4f226e1e1bfb313c962c9380"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/43.png",
-      "revision": "a83eb0141537ffb9cf154b784e68d0c3e69c4647df215038ade4a3d11499b68c"
+      "revision": "55534ddd052cabdcf8498b75553a607b98a17f315c030a912d0f47cb5c93c919"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/44.png",
@@ -1099,7 +1203,7 @@
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/5.png",
-      "revision": "02aba36999f66d2eae7f8adb00cfe022800f7857ec395090d565789b35e2de38"
+      "revision": "a941ff87964e19a6f339a012aa6e8bb786422c68f28d69389fbbe4b8492685fe"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/50.png",
@@ -1107,19 +1211,19 @@
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/6.png",
-      "revision": "72ab777496d3e0161b968b313de81d8e17e1acf51af411cfdf315857f4b08cd0"
+      "revision": "0bba06c53d3ec6a2c6f1170c737e94f655fdf511b7c699740fa548f0f11fb83f"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/7.png",
-      "revision": "7ddfc7d8bdf93cb2a1c09f1e1cf87a527c473049981a2b6b527c09ecf2c2af82"
+      "revision": "f0183517d672c776efe7b3595aa81d9a6c5ae59b73d67ce6e81cbc864bc48ad6"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/8.png",
-      "revision": "e2fa4ff160dbe1e885ec53f243cdec0e737c8266215f3f55819528f0fe355260"
+      "revision": "445127321a3f28549f9531ccb922f7f9554554a1cfcd648172dab5038c3264eb"
     },
     {
       "url": "/pricing-subscription-menu-frames-v2/9.png",
-      "revision": "3f7f5fc59ad5dc9b89b844fee98e7496df658cd2334614aa3087bec14ec1d370"
+      "revision": "39d09de91a26c59704d4f9d6f0feb279b83812dc3a14dac0bd0a51888da04091"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/1.png",
@@ -1127,43 +1231,43 @@
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/10.png",
-      "revision": "01f75ab07607cb36ae0c4997d3e9f2aa3ce645c94b45a0e002f458403471622f"
+      "revision": "1929080f9e6835d20e7d93670c707eb5bd54477c797e9123e817a68bfd47ab28"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/11.png",
-      "revision": "91fb46c5e86f3684f9da776212e443c3514f4e1ee5ce5ef35acafad584c94902"
+      "revision": "215331d32e38ac253795e5c46f5bf6682e5e8cf9966cd7111ea51b2d850f2df0"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/12.png",
-      "revision": "35a959912fd148295a5e8b4537a218b786fbdb8c6243c38ab2ba5ffe3b63e1ee"
+      "revision": "005fce4bdbb3af344261317cbb24c1886774f9a70ee83b9d24c58de943191c2a"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/13.png",
-      "revision": "f8cc2143e78a7024bcbe5d5bafc48633adc8261a88e716c435cb1f91f6ae7d80"
+      "revision": "e2095ef1a97833bc2547c6eede186a19d2327217723f177c532cb5c27366a597"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/14.png",
-      "revision": "17ee011773047d2c2a26cdea880ac2a64a286b3b4583ee3ba8ba31b677c352f5"
+      "revision": "3fe9d896b49dfa3182262d0c3b2de8d388b7045d6019c0b59ef9de6caed923e7"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/15.png",
-      "revision": "dafb88cc49e5c040e26e9a8946f3c2cee0d610ef1c09d03f1940e487f8268d8f"
+      "revision": "0284fa2984eeadc024c5f166bc7351f540b4d03e1b34e97cc883908de5eb097e"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/16.png",
-      "revision": "3c230224d271c933aa0d4d03032832dd265fa1b34f706c430a2e5520fe632e29"
+      "revision": "443d41fef16c674a5dade40e9db664b707cb1ab24ecd0f26522a6876d4bb357d"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/17.png",
-      "revision": "3641c81a54a81eadea92496c22a6a53e0520a61b35bad6329185eda456bba98a"
+      "revision": "b529c59b5c36d8de0e17bf54ab7787a95bd63a9eb3cbdbd3db2a86ce557cd94f"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/18.png",
-      "revision": "57907e24dd7d57fc396d99d901afb0b64483ea8eff44ece69080820564c7f400"
+      "revision": "f407600410026224ef1f9af5edf5b6f6fa3b1f41348085bda61ee76ec2648132"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/19.png",
-      "revision": "193c85d60b02bd86bb45ddb377eeef3540c4e5a7206b2faf8318639b1de336c4"
+      "revision": "b2f314b91906e9a3b1961e9e63b085f51f0be4982c408694972f5b0cdbed7e41"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/2.png",
@@ -1171,111 +1275,111 @@
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/20.png",
-      "revision": "029d812e6b7f5e4975a72221874172e9705758c4a353953bb67b7696c0148f02"
+      "revision": "0d7f361b35527ee1a4646a7547f5b3aad6f725fe491b0168a594911b574edf43"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/21.png",
-      "revision": "20858b76237a539747a3fdd8131f4545d11a8254767ed60954fdff24ad15d14a"
+      "revision": "e6b644f3c8554d3476f4a6d54513dd4c4a0a8900a4ff2279b29c02aff3639f5a"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/22.png",
-      "revision": "3035f70df62043258dfbe30dd9e09e572a22f7e69a372613232913ac65a8356d"
+      "revision": "249b88c24bf127d6c67f060077ee49e7b59df87fc6183c9b6d15abc625f239fa"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/23.png",
-      "revision": "817485157ed34139848ed2ca846fda0ed523ff1acc855421f52a47d0f0512391"
+      "revision": "2435671b7c92320faf79de347332d9c2c8fc145f2f0172c6c4f422078ddba40f"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/24.png",
-      "revision": "3cd6e61a76c437ed93dedda9a8e8b0e3980a0568504fbe7026a761c08e716037"
+      "revision": "00a6213e6e05623814a41a694a5b8538e01720c20a54e9aa5cd245b337fd3f9e"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/25.png",
-      "revision": "8190cf284a2e706724e15367f8c2591621381687924dc7615b8f4cb8357fca83"
+      "revision": "873586eb00615b2c869f5672e3d4404d89051fbc7b69b8d53dcde40db6721cd9"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/26.png",
-      "revision": "cecdae961a4c7803281f4f4ecef23d818ab21a0c5284ea4d1906a85f4bf27a27"
+      "revision": "11d829f8810fbeee7b1ccf86c018c42bddfda9f2bce260ccb19858fdc22f7721"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/27.png",
-      "revision": "d3fe473b7feea399343cc7ac9163c8d6dd10782778999acbe4b7972733d796e7"
+      "revision": "b941fddabf203a67a88611f11c54b2b11d88e2030cff8dc7ad0e2daec11ae506"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/28.png",
-      "revision": "0bd953f47e0ec8aeac645bba8e8bc92e1a711a4d650b0631dcfb04b319908586"
+      "revision": "bc1db2094562657d0ec84c1a9b1341bd5015ffbd11b77814ccc3bb2502e6efe5"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/29.png",
-      "revision": "f512e622df02367ebf3c00f73fddcb0636677ea730294f28d396c2533295669c"
+      "revision": "780a3f5cc8a0f68a45b4471fe0d3657dbe9f859f57eb22dc3ec8dac25daf254b"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/3.png",
-      "revision": "81cdfbf7ede933ba5fe6366f411f63f5d2812b5d66af15e83a1ec47264337906"
+      "revision": "62a757379b568f7bbba54d26860ef6094e134138c11ce947e1d63501c7e3121b"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/30.png",
-      "revision": "c533cd3ad270f1c8aa66082fc350c91091ec3ffd465f5d0271bc167a92a6a2ac"
+      "revision": "08006e30a052160968991fe4d3d6ed2b71eb5ee27d58474d86f45e618fd2d31a"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/31.png",
-      "revision": "c9210b1b059fd938c93ab21932caa549a9d5ebb477046200a39c2d320ab4d0da"
+      "revision": "aeb6e366b2443df2a139057276c3ef095283240b0b8e15b484c71742f91b7427"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/32.png",
-      "revision": "23284102ffb091b0c315ff41aa1f26b9ab2b3492d86efe63e3e15ec5d9673fc9"
+      "revision": "c3020dbbb88f3344d203c51cdc2d933b0d77c94d4ce146cf14f7df5bb77f1873"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/33.png",
-      "revision": "957e3632c7df9ee1740723eba0fa505d76d5ece28aab0036ea967d1e1aac3d78"
+      "revision": "93b81e9988e12a2bee493e6a69497e9197081c8a217c94e9feb3086568c68264"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/34.png",
-      "revision": "2824f45906376db0623793ba8c52b63d9b4c5d23341b870d5b9f4ecedc78f781"
+      "revision": "ac0061aad932503667aeaf8a14ece1e69327c3bced672727923128dfa5a8def4"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/35.png",
-      "revision": "2e6525046b2f623f6e00d6afa16ffa435e92aa59f03f29b5fb752bffadbd0107"
+      "revision": "1147b3bcf46f761ea96106cf40758e88d9c8dec32d9e08590501f38e34540cdf"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/36.png",
-      "revision": "eaa722d287be891cece10910797180d333547eda90b95c726b6d7cf175179067"
+      "revision": "ecf77a8aec75f9613d703224bd5ebc2bfe7d53e01db57e8c5906584893695d63"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/37.png",
-      "revision": "40b9534477841a66d785276e23f4e38d274a7f3f4cf5f954513d1996af0db58f"
+      "revision": "585e4154d0c67c149fd94aa5e43e2f92168097f8a27a9c9b9893635cf2a534bf"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/38.png",
-      "revision": "a86726a4ad5ca8d9ff2d3b616acaa7234ce35d04585e70f2691a204b8db56889"
+      "revision": "9514591683c155a5669430e392254d3361d24dbb5dda879cdd587262fa24ca30"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/39.png",
-      "revision": "d5c4026aa0604fb4b871300048f6c8af0a837cb64fadbdd93d00bd5da14ce6ee"
+      "revision": "d70ec437216bf17fb7033d972963365ead522c5443975acf038bf47184950162"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/4.png",
-      "revision": "821517bbb3f5939998cbf866fc28cab20f8a6563875163c1f010ca86c5915921"
+      "revision": "e640029aef526c19b03a2b10e95f3b26c8f06affc893abcc9cb40b190be0d95f"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/40.png",
-      "revision": "5fcd0345f4ed1da3ccbbed752497506701a94354488b98fe53560d6e530f4733"
+      "revision": "d0cc99c483792d4aa8e07f8c2465162e7068f1952ba8e06a482c8580c73e524b"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/41.png",
-      "revision": "e3345adb18af9367d48f1a30282e039253d748f34f639d935a54d1156341dda8"
+      "revision": "ea1c55b3b24c53033c11f44cbcaaeac717f8b9b2649ff08e8185dc9922264433"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/42.png",
-      "revision": "bddcf668584cf5ffb5c302ecf86874900b09f66a21bffaa85d5ce0525e6a2d70"
+      "revision": "9fe8a7d27e1bac5ce54e00bb5ee9a570ad307ba38042d371041043ec004a5cef"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/43.png",
-      "revision": "6538a375ac931ce32b3b6e130d6db82667ab5b71e821fb5a2afc1e8a9744d74d"
+      "revision": "67f08d6e1ffe57cf9a4e624579ab77a5b7f50141ab1362db2193f97145dd7332"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/44.png",
-      "revision": "dc192ae6fd8a46beb4e55e932b30c4a583374142d57fd42aea2b581a02c69e93"
+      "revision": "eb3ab680e0d25f44b469397ecb963a02ae49a95884f91fe0a75c5672f32d7109"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/45.png",
@@ -1299,7 +1403,7 @@
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/5.png",
-      "revision": "4dd6c39e98c13daf68a077ebe294084b54428c5040b96a29f70016d98d16332f"
+      "revision": "ea6953b86646863b363878fdf716f12df5e04a35e64d4c6612a4dab38b4b833b"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/50.png",
@@ -1307,19 +1411,19 @@
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/6.png",
-      "revision": "14503ef8256e78052b926ccfa57f574683b63aa993988b445d0300060eb545ab"
+      "revision": "7a0ce4f6e3d2783338ec05f8591440f358f1989bf286bea5b7c257ee913f2ea9"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/7.png",
-      "revision": "278ef07d149855bc9a5860ca7008a70e68720c82531e1eb740599391c331412d"
+      "revision": "61233258005ba89fdbeb5e0c52f2d570e87ba21be8ba659903a6f9c1ad6006e0"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/8.png",
-      "revision": "d29a2d9d37908a02b3a4a14177cd450cc80cd592c8be9e6d98f7ca701a04f775"
+      "revision": "9726ebbefe1798e29279dcd3d350393319e73ea465a09df253ff66d0997af884"
     },
     {
       "url": "/pricing-subscription-menu-pro-frames-v2/9.png",
-      "revision": "65e3a0836fed7cdeee2b13fbc3066425c0f527b1d0741efe9d625d4807bc7e67"
+      "revision": "656c1068c9c37499c95b84c80cfe017526a21a266f77cc356471bd0bc97142f8"
     },
     {
       "url": "/profile-pictures/pp_1.webp",
@@ -3771,43 +3875,43 @@
     },
     {
       "url": "/serious-learner-offer-frames-v4/10.png",
-      "revision": "6a817fc226f840fcc2369a5d7895d9c5e08fff07234c9c2546f23f528d0c2b6e"
+      "revision": "c8ddae771df7f81636ad1bc49c6882089860bcf941aae59bd7ac328cbc51fc4f"
     },
     {
       "url": "/serious-learner-offer-frames-v4/11.png",
-      "revision": "5f6c553b7375a20b0731f6594d6d2c9bf3afc323ff2a7b7f8dfc7ac69347841a"
+      "revision": "e2f56ac41832936b7abb1fea16022cde134cb3855dafa5513dd056b6054c2945"
     },
     {
       "url": "/serious-learner-offer-frames-v4/12.png",
-      "revision": "0dae01a6f836bd8d349d43fc517a94cde0994968e3c5d81669e94584ce18736a"
+      "revision": "9c6a23bfa5ca7344e65c697c7c33ba0d6562b41d19626d004d37176ae61c13bf"
     },
     {
       "url": "/serious-learner-offer-frames-v4/13.png",
-      "revision": "ef073462fd03365b31fa9c92a2e4711238f77d63046c22df66a2675d2986ced4"
+      "revision": "a69badee203b2eb832ba783568cd899f62c16b8c5d14a4b11f2f0a3436f9ff2e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/14.png",
-      "revision": "32963ed6ba36e717da6c1d6e318392f646037c0a5117367945c443fbb31d68cd"
+      "revision": "a449c5a20587429ff61e13e76f4e781bd68048614dc06c68a1a714f3c4691079"
     },
     {
       "url": "/serious-learner-offer-frames-v4/15.png",
-      "revision": "2e26a97f7c6b7057053a69495d67345e69eb11c1f8c98297b508edc0cbd378cd"
+      "revision": "ec170c982082aac5b6c77f0c33a75c57b6b4173887e878eec4b5488c8f2f8855"
     },
     {
       "url": "/serious-learner-offer-frames-v4/16.png",
-      "revision": "3726ad3c3cdef604a3b37e94aa4d54df85125a35e20619a95901329665837563"
+      "revision": "086358b1e5adef23062976568b7f678818066aa02e5fd8ed4433d70265322502"
     },
     {
       "url": "/serious-learner-offer-frames-v4/17.png",
-      "revision": "67dc27a52bf67da4420a9b5edb9a8480669347f66182b5880706e241ed94e7c0"
+      "revision": "a9142827697e524683f571e5f147e48de89cf499e6f22dd2ede194b10d46061e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/18.png",
-      "revision": "b4f76ab91c5e3ed0da86cb76689b9ff95304d5b62e37463691a8cce88cacfce2"
+      "revision": "a80a2941e6b7cb5971d6d16b77eacf43dd4a5c382d8dd35fdf5fb3af6aa5ca6c"
     },
     {
       "url": "/serious-learner-offer-frames-v4/19.png",
-      "revision": "e710f57675c384ff61ef51d3816ea32b0c765a98bbbf0e578d85383e64da730e"
+      "revision": "433f9c6cae43aa1e6c6966164d8e9a392cc97d52187473b9a522dab7fc2bc49b"
     },
     {
       "url": "/serious-learner-offer-frames-v4/2.png",
@@ -3815,111 +3919,111 @@
     },
     {
       "url": "/serious-learner-offer-frames-v4/20.png",
-      "revision": "77e7de86f6d4f3c21ee9f6be9d1818b7167b7fdf0aa7ebdcbd6c8500d57ecfed"
+      "revision": "55f0fc7e5cdf8b0149ec4ce3eb345cc685f256aa606ff4e0d312874ee46d0cfb"
     },
     {
       "url": "/serious-learner-offer-frames-v4/21.png",
-      "revision": "621d58258b4fb0e8cc484da63eab955576123f8a94ceb64dd45bd46511110d02"
+      "revision": "0cba64fa5565ffffba201349d94dde5974082b72fda45438686efffd007c5971"
     },
     {
       "url": "/serious-learner-offer-frames-v4/22.png",
-      "revision": "16f75dfe9c4218aee8d4ce400af654b3545270264029d6ba3f208b1ce05803e6"
+      "revision": "4c77e4b921f7b3a55654f5b6ea8ddba7206de33e143416f78bc112e42ec9b74f"
     },
     {
       "url": "/serious-learner-offer-frames-v4/23.png",
-      "revision": "32412fbd56f119a8e095b3967495b67f79e75a9f17a2be1fbf31566c18e260e1"
+      "revision": "9827ff53f7cae69b0fe081a121f9c189c9b26df65c63425e126516bf799059f8"
     },
     {
       "url": "/serious-learner-offer-frames-v4/24.png",
-      "revision": "dca77fbb61e0b24b9480a7d9971c6210fdc1fbc1c1e71c339492e3ba7b008461"
+      "revision": "a4084dc77852b980fd23f595f2aa26396b1de9734f09292f6deb42c05ba7ded5"
     },
     {
       "url": "/serious-learner-offer-frames-v4/25.png",
-      "revision": "9a69a8fe0a328a587d05cd32a7cfbff2de7d3def45dbff580f3061c6b8781b6c"
+      "revision": "b4602f96154eea296c124e6727a990355c6890172b0dc184a05f8f5cb96630e9"
     },
     {
       "url": "/serious-learner-offer-frames-v4/26.png",
-      "revision": "7be79287702fca1f4e2612dfca78534e8e3768fe78eed111e5ab9aca3015bde3"
+      "revision": "2db1701e7b7ae35bd42bdf7f47e9f1e16b098b9d94fc3b45cacc42e6a32f9fa4"
     },
     {
       "url": "/serious-learner-offer-frames-v4/27.png",
-      "revision": "122a19b4625d39d945ac4389612833c9fc0ffd2b0a0dd4a6d7aa840e16f7f1b7"
+      "revision": "1af2943822c6e302a454c9b2fe66bfaad6a557d133c31209fc40fce4900a5108"
     },
     {
       "url": "/serious-learner-offer-frames-v4/28.png",
-      "revision": "074eed38c49da513540c2d3852eda8976df20fe0c1ddfd1f49714b25ea07c1af"
+      "revision": "6245978bb884c858d059ab471047a0a4c16b6e536ad780d999bf8e0abe30f09e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/29.png",
-      "revision": "2f99e9ad26a557b28766c4b1556d44113c8eeb6e110d73115685b89561e91d9d"
+      "revision": "4981fa2d6cdc3e4971a718df7513d17f9346c742fe761ace621d2e8c18dbd6e3"
     },
     {
       "url": "/serious-learner-offer-frames-v4/3.png",
-      "revision": "ce111fd18f8a550b357fa46e060082f411aa26f415e8d8be23390d94058f37e0"
+      "revision": "f4f1657b05ddb77548a4d5a79c184e37be910c0467f2f42ba1e5ebc29be30bcc"
     },
     {
       "url": "/serious-learner-offer-frames-v4/30.png",
-      "revision": "9e4fa44181c207e8ce7a1f609de74a593e34217ccfd2154da675442719c3a53b"
+      "revision": "c8614f3fa32b91cf3f2b4907b21d650659564cb521b2ac7a3e0d662b9956e158"
     },
     {
       "url": "/serious-learner-offer-frames-v4/31.png",
-      "revision": "ee64c03d841bf21812d3f484608aa6be1a25e256d7ac449e06ae54066d99e21f"
+      "revision": "fbba198804279e5621d1235a2acdbf308b7d1fcfa6c77e48159ca61a4f2ac91d"
     },
     {
       "url": "/serious-learner-offer-frames-v4/32.png",
-      "revision": "a25468050be42fab67537febdd481ac7e8436517b9d99c074ec59504f7f180c4"
+      "revision": "7d79b312ab938131e684e613bedbb46d4cd2ee883db0ebcd6783439552d15289"
     },
     {
       "url": "/serious-learner-offer-frames-v4/33.png",
-      "revision": "afd6861f4f922fdcf27d8bf7ee3b43fbe3380dc90f5da3400e3ddc923654404f"
+      "revision": "5972018a6e8232910f0ac73a201925a499653c2ee019fcfa16e748918bebd408"
     },
     {
       "url": "/serious-learner-offer-frames-v4/34.png",
-      "revision": "10c950233552c7524490e5a5e9cd3813bd1e25c283a06387a06a4da10e9b0e47"
+      "revision": "c5878af56fe7d47710688d82d00f1b022910a91b83c9083a2c691d0f9ec078b5"
     },
     {
       "url": "/serious-learner-offer-frames-v4/35.png",
-      "revision": "f3987749a0f58df6fa0f68f83152330fa04e032d736a79960ad486e6aa2b72cd"
+      "revision": "90d62a16ff34a834e494c1424087ffaf8db20d866ea0e0b74e005e0c6dd633ef"
     },
     {
       "url": "/serious-learner-offer-frames-v4/36.png",
-      "revision": "e22f733dea81e086cea5eb9c0f4dbd7eb2386637d8a3365b4ec3785c73034ad8"
+      "revision": "d2592ad8cd739b53c15d5ecb835baa47486acd487de4dfb86ac84f062b7390e3"
     },
     {
       "url": "/serious-learner-offer-frames-v4/37.png",
-      "revision": "6aa83d8590d6cce1cb922fdfcb789a080fa99c9748ad3bd62d9a0b9355737e71"
+      "revision": "28bfc74ff77979c988f43f813c8283128229afad47fe852ce4e3d947a151094e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/38.png",
-      "revision": "1e66074fa5a1c250b451e8bcae852c2c70c5bd3362f28904243bb70875b66e98"
+      "revision": "8890d7e69bb2e6590ea4aed1d7c3c7764bb2a9793881cc58ef3eb0031bbeb846"
     },
     {
       "url": "/serious-learner-offer-frames-v4/39.png",
-      "revision": "8d0e00af93dcea6de93ba6809dc9431af28cbe570841dee3091c0680bc71e3ce"
+      "revision": "1f320664f294b46093d8a863940a9b1eb51eb8e98969f117fe1c7724637778f0"
     },
     {
       "url": "/serious-learner-offer-frames-v4/4.png",
-      "revision": "bfd57f7fe56cf6109cec2005b0567e4f4c53b3222042201f9db07bfece1f629b"
+      "revision": "0bcc78b6ca7b8a05b93a1394e1aa0f9e11d17dbd0c82abc2b53468a299a6ef8e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/40.png",
-      "revision": "ceae94bd0b87c9f3c422ac587e0626a843b6da474f34e72e7f96192828b5dd9b"
+      "revision": "b836e3ef99193f785712a534c822e389cf9d8eaaccec32d99fd0ea39beb28a7e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/41.png",
-      "revision": "003e2adb6c585697b57fa58453a0345a14f39302c736f353fa30f36e487db730"
+      "revision": "c1b897b94f5d8c909b035b580755348d8048b6192b8c79ede05b0c56c188eb10"
     },
     {
       "url": "/serious-learner-offer-frames-v4/42.png",
-      "revision": "4518a5c31d92f80410c217c3c9e1b40fd7f0a86e161eb32620f2a7d927d40100"
+      "revision": "2dc28454102bf90e901cb91ef33cd1adb355598fd9dcf1d43b738d0eb7a4ec83"
     },
     {
       "url": "/serious-learner-offer-frames-v4/43.png",
-      "revision": "82e4bbe2342dbe5b8436c66ffa95a4586a3eea721469d2cdf9c0d3898bd77c91"
+      "revision": "c71673a37f2119d30dda25f7e059e4ec1eb8e0af0aa5d95abfbe2d8b4b75ae48"
     },
     {
       "url": "/serious-learner-offer-frames-v4/44.png",
-      "revision": "a2a7c477929d173385b9e87175fea91a946a31781cd0358ad973cc6d9af28189"
+      "revision": "f0e53c8975fa60cce1fc464bcd276de732f279a8abef7836121c84d3abee23e6"
     },
     {
       "url": "/serious-learner-offer-frames-v4/45.png",
@@ -3943,7 +4047,7 @@
     },
     {
       "url": "/serious-learner-offer-frames-v4/5.png",
-      "revision": "1dd5a9b972839c52e6ce80dd8779f086f8c1df3c915a725144685de26a29b1b8"
+      "revision": "1a1a1348f78743cab996f922343159fa924456f3fa9803ba9e70cdda5a33d643"
     },
     {
       "url": "/serious-learner-offer-frames-v4/50.png",
@@ -3951,19 +4055,19 @@
     },
     {
       "url": "/serious-learner-offer-frames-v4/6.png",
-      "revision": "9e4b3585b0f1576ad4be8211ee3ed03619522cda5ca007a527992b5df7d1d8f5"
+      "revision": "905c0d4ccab6ea3e4d4e6925ae89f567683d5c16d73a18b82136e54a25b2b8b1"
     },
     {
       "url": "/serious-learner-offer-frames-v4/7.png",
-      "revision": "37a39572b6f5ec59d38686366e5370b708fe4324373c36374d385b905aa5c98f"
+      "revision": "d09c485ee57fa8440472c976459dfd22bbda18b14cd5e7aa563e416b29ca194e"
     },
     {
       "url": "/serious-learner-offer-frames-v4/8.png",
-      "revision": "df4ef15b340a73abdc17b342e1efa232ca86a561c65a7364accbad9f0522e9fd"
+      "revision": "39bbfe7ae47bc4103c2b5008c3f269eaf4130b516276720f451797fb6c5d5f53"
     },
     {
       "url": "/serious-learner-offer-frames-v4/9.png",
-      "revision": "9107d050e05613060e9f711c8508bf303730ffd17d74a47100aac1b37c33fa19"
+      "revision": "da024ff26338ee282f325d5ed79f74854bc64450015147a27afb02993f983200"
     },
     {
       "url": "/splash.png",

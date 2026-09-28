@@ -5,7 +5,10 @@ import { ChevronLeft } from "lucide-react";
 import { LanguageFlagWithBrandOutline } from "@/components/language-flag";
 import { LANGUAGES } from "@/data/languages";
 import { writeLandingCardLanguage } from "@/app/components/landing-card-language";
-import { completeOnboardingAction } from "@/features/auth/actions";
+import {
+  completeOnboardingAction,
+  updateMobileLoginLanguagePreferencesAction,
+} from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { ProfilePictureOptionGrid } from "@/features/auth/components/profile-picture-option-grid";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
@@ -19,6 +22,7 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 type OnboardingStep = "native" | "learning" | "picture";
+type MobileOnboardingMode = "initial" | "login-language-refresh";
 
 function getLanguageOrder(firstLanguage: LanguageCode, turkishThird = false) {
   const ordered = [
@@ -43,9 +47,11 @@ function getDefaultLearningLanguage(nativeLanguage: LanguageCode | LocaleCode): 
 export function MobileOnboardingForm({
   onComplete,
   countryCode,
+  mode = "initial",
 }: {
   onComplete?: () => void;
   countryCode: string | null;
+  mode?: MobileOnboardingMode;
 }) {
   const t = useT();
   const { locale, setLocale } = useLocale();
@@ -60,7 +66,14 @@ export function MobileOnboardingForm({
     learning: getLanguageOrder(initialDefaults.preferredLanguageCode),
   }));
   const [profilePictureIndex, setProfilePictureIndex] = useState(0);
-  const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
+  const [onboardingState, onboardingFormAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
+  const [loginLanguageState, loginLanguageFormAction] = useActionState(
+    updateMobileLoginLanguagePreferencesAction,
+    AUTH_ACTION_IDLE_STATE,
+  );
+  const isLoginLanguageRefresh = mode === "login-language-refresh";
+  const state = isLoginLanguageRefresh ? loginLanguageState : onboardingState;
+  const formAction = isLoginLanguageRefresh ? loginLanguageFormAction : onboardingFormAction;
   const formRef = useRef<HTMLFormElement | null>(null);
   const handledSuccessRef = useRef(false);
   const hasSelectedLanguageRef = useRef(false);
@@ -88,17 +101,22 @@ export function MobileOnboardingForm({
     handledSuccessRef.current = true;
     writeLandingCardLanguage(preferredLanguageCode);
     setLocale(preferredUiLocale);
-    updateProfileField({
-      preferredLanguageCode,
-      preferredUiLocale,
-      preferredTier: "all",
-      profilePictureIndex,
-      onboardingCompleted: true,
-    });
+    if (isLoginLanguageRefresh) {
+      updateProfileField({ preferredLanguageCode, preferredUiLocale });
+    } else {
+      updateProfileField({
+        preferredLanguageCode,
+        preferredUiLocale,
+        preferredTier: "all",
+        profilePictureIndex,
+        onboardingCompleted: true,
+      });
+    }
     void refreshProfile();
     onComplete?.();
   }, [
     onComplete,
+    isLoginLanguageRefresh,
     preferredLanguageCode,
     preferredUiLocale,
     profilePictureIndex,
@@ -149,6 +167,7 @@ export function MobileOnboardingForm({
         : t("profilePicture.title");
   const orderedLanguages = (step === "native" ? languageOrders.native : languageOrders.learning)
     .filter((language) => step !== "learning" || language.code !== preferredUiLocale);
+  const shouldSubmit = step === "picture" || (isLoginLanguageRefresh && step === "learning");
   const actionButtonClass = step === "native"
     ? "bg-emerald-500 text-white hover:bg-emerald-600"
     : step === "learning"
@@ -164,13 +183,19 @@ export function MobileOnboardingForm({
     <form
       ref={formRef}
       action={formAction}
-      className="animate-screen-pop grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
+      data-mobile-onboarding-mode={mode}
+      data-mobile-onboarding-step={step}
+      className="animate-screen-pop mx-auto grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
     >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
       <input type="hidden" name="preferredLanguageCode" value={preferredLanguageCode} />
-      <input type="hidden" name="preferredTier" value="all" />
-      <input type="hidden" name="profilePictureIndex" value={profilePictureIndex} />
-      <input type="hidden" name="skipRedirect" value="on" />
+      {!isLoginLanguageRefresh ? (
+        <>
+          <input type="hidden" name="preferredTier" value="all" />
+          <input type="hidden" name="profilePictureIndex" value={profilePictureIndex} />
+          <input type="hidden" name="skipRedirect" value="on" />
+        </>
+      ) : null}
 
       <div className="relative shrink-0 pb-5 pt-1 text-center">
         {step !== "native" ? (
@@ -248,7 +273,7 @@ export function MobileOnboardingForm({
 
       <div className="shrink-0 pt-5">
         <FormMessage state={state} />
-        {isLanguageStep ? (
+        {!shouldSubmit ? (
           <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
             <button
               type="button"

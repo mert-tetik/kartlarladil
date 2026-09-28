@@ -1,9 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { DEFAULT_THEME_ID, THEMES, getThemeById, type ThemeDefinition } from "@/lib/themes";
-
-type ThemeMode = "light" | "dark";
+import { getThemeById, type ThemeDefinition, type ThemeMode } from "@/lib/themes";
 
 interface ThemeContextValue {
   theme: ThemeDefinition;
@@ -37,7 +35,7 @@ export function ThemeProvider({
   initialTheme: string | null | undefined;
   children: ReactNode;
 }) {
-  const [themeId, setThemeId] = useState(initialTheme ?? DEFAULT_THEME_ID);
+  const [themeId, setThemeId] = useState(() => getThemeById(initialTheme).id);
 
   useEffect(() => {
     applyThemeToDocument(themeId);
@@ -51,7 +49,7 @@ export function ThemeProvider({
         theme,
         mode: theme.mode,
         setTheme: (nextId) => {
-          const resolved = THEMES.find((t) => t.id === nextId)?.id ?? DEFAULT_THEME_ID;
+          const resolved = getThemeById(nextId).id;
           setThemeId(resolved);
           applyThemeToDocument(resolved);
         },

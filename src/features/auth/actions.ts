@@ -8,6 +8,7 @@ import {
   deleteAccountSchema,
   getFormString,
   loginSchema,
+  mobileLoginLanguagePreferencesSchema,
   onboardingSchema,
   profilePictureIndexSchema,
   profileSchema,
@@ -574,6 +575,62 @@ export async function completeOnboardingAction(
   }
 
   redirect(nextPath);
+}
+
+export async function updateMobileLoginLanguagePreferencesAction(
+  _state: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const { locale, t } = await getActionText();
+  const parsed = mobileLoginLanguagePreferencesSchema.safeParse({
+    preferredLanguageCode: getFormString(formData, "preferredLanguageCode"),
+    preferredUiLocale: getFormString(formData, "preferredUiLocale"),
+  });
+
+  if (!parsed.success) {
+    return createValidationErrorState(parsed.error, locale);
+  }
+
+  const supabase = await createActionSupabaseClient();
+  if (!supabase) {
+    return authNotConfiguredState(locale);
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      status: "error",
+      message: t("auth.message.profileAuthRequired"),
+    };
+  }
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      preferred_language_code: parsed.data.preferredLanguageCode,
+      preferred_ui_locale: parsed.data.preferredUiLocale,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    return {
+      status: "error",
+      message: t("auth.message.onboardingSaveFailed"),
+    };
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/account/settings");
+
+  return {
+    status: "success",
+    message: "",
+  };
 }
 
 export async function deleteAccountAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {

@@ -1,8 +1,10 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { LOCALE_CODES } from "@/i18n/config";
+import { DICTIONARIES, translate } from "@/i18n/dictionaries";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 vi.mock("@/app/components/mobile-card-display-sheet", () => ({
@@ -31,6 +33,36 @@ const learnedCards = [{
 }];
 
 describe("MobileLandingCardCenter", () => {
+  it("shows a localized empty message with the selected card language", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingCardCenter
+          activeCards={[]}
+          learnedCards={[]}
+          selectedLanguage="en"
+          status="all"
+          isOpen
+          onStatusChange={vi.fn()}
+          onOpenChange={vi.fn()}
+          onOpenDraw={vi.fn()}
+          onOpenImageTranslate={vi.fn()}
+          onOpenCreate={vi.fn()}
+          onOpenGroups={vi.fn()}
+          showEmptyDeckPointer={false}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("İngilizce dilinde hiç kelimeniz yok.")).toBeVisible();
+  });
+
+  it.each(LOCALE_CODES)("provides the empty message translation for %s", (locale) => {
+    const key = "home.mobile.noWordsInLanguage";
+
+    expect(DICTIONARIES[locale][key]).toContain("{language}");
+    expect(translate(locale, key, { language: "English" })).not.toContain("{language}");
+  });
+
   it("keeps filters directly below the mobile navbar while the landing dashboard scrolls", () => {
     render(
       <LocaleProvider initialLocale="tr">

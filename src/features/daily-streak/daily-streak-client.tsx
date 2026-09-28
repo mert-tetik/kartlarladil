@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
+import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 import { syncDailyStreakAction, type DailyStreakSnapshot } from "./daily-streak-actions";
 
 interface DailyStreakContextValue {
@@ -23,6 +24,10 @@ function getBrowserTimeZone() {
 function isDailyStreakTestMode() {
   if (typeof window === "undefined") {
     return false;
+  }
+
+  if (isMissionVisualTestRoute()) {
+    return true;
   }
 
   const params = new URLSearchParams(window.location.search);

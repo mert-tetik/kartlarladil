@@ -14,6 +14,7 @@ const KEY_PATTERN = /^[a-z0-9:_-]{1,160}$/i;
 const SOURCE_KEY_PATTERN = /^[^\u0000-\u001f\u007f\s]{1,240}$/;
 const PROGRESS_GEM_CLAIM_PATTERN = /^[a-z0-9:_-]{1,160}$/i;
 const PROGRESS_GEM_SOURCES = new Set<ProgressGemRewardSource>(["game-level", "quiz-streak", "quiz-result"]);
+const GEM_CONVERSION_IDEMPOTENCY_PATTERN = /^[a-z0-9:_-]{1,160}$/i;
 
 function readBalances(row: { blue_gems?: number | null; green_gems?: number | null; purple_gems?: number | null }): GemBalances {
   return { blue: row.blue_gems ?? 0, green: row.green_gems ?? 0, purple: row.purple_gems ?? 0 };
@@ -131,17 +132,21 @@ export async function awardChestGemRewardAction(
   }
 }
 
-export async function convertGemToPointsAction(type: GemType): Promise<{ success: boolean; points?: number; balances?: GemBalances; error?: string }> {
+export async function convertGemToPointsAction(
+  type: GemType,
+  idempotencyKey: string = randomUUID(),
+): Promise<{ success: boolean; points?: number; balances?: GemBalances; gemPoints?: number; error?: string }> {
   if (!GEM_TYPES.has(type)) return { success: false, error: "invalid_gem" };
+  if (!GEM_CONVERSION_IDEMPOTENCY_PATTERN.test(idempotencyKey)) return { success: false, error: "invalid_gem_conversion" };
   try {
     const user = await requireAuthUser("/");
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin.rpc("convert_gem_to_points", {
-      p_user_id: user.id, p_gem_type: type, p_idempotency_key: `convert:${randomUUID()}`,
-    }).maybeSingle<{ success: boolean; points: number; blue_gems: number; green_gems: number; purple_gems: number }>();
+      p_user_id: user.id, p_gem_type: type, p_idempotency_key: `convert:${idempotencyKey}`,
+    }).maybeSingle<{ success: boolean; points: number; blue_gems: number; green_gems: number; purple_gems: number; gem_points: number }>();
     if (error || !data) return { success: false, error: error?.message ?? "database_error" };
     revalidatePath("/"); revalidatePath("/profile");
-    return { success: data.success, points: data.points, balances: readBalances(data) };
+    return { success: data.success, points: data.points, balances: readBalances(data), gemPoints: data.gem_points };
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : "database_error" }; }
 }
 

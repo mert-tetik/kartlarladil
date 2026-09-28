@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { isTwaMode, sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 
 const ENGAGEMENT_PULSE_INTERVAL_MS = 30000;
 
@@ -11,7 +12,7 @@ export function TwaAnalyticsProvider({ children }: { children: React.ReactNode }
   const hasLoggedInitialScreenRef = useRef(false);
 
   useEffect(() => {
-    if (!isTwaMode()) {
+    if (isMissionVisualTestRoute(pathname) || !isTwaMode()) {
       return;
     }
 
@@ -24,10 +25,10 @@ export function TwaAnalyticsProvider({ children }: { children: React.ReactNode }
     return () => {
       window.clearInterval(interval);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
-    if (!isTwaMode()) {
+    if (isMissionVisualTestRoute(pathname) || !isTwaMode()) {
       return;
     }
 

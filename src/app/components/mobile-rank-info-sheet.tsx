@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
@@ -15,7 +15,8 @@ import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
 import type { RankDefinition } from "@/types/domain";
 
-const RANK_DETAILS_CLOSE_DURATION = 420;
+const RANK_DETAILS_OPEN_DURATION = 1900;
+const RANK_DETAILS_CLOSE_DURATION = 900;
 const RANK_DETAILS_SWIPE_THRESHOLD = 48;
 
 interface MobileRankInfoSheetProps {
@@ -53,6 +54,32 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const normalized = hex.replace("#", "");
+  const value = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+
+  return [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function interpolateHexColor(from: string, to: string, amount: number) {
+  const [fromRed, fromGreen, fromBlue] = hexToRgb(from);
+  const [toRed, toGreen, toBlue] = hexToRgb(to);
+  const clampedAmount = Math.max(0, Math.min(1, amount));
+  const channels = [
+    fromRed + (toRed - fromRed) * clampedAmount,
+    fromGreen + (toGreen - fromGreen) * clampedAmount,
+    fromBlue + (toBlue - fromBlue) * clampedAmount,
+  ].map((channel) => Math.round(channel).toString(16).padStart(2, "0"));
+
+  return `#${channels.join("")}`;
+}
+
 function lightenHex(hex: string, amount: number) {
   const normalized = hex.replace("#", "");
   const value = normalized.length === 3
@@ -74,16 +101,24 @@ export function MobileRankInfoSheet({
   const { locale } = useLocale();
   const currentRankIndex = getRankIndex(rank.id);
   const rankTrackRef = useRef<HTMLDivElement | null>(null);
+  const rankGradientRef = useRef<HTMLDivElement | null>(null);
+  const rankRadialRef = useRef<HTMLDivElement | null>(null);
+  const backgroundFrameRef = useRef<number | null>(null);
+  const currentRankIndexRef = useRef(currentRankIndex);
   const activeRankIndexRef = useRef(currentRankIndex);
   const pointerDragRef = useRef<RankPointerDrag | null>(null);
   const initializedRef = useRef(false);
   const hasBeenOpenedRef = useRef(false);
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<"opening" | "open" | "closing">("opening");
+  const [introActive, setIntroActive] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [highlightRankIndex, setHighlightRankIndex] = useState(currentRankIndex);
-  const highlightedRank = RANKS[highlightRankIndex] ?? rank;
-  const highlightedAccentColor = getAccentColor(highlightedRank.id);
+  const initialAccentColor = getAccentColor(rank.id);
+
+  useEffect(() => {
+    currentRankIndexRef.current = currentRankIndex;
+  }, [currentRankIndex]);
 
   const getTrackWidth = useCallback(() => {
     const track = rankTrackRef.current;
@@ -91,6 +126,28 @@ export function MobileRankInfoSheet({
 
     return track.clientWidth || track.getBoundingClientRect().width || window.innerWidth;
   }, []);
+
+  const updateBackgroundFromScroll = useCallback((scrollLeft?: number) => {
+    const track = rankTrackRef.current;
+    const gradient = rankGradientRef.current;
+    const radial = rankRadialRef.current;
+    const trackWidth = getTrackWidth();
+    if (!track || !gradient || !radial || !trackWidth) return;
+
+    const position = Math.max(
+      0,
+      Math.min(RANKS.length - 1, (scrollLeft ?? track.scrollLeft) / trackWidth),
+    );
+    const leftIndex = Math.min(RANKS.length - 1, Math.floor(position));
+    const rightIndex = Math.min(RANKS.length - 1, leftIndex + 1);
+    const amount = position - leftIndex;
+    const fromColor = getAccentColor(RANKS[leftIndex]?.id ?? RANKS[0].id);
+    const toColor = getAccentColor(RANKS[rightIndex]?.id ?? RANKS[leftIndex]?.id ?? RANKS[0].id);
+    const color = interpolateHexColor(fromColor, toColor, amount);
+
+    gradient.style.backgroundImage = `linear-gradient(to top, ${hexToRgba(color, 0.82)} 0%, ${hexToRgba(color, 0.34)} 25%, transparent 70%)`;
+    radial.style.backgroundImage = `radial-gradient(circle at 50% 48%, ${hexToRgba(color, 0.14)} 0%, transparent 42%)`;
+  }, [getTrackWidth]);
 
   const centerRank = useCallback((index: number, behavior: ScrollBehavior = "smooth") => {
     const track = rankTrackRef.current;
@@ -152,16 +209,22 @@ export function MobileRankInfoSheet({
       pointerDragRef.current = null;
 
       let openFrame: number | null = null;
+      let introTimer: number | null = null;
       const mountFrame = window.requestAnimationFrame(() => {
+        activeRankIndexRef.current = currentRankIndexRef.current;
+        setHighlightRankIndex(currentRankIndexRef.current);
         setMounted(true);
         setPhase("opening");
+        setIntroActive(true);
         setIsDragging(false);
         openFrame = window.requestAnimationFrame(() => setPhase("open"));
+        introTimer = window.setTimeout(() => setIntroActive(false), RANK_DETAILS_OPEN_DURATION);
       });
 
       return () => {
         window.cancelAnimationFrame(mountFrame);
         if (openFrame !== null) window.cancelAnimationFrame(openFrame);
+        if (introTimer !== null) window.clearTimeout(introTimer);
       };
     }
 
@@ -192,20 +255,16 @@ export function MobileRankInfoSheet({
     };
   }, [isOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen || !mounted) return;
 
     initializedRef.current = false;
     activeRankIndexRef.current = currentRankIndex;
 
-    const frame = window.requestAnimationFrame(() => {
-      setHighlightRankIndex(currentRankIndex);
-      centerRank(currentRankIndex, "auto");
-      initializedRef.current = true;
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [centerRank, currentRankIndex, isOpen, mounted]);
+    centerRank(currentRankIndex, "auto");
+    updateBackgroundFromScroll(currentRankIndex * getTrackWidth());
+    initializedRef.current = true;
+  }, [centerRank, currentRankIndex, getTrackWidth, isOpen, mounted, updateBackgroundFromScroll]);
 
   useEffect(() => {
     const track = rankTrackRef.current;
@@ -213,9 +272,17 @@ export function MobileRankInfoSheet({
 
     const handleScroll = () => {
       updateHighlight(getNearestRankIndex());
+      if (backgroundFrameRef.current !== null) {
+        window.cancelAnimationFrame(backgroundFrameRef.current);
+      }
+      backgroundFrameRef.current = window.requestAnimationFrame(() => {
+        backgroundFrameRef.current = null;
+        updateBackgroundFromScroll();
+      });
     };
     const handleResize = () => {
       centerRank(activeRankIndexRef.current, "auto");
+      updateBackgroundFromScroll();
     };
 
     track.addEventListener("scroll", handleScroll, { passive: true });
@@ -224,8 +291,12 @@ export function MobileRankInfoSheet({
     return () => {
       track.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
+      if (backgroundFrameRef.current !== null) {
+        window.cancelAnimationFrame(backgroundFrameRef.current);
+        backgroundFrameRef.current = null;
+      }
     };
-  }, [centerRank, getNearestRankIndex, isOpen, mounted, updateHighlight]);
+  }, [centerRank, getNearestRankIndex, isOpen, mounted, updateBackgroundFromScroll, updateHighlight]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -288,6 +359,7 @@ export function MobileRankInfoSheet({
     );
     track.scrollLeft = Math.max(0, Math.min(maxScrollLeft, drag.startScrollLeft - deltaX));
     updateHighlight(getNearestRankIndex());
+    updateBackgroundFromScroll();
   }
 
   function handlePointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
@@ -345,7 +417,7 @@ export function MobileRankInfoSheet({
       inert={!isOpen}
       className={cn(
         "fixed inset-0 z-[70] isolate overflow-hidden bg-black text-white lg:hidden",
-        phase === "opening" && "rank-details-overlay-enter",
+        introActive && phase !== "closing" && "rank-details-overlay-enter",
         phase === "closing" && "rank-details-overlay-exit pointer-events-none",
       )}
       data-rank-details-overlay
@@ -353,18 +425,21 @@ export function MobileRankInfoSheet({
     >
       <div className="pointer-events-none absolute inset-0 bg-black" aria-hidden="true" />
       <div
+        ref={rankGradientRef}
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
         data-rank-details-gradient
         style={{
-          backgroundImage: `linear-gradient(to top, ${hexToRgba(highlightedAccentColor, 0.82)} 0%, ${hexToRgba(highlightedAccentColor, 0.34)} 25%, transparent 70%)`,
+          backgroundImage: `linear-gradient(to top, ${hexToRgba(initialAccentColor, 0.82)} 0%, ${hexToRgba(initialAccentColor, 0.34)} 25%, transparent 70%)`,
         }}
       />
       <div
+        ref={rankRadialRef}
         className="pointer-events-none absolute inset-0 opacity-70"
         aria-hidden="true"
+        data-rank-details-radial
         style={{
-          backgroundImage: `radial-gradient(circle at 50% 48%, ${hexToRgba(highlightedAccentColor, 0.14)} 0%, transparent 42%)`,
+          backgroundImage: `radial-gradient(circle at 50% 48%, ${hexToRgba(initialAccentColor, 0.14)} 0%, transparent 42%)`,
         }}
       />
 
@@ -409,10 +484,13 @@ export function MobileRankInfoSheet({
                   )}
                   data-rank-visual
                 >
-                  <div className={cn("flex flex-col items-center", isLocked && "translate-y-6")}>
+                  <div
+                    className={cn("flex flex-col items-center", isLocked && "translate-y-6")}
+                  >
                     <p
                       data-rank-label={item.id}
                       data-mobile-current-rank-label={isHighlighted ? true : undefined}
+                      data-rank-details-rank-label
                       className={cn(
                         "mb-4 max-w-[calc(100vw-2rem)] text-[clamp(2rem,11vw,3.5rem)] font-bold leading-none",
                         canUseSuperWater(locale) && "font-super-water",
@@ -422,7 +500,7 @@ export function MobileRankInfoSheet({
                       {formatSuperWaterText(locale, getRankLabel(item, locale))}
                     </p>
 
-                    <div className="relative size-64">
+                    <div className="relative size-64" data-rank-visual-motion>
                       {!isLocked ? (
                         <div
                           className={cn(
@@ -450,6 +528,7 @@ export function MobileRankInfoSheet({
                     </div>
 
                     <p
+                      data-rank-details-rank-requirement
                       className={cn(
                         "mt-4 inline-flex items-center gap-2 text-2xl font-semibold leading-none text-white/90",
                         canUseSuperWater(locale) && "font-super-water",
@@ -468,26 +547,30 @@ export function MobileRankInfoSheet({
                       aria-valuemin={0}
                       aria-valuemax={item.minPoints}
                       aria-valuenow={Math.min(totalPoints, item.minPoints)}
-                      className="mt-8 translate-y-6 flex w-52 flex-col items-center"
+                      className="mt-8 flex w-52 flex-col items-center"
                       data-rank-progress={item.id}
                     >
-                      <span
-                        className={cn(
-                          "mb-2 text-lg font-semibold leading-none text-white",
-                          canUseSuperWater(locale) && "font-super-water",
-                        )}
-                        data-rank-progress-percent={item.id}
-                      >
-                        {formatNumber(locale, Math.round(progressToRank))}%
-                      </span>
-                      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white">
-                        <div
-                          className="h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]"
-                          style={{
-                            width: `${progressToRank}%`,
-                            backgroundColor: lightenHex(getAccentColor(item.id), 0.24),
-                          }}
-                        />
+                      <div className="translate-y-6" data-rank-details-rank-progress-offset>
+                        <div className="flex w-full flex-col items-center" data-rank-details-rank-progress-motion>
+                          <span
+                            className={cn(
+                              "mb-2 text-lg font-semibold leading-none text-white",
+                              canUseSuperWater(locale) && "font-super-water",
+                            )}
+                            data-rank-progress-percent={item.id}
+                          >
+                            {formatNumber(locale, Math.round(progressToRank))}%
+                          </span>
+                          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white">
+                            <div
+                              className="h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]"
+                              style={{
+                                width: `${progressToRank}%`,
+                                backgroundColor: lightenHex(getAccentColor(item.id), 0.24),
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -498,7 +581,10 @@ export function MobileRankInfoSheet({
         </div>
       </div>
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-start px-6 pt-[max(1.75rem,env(safe-area-inset-top)+1rem)] text-left">
+      <header
+        className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-start px-6 pt-[max(1.75rem,env(safe-area-inset-top)+1rem)] text-left"
+        data-rank-details-ui="header"
+      >
         <p
           className={cn(
             "text-[clamp(1.5rem,7vw,2.4rem)] font-bold leading-none text-white",
@@ -510,7 +596,7 @@ export function MobileRankInfoSheet({
         <span
           data-mobile-rank-total-points
           className={cn(
-            "mt-3 inline-flex items-center gap-2 text-[clamp(1.3rem,6vw,1.8rem)] font-semibold leading-none text-white",
+            "mt-3 inline-flex items-center gap-2 text-[clamp(1.3rem,6vw,1.8rem)] font-semibold leading-none text-yellow-300",
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
@@ -525,11 +611,15 @@ export function MobileRankInfoSheet({
         aria-label={t("common.close")}
         className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-50 inline-flex size-12 items-center justify-center text-white transition-transform duration-200 active:scale-90"
         data-rank-details-close
+        data-rank-details-ui="close"
       >
         <X className="size-9 stroke-[3]" aria-hidden="true" />
       </button>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom)+1rem)] z-30 flex justify-center px-6">
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom)+1rem)] z-30 flex justify-center px-6"
+        data-rank-details-ui="position"
+      >
         <p
           className={cn(
             "text-xl font-semibold text-white/75",

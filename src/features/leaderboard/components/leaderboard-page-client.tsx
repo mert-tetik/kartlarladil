@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Flame, Loader2 } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -194,7 +194,18 @@ export function LeaderboardPageClient({
     <>
       <section
         data-leaderboard-page
-        className="relative isolate mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border px-4 py-4 max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:bg-brand max-lg:px-3 max-lg:py-4"
+        className={cn(
+          "relative isolate mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border bg-center bg-cover bg-no-repeat px-4 py-4 transition-[background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:px-3 max-lg:py-4",
+          selectedMode === "streaks" ? "max-lg:bg-red-500" : "max-lg:bg-yellow-400",
+        )}
+        style={
+          {
+            "--leaderboard-hue": selectedMode === "streaks" ? "#ef4444" : "#facc15",
+            ...(selectedMode === "points"
+              ? { backgroundImage: "url('/leaderboard/points-background.png')" }
+              : {}),
+          } as CSSProperties
+        }
       >
         <div
           aria-hidden="true"
@@ -332,15 +343,15 @@ export function LeaderboardPageClient({
                           : "border-border bg-background",
                         entry.isViewer
                           ? "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-white max-lg:p-[3px]"
-                          : "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--brand),black_52%)_0%,color-mix(in_oklab,var(--brand),white_30%)_100%)] max-lg:p-px",
+                          : "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--leaderboard-hue),black_52%)_0%,color-mix(in_oklab,var(--leaderboard-hue),white_30%)_100%)] max-lg:p-px",
                       )}
                     >
                       <div
                         className={cn(
                           "contents max-lg:grid max-lg:grid-cols-[auto_2.25rem_2.25rem_minmax(0,1fr)_auto] max-lg:items-center max-lg:gap-0.5 max-lg:rounded-full max-lg:px-2.5 max-lg:py-2",
                           entry.isViewer
-                            ? "max-lg:bg-[color-mix(in_oklab,var(--brand),black_45%)]"
-                            : "max-lg:bg-[color-mix(in_oklab,var(--brand),black_28%)]",
+                            ? "max-lg:bg-[color-mix(in_oklab,var(--leaderboard-hue),black_45%)]"
+                            : "max-lg:bg-[color-mix(in_oklab,var(--leaderboard-hue),black_28%)]",
                         )}
                       >
                         <LeaderboardPositionBadge locale={locale} position={entry.position} />
@@ -367,7 +378,7 @@ export function LeaderboardPageClient({
                           </span>
                           {dataMode === "streaks" ? (
                             <Flame
-                              className="size-5 fill-red-400 text-red-400"
+                              className="size-5 fill-red-500 text-red-500"
                               aria-hidden="true"
                             />
                           ) : (

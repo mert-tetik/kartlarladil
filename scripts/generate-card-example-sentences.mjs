@@ -11,6 +11,7 @@ const PARTIAL_PATH = "scripts/data/card-example-sentences.partial.json";
 const OUTPUT_PATH = "src/data/card-examples.generated.ts";
 const MODEL = process.env.OPENAI_CARD_EXAMPLES_MODEL?.trim() || "gpt-5.4-nano";
 const MAX_CARDS = parsePositiveInt(process.env.CARD_EXAMPLE_LIMIT);
+const PLAN_ONLY = process.env.CARD_EXAMPLE_PLAN_ONLY === "1" || process.env.CARD_EXAMPLE_PLAN_ONLY === "true";
 const EMIT_ONLY = process.env.CARD_EXAMPLE_EMIT_ONLY === "1" || process.env.CARD_EXAMPLE_EMIT_ONLY === "true";
 const FOREIGN_SCRIPT_PATTERN = /[\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const TURKISH_UNIQUE_CHARACTER_PATTERN = /[ıİğĞşŞ]/u;
@@ -55,13 +56,14 @@ const STRONG_TURKISH_MARKERS = [
 loadEnvFile(".env.local");
 loadEnvFile(".env");
 
-if (!process.env.OPENAI_API_KEY) {
+if (!process.env.OPENAI_API_KEY && !PLAN_ONLY) {
   console.error("OPENAI_API_KEY required.");
   process.exit(1);
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const { CARD_SEED_MODULES } = loadTsModule("src/data/card-seeds/index.ts");
+const { CARD_EXAMPLE_SENTENCES: bundledExamples } = loadTsModule("src/data/card-examples.generated.ts");
 
 const cards = CARD_SEED_MODULES.flatMap((module) =>
   module.rows.map((row) => {
@@ -81,9 +83,21 @@ const cards = CARD_SEED_MODULES.flatMap((module) =>
   }),
 );
 
-const existing = readPartial();
+const existing = { ...bundledExamples, ...readPartial() };
 const pending = cards.filter((card) => !hasValidLocalizedExampleSet(card.sourceKey, existing[card.sourceKey]));
 const limitedPending = Number.isFinite(MAX_CARDS) ? pending.slice(0, MAX_CARDS) : pending;
+
+if (PLAN_ONLY) {
+  console.log(JSON.stringify({
+    model: MODEL,
+    cards: cards.length,
+    existingCompleteExampleSets: cards.length - pending.length,
+    pendingExampleSets: pending.length,
+    limitedPendingExampleSets: limitedPending.length,
+    sampleSourceKeys: limitedPending.slice(0, 20).map((card) => card.sourceKey),
+  }, null, 2));
+  process.exit(0);
+}
 
 if (EMIT_ONLY) {
   writeOutput(existing);
@@ -139,14 +153,16 @@ async function generateBatchWithRetry(batch, attempt) {
   const prompt = [
     "You write two real, natural, different example sentences for each vocabulary card.",
     "Rules:",
-    "1. Use the card language only.",
-    "2. Write exactly two sentences per item.",
-    "3. The two sentences for the same item must be clearly different from each other.",
-    "4. Do not use reusable patterns, template language, or placeholder text.",
-    "5. Make the sentences concrete and everyday when possible.",
-    "6. Keep them short and natural for a learner.",
-    "7. Do not explain your choices.",
-    '8. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
+    "1. Use the card language only and preserve its native writing system.",
+    "2. Write exactly two sentences per item, each using the exact sense and part of speech identified by englishKey and partOfSpeech.",
+    "3. Each sentence must visibly contain the supplied canonical term or a natural grammatical inflection of that same lexical item. Never substitute a synonym, translation, related word, or a different member of the same word family.",
+    "4. Use the card term naturally; inflect it only when grammar requires it, without changing the meaning.",
+    "5. The two sentences for the same item must be clearly different in context and sentence structure, not paraphrases.",
+    "6. Do not use reusable patterns, template language, or placeholder text.",
+    "7. Make each sentence concrete, idiomatic, grammatically correct, and learner-friendly.",
+    "8. Check that each sentence demonstrates the specified meaning rather than another sense of the word.",
+    "9. Do not explain your choices.",
+    '10. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
     "",
     "Cards:",
     ...batch.map((card) =>
@@ -156,6 +172,7 @@ async function generateBatchWithRetry(batch, attempt) {
         tier: card.tier,
         term: card.term,
         englishKey: card.englishKey,
+        partOfSpeech: card.partOfSpeech,
         termKind: card.termKind,
       }),
     ),
@@ -204,14 +221,16 @@ async function generateMissingBatch(batch, attempt) {
   const prompt = [
     "You write two real, natural, different example sentences for each vocabulary card.",
     "Rules:",
-    "1. Use the card language only.",
-    "2. Write exactly two sentences per item.",
-    "3. The two sentences for the same item must be clearly different from each other.",
-    "4. Do not use reusable patterns, template language, or placeholder text.",
-    "5. Make the sentences concrete and everyday when possible.",
-    "6. Keep them short and natural for a learner.",
-    "7. Do not explain your choices.",
-    '8. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
+    "1. Use the card language only and preserve its native writing system.",
+    "2. Write exactly two sentences per item, each using the exact sense and part of speech identified by englishKey and partOfSpeech.",
+    "3. Each sentence must visibly contain the supplied canonical term or a natural grammatical inflection of that same lexical item. Never substitute a synonym, translation, related word, or a different member of the same word family.",
+    "4. Use the card term naturally; inflect it only when grammar requires it, without changing the meaning.",
+    "5. The two sentences for the same item must be clearly different in context and sentence structure, not paraphrases.",
+    "6. Do not use reusable patterns, template language, or placeholder text.",
+    "7. Make each sentence concrete, idiomatic, grammatically correct, and learner-friendly.",
+    "8. Check that each sentence demonstrates the specified meaning rather than another sense of the word.",
+    "9. Do not explain your choices.",
+    '10. Return valid JSON only with this shape: {"items":[{"sourceKey":"...","sentences":["...","..."]}]}',
     "",
     "Fill only these missing cards:",
     ...batch.map((card) =>
@@ -221,6 +240,7 @@ async function generateMissingBatch(batch, attempt) {
         tier: card.tier,
         term: card.term,
         englishKey: card.englishKey,
+        partOfSpeech: card.partOfSpeech,
         termKind: card.termKind,
       }),
     ),
@@ -269,12 +289,25 @@ function parseBatchContent(content) {
 
 function normalizeExampleSet(value) {
   const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
-  const normalized = values
-    .filter((sentence) => typeof sentence === "string")
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  const unique = [];
+  const seen = new Set();
 
-  return [...new Set(normalized.map((sentence) => sentence.normalize("NFC")))];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const sentence = value.trim().normalize("NFC");
+    if (!sentence) continue;
+
+    const identity = sentence
+      .normalize("NFKC")
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "");
+    if (!identity || seen.has(identity)) continue;
+
+    seen.add(identity);
+    unique.push(sentence);
+  }
+
+  return unique;
 }
 
 function hasCompleteExampleSet(value) {

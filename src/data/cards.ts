@@ -1,4 +1,6 @@
 import { CARD_SEED_MODULES } from "./card-seeds";
+import { getAdditionalCardExamples } from "./card-seeds/additional-card-examples";
+import { getAdditionalCardPronunciation } from "./card-seeds/additional-card-entries";
 import { rowToTranslations } from "./card-seeds/types";
 import { CARD_EXAMPLE_SENTENCES } from "./card-examples.generated";
 import { CARD_PRONUNCIATIONS } from "./card-pronunciations.generated";
@@ -197,7 +199,7 @@ function buildCatalog(): VocabularyCard[] {
         termKind,
         term,
         translations,
-        pronunciation: getLocalizedPronunciation(sourceKey, pronunciation),
+        pronunciation: getLocalizedPronunciation(sourceKey, pronunciation, englishKey, module.language),
         partOfSpeech,
       });
     }),
@@ -228,11 +230,24 @@ function createVocabularyCard(input: CardBuildInput): VocabularyCard {
   };
 }
 
-function getLocalizedPronunciation(sourceKey: string, fallbackPronunciation: string) {
+function getLocalizedPronunciation(
+  sourceKey: string,
+  fallbackPronunciation: string,
+  englishKey?: string,
+  language?: LanguageCode,
+) {
   const generatedPronunciation = CARD_PRONUNCIATIONS[sourceKey]?.trim();
 
   if (generatedPronunciation) {
     return generatedPronunciation;
+  }
+
+  if (englishKey && language) {
+    const additionalPronunciation = getAdditionalCardPronunciation(englishKey, language)?.trim();
+
+    if (additionalPronunciation) {
+      return additionalPronunciation;
+    }
   }
 
   return String(fallbackPronunciation ?? "").trim();
@@ -258,7 +273,12 @@ function getTranslationMeaningsByLocale(input: CardBuildInput): TranslationMeani
 
 function getVocabularyCardExamples(input: CardBuildInput): CardExample[] {
   const generatedSentences = getGeneratedExampleSentences(input.sourceKey, input.language);
-  const sentences: string[] = [...generatedSentences];
+  const additionalSentences = getAdditionalCardExamples(input.englishKey, input.language, input.term);
+  const sentences: string[] = generatedSentences.length >= 2
+    ? [...generatedSentences]
+    : additionalSentences
+      ? [...additionalSentences]
+      : [...generatedSentences];
 
   if (sentences.length < 2) {
     const fallbackContexts: CardExample["context"][] = ["daily", "natural"];

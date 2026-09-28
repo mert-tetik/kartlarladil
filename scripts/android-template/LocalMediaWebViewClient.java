@@ -3,6 +3,7 @@ package __PACKAGE__;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -12,10 +13,15 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class LocalMediaWebViewClient extends WebViewClient {
+    private static final String TAG = "FoxiesDeckMedia";
     private final Activity activity;
     private final NativeMediaStore mediaStore;
+    private final Set<String> loggedRemoteFallbacks = Collections.synchronizedSet(new HashSet<>());
 
     public LocalMediaWebViewClient(Activity activity, NativeMediaStore mediaStore) {
         this.activity = activity;
@@ -48,13 +54,25 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         }
 
         String localPath = resolveLocalPath(uri);
-        if (localPath == null || !mediaStore.contains(localPath)) {
+        if (localPath == null) {
+            return null;
+        }
+
+        // Returning null deliberately hands the request back to WebView. That
+        // is the only remote fallback path: a bundled/indexed asset never
+        // reaches the network because open() returns a WebResourceResponse.
+        if (!mediaStore.contains(localPath)) {
+            logRemoteFallback(localPath, "not in bundled media index");
             return null;
         }
 
         String range = getHeader(requestHeaders, "Range");
         NativeMediaStore.MediaResponse response = mediaStore.open(localPath, range);
         if (response == null) {
+            // The index can outlive a damaged/incomplete install. Falling
+            // through keeps the old app usable by loading the same URL from
+            // the website instead of showing a broken media element.
+            logRemoteFallback(localPath, "bundled asset is not readable");
             return null;
         }
 
@@ -80,6 +98,36 @@ public final class LocalMediaWebViewClient extends WebViewClient {
                 headers,
                 data
         );
+    }
+
+    private void logRemoteFallback(String localPath, String reason) {
+        if (!isMediaPath(localPath)) {
+            return;
+        }
+
+        if (loggedRemoteFallbacks.add(localPath)) {
+            Log.i(TAG, "Remote media fallback: " + localPath + " (" + reason + ")");
+        }
+    }
+
+    private static boolean isMediaPath(String path) {
+        String normalized = path.toLowerCase(Locale.ROOT);
+        return normalized.endsWith(".avif")
+                || normalized.endsWith(".gif")
+                || normalized.endsWith(".jpeg")
+                || normalized.endsWith(".jpg")
+                || normalized.endsWith(".m4v")
+                || normalized.endsWith(".mp3")
+                || normalized.endsWith(".mp4")
+                || normalized.endsWith(".ogg")
+                || normalized.endsWith(".png")
+                || normalized.endsWith(".svg")
+                || normalized.endsWith(".ttf")
+                || normalized.endsWith(".wav")
+                || normalized.endsWith(".webm")
+                || normalized.endsWith(".webp")
+                || normalized.endsWith(".woff")
+                || normalized.endsWith(".woff2");
     }
 
     private boolean handleNavigation(Uri uri) {

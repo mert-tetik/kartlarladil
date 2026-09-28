@@ -23,7 +23,7 @@ export function CustomCardDirectionToggle({ value, onChange, learningLanguage }:
     <span
       aria-hidden="true"
       data-create-card-direction-icons={direction}
-      className="inline-flex items-center justify-center gap-1.5"
+      className="inline-flex items-center justify-center gap-1.5 leading-none"
     >
       <LanguageFlag
         code={direction === "learning-to-native" ? learningLanguage : locale}
@@ -47,8 +47,8 @@ export function CustomCardDirectionToggle({ value, onChange, learningLanguage }:
       <SegmentedToggle
         value={value}
         onChange={onChange}
-        className="control-gradient-outline w-full [&>button]:flex-1"
-        selectedClassName="bg-brand !text-white hover:brightness-105"
+        className="control-gradient-outline w-full [&>button]:inline-flex [&>button]:flex-1 [&>button]:items-center [&>button]:justify-center"
+        selectedClassName="bg-purple-600 !text-white hover:brightness-105"
         ariaLabel={t("createCard.direction.label")}
         labelClassName="text-black/60 transition-colors duration-300"
         optionProps={(direction) => ({

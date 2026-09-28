@@ -22,6 +22,7 @@ import java.util.Arrays;
 
 public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
+    private static final int BRAND_ORANGE = Color.rgb(247, 104, 8);
     private WebView webView;
     private FrameLayout contentRoot;
     private NativeBillingBridge billingBridge;
@@ -47,7 +48,7 @@ public class LauncherActivity extends Activity {
         }
 
         CookieManager.getInstance().setAcceptCookie(true);
-        webView.setBackgroundColor(Color.WHITE);
+        webView.setBackgroundColor(BRAND_ORANGE);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -89,7 +90,7 @@ public class LauncherActivity extends Activity {
         webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");
 
         contentRoot = new FrameLayout(this);
-        contentRoot.setBackgroundColor(Color.BLACK);
+        contentRoot.setBackgroundColor(BRAND_ORANGE);
         contentRoot.addView(
                 webView,
                 new FrameLayout.LayoutParams(

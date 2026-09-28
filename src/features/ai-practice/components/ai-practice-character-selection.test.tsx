@@ -59,6 +59,52 @@ describe("AiPracticeCharacterSelection", () => {
     await waitFor(() => {
       expect(document.querySelector("[data-ai-practice-language-button]")).toHaveTextContent("Spanish");
     });
+    expect(document.querySelector("[data-ai-practice-language-button]")).not.toHaveTextContent("Card Language");
+  });
+
+  it("keeps an explicitly selected language instead of restoring the stale landing language", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, "es");
+    window.matchMedia = () => ({ matches: true }) as MediaQueryList;
+
+    const view = render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    const languageButton = document.querySelector<HTMLButtonElement>("[data-ai-practice-language-button]");
+    await waitFor(() => expect(languageButton).toHaveTextContent("Spanish"));
+    await user.click(languageButton!);
+    await user.click(await screen.findByText("Deutsch"));
+
+    expect(window.localStorage.getItem(LANDING_CARD_LANGUAGE_KEY)).toBe("de");
+    view.rerender(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="de" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => expect(languageButton).toHaveTextContent("German"));
+  });
+
+  it("opens the language picker higher with a taller sheet", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    const languageButton = document.querySelector<HTMLButtonElement>("[data-ai-practice-language-button]");
+    expect(languageButton).not.toBeNull();
+    await user.click(languageButton!);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-mobile-bottom-sheet][aria-modal="true"] [data-mobile-bottom-sheet-panel]'))
+        .toHaveClass("max-h-[85dvh]");
+    });
   });
 
   it("switches to situation cards that keep their character portraits", async () => {

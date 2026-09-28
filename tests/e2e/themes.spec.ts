@@ -1,25 +1,15 @@
 import { test } from "@playwright/test";
 
 const THEME_IDS = [
-  "default",
   "default-dark",
-  "ocean",
   "ocean-dark",
-  "emerald",
   "emerald-dark",
-  "violet",
   "violet-dark",
-  "rose",
   "rose-dark",
-  "amber",
   "amber-dark",
-  "teal",
   "teal-dark",
-  "indigo",
   "indigo-dark",
-  "crimson",
   "crimson-dark",
-  "lime",
   "lime-dark",
 ];
 

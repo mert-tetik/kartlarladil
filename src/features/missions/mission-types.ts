@@ -1,5 +1,6 @@
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import type { GameName } from "@/features/games/game-types";
+import type { GemType } from "@/features/gems/gem-types";
 
 export type MissionType = "add_cards" | "learn_cards" | "game_level" | "ai_practice";
 
@@ -15,7 +16,15 @@ export interface MissionChestReward {
   tier: ChestTier;
 }
 
-export type MissionReward = MissionPointsReward | MissionChestReward;
+export interface MissionGemReward {
+  kind: "gems";
+  gemType: GemType;
+  amount: number;
+  /** The original point reward this gem amount was converted from. */
+  pointEquivalent: number;
+}
+
+export type MissionReward = MissionPointsReward | MissionChestReward | MissionGemReward;
 
 export type MissionRewardOverrides = ReadonlyMap<string, MissionReward>;
 

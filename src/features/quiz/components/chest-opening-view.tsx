@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type SyntheticEvent } from "react";
 import Image from "next/image";
 import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -12,10 +11,9 @@ import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { CHEST_TIER_OPENING_VIDEOS, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
-import { GemRewardFlight } from "@/features/progress/components/gem-reward-flight";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
-import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
-import { getScoreFlightAwardAtArrival, getScoreFlightIconCount } from "@/features/progress/score-flight";
+import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
+import { RewardScatter } from "@/features/progress/components/reward-scatter";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -27,17 +25,6 @@ interface ChestOpeningViewProps {
 
 type ChestPhase = "playing" | "revealed" | "disappearing";
 type PointsPhase = "hidden" | "shown" | "flying" | "added";
-type FlightIcon = {
-  id: number;
-  startX: number;
-  startY: number;
-  scatterX: number;
-  scatterY: number;
-  targetX: number;
-  targetY: number;
-  delay: number;
-};
-
 const REWARD_REVEAL_AT_SECONDS = 3;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const VIDEO_LAST_FRAME_HOLD_MS = 2000;
@@ -67,7 +54,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
-  const [flightIcons, setFlightIcons] = useState<FlightIcon[]>([]);
   const [pointsDisplayPulse, setPointsDisplayPulse] = useState(0);
   const [pointsSourcePulse, setPointsSourcePulse] = useState(0);
   const [gemSourcePulse, setGemSourcePulse] = useState<Record<GemType, number>>({ blue: 0, green: 0, purple: 0 });
@@ -219,49 +205,6 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   }, []);
 
   const rewardPoints = rewardOutcome?.points ?? tier.points;
-  useLayoutEffect(() => {
-    if (pointsPhase !== "flying" || !rewardPointsRef.current || !totalPointsRef.current) return;
-
-    const source = rewardPointsRef.current.getBoundingClientRect();
-    const end = totalPointsRef.current.getBoundingClientRect();
-    if (source.width === 0 || source.height === 0 || end.width === 0 || end.height === 0) return;
-
-    const startX = source.left + source.width / 2;
-    const startY = source.top + source.height / 2;
-    const endX = end.left + end.width / 2;
-    const endY = end.top + end.height / 2;
-    const iconCount = getScoreFlightIconCount(rewardPoints);
-    const icons = Array.from({ length: iconCount }, (_, index) => {
-      const ratio = iconCount === 1 ? 0 : index / (iconCount - 1);
-      return {
-        id: index,
-        startX: startX + (Math.random() - 0.5) * source.width * 0.55,
-        startY: startY + (Math.random() - 0.5) * source.height * 0.35,
-        scatterX: (Math.random() - 0.5) * 150,
-        scatterY: -35 - Math.random() * 100,
-        targetX: endX,
-        targetY: endY,
-        delay: Math.round(ratio * 780),
-      };
-    });
-
-    setFlightIcons(icons);
-    const timers = icons.map((icon, index) => window.setTimeout(() => {
-      setDisplayPoints(
-        stableTotalPoints + getScoreFlightAwardAtArrival(rewardPoints, iconCount, index + 1),
-      );
-      setPointsDisplayPulse(index + 1);
-      playSoundEffect("points");
-      vibrate("tap");
-      if (index === icons.length - 1) setPointsPhase("added");
-    }, icon.delay + 700));
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      setFlightIcons([]);
-    };
-  }, [pointsPhase, rewardPoints, stableTotalPoints]);
-
   const shouldRenderRewardSources = phase === "revealed" || phase === "disappearing";
   const rewardList = rewardOutcome?.rewards ?? [];
 
@@ -298,32 +241,23 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
           "fixed inset-x-0 top-10 z-30 flex flex-col items-center gap-2 transition-[opacity,transform] duration-300 ease-out sm:top-12",
           !shouldRenderRewardSources && "translate-y-2 opacity-0",
         )}>
-          <div
+          <MainPointsDisplay
             data-chest-total-points-shell
-            className="relative rounded-full px-4 py-2 text-white sm:px-5"
-          >
-            <MainPointsDisplayBackground pulse={pointsDisplayPulse} />
-            <div className="relative z-10 flex items-center gap-2">
-              <ScoreIcon size={24} className="size-6 brightness-0 invert" />
-              <span
-                ref={totalPointsRef}
-                data-chest-total-points
-                className={cn(
-                  "text-lg font-bold sm:text-xl",
-                  usesSuperWater && "font-super-water",
-                  pointsDisplayPulse > 0 && (pointsDisplayPulse % 2 === 0 ? "animate-score-bobble-alt" : "animate-score-bobble"),
-                )}
-              >
-                {formatRewardText(formatNumber(locale, displayPoints))}
-              </span>
-            </div>
-          </div>
+            targetRef={totalPointsRef}
+            pulse={pointsDisplayPulse}
+            className="sm:px-5"
+            icon={<ScoreIcon size={24} className="size-6 brightness-0 invert" />}
+            valueDataAttributes={{ "data-chest-total-points": "" }}
+            valueClassName={cn("text-lg font-bold sm:text-xl", usesSuperWater && "font-super-water")}
+            value={formatRewardText(formatNumber(locale, displayPoints))}
+          />
           <RewardGemHud
             className="transition-[opacity,transform] duration-300 ease-out"
             balances={gemDisplayBalances}
             pulse={gemPulse}
             superWater={usesSuperWater}
             desktopVisible
+            hudRole="reward"
           />
         </div>
 
@@ -418,33 +352,31 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
         ) : null}
       </div>
 
-      {flightIcons.length > 0 ? createPortal(flightIcons.map((icon) => (
-        <span
-          key={icon.id}
-          className="pointer-events-none fixed left-0 top-0 z-[111] animate-quiz-score-icon-flight"
-          aria-hidden="true"
-          onAnimationStart={() => setPointsSourcePulse((current) => current + 1)}
-          style={{
-            "--score-flight-start-x": `${icon.startX}px`,
-            "--score-flight-start-y": `${icon.startY}px`,
-            "--score-flight-scatter-x": `${icon.startX + icon.scatterX}px`,
-            "--score-flight-scatter-y": `${icon.startY + icon.scatterY}px`,
-            "--score-flight-target-x": `${icon.targetX}px`,
-            "--score-flight-target-y": `${icon.targetY}px`,
-            animationDelay: `${icon.delay}ms`,
-          } as CSSProperties}
-        >
-          <ScoreIcon size={32} />
-        </span>
-      )), document.body) : null}
-
-      <GemRewardFlight
-        rewards={pointsPhase === "flying" ? rewardList : null}
-        sourceRef={blueGemRewardRef}
-        sourceRefs={rewardGemSourceRefs}
+      <RewardScatter
+        points={pointsPhase === "flying" ? {
+          amount: rewardPoints,
+          source: rewardPointsRef,
+          target: totalPointsRef,
+          placement: { origin: "random", spreadX: 0.55, spreadY: 0.35 },
+          zIndex: 111,
+        } : null}
+        gems={{
+          rewards: pointsPhase === "flying" ? rewardList : [],
+          source: blueGemRewardRef,
+          sources: rewardGemSourceRefs,
+          targetSelector: '[data-reward-gem-hud-role="reward"] [data-reward-gem-target]',
+          placement: { origin: "random", spreadX: 0.55, spreadY: 0.35 },
+          zIndex: 112,
+        }}
+        onPointsLaunch={() => setPointsSourcePulse((current) => current + 1)}
+        onPointsArrive={(awardedTotal, arrivalIndex) => {
+          setDisplayPoints(stableTotalPoints + awardedTotal);
+          setPointsDisplayPulse(arrivalIndex);
+        }}
+        onPointsComplete={() => setPointsPhase("added")}
         onGemLaunch={bumpGemSourcePulse}
         onGemArrive={handleGemArrive}
-        onComplete={() => finishGemRewardDisplay(gemFinalBalancesRef.current)}
+        onGemsComplete={() => finishGemRewardDisplay(gemFinalBalancesRef.current)}
       />
     </div>
   );

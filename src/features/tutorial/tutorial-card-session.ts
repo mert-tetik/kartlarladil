@@ -7,6 +7,11 @@ export interface TutorialLayerOrigin {
 
 export const TUTORIAL_CARD_LAYER_OPENED_EVENT = "foxiesdeck:tutorial-card-layer-opened";
 export const TUTORIAL_CARD_LAYER_CLOSED_EVENT = "foxiesdeck:tutorial-card-layer-closed";
+export const TUTORIAL_CARD_LAYER_REQUESTED_EVENT = "foxiesdeck:tutorial-card-layer-requested";
+
+export interface TutorialCardLayerRequestedDetail {
+  layer: TutorialCardLayer;
+}
 
 export interface TutorialCardLayerOpenedDetail {
   layer: TutorialCardLayer;
@@ -20,6 +25,11 @@ export interface TutorialCardLayerClosedDetail {
 export function dispatchTutorialCardLayerOpened(detail: TutorialCardLayerOpenedDetail) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<TutorialCardLayerOpenedDetail>(TUTORIAL_CARD_LAYER_OPENED_EVENT, { detail }));
+}
+
+export function dispatchTutorialCardLayerRequested(detail: TutorialCardLayerRequestedDetail) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<TutorialCardLayerRequestedDetail>(TUTORIAL_CARD_LAYER_REQUESTED_EVENT, { detail }));
 }
 
 export function dispatchTutorialCardLayerClosed(detail: TutorialCardLayerClosedDetail) {

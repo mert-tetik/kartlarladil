@@ -5,6 +5,11 @@ describe("auth redirects", () => {
     expect(getSafeNextPath("/card-draw?x=1")).toBe("/card-draw?x=1");
   });
 
+  it("preserves mobile returning-login steps through the Google OAuth callback", () => {
+    const nextPath = "/?mobileLanguageRefresh=1&showOffer=1";
+    expect(getSafeNextPath(nextPath)).toBe(nextPath);
+  });
+
   it("normalizes legacy Turkish route names to English routes", () => {
     expect(getSafeNextPath("/kart-cek?x=1#deck")).toBe("/card-draw?x=1#deck");
     expect(getSafeNextPath("/profil")).toBe("/profile");

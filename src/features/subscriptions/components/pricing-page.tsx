@@ -1647,10 +1647,30 @@ const MOBILE_PERK_ARTWORK = [
   },
 ] as const;
 
+const PRO_MOBILE_PERK_ARTWORK = [
+  {
+    id: "unlimited-text-translation",
+    image: "/pricing-perks/unlimited-text-translation.png",
+    titleKey: "pricing.featureUnlimitedTextTranslation",
+    descriptionKey: "pricing.featureUnlimitedTextTranslation",
+  },
+  {
+    ...MOBILE_PERK_ARTWORK.find((perk) => perk.id === "practice")!,
+    titleKey: "pricing.featureUnlimitedAiPractice",
+  },
+  ...MOBILE_PERK_ARTWORK.filter((perk) => perk.id !== "practice"),
+] as const;
+
 const LOOPED_MOBILE_PERK_ARTWORK = [
   ...MOBILE_PERK_ARTWORK,
   ...MOBILE_PERK_ARTWORK,
   ...MOBILE_PERK_ARTWORK,
+];
+
+const LOOPED_PRO_MOBILE_PERK_ARTWORK = [
+  ...PRO_MOBILE_PERK_ARTWORK,
+  ...PRO_MOBILE_PERK_ARTWORK,
+  ...PRO_MOBILE_PERK_ARTWORK,
 ];
 
 function MobilePricingPerkCarousel({
@@ -1661,14 +1681,16 @@ function MobilePricingPerkCarousel({
   locale: LocaleCode;
 }) {
   const t = useT();
+  const perks = plan === "pro" ? PRO_MOBILE_PERK_ARTWORK : MOBILE_PERK_ARTWORK;
+  const loopedPerks = plan === "pro" ? LOOPED_PRO_MOBILE_PERK_ARTWORK : LOOPED_MOBILE_PERK_ARTWORK;
   const trackRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
-  const activeRenderIndexRef = useRef<number>(MOBILE_PERK_ARTWORK.length);
+  const activeRenderIndexRef = useRef<number>(perks.length);
   const activeIndexRef = useRef<number>(0);
   const initializedRef = useRef(false);
   const programmaticScrollUntilRef = useRef(0);
   const settleTimerRef = useRef<number | null>(null);
-  const [highlightRenderIndex, setHighlightRenderIndex] = useState<number>(MOBILE_PERK_ARTWORK.length);
+  const [highlightRenderIndex, setHighlightRenderIndex] = useState<number>(perks.length);
 
   const getNearestCardIndex = useCallback(() => {
     const track = trackRef.current;
@@ -1713,7 +1735,7 @@ function MobilePricingPerkCarousel({
   }, []);
 
   const moveToAdjacentCard = useCallback((direction: -1 | 1) => {
-    const total = MOBILE_PERK_ARTWORK.length;
+    const total = perks.length;
     const middleCopyStart = total;
     const middleCopyEnd = total * 2 - 1;
     const currentIndex = activeRenderIndexRef.current;
@@ -1734,7 +1756,7 @@ function MobilePricingPerkCarousel({
     }
 
     centerCard(targetIndex, "smooth");
-  }, [centerCard]);
+  }, [centerCard, perks]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -1743,7 +1765,7 @@ function MobilePricingPerkCarousel({
     const initializeCarousel = () => {
       if (initializedRef.current || track.clientWidth === 0) return;
 
-      const middleIndex = MOBILE_PERK_ARTWORK.length;
+      const middleIndex = perks.length;
       if (!cardRefs.current[middleIndex]) return;
 
       centerCard(middleIndex, "auto");
@@ -1760,7 +1782,7 @@ function MobilePricingPerkCarousel({
       if (nearestIndex < 0) return;
       if (window.performance.now() < programmaticScrollUntilRef.current) return;
 
-      const normalizedIndex = ((nearestIndex % MOBILE_PERK_ARTWORK.length) + MOBILE_PERK_ARTWORK.length) % MOBILE_PERK_ARTWORK.length;
+      const normalizedIndex = ((nearestIndex % perks.length) + perks.length) % perks.length;
       if (activeRenderIndexRef.current !== nearestIndex) {
         activeRenderIndexRef.current = nearestIndex;
         setHighlightRenderIndex(nearestIndex);
@@ -1779,17 +1801,17 @@ function MobilePricingPerkCarousel({
         window.clearTimeout(settleTimerRef.current);
       }
 
-      const middleCopyStart = MOBILE_PERK_ARTWORK.length;
+      const middleCopyStart = perks.length;
       const middleCopyEnd = middleCopyStart * 2;
       const needsLoopNormalization = nearestIndex < middleCopyStart || nearestIndex >= middleCopyEnd;
       settleTimerRef.current = window.setTimeout(() => {
-        const middleIndex = MOBILE_PERK_ARTWORK.length + activeIndexRef.current;
+        const middleIndex = perks.length + activeIndexRef.current;
         centerCard(middleIndex, needsLoopNormalization ? "auto" : "smooth");
       }, 140);
     };
 
     const handleResize = () => {
-      centerCard(MOBILE_PERK_ARTWORK.length + activeIndexRef.current, "auto");
+      centerCard(perks.length + activeIndexRef.current, "auto");
     };
 
     track.addEventListener("scroll", handleScroll, { passive: true });
@@ -1810,7 +1832,7 @@ function MobilePricingPerkCarousel({
         window.clearTimeout(settleTimerRef.current);
       }
     };
-  }, [centerCard, getNearestCardIndex]);
+  }, [centerCard, getNearestCardIndex, perks]);
 
   return (
     <div className="relative w-full">
@@ -1831,8 +1853,8 @@ function MobilePricingPerkCarousel({
         aria-label={t("pricing.mobileFeatureUnlimitedAccess")}
       >
         <div className="flex h-[clamp(14rem,40dvh,21rem)] w-max snap-x snap-mandatory gap-3 px-[14vw]">
-          {LOOPED_MOBILE_PERK_ARTWORK.map((perk, renderIndex) => {
-            const index = renderIndex % MOBILE_PERK_ARTWORK.length;
+          {loopedPerks.map((perk, renderIndex) => {
+            const index = renderIndex % perks.length;
             const isHighlighted = renderIndex === highlightRenderIndex;
             const perkImageOffset = perk.id === "themes"
               ? "-translate-y-12"
@@ -1872,7 +1894,7 @@ function MobilePricingPerkCarousel({
                     src={perk.image}
                     alt=""
                     fill
-                    priority={renderIndex === MOBILE_PERK_ARTWORK.length}
+                    priority={renderIndex === perks.length}
                     sizes="72vw"
                     className={cn(
                       perkImageOffset,
@@ -2052,7 +2074,7 @@ function MobilePricingView({
         <div className="h-20 shrink-0" aria-hidden="true" />
 
         <div className="flex min-h-0 w-full min-w-0 shrink-0 items-center" data-route-transition-surface>
-          <MobilePricingPerkCarousel plan={selectedOption.plan} locale={locale} />
+          <MobilePricingPerkCarousel key={selectedOption.plan} plan={selectedOption.plan} locale={locale} />
         </div>
       </div>
 
@@ -2068,7 +2090,7 @@ function MobilePricingView({
       </div>
 
       <div className="relative z-10 -translate-y-8 shrink-0">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 -translate-y-4" data-mobile-pricing-plan-toggle>
           {(["basic", "pro"] as const).map((plan) => {
             const isSelected = selectedOption.plan === plan;
             const planButtonImage = PRICING_PLAN_BUTTON_IMAGES[plan];

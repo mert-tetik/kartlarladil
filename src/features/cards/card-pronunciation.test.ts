@@ -1,6 +1,6 @@
 import { cardPronunciationRequestSchema, normalizeGeneratedPronunciation } from "@/features/cards/card-pronunciation";
 import { generatedCardSchema } from "@/features/cards/create-card-schema";
-import { LOCALE_CODES } from "@/data/languages";
+import { createCardTestLocaleRecord } from "@/test/card-locale-samples";
 
 describe("card pronunciation helpers", () => {
   it("accepts a simple Turkish-style Latin sound guide instead of IPA", () => {
@@ -26,14 +26,40 @@ describe("card pronunciation helpers", () => {
       termKind: "word" as const,
       term: "actually",
       partOfSpeech: "adverb",
-      translations: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "actually"])),
-      example: "Actually, I agree.",
-      exampleTranslation: "Aslında, katılıyorum.",
-      definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "A test definition."])),
+      translations: createCardTestLocaleRecord(),
+      examples: [
+        { sentence: "Actually, I agree.", translation: "Aslında, katılıyorum." },
+        { sentence: "She arrived earlier than expected.", translation: "Beklenenden daha erken geldi." },
+      ],
+      definitions: createCardTestLocaleRecord(),
       grammar: ["An adverb."],
     };
 
     expect(generatedCardSchema.parse({ ...baseCard, pronunciation: "Ekshılly" }).pronunciation).toBe("ekshılly");
     expect(generatedCardSchema.safeParse({ ...baseCard, pronunciation: "/æk.tʃu.ə.li/" }).success).toBe(false);
+  });
+
+  it("requires exactly two distinct example sentences", () => {
+    const baseCard = {
+      language: "en" as const,
+      tier: "A1" as const,
+      termKind: "word" as const,
+      term: "actually",
+      partOfSpeech: "adverb",
+      pronunciation: "ekshıllı",
+      translations: createCardTestLocaleRecord(),
+      examples: [
+        { sentence: "Actually, I agree.", translation: "Aslında, katılıyorum." },
+        { sentence: "She arrived earlier than expected.", translation: "Beklenenden daha erken geldi." },
+      ],
+      definitions: createCardTestLocaleRecord(),
+      grammar: ["An adverb."],
+    };
+
+    expect(generatedCardSchema.safeParse(baseCard).success).toBe(true);
+    expect(generatedCardSchema.safeParse({
+      ...baseCard,
+      examples: [baseCard.examples[0], { ...baseCard.examples[1], sentence: "Actually I agree" }],
+    }).success).toBe(false);
   });
 });

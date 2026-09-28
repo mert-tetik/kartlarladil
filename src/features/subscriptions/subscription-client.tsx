@@ -16,6 +16,7 @@ import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-b
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import type { UserEntitlements } from "@/types/domain";
 import { useAppMessage } from "@/components/app-message-provider";
+import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 
 const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
 
@@ -62,6 +63,7 @@ function writeCachedEntitlements(entitlements: UserEntitlements | null) {
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isVisualTestMode = isMissionVisualTestRoute(pathname);
   const [entitlements, setEntitlements] = useState<UserEntitlements | null>(readCachedEntitlements);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +77,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [error, showMessage]);
 
   const refreshEntitlements = useCallback(async () => {
+    if (isVisualTestMode) {
+      setIsLoading(false);
+      setError(null);
+      return null;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -92,13 +100,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return null;
     }
-  }, []);
+  }, [isVisualTestMode]);
 
   useEffect(() => {
+    if (isVisualTestMode) {
+      return;
+    }
+
     startTransition(() => {
       void refreshEntitlements();
     });
-  }, [refreshEntitlements]);
+  }, [isVisualTestMode, refreshEntitlements]);
 
   const presentPurchaseSuccess = useCallback(() => {
     setPurchaseSuccessOpen(true);
@@ -116,7 +128,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       value={{ entitlements, isLoading, error, refreshEntitlements, presentPurchaseSuccess }}
     >
       {children}
-      <GooglePlayBillingSync />
+      <GooglePlayBillingSync disabled={isVisualTestMode} />
       <SubscriptionPurchaseSuccessDialog
         open={purchaseSuccessOpen}
         onContinue={handlePurchaseSuccessContinue}
@@ -125,17 +137,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function GooglePlayBillingSync() {
+function GooglePlayBillingSync({ disabled }: { disabled: boolean }) {
   const isTwa = useTwaMode();
   const { isSupported, restorePurchases } = useGooglePlayBilling();
 
   useEffect(() => {
-    if (isTwa && isSupported) {
+    if (!disabled && isTwa && isSupported) {
       void restorePurchases().catch((error: unknown) => {
         console.error("Google Play purchase restoration failed on mount:", error);
       });
     }
-  }, [isTwa, isSupported, restorePurchases]);
+  }, [disabled, isTwa, isSupported, restorePurchases]);
 
   return null;
 }

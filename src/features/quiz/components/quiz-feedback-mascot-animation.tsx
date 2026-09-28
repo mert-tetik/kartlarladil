@@ -96,7 +96,7 @@ export function QuizFeedbackMascotAnimationView({
 
   return (
     <div
-      className="pointer-events-none relative h-[clamp(5.5rem,24vw,9rem)] w-[clamp(6.5rem,30vw,11rem)] shrink-0"
+      className="pointer-events-none relative h-[clamp(5.5rem,24vw,9rem)] w-[clamp(6.5rem,30vw,11rem)] origin-bottom-left shrink-0 scale-[1.7]"
       style={{ aspectRatio: `${animation.width} / ${animation.height}` }}
       aria-hidden="true"
       data-quiz-feedback-mascot={animation.id}

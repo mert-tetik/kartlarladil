@@ -89,6 +89,14 @@ function renderReward(onComplete = vi.fn()) {
   const video = view.container.querySelector("video");
   if (!video) throw new Error("Reward video was not rendered");
 
+  // jsdom does not calculate layout, but the shared scatter controller needs
+  // real source/target geometry before it can render flight particles.
+  const scatterSource = view.container.querySelector<HTMLElement>("[data-quiz-streak-scatter-source]");
+  const pointsTarget = view.container.querySelector<HTMLElement>("[data-main-points-display] > span");
+  if (!scatterSource || !pointsTarget) throw new Error("Reward scatter anchors were not rendered");
+  scatterSource.getBoundingClientRect = () => new DOMRect(120, 300, 180, 120);
+  pointsTarget.getBoundingClientRect = () => new DOMRect(140, 30, 160, 50);
+
   Object.defineProperty(video, "duration", { configurable: true, value: 4.064 });
   Object.defineProperty(video, "currentTime", { configurable: true, writable: true, value: 0 });
   Object.defineProperty(video, "paused", { configurable: true, value: false });

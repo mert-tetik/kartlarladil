@@ -9,6 +9,26 @@ vi.mock("@/features/auth/actions", () => ({
 }));
 
 describe("MobileEmailAuthForm", () => {
+  it("uses a language-refresh return URL only for sign-in, not registration", () => {
+    const { rerender } = render(
+      <LocaleProvider initialLocale="tr">
+        <MobileEmailAuthForm authType="login" onBack={vi.fn()} onToggleAuthType={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(document.querySelector<HTMLInputElement>('input[name="next"]')).toHaveValue(
+      "/?mobileLanguageRefresh=1&showOffer=1",
+    );
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <MobileEmailAuthForm authType="register" onBack={vi.fn()} onToggleAuthType={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(document.querySelector<HTMLInputElement>('input[name="next"]')).toHaveValue("/?showOffer=1");
+  });
+
   it("keeps the register button locked until required fields are valid", () => {
     render(
       <LocaleProvider initialLocale="tr">

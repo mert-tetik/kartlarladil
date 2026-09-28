@@ -24,6 +24,7 @@ import {
   TwaManifest,
 } from "@bubblewrap/core";
 import { patchGeneratedAndroidProject } from "./patch-generated-android.mjs";
+import { validateGoogleServicesConfig } from "./google-services-config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -37,8 +38,8 @@ const PACKAGE_ID =
   process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : 136;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.22";
+  : 138;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.24";
 const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
   ? path.resolve(process.env.TWA_KEYSTORE_PATH)
   : undefined;
@@ -205,6 +206,17 @@ async function main() {
   console.log(`TWA project will be created in: ${PROJECT_DIR}`);
   await fs.mkdir(PROJECT_DIR, { recursive: true });
 
+  const googleServicesPath = path.join(PROJECT_DIR, "app", "google-services.json");
+  let googleServicesContents;
+  try {
+    googleServicesContents = await fs.readFile(googleServicesPath);
+  } catch {
+    throw new Error(
+      `Firebase config is missing: ${googleServicesPath}. Restore the matching google-services.json before generating the Android project.`,
+    );
+  }
+  validateGoogleServicesConfig(googleServicesContents.toString("utf8"), PACKAGE_ID);
+
   const config = await loadConfig();
   const { url: manifestUrl, stop: stopServer } = await getManifestUrl();
 
@@ -251,6 +263,11 @@ async function main() {
         if (pct % 10 === 0) console.log(`  Progress: ${pct}%`);
       }
     );
+
+    // Bubblewrap may recreate the app module. Carry the local Firebase config
+    // through that generation so a fresh TWA init cannot silently drop it.
+    await fs.mkdir(path.dirname(googleServicesPath), { recursive: true });
+    await fs.writeFile(googleServicesPath, googleServicesContents);
 
     // Bubblewrap currently generates target SDK 35 and Billing 7.x through
     // its Digital Goods helper. Apply the repository-owned Play requirements

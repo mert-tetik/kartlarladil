@@ -68,41 +68,41 @@ const CARD_TIER_STYLES: Record<
   }
 > = {
   A1: {
-    border: "border-emerald-500/70 dark:border-emerald-400/70",
-    accent: "bg-emerald-500 dark:bg-emerald-400",
-    text: "text-emerald-800 dark:text-white",
+    border: "border-emerald-500/70",
+    accent: "bg-emerald-500",
+    text: "text-emerald-800",
     backPanel: "from-emerald-600 via-emerald-500 to-emerald-700",
     backBorder: "border-emerald-700/50",
     backText: "text-emerald-700",
   },
   A2: {
-    border: "border-sky-500/70 dark:border-sky-400/70",
-    accent: "bg-sky-500 dark:bg-sky-400",
-    text: "text-sky-800 dark:text-white",
+    border: "border-sky-500/70",
+    accent: "bg-sky-500",
+    text: "text-sky-800",
     backPanel: "from-sky-600 via-sky-500 to-blue-700",
     backBorder: "border-sky-700/50",
     backText: "text-sky-700",
   },
   B1: {
-    border: "border-violet-500/70 dark:border-violet-400/70",
-    accent: "bg-violet-500 dark:bg-violet-400",
-    text: "text-violet-800 dark:text-white",
+    border: "border-violet-500/70",
+    accent: "bg-violet-500",
+    text: "text-violet-800",
     backPanel: "from-violet-600 via-violet-500 to-fuchsia-700",
     backBorder: "border-violet-700/50",
     backText: "text-violet-700",
   },
   B2: {
-    border: "border-amber-500/70 dark:border-amber-400/70",
-    accent: "bg-amber-500 dark:bg-amber-400",
-    text: "text-amber-800 dark:text-white",
+    border: "border-amber-500/70",
+    accent: "bg-amber-500",
+    text: "text-amber-800",
     backPanel: "from-amber-500 via-yellow-500 to-amber-700",
     backBorder: "border-amber-700/50",
     backText: "text-amber-700",
   },
   C1: {
-    border: "border-rose-500/70 dark:border-rose-400/70",
-    accent: "bg-rose-500 dark:bg-rose-400",
-    text: "text-rose-800 dark:text-white",
+    border: "border-rose-500/70",
+    accent: "bg-rose-500",
+    text: "text-rose-800",
     backPanel: "from-rose-600 via-rose-500 to-red-700",
     backBorder: "border-rose-700/50",
     backText: "text-rose-700",
@@ -425,10 +425,9 @@ function CardFront({
       aria-hidden={!isFaceUp}
       inert={!isFaceUp}
       className={cn(
-        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-background-card [backface-visibility:hidden]",
+        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-white text-slate-950 [backface-visibility:hidden]",
         compact ? "p-1.5 sm:p-2" : "p-2.5 sm:p-4",
         frontFit ? "justify-between" : "max-sm:justify-between",
-        "dark:text-white",
         memoryGame ? "border-0" : style.border,
       )}
     >
@@ -466,7 +465,7 @@ function CardFront({
       <div className={cn("flex flex-1 flex-col justify-center text-center", compact ? "py-1 max-sm:py-0.5" : "py-4 max-sm:py-2", frontMinimal && "gap-1")} style={frontContentScale === 1 ? undefined : { transform: `scale(${frontContentScale})` }}>
         {!frontMinimal && !frontHideStudyMetadata ? (
           <>
-            <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-foreground-muted dark:text-white/70 max-sm:text-[10px]">
+            <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 max-sm:text-[10px]">
               <span>{getLanguageDisplayName(card.language, locale)}</span>
               <span
                 aria-label={`${tierPoints} ${t("common.points")}`}
@@ -478,17 +477,17 @@ function CardFront({
               </span>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-foreground-muted">
+            <div className="flex items-center justify-center gap-2 text-slate-500">
               <button
                 type="button"
                 aria-label={`${card.term} ${t("cards.speak")}`}
                 title={t("cards.speak")}
                 onClick={handleSpeakClick}
-                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:text-white dark:hover:bg-white/20 dark:hover:text-white max-sm:size-6"
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 max-sm:size-6"
               >
                 <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
               </button>
-              <span className="inline-flex items-center gap-1 text-sm text-foreground-muted dark:text-white/80 max-sm:text-xs">
+              <span className="inline-flex items-center gap-1 text-sm text-slate-500 max-sm:text-xs">
                 <span>{pronunciation}</span>
                 {isPronunciationLoading ? (
                   <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
@@ -499,7 +498,7 @@ function CardFront({
         ) : null}
         <h3
           className={cn(
-            "font-display font-semibold leading-none text-foreground dark:text-white",
+            "font-display font-semibold leading-none text-slate-950",
             frontMinimal
               ? compact
                 ? "text-lg max-sm:text-base"
@@ -513,18 +512,18 @@ function CardFront({
         </h3>
         {frontTranslationBelowTerm ? (
           <>
-            <p className={cn("mt-2 font-semibold leading-tight text-foreground/70 dark:text-white/85 max-sm:mt-1", frontFitCoreText ? "text-2xl max-sm:text-lg sm:text-4xl" : "text-xl max-sm:text-base sm:text-3xl")}>
+            <p className={cn("mt-2 font-semibold leading-tight text-slate-950/70 max-sm:mt-1", frontFitCoreText ? "text-2xl max-sm:text-lg sm:text-4xl" : "text-xl max-sm:text-base sm:text-3xl")}>
               {frontFitCoreText ? <FittedSingleLineText>{cardTranslation}</FittedSingleLineText> : cardTranslation}
             </p>
             {!frontMinimal && !frontHideStudyMetadata ? (
-              <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
+              <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
                 {getPartOfSpeechLabel(card.termKind, locale)}
               </p>
             ) : null}
           </>
         ) : !frontMinimal ? (
           <>
-          <p className="mt-3 text-sm font-semibold text-foreground-muted dark:text-white/70 max-sm:mt-1 max-sm:text-[10px]">
+          <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
             {getPartOfSpeechLabel(card.termKind, locale)}
           </p>
             <div
@@ -536,7 +535,7 @@ function CardFront({
             >
               <p
                 className={cn(
-                  "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
+                  "text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
                   frontFit ? "line-clamp-3" : "line-clamp-2",
                 )}
               >
@@ -554,7 +553,7 @@ function CardFront({
           >
             <p
               className={cn(
-                "text-lg font-semibold leading-6 text-foreground dark:text-white max-sm:text-xs max-sm:leading-tight",
+                "text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
                 frontFit ? "line-clamp-3" : "line-clamp-2",
                 "text-base max-sm:text-sm",
               )}
@@ -688,7 +687,7 @@ function CardBack({
       aria-hidden={isFaceUp && !isControlled}
       inert={isFaceUp && !isControlled}
       className={cn(
-        "absolute inset-0 overflow-hidden rounded-lg border border-border bg-background-card shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
+        "absolute inset-0 overflow-hidden rounded-lg border border-border bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
         "p-1.5 sm:p-2.5",
         compact && "p-0.5 sm:p-1",
       )}
@@ -696,7 +695,7 @@ function CardBack({
       <div
         data-card-back-tier={visibleBackTier}
         className={cn(
-          "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-foreground-inverse max-sm:p-2.5",
+          "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white max-sm:p-2.5",
           compact && "p-1 max-sm:p-0.5",
           style.backPanel,
           style.backBorder,
@@ -717,10 +716,10 @@ function CardBack({
 
         <div className="relative flex flex-1 flex-col">
           <div className="flex items-start justify-between gap-3">
-            <span className={cn("font-semibold text-foreground-inverse/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
+            <span className={cn("font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
               {getTierLabel(visibleBackTier, locale)}
             </span>
-            <span className={cn("font-semibold text-foreground-inverse/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
+            <span className={cn("font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
               {getLanguageDisplayName(card.language, locale)}
             </span>
           </div>
@@ -729,7 +728,7 @@ function CardBack({
             <div
               data-card-back-medallion="true"
               className={cn(
-                "relative flex items-center justify-center rounded-full border border-foreground-inverse/80 bg-background-card shadow-sm",
+                "relative flex items-center justify-center rounded-full border border-white/80 bg-white shadow-sm",
                 compact ? "size-10 max-sm:size-8" : "size-24 max-sm:size-16",
               )}
             >
@@ -747,12 +746,12 @@ function CardBack({
                 aria-hidden="true"
               />
             </div>
-            <p className={cn("font-semibold text-foreground-inverse/95", compact ? "mt-1 text-[10px] max-sm:text-[8px]" : "mt-4 text-sm max-sm:mt-2 max-sm:text-xs")}>
+            <p className={cn("font-semibold text-white/95", compact ? "mt-1 text-[10px] max-sm:text-[8px]" : "mt-4 text-sm max-sm:mt-2 max-sm:text-xs")}>
               {t("cards.flip")}
             </p>
           </div>
 
-          <div className={cn("flex items-end justify-between gap-3 font-semibold text-foreground-inverse/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
+          <div className={cn("flex items-end justify-between gap-3 font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
             <span>FoxiesDeck</span>
             <span>{t("cards.collection")}</span>
           </div>
@@ -768,7 +767,7 @@ function PlayingCardBackPattern() {
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 240 320"
-      className="pointer-events-none absolute inset-0 h-full w-full text-foreground-inverse/70"
+      className="pointer-events-none absolute inset-0 h-full w-full text-white/70"
       fill="none"
     >
       <g stroke="currentColor" strokeWidth="1.4">

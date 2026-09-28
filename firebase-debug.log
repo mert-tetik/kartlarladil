@@ -1,0 +1,80 @@
+[debug] [2026-09-27T12:32:15.368Z] ----------------------------------------------------------------------
+[debug] [2026-09-27T12:32:15.371Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:list --json
+[debug] [2026-09-27T12:32:15.371Z] CLI Version:   10.1.2
+[debug] [2026-09-27T12:32:15.371Z] Platform:      win32
+[debug] [2026-09-27T12:32:15.372Z] Node Version:  v24.15.0
+[debug] [2026-09-27T12:32:15.372Z] Time:          Sun Sep 27 2026 15:32:15 GMT+0300 (Türkiye Standard Time)
+[debug] [2026-09-27T12:32:15.372Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-27T12:32:15.392Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-27T12:32:15.452Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T12:32:15.481Z] Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at GoogleAuth.getApplicationDefaultAsync (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:180:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async GoogleAuth.getClient (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:558:17)
+    at async GoogleAuth.getAccessToken (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:580:24)
+    at async autoAuth (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:24:19)
+    at async Object.requireAuth [as fn] (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:45:20)
+    at async C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:188:17
+[error] 
+[error] Error: Failed to authenticate, have you run firebase login?
+[debug] [2026-09-27T12:33:03.552Z] ----------------------------------------------------------------------
+[debug] [2026-09-27T12:33:03.556Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:list --json
+[debug] [2026-09-27T12:33:03.557Z] CLI Version:   10.1.2
+[debug] [2026-09-27T12:33:03.557Z] Platform:      win32
+[debug] [2026-09-27T12:33:03.557Z] Node Version:  v24.15.0
+[debug] [2026-09-27T12:33:03.557Z] Time:          Sun Sep 27 2026 15:33:03 GMT+0300 (Türkiye Standard Time)
+[debug] [2026-09-27T12:33:03.558Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-27T12:33:03.562Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-27T12:33:03.589Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T12:33:03.617Z] Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at GoogleAuth.getApplicationDefaultAsync (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:180:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async GoogleAuth.getClient (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:558:17)
+    at async GoogleAuth.getAccessToken (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:580:24)
+    at async autoAuth (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:24:19)
+    at async Object.requireAuth [as fn] (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:45:20)
+    at async C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:188:17
+[error] 
+[error] Error: Failed to authenticate, have you run firebase login?
+[debug] [2026-09-27T12:33:29.625Z] ----------------------------------------------------------------------
+[debug] [2026-09-27T12:33:29.629Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:list --json
+[debug] [2026-09-27T12:33:29.629Z] CLI Version:   10.1.2
+[debug] [2026-09-27T12:33:29.629Z] Platform:      win32
+[debug] [2026-09-27T12:33:29.629Z] Node Version:  v24.15.0
+[debug] [2026-09-27T12:33:29.630Z] Time:          Sun Sep 27 2026 15:33:29 GMT+0300 (Türkiye Standard Time)
+[debug] [2026-09-27T12:33:29.630Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-27T12:33:29.634Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-27T12:33:29.665Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T12:33:29.696Z] Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at GoogleAuth.getApplicationDefaultAsync (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:180:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async GoogleAuth.getClient (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:558:17)
+    at async GoogleAuth.getAccessToken (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:580:24)
+    at async autoAuth (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:24:19)
+    at async Object.requireAuth [as fn] (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:45:20)
+    at async C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:188:17
+[error] 
+[error] Error: Failed to authenticate, have you run firebase login?
+[debug] [2026-09-27T12:37:06.930Z] ----------------------------------------------------------------------
+[debug] [2026-09-27T12:37:06.933Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js apps:sdkconfig ANDROID 1:880955474897:android:5bbbe6a85eb67f5f8456f0 --json
+[debug] [2026-09-27T12:37:06.933Z] CLI Version:   10.1.2
+[debug] [2026-09-27T12:37:06.933Z] Platform:      win32
+[debug] [2026-09-27T12:37:06.933Z] Node Version:  v24.15.0
+[debug] [2026-09-27T12:37:06.933Z] Time:          Sun Sep 27 2026 15:37:06 GMT+0300 (Türkiye Standard Time)
+[debug] [2026-09-27T12:37:06.933Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-27T12:37:06.937Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-27T12:37:06.962Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-27T12:37:06.989Z] Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at GoogleAuth.getApplicationDefaultAsync (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:180:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async GoogleAuth.getClient (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:558:17)
+    at async GoogleAuth.getAccessToken (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\google-auth-library\build\src\auth\googleauth.js:580:24)
+    at async autoAuth (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:24:19)
+    at async Object.requireAuth [as fn] (C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\requireAuth.js:45:20)
+    at async C:\Users\CASPER\AppData\Roaming\npm\node_modules\firebase-tools\lib\command.js:188:17
+[error] 
+[error] Error: Failed to authenticate, have you run firebase login?

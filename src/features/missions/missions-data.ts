@@ -2,6 +2,7 @@ import { AI_PRACTICE_CHARACTER_IDS } from "@/features/ai-practice/ai-practice-da
 import type { ChestTier } from "@/features/quiz/chest-rewards";
 import type { GameName } from "@/features/games/game-types";
 import type { MissionDefinition } from "./mission-types";
+import { createMissionGemReward } from "./mission-gem-reward-policy";
 
 const GAME_NAMES: GameName[] = ["memory", "wordChallenge", "wordMatch"];
 
@@ -49,35 +50,40 @@ export const MISSIONS: MissionDefinition[] = Array.from({ length: 80 }, (_, inde
     }
     case 1: {
       const requirement = Math.min(3 + tier * 3, 150);
+      const pointEquivalent = basePoints;
       return {
         id: `learn_cards_${index + 1}`,
         index,
         type: "learn_cards",
         requirement,
-        reward: { kind: "points", amount: basePoints },
+        reward: createMissionGemReward(pointEquivalent, tier, index),
       };
     }
     case 2: {
       const game = GAME_NAMES[tier % GAME_NAMES.length];
       const requirement = Math.min(3 + (tier % 6) * 2, 25);
+      const pointEquivalent = basePoints + 25;
       return {
         id: `game_level_${game}_${index + 1}`,
         index,
         type: "game_level",
         requirement,
         game,
-        reward: { kind: "points", amount: basePoints + 25 },
+        reward: { kind: "points", amount: pointEquivalent },
       };
     }
     case 3: {
       const characterId = AI_PRACTICE_CHARACTER_IDS[tier % AI_PRACTICE_CHARACTER_IDS.length];
+      const pointEquivalent = basePoints + 50;
       return {
         id: `ai_practice_${characterId}_${index + 1}`,
         index,
         type: "ai_practice",
         requirement: 1,
         characterId,
-        reward: { kind: "points", amount: basePoints + 50 },
+        reward: tier % 2 === 1
+          ? createMissionGemReward(pointEquivalent, tier, index)
+          : { kind: "points", amount: pointEquivalent },
       };
     }
     default:

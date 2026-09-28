@@ -169,6 +169,8 @@ export function BonusQuestionsTest() {
       <MobileQuizFeedback
         isOpen={!showIntro && showingAnswer && answerAccepted !== null}
         isCorrect={answerAccepted ?? false}
+        isBonus
+        forceMascotAnimation
         onNext={handleNext}
         showNextButton
       />

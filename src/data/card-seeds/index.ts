@@ -1,4 +1,5 @@
 import { masterCardEntries } from "./master-list";
+import { ADDITIONAL_CARD_ENTRIES } from "./additional-card-entries";
 import { CARD_SEED_LOCALE_ORDER } from "./types";
 import type { CardSeedModule } from "./types";
 
@@ -27,7 +28,7 @@ function rowsForLanguage(language: (typeof LOCALES)[number]) {
   const index = getLocaleIndex(language);
   const seen = new Set<string>();
 
-  return masterCardEntries.filter((row) => {
+  return [...masterCardEntries, ...ADDITIONAL_CARD_ENTRIES].filter((row) => {
     const term = String(row[index] ?? "").trim().toLowerCase();
     if (!term || seen.has(term)) return false;
     seen.add(term);

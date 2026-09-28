@@ -9,6 +9,7 @@ import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tu
 import {
   dispatchTutorialCardLayerClosed,
   dispatchTutorialCardLayerOpened,
+  dispatchTutorialCardLayerRequested,
   type TutorialLayerOrigin,
 } from "@/features/tutorial/tutorial-card-session";
 import { getTargetForStep, getTutorialStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
@@ -20,12 +21,14 @@ const SPOTLIGHT_PADDING = 18;
 const VIEWPORT_GAP = 16;
 const CALLOUT_WIDTH = 300;
 const MESSAGE_HEIGHT = 96;
+const ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH = 22;
 const TUTORIAL_START_DELAY_MS = 700;
 const SCREEN_TRANSITION_MS = 1000;
 const SCREEN_SCROLL_DELAY_MS = 400;
 const ORIGIN_SCREEN_ENTER_MS = 650;
 const ORIGIN_SCREEN_CLOSE_TOTAL_MS = 860;
 const LAYER_MESSAGE_VISIBLE_MS = 1500;
+const LAYER_OPEN_RECOVERY_TIMEOUT_MS = 4000;
 const WELCOME_EXIT_DURATION_MS = ORIGIN_SCREEN_CLOSE_TOTAL_MS;
 const TUTORIAL_MESSAGE_SURFACE_CLASS =
   "border-0 shadow-none outline-none ring-0 before:border-0 before:shadow-none before:outline-none before:ring-0";
@@ -106,6 +109,7 @@ export function LandingTutorial() {
   const layerRef = useRef<string | null>(null);
   const layerMessageTimerRef = useRef<number | null>(null);
   const layerMessageCloseTimerRef = useRef<number | null>(null);
+  const layerOpenRecoveryTimerRef = useRef<number | null>(null);
   const allowProgrammaticTargetClickRef = useRef(false);
   const targetTransitionStartedRef = useRef(false);
   const completionStartedRef = useRef(false);
@@ -131,11 +135,13 @@ export function LandingTutorial() {
     if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current);
     if (layerMessageTimerRef.current !== null) window.clearTimeout(layerMessageTimerRef.current);
     if (layerMessageCloseTimerRef.current !== null) window.clearTimeout(layerMessageCloseTimerRef.current);
+    if (layerOpenRecoveryTimerRef.current !== null) window.clearTimeout(layerOpenRecoveryTimerRef.current);
     welcomeExitTimerRef.current = null;
     transitionTimerRef.current = null;
     scrollTimerRef.current = null;
     layerMessageTimerRef.current = null;
     layerMessageCloseTimerRef.current = null;
+    layerOpenRecoveryTimerRef.current = null;
   }, []);
 
   const startInvisibleTransition = useCallback((options?: { scrollToTopAfterMs?: number; onComplete?: () => void }) => {
@@ -325,6 +331,28 @@ export function LandingTutorial() {
   }, [activeLayer, phase]);
 
   useEffect(() => {
+    if (phase !== "layer-wait" || !activeLayer) return;
+
+    layerOpenRecoveryTimerRef.current = window.setTimeout(() => {
+      if (phaseRef.current !== "layer-wait" || layerRef.current !== activeLayer) return;
+
+      // A guarded action can fail without changing the landing page state. Do
+      // not leave the tutorial's event blocker active forever in that case.
+      updateActiveLayer(null);
+      setIsChoiceExiting(false);
+      updatePhase("visible");
+      layerOpenRecoveryTimerRef.current = null;
+    }, LAYER_OPEN_RECOVERY_TIMEOUT_MS);
+
+    return () => {
+      if (layerOpenRecoveryTimerRef.current !== null) {
+        window.clearTimeout(layerOpenRecoveryTimerRef.current);
+        layerOpenRecoveryTimerRef.current = null;
+      }
+    };
+  }, [activeLayer, phase]);
+
+  useEffect(() => {
     if (phase !== "layer-message" || !activeLayer) return;
 
     layerMessageTimerRef.current = window.setTimeout(() => {
@@ -487,6 +515,9 @@ export function LandingTutorial() {
           } finally {
             window.setTimeout(() => { allowProgrammaticTargetClickRef.current = false; }, 0);
           }
+          // Keep the native click path for normal React handling, but also
+          // provide a direct state-opening path for guarded mobile actions.
+          dispatchTutorialCardLayerRequested({ layer: choice.layer });
           updateActiveLayer(choice.layer);
           dispatchTutorialCardLayerOpened({ layer: choice.layer, origin });
           setIsChoiceExiting(false);
@@ -611,8 +642,10 @@ function TutorialStartScreen() {
 
 function TutorialArrow({ position }: { position: SpotlightPosition }) {
   const controlY = position.arrowStartY + (position.arrowEndY - position.arrowStartY) / 2;
-  const path = `M ${position.centerX} ${position.arrowStartY} C ${position.centerX} ${controlY}, ${position.centerX} ${controlY}, ${position.centerX} ${position.arrowEndY}`;
-  return <svg aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 h-full w-full text-red-500" focusable="false"><defs><marker id="landing-tutorial-arrowhead" markerHeight="22" markerUnits="userSpaceOnUse" markerWidth="22" orient="auto" refX="0" refY="11" viewBox="0 0 22 22"><path d="M 0 0 L 22 11 L 0 22 z" fill="currentColor" /></marker></defs><path className="tutorial-arrow-path" d={path} fill="none" markerEnd="url(#landing-tutorial-arrowhead)" pathLength="1" stroke="currentColor" strokeLinecap="round" strokeWidth="8" /></svg>;
+  const arrowDirection = position.arrowEndY >= position.arrowStartY ? 1 : -1;
+  const arrowTipY = position.arrowEndY + arrowDirection * ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH;
+  const path = `M ${position.centerX} ${position.arrowStartY} C ${position.centerX} ${controlY}, ${position.centerX} ${controlY}, ${position.centerX} ${arrowTipY}`;
+  return <svg aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 h-full w-full text-red-500" focusable="false"><defs><marker id="landing-tutorial-arrowhead" data-tutorial-arrow-tip-anchor="path-end" markerHeight="14" markerUnits="userSpaceOnUse" markerWidth="14" orient="auto" refX="14" refY="7" viewBox="0 0 14 14"><path d="M 0 0 L 14 7 L 0 14 z" fill="currentColor" /></marker></defs><path className="tutorial-arrow-path" data-tutorial-arrow-anchor-y={position.arrowEndY} data-tutorial-arrow-tip-offset={arrowDirection * ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH} data-tutorial-arrow-tip-y={arrowTipY} d={path} fill="none" markerEnd="url(#landing-tutorial-arrowhead)" pathLength="1" stroke="currentColor" strokeLinecap="round" strokeWidth="5" /></svg>;
 }
 
 function isLandingPageReady() {

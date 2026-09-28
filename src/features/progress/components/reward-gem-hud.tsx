@@ -32,8 +32,8 @@ export function useGemRewardDisplay() {
     setBalances(getGemBalancesBeforeRewards(finalBalances, rewards));
   }, []);
 
-  const handleGemArrive = useCallback((type: GemType) => {
-    setBalances((current) => current ? { ...current, [type]: current[type] + 1 } : current);
+  const handleGemArrive = useCallback((type: GemType, amount = 1) => {
+    setBalances((current) => current ? { ...current, [type]: current[type] + amount } : current);
     pulseKeyRef.current += 1;
     setPulse({ type, key: pulseKeyRef.current });
   }, []);

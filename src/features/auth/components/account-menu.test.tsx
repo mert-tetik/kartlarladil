@@ -6,6 +6,8 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const subscriptionMock = vi.hoisted(() => ({ effectivePlan: "free" as "free" | "basic" | "pro" }));
+
 vi.mock("@/features/progress/progress-client", () => ({
   useProgressStats: () => ({
     stats: {
@@ -31,7 +33,7 @@ vi.mock("@/features/progress/progress-client", () => ({
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
-    entitlements: { effectivePlan: "free" },
+    entitlements: { effectivePlan: subscriptionMock.effectivePlan },
     isLoading: false,
   }),
 }));
@@ -116,5 +118,28 @@ describe("AccountMenu", () => {
     await user.click(screen.getByRole("menuitem", { name: /çıkış yap/i }));
 
     expect(window.sessionStorage.getItem("foxiesdeck:mobile-logout-auth")).toBe("1");
+  });
+
+  it("uses a muted full-width plan color for paid account details", async () => {
+    subscriptionMock.effectivePlan = "pro";
+    const user = userEvent.setup();
+
+    try {
+      render(
+        <AuthSessionProvider user={testUser}>
+          <LocaleProvider initialLocale="tr">
+            <AccountMenu user={testUser} />
+          </LocaleProvider>
+        </AuthSessionProvider>,
+      );
+
+      await user.click(screen.getByLabelText("Hesap menüsü"));
+
+      const identitySection = document.querySelector("[data-account-menu-identity]");
+      expect(identitySection).toHaveAttribute("data-account-menu-plan", "pro");
+      expect(identitySection).toHaveClass("bg-purple-950/55", "text-white");
+    } finally {
+      subscriptionMock.effectivePlan = "free";
+    }
   });
 });

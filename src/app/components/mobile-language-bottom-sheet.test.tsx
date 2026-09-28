@@ -19,6 +19,7 @@ describe("MobileLanguageBottomSheet", () => {
           onSelect={vi.fn()}
           optionStyle="navbar"
           showCounts={false}
+          tutorialLayer="custom-card"
         />
       </LocaleProvider>,
     );
@@ -33,6 +34,11 @@ describe("MobileLanguageBottomSheet", () => {
     const selectedText = selected.querySelector("span.min-h-8");
     expect(selectedText).toHaveClass("text-base");
     expect(selectedText).toHaveClass("text-brand-foreground");
-    expect(selected.querySelector("[style*='filter']")).not.toBeNull();
+    expect(selected.querySelector("[style*='filter']")).toHaveStyle({ filter: "brightness(0) invert(1)" });
+
+    const unselected = await screen.findByRole("button", { name: /Türkçe/i });
+    expect(unselected.querySelector("span.min-h-8")).toHaveClass("text-base", "font-semibold");
+    expect(unselected.querySelector("[style*='filter']")).toBeNull();
+    expect(document.querySelector("[data-tutorial-layer='custom-card']")).toBeInTheDocument();
   });
 });

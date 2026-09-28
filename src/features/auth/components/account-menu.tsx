@@ -19,10 +19,20 @@ import { formatNumber, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useVibration } from "@/lib/vibration";
+import type { SubscriptionPlan } from "@/types/domain";
 
 const MOBILE_LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const MOBILE_LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+
+const ACCOUNT_IDENTITY_PLAN_STYLES: Record<Exclude<SubscriptionPlan, "free">, string> = {
+  basic: "bg-blue-950/55",
+  pro: "bg-purple-950/55",
+};
+
+function getAccountIdentityPlanStyle(plan: SubscriptionPlan) {
+  return plan === "free" ? "" : ACCOUNT_IDENTITY_PLAN_STYLES[plan];
+}
 
 function AccountSubscriptionPlanImage({ mobile = false, onClose }: { mobile?: boolean; onClose: () => void }) {
   const { entitlements } = useSubscription();
@@ -67,8 +77,12 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
   const { stats } = useProgressStats();
   const { locale } = useLocale();
   const t = useT();
+  const { entitlements } = useSubscription();
   const { supported: vibrationSupported, enabled: vibrationEnabled, toggle: toggleVibration } = useVibration();
   const isMobileMenu = navbar && isMobileViewport;
+  const effectivePlan = entitlements?.effectivePlan ?? "free";
+  const hasPaidPlan = effectivePlan !== "free";
+  const identityPlanStyle = getAccountIdentityPlanStyle(effectivePlan);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -121,7 +135,15 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
         >
           {isMobileMenu ? (
             <>
-              <div className="flex flex-col items-center px-3 py-4 text-center">
+              <div
+                data-account-menu-identity
+                data-account-menu-plan={effectivePlan}
+                className={cn(
+                  "-mx-2 -mt-2 flex flex-col items-center rounded-t-md px-5 py-4 text-center",
+                  identityPlanStyle,
+                  hasPaidPlan ? "text-white" : "text-foreground",
+                )}
+              >
                 <button
                   type="button"
                   onClick={() => {
@@ -131,10 +153,17 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                   className="rounded-full transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   aria-label={t("profilePicture.title")}
                 >
-                  <ProfilePicture profilePictureIndex={user.profile.profilePictureIndex} alt="" className="size-20 rounded-full border border-border" />
+                  <ProfilePicture
+                    profilePictureIndex={user.profile.profilePictureIndex}
+                    alt=""
+                    className={cn(
+                      "size-20 rounded-full border",
+                      hasPaidPlan ? "border-white/25" : "border-border",
+                    )}
+                  />
                 </button>
-                <p className="mt-3 max-w-full truncate font-semibold text-foreground">{getAccountLabel(user)}</p>
-                <p className="mt-1 max-w-full truncate text-foreground-muted">{user.email}</p>
+                <p className="mt-3 max-w-full truncate font-semibold">{getAccountLabel(user)}</p>
+                <p className={cn("mt-1 max-w-full truncate", hasPaidPlan ? "text-white/70" : "text-foreground-muted")}>{user.email}</p>
                 <AccountSubscriptionPlanImage mobile onClose={() => setOpen(false)} />
               </div>
               <div className="h-px bg-border" />
@@ -143,9 +172,17 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
             </>
           ) : (
             <>
-              <div className="px-3 py-3">
-                <p className="font-semibold text-foreground">{getAccountLabel(user)}</p>
-                <p className="mt-1 truncate text-foreground-muted">{user.email}</p>
+              <div
+                data-account-menu-identity
+                data-account-menu-plan={effectivePlan}
+                className={cn(
+                  "-mx-2 -mt-2 rounded-t-md px-5 py-3",
+                  identityPlanStyle,
+                  hasPaidPlan ? "text-white" : "text-foreground",
+                )}
+              >
+                <p className="font-semibold">{getAccountLabel(user)}</p>
+                <p className={cn("mt-1 truncate", hasPaidPlan ? "text-white/70" : "text-foreground-muted")}>{user.email}</p>
                 <div className="mt-2">
                   <AccountSubscriptionPlanImage onClose={() => setOpen(false)} />
                 </div>

@@ -50,8 +50,8 @@ describe("MobileDayStreakMenu", () => {
     await user.click(screen.getByRole("button", { name: "SERI TAKVIMI" }));
 
     expect(document.querySelector("[data-day-streak-calendar-view]")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "HAFTAYA DON" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Eylul 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "HAFTAYA DÖN" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Eylül 2026" })).toBeInTheDocument();
 
     const closeButton = screen.getByRole("button", { name: "Kapat" });
     await user.click(closeButton);

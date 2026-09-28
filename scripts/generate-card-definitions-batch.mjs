@@ -9,12 +9,12 @@ const REQUEST_BATCH_SIZE = parsePositiveInt(process.env.CARD_DEFINITIONS_REQUEST
 const MAX_REQUESTS_PER_BATCH = parsePositiveInt(process.env.CARD_DEFINITIONS_MAX_REQUESTS_PER_BATCH) || 50;
 const LOCALES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
 const CARD_SEED_LOCALE_ORDER = LOCALES;
-const PARTIAL_PATH = "scripts/data/card-definitions.partial.json";
-const OUTPUT_PATH = "src/data/card-definitions.generated.ts";
-const INPUT_DIR = "scripts/data/card-definitions-batches";
-const RESULT_JSONL_PATH = "scripts/data/card-definitions.batch-output.jsonl";
-const ERROR_JSONL_PATH = "scripts/data/card-definitions.batch-errors.jsonl";
-const MANIFEST_PATH = "scripts/data/card-definitions.batch-manifest.json";
+const PARTIAL_PATH = process.env.CARD_DEFINITIONS_PARTIAL_PATH?.trim() || "scripts/data/card-definitions.partial.json";
+const OUTPUT_PATH = process.env.CARD_DEFINITIONS_OUTPUT_PATH?.trim() || "src/data/card-definitions.generated.ts";
+const INPUT_DIR = process.env.CARD_DEFINITIONS_INPUT_DIR?.trim() || "scripts/data/card-definitions-batches";
+const RESULT_JSONL_PATH = process.env.CARD_DEFINITIONS_RESULT_PATH?.trim() || "scripts/data/card-definitions.batch-output.jsonl";
+const ERROR_JSONL_PATH = process.env.CARD_DEFINITIONS_ERROR_PATH?.trim() || "scripts/data/card-definitions.batch-errors.jsonl";
+const MANIFEST_PATH = process.env.CARD_DEFINITIONS_MANIFEST_PATH?.trim() || "scripts/data/card-definitions.batch-manifest.json";
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
@@ -28,8 +28,9 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const { masterCardEntries } = loadTsModule("src/data/card-seeds/master-list.ts");
+const { ADDITIONAL_CARD_ENTRIES } = loadTsModule("src/data/card-seeds/additional-card-entries.ts");
 
-const concepts = masterCardEntries.map((row) => {
+const concepts = [...masterCardEntries, ...ADDITIONAL_CARD_ENTRIES].map((row) => {
   const [englishKey, tier, termKind, partOfSpeech] = row;
 
   return {
@@ -45,6 +46,9 @@ const concepts = masterCardEntries.map((row) => {
 });
 
 switch (COMMAND) {
+  case "plan":
+    printPendingPlan();
+    break;
   case "submit":
   case "retry":
     await submitBatch();
@@ -56,7 +60,7 @@ switch (COMMAND) {
     await applyBatchResults();
     break;
   default:
-    console.error(`Unknown command: ${COMMAND}. Use submit, retry, status, or apply.`);
+    console.error(`Unknown command: ${COMMAND}. Use plan, submit, retry, status, or apply.`);
     process.exit(1);
 }
 
@@ -348,6 +352,26 @@ function parseBatchContent(content) {
     }
     return null;
   }
+}
+
+function printPendingPlan() {
+  const existing = readPartial();
+  const pendingByLocale = Object.fromEntries(LOCALES.map((locale) => [
+    locale,
+    concepts.filter((concept) => !isValidDefinition(existing[concept.definitionKey]?.[locale])).length,
+  ]));
+  const requestCount = Object.values(pendingByLocale)
+    .reduce((total, count) => total + Math.ceil(count / REQUEST_BATCH_SIZE), 0);
+
+  console.log(JSON.stringify({
+    model: MODEL,
+    concepts: concepts.length,
+    existingConcepts: Object.keys(existing).length,
+    pendingDefinitions: Object.values(pendingByLocale).reduce((total, count) => total + count, 0),
+    pendingByLocale,
+    requestCount,
+    batchCount: Math.ceil(requestCount / MAX_REQUESTS_PER_BATCH),
+  }, null, 2));
 }
 
 function readManifest() {

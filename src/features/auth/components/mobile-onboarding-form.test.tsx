@@ -8,6 +8,7 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 
 vi.mock("@/features/auth/actions", () => ({
   completeOnboardingAction: vi.fn(),
+  updateMobileLoginLanguagePreferencesAction: vi.fn(),
 }));
 
 const testUser: AuthShellUser = {
@@ -78,5 +79,36 @@ describe("MobileOnboardingForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Geri dön" }));
     expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+  });
+
+  it("refreshes both login languages without rendering or submitting the avatar step", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <MobileOnboardingForm countryCode="TR" mode="login-language-refresh" />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const selectLanguage = async (code: string) => {
+      const flag = container.querySelector(`[data-onboarding-language-flag="${code}"]`);
+      await user.click(flag?.closest("button") as HTMLButtonElement);
+    };
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    expect(form).toHaveAttribute("data-mobile-onboarding-mode", "login-language-refresh");
+    expect(form).toHaveAttribute("data-mobile-onboarding-step", "native");
+    await selectLanguage("en");
+    const advanceButton = Array.from(form.querySelectorAll("button")).find((button) => !button.hasAttribute("aria-pressed"));
+    await user.click(advanceButton as HTMLButtonElement);
+
+    expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
+    expect(container.querySelector('[data-onboarding-language-flag="en"]')).not.toBeInTheDocument();
+    await selectLanguage("de");
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')).toBeInTheDocument();
+    expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
+    expect(container.querySelector('input[name="profilePictureIndex"]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[name="preferredTier"]')).not.toBeInTheDocument();
   });
 });

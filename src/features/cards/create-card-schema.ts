@@ -22,6 +22,26 @@ export const createCardRequestSchema = z.object({
 
 export type CreateCardRequest = z.infer<typeof createCardRequestSchema>;
 
+const generatedExampleSchema = z.object({
+  sentence: z.string().trim().min(1).max(300),
+  translation: z.string().trim().min(1).max(300),
+});
+
+const generatedExamplesSchema = z.array(generatedExampleSchema).length(2).superRefine((examples, context) => {
+  const normalize = (sentence: string) =>
+    sentence.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  const first = normalize(examples[0]?.sentence ?? "");
+  const second = normalize(examples[1]?.sentence ?? "");
+
+  if (first && first === second) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [1, "sentence"],
+      message: "Example sentences must be unique",
+    });
+  }
+});
+
 export const generatedCardSchema = z.object({
   language: z.enum(LANGUAGE_CODES),
   tier: z.enum(TIERS),
@@ -42,8 +62,7 @@ export const generatedCardSchema = z.object({
       (record) => LOCALE_CODES.every((code) => record[code]?.trim().length > 0),
       { message: "A translation is required for every supported locale" },
     ),
-  example: z.string().min(1).max(300),
-  exampleTranslation: z.string().min(1).max(300),
+  examples: generatedExamplesSchema,
   definitions: z
     .record(z.string(), z.string().min(1).max(240))
     .refine(
@@ -51,7 +70,41 @@ export const generatedCardSchema = z.object({
       { message: "A definition is required for every supported locale" },
     ),
   grammar: z.array(z.string().min(1).max(200)).max(4),
-});
+}).superRefine((generated, context) => {
+  for (const locale of LOCALE_CODES) {
+    if (!containsRequiredTargetScript(generated.translations[locale] ?? "", locale)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["translations", locale],
+        message: `Translation must use the native writing system for ${locale}`,
+      });
+    }
+
+    if (!containsRequiredTargetScript(generated.definitions[locale] ?? "", locale)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["definitions", locale],
+        message: `Definition must use the native writing system for ${locale}`,
+      });
+    }
+  }
+
+  generated.examples.forEach((example, index) => {
+    if (!containsRequiredTargetScript(example.sentence, generated.language)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["examples", index, "sentence"],
+        message: `Example sentence must use the native writing system for ${generated.language}`,
+      });
+    }
+  });
+}).transform((generated) => ({
+  ...generated,
+  // Keep the first-example aliases for existing card consumers while storing
+  // and rendering both examples from the same canonical array.
+  example: generated.examples[0].sentence,
+  exampleTranslation: generated.examples[0].translation,
+}));
 
 export type GeneratedCardResponse = z.infer<typeof generatedCardSchema>;
 

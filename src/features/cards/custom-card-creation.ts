@@ -41,8 +41,10 @@ function toGeneratedCardDraft(generated: GeneratedCardResponse): GeneratedCardDr
     partOfSpeech: generated.partOfSpeech,
     pronunciation: generated.pronunciation,
     translations: generated.translations,
-    example: generated.example,
-    exampleTranslation: generated.exampleTranslation,
+    examples: generated.examples.map((example) => ({
+      example: example.sentence,
+      translation: example.translation,
+    })),
     definitions: generated.definitions,
     grammar: generated.grammar,
     termKind: generated.termKind,

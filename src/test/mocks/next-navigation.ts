@@ -5,6 +5,7 @@ export function useRouter() {
     refresh: vi.fn(),
     push: vi.fn(),
     replace: vi.fn(),
+    prefetch: vi.fn(),
     back: vi.fn(),
     forward: vi.fn(),
   };

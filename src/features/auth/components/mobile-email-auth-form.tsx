@@ -61,12 +61,16 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
       onInput={updateRegisterFormReady}
       onChange={updateRegisterFormReady}
       onSubmit={() => {
-        if (typeof window !== "undefined") {
+        if (!isRegister && typeof window !== "undefined") {
           window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
         }
       }}
     >
-      <input type="hidden" name="next" value="/?showOffer=1" />
+      <input
+        type="hidden"
+        name="next"
+        value={isRegister ? "/?showOffer=1" : "/?mobileLanguageRefresh=1&showOffer=1"}
+      />
 
       <button
         type="button"

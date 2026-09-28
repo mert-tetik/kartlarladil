@@ -237,13 +237,14 @@ export function MobileCardGroupSheet({
         title={t("cards.groups.title")}
         panelLabel={t("cards.groups.title")}
         tutorialLayer="card-groups"
-        visual={<FolderPlus className="size-[3.25rem] stroke-[2.5] text-brand-foreground" aria-hidden="true" />}
+        tone="lime"
+        visual={<FolderPlus className="size-[3.25rem] stroke-[2.5] text-lime-950" aria-hidden="true" />}
         contentClassName={cn(
           "overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3",
           usesSuperWater && "font-super-water",
         )}
       >
-        <div className="mb-4 rounded-2xl bg-black/10 px-4 py-3 text-center text-sm font-medium text-brand-foreground/85">
+        <div className="mb-4 rounded-2xl bg-black/10 px-4 py-3 text-center text-sm font-medium text-lime-950/85">
           {displayText(t("cards.groups.description"))}
         </div>
 
@@ -256,7 +257,7 @@ export function MobileCardGroupSheet({
             return (
               <article
                 key={definition.id}
-                className="rounded-2xl border border-brand-foreground/15 bg-[#131313] p-3 transition-colors duration-300"
+                className="rounded-2xl border border-lime-950/15 bg-[#131313] p-3 transition-colors duration-300"
               >
               <div className="flex items-center gap-3">
                 <button
@@ -281,30 +282,30 @@ export function MobileCardGroupSheet({
                       role="heading"
                       aria-level={3}
                       className={cn(
-                        "block text-base font-semibold leading-tight text-brand-foreground",
+                        "block text-base font-semibold leading-tight text-white",
                         usesSuperWater ? "font-super-water" : "font-display",
                       )}
                     >
                       {displayText(t(definition.labelKey))}
                     </span>
-                    <span className="mt-1 block truncate text-xs text-brand-foreground/70">
+                    <span className="mt-1 block truncate text-xs text-lime-200/75">
                       {displayText(t("cards.groups.groupDescription", { group: t(definition.labelKey) }))}
                     </span>
-                    <span className="mt-1 block text-xs text-brand-foreground/70">
+                    <span className="mt-1 block text-xs text-lime-200/75">
                       {displayText(t("cards.groups.progress", {
                         owned: formatNumber(locale, owned),
                         total: formatNumber(locale, total),
                       }))}
                     </span>
                   </span>
-                  <ChevronDown className={cn("size-5 shrink-0 text-brand-foreground/70 transition-transform duration-300", expandedGroupId === definition.id && "rotate-180")} aria-hidden="true" />
+                  <ChevronDown className={cn("size-5 shrink-0 text-lime-300/80 transition-transform duration-300", expandedGroupId === definition.id && "rotate-180")} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   onClick={(event) => requestAddGroup(definition.id, newCards.map((card) => card.sourceKey), event.currentTarget.getBoundingClientRect())}
                   disabled={isAdding || isComplete || addingGroupId !== null || addingCardId !== null}
                   className={cn(
-                    "shrink-0 rounded-full bg-brand-foreground px-3 py-2 text-xs font-semibold text-brand transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
+                    "min-h-11 min-w-[6.5rem] shrink-0 rounded-full bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black transition-all duration-300 hover:bg-lime-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
                     isAdding && "animate-pulse",
                   )}
                   aria-label={`${t(definition.labelKey)} ${t(isAdding ? "cards.groups.adding" : isComplete ? "cards.groups.inDeck" : "cards.groups.add")}`}
@@ -318,7 +319,7 @@ export function MobileCardGroupSheet({
               </div>
 
               {expandedGroupId === definition.id ? (
-                <div id={`mobile-card-group-${definition.id}`} className="mt-3 space-y-2 border-t border-brand-foreground/15 pt-3">
+                <div id={`mobile-card-group-${definition.id}`} className="mt-3 space-y-2 border-t border-lime-950/15 pt-3">
                   {groupCards.map((card) => {
                     const isOwned = inventoryIds.has(card.id) || inventoryIds.has(card.sourceKey);
                     const isAddingCard = addingCardId === card.sourceKey;
@@ -384,7 +385,7 @@ export function MobileCardGroupSheet({
               ) : null}
 
               {addedCount ? (
-                <p className="mt-2 pl-[3.75rem] text-xs font-semibold text-brand-foreground">
+                <p className="mt-2 pl-[3.75rem] text-xs font-semibold text-lime-200">
                   {displayText(t("cards.groups.added", { count: formatNumber(locale, addedCount) }))}
                 </p>
               ) : null}

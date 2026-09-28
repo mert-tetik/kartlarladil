@@ -2,6 +2,7 @@ import {
   DELETE_ACCOUNT_CONFIRMATION,
   deleteAccountSchema,
   loginSchema,
+  mobileLoginLanguagePreferencesSchema,
   onboardingSchema,
   profilePictureIndexSchema,
   profileSchema,
@@ -54,6 +55,17 @@ describe("auth schemas", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("validates both refreshed mobile login languages and rejects identical selections", () => {
+    expect(mobileLoginLanguagePreferencesSchema.safeParse({
+      preferredLanguageCode: "en",
+      preferredUiLocale: "tr",
+    }).success).toBe(true);
+    expect(mobileLoginLanguagePreferencesSchema.safeParse({
+      preferredLanguageCode: "en",
+      preferredUiLocale: "en",
+    }).success).toBe(false);
   });
 
   it("accepts all as profile preferred tier", () => {

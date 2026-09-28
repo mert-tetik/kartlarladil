@@ -6,6 +6,10 @@ import { ChevronLeft, Library, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomCardDirectionToggle } from "@/app/components/custom-card-direction-toggle";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import {
+  CardGrammarDetailsButton,
+  CardGrammarDetailsOverlay,
+} from "@/features/cards/components/card-grammar-details-overlay";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { createCustomCardFromGenerated } from "@/features/cards/custom-card-creation";
 import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
@@ -50,6 +54,7 @@ export default function CreateCardPage() {
   const [clientReady, setClientReady] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -64,6 +69,7 @@ export default function CreateCardPage() {
   useEffect(() => {
     if (!foundCard) {
       setOverlayVisible(false);
+      setGrammarDetailsOpen(false);
       return;
     }
 
@@ -80,6 +86,7 @@ export default function CreateCardPage() {
     setLoading(true);
     setFoundCard(null);
     setAiResponse(null);
+    setGrammarDetailsOpen(false);
 
     try {
       const selectedCard = findCustomCardMatch({
@@ -112,6 +119,7 @@ export default function CreateCardPage() {
       const complete = () => {
         setFoundCard(null);
         setAiResponse(null);
+        setGrammarDetailsOpen(false);
         setTerm("");
         setIsExiting(false);
         showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
@@ -122,6 +130,7 @@ export default function CreateCardPage() {
       }).catch(() => {
         setFoundCard(null);
         setAiResponse(null);
+        setGrammarDetailsOpen(false);
         setIsExiting(false);
         showMessage(t("createCard.error.addFailed"), "error");
       });
@@ -142,6 +151,7 @@ export default function CreateCardPage() {
       window.setTimeout(() => {
         setFoundCard(null);
         setAiResponse(null);
+        setGrammarDetailsOpen(false);
         setTerm("");
         setIsExiting(false);
         showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(foundCard.language, locale) }), "success");
@@ -164,6 +174,7 @@ export default function CreateCardPage() {
     window.setTimeout(() => {
       setFoundCard(null);
       setAiResponse(null);
+      setGrammarDetailsOpen(false);
       setIsExiting(false);
     }, 300);
   }
@@ -252,16 +263,20 @@ export default function CreateCardPage() {
             isExiting || !overlayVisible ? "opacity-0" : "opacity-100",
           )}
         >
-          <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-hidden">
+          <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-visible">
             <div
               data-create-card-overlay-panel
               className={cn(
-                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-hidden bg-transparent p-0 transition-all duration-300",
+                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-visible bg-transparent p-0 transition-all duration-300",
                 isExiting || !overlayVisible ? "scale-95 opacity-0" : "scale-100 opacity-100",
               )}
             >
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-                <div className="w-full max-w-[15rem] sm:max-w-[18rem]">
+                <div className="relative w-full max-w-[15rem] sm:max-w-[18rem]">
+                  <CardGrammarDetailsButton
+                    onClick={() => setGrammarDetailsOpen(true)}
+                    className="absolute -left-1 top-[-3.25rem] z-30"
+                  />
                   <VocabularyCardView
                     card={foundCard}
                     initialFace="front"
@@ -300,6 +315,14 @@ export default function CreateCardPage() {
                 {isAlreadyInDeck ? t("createCard.alreadyInDeck") : t("createCard.add")}
               </Button>
             </div>
+
+            <CardGrammarDetailsOverlay
+              card={foundCard}
+              previewPayload={aiResponse}
+              open={grammarDetailsOpen}
+              nativeLocale={locale}
+              onClose={() => setGrammarDetailsOpen(false)}
+            />
           </div>
         </div>
       )}

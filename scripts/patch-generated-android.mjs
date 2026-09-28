@@ -9,6 +9,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateGoogleServicesConfig } from "./google-services-config.mjs";
+
+export { validateGoogleServicesConfig } from "./google-services-config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -18,6 +21,16 @@ export const ANDROID_TARGET_SDK = 36;
 export const PLAY_BILLING_VERSION = "8.0.0";
 export const ASSET_DELIVERY_VERSION = "2.3.0";
 export const PLAY_REVIEW_VERSION = "2.0.2";
+export const ANDROID_JAVA_TEMPLATE_FILES = [
+  "Application.java",
+  "LauncherActivity.java",
+  "LocalMediaWebViewClient.java",
+  "NativeMediaStore.java",
+  "NativeBillingBridge.java",
+  "NativeTextToSpeechBridge.java",
+  "NativeVibrationBridge.java",
+  "EventReceiverActivity.java",
+];
 
 async function readText(filePath) {
   return fs.readFile(filePath, "utf8");
@@ -26,6 +39,20 @@ async function readText(filePath) {
 async function writeText(filePath, contents) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, contents, "utf8");
+}
+
+export async function verifyGoogleServicesConfig(projectDir, expectedPackageName) {
+  const configPath = path.join(projectDir, "app", "google-services.json");
+  let contents;
+  try {
+    contents = await readText(configPath);
+  } catch {
+    throw new Error(
+      `Firebase config is missing: ${configPath}. Restore the matching google-services.json before building the Android app.`,
+    );
+  }
+
+  return validateGoogleServicesConfig(contents, expectedPackageName);
 }
 
 function matchValue(contents, expression, fallback) {
@@ -112,12 +139,15 @@ dependencies {
 }
 
 const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.vending.BILLING" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
 
     <application
         android:name="${packageName}.Application"
@@ -128,6 +158,10 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false">
+
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
 
         <activity
             android:name="${packageName}.LauncherActivity"
@@ -175,7 +209,25 @@ const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
-        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="android:windowBackground">#f76808</item>
+    </style>
+</resources>
+`;
+
+const APP_THEME_V31 = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:colorAccent">#fe6708</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowBackground">#f76808</item>
+        <item name="android:windowSplashScreenBackground">#f76808</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#f76808</item>
     </style>
 </resources>
 `;
@@ -215,17 +267,7 @@ ${rules.join("\n")}
 async function patchJavaTemplates(projectDir, packageName) {
   const packagePath = packageName.split(".").join(path.sep);
   const javaDir = path.join(projectDir, "app", "src", "main", "java", packagePath);
-  const templateNames = [
-    "LauncherActivity.java",
-    "LocalMediaWebViewClient.java",
-    "NativeMediaStore.java",
-    "NativeBillingBridge.java",
-    "NativeTextToSpeechBridge.java",
-    "NativeVibrationBridge.java",
-    "EventReceiverActivity.java",
-  ];
-
-  for (const templateName of templateNames) {
+  for (const templateName of ANDROID_JAVA_TEMPLATE_FILES) {
     const template = await readText(path.join(TEMPLATE_DIR, templateName));
     await writeText(
       path.join(javaDir, templateName),
@@ -253,6 +295,11 @@ export async function patchGeneratedAndroidProject(
   const versionName = matchValue(existingGradle, /versionName\s+["']([^"']+)["']/, "1.0.0");
   const minSdkVersion = matchValue(existingGradle, /minSdk(?:Version)?\s+(\d+)/, "24");
 
+  // The Google Services plugin can build a Firebase-enabled shell even when
+  // the JSON belongs to a different Android package, so check the identity
+  // before rewriting or compiling the generated project.
+  await verifyGoogleServicesConfig(projectDir, packageName);
+
   await writeText(
     appGradlePath,
     buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }),
@@ -264,6 +311,10 @@ export async function patchGeneratedAndroidProject(
     HYBRID_MANIFEST({ packageName }),
   );
   await writeText(path.join(projectDir, "app", "src", "main", "res", "values", "styles.xml"), APP_THEME);
+  await writeText(
+    path.join(projectDir, "app", "src", "main", "res", "values-v31", "styles.xml"),
+    APP_THEME_V31,
+  );
   await patchJavaTemplates(projectDir, packageName);
 
   const proguardPath = path.join(projectDir, "app", "proguard-rules.pro");

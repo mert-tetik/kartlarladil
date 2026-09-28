@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { DEFAULT_THEME_ID, getThemeCssText } from "@/lib/themes";
+import { DEFAULT_THEME_ID, getThemeById, getThemeCssText } from "@/lib/themes";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale, getServerTextDirection } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
@@ -53,7 +53,7 @@ export default async function RootLayout({
     getCurrentAuthUser(),
     headers(),
   ]);
-  const themeId = user?.profile.theme ?? DEFAULT_THEME_ID;
+  const themeId = getThemeById(user?.profile.theme ?? DEFAULT_THEME_ID).id;
   const onboardingCountryCode = requestHeaders.get("x-vercel-ip-country");
 
   return (

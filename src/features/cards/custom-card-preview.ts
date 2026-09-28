@@ -11,21 +11,21 @@ export function buildPreviewVocabularyCard(generated: GeneratedCardResponse): Vo
     translations[locale] = generated.translations[locale] ?? generated.translations["en"] ?? generated.term;
   }
 
-  const exampleTranslations: Record<string, string> = {};
-  for (const locale of LOCALE_CODES) {
-    exampleTranslations[locale] = locale === "en" ? generated.exampleTranslation : "";
-  }
+  const examples = generated.examples.map((example, index) => {
+    const exampleTranslations: Record<string, string> = {};
+    for (const locale of LOCALE_CODES) {
+      exampleTranslations[locale] = locale === "en" ? example.translation : "";
+    }
 
-  const examples = [
-    {
-      id: `${id}:example:0`,
-      context: "natural" as const,
-      label: "Natural",
-      sentence: generated.example,
-      translation: generated.exampleTranslation,
+    return {
+      id: `${id}:example:${index}`,
+      context: index === 0 ? "daily" as const : "natural" as const,
+      label: index === 0 ? "Daily" : "Natural",
+      sentence: example.sentence,
+      translation: example.translation,
       translations: exampleTranslations,
-    },
-  ];
+    };
+  });
 
   const grammar = {
     summary: "",

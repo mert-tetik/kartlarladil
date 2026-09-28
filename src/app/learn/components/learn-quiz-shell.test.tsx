@@ -48,7 +48,7 @@ describe("LearnQuizShell", () => {
     });
   });
 
-  it("shows a loading skeleton while the card pool rehydrates", () => {
+  it("does not show a loading indicator while the card pool rehydrates", () => {
     useInventoryStore.setState({
       cards: [],
       attempts: [],
@@ -65,8 +65,8 @@ describe("LearnQuizShell", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("status", { name: "Alıştırma hazırlanıyor" })).toBeVisible();
-    expect(screen.getByText("Kart haznen okunuyor.")).toBeVisible();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kart haznen okunuyor.")).not.toBeInTheDocument();
   });
 
   it("renders the mode selection immediately when persisted cards already exist", () => {

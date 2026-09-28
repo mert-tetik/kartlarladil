@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "dark";
 
 export const THEME_SWATCH_KEYS = ["actionLearn", "actionReview", "actionDraw", "actionCustom"] as const;
 export type ThemeSwatchKey = (typeof THEME_SWATCH_KEYS)[number];
@@ -37,12 +37,6 @@ type AccentSet = {
 
 type ThemeFamily = { id: string; name: string; brand: string; brandForeground: string; accents: AccentSet };
 
-const DEFAULT_LIGHT_SURFACES = {
-  background: "#f8fafc", backgroundCard: "#ffffff", backgroundMuted: "#f1f5f9", backgroundInverse: "#0f172a",
-  foreground: "#0f172a", foregroundSecondary: "#475569", foregroundMuted: "#94a3b8", foregroundInverse: "#ffffff",
-  foregroundInverseSecondary: "#cbd5e1", foregroundInverseMuted: "#94a3b8", border: "#e2e8f0",
-};
-
 const DEFAULT_DARK_SURFACES = {
   background: "#090909", backgroundCard: "#121212", backgroundMuted: "#1a1a1a", backgroundInverse: "#f5f5f5",
   foreground: "#fafafa", foregroundSecondary: "#a3a3a3", foregroundMuted: "#525252", foregroundInverse: "#090909",
@@ -70,13 +64,11 @@ const THEME_FAMILIES: ThemeFamily[] = [
   { id: "lime", name: "Lime", brand: "#84cc16", brandForeground: "#0f172a", accents: { ...DEFAULT_ACCENTS, actionLearn: "#65a30d", actionReview: "#0284c7", actionDraw: "#f59e0b", actionCustom: "#a855f7", accentPrimary: "#84cc16", accentSecondary: "#0284c7", accentTertiary: "#f59e0b", accentQuaternary: "#a855f7", rewardStart: "#bef264", rewardEnd: "#65a30d", rankStart: "#d9f99d", rankEnd: "#84cc16", missionStart: "#a3e635", missionEnd: "#4d7c0f", premiumStart: "#ecfccb", premiumEnd: "#84cc16" } },
 ];
 
-function buildPalette(family: ThemeFamily, mode: ThemeMode): ThemePalette {
-  const surfaces = mode === "dark" ? DEFAULT_DARK_SURFACES : DEFAULT_LIGHT_SURFACES;
+function buildPalette(family: ThemeFamily): ThemePalette {
   const { accents } = family;
-  const textFor = (light: string, dark: string) => (mode === "dark" ? dark : light);
 
   return {
-    ...surfaces,
+    ...DEFAULT_DARK_SURFACES,
     brand: family.brand,
     brandHover: `color-mix(in oklab, ${family.brand} 85%, black)`,
     brandForeground: family.brandForeground,
@@ -88,21 +80,21 @@ function buildPalette(family: ThemeFamily, mode: ThemeMode): ThemePalette {
     actionDraw: accents.actionDraw,
     actionCustom: accents.actionCustom,
     actionLearned: accents.actionReview,
-    actionInactive: mode === "dark" ? "#404040" : "#e2e8f0",
+    actionInactive: "#404040",
     accentPrimary: accents.accentPrimary,
     accentSecondary: accents.accentSecondary,
     accentTertiary: accents.accentTertiary,
     accentQuaternary: accents.accentQuaternary,
     tierA1: accents.tierA1,
-    tierA1Text: textFor("#059669", "#34d399"),
+    tierA1Text: "#34d399",
     tierA2: accents.tierA2,
-    tierA2Text: textFor("#0284c7", "#38bdf8"),
+    tierA2Text: "#38bdf8",
     tierB1: accents.tierB1,
-    tierB1Text: textFor("#7c3aed", "#a78bfa"),
+    tierB1Text: "#a78bfa",
     tierB2: accents.tierB2,
-    tierB2Text: textFor("#d97706", "#fbbf24"),
+    tierB2Text: "#fbbf24",
     tierC1: accents.tierC1,
-    tierC1Text: textFor("#e11d48", "#fb7185"),
+    tierC1Text: "#fb7185",
     rewardStart: accents.rewardStart,
     rewardEnd: accents.rewardEnd,
     rankStart: accents.rankStart,
@@ -116,22 +108,29 @@ function buildPalette(family: ThemeFamily, mode: ThemeMode): ThemePalette {
   };
 }
 
-export const THEMES: ThemeDefinition[] = THEME_FAMILIES.flatMap((family) =>
-  (["light", "dark"] as const).map((mode) => ({
-    id: mode === "light" ? family.id : `${family.id}-dark`,
-    name: mode === "light" ? family.name : `${family.name} Dark`,
-    mode,
-    brand: family.brand,
-    brandForeground: family.brandForeground,
-    palette: buildPalette(family, mode),
-  })),
-);
+export const THEMES: ThemeDefinition[] = THEME_FAMILIES.map((family) => ({
+  id: `${family.id}-dark`,
+  name: `${family.name} Dark`,
+  mode: "dark",
+  brand: family.brand,
+  brandForeground: family.brandForeground,
+  palette: buildPalette(family),
+}));
 
 export const DEFAULT_THEME_ID = "default-dark";
-export const FREE_THEME_IDS = new Set([DEFAULT_THEME_ID, `${DEFAULT_THEME_ID}-dark`]);
+export const FREE_THEME_IDS = new Set([DEFAULT_THEME_ID]);
 
 export function getThemeById(id: string | null | undefined): ThemeDefinition {
-  return THEMES.find((theme) => theme.id === id) ?? THEMES.find((theme) => theme.id === DEFAULT_THEME_ID)!;
+  const exactTheme = THEMES.find((theme) => theme.id === id);
+  if (exactTheme) {
+    return exactTheme;
+  }
+
+  const legacyDarkTheme = typeof id === "string"
+    ? THEMES.find((theme) => theme.id === `${id}-dark`)
+    : undefined;
+
+  return legacyDarkTheme ?? THEMES.find((theme) => theme.id === DEFAULT_THEME_ID)!;
 }
 
 function toCssVariableName(token: ThemeToken): `--${string}` {

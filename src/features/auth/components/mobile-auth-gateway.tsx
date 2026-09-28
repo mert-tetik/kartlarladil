@@ -155,7 +155,7 @@ function GatewayShell({
             <div
               ref={contentPanelRef}
               className={cn(
-                "w-full px-6",
+                "flex w-full justify-center px-6",
                 shouldShowOnboardingVisual && "pb-[max(4rem,env(safe-area-inset-bottom))]",
               )}
             >
@@ -172,9 +172,10 @@ const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
 const LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
+const MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM = "mobileLanguageRefresh";
 const MOBILE_BREAKPOINT = 1024;
 
-const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation"];
+const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation", "/visual-test-missions"];
 const SERIOUS_LEARNER_TEST_PARAM = "serious-learner-test";
 
 function getIsMobileViewport() {
@@ -213,6 +214,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isIosMobileTestMode() ? false : readWebChoice(),
   );
   const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
+  const [needsLoginLanguageRefresh, setNeedsLoginLanguageRefresh] = useState(false);
+  const [resumeLoginFlowAfterLanguageRefresh, setResumeLoginFlowAfterLanguageRefresh] = useState(false);
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
@@ -238,6 +241,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       setOfferTriggered(false);
       setOfferSeen(false);
       setOnboardingCompletedInSession(false);
+      setNeedsLoginLanguageRefresh(false);
       window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
     }
 
@@ -271,18 +275,19 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isAlreadySubscribed,
   );
   const needsAuth = !user;
+  const shouldRefreshLoginLanguages = Boolean(
+    user &&
+    hasCompletedOnboarding &&
+    (needsLoginLanguageRefresh || searchParams.get(MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM) === "1"),
+  );
 
   useEffect(() => {
-    if (!mounted || !user || !hasCompletedOnboarding) return;
+    if (!mounted || !user || needsOnboarding) return;
 
-    const shouldResetTutorial =
-      window.sessionStorage.getItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY) === "1";
-    if (!shouldResetTutorial) return;
-
-    resetTutorial();
-    activateTutorial();
-    window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
-  }, [mounted, user, hasCompletedOnboarding, activateTutorial, resetTutorial]);
+    setNeedsLoginLanguageRefresh(
+      window.sessionStorage.getItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY) === "1",
+    );
+  }, [mounted, user, needsOnboarding]);
 
   useEffect(() => {
     if (!isSeriousLearnerTestMode) return;
@@ -303,12 +308,32 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }, [isOfferEligible]);
 
   useEffect(() => {
+    if (!resumeLoginFlowAfterLanguageRefresh) return;
+    if (isOfferTriggered && isEntitlementsLoading) return;
+    if (isOfferEligible || offerActive) return;
+
+    activateTutorial();
+    setResumeLoginFlowAfterLanguageRefresh(false);
+    router.replace("/");
+  }, [
+    activateTutorial,
+    isEntitlementsLoading,
+    isOfferEligible,
+    isOfferTriggered,
+    offerActive,
+    resumeLoginFlowAfterLanguageRefresh,
+    router,
+  ]);
+
+  useEffect(() => {
     if (!user || offerSeen || isAlreadySubscribed) {
       setOfferActive(false);
     }
     if (!user) {
       deactivateTutorial();
       setOnboardingCompletedInSession(false);
+      setNeedsLoginLanguageRefresh(false);
+      setResumeLoginFlowAfterLanguageRefresh(false);
       setOfferTriggered(false);
       setOfferSeen(false);
     }
@@ -325,7 +350,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const showGateway =
     isTestMode ||
     isSeriousLearnerTestMode ||
-    (isMobileViewport && (needsAuth || needsOnboarding || shouldShowOffer));
+    (isMobileViewport && (needsAuth || needsOnboarding || shouldRefreshLoginLanguages || shouldShowOffer));
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
     mounted,
@@ -364,11 +389,23 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }
 
   function handleOnboardingComplete() {
+    window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
     // Prepare a fresh tutorial, but do not display it above the subscription offer.
     resetTutorial();
     setOnboardingCompletedInSession(true);
     setOfferTriggered(true);
     setOfferActive(true);
+    if (searchParams.get(MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM) === "1") {
+      router.replace("/?showOffer=1");
+    }
+  }
+
+  function handleLoginLanguageRefreshComplete() {
+    window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
+    setNeedsLoginLanguageRefresh(false);
+    setResumeLoginFlowAfterLanguageRefresh(true);
+    resetTutorial();
+    router.replace("/?showOffer=1");
   }
 
   function handleContinueFree() {
@@ -385,6 +422,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     }
 
     activateTutorial();
+    setResumeLoginFlowAfterLanguageRefresh(false);
     setOfferSeen(true);
     setOfferActive(false);
     setOfferTriggered(false);
@@ -400,13 +438,29 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if (isSeriousLearnerTestMode || shouldShowOffer) {
+    if (isSeriousLearnerTestMode) {
       gateway = (
         <GatewayShell fullBleed isTestMode={isTestMode || isSeriousLearnerTestMode}>
           <MobileSubscriptionOfferScreen
             isTestMode={isSeriousLearnerTestMode}
             onContinueFree={handleContinueFree}
           />
+        </GatewayShell>
+      );
+    } else if (!needsOnboarding && shouldRefreshLoginLanguages) {
+      gateway = (
+        <GatewayShell isTestMode={isTestMode} centered showBackground={false}>
+          <MobileOnboardingForm
+            countryCode={countryCode}
+            mode="login-language-refresh"
+            onComplete={handleLoginLanguageRefreshComplete}
+          />
+        </GatewayShell>
+      );
+    } else if (shouldShowOffer) {
+      gateway = (
+        <GatewayShell fullBleed isTestMode={isTestMode}>
+          <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
         </GatewayShell>
       );
     } else if (isIosTestMode && !hasChosenWeb) {

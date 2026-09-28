@@ -2,8 +2,8 @@
  * @vitest-environment node
  */
 
-import { LOCALE_CODES } from "@/data/languages";
 import { POST } from "@/app/api/cards/generate/route";
+import { createCardTestLocaleRecord } from "@/test/card-locale-samples";
 import { vi } from "vitest";
 
 const mockCreate = vi.hoisted(() => vi.fn());
@@ -35,8 +35,8 @@ function makeRequest(term = "sluşayu") {
 }
 
 function makeCardResponse() {
-  const translations = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "dinlemek"]));
-  const definitions = Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "Sesleri dikkatle duymak"]));
+  const translations = createCardTestLocaleRecord();
+  const definitions = createCardTestLocaleRecord();
 
   return {
     language: "ru",
@@ -46,10 +46,18 @@ function makeCardResponse() {
     partOfSpeech: "verb",
     pronunciation: "slushat",
     translations,
-    example: "Я люблю слушать музыку.",
-    exampleTranslation: "Müzik dinlemeyi severim.",
+    examples: [
+      { sentence: "Я люблю слушать музыку.", translation: "Müzik dinlemeyi severim." },
+      { sentence: "Она будет слушать новую запись вечером.", translation: "Akşam yeni kaydı dinleyecek." },
+    ],
     definitions,
     grammar: ["The infinitive ends in -ать."],
+  };
+}
+
+function makeOpenAiResponse(card: ReturnType<typeof makeCardResponse>) {
+  return {
+    output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(card) }] }],
   };
 }
 
@@ -75,6 +83,23 @@ describe("POST /api/cards/generate", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({ term: "слушать", language: "ru" });
+    expect((payload as { examples?: unknown[] }).examples).toHaveLength(2);
+    expect((payload as { example?: string }).example).toBe("Я люблю слушать музыку.");
     expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a generated card when its example ignores the target writing system", async () => {
+    const invalidCard = makeCardResponse();
+    invalidCard.examples[0]!.sentence = "I enjoy listening to music.";
+    mockCreate
+      .mockResolvedValueOnce(makeOpenAiResponse(invalidCard))
+      .mockResolvedValueOnce(makeOpenAiResponse(makeCardResponse()));
+
+    const response = await POST(makeRequest());
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({ language: "ru", term: makeCardResponse().term });
+    expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 });

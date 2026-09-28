@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LOCALE_CODES } from "@/data/languages";
+import { createCardTestLocaleRecord } from "@/test/card-locale-samples";
 import type { InventoryCard, UserEntitlements } from "@/types/domain";
 import {
   addCloudInventoryCardAction,
@@ -16,10 +17,12 @@ const {
   mockRevalidatePath,
   mockGetUserEntitlements,
   mockCheckLimit,
+  mockCreateSupabaseAdminClient,
 } = vi.hoisted(() => ({
   mockRevalidatePath: vi.fn(),
   mockGetUserEntitlements: vi.fn(),
   mockCheckLimit: vi.fn(),
+  mockCreateSupabaseAdminClient: vi.fn(),
 }));
 
 let currentSupabase: ReturnType<typeof createSupabaseMock>;
@@ -39,6 +42,10 @@ vi.mock("@/i18n/server", () => ({
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(() => Promise.resolve(currentSupabase)),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: mockCreateSupabaseAdminClient,
 }));
 
 interface UserCardRecord {
@@ -241,6 +248,41 @@ function createSupabaseMock(state: MockState, userId = "user-1") {
         error: null,
       })),
     },
+    rpc(name: string, args: { p_source_keys?: string[]; p_active_card_limit?: number | null }) {
+      if (name !== "add_user_cards_with_active_limit") {
+        return Promise.resolve({ data: null, error: new Error(`Unexpected RPC: ${name}`) });
+      }
+
+      const requestedKeys = [...new Set((args.p_source_keys ?? []).filter((key) => key.trim().length > 0))];
+      const existingKeys = new Set(
+        state.userCards
+          .filter((row) => row.user_id === userId)
+          .map((row) => row.card_source_key),
+      );
+      const newKeys = requestedKeys.filter((key) => !existingKeys.has(key));
+      const activeCount = state.userCards.filter((row) => row.user_id === userId && row.status === "active").length;
+      const availableSlots = args.p_active_card_limit === null || args.p_active_card_limit === undefined
+        ? newKeys.length
+        : Math.max(0, args.p_active_card_limit - activeCount);
+      const addedCardIds = newKeys.slice(0, availableSlots);
+      const remainingCardIds = newKeys.slice(addedCardIds.length);
+
+      state.userCards.push(
+        ...addedCardIds.map((cardSourceKey) => ({
+          user_id: userId,
+          card_source_key: cardSourceKey,
+          status: "active",
+          correct_count: 0,
+          added_at: "2026-01-01T00:00:00.000Z",
+          learned_at: null,
+        })),
+      );
+
+      return Promise.resolve({
+        data: { added_card_ids: addedCardIds, remaining_card_ids: remainingCardIds },
+        error: null,
+      });
+    },
     from(table: "user_cards" | "practice_attempts" | "custom_cards") {
       if (table === "custom_cards") {
         return Object.assign(new EmptyQueryBuilder(), {
@@ -375,6 +417,8 @@ describe("cloud-actions", () => {
 
   beforeEach(() => {
     currentSupabase = createSupabaseMock(createState());
+    mockCreateSupabaseAdminClient.mockReset();
+    mockCreateSupabaseAdminClient.mockImplementation(() => currentSupabase);
     mockRevalidatePath.mockReset();
     mockCheckLimit.mockReset();
     mockCheckLimit.mockReturnValue(null);
@@ -421,6 +465,21 @@ describe("cloud-actions", () => {
       VOCABULARY_CARDS[21]?.sourceKey,
     ]);
     expect(state.userCards).toHaveLength(20);
+  });
+
+  it("adds exactly the available twenty cards from a twenty-five-card Free batch", async () => {
+    currentSupabase = createSupabaseMock(createState());
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const requestedCards = VOCABULARY_CARDS.slice(0, 25);
+    const result = await addCloudInventoryCardsAction(requestedCards.map((card) => card.sourceKey));
+
+    expect(result.status).toBe("success");
+    expect(result.data?.addedCardIds).toHaveLength(20);
+    expect(result.data?.remainingCardIds).toEqual(
+      requestedCards.slice(20).map((card) => card.sourceKey),
+    );
+    expect(result.data?.cards.filter((card) => card.status === "active")).toHaveLength(20);
   });
 
   it("migrates local inventory directly with card_source_key rows", async () => {
@@ -562,6 +621,35 @@ describe("cloud-actions", () => {
     });
   });
 
+  it("rejects drafts without two distinct examples before writing anything", async () => {
+    const state = createState();
+    currentSupabase = createSupabaseMock(state);
+
+    const result = await createCustomCardAction({
+      language: "en",
+      tier: "A1",
+      termKind: "word",
+      draft: {
+        term: "custom",
+        partOfSpeech: "noun",
+        pronunciation: "kustom",
+        translations: createCardTestLocaleRecord(),
+        examples: [
+          { example: "This is a custom card.", translation: "Bu özel bir kart." },
+          { example: "This is a custom card!", translation: "Bu özel bir kart." },
+        ],
+        definitions: createCardTestLocaleRecord(),
+        grammar: [],
+        termKind: "word",
+      },
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.message).toBeTruthy();
+    expect(state.userCards).toHaveLength(0);
+    expect(mockCreateSupabaseAdminClient).not.toHaveBeenCalled();
+  });
+
   it("returns the system error message when custom card creation fails", async () => {
     const state = createState({
       customCardInsertError: {
@@ -580,10 +668,13 @@ describe("cloud-actions", () => {
       draft: {
         term: "custom",
         partOfSpeech: "noun",
-        pronunciation: "",
-        translations: Object.fromEntries(LOCALE_CODES.map((code) => [code, "custom"])),
-        example: "This is custom.",
-        exampleTranslation: "This is custom.",
+        pronunciation: "kustom",
+        translations: createCardTestLocaleRecord(),
+        examples: [
+          { example: "This is a custom card.", translation: "Bu özel bir kart." },
+          { example: "We created a custom design.", translation: "Özel bir tasarım oluşturduk." },
+        ],
+        definitions: createCardTestLocaleRecord(),
         grammar: ["Used as a noun."],
         termKind: "word",
       },
@@ -607,10 +698,13 @@ describe("cloud-actions", () => {
       draft: {
         term: "custom",
         partOfSpeech: "noun",
-        pronunciation: "",
-        translations: Object.fromEntries(LOCALE_CODES.map((code) => [code, code === "tr" ? "ozel" : "custom"])),
-        example: "Das ist custom.",
-        exampleTranslation: "This is custom.",
+        pronunciation: "kustom",
+        translations: createCardTestLocaleRecord(),
+        examples: [
+          { example: "Das ist eine Sonderanfertigung.", translation: "This is custom-made." },
+          { example: "Wir haben das Design angepasst.", translation: "We customized the design." },
+        ],
+        definitions: createCardTestLocaleRecord(),
         grammar: ["Used as a custom card."],
         termKind: "word",
       },
@@ -622,6 +716,10 @@ describe("cloud-actions", () => {
     expect(result.data?.vocabularyCard.sourceKey).toBe(result.data?.card.cardId);
     expect(result.data?.vocabularyCard.language).toBe("de");
     expect(result.data?.vocabularyCard.term).toBe("custom");
+    expect(result.data?.vocabularyCard.examples).toHaveLength(2);
+    expect(result.data?.vocabularyCard.definitionsByLocale).toMatchObject(
+      Object.fromEntries(LOCALE_CODES.map((code) => [code, expect.any(String)])),
+    );
     expect(state.userCards).toHaveLength(1);
     expect(state.userCards[0]?.card_source_key).toBe(result.data?.card.cardId);
   });

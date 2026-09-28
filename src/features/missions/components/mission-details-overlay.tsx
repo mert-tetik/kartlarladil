@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { createPortal } from "react-dom";
 import { ArrowRight, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { ScoreIcon } from "@/components/score-icon";
+import Image from "next/image";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
+import { GEM_ASSETS } from "@/features/gems/gem-types";
 import { getChestLabelKey } from "@/features/quiz/chest-rewards";
 import {
   canUseSuperWater,
@@ -27,7 +28,6 @@ import type { MissionDefinition, MissionStatus } from "@/features/missions/missi
 const CLOSE_ANIMATION_MS = 860;
 const CONTENT_ENTER_DELAY_MS = 520;
 const CONTENT_STEP_MS = 70;
-const CONTENT_ANIMATION_MS = 360;
 
 export interface MissionDetailsData {
   missionId: string;
@@ -52,16 +52,23 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
   const t = useT();
   const { locale } = useLocale();
   const { user } = useAuthSession();
-  const [closing, setClosing] = useState(false);
-  const [animationStarted, setAnimationStarted] = useState(false);
+  const [animationState, setAnimationState] = useState<{
+    missionId: string | null;
+    closing: boolean;
+    started: boolean;
+  }>({ missionId: null, closing: false, started: false });
   const closeTimerRef = useRef<number | null>(null);
+  const activeMissionId = mission?.missionId;
+  const isCurrentAnimation = Boolean(mission && animationState.missionId === mission.missionId);
+  const closing = isCurrentAnimation && animationState.closing;
+  const animationStarted = isCurrentAnimation && animationState.started;
 
   useEffect(() => {
-    if (!mission) return;
+    if (!activeMissionId) return;
 
-    setClosing(false);
-    setAnimationStarted(false);
-    const animationFrame = window.requestAnimationFrame(() => setAnimationStarted(true));
+    const animationFrame = window.requestAnimationFrame(() => {
+      setAnimationState({ missionId: activeMissionId, closing: false, started: true });
+    });
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
@@ -69,7 +76,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
         window.clearTimeout(closeTimerRef.current);
       }
     };
-  }, [mission]);
+  }, [activeMissionId]);
 
   useEffect(() => {
     if (!mission) return;
@@ -104,20 +111,21 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
   const statusText = formatSuperWaterUppercaseText(locale, t(isClaimed ? "missions.claimed" : "missions.locked"));
   const rewardText = activeMission.reward.kind === "chest"
     ? t("missions.reward.chest", { tier: t(getChestLabelKey(activeMission.reward.tier)) })
-    : t("missions.reward.points", { count: activeMission.reward.amount });
+    : activeMission.reward.kind === "points"
+      ? t("missions.reward.points", { count: activeMission.reward.amount })
+      : "";
   const contentItemCount = isLocked ? 4 : 3;
   const originX = sourceRect ? sourceRect.left + sourceRect.width / 2 : window.innerWidth / 2;
   const originY = sourceRect ? sourceRect.top + sourceRect.height / 2 : window.innerHeight / 2;
   const overlayStyle = {
     transformOrigin: `${originX}px ${originY}px`,
-    backgroundImage: getMissionCardBackground(activeMission.index, isClaimed),
+    backgroundImage: getMissionCardBackground(activeMission.index, isClaimed, activeMission.reward),
   } satisfies CSSProperties;
   const preferredLanguage = user?.profile.preferredLanguageCode ?? "en";
 
   function closeOverlay(afterClose?: () => void) {
     if (closing) return;
-    setAnimationStarted(true);
-    setClosing(true);
+    setAnimationState({ missionId: activeMission.missionId, closing: true, started: true });
     closeTimerRef.current = window.setTimeout(() => {
       onClose();
       afterClose?.();
@@ -212,8 +220,28 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
                     sizes="(min-width: 640px) 14rem, 12rem"
                     className="size-[12rem] sm:size-[14rem]"
                   />
-                  <p className="mt-3 text-xl font-bold text-white">
+                  <p className={cn(
+                    "mt-3 text-xl font-bold text-white",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}>
                     {formatSuperWaterText(locale, rewardText)}
+                  </p>
+                </div>
+              ) : activeMission.reward.kind === "gems" ? (
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <Image
+                    src={GEM_ASSETS[activeMission.reward.gemType]}
+                    alt=""
+                    width={144}
+                    height={144}
+                    className="size-36 object-contain drop-shadow-lg"
+                    aria-hidden="true"
+                  />
+                  <p className={cn(
+                    "text-4xl font-bold text-white",
+                    canUseSuperWater(locale) && "font-super-water",
+                  )}>
+                    ×{activeMission.reward.amount}
                   </p>
                 </div>
               ) : (
@@ -260,7 +288,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
               type="button"
               onClick={handleMissionAction}
               className={cn(
-                "relative -top-16 inline-flex min-h-14 w-full max-w-[28rem] items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-center text-lg font-bold text-black transition-transform hover:scale-[1.02] active:scale-[0.98]",
+                "relative top-[0.375rem] inline-flex min-h-14 w-full max-w-[28rem] items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-center text-lg font-bold text-black transition-transform hover:scale-[1.02] active:scale-[0.98]",
                 canUseSuperWater(locale) && "font-super-water",
               )}
             >

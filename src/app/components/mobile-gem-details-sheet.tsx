@@ -1,13 +1,14 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { convertGemToPointsAction } from "@/features/gems/gem-actions";
-import { GEM_ASSETS, GEM_POINTS, type GemType } from "@/features/gems/gem-types";
+import { GEM_ASSETS, GEM_POINTS, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { useProgressStats } from "@/features/progress/progress-client";
+import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -48,6 +49,12 @@ const CONTENT_ENTER_DELAY_MS = 520;
 const CONTENT_STEP_MS = 70;
 const CLOSE_ANIMATION_MS = 860;
 
+interface PendingConversion {
+  id: number;
+  type: GemType;
+  idempotencyKey: string;
+}
+
 export function MobileGemDetailsSheet({
   type,
   open,
@@ -65,11 +72,12 @@ export function MobileGemDetailsSheet({
   const [closing, setClosing] = useState(false);
   const [converting, setConverting] = useState(false);
   const [queuedConversions, setQueuedConversions] = useState(0);
-  const [flights, setFlights] = useState<Array<{ id: number; startX: number; startY: number; targetX: number; targetY: number }>>([]);
+  const [flights, setFlights] = useState<Array<{ id: number; source: DOMRect; type: GemType }>>([]);
   const convertButtonRef = useRef<HTMLButtonElement>(null);
-  const conversionQueueRef = useRef(0);
+  const conversionQueueRef = useRef<PendingConversion[]>([]);
   const conversionRunningRef = useRef(false);
   const balanceRef = useRef(0);
+  const optimisticBalancesRef = useRef<GemBalances>({ blue: 0, green: 0, purple: 0 });
   const gemPointsRef = useRef(0);
   const flightIdRef = useRef(0);
   const selectedType = type ?? displayedType;
@@ -126,14 +134,22 @@ export function MobileGemDetailsSheet({
   }, [onClose, presented]);
 
   useEffect(() => {
-    balanceRef.current = balanceForType;
+    const profileBalances: GemBalances = {
+      blue: user?.profile.blueGems ?? 0,
+      green: user?.profile.greenGems ?? 0,
+      purple: user?.profile.purpleGems ?? 0,
+    };
+    if (conversionQueueRef.current.length === 0) {
+      optimisticBalancesRef.current = profileBalances;
+    }
+    balanceRef.current = selectedType ? optimisticBalancesRef.current[selectedType] : balanceForType;
     gemPointsRef.current = user?.profile.gemPoints ?? 0;
-  }, [balanceForType, user?.profile.gemPoints]);
+  }, [balanceForType, selectedType, user?.profile.blueGems, user?.profile.greenGems, user?.profile.purpleGems, user?.profile.gemPoints]);
 
   if (!mounted || !presented || !selectedType || typeof document === "undefined") return null;
   const balance = balanceForType;
   const points = GEM_POINTS[selectedType];
-  const availableToQueue = Math.max(0, balance - queuedConversions);
+  const availableToQueue = Math.max(0, balanceRef.current);
   const useSuperWater = canUseSuperWater(locale);
   const gemName = formatSuperWaterText(locale, t(GEM_LABEL_KEYS[selectedType]));
   const gemDescription = formatSuperWaterText(locale, t(GEM_DESCRIPTION_KEYS[selectedType]));
@@ -162,53 +178,87 @@ export function MobileGemDetailsSheet({
     );
   }
 
+  function updateOptimisticProfile(type: GemType, nextBalance: number, nextPoints: number) {
+    optimisticBalancesRef.current[type] = nextBalance;
+    if (type === "blue") {
+      updateProfileField({ blueGems: nextBalance, gemPoints: nextPoints });
+    } else if (type === "green") {
+      updateProfileField({ greenGems: nextBalance, gemPoints: nextPoints });
+    } else {
+      updateProfileField({ purpleGems: nextBalance, gemPoints: nextPoints });
+    }
+  }
+
+  function getPendingCount(type: GemType) {
+    return conversionQueueRef.current.reduce((count, item) => count + (item.type === type ? 1 : 0), 0);
+  }
+
+  function removeFlight(id: number) {
+    setFlights((current) => current.filter((item) => item.id !== id));
+  }
+
   async function drainConversionQueue() {
     if (conversionRunningRef.current) return;
     conversionRunningRef.current = true;
     setConverting(true);
 
     try {
-      while (conversionQueueRef.current > 0) {
-        if (!user || balanceRef.current < 1) {
-          conversionQueueRef.current = 0;
+      while (conversionQueueRef.current.length > 0) {
+        const pending = conversionQueueRef.current[0];
+        const pendingType = pending.type;
+        if (!user) {
+          conversionQueueRef.current.forEach((item) => removeFlight(item.id));
+          conversionQueueRef.current = [];
           setQueuedConversions(0);
           break;
         }
 
-        const result = await convertGemToPointsAction(conversionType);
-        if (!result.success || !result.balances || !result.points) {
-          conversionQueueRef.current = 0;
-          setQueuedConversions(0);
-          break;
-        }
-
-        conversionQueueRef.current -= 1;
+        const result = await convertGemToPointsAction(pendingType, pending.idempotencyKey);
+        conversionQueueRef.current.shift();
         setQueuedConversions((current) => Math.max(0, current - 1));
-        balanceRef.current = Math.max(0, balanceRef.current - 1);
-        gemPointsRef.current += result.points;
-        const source = convertButtonRef.current?.getBoundingClientRect();
-        const target = document.querySelector<HTMLElement>("[data-mobile-main-points]")?.getBoundingClientRect();
-        if (source && target) {
-          const id = flightIdRef.current++;
-          setFlights((current) => [...current, {
-            id,
-            startX: source.left + source.width / 2,
-            startY: source.top + source.height / 2,
-            targetX: target.left + target.width / 2,
-            targetY: target.top + target.height / 2,
-          }]);
+
+        if (!result.success || !result.balances || result.points === undefined) {
+          removeFlight(pending.id);
+          const restoredBalance = optimisticBalancesRef.current[pendingType] + 1;
+          optimisticBalancesRef.current[pendingType] = restoredBalance;
+          balanceRef.current = selectedType === pendingType ? restoredBalance : balanceRef.current;
+          gemPointsRef.current = Math.max(0, gemPointsRef.current - GEM_POINTS[pendingType]);
+          updateOptimisticProfile(pendingType, restoredBalance, gemPointsRef.current);
+          continue;
         }
 
+        const pendingByType = {
+          blue: getPendingCount("blue"),
+          green: getPendingCount("green"),
+          purple: getPendingCount("purple"),
+        };
+        if (result.gemPoints !== undefined) {
+          const pendingPoints = (Object.keys(pendingByType) as GemType[]).reduce(
+            (total, type) => total + pendingByType[type] * GEM_POINTS[type],
+            0,
+          );
+          gemPointsRef.current = result.gemPoints + pendingPoints;
+        }
+        const optimisticBalances = {
+          blue: Math.max(0, result.balances.blue - pendingByType.blue),
+          green: Math.max(0, result.balances.green - pendingByType.green),
+          purple: Math.max(0, result.balances.purple - pendingByType.purple),
+        };
+
+        optimisticBalancesRef.current = optimisticBalances;
+        balanceRef.current = selectedType ? optimisticBalances[selectedType] : 0;
         updateProfileField({
-          blueGems: result.balances.blue,
-          greenGems: result.balances.green,
-          purpleGems: result.balances.purple,
+          blueGems: optimisticBalances.blue,
+          greenGems: optimisticBalances.green,
+          purpleGems: optimisticBalances.purple,
           gemPoints: gemPointsRef.current,
         });
-        playSoundEffect("gem-spend");
-        vibrate("tap");
-        await Promise.all([refreshProfile(), refreshStats()]);
       }
+
+      // Reconcile the optimistic UI with the atomic server result once all
+      // queued conversions have settled. This is intentionally one refresh,
+      // so rapid clicks do not make the display flicker between responses.
+      await Promise.all([refreshProfile(), refreshStats()]);
     } finally {
       conversionRunningRef.current = false;
       setConverting(false);
@@ -217,8 +267,30 @@ export function MobileGemDetailsSheet({
 
   function handleConvert() {
     if (closing || !user || availableToQueue < 1) return;
-    conversionQueueRef.current += 1;
+
+    const conversionId = flightIdRef.current++;
+    const source = convertButtonRef.current?.getBoundingClientRect();
+    const nextBalance = Math.max(0, optimisticBalancesRef.current[conversionType] - 1);
+    balanceRef.current = nextBalance;
+    gemPointsRef.current += points;
+    conversionQueueRef.current.push({
+      id: conversionId,
+      type: conversionType,
+      idempotencyKey: `landing:${crypto.randomUUID()}`,
+    });
     setQueuedConversions((current) => current + 1);
+    updateOptimisticProfile(conversionType, nextBalance, gemPointsRef.current);
+
+    if (source) {
+      setFlights((current) => [
+        ...current,
+        { id: conversionId, source, type: conversionType },
+      ]);
+    }
+
+    // The conversion is deliberately responsive: feedback and the visual
+    // reward start on the click, while the server action drains in order.
+    playSoundEffect("gem-spend");
     vibrate("tap");
     void drainConversionQueue();
   }
@@ -323,18 +395,23 @@ export function MobileGemDetailsSheet({
       </div>
 
       {flights.map((flight) => (
-        <span
+        <RewardScatter
           key={flight.id}
-          className="pointer-events-none fixed left-0 top-0 z-[100] animate-quiz-score-icon-flight"
-          onAnimationEnd={() => {
-            setFlights((current) => current.filter((item) => item.id !== flight.id));
-            playSoundEffect("points");
-            vibrate("tap");
+          points={{
+            amount: GEM_POINTS[flight.type],
+            iconCount: 1,
+            gemIcon: flight.type,
+            source: flight.source,
+            targetSelector: "[data-mobile-main-points]",
+            placement: { origin: "center" },
+            scatterOffset: { x: 0, y: -36 },
+            iconSize: 32,
+            zIndex: 100,
           }}
-          style={{ "--score-flight-start-x": `${flight.startX}px`, "--score-flight-start-y": `${flight.startY}px`, "--score-flight-scatter-x": `${flight.startX}px`, "--score-flight-scatter-y": `${flight.startY - 36}px`, "--score-flight-target-x": `${flight.targetX}px`, "--score-flight-target-y": `${flight.targetY}px` } as CSSProperties}
-        >
-          <Image src={GEM_ASSETS[selectedType]} alt="" width={32} height={32} className="size-8 object-contain" />
-        </span>
+          onPointsComplete={() => {
+            setFlights((current) => current.filter((item) => item.id !== flight.id));
+          }}
+        />
       ))}
     </div>
   );

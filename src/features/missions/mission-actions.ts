@@ -21,9 +21,11 @@ interface DbUserMission {
 
 interface DbMissionReward {
   mission_id: string;
-  reward_type: "chest" | "points";
+  reward_type: "chest" | "points" | "gems";
   chest_tier: ChestTier | null;
   points: number;
+  gem_type: GemType | null;
+  gem_amount: number | null;
   created_at: string;
 }
 
@@ -109,7 +111,7 @@ async function fetchMissionRewardOverrides(
 
   const { data, error } = await supabase
     .from("mission_rewards")
-    .select("mission_id, reward_type, chest_tier, points, created_at")
+    .select("mission_id, reward_type, chest_tier, points, gem_type, gem_amount, created_at")
     .eq("user_id", userId)
     .in("mission_id", Array.from(claimedMissionIds))
     .order("created_at", { ascending: false })
@@ -131,6 +133,19 @@ async function fetchMissionRewardOverrides(
 
     if (row.reward_type === "chest" && row.chest_tier && getChestRewardPoints(row.chest_tier) > 0) {
       overrides.set(row.mission_id, { kind: "chest", tier: row.chest_tier });
+      continue;
+    }
+
+    if (row.reward_type === "gems" && Number.isFinite(row.points) && row.points > 0) {
+      const [gem] = normalizeGemRewards([{ type: row.gem_type, amount: row.gem_amount }]);
+      if (gem) {
+        overrides.set(row.mission_id, {
+          kind: "gems",
+          gemType: gem.type,
+          amount: gem.amount,
+          pointEquivalent: row.points,
+        });
+      }
     }
   }
 
@@ -141,20 +156,40 @@ async function fetchCloudMissionSnapshot(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
   clientSnapshot: MissionProgressSnapshot,
+  strict = false,
 ): Promise<MissionProgressSnapshot> {
-  const [{ count: totalCards }, { count: learnedCards }, { data: practicedCharacters }] = await Promise.all([
+  const [
+    { count: totalCards, error: totalCardsError },
+    { count: learnedCards, error: learnedCardsError },
+    { data: practicedCharacters, error: practicedCharactersError },
+  ] = await Promise.all([
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("status", "learned"),
     supabase.from("ai_practice_scores").select("character_id").eq("user_id", userId),
   ]);
 
+  if (strict && (totalCardsError || learnedCardsError || practicedCharactersError)) {
+    throw new Error("mission_progress_verification_failed");
+  }
+
   return {
-    totalCards: totalCards ?? clientSnapshot.totalCards,
-    learnedCards: learnedCards ?? clientSnapshot.learnedCards,
+    totalCards: totalCards ?? (strict ? 0 : clientSnapshot.totalCards),
+    learnedCards: learnedCards ?? (strict ? 0 : clientSnapshot.learnedCards),
     bestMemoryLevel: clientSnapshot.bestMemoryLevel,
     bestWordChallengeLevel: clientSnapshot.bestWordChallengeLevel,
     bestWordMatchLevel: clientSnapshot.bestWordMatchLevel,
     practicedCharacterIds: new Set((practicedCharacters ?? []).map((row) => row.character_id as string)),
+  };
+}
+
+function createEmptyMissionProgressSnapshot(): MissionProgressSnapshot {
+  return {
+    totalCards: 0,
+    learnedCards: 0,
+    bestMemoryLevel: 0,
+    bestWordChallengeLevel: 0,
+    bestWordMatchLevel: 0,
+    practicedCharacterIds: new Set(),
   };
 }
 
@@ -222,7 +257,7 @@ export async function claimMissionRewardAction(
       return { status: "error", message: "auth_required" };
     }
 
-    const { userId } = authed;
+    const { userId, supabase } = authed;
     if (expectedUserId && expectedUserId !== userId) {
       return { status: "error", message: "auth_required" };
     }
@@ -233,9 +268,42 @@ export async function claimMissionRewardAction(
     }
 
     const reward = mission.reward;
-    const points = reward.kind === "chest" ? getChestRewardPoints(reward.tier) : reward.amount;
+    if (reward.kind === "gems") {
+      if (mission.type !== "learn_cards" && mission.type !== "ai_practice") {
+        return { status: "error", message: "unverifiable_gem_mission" };
+      }
+
+      const snapshot = await fetchCloudMissionSnapshot(
+        supabase,
+        userId,
+        createEmptyMissionProgressSnapshot(),
+        true,
+      );
+      const claimedMissionIds = await fetchClaimedMissionIds(supabase, userId);
+      if (claimedMissionIds.has(missionId)) {
+        return { status: "error", message: "mission_already_claimed" };
+      }
+      const currentMission = buildMissionViewModels(snapshot, claimedMissionIds)
+        .find((item) => item.missionId === missionId);
+      if (currentMission?.status !== "waiting") {
+        return { status: "error", message: "mission_not_ready" };
+      }
+    }
+
+    const points = reward.kind === "chest"
+      ? getChestRewardPoints(reward.tier)
+      : reward.kind === "points"
+        ? reward.amount
+        : reward.pointEquivalent;
     if (points <= 0) {
-      return { status: "error", message: reward.kind === "chest" ? "invalid_chest_reward" : "invalid_points_reward" };
+      return {
+        status: "error",
+        message: reward.kind === "chest"
+          ? "invalid_chest_reward"
+          : reward.kind === "gems"
+            ? "invalid_gem_reward"
+            : "invalid_points_reward",
+      };
     }
 
     const adminSupabase = createSupabaseAdminClient();
@@ -247,6 +315,8 @@ export async function claimMissionRewardAction(
         p_chest_tier: reward.kind === "chest" ? reward.tier : null,
         p_points: points,
         p_progress: mission.requirement,
+        p_gem_type: reward.kind === "gems" ? reward.gemType : null,
+        p_gem_amount: reward.kind === "gems" ? reward.amount : null,
       })
       .maybeSingle<DbMissionClaimResult>();
 
@@ -264,6 +334,9 @@ export async function claimMissionRewardAction(
     }
 
     const gemRewards = normalizeGemRewards(claim.gem_rewards);
+    if (reward.kind === "gems" && !gemRewards.some((item) => item.type === reward.gemType && item.amount === reward.amount)) {
+      throw new Error("mission_gem_reward_mismatch");
+    }
 
     revalidateMissionPaths();
 
@@ -273,11 +346,11 @@ export async function claimMissionRewardAction(
       points,
       missionPoints: claim.mission_points ?? 0,
       chestPoints: claim.chest_points ?? 0,
-      ...(reward.kind === "chest" && gemRewards.length
+      ...((reward.kind === "chest" || reward.kind === "gems") && gemRewards.length
         ? {
             gemRewards,
-            gemType: gemRewards[0]?.type,
-            gemAmount: gemRewards[0]?.amount,
+            gemType: reward.kind === "gems" ? reward.gemType : gemRewards[0]?.type,
+            gemAmount: reward.kind === "gems" ? reward.amount : gemRewards[0]?.amount,
             balances: {
               blue: claim.blue_gems ?? 0,
               green: claim.green_gems ?? 0,

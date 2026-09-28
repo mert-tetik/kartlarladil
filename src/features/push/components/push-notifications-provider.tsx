@@ -29,6 +29,7 @@ import {
 import { PUSH_APP_SURFACE, type PushActionResult, type PushPermissionState } from "@/features/push/push-types";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 
 interface PushNotificationsContextValue {
   supported: boolean;
@@ -45,6 +46,7 @@ const PushNotificationsContext = createContext<PushNotificationsContextValue | n
 export function PushNotificationsProvider({ children }: { children: ReactNode }) {
   const t = useT();
   const pathname = usePathname();
+  const isVisualTestMode = isMissionVisualTestRoute(pathname);
   const { user } = useAuthSession();
   const isTwa = useTwaMode();
   const supported = isPushSupported();
@@ -81,7 +83,7 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
 
   const pingActivity = useCallback(
     async (force = false) => {
-      if (!user || !isTwa || !supported) {
+      if (isVisualTestMode || !user || !isTwa || !supported) {
         return;
       }
 
@@ -101,10 +103,14 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
         keepalive: true,
       }).catch(() => undefined);
     },
-    [isTwa, supported, user],
+    [isTwa, isVisualTestMode, supported, user],
   );
 
   const enableNotifications = useCallback(async (): Promise<PushActionResult> => {
+    if (isVisualTestMode) {
+      return { ok: false, message: t("push.settings.errorUnknown") };
+    }
+
     if (!user) {
       return { ok: false, message: t("push.settings.errorAuthRequired") };
     }
@@ -168,9 +174,13 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     } finally {
       setBusy(false);
     }
-  }, [isTwa, pingActivity, postJson, publicKey, supported, t, user]);
+  }, [isTwa, isVisualTestMode, pingActivity, postJson, publicKey, supported, t, user]);
 
   const disableNotifications = useCallback(async (): Promise<PushActionResult> => {
+    if (isVisualTestMode) {
+      return { ok: false, message: t("push.settings.errorUnknown") };
+    }
+
     if (!user) {
       return { ok: false, message: t("push.settings.errorAuthRequired") };
     }
@@ -199,10 +209,10 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     } finally {
       setBusy(false);
     }
-  }, [postJson, t, user]);
+  }, [isVisualTestMode, postJson, t, user]);
 
   useEffect(() => {
-    if (!user || !isTwa || !supported) {
+    if (isVisualTestMode || !user || !isTwa || !supported) {
       return;
     }
 
@@ -226,10 +236,10 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     return () => {
       window.removeEventListener(POST_PRACTICE_NOTIFICATION_PROMPT_EVENT, handlePushPromptRequested);
     };
-  }, [busy, enableNotifications, enabled, isTwa, supported, user]);
+  }, [busy, enableNotifications, enabled, isTwa, isVisualTestMode, supported, user]);
 
   useEffect(() => {
-    if (!user || !isTwa || !supported) {
+    if (isVisualTestMode || !user || !isTwa || !supported) {
       syncAttemptedRef.current = null;
       return;
     }
@@ -251,14 +261,14 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
         await enableNotifications();
       }
     })();
-  }, [enableNotifications, enabled, isTwa, permission, supported, user]);
+  }, [enableNotifications, enabled, isTwa, isVisualTestMode, permission, supported, user]);
 
   useEffect(() => {
     void pingActivity();
   }, [pathname, pingActivity]);
 
   useEffect(() => {
-    if (!user || !isTwa || !supported) {
+    if (isVisualTestMode || !user || !isTwa || !supported) {
       return;
     }
 
@@ -273,10 +283,10 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isTwa, pingActivity, supported, user]);
+  }, [isTwa, isVisualTestMode, pingActivity, supported, user]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || isVisualTestMode) {
       return;
     }
 
@@ -300,7 +310,7 @@ export function PushNotificationsProvider({ children }: { children: ReactNode })
     const nextSearch = searchParams.toString();
     const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [pathname]);
+  }, [isVisualTestMode, pathname]);
 
   const value = useMemo<PushNotificationsContextValue>(
     () => ({

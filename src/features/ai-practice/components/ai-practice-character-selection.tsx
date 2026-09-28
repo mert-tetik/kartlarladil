@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, MessageCircle, UsersRound } from "lucide-react";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
-import { readLandingCardLanguage } from "@/app/components/landing-card-language";
+import { readLandingCardLanguage, writeLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
 import { setMobileNavbarBackOverride } from "@/components/mobile-navbar-back";
 import { LANGUAGES } from "@/data/languages";
@@ -89,6 +89,7 @@ export function AiPracticeCharacterSelection({
 
   function handleLanguageChange(code: LanguageCode) {
     setSelectedLanguage(code);
+    writeLandingCardLanguage(code);
     const nextPath = `/ai-practice/${code}/character?tier=${tier}&mode=${mode}`;
     router.prefetch(nextPath);
     navigateWithRouteTransition(() => router.replace(nextPath));
@@ -115,7 +116,6 @@ export function AiPracticeCharacterSelection({
               {getLanguageDisplayName(selectedLanguage, locale)}
             </span>
           </span>
-          <span className="text-xs font-semibold text-slate-500">{t("home.mobile.cardLanguage")}</span>
         </button>
       </div>
 
@@ -154,12 +154,9 @@ export function AiPracticeCharacterSelection({
         onClose={() => setLanguageSheetOpen(false)}
         options={languageOptions}
         selectedLanguage={selectedLanguage}
-        onSelect={(code) => {
-          setSelectedLanguage(code);
-          handleLanguageChange(code);
-        }}
+        onSelect={handleLanguageChange}
         showBackdrop
-        sheetClassName="max-h-[50dvh]"
+        sheetClassName="max-h-[85dvh]"
         showCounts={false}
         optionStyle="navbar"
       />

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { LOCALE_CODES } from "@/data/languages";
 import { getTierRequirement } from "@/features/quiz/quiz-engine";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
@@ -259,7 +260,7 @@ describe("inventory store analytics", () => {
       draft: {
         term: "foxling",
         partOfSpeech: "noun",
-        pronunciation: "/foks-ling/",
+        pronunciation: "foksling",
         translations: {
           tr: "tilki yavrusu",
           en: "foxling",
@@ -276,8 +277,11 @@ describe("inventory store analytics", () => {
           ko: "여우 새끼",
           "zh-CN": "小狐狸",
         },
-        example: "The foxling ran fast.",
-        exampleTranslation: "Tilki yavrusu hizli kosu.",
+        examples: [
+          { example: "The foxling ran fast.", translation: "Tilki yavrusu hızlı koştu." },
+          { example: "A foxling hid among the trees.", translation: "Bir tilki yavrusu ağaçların arasında saklandı." },
+        ],
+        definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [locale, "A young fox."])),
         grammar: ["countable noun"],
         termKind: "word",
       },
@@ -321,8 +325,14 @@ describe("inventory store analytics", () => {
         partOfSpeech: optimisticCard.partOfSpeech,
         pronunciation: optimisticCard.pronunciation,
         translations: optimisticCard.translations,
-        example: optimisticCard.example,
-        exampleTranslation: optimisticCard.exampleTranslation,
+        examples: optimisticCard.examples.map((example) => ({
+          example: example.sentence,
+          translation: example.translation,
+        })),
+        definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [
+          locale,
+          optimisticCard.definitionsByLocale?.[locale] ?? "A test definition.",
+        ])),
         grammar: optimisticCard.grammar.rules,
         termKind: optimisticCard.termKind,
       },
@@ -377,8 +387,14 @@ describe("inventory store analytics", () => {
         partOfSpeech: optimisticCard.partOfSpeech,
         pronunciation: optimisticCard.pronunciation,
         translations: optimisticCard.translations,
-        example: optimisticCard.example,
-        exampleTranslation: optimisticCard.exampleTranslation,
+        examples: optimisticCard.examples.map((example) => ({
+          example: example.sentence,
+          translation: example.translation,
+        })),
+        definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [
+          locale,
+          optimisticCard.definitionsByLocale?.[locale] ?? "A test definition.",
+        ])),
         grammar: optimisticCard.grammar.rules,
         termKind: optimisticCard.termKind,
       },

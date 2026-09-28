@@ -29,6 +29,7 @@ interface MobileLanguageBottomSheetProps {
   visualStyle?: "default" | "light";
   optionStyle?: "default" | "navbar";
   showCounts?: boolean;
+  tutorialLayer?: string;
 }
 
 export function MobileLanguageBottomSheet({
@@ -45,6 +46,7 @@ export function MobileLanguageBottomSheet({
   sheetClassName,
   optionStyle = "default",
   showCounts = true,
+  tutorialLayer,
 }: MobileLanguageBottomSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -65,6 +67,7 @@ export function MobileLanguageBottomSheet({
       panelLabel={t("home.mobile.selectLanguage")}
       panelClassName={cn("max-h-[85dvh]", sheetClassName)}
       showBackdrop={showBackdrop}
+      tutorialLayer={tutorialLayer}
       visual={<LanguageFlag code={selectedLanguage} className="size-[3.25rem]" />}
       contentClassName="overflow-y-auto p-4"
     >
@@ -126,12 +129,13 @@ export function MobileLanguageBottomSheet({
                         imageClassName="scale-100"
                         outlineInset="-inset-1.5"
                         selected={selected}
+                        outlineTone="white"
                       />
                     </span>
                     <span
                       className={cn(
                         "min-h-8 max-w-full px-1 leading-4",
-                        selected ? "text-base font-bold text-brand-foreground" : "text-[0.7rem] font-semibold",
+                        selected ? "text-base font-bold text-brand-foreground" : "text-base font-semibold",
                       )}
                     >
                       {language.nativeName}
