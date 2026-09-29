@@ -209,17 +209,21 @@ export function LearnQuizShell({
         className="mt-8 flex min-h-0 flex-1 flex-col items-stretch max-lg:mt-0 max-lg:w-full"
       >
         {selectedMode ? (
-          <QuizStation
-            key={selectedMode}
-            mode={selectedMode}
-            initialLanguage={initialLanguage ?? undefined}
-            normalQuestionType={normalQuestionType}
-            onPhaseChange={setPhase}
-            onBackToMode={() => {
-              setSelectedMode(null);
-              setPhase("mode");
-            }}
-          />
+          <div
+            className="quiz-transition-stage relative flex min-h-0 flex-1 flex-col"
+          >
+            <QuizStation
+              key={selectedMode}
+              mode={selectedMode}
+              initialLanguage={initialLanguage ?? undefined}
+              normalQuestionType={normalQuestionType}
+              onPhaseChange={setPhase}
+              onBackToMode={() => {
+                setSelectedMode(null);
+                setPhase("mode");
+              }}
+            />
+          </div>
         ) : (
           <LearnModeSelection
             onSelect={(mode) => {

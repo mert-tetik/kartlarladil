@@ -275,6 +275,7 @@ const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
 const QUIZ_CARD_REVEAL_ENTER_DURATION_MS = 360;
 const QUIZ_QUESTION_ENTRY_DURATION_MS = 360;
+const QUIZ_FLOW_TRANSITION_DURATION_MS = 360;
 const NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS = 650;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
@@ -579,6 +580,24 @@ export function QuizStation({
     );
   }, []);
 
+  function createFallbackTransitionSnapshot() {
+    const source =
+      document.querySelector<HTMLElement>("[data-quiz-card-progress-reveal]") ??
+      document.querySelector<HTMLElement>("[data-quiz-count-selection]") ??
+      document.querySelector<HTMLElement>("[data-learn-quiz-page='quiz']");
+    if (!source) return null;
+
+    const snapshot = source.cloneNode(true) as HTMLElement;
+    snapshot.removeAttribute("style");
+    snapshot.setAttribute("aria-hidden", "true");
+    snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
+      element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
+    });
+    snapshot.classList.add("quiz-transition-fallback-old");
+    document.body.appendChild(snapshot);
+    return snapshot;
+  }
+
   function runQuizViewTransition(update: () => void) {
     if (typeof document === "undefined") {
       update();
@@ -586,14 +605,18 @@ export function QuizStation({
     }
 
     const transitionDocument = document as QuizViewTransitionDocument;
-    if (!transitionDocument.startViewTransition) {
-      update();
+    if (transitionDocument.startViewTransition) {
+      transitionDocument.startViewTransition(() => {
+        flushSync(update);
+      });
       return;
     }
 
-    transitionDocument.startViewTransition(() => {
-      flushSync(update);
-    });
+    const snapshot = createFallbackTransitionSnapshot();
+    update();
+    if (snapshot) {
+      window.setTimeout(() => snapshot.remove(), QUIZ_FLOW_TRANSITION_DURATION_MS);
+    }
   }
 
   useEffect(() => {
@@ -635,12 +658,14 @@ export function QuizStation({
       Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
     );
 
-    setCardProgressFeedback({
-      id,
-      cardId: item.card.id,
-      stage: "appearing",
-      baseCount,
-      targetCount,
+    runQuizViewTransition(() => {
+      setCardProgressFeedback({
+        id,
+        cardId: item.card.id,
+        stage: "appearing",
+        baseCount,
+        targetCount,
+      });
     });
 
     const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"]) => {
@@ -2214,9 +2239,6 @@ export function QuizStation({
       />
       <div
         className="quiz-transition-viewport mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
-        style={supportsViewTransition && !cardProgressFeedback
-          ? { viewTransitionName: "quiz-question-ui" }
-          : undefined}
         data-learn-quiz-page="quiz"
       >
         <div
@@ -2368,6 +2390,7 @@ export function QuizStation({
         <CardProgressReveal
           item={item}
           feedback={cardProgressFeedback}
+          enterWithCss={!supportsViewTransition}
           onContinue={completeCardProgressReveal}
         />
       ) : null}
@@ -2402,10 +2425,12 @@ export function QuizStation({
 function CardProgressReveal({
   item,
   feedback,
+  enterWithCss,
   onContinue,
 }: {
   item: QuizItem;
   feedback: QuizCardProgressFeedback;
+  enterWithCss: boolean;
   onContinue: () => void;
 }) {
   const t = useT();
@@ -2446,9 +2471,11 @@ function CardProgressReveal({
         }
       }}
       data-quiz-card-progress-reveal
-      style={{ viewTransitionName: "quiz-question-ui" }}
     >
-      <div className="quiz-flow-enter-right flex min-h-full w-full max-w-md flex-col items-center justify-center gap-3">
+      <div className={cn(
+        enterWithCss && "quiz-flow-enter-right",
+        "flex min-h-full w-full max-w-md flex-col items-center justify-center gap-3",
+      )}>
         <div className="text-[clamp(2rem,9vw,4.5rem)] font-black leading-none text-emerald-500">
           {t("quiz.correctAnswerTitle")}
         </div>

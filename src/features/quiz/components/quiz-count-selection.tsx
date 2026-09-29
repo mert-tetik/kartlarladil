@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import {
@@ -30,8 +29,6 @@ const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
   "zh-CN": { 10: "快速", 20: "均衡", 30: "较长", 50: "马拉松" },
 };
 
-const COUNT_TRANSITION_DURATION_MS = 360;
-
 export function QuizCountSelection({
   mode,
   availableCount,
@@ -47,33 +44,12 @@ export function QuizCountSelection({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const [isLeaving, setIsLeaving] = useState(false);
-  const transitionTimerRef = useRef<number | null>(null);
   const useSuperWater = canUseSuperWater(locale);
   const showChestTiers = mode === "active";
 
-  useEffect(() => () => {
-    if (transitionTimerRef.current !== null) {
-      window.clearTimeout(transitionTimerRef.current);
-    }
-  }, []);
-
   function handleSelect(count: number) {
-    if (locked || isLeaving || count > availableCount) return;
-
-    const transitionDocument = document as unknown as {
-      startViewTransition?: (update: () => void) => unknown;
-    };
-    if (typeof transitionDocument.startViewTransition === "function") {
-      onSelect(count);
-      return;
-    }
-
-    setIsLeaving(true);
-    transitionTimerRef.current = window.setTimeout(() => {
-      onSelect(count);
-      transitionTimerRef.current = null;
-    }, COUNT_TRANSITION_DURATION_MS);
+    if (locked || count > availableCount) return;
+    onSelect(count);
   }
 
   return (
@@ -81,9 +57,7 @@ export function QuizCountSelection({
       data-quiz-count-selection
       className={cn(
         "quiz-flow-screen relative isolate flex min-h-[calc(100dvh-var(--app-header-height))] w-full flex-1 flex-col items-center justify-center overflow-hidden bg-background px-3 py-5 sm:px-5 sm:py-7",
-        isLeaving && "quiz-flow-exit-left",
       )}
-      style={{ viewTransitionName: "quiz-question-ui" } as CSSProperties}
     >
       <h1
         className={cn(
@@ -104,7 +78,7 @@ export function QuizCountSelection({
             <QuizWordButton
               key={count}
               wordType="correct"
-              disabled={unavailable || isLeaving}
+              disabled={unavailable}
               aria-label={`${name}: ${formatNumber(locale, count)}`}
               onClick={() => handleSelect(count)}
               className={cn(

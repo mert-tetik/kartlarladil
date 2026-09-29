@@ -1019,6 +1019,39 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: transform;
 }
 
+.quiz-transition-stage {
+  view-transition-name: quiz-question-ui;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+@keyframes quiz-transition-fallback-exit-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+.quiz-transition-fallback-old {
+  position: fixed !important;
+  inset: var(--app-header-height) 0 0 !important;
+  width: 100vw !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+  z-index: 120 !important;
+  animation: quiz-transition-fallback-exit-left 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+.quiz-transition-fallback-old[data-quiz-card-progress-reveal] {
+  inset: 0 !important;
+}
+
 /* The quiz viewport already has its own horizontal transition. Do not let
    question content add a second translateY/scale animation during the same
    frame, otherwise the whole question appears to jump vertically. */
