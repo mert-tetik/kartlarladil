@@ -37,7 +37,13 @@ interface Window {
     purchase(itemId: string): string;
   };
   FoxiesDeckNativeSpeech?: {
-    speak(text: string, languageTag: string, rate: number): boolean;
+    speak(
+      text: string,
+      languageTag: string,
+      rate: number,
+      voiceGender?: "female" | "male",
+      voiceAge?: "young" | "adult" | "elder",
+    ): boolean;
     stop(): void;
   };
 }

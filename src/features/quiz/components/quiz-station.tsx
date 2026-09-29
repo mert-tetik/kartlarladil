@@ -44,7 +44,11 @@ import {
   getStudyLocale,
 } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
-import { getAiPracticeCharacters, getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import {
+  getAiPracticeCharacters,
+  getCharacterName,
+  getCharacterVoiceProfile,
+} from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import {
@@ -89,6 +93,8 @@ import {
 import { getPointsForTier, RANK_ACCENT_COLORS } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
+import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
+import { QuizCountSelection } from "@/features/quiz/components/quiz-count-selection";
 import { RankUpMenu } from "@/features/progress/components/rank-progress-popover";
 import { acknowledgeRankUp, setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
@@ -181,8 +187,6 @@ import type {
 type QuizPhase =
   | "language"
   | "count"
-  | "quiz-start"
-  | "bonus-intro"
   | "quiz"
   | "streak-celebration"
   | "streak-reward"
@@ -199,6 +203,10 @@ type AdvanceQuizOptions = {
   bypassCelebration?: boolean;
   resultsOverride?: QuizResult;
   skipRankUpCheck?: boolean;
+};
+
+type QuizViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> };
 };
 
 const MODE_STYLE = {
@@ -254,15 +262,6 @@ const CHOICE_OPTION_COLORS = [
   "bg-emerald-500",
 ] as const;
 
-const SENTENCE_COMPLETION_OPTION_COLORS = [
-  "bg-red-500",
-  "bg-blue-500",
-  "bg-amber-400",
-  "bg-emerald-500",
-  "bg-violet-500",
-  "bg-pink-500",
-] as const;
-
 const RESULT_CARD_BACKGROUNDS = {
   correct: "/quiz/result-cards/correct.png",
   incorrect: "/quiz/result-cards/incorrect.png",
@@ -274,6 +273,9 @@ const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
 const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
+const QUIZ_CARD_REVEAL_ENTER_DURATION_MS = 360;
+const QUIZ_QUESTION_ENTRY_DURATION_MS = 360;
+const NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS = 650;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
 const QUIZ_CARD_COMPACT_SCALE = 0.78;
@@ -327,8 +329,7 @@ interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
 
 type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
 export type NormalQuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
-type QuizAnswerFeedbackState = "idle" | "correct" | "incorrect";
-type QuizCardFeedbackStage = "idle" | "growing" | "revealing" | "updating";
+type QuizCardFeedbackStage = "idle" | "appearing" | "growing" | "revealing" | "updating";
 
 interface QuizRerollAction {
   onReroll: () => void;
@@ -521,8 +522,6 @@ export function QuizStation({
   const [aiValidatingSentenceAnswer, setAiValidatingSentenceAnswer] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
   const [pendingStreak, setPendingStreak] = useState(false);
-  const [showSplash, setShowSplash] = useState(false);
-  const [nextQuestionEntryAnimation, setNextQuestionEntryAnimation] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
   const [pendingAnswerWrites, setPendingAnswerWrites] = useState(0);
@@ -538,7 +537,9 @@ export function QuizStation({
   const [bonusGemRewards, setBonusGemRewards] = useState<GemRewards>([]);
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
+  const [supportsViewTransition, setSupportsViewTransition] = useState(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
+  const normalAnswerAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
   const cardProgressTimeoutIdsRef = useRef<number[]>([]);
@@ -572,6 +573,30 @@ export function QuizStation({
   }, [stats]);
 
   useEffect(() => {
+    setSupportsViewTransition(
+      typeof document !== "undefined" &&
+        typeof (document as QuizViewTransitionDocument).startViewTransition === "function",
+    );
+  }, []);
+
+  function runQuizViewTransition(update: () => void) {
+    if (typeof document === "undefined") {
+      update();
+      return;
+    }
+
+    const transitionDocument = document as QuizViewTransitionDocument;
+    if (!transitionDocument.startViewTransition) {
+      update();
+      return;
+    }
+
+    transitionDocument.startViewTransition(() => {
+      flushSync(update);
+    });
+  }
+
+  useEffect(() => {
   const isQuizInProgress = phase !== "language" && phase !== "count";
     setQuizRankUpDeferred(isQuizInProgress);
     return () => setQuizRankUpDeferred(false);
@@ -583,9 +608,22 @@ export function QuizStation({
     setCardProgressFeedback(null);
   }, []);
 
+  const clearNormalAnswerAdvance = useCallback(() => {
+    if (normalAnswerAdvanceTimeoutRef.current !== null) {
+      window.clearTimeout(normalAnswerAdvanceTimeoutRef.current);
+      normalAnswerAdvanceTimeoutRef.current = null;
+    }
+  }, []);
+
   const startCardProgressFeedback = useCallback((item: QuizItem, isCorrect: boolean) => {
-    if (item.questionType === "text" || item.willLearn) {
-      return;
+    if (
+      mode !== "active" ||
+      !isCorrect ||
+      item.questionType === "text" ||
+      item.willLearn ||
+      isBonusQuizItem(item)
+    ) {
+      return false;
     }
 
     clearCardProgressFeedback();
@@ -597,7 +635,15 @@ export function QuizStation({
       Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
     );
 
-    const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"] | null) => {
+    setCardProgressFeedback({
+      id,
+      cardId: item.card.id,
+      stage: "appearing",
+      baseCount,
+      targetCount,
+    });
+
+    const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"]) => {
       const timeoutId = window.setTimeout(() => {
         if (stage === "growing") {
           vibrate("flip");
@@ -608,23 +654,9 @@ export function QuizStation({
           vibrate("tap");
         }
 
-        if (stage === null) {
-          setCardProgressFeedback(null);
-        } else {
-          setCardProgressFeedback((current) =>
-            current?.id === id
-              ? { ...current, stage }
-              : stage === "growing"
-                ? {
-                    id,
-                    cardId: item.card.id,
-                    stage,
-                    baseCount,
-                    targetCount,
-                  }
-                : current,
-          );
-        }
+        setCardProgressFeedback((current) =>
+          current?.id === id ? { ...current, stage } : current,
+        );
         cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
           (activeTimeoutId) => activeTimeoutId !== timeoutId,
         );
@@ -632,42 +664,18 @@ export function QuizStation({
       cardProgressTimeoutIdsRef.current.push(timeoutId);
     };
 
-    // The card flips first, then grows. Reveal its current progress once the
-    // growth settles and wait briefly before animating the changed value.
-    const growthStartAt = QUIZ_CARD_FLIP_DURATION_MS + 20;
-    const growthEndAt = growthStartAt + QUIZ_CARD_GROW_DURATION_MS;
-    schedule(growthStartAt, "growing");
-    schedule(growthEndAt, "revealing");
-    schedule(growthEndAt + QUIZ_CARD_PROGRESS_DELAY_MS, "updating");
-    schedule(growthEndAt + QUIZ_CARD_LARGE_HOLD_DURATION_MS, null);
-  }, [clearCardProgressFeedback, currentIndex]);
+    // Let the card enter first. Then reveal its progress and animate the
+    // increment, leaving the screen open until the learner taps to continue.
+    const progressRevealAt = QUIZ_CARD_REVEAL_ENTER_DURATION_MS;
+    const progressUpdateAt = progressRevealAt + QUIZ_CARD_GROW_DURATION_MS + QUIZ_CARD_PROGRESS_DELAY_MS;
+    schedule(progressRevealAt, "growing");
+    schedule(progressUpdateAt, "updating");
+    return true;
+  }, [clearCardProgressFeedback, currentIndex, mode]);
 
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
-
-  useEffect(() => {
-    if (
-      !nextQuestionEntryAnimation ||
-      phase !== "quiz" ||
-      !deck[currentIndex] ||
-      isBonusQuizItem(deck[currentIndex])
-    ) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setNextQuestionEntryAnimation(false);
-    }, 760);
-
-    return () => window.clearTimeout(timer);
-  }, [currentIndex, deck, nextQuestionEntryAnimation, phase]);
-
-  useEffect(() => {
-    if (phase === "quiz-start") {
-      setShowSplash(true);
-    }
-  }, [phase]);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
 
@@ -1054,11 +1062,10 @@ export function QuizStation({
       setPendingRankUp(null);
       setPendingRankUpFromRank(null);
       setRankUpReturn(null);
-      setNextQuestionEntryAnimation(false);
       rankCheckNeededRef.current = false;
       pendingAdvanceRef.current = null;
       if (!options?.deferPhase) {
-        setPhase(options?.startSplashAlreadyShown ? "quiz" : "quiz-start");
+        setPhase("quiz");
       }
 
       void Promise.all(
@@ -1148,6 +1155,7 @@ export function QuizStation({
 
   const resetQuestionUi = useCallback(() => {
     clearCardProgressFeedback();
+    clearNormalAnswerAdvance();
     setShowingAnswer(false);
     setTextAnswer("");
     setTextResult("idle");
@@ -1158,7 +1166,7 @@ export function QuizStation({
     setBonusRewardReady(false);
     setBonusPointFlightEnabled(false);
     setBonusGemRewards([]);
-  }, [clearCardProgressFeedback]);
+  }, [clearCardProgressFeedback, clearNormalAnswerAdvance]);
 
   async function handleRerollQuestion() {
     const item = deck[currentIndex];
@@ -1315,18 +1323,12 @@ export function QuizStation({
       }
 
       const nextIndex = currentIndex + 1;
-      const nextItem = deck[nextIndex];
-      currentIndexRef.current = nextIndex;
-      setCurrentIndex(nextIndex);
-      resetQuestionUi();
-
-      if (phase === "streak-celebration" || phase === "celebration") {
+      runQuizViewTransition(() => {
+        currentIndexRef.current = nextIndex;
+        setCurrentIndex(nextIndex);
+        resetQuestionUi();
         setPhase("quiz");
-      } else if (nextItem && isBonusQuizItem(nextItem)) {
-        setPhase("bonus-intro");
-      } else {
-        setPhase("quiz");
-      }
+      });
     },
     [
       chestOpened,
@@ -1350,6 +1352,9 @@ export function QuizStation({
       if (autoAdvanceTimeoutRef.current !== null) {
         window.clearTimeout(autoAdvanceTimeoutRef.current);
       }
+      if (normalAnswerAdvanceTimeoutRef.current !== null) {
+        window.clearTimeout(normalAnswerAdvanceTimeoutRef.current);
+      }
 
       autoAdvanceTimeoutRef.current = window.setTimeout(() => {
         advanceQuiz({ bypassCelebration: true, resultsOverride });
@@ -1369,6 +1374,9 @@ export function QuizStation({
       }
       if (deferredRecordTimeoutRef.current !== null) {
         window.clearTimeout(deferredRecordTimeoutRef.current);
+      }
+      if (normalAnswerAdvanceTimeoutRef.current !== null) {
+        window.clearTimeout(normalAnswerAdvanceTimeoutRef.current);
       }
       cardProgressTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     },
@@ -1411,19 +1419,14 @@ export function QuizStation({
     setPhase("count");
   }
 
-  function handleStartCount(count: number, startSplashAlreadyShown = false) {
+  function handleStartCount(count: number, _startSplashAlreadyShown = false) {
     if (!selectedLanguage) return;
     setSelectedCount(count);
     setAwardedChestTier(null);
-
-    if (startSplashAlreadyShown && preparedCountRef.current === count) {
-      preparedCountRef.current = null;
-      setPhase("quiz");
-      return;
-    }
-
     preparedCountRef.current = null;
-    buildDeck(selectedLanguage, count, { startSplashAlreadyShown });
+    runQuizViewTransition(() => {
+      buildDeck(selectedLanguage, count);
+    });
   }
 
   async function handleTextSubmit(rawAnswer: string) {
@@ -1635,6 +1638,7 @@ export function QuizStation({
 
     // Skipping follows the normal incorrect-answer path but deliberately
     // bypasses text/sentence AI validation.
+    clearNormalAnswerAdvance();
     handleAnswer("", false);
   }
 
@@ -1688,7 +1692,7 @@ export function QuizStation({
           setLastAnswer(answer);
         });
 
-        startCardProgressFeedback(item, isCorrect);
+        const showCardProgress = startCardProgressFeedback(item, isCorrect);
 
         playSoundEffect(isCorrect ? "correct" : "incorrect");
         vibrate(isCorrect ? "correct" : "incorrect");
@@ -1715,11 +1719,21 @@ export function QuizStation({
         setMaxStreak((current) => Math.max(current, nextStreak));
         if (nextStreak > 0 && nextStreak % 5 === 0) {
           setPendingStreak(true);
-          streakTimeoutRef.current = window.setTimeout(() => {
-            setPhase("streak-celebration");
-            setPendingStreak(false);
-            streakTimeoutRef.current = null;
-          }, 850);
+          if (!showCardProgress) {
+            streakTimeoutRef.current = window.setTimeout(() => {
+              setPhase("streak-celebration");
+              setPendingStreak(false);
+              streakTimeoutRef.current = null;
+            }, 850);
+          }
+        }
+
+        if (!showCardProgress && isCorrect) {
+          clearNormalAnswerAdvance();
+          normalAnswerAdvanceTimeoutRef.current = window.setTimeout(() => {
+            normalAnswerAdvanceTimeoutRef.current = null;
+            handleNext();
+          }, NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS);
         }
 
         if (deferredRecordTimeoutRef.current !== null) {
@@ -1746,8 +1760,24 @@ export function QuizStation({
     );
   }
 
+  function completeCardProgressReveal() {
+    const shouldShowStreak = pendingStreak;
+    clearCardProgressFeedback();
+    if (shouldShowStreak) {
+      setPendingStreak(false);
+      setPhase("streak-celebration");
+      return;
+    }
+    advanceQuiz();
+  }
+
   function handleNext() {
+    if (cardProgressFeedback) {
+      completeCardProgressReveal();
+      return;
+    }
     if (pendingStreak || bonusFlightActive) return;
+    clearNormalAnswerAdvance();
     clearCardProgressFeedback();
     advanceQuiz();
   }
@@ -1755,7 +1785,6 @@ export function QuizStation({
   function handleContinueFromCelebration() {
     setLastLearned(null);
     setCelebrationBasePoints(null);
-    setNextQuestionEntryAnimation(true);
     advanceQuiz({ bypassCelebration: true });
   }
 
@@ -1787,10 +1816,6 @@ export function QuizStation({
   function handleExit() {
     navigateWithRouteTransition(() => router.push("/"));
   }
-
-  const handleBonusIntroComplete = useCallback(() => {
-    setPhase("quiz");
-  }, []);
 
   function handleChestComplete() {
     if (chestOpened) {
@@ -1970,21 +1995,13 @@ export function QuizStation({
   if (phase === "count" && selectedLanguage) {
     return (
       <div className="flex flex-1 flex-col items-stretch">
-          <CountSelection
+          <QuizCountSelection
             mode={mode}
             availableCount={availableCards.length}
-          selectedCount={selectedCount}
-          locked={interactionLocked}
-          onPrepare={(count) => {
-            if (!selectedLanguage) return;
-            preparedCountRef.current = count;
-            buildDeck(selectedLanguage, count, { deferPhase: true });
-          }}
-          onSelect={(count, options) => {
-            setSelectedCount(count);
-            handleStartCount(count, options?.startSplashAlreadyShown);
-          }}
-        />
+            selectedCount={selectedCount}
+            locked={interactionLocked}
+            onSelect={handleStartCount}
+          />
       </div>
     );
   }
@@ -2123,7 +2140,7 @@ export function QuizStation({
     }
   }
 
-  const isQuizPhase = phase === "quiz" || phase === "quiz-start" || phase === "bonus-intro";
+  const isQuizPhase = phase === "quiz";
 
   if (!isQuizPhase) {
     return null;
@@ -2151,8 +2168,6 @@ export function QuizStation({
     );
   }
 
-  const isSplash = phase === "quiz-start";
-  const isBonusIntro = phase === "bonus-intro";
   const regularProgress = getRegularQuizProgress(deck, currentIndex);
   const mobileQuestionPrompt = isBonusQuizItem(item)
     ? null
@@ -2173,18 +2188,6 @@ export function QuizStation({
       item.questionType === "listening" ||
       item.questionType === "definition" ||
       item.questionType === "true-false");
-  const shouldAnimateQuestionEntry =
-    !isBonusQuizItem(item) && (currentIndex === 0 || nextQuestionEntryAnimation);
-  const activeCardFeedback = cardProgressFeedback?.cardId === item.card.id
-    ? cardProgressFeedback
-    : null;
-  const cardFeedbackStage: QuizCardFeedbackStage = activeCardFeedback?.stage ?? "idle";
-  const cardFooterMode = cardFeedbackStage === "revealing" || cardFeedbackStage === "updating"
-    ? "progress"
-    : "empty";
-  const cardFooterProgressCount = cardFeedbackStage === "updating"
-    ? activeCardFeedback?.targetCount
-    : activeCardFeedback?.baseCount;
   const rerollAction: QuizRerollAction | undefined = !isBonusQuizItem(item)
     ? {
         onReroll: () => void handleRerollQuestion(),
@@ -2200,48 +2203,29 @@ export function QuizStation({
 
   return (
     <>
-      {isSplash || showSplash ? (
-        <QuizStartSplash
-          onComplete={() => setPhase("quiz")}
-          onExited={() => {
-            setShowSplash(false);
-          }}
-        />
-      ) : null}
-      {isBonusIntro ? <BonusQuestionIntro onComplete={handleBonusIntroComplete} /> : null}
-      {!isSplash ? (
-        <MobileQuizTopBar
+      <MobileQuizTopBar
           currentIndex={regularProgress.current - 1}
           total={regularProgress.total}
           totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
           scorePulse={bonusScorePulse}
           questionPrompt={mobileQuestionPrompt}
           onExit={handleExit}
-          entryAnimated={shouldAnimateQuestionEntry}
-        />
-      ) : null}
+          entryAnimated={false}
+      />
       <div
-        className={cn(
-          "mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full",
-          mobileQuestionPrompt
-            ? "max-lg:top-[calc(var(--app-header-height)+3.5rem)]"
-            : "max-lg:top-[var(--app-header-height)]",
-          isSplash || isBonusIntro
-            ? "opacity-0"
-            : shouldAnimateQuestionEntry
-              ? "quiz-first-question-entry"
-              : "animate-screen-pop",
-        )}
-        data-quiz-first-question-pending={
-          isSplash && shouldAnimateQuestionEntry ? "true" : undefined
-        }
-        data-quiz-first-question-entry={
-          !isSplash && shouldAnimateQuestionEntry ? "true" : undefined
-        }
+        className="quiz-transition-viewport mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
+        style={supportsViewTransition && !cardProgressFeedback
+          ? { viewTransitionName: "quiz-question-ui" }
+          : undefined}
         data-learn-quiz-page="quiz"
       >
         <div
-          className="flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0"
+          key={`quiz-flow-${currentIndex}-${isBonusQuizItem(item) ? item.bonusId : item.card.id}`}
+          className={cn(
+            !supportsViewTransition && "quiz-flow-enter-right",
+            "flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0",
+            mobileQuestionPrompt && "max-lg:pt-[3.5rem]",
+          )}
           data-quiz-mobile-layout={item.questionType}
         >
           <div
@@ -2305,7 +2289,7 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
+                  showNextButton={false}
                 />
               ) : item.questionType === "listening" ? (
                 <ListeningQuestion
@@ -2316,7 +2300,7 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
+                  showNextButton={false}
                 />
               ) : item.questionType === "definition" ? (
                 <DefinitionQuestion
@@ -2327,7 +2311,7 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
+                  showNextButton={false}
                   isFirstQuestion={currentIndex === 0}
                 />
               ) : item.questionType === "true-false" ? (
@@ -2340,7 +2324,7 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
+                  showNextButton={false}
                 />
               ) : item.questionType === "sentence-completion" ? (
                 <SentenceCompletionQuestion
@@ -2355,26 +2339,7 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
-                  mobileCard={(
-                    <div
-                      className={cn(
-                        "flex items-end justify-center lg:hidden",
-                        cardFeedbackStage === "idle" && "invisible",
-                      )}
-                      data-quiz-mobile-card-slot
-                    >
-                      <MobileQuizCard
-                        item={item}
-                        compact
-                        progressAnimation
-                        face={showingAnswer ? "front" : "back"}
-                        feedbackStage={cardFeedbackStage}
-                        footerMode={cardFooterMode}
-                        footerProgressCount={cardFooterProgressCount}
-                      />
-                    </div>
-                  )}
+                  showNextButton={false}
                 />
               ) : (
                 <TextQuestion
@@ -2389,74 +2354,30 @@ export function QuizStation({
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
                   onNext={handleNext}
-                  showNextButton={!pendingStreak}
+                   showNextButton={false}
                   isFirstQuestion={currentIndex === 0}
                 />
               )}
             </div>
           </div>
 
-          {!isBonusQuizItem(item) &&
-          item.questionType !== "sentence-completion" &&
-          item.questionType !== "definition" ? (
-            <div
-              className="order-2 flex items-center justify-center lg:hidden"
-              data-quiz-mobile-card-slot
-            >
-              <MobileQuizCard
-                item={item}
-                face={showingAnswer ? "front" : "back"}
-                feedbackStage={cardFeedbackStage}
-                footerMode={cardFooterMode}
-                footerProgressCount={cardFooterProgressCount}
-              />
-            </div>
-          ) : null}
-
-          {!isBonusQuizItem(item) &&
-          (item.questionType !== "sentence-completion" || cardFeedbackStage !== "idle") ? <div className="hidden h-[440px] items-center justify-center lg:order-2 lg:col-start-2 lg:row-start-1 lg:flex">
-            <div
-              className={cn(
-                "relative h-[440px] w-auto transform-gpu transition-transform duration-200 ease-out will-change-transform focus:outline-none",
-                (item.questionType === "definition" || item.questionType === "sentence-completion") &&
-                  "origin-bottom",
-                cardFeedbackStage !== "idle"
-                  ? "z-20 -translate-x-16 scale-[1.1]"
-                  : (item.questionType === "definition" || item.questionType === "sentence-completion")
-                    ? "scale-[0.78]"
-                    : undefined,
-              )}
-              data-quiz-card-feedback={cardFeedbackStage}
-              aria-hidden="true"
-            >
-              <div
-                className={cn(
-                  "h-full w-auto",
-                  item.questionType === "sentence-completion" && "animate-quiz-card-progress-void",
-                )}
-                data-quiz-card-progress-animation={
-                  item.questionType === "sentence-completion" ? "true" : undefined
-                }
-              >
-                <VocabularyCardView
-                  card={item.card}
-                  inventory={item.inventoryCard}
-                  owned
-                  initialFace="back"
-                  face={showingAnswer ? "front" : "back"}
-                  flippable={false}
-                  footerMode={cardFooterMode}
-                  footerProgressCount={cardFooterProgressCount}
-                  className="h-full w-auto min-h-0 max-w-full"
-                />
-              </div>
-            </div>
-          </div> : null}
         </div>
       </div>
 
+      {cardProgressFeedback ? (
+        <CardProgressReveal
+          item={item}
+          feedback={cardProgressFeedback}
+          onContinue={completeCardProgressReveal}
+        />
+      ) : null}
+
         <MobileQuizFeedback
-          isOpen={showingAnswer && lastAnswerCorrect !== null && !isSplash}
+          isOpen={
+            showingAnswer &&
+            lastAnswerCorrect !== null &&
+            (isBonusQuizItem(item) || !lastAnswerCorrect)
+          }
           isCorrect={lastAnswerCorrect ?? false}
           isBonus={isBonusQuizItem(item)}
           correctAnswer={getFeedbackCorrectAnswer(item)}
@@ -2475,6 +2396,84 @@ export function QuizStation({
         selectedLanguage={selectedLanguage ?? undefined}
       />
     </>
+  );
+}
+
+function CardProgressReveal({
+  item,
+  feedback,
+  onContinue,
+}: {
+  item: QuizItem;
+  feedback: QuizCardProgressFeedback;
+  onContinue: () => void;
+}) {
+  const t = useT();
+  const onContinueRef = useRef(onContinue);
+  const isProgressVisible = feedback.stage !== "appearing";
+  const progressCount = feedback.stage === "updating"
+    ? feedback.targetCount
+    : feedback.baseCount;
+
+  useEffect(() => {
+    onContinueRef.current = onContinue;
+  }, [onContinue]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      onContinueRef.current();
+    }, NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  function handleContinue() {
+    vibrate("tap");
+    onContinue();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-y-auto bg-background px-5 py-8 text-center"
+      role="button"
+      tabIndex={0}
+      aria-label={t("quiz.tapToContinue")}
+      onClick={handleContinue}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleContinue();
+        }
+      }}
+      data-quiz-card-progress-reveal
+      style={{ viewTransitionName: "quiz-question-ui" }}
+    >
+      <div className="quiz-flow-enter-right flex min-h-full w-full max-w-md flex-col items-center justify-center gap-3">
+        <div className="text-[clamp(2rem,9vw,4.5rem)] font-black leading-none text-emerald-500">
+          {t("quiz.correctAnswerTitle")}
+        </div>
+        <p className="text-base font-semibold text-foreground-muted sm:text-lg">
+          {t("quiz.cardLevelAdvanced")}
+        </p>
+        <div className="my-2 aspect-[3/4] w-[min(56vw,15rem)] max-w-full transform-gpu scale-[0.82] sm:my-4 sm:w-[min(30vw,17rem)]">
+          <VocabularyCardView
+            card={item.card}
+            inventory={item.inventoryCard}
+            owned
+            initialFace="front"
+            face="front"
+            flippable={false}
+            showActions={false}
+            footerMode={isProgressVisible ? "progress" : "empty"}
+            footerProgressCount={progressCount}
+            className="h-full w-full min-h-0 max-w-full max-sm:min-h-0"
+          />
+        </div>
+        <p className="text-sm font-semibold text-foreground-muted sm:text-base">
+          {t("quiz.tapToContinue")}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -2821,6 +2820,70 @@ function completeSentence(sentenceWithBlank: string, answer: string) {
 function getRandomQuizCharacter() {
   const characters = getAiPracticeCharacters();
   return characters[Math.floor(Math.random() * characters.length)]!;
+}
+
+function QuizSpeechBubble({
+  character,
+  term,
+  language,
+  secondaryText,
+}: {
+  character: AiPracticeCharacter;
+  term: string;
+  language: LanguageCode;
+  secondaryText?: string;
+}) {
+  const t = useT();
+  const characterName = getCharacterName(character, language);
+  const voiceProfile = getCharacterVoiceProfile(character);
+
+  return (
+    <div className="relative -translate-y-5 mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 sm:-translate-y-6 sm:gap-3">
+      <div className="relative h-28 w-28 shrink-0 sm:h-32 sm:w-32">
+        <Image
+          src={character.imageSrc}
+          alt={characterName}
+          fill
+          sizes="128px"
+          className="object-contain object-bottom"
+        />
+      </div>
+      <div className="relative min-w-0 flex-1 rounded-2xl border-[3px] border-[#AAAAAA] bg-background-card px-4 py-3 text-left shadow-sm sm:px-5 sm:py-4 before:absolute before:left-[-0.55rem] before:top-1/2 before:size-4 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px] before:border-[#AAAAAA] before:bg-background-card">
+        <div className="relative flex items-center justify-between gap-3">
+          <h2 className="min-w-0 break-words font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl">
+            {term}
+          </h2>
+          <button
+            type="button"
+            onClick={() => speakCardTerm(term, language, voiceProfile.gender, voiceProfile.age)}
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-95 max-sm:size-8"
+            aria-label={`${term} ${t("cards.speak")}`}
+            title={t("cards.speak")}
+          >
+            <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
+          </button>
+        </div>
+        {secondaryText ? (
+          <p className="relative mt-1 break-words text-sm font-semibold leading-snug text-foreground-muted sm:text-base">
+            {secondaryText}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function useSpeakQuizTermAfterEntry(
+  card: Pick<VocabularyCard, "id" | "term" | "language">,
+  voiceProfile: ReturnType<typeof getCharacterVoiceProfile>,
+) {
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      speakCardTerm(card.term, card.language, voiceProfile.gender, voiceProfile.age);
+    }, QUIZ_QUESTION_ENTRY_DURATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [card.id, card.language, card.term, voiceProfile.age, voiceProfile.gender]);
 }
 
 export function LanguageSelection({
@@ -3621,18 +3684,18 @@ function QuizRerollButton({
         type="button"
         onClick={action.onReroll}
         disabled={action.disabled || hidden}
-        className="quiz-action-scale inline-flex h-10 min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#22c987] px-3 py-1.5 text-xs font-bold text-white transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-100"
+        className="quiz-action-scale inline-flex h-9 min-h-9 w-full items-center justify-center gap-2 rounded-md bg-[#22c987] px-3 py-1.5 text-sm font-bold text-white transition-[transform,filter] duration-200 hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-100 sm:text-base"
         aria-label={t("quiz.rerollQuestion")}
         data-quiz-action-hidden={hidden}
         data-quiz-reroll
       >
-        {action.loading ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-3.5" aria-hidden="true" />}
+        {action.loading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
         <span className="min-w-0">{t("quiz.rerollQuestion")}</span>
         <span className="inline-flex shrink-0 items-center gap-0.5">
           <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
             {GEM_COSTS.rerollQuestion.amount}
           </span>
-          <Image src={GEM_ASSETS.green} alt="" width={18} height={18} className="size-[18px] object-contain" />
+          <Image src={GEM_ASSETS.green} alt="" width={22} height={22} className="size-[22px] object-contain" />
         </span>
       </button>
     </div>
@@ -3695,7 +3758,7 @@ export function ListeningQuestion({
 
   return (
     <div
-      className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
+      className="animate-screen-pop relative top-2 flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 sm:top-3 lg:gap-4 lg:p-8"
       data-quiz-question-content="listening"
     >
       <p className="text-center text-sm font-semibold text-white max-lg:hidden">
@@ -3711,7 +3774,7 @@ export function ListeningQuestion({
             aria-label={t("quiz.listeningAgain")}
             title={t("quiz.listeningAgain")}
           >
-            <Volume2 className="size-7" aria-hidden="true" />
+            <Volume2 className="size-7 text-white" aria-hidden="true" />
           </button>
           <div className="flex min-h-8 min-w-0 items-center gap-2 text-left">
             <span
@@ -3731,25 +3794,22 @@ export function ListeningQuestion({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {item.question.options.map((option, index) => {
+        {item.question.options.map((option) => {
           const isCorrectOption = option === item.question.correctAnswer;
-          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
-            <QuizAnswerButton
-              key={option}
+            <QuizWordButton
+              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
               type="button"
               data-quiz-listening-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
-              interactive={!showingAnswer}
-              baseClassName={optionColor}
-              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
-              incorrectOverlayClassName="bg-red-950"
+              wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
+              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
               className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem]"
             >
               {option}
-            </QuizAnswerButton>
+            </QuizWordButton>
           );
         })}
       </div>
@@ -3800,6 +3860,8 @@ export function ChoiceQuestion({
 }) {
   const t = useT();
   const question = item.question;
+  const [character] = useState(() => getRandomQuizCharacter());
+  useSpeakQuizTermAfterEntry(item.card, getCharacterVoiceProfile(character));
 
   return (
     <div
@@ -3816,44 +3878,31 @@ export function ChoiceQuestion({
           {t("quiz.recallPrompt")}
         </p>
       ) : null}
-      <div className="flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => speakCardTerm(item.card.term, item.card.language)}
-          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
-          aria-label={`${item.card.term} ${t("cards.speak")}`}
-          title={t("cards.speak")}
-        >
-          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
-        </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
-          {item.card.term}
-        </h2>
-      </div>
+      <QuizSpeechBubble
+        character={character}
+        term={item.card.term}
+        language={item.card.language}
+      />
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {question.options.map((option, index) => {
+      <div className="relative top-[60px] grid grid-cols-2 gap-2 sm:gap-3">
+        {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
-          const optionColor =
-            CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
-            <QuizAnswerButton
-              key={option}
+            <QuizWordButton
+              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
               type="button"
               data-quiz-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
-              interactive={!showingAnswer}
-              baseClassName={optionColor}
-              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
-              incorrectOverlayClassName="bg-red-950"
+              wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
+              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
               className={cn(
                 "min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
               )}
             >
               {option}
-            </QuizAnswerButton>
+            </QuizWordButton>
           );
         })}
       </div>
@@ -3961,7 +4010,7 @@ export function DefinitionQuestion({
         <button
           type="button"
           onClick={() => speakCardTerm(item.card.term, item.card.language)}
-          className="inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
+          className="inline-flex size-10 items-center justify-center rounded-md text-white transition-colors hover:bg-background-muted hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
           aria-label={`${item.card.term} ${t("cards.speak")}`}
           title={t("cards.speak")}
         >
@@ -3973,25 +4022,22 @@ export function DefinitionQuestion({
       </div>
 
       <div className="grid w-full grid-cols-1 gap-2 sm:gap-3">
-        {question.options.map((option, index) => {
+        {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
-          const optionColor = CHOICE_OPTION_COLORS[index % CHOICE_OPTION_COLORS.length];
 
           return (
-            <QuizAnswerButton
-              key={option}
+            <QuizWordButton
+              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
               type="button"
               data-quiz-definition-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
-              interactive={!showingAnswer}
-              baseClassName={optionColor}
-              feedbackState={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}
-              incorrectOverlayClassName="bg-red-950"
+              wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
+              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
               className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-sm font-semibold disabled:cursor-default sm:min-h-[5.25rem] sm:text-base"
             >
               {option}
-            </QuizAnswerButton>
+            </QuizWordButton>
           );
         })}
       </div>
@@ -4017,56 +4063,6 @@ export function DefinitionQuestion({
       </div>
       </div>
     </>
-  );
-}
-
-function QuizAnswerButton({
-  baseClassName,
-  feedbackState = "idle",
-  interactive = true,
-  incorrectOverlayClassName = "bg-background-inverse",
-  className,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  baseClassName: string;
-  feedbackState?: QuizAnswerFeedbackState;
-  interactive?: boolean;
-  incorrectOverlayClassName?: string;
-}) {
-  return (
-    <button
-      className={cn(
-        "group relative flex overflow-hidden rounded-md text-white transition-[background-color,color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none",
-        baseClassName,
-        interactive &&
-          "hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(15,23,42,0.7)] active:translate-y-0 active:scale-[0.99]",
-        feedbackState === "correct" && "shadow-[0_16px_34px_-22px_rgba(16,185,129,0.7)]",
-        feedbackState === "incorrect" &&
-          "shadow-[0_12px_26px_-22px_rgba(69,10,10,0.78)]",
-        className,
-      )}
-      data-quiz-answer-feedback={feedbackState}
-      {...props}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 ease-out",
-          interactive && "group-hover:opacity-100",
-        )}
-      />
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          feedbackState === "correct" && "bg-emerald-500 opacity-100",
-          feedbackState === "incorrect" && incorrectOverlayClassName,
-          feedbackState === "incorrect" && "opacity-100",
-        )}
-      />
-      <span className="relative z-10 w-full">{children}</span>
-    </button>
   );
 }
 
@@ -4134,37 +4130,33 @@ export function SentenceCompletionQuestion({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-        {question.options.map((option, index) => {
+        {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
-          const optionColor =
-            SENTENCE_COMPLETION_OPTION_COLORS[index % SENTENCE_COMPLETION_OPTION_COLORS.length];
           const isSelectedOption = option === selectedAnswer;
           const isValidatingOption = isAiValidating && option === aiValidatingAnswer;
-          const feedbackState = !showingAnswer
-            ? "idle"
+          const feedback = !showingAnswer
+            ? isSelectedOption
+              ? "selected"
+              : "idle"
             : isSelectedOption
               ? answerAccepted
                 ? "correct"
                 : "incorrect"
               : !answerAccepted && isCorrectOption
                 ? "correct"
-                : "idle";
-          const answerStateColor = showingAnswer ? "bg-background-card" : optionColor;
+                : "muted";
 
           return (
-            <QuizAnswerButton
-              key={option}
+            <QuizWordButton
+              key={`${option}-${feedback}`}
               type="button"
               data-quiz-sentence-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer || isAiValidating}
-              interactive={!showingAnswer && !isAiValidating}
-              baseClassName={answerStateColor}
-              feedbackState={feedbackState}
-              incorrectOverlayClassName="bg-red-500"
+              wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
+              feedback={feedback}
               className={cn(
                 "min-h-14 items-center justify-center px-2 py-2 text-center text-sm font-semibold sm:min-h-16 sm:px-3 sm:text-base",
-                showingAnswer && feedbackState === "idle" && "text-foreground",
               )}
             >
               {isValidatingOption ? (
@@ -4176,7 +4168,7 @@ export function SentenceCompletionQuestion({
               ) : (
                 option
               )}
-            </QuizAnswerButton>
+            </QuizWordButton>
           );
         })}
       </div>
@@ -4228,18 +4220,18 @@ export function TrueFalseQuestion({
 }) {
   const t = useT();
   const question = item.question;
+  const [character] = useState(() => getRandomQuizCharacter());
+  useSpeakQuizTermAfterEntry(item.card, getCharacterVoiceProfile(character));
   const options = [
     {
       value: "true" as const,
       label: t("games.wordChallenge.correct"),
       isCorrect: question.correctAnswer === "true",
-      baseClassName: "bg-blue-500",
     },
     {
       value: "false" as const,
       label: t("games.wordChallenge.wrong"),
       isCorrect: question.correctAnswer === "false",
-      baseClassName: "bg-red-500",
     },
   ];
 
@@ -4263,34 +4255,32 @@ export function TrueFalseQuestion({
         <p className="text-sm font-semibold text-foreground-muted max-lg:hidden">
           {t("games.wordChallenge.question")}
         </p>
-        <div className="flex w-full items-center justify-center rounded-lg border border-border bg-background-card px-4 py-5 sm:px-5 sm:py-6">
-          <p
-            className="text-center text-2xl font-semibold leading-snug text-white sm:text-3xl lg:text-4xl"
-            data-quiz-true-false-meaning
-          >
-            {`${item.card.term} = ${question.proposedMeaning}`}
-          </p>
+        <div data-quiz-true-false-meaning className="w-full">
+          <QuizSpeechBubble
+            character={character}
+            term={item.card.term}
+            language={item.card.language}
+            secondaryText={`= ${question.proposedMeaning}`}
+          />
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-2 sm:gap-3">
+      <div className="mt-7 grid w-full grid-cols-2 gap-2 sm:gap-3">
         {options.map((option) => (
-          <QuizAnswerButton
-            key={option.value}
+          <QuizWordButton
+            key={`${option.value}-${showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : "idle"}`}
             type="button"
             data-quiz-true-false-option={option.value}
             onClick={() => onAnswer(option.value, option.isCorrect)}
             disabled={showingAnswer}
-            interactive={!showingAnswer}
-            baseClassName={option.baseClassName}
-            feedbackState={showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : "idle"}
-            incorrectOverlayClassName="bg-red-950"
+            wordType={showingAnswer ? "inactive" : option.isCorrect ? "correct" : "incorrect"}
+            feedback={showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : undefined}
             className={cn(
               "min-h-[4.5rem] items-center justify-center px-3 py-2 text-base font-semibold sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
             )}
           >
             {option.label}
-          </QuizAnswerButton>
+          </QuizWordButton>
         ))}
       </div>
 

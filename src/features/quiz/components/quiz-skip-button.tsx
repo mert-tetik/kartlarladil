@@ -29,7 +29,7 @@ export function QuizSkipButton({
       <Button
         type="button"
         variant="danger"
-        className="quiz-action-scale w-full bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-100"
+        className="quiz-action-scale h-9 min-h-9 w-full bg-rose-500 text-base text-white hover:bg-rose-600 disabled:opacity-100 sm:text-lg"
         data-quiz-skip
         data-quiz-action-hidden={hidden}
         disabled={disabled || hidden}

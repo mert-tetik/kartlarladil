@@ -79,6 +79,11 @@ function parseNormalTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseQuizWordButtonTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseNormalQuestionType(
   value: string | string[] | undefined,
 ): "choice" | "listening" | "definition" | "true-false" | "sentence-completion" | "text" | null {
@@ -122,6 +127,9 @@ export default async function LearnPage({
       params["quiz-normal-test-question"],
   );
   const normalTest = parseNormalTest(normalTestValue);
+  const quizWordButtonTest = parseQuizWordButtonTest(
+    params["quiz-word-button-test"] ?? params["quiz-button-test"],
+  );
 
   return (
     <section
@@ -142,6 +150,7 @@ export default async function LearnPage({
         bonusTest={bonusTest}
         normalTest={normalTest}
         normalQuestionType={normalQuestionType}
+        quizWordButtonTest={quizWordButtonTest}
       />
     </section>
   );

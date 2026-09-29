@@ -988,6 +988,100 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+@keyframes quiz-flow-exit-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes quiz-flow-enter-right {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.quiz-flow-exit-left {
+  animation: quiz-flow-exit-left 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.quiz-flow-enter-right {
+  animation: quiz-flow-enter-right 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+/* The quiz viewport already has its own horizontal transition. Do not let
+   question content add a second translateY/scale animation during the same
+   frame, otherwise the whole question appears to jump vertically. */
+[data-learn-quiz-page="quiz"] .animate-screen-pop {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto;
+}
+
+@keyframes quiz-view-transition-exit-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes quiz-view-transition-enter-right {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Keep the shared transition viewport fixed. The browser's default group
+   animation interpolates top/height when these screens have different
+   layouts, which makes a horizontal slide drift vertically. */
+::view-transition-group(quiz-question-ui) {
+  animation: none !important;
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+}
+
+::view-transition-image-pair(quiz-question-ui) {
+  animation: none !important;
+  isolation: isolate;
+}
+
+::view-transition-old(quiz-question-ui) {
+  animation: quiz-view-transition-exit-left 360ms cubic-bezier(0.85, 0, 0.15, 1) both !important;
+}
+
+::view-transition-new(quiz-question-ui) {
+  animation: quiz-view-transition-enter-right 360ms cubic-bezier(0.85, 0, 0.15, 1) both !important;
+}
+
+/* A newly mounted quiz card must not run its own 3D/height transition while
+   the question viewport is moving. The question flow owns that motion and it
+   is intentionally horizontal-only. */
+[data-learn-quiz-page="quiz"] [data-quiz-mobile-card] .transition-transform,
+[data-learn-quiz-page="quiz"] [data-quiz-mobile-card] [class*="transition-[height,transform]"],
+[data-learn-quiz-page="quiz"] [data-quiz-mobile-card] > div,
+[data-learn-quiz-page="quiz"] [data-quiz-mobile-card] [data-card-face] > div {
+  transition: none !important;
+}
+
 .quiz-first-question-entry [data-quiz-counter],
 .quiz-first-question-entry [data-quiz-progress-header],
 .quiz-first-question-entry [data-quiz-mobile-prompt],
@@ -1297,7 +1391,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   left: 12px;
   z-index: 4;
   border-radius: 50%;
-  background-color: #fff;
+  background-color: rgb(255 255 255 / 0.7);
   transform-origin: 50%;
   animation: app-loading-typing-circle 0.5s alternate infinite ease;
 }
@@ -1874,8 +1968,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 [data-normal-test] [data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
-  height: 4rem;
-  min-height: 4rem;
+  height: 3rem;
+  min-height: 3rem;
 }
 
 @media (max-width: 1023px) {
@@ -1895,8 +1989,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 
   [data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
-    height: 4rem;
-    min-height: 4rem;
+    height: 3rem;
+    min-height: 3rem;
   }
 
   [data-learn-page] [data-quiz-mobile-feedback] {
@@ -3070,7 +3164,7 @@ body:has([data-ask-page]) footer {
 
 @keyframes day-streak-calendar-slide-out {
   0% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 
   100% {
@@ -4149,6 +4243,111 @@ body:has([data-games-active]) {
   will-change: transform;
 }
 
+@keyframes quiz-word-button-select {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  42% {
+    transform: translate3d(0, -4px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-quiz-word-button-select {
+  animation: quiz-word-button-select 260ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes quiz-word-button-inactive {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.935);
+  }
+}
+
+.animate-quiz-word-button-inactive {
+  animation: quiz-word-button-inactive 400ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform, background-color, border-color, color, opacity;
+}
+
+@keyframes quiz-word-button-correct {
+  0% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
+  }
+  28% {
+    transform: translate3d(0, -25px, 0) scale(1.03);
+    animation-timing-function: linear;
+  }
+  71% {
+    transform: translate3d(0, -25px, 0) scale(1.03);
+    animation-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
+  }
+  85% {
+    transform: translate3d(0, 0, 0) scale(1);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  91% {
+    transform: translate3d(0, -18px, 0) scale(1.02);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  96% {
+    transform: translate3d(0, -4px, 0) scale(1.004);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-quiz-word-button-correct {
+  animation: quiz-word-button-correct 700ms both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.quiz-word-button {
+  clip-path: inset(0 round 1rem);
+}
+
+.quiz-word-button-neutral {
+  transition-property: transform;
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.quiz-word-button-neutral:active {
+  transform: scale(0.9);
+  transition-duration: 0ms;
+}
+
+@keyframes quiz-word-button-correct-shine {
+  from {
+    left: -24%;
+    transform: rotate(8deg);
+  }
+  to {
+    left: 130%;
+    transform: rotate(8deg);
+  }
+}
+
+.quiz-word-button-correct-shine {
+  top: -9px;
+  bottom: -9px;
+  left: -24%;
+  width: 12%;
+  background-color: rgb(255 255 255 / 0.5);
+  z-index: 20;
+  animation: quiz-word-button-correct-shine 620ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: left;
+}
+
 @keyframes bonus-intro-letter-drop-in {
   0% {
     opacity: 0;
@@ -4199,22 +4398,28 @@ body:has([data-games-active]) {
 
 @keyframes bonus-incorrect-shake {
   0%, 100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0);
   }
-  16% {
-    transform: translate3d(-5px, 0, 0) rotate(-1.2deg);
+  12% {
+    transform: translate3d(-3px, 0, 0);
   }
-  32% {
-    transform: translate3d(5px, 0, 0) rotate(1.2deg);
+  24% {
+    transform: translate3d(3px, 0, 0);
+  }
+  36% {
+    transform: translate3d(-3px, 0, 0);
   }
   48% {
-    transform: translate3d(-4px, 0, 0) rotate(-0.9deg);
+    transform: translate3d(3px, 0, 0);
   }
-  64% {
-    transform: translate3d(4px, 0, 0) rotate(0.9deg);
+  60% {
+    transform: translate3d(-2px, 0, 0);
   }
-  80% {
-    transform: translate3d(-2px, 0, 0) rotate(-0.35deg);
+  72% {
+    transform: translate3d(2px, 0, 0);
+  }
+  84% {
+    transform: translate3d(-1px, 0, 0);
   }
 }
 
@@ -4222,6 +4427,63 @@ body:has([data-games-active]) {
   animation: bonus-incorrect-shake 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: transform;
+}
+
+@keyframes quiz-word-button-invalid-operation {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    background-color: var(--background-card);
+    border-color: #aaaaaa;
+    color: var(--foreground);
+  }
+  12% {
+    transform: translate3d(-3px, 0, 0);
+    background-color: rgb(244 63 94 / 0.14);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  24% {
+    transform: translate3d(3px, 0, 0);
+    background-color: rgb(244 63 94 / 0.17);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  36% {
+    transform: translate3d(-3px, 0, 0);
+    background-color: rgb(244 63 94 / 0.14);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  48% {
+    transform: translate3d(3px, 0, 0);
+    background-color: rgb(244 63 94 / 0.17);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  60% {
+    transform: translate3d(-2px, 0, 0);
+    background-color: rgb(244 63 94 / 0.11);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  72% {
+    transform: translate3d(2px, 0, 0);
+    background-color: rgb(244 63 94 / 0.07);
+    border-color: rgb(244 63 94);
+    color: rgb(244 63 94);
+  }
+  84% {
+    transform: translate3d(-1px, 0, 0);
+    background-color: var(--background-card);
+    border-color: #aaaaaa;
+    color: var(--foreground);
+  }
+}
+
+.animate-quiz-word-button-invalid-operation {
+  animation: quiz-word-button-invalid-operation 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform, background-color;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4233,7 +4495,27 @@ body:has([data-games-active]) {
     animation-duration: 1ms;
   }
 
+  .animate-quiz-word-button-select {
+    animation-duration: 1ms;
+  }
+
+  .animate-quiz-word-button-inactive {
+    animation-duration: 1ms;
+  }
+
+  .animate-quiz-word-button-correct {
+    animation-duration: 1ms;
+  }
+
+  .quiz-word-button-correct-shine {
+    animation-duration: 1ms;
+  }
+
   .animate-bonus-incorrect-shake {
+    animation-duration: 1ms;
+  }
+
+  .animate-quiz-word-button-invalid-operation {
     animation-duration: 1ms;
   }
 

@@ -31,12 +31,14 @@ import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data
 import { speakCardTerm } from "@/features/cards/card-speech";
 import type { LanguageCode } from "@/types/domain";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
+import {
+  QuizWordButton,
+  type QuizWordButtonFeedback,
+} from "@/features/quiz/components/quiz-word-button";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png";
-const MATCHING_WORD_BUTTON_CLASS =
-  "rounded-2xl border-[3px] border-b-[6px] px-3 py-2 text-sm font-semibold transition-[transform,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]";
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -951,16 +953,37 @@ function MatchingBonus({
            const wrong = showingAnswer && (skipped || (matched && matches[pair.id] !== pair.id));
           const colorIndex = question.pairs.findIndex((candidate) => candidate.id === pair.id);
           const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
+          const feedback: QuizWordButtonFeedback = correct
+            ? "correct"
+            : wrong
+              ? "incorrect"
+              : showingAnswer
+                ? "muted"
+                : selectedTermId === pair.id
+                  ? "selected"
+                  : matched
+                    ? "matched"
+                    : "idle";
           return (
-            <button
+            <QuizWordButton
               key={`term-${pair.id}`}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectTerm(pair.id)}
-              style={matched && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : selectedTermId === pair.id && !showingAnswer ? { borderColor: "var(--brand)" } : undefined}
-              className={cn("flex h-14 w-[calc(100%-0.5rem)] items-center justify-center", MATCHING_WORD_BUTTON_CLASS, "text-lg sm:text-xl", (selectedTermId || selectedMeaningId) && "cursor-pointer", selectedTermId === pair.id && "-translate-y-0.5", animatingPair?.termId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm", matched && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", !showingAnswer && "border-[#aaaaaa]", !matched && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !matched && !skipped && "opacity-60")}
+              wordType={showingAnswer ? "inactive" : "select"}
+              selected={feedback === "selected"}
+              feedback={feedback === "selected" ? undefined : feedback}
+              style={feedback === "matched"
+                ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground }
+                : feedback === "selected"
+                  ? { backgroundColor: "var(--background)", borderColor: "var(--brand)" }
+                  : undefined}
+              className={cn(
+                "h-14 w-[calc(100%-0.5rem)] text-lg sm:text-xl",
+                animatingPair?.termId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm",
+              )}
               data-bonus-term={pair.id}
-              data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
+              data-bonus-result={feedback === "matched" ? "idle" : feedback}
             >
               <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
                 <span
@@ -982,7 +1005,7 @@ function MatchingBonus({
                   ({pair.meaning})
                 </span>
               </span>
-            </button>
+            </QuizWordButton>
           );
         })}
         </div>
@@ -1000,19 +1023,40 @@ function MatchingBonus({
           const colorIndex = pairedTermId ? question.pairs.findIndex((candidate) => candidate.id === pairedTermId) : -1;
           const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
           const selected = selectedMeaningId === pair.id;
+          const feedback: QuizWordButtonFeedback = correct
+            ? "correct"
+            : wrong
+              ? "incorrect"
+              : showingAnswer
+                ? "muted"
+                : selected
+                  ? "selected"
+                  : pairedTermId
+                    ? "matched"
+                    : "idle";
           return (
-            <button
+            <QuizWordButton
               key={`meaning-${pair.id}`}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectMeaning(pair.id)}
-              style={pairedTermId && !showingAnswer ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground } : selected && !showingAnswer ? { borderColor: "var(--brand)" } : undefined}
-              className={cn("w-[calc(100%-0.5rem)] min-h-14", MATCHING_WORD_BUTTON_CLASS, "text-lg sm:text-xl", selected && "-translate-y-0.5", animatingPair?.meaningId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm", pairedTermId && !showingAnswer && "shadow-sm", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", !showingAnswer && "border-[#aaaaaa]", !pairedTermId && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand", showingAnswer && !pairedTermId && !skipped && "opacity-60")}
+              wordType={showingAnswer ? "inactive" : "select"}
+              selected={feedback === "selected"}
+              feedback={feedback === "selected" ? undefined : feedback}
+              style={feedback === "matched"
+                ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground }
+                : feedback === "selected"
+                  ? { backgroundColor: "var(--background)", borderColor: "var(--brand)" }
+                  : undefined}
+              className={cn(
+                "min-h-14 w-[calc(100%-0.5rem)] text-lg sm:text-xl",
+                animatingPair?.meaningId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm",
+              )}
               data-bonus-meaning={pair.id}
-              data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
+              data-bonus-result={feedback === "matched" ? "idle" : feedback}
             >
               {pair.meaning}
-            </button>
+            </QuizWordButton>
           );
         })}
         </div>
@@ -1104,22 +1148,28 @@ function SentenceOrderBonus({
               const correct = showingAnswer && (
                 answerAccepted === true || id === question.tokens[index]?.id
               );
+              const feedback: QuizWordButtonFeedback | undefined = showingAnswer
+                ? correct
+                  ? "correct"
+                  : "incorrect"
+                : undefined;
               return (
-                <button
+                <QuizWordButton
                   key={id}
                   type="button"
                   disabled={showingAnswer}
                   onClick={() => toggleToken(id)}
+                  wordType={showingAnswer ? "inactive" : "select"}
+                  selected={!showingAnswer}
+                  feedback={feedback}
                   className={cn(
-                    "inline-flex min-h-10 items-center justify-center",
-                    MATCHING_WORD_BUTTON_CLASS,
+                    "min-h-10",
                     "animate-bonus-sentence-token-enter",
-                    correct ? "border-emerald-500 bg-emerald-500 text-white" : showingAnswer ? "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake" : "border-[#aaaaaa] bg-brand text-brand-foreground",
                   )}
                   data-bonus-sentence-selected={id}
                 >
                   {token.text}
-                </button>
+                </QuizWordButton>
               );
             })}
           </div>
@@ -1127,22 +1177,23 @@ function SentenceOrderBonus({
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         {displayTokens.map((token) => (
-          <button
+          <QuizWordButton
             key={token.id}
             type="button"
             disabled={showingAnswer}
             onClick={() => toggleToken(token.id)}
+            wordType={showingAnswer ? "inactive" : "select"}
+            selected={selectedSet.has(token.id)}
+            feedback={showingAnswer ? "muted" : undefined}
             className={cn(
-              "inline-flex min-h-14 items-center justify-center border-[#aaaaaa] bg-background-card hover:-translate-y-0.5 hover:border-brand",
-              MATCHING_WORD_BUTTON_CLASS,
+              "min-h-14",
               selectedSet.has(token.id) && "opacity-35",
               returningTokenId === token.id && "animate-bonus-sentence-token-return",
-              showingAnswer && "opacity-60",
             )}
             data-bonus-sentence-token={token.id}
           >
             {token.text}
-          </button>
+          </QuizWordButton>
         ))}
       </div>
       <BonusCheckButton
@@ -1261,29 +1312,36 @@ function CategorySortBonus({
             : null;
           const correct = showingAnswer && assigned === categoryByWord.get(word.id);
           const wrong = showingAnswer && assigned !== categoryByWord.get(word.id);
+          const feedback: QuizWordButtonFeedback = correct
+            ? "correct"
+            : wrong
+              ? "incorrect"
+              : showingAnswer
+                ? "muted"
+                : selectedWordId === word.id
+                  ? "selected"
+                  : assigned
+                    ? "matched"
+                    : "idle";
           return (
-            <button
+            <QuizWordButton
               key={word.id}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectWord(word.id)}
+              wordType={showingAnswer ? "inactive" : "select"}
+              selected={feedback === "selected"}
+              feedback={feedback === "selected" ? undefined : feedback}
               className={cn(
-                "inline-flex min-h-14 items-center justify-center border-[#aaaaaa]",
-                MATCHING_WORD_BUTTON_CLASS,
-                selectedWordId === word.id && "-translate-y-0.5 ring-2 ring-brand",
-                assignedPalette?.background,
-                assigned && "text-white",
+                "min-h-14",
+                feedback === "matched" && assignedPalette?.background,
                 returningWordIds[word.id] && "animate-bonus-category-word-return",
-                correct && "bg-emerald-500 text-white border-emerald-500",
-                wrong && "bg-rose-500 text-white border-rose-500 animate-bonus-incorrect-shake",
-                !assigned && !showingAnswer && "bg-background-card hover:-translate-y-0.5 hover:border-brand",
-                showingAnswer && !assigned && "opacity-60",
               )}
               data-bonus-category-word={word.id}
-              data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
+              data-bonus-result={feedback === "matched" ? "idle" : feedback}
             >
               {word.text}
-            </button>
+            </QuizWordButton>
           );
         })}
       </div>
@@ -1336,8 +1394,15 @@ function CategorySortBonus({
                     const isReturning = exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id;
                     const correct = showingAnswer && assignments[word.id] === categoryByWord.get(word.id);
                     const wrong = showingAnswer && assignments[word.id] !== categoryByWord.get(word.id);
+                    const feedback: QuizWordButtonFeedback = correct
+                      ? "correct"
+                      : wrong
+                        ? "incorrect"
+                        : isReturning
+                          ? "muted"
+                          : "matched";
                     return (
-                      <button
+                      <QuizWordButton
                         key={word.id}
                         type="button"
                         disabled={showingAnswer || isReturning}
@@ -1345,18 +1410,17 @@ function CategorySortBonus({
                           event.stopPropagation();
                           selectWord(word.id);
                         }}
+                        wordType={showingAnswer || isReturning ? "inactive" : "select"}
+                        feedback={feedback}
                         className={cn(
-                          "inline-flex items-center justify-center px-1.5 py-1 text-xs text-white border-white/30",
-                          MATCHING_WORD_BUTTON_CLASS,
+                          "px-1.5 py-1 text-xs text-white border-white/30",
                           palette.background,
                           isReturning ? "animate-bonus-category-word-exit" : "animate-bonus-category-word-enter",
-                          correct && "bg-emerald-600",
-                          wrong && "bg-rose-600 animate-bonus-incorrect-shake",
                         )}
                         data-bonus-category-assigned-word={word.id}
                       >
                         {word.text}
-                      </button>
+                      </QuizWordButton>
                     );
                   })}
                 </span>
@@ -1416,18 +1480,30 @@ function ImposterBonus({
         {question.options.map((option) => {
           const correct = showingAnswer && option.id === question.correctOptionId;
           const wrong = showingAnswer && option.id === selectedId && !option.isImposter;
+          const feedback: QuizWordButtonFeedback = correct
+            ? "correct"
+            : wrong
+              ? "incorrect"
+              : showingAnswer
+                ? "muted"
+                : selectedId === option.id
+                  ? "selected"
+                  : "idle";
           return (
-            <button
+            <QuizWordButton
               key={option.id}
               type="button"
               disabled={showingAnswer}
               onClick={() => selectOption(option.id)}
-              className={cn("inline-flex min-h-16 w-full items-center justify-center border-[#aaaaaa] bg-background-card text-lg hover:-translate-y-0.5 hover:border-brand sm:text-xl", MATCHING_WORD_BUTTON_CLASS, selectedId === option.id && "border-brand ring-2 ring-brand", correct && "border-emerald-500 bg-emerald-500 text-white", wrong && "border-rose-500 bg-rose-500 text-white animate-bonus-incorrect-shake", showingAnswer && option.id !== selectedId && !correct && "opacity-60")}
+              wordType={showingAnswer ? "inactive" : "select"}
+              selected={feedback === "selected"}
+              feedback={feedback === "selected" ? undefined : feedback}
+              className="min-h-16 w-full text-lg sm:text-xl"
               data-bonus-imposter-option={option.id}
-              data-bonus-result={correct ? "correct" : wrong ? "incorrect" : "idle"}
+              data-bonus-result={feedback}
             >
               {option.text}
-            </button>
+            </QuizWordButton>
           );
         })}
       </div>

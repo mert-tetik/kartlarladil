@@ -24,7 +24,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
-import { getCharacterName } from "@/features/ai-practice/ai-practice-data";
+import {
+  getCharacterName,
+  getCharacterVoiceProfile,
+} from "@/features/ai-practice/ai-practice-data";
 import { getAiPracticeChatBackground, getAiPracticeScenarioChatBackground } from "@/features/ai-practice/ai-practice-chat-backgrounds";
 import {
   getScenarioProfession,
@@ -533,7 +536,10 @@ export function AiPracticeChatPanel({
   }
 
   function handleSpeakMessage(message: ClientMessage) {
-    speakText(message.content, language);
+    speakText(message.content, language, {
+      voiceGender: getCharacterVoiceProfile(character).gender,
+      voiceAge: getCharacterVoiceProfile(character).age,
+    });
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {

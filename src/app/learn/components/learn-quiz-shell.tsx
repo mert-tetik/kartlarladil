@@ -18,6 +18,7 @@ import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
 import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
 import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
+import { QuizWordButtonTest } from "@/app/learn/components/quiz-word-button-test";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useOptionalAuthSession } from "@/features/auth/auth-client";
@@ -40,6 +41,7 @@ interface LearnQuizShellProps {
   bonusTest?: boolean;
   normalTest?: boolean;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
+  quizWordButtonTest?: boolean;
 }
 
 export function LearnQuizShell({
@@ -55,6 +57,7 @@ export function LearnQuizShell({
   bonusTest = false,
   normalTest = false,
   normalQuestionType = null,
+  quizWordButtonTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -156,6 +159,10 @@ export function LearnQuizShell({
 
   if (resultMessageTest) {
     return <QuizResultMessageTest />;
+  }
+
+  if (quizWordButtonTest) {
+    return <QuizWordButtonTest />;
   }
 
   // Isolated test routes must remain available even when the visual-test

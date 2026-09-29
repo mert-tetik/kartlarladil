@@ -501,6 +501,27 @@ export const AI_PRACTICE_CHARACTERS: AiPracticeCharacter[] = AI_PRACTICE_CHARACT
   },
 }));
 
+export type AiPracticeVoiceGender = "female" | "male";
+export type AiPracticeVoiceAge = "young" | "adult" | "elder";
+
+export interface AiPracticeVoiceProfile {
+  gender: AiPracticeVoiceGender;
+  age: AiPracticeVoiceAge;
+}
+
+const AI_PRACTICE_VOICE_PROFILE_BY_ID: Record<string, AiPracticeVoiceProfile> = {
+  "gentle-companion": { gender: "female", age: "adult" },
+  "gothic-calm": { gender: "female", age: "adult" },
+  "campus-friend": { gender: "female", age: "young" },
+  "soft-artist": { gender: "male", age: "adult" },
+  "skater-coach": { gender: "female", age: "young" },
+  "study-buddy": { gender: "female", age: "adult" },
+  "sleepy-student": { gender: "male", age: "young" },
+  "friendly-worker": { gender: "male", age: "adult" },
+  "warm-grandmother": { gender: "female", age: "elder" },
+  "wise-elder": { gender: "male", age: "elder" },
+};
+
 export function getAiPracticeCharacters() {
   return AI_PRACTICE_CHARACTERS;
 }
@@ -511,6 +532,14 @@ export function getAiPracticeCharacter(id: string) {
 
 export function getCharacterName(character: AiPracticeCharacter, language: LanguageCode) {
   return character.namesByLanguage[language];
+}
+
+export function getCharacterVoiceGender(character: Pick<AiPracticeCharacter, "id">) {
+  return getCharacterVoiceProfile(character).gender;
+}
+
+export function getCharacterVoiceProfile(character: Pick<AiPracticeCharacter, "id">) {
+  return AI_PRACTICE_VOICE_PROFILE_BY_ID[character.id] ?? { gender: "female", age: "adult" };
 }
 
 export function getRandomOpeningLine(character: AiPracticeCharacter, language: LanguageCode) {
