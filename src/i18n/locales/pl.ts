@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "Nie masz jeszcze słów w języku {language}.",
+  "home.landingGroupQuestion.title": "Do której grupy należy to słowo?",
+  "home.landingGroupQuestion.description": "Wybierz właściwą grupę słów.",
+  "home.landingGroupQuestion.optionsLabel": "Opcje grup słów",
   "cards.grammarDetails": "Gramatyka i szczegóły",
   "cards.cardInformation": "Informacje o karcie",
   "cards.foreignTerm": "Uczone słowo",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "Åšwietna robota — ta karta jest teraz oznaczona jako nauczona.",
   "quiz.learnedTitle": "Karta nauczona!",
   "quiz.learningQuizBadge": "Pytanie do nauki",
+  "quiz.wordLearningQuestion": "Pytanie do nauki słowa",
   "quiz.definitionBadge": "Pytanie definicyjne",
   "quiz.definitionPrompt": "Wybierz definicję",
   "quiz.learningQuizSplash": "Pytanie o naukÄ™ karty",

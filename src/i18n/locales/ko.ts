@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "아직 {language} 단어가 없습니다.",
+  "home.landingGroupQuestion.title": "이 단어는 어느 그룹에 속할까요?",
+  "home.landingGroupQuestion.description": "올바른 단어 그룹을 선택하세요.",
+  "home.landingGroupQuestion.optionsLabel": "단어 그룹 선택지",
   "cards.grammarDetails": "문법 및 세부 정보",
   "cards.cardInformation": "카드 정보",
   "cards.foreignTerm": "학습 단어",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "잘했어요 — 이 카드는 이제 학습 완료로 표시됩니다.",
   "quiz.learnedTitle": "카드 학습 완료!",
   "quiz.learningQuizBadge": "학습 질문",
+  "quiz.wordLearningQuestion": "단어 학습 문제",
   "quiz.definitionBadge": "정의 문제",
   "quiz.definitionPrompt": "정의를 고르세요",
   "quiz.learningQuizSplash": "카드 학습 문제",

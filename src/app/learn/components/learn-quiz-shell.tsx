@@ -210,7 +210,7 @@ export function LearnQuizShell({
       >
         {selectedMode ? (
           <div
-            className="quiz-transition-stage relative flex min-h-0 flex-1 flex-col"
+            className="quiz-transition-stage relative flex min-h-0 flex-1 flex-col max-lg:fixed max-lg:inset-0 max-lg:z-0 max-lg:h-dvh max-lg:w-full"
           >
             <QuizStation
               key={selectedMode}

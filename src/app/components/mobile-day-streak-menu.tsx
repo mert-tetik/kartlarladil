@@ -11,6 +11,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
 import type { LocaleCode } from "@/types/domain";
 import { cn } from "@/lib/utils";
+import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
 
 const DAY_STREAK_CLOSE_DURATION = 360;
 const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
@@ -68,16 +69,20 @@ export function MobileDayStreakMenu({
   const { mode } = useTheme();
   const { locale } = useLocale();
   const t = useT();
+  const videoSource = DAY_STREAK_VIDEO_SOURCES[mode];
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<"opening" | "open" | "closing">("opening");
   const [contentReady, setContentReady] = useState(false);
   const [idleBackgroundReady, setIdleBackgroundReady] = useState(false);
+  const [openingVideoSource, setOpeningVideoSource] = useState(videoSource);
+  const [idleVideoSource, setIdleVideoSource] = useState(DAY_STREAK_IDLE_BACKGROUND_SOURCE);
+  const [openingVideoUnavailable, setOpeningVideoUnavailable] = useState(false);
+  const [idleVideoUnavailable, setIdleVideoUnavailable] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarClosing, setCalendarClosing] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseDateKey(snapshot?.today ?? getLocalDateKey(new Date()))));
   const videoRef = useRef<HTMLVideoElement>(null);
   const idleVideoRef = useRef<HTMLVideoElement>(null);
-  const videoSource = DAY_STREAK_VIDEO_SOURCES[mode];
   const todayKey = snapshot?.today ?? getLocalDateKey(new Date());
   const loggedDates = useMemo(() => new Set(snapshot?.loggedDates ?? []), [snapshot?.loggedDates]);
   const weekDays = useMemo(() => getWeekDays(parseDateKey(todayKey)), [todayKey]);
@@ -89,6 +94,10 @@ export function MobileDayStreakMenu({
       setPhase("opening");
       setContentReady(false);
       setIdleBackgroundReady(false);
+      setOpeningVideoSource(videoSource);
+      setIdleVideoSource(DAY_STREAK_IDLE_BACKGROUND_SOURCE);
+      setOpeningVideoUnavailable(false);
+      setIdleVideoUnavailable(false);
       setCalendarOpen(false);
       setCalendarClosing(false);
       setCalendarMonth(startOfMonth(parseDateKey(todayKey)));
@@ -113,6 +122,24 @@ export function MobileDayStreakMenu({
 
     return () => window.clearTimeout(closeTimer);
   }, [mode, onExited, open]);
+
+  const handleOpeningVideoError = () => {
+    if (!isNativeMediaFallbackSource(openingVideoSource)) {
+      setOpeningVideoSource(getNativeMediaFallbackSource(openingVideoSource));
+      return;
+    }
+    setOpeningVideoUnavailable(true);
+    finishOpeningVideo();
+  };
+
+  const handleIdleVideoError = () => {
+    if (!isNativeMediaFallbackSource(idleVideoSource)) {
+      setIdleVideoSource(getNativeMediaFallbackSource(idleVideoSource));
+      return;
+    }
+    setIdleVideoUnavailable(true);
+    setIdleBackgroundReady(true);
+  };
 
   useEffect(() => {
     if (!calendarClosing) {
@@ -150,7 +177,7 @@ export function MobileDayStreakMenu({
     video.addEventListener("canplay", startVideo, { once: true });
     video.load();
     return () => video.removeEventListener("canplay", startVideo);
-  }, [mounted, open, videoSource]);
+  }, [mounted, open, openingVideoSource]);
 
   const finishOpeningVideo = () => {
     if (!open) {
@@ -232,10 +259,10 @@ export function MobileDayStreakMenu({
       data-mobile-day-streak-phase={phase}
       data-day-streak-content-ready={contentReady}
     >
-      <video
+      {!openingVideoUnavailable ? <video
         ref={videoRef}
-        key={videoSource}
-        src={videoSource}
+        key={openingVideoSource}
+        src={openingVideoSource}
         poster={DAY_STREAK_POSTER_SOURCES[mode]}
         autoPlay
         muted
@@ -243,14 +270,15 @@ export function MobileDayStreakMenu({
         preload="auto"
         onTimeUpdate={handleVideoTimeUpdate}
         onEnded={finishOpeningVideo}
-        onError={finishOpeningVideo}
+        onError={handleOpeningVideoError}
         aria-hidden="true"
         data-day-streak-background
         className="day-streak-opening-background absolute inset-0 h-full w-full object-cover"
-      />
-      <video
+      /> : null}
+      {!idleVideoUnavailable ? <video
         ref={idleVideoRef}
-        src={DAY_STREAK_IDLE_BACKGROUND_SOURCE}
+        key={idleVideoSource}
+        src={idleVideoSource}
         loop
         muted
         playsInline
@@ -261,7 +289,8 @@ export function MobileDayStreakMenu({
           "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[580ms] ease-linear",
           idleBackgroundReady ? "opacity-100" : "opacity-0",
         )}
-      />
+        onError={handleIdleVideoError}
+      /> : null}
       <button
         type="button"
         onClick={() => {

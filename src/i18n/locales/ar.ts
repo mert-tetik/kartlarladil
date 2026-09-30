@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "ليس لديك أي كلمات في {language} بعد.",
+  "home.landingGroupQuestion.title": "إلى أي مجموعة تنتمي الكلمة؟",
+  "home.landingGroupQuestion.description": "اختر مجموعة الكلمات الصحيحة.",
+  "home.landingGroupQuestion.optionsLabel": "خيارات مجموعات الكلمات",
   "cards.grammarDetails": "القواعد والتفاصيل",
   "cards.cardInformation": "معلومات البطاقة",
   "cards.foreignTerm": "الكلمة المتعلمة",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "عمل رائع - هذه البطاقة الآن مُعلمة كمتعلمة.",
   "quiz.learnedTitle": "تم تعلم البطاقة!",
   "quiz.learningQuizBadge": "سؤال تعلم",
+  "quiz.wordLearningQuestion": "سؤال تعلم الكلمات",
   "quiz.definitionBadge": "سؤال التعريف",
   "quiz.definitionPrompt": "اختر التعريف",
   "quiz.learningQuizSplash": "سؤال تعلم البطاقة",

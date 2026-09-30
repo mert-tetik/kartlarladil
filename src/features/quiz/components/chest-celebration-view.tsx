@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
 
 interface ChestCelebrationViewProps {
   onComplete: () => void;
@@ -27,6 +28,8 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
   const [viewVisible, setViewVisible] = useState(false);
   const [messageVisible, setMessageVisible] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [videoSource, setVideoSource] = useState("/quiz/result_message_video.mp4");
+  const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [messageKey] = useState(() =>
     CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
   );
@@ -79,6 +82,11 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
   };
 
   const handleVideoError = () => {
+    if (!isNativeMediaFallbackSource(videoSource)) {
+      setVideoSource(getNativeMediaFallbackSource(videoSource));
+      return;
+    }
+    setVideoUnavailable(true);
     if (videoErrorTimerRef.current !== null) return;
     videoErrorTimerRef.current = window.setTimeout(
       finishVideo,
@@ -126,12 +134,13 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
         aria-hidden="true"
         data-chest-celebration-background
       >
-        <video
+        {!videoUnavailable ? <video
           className={cn(
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-150 ease-linear",
             viewVisible ? "opacity-100" : "opacity-0",
           )}
-          src="/quiz/result_message_video.mp4"
+          key={videoSource}
+          src={videoSource}
           autoPlay
           muted
           onEnded={finishVideo}
@@ -140,7 +149,7 @@ export function ChestCelebrationView({ onComplete }: ChestCelebrationViewProps) 
           playsInline
           preload="auto"
           data-chest-celebration-video
-        />
+        /> : null}
       </div>
       <div
         className={cn(

@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "まだ{language}の単語がありません。",
+  "home.landingGroupQuestion.title": "この単語はどのグループ？",
+  "home.landingGroupQuestion.description": "正しい単語グループを選んでください。",
+  "home.landingGroupQuestion.optionsLabel": "単語グループの選択肢",
   "cards.grammarDetails": "文法と詳細",
   "cards.cardInformation": "カード情報",
   "cards.foreignTerm": "学習語",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "素晴らしい仕事 — このカードは学習済みとしてマークされました。",
   "quiz.learnedTitle": "カードを学習しました！",
   "quiz.learningQuizBadge": "学習中の質問",
+  "quiz.wordLearningQuestion": "単語学習問題",
   "quiz.definitionBadge": "定義問題",
   "quiz.definitionPrompt": "定義を選ぼう",
   "quiz.learningQuizSplash": "カード学習の問題",

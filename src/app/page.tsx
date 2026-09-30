@@ -15,6 +15,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
+import { LandingGroupQuestion } from "@/app/components/landing-group-question";
 import { ReviewSection } from "@/features/reviews/components/review-section";
 import { getExistingReview } from "@/features/reviews/review-service";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
@@ -171,6 +172,10 @@ export default async function Home() {
             );
           })}
         </div>
+      </section>
+
+      <section data-route-transition-surface className="bg-slate-50 px-4 py-12 dark:bg-background sm:px-6 lg:px-8">
+        <LandingGroupQuestion language={user?.profile.preferredLanguageCode ?? "en"} />
       </section>
 
       <section data-collection-preview-section data-route-transition-surface className="bg-slate-50 dark:bg-background">

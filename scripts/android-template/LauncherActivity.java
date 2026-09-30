@@ -22,7 +22,6 @@ import java.util.Arrays;
 
 public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
-    private static final int BRAND_ORANGE = Color.rgb(247, 104, 8);
     private WebView webView;
     private FrameLayout contentRoot;
     private NativeBillingBridge billingBridge;
@@ -48,7 +47,7 @@ public class LauncherActivity extends Activity {
         }
 
         CookieManager.getInstance().setAcceptCookie(true);
-        webView.setBackgroundColor(BRAND_ORANGE);
+        webView.setBackgroundColor(Color.BLACK);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -90,7 +89,7 @@ public class LauncherActivity extends Activity {
         webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");
 
         contentRoot = new FrameLayout(this);
-        contentRoot.setBackgroundColor(BRAND_ORANGE);
+        contentRoot.setBackgroundColor(Color.BLACK);
         contentRoot.addView(
                 webView,
                 new FrameLayout.LayoutParams(
@@ -107,6 +106,9 @@ public class LauncherActivity extends Activity {
         Window window = getWindow();
         window.setStatusBarColor(Color.BLACK);
         window.setNavigationBarColor(Color.BLACK);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.setNavigationBarDividerColor(Color.BLACK);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = window.getDecorView().getWindowInsetsController();
             if (controller != null) {

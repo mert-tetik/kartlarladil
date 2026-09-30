@@ -53,6 +53,13 @@ public final class LocalMediaWebViewClient extends WebViewClient {
             return null;
         }
 
+        // A media element uses this one-shot query parameter after a local
+        // asset fails. Returning null here deliberately lets WebView fetch the
+        // same URL from the remote origin instead of retrying the broken pack.
+        if (uri.getQueryParameter("native-media-fallback") != null) {
+            return null;
+        }
+
         String localPath = resolveLocalPath(uri);
         if (localPath == null) {
             return null;

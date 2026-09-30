@@ -796,10 +796,8 @@ describe("QuizStation sound feedback", () => {
       expect(document.querySelector('[data-quiz-mobile-layout="listening"]')).toBeInTheDocument();
     });
 
-    expect(document.querySelector("[data-quiz-listening-pronunciation]")).toHaveTextContent(
-      testCard.pronunciation,
-    );
-    expect(document.querySelectorAll("[data-quiz-listening-option]")).toHaveLength(4);
+    expect(screen.getByText(testCard.pronunciation)).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-quiz-listening-option]")).toHaveLength(3);
 
     fireEvent.click(document.querySelector<HTMLButtonElement>("[data-quiz-skip]")!);
     expect(playSoundEffect).toHaveBeenCalledWith("incorrect");

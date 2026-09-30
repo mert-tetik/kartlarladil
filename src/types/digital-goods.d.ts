@@ -41,6 +41,11 @@ interface Window {
       text: string,
       languageTag: string,
       rate: number,
+    ): boolean;
+    speakWithProfile?(
+      text: string,
+      languageTag: string,
+      rate: number,
       voiceGender?: "female" | "male",
       voiceAge?: "young" | "adult" | "elder",
     ): boolean;

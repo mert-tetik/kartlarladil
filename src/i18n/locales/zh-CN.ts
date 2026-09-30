@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "您还没有{language}单词。",
+  "home.landingGroupQuestion.title": "这个单词属于哪个类别？",
+  "home.landingGroupQuestion.description": "选择正确的单词类别。",
+  "home.landingGroupQuestion.optionsLabel": "单词类别选项",
   "cards.grammarDetails": "语法与详情",
   "cards.cardInformation": "卡片信息",
   "cards.foreignTerm": "学习词汇",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "做得好——这张卡片现在标记为已学习。",
   "quiz.learnedTitle": "卡片已学会！",
   "quiz.learningQuizBadge": "学习问题",
+  "quiz.wordLearningQuestion": "单词学习问题",
   "quiz.definitionBadge": "释义题",
   "quiz.definitionPrompt": "选择定义",
   "quiz.learningQuizSplash": "卡片学习问题",

@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
+import { getRandomQuizCharacter, QuizSpeechBubble } from "@/features/quiz/components/quiz-speech-bubble";
 import {
   getChestPreviewPairForCount,
   QUIZ_COUNT_OPTIONS,
@@ -10,6 +12,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
 import type { LocaleCode, PracticeMode } from "@/types/domain";
 
 const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
@@ -46,9 +49,18 @@ export function QuizCountSelection({
   const t = useT();
   const useSuperWater = canUseSuperWater(locale);
   const showChestTiers = mode === "active";
+  const [character] = useState(getRandomQuizCharacter);
+  const [animatingCount, setAnimatingCount] = useState<number | null>(null);
 
   function handleSelect(count: number) {
-    if (locked || count > availableCount) return;
+    if (locked || animatingCount !== null || count > availableCount) return;
+
+    setAnimatingCount(count);
+    playSoundEffect("correct");
+  }
+
+  function handleFeedbackEnd(count: number, animationName: string) {
+    if (count !== animatingCount || animationName !== "quiz-word-button-correct") return;
     onSelect(count);
   }
 
@@ -56,55 +68,58 @@ export function QuizCountSelection({
     <section
       data-quiz-count-selection
       className={cn(
-        "quiz-flow-screen relative isolate flex min-h-[calc(100dvh-var(--app-header-height))] w-full flex-1 flex-col items-center justify-center overflow-hidden bg-background px-3 py-5 sm:px-5 sm:py-7",
+        "quiz-flow-screen relative isolate flex h-full min-h-0 w-full flex-1 flex-col items-center justify-start overflow-hidden bg-background px-3 py-5 max-lg:pt-[calc(1.25rem+var(--app-header-height))] sm:px-5 sm:py-7",
       )}
     >
-      <h1
-        className={cn(
-          "shrink-0 text-center text-[clamp(1.8rem,5vw,3.5rem)] font-black leading-none text-foreground",
-          useSuperWater && "font-super-water",
-        )}
-      >
-        {formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
-      </h1>
+      <div className="w-full max-w-xl">
+        <QuizSpeechBubble
+          character={character}
+          term={formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
+          language={locale}
+          showSpeaker={false}
+          largeCharacter
+          className="-translate-y-10"
+        />
+        <div className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4">
+          {QUIZ_COUNT_OPTIONS.map((count) => {
+            const unavailable = locked || count > availableCount;
+            const selectionLocked = animatingCount !== null;
+            const previewPair = showChestTiers ? getChestPreviewPairForCount(count) : undefined;
+            const name = COUNT_OPTION_NAMES[locale][count];
 
-      <div className="mx-auto mt-6 flex w-full max-w-xl flex-col gap-3 sm:mt-8 sm:gap-4">
-        {QUIZ_COUNT_OPTIONS.map((count) => {
-          const unavailable = locked || count > availableCount;
-          const previewPair = showChestTiers ? getChestPreviewPairForCount(count) : undefined;
-          const name = COUNT_OPTION_NAMES[locale][count];
-
-          return (
-            <QuizWordButton
-              key={count}
-              wordType="correct"
-              disabled={unavailable}
-              aria-label={`${name}: ${formatNumber(locale, count)}`}
-              onClick={() => handleSelect(count)}
-              className={cn(
-                "h-20 min-h-0 w-full justify-center px-4 py-2 sm:h-24 sm:px-5",
-                unavailable && "grayscale opacity-45",
-                selectedCount === count && "border-brand ring-2 ring-brand/30",
-              )}
-            >
-              <span className="flex w-full flex-col items-center justify-center gap-1 pb-1">
-                <span className="flex items-center justify-center gap-3 pb-1 pt-2 text-center">
-                  <span className="truncate text-base font-semibold leading-none sm:text-lg">{name}</span>
-                  <span className="shrink-0 text-sm font-semibold sm:text-base">
-                    {formatNumber(locale, count)} {t("quiz.countLabel")}
+            return (
+              <QuizWordButton
+                key={count}
+                wordType="correct"
+                disabled={unavailable || selectionLocked}
+                aria-label={`${name}: ${formatNumber(locale, count)}`}
+                onClick={() => handleSelect(count)}
+                onAnimationEnd={(event) => handleFeedbackEnd(count, event.animationName)}
+                className={cn(
+                  "h-20 min-h-0 w-full justify-center px-4 py-2 sm:h-24 sm:px-5",
+                  unavailable && "grayscale opacity-45",
+                  selectedCount === count && "border-brand ring-2 ring-brand/30",
+                )}
+              >
+                <span className="flex w-full flex-col items-center justify-center gap-1 pb-1">
+                  <span className="flex items-center justify-center gap-3 pb-1 pt-2 text-center">
+                    <span className="truncate text-base font-semibold leading-none sm:text-lg">{name}</span>
+                    <span className="shrink-0 text-sm font-semibold sm:text-base">
+                      {formatNumber(locale, count)} {t("quiz.countLabel")}
+                    </span>
                   </span>
+                  {previewPair ? (
+                    <span className="flex items-center justify-center gap-2 pb-1 sm:gap-3">
+                      {previewPair.map((tier) => (
+                        <ChestIcon key={tier} tier={tier} className="size-8 shrink-0 sm:size-9" />
+                      ))}
+                    </span>
+                  ) : null}
                 </span>
-                {previewPair ? (
-                  <span className="flex items-center justify-center gap-2 pb-1 sm:gap-3">
-                    {previewPair.map((tier) => (
-                      <ChestIcon key={tier} tier={tier} className="size-8 shrink-0 sm:size-9" />
-                    ))}
-                  </span>
-                ) : null}
-              </span>
-            </QuizWordButton>
-          );
-        })}
+              </QuizWordButton>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

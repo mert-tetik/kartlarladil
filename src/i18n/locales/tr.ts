@@ -1,6 +1,9 @@
 ﻿
 const dictionary = {
   "home.mobile.noWordsInLanguage": "{language} dilinde hiç kelimeniz yok.",
+  "home.landingGroupQuestion.title": "Kelime hangi gruba ait?",
+  "home.landingGroupQuestion.description": "Doğru kelime grubunu seç.",
+  "home.landingGroupQuestion.optionsLabel": "Kelime grubu seçenekleri",
   "cards.grammarDetails": "Gramer & Detaylar",
   "cards.cardInformation": "Kart bilgileri",
   "cards.foreignTerm": "Yabancı kelime",
@@ -526,6 +529,7 @@ const dictionary = {
   "quiz.learnedDescription": "Tebrikler, bu kart artık öğrenildi olarak kaydedildi.",
   "quiz.learnedTitle": "Kart Öğrenildi!",
   "quiz.learningQuizBadge": "Öğrenme sorusu",
+  "quiz.wordLearningQuestion": "Kelime öğrenme sorusu",
   "quiz.definitionBadge": "Tanım sorusu",
   "quiz.definitionPrompt": "Doğru tanımı seç",
   "quiz.learningQuizSplash": "Kart öğrenme sorusu",

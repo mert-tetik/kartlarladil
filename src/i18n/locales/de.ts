@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "Du hast noch keine Wörter auf {language}.",
+  "home.landingGroupQuestion.title": "Zu welcher Gruppe gehört das Wort?",
+  "home.landingGroupQuestion.description": "Wähle die richtige Wortgruppe.",
+  "home.landingGroupQuestion.optionsLabel": "Wortgruppenoptionen",
   "cards.grammarDetails": "Grammatik & Details",
   "cards.cardInformation": "Karteninformationen",
   "cards.foreignTerm": "Lernwort",
@@ -520,6 +523,7 @@ const dictionary = {
   "quiz.learnedDescription": "Tolle Arbeit – diese Karte ist jetzt als gelernt markiert.",
   "quiz.learnedTitle": "Karte gelernt!",
   "quiz.learningQuizBadge": "Lernfrage",
+  "quiz.wordLearningQuestion": "Wortlernfrage",
   "quiz.definitionBadge": "Definitionsfrage",
   "quiz.definitionPrompt": "Wähle die Definition",
   "quiz.learningQuizSplash": "Kartenlernfrage",

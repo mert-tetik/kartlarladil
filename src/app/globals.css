@@ -1036,6 +1036,11 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .quiz-transition-fallback-old {
+  box-sizing: border-box !important;
+  contain: layout paint !important;
+  display: flex !important;
+  flex: none !important;
+  flex-direction: column !important;
   position: fixed !important;
   inset: var(--app-header-height) 0 0 !important;
   width: 100vw !important;
@@ -1049,6 +1054,14 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .quiz-transition-fallback-old[data-quiz-card-progress-reveal] {
+  inset: 0 !important;
+}
+
+.quiz-transition-fallback-old[data-quiz-celebration] {
+  inset: 0 !important;
+}
+
+.quiz-transition-fallback-old[data-quiz-count-selection] {
   inset: 0 !important;
 }
 
@@ -1987,6 +2000,26 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   transform: translateY(6px) scale(0);
 }
 
+/* Keep skip/reroll controls out of quiz layout flow at every viewport size.
+   The transition host keeps them in the question snapshot without allowing
+   their fixed bottom action area to participate in layout. */
+[data-quiz-bottom-actions] {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 14px;
+  z-index: 55;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+  background: var(--background);
+  border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+}
+
+[data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
+  height: 3rem;
+  min-height: 3rem;
+}
+
 /* The isolated Learn test routes use the same bottom action treatment at every viewport size. */
 [data-normal-test] [data-quiz-bottom-actions] {
   position: fixed;
@@ -2007,8 +2040,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 
 @media (max-width: 1023px) {
   /* Keep the skip/reroll controls attached to the mobile viewport in Learn.
-     Quiz action rows are portaled to body on the real Learn screen so route
-     transition transforms cannot create a smaller fixed-position viewport. */
+     They remain inside the transition stage so they travel with the question
+     UI while their fixed positioning keeps them out of layout flow. */
   [data-quiz-bottom-actions] {
     position: fixed;
     inset-inline: 0;
@@ -2033,6 +2066,144 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 
 .animate-quiz-card-progress-reveal {
   animation: quiz-card-progress-reveal 140ms ease-out both;
+}
+
+@keyframes quiz-card-level-up-grow-hold {
+  0% {
+    transform: scale(1);
+  }
+
+  22% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.animate-quiz-card-level-up-grow-hold {
+  animation: quiz-card-level-up-grow-hold 900ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes quiz-card-level-up-shrink {
+  from {
+    transform: scale(1.08);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-quiz-card-level-up-shrink {
+  animation: quiz-card-level-up-shrink 300ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes quiz-learned-card-reward {
+  0% {
+    transform: scale(1);
+  }
+
+  20%,
+  72% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-quiz-learned-card-reward {
+  animation: quiz-learned-card-reward 1000ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.quiz-learned-reward-hud {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, -0.75rem, 0) scale(0.96);
+  transition: opacity 360ms cubic-bezier(0.85, 0, 0.15, 1),
+    transform 360ms cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.quiz-learned-reward-hud--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+@keyframes quiz-tier-ray-rotate-reverse {
+  from {
+    transform: rotate(360deg) scale(1.04);
+  }
+
+  to {
+    transform: rotate(0deg) scale(1.04);
+  }
+}
+
+.quiz-tier-ray-field {
+  position: absolute;
+  inset: -116%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.86;
+  isolation: isolate;
+}
+
+.quiz-tier-ray-field::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform-origin: center;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 13%, #000 23%, #000 78%, transparent 100%);
+  mask-image: radial-gradient(circle at center, transparent 0 13%, #000 23%, #000 78%, transparent 100%);
+}
+
+.quiz-tier-ray-field::after {
+  inset: -3%;
+  background: repeating-conic-gradient(
+    from 13deg at 50% 50%,
+    transparent 0deg 11deg,
+    color-mix(in srgb, var(--quiz-tier-ray-color) 62%, white) 11deg 14deg,
+    transparent 14deg 28deg
+  );
+  opacity: 0.48;
+  animation: quiz-tier-ray-rotate-reverse 14s linear infinite;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--quiz-tier-ray-color) 60%, transparent));
+}
+
+@keyframes quiz-card-idle-attention {
+  0%,
+  100% {
+    transform: rotateZ(-1.5deg);
+  }
+
+  50% {
+    transform: rotateZ(1.5deg);
+  }
+}
+
+.animate-quiz-card-idle-attention {
+  animation: quiz-card-idle-attention 2200ms ease-in-out infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-tier-ray-field::after,
+  .animate-quiz-card-idle-attention {
+    animation: none;
+  }
 }
 
 @keyframes quiz-card-progress-void {
@@ -2361,9 +2532,13 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
     will-change: auto;
   }
 
-  /* Learn setup, count selection, and result screens hide the mobile navbar,
-     so they must use the full viewport instead of reserving its old space. */
-  body:has([data-learn-page]):not(:has([data-quiz-session-progress])) [data-learn-page] {
+  /* Count selection keeps the normal top navbar, while the active quiz swaps
+     it for its own progress bar. Result screens keep both bars out of view. */
+  body:has([data-learn-page]):has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-learn-page] {
+    height: calc(100dvh - var(--app-header-height));
+  }
+
+  body:has([data-learn-page]):not(:has([data-quiz-session-progress]:not([data-quiz-transition-fallback-old]))):not(:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old]))) [data-learn-page] {
     height: 100dvh;
   }
 }
@@ -2376,13 +2551,13 @@ body:has([data-learn-page]) footer {
 }
 
 @media (max-width: 1023px) {
-  /* Keep the app navbar out of Learn setup/result states. The quiz's own
-     progress bar is the only state in which the navbar may be present. */
+  /* Count selection uses the normal navbar. During quiz and result, the
+     normal navbar stays out of the way of the quiz chrome. */
   body:has([data-learn-page]) [data-route-transition-navigation] {
     display: none;
   }
 
-  body:has([data-learn-page]):has([data-quiz-session-progress]) [data-route-transition-navigation] {
+  body:has([data-learn-page]):has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-route-transition-navigation] {
     display: block;
   }
 }
@@ -2456,13 +2631,13 @@ body:has([data-create-card-page]) [data-create-card-page] {
   }
 }
 
-/* Hide the mobile bottom nav on the quiz count selection screen */
+/* Keep the mobile bottom nav hidden on full-screen quiz setup. */
 @media (max-width: 1023px) {
-  body:has([data-quiz-count-selection]) [data-mobile-main-nav-frame] {
+  body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-mobile-main-nav-frame] {
     display: none;
   }
 
-  body:has([data-quiz-count-selection]) .page-transition-shell {
+  body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) .page-transition-shell {
     bottom: 0;
   }
 

@@ -44,8 +44,8 @@ import {
   getStudyLocale,
 } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
+import { QuizSpeechBubble, getRandomQuizCharacter } from "@/features/quiz/components/quiz-speech-bubble";
 import {
-  getAiPracticeCharacters,
   getCharacterName,
   getCharacterVoiceProfile,
 } from "@/features/ai-practice/ai-practice-data";
@@ -255,13 +255,6 @@ function getQuizCountButtonColor(count: number) {
   return QUIZ_COUNT_BUTTON_COLORS[index >= 0 ? index : 0];
 }
 
-const CHOICE_OPTION_COLORS = [
-  "bg-red-500",
-  "bg-blue-500",
-  "bg-amber-400",
-  "bg-emerald-500",
-] as const;
-
 const RESULT_CARD_BACKGROUNDS = {
   correct: "/quiz/result-cards/correct.png",
   incorrect: "/quiz/result-cards/incorrect.png",
@@ -271,16 +264,35 @@ const RESULT_CARD_BACKGROUNDS = {
 const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
-const QUIZ_CARD_PROGRESS_DELAY_MS = 500;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
 const QUIZ_CARD_REVEAL_ENTER_DURATION_MS = 360;
+const QUIZ_CARD_PROGRESS_ADVANCE_DURATION_MS = 900;
 const QUIZ_QUESTION_ENTRY_DURATION_MS = 360;
 const QUIZ_FLOW_TRANSITION_DURATION_MS = 360;
-const NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS = 650;
+const QUIZ_BUTTON_FEEDBACK_DURATION_MS = 700;
+const NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS = QUIZ_BUTTON_FEEDBACK_DURATION_MS;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
 const QUIZ_CARD_COMPACT_SCALE = 0.78;
 const QUIZ_CARD_CENTER_SCALE = 1.35;
+
+const TIER_RAY_COLOR_VARIABLES: Record<VocabularyCard["tier"], string> = {
+  A1: "var(--tier-a1)",
+  A2: "var(--tier-a2)",
+  B1: "var(--tier-b1)",
+  B2: "var(--tier-b2)",
+  C1: "var(--tier-c1)",
+};
+
+function QuizTierRayField({ tier }: { tier: VocabularyCard["tier"] }) {
+  return (
+    <div
+      className="quiz-tier-ray-field"
+      style={{ "--quiz-tier-ray-color": TIER_RAY_COLOR_VARIABLES[tier] } as CSSProperties}
+      aria-hidden="true"
+    />
+  );
+}
 
 interface BaseQuizItem {
   card: VocabularyCard;
@@ -331,6 +343,21 @@ interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
 type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | BonusQuizItem;
 export type NormalQuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem;
 type QuizCardFeedbackStage = "idle" | "appearing" | "growing" | "revealing" | "updating";
+
+type PreparedBonusPlan = {
+  index: number;
+  kind: BonusQuestionKind;
+  fallback: BonusQuestion | null;
+  selectedForMaxDeck: boolean;
+};
+
+type PreparedQuizPool = {
+  key: string;
+  regularItems: QuizItem[];
+  bonusCards: VocabularyCard[];
+  bonusLearnedCards: VocabularyCard[];
+  bonusPlans: PreparedBonusPlan[];
+};
 
 interface QuizRerollAction {
   onReroll: () => void;
@@ -539,6 +566,7 @@ export function QuizStation({
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const [supportsViewTransition, setSupportsViewTransition] = useState(false);
+  const useCssQuizTransitionRef = useRef(false);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const normalAnswerAdvanceTimeoutRef = useRef<number | null>(null);
   const streakTimeoutRef = useRef<number | null>(null);
@@ -558,7 +586,8 @@ export function QuizStation({
   const bonusGemFinalBalancesRef = useRef<GemBalances | null>(null);
   const bonusRewardFlowCompletedRef = useRef(false);
   const bonusDeckTokenRef = useRef(0);
-  const preparedCountRef = useRef<number | null>(null);
+  const preparedQuizPoolRef = useRef<PreparedQuizPool | null>(null);
+  const quizPoolPreparationTokenRef = useRef(0);
   const currentIndexRef = useRef(0);
   const redirectStartedRef = useRef(false);
   const {
@@ -583,6 +612,7 @@ export function QuizStation({
   function createFallbackTransitionSnapshot() {
     const source =
       document.querySelector<HTMLElement>("[data-quiz-card-progress-reveal]") ??
+      document.querySelector<HTMLElement>("[data-quiz-celebration]") ??
       document.querySelector<HTMLElement>("[data-quiz-count-selection]") ??
       document.querySelector<HTMLElement>("[data-learn-quiz-page='quiz']");
     if (!source) return null;
@@ -590,6 +620,11 @@ export function QuizStation({
     const snapshot = source.cloneNode(true) as HTMLElement;
     snapshot.removeAttribute("style");
     snapshot.setAttribute("aria-hidden", "true");
+    // The fallback copy is only a visual snapshot. Keep it out of the
+    // page-level :has() selectors that control Learn's navbar/viewport mode;
+    // otherwise the count screen can briefly re-assert its layout while the
+    // first question and its bottom actions are being mounted.
+    snapshot.setAttribute("data-quiz-transition-fallback-old", "true");
     snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
       element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
     });
@@ -605,8 +640,22 @@ export function QuizStation({
     }
 
     const transitionDocument = document as QuizViewTransitionDocument;
-    if (transitionDocument.startViewTransition) {
-      transitionDocument.startViewTransition(() => {
+    // Count selection and the first quiz question do not share the same
+    // geometry: count is normal flow, while the quiz is a fixed viewport.
+    // Native View Transitions capture the shared stage after that geometry
+    // changes and interpolate its top/height for one frame. Use the explicit
+    // snapshot path for this boundary so the old screen is fully detached
+    // before the new fixed viewport mounts.
+    const isCountBoundary = Boolean(
+      document.querySelector<HTMLElement>("[data-quiz-count-selection]"),
+    );
+    const hasNativeTransition =
+      typeof transitionDocument.startViewTransition === "function";
+    const useNativeTransition = hasNativeTransition && !isCountBoundary;
+    useCssQuizTransitionRef.current = !useNativeTransition;
+
+    if (useNativeTransition) {
+      transitionDocument.startViewTransition!(() => {
         flushSync(update);
       });
       return;
@@ -658,43 +707,25 @@ export function QuizStation({
       Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
     );
 
-    runQuizViewTransition(() => {
-      setCardProgressFeedback({
-        id,
-        cardId: item.card.id,
-        stage: "appearing",
-        baseCount,
-        targetCount,
+    const revealTimeoutId = window.setTimeout(() => {
+      runQuizViewTransition(() => {
+        setCardProgressFeedback({
+          id,
+          cardId: item.card.id,
+          stage: "appearing",
+          baseCount,
+          targetCount,
+        });
       });
-    });
+      cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
+        (activeTimeoutId) => activeTimeoutId !== revealTimeoutId,
+      );
+    }, QUIZ_BUTTON_FEEDBACK_DURATION_MS);
+    cardProgressTimeoutIdsRef.current.push(revealTimeoutId);
 
-    const schedule = (delay: number, stage: QuizCardProgressFeedback["stage"]) => {
-      const timeoutId = window.setTimeout(() => {
-        if (stage === "growing") {
-          vibrate("flip");
-        }
-
-        if (stage === "updating") {
-          playSoundEffect("points");
-          vibrate("tap");
-        }
-
-        setCardProgressFeedback((current) =>
-          current?.id === id ? { ...current, stage } : current,
-        );
-        cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
-          (activeTimeoutId) => activeTimeoutId !== timeoutId,
-        );
-      }, delay);
-      cardProgressTimeoutIdsRef.current.push(timeoutId);
-    };
-
-    // Let the card enter first. Then reveal its progress and animate the
-    // increment, leaving the screen open until the learner taps to continue.
-    const progressRevealAt = QUIZ_CARD_REVEAL_ENTER_DURATION_MS;
-    const progressUpdateAt = progressRevealAt + QUIZ_CARD_GROW_DURATION_MS + QUIZ_CARD_PROGRESS_DELAY_MS;
-    schedule(progressRevealAt, "growing");
-    schedule(progressUpdateAt, "updating");
+    // Let the card enter after the answer buttons settle. The progress
+    // increment itself is intentionally owned by the one-time tap on the
+    // reveal screen, so the learner cannot accidentally skip its animation.
     return true;
   }, [clearCardProgressFeedback, currentIndex, mode]);
 
@@ -768,26 +799,38 @@ export function QuizStation({
     selectedLanguage,
   ]);
 
-  const buildDeck = useCallback(
-    (
-      language: LanguageCode,
-      count: number | null,
-      options?: {
-        startSplashAlreadyShown?: boolean;
-        deferPhase?: boolean;
-      },
-    ) => {
+  const getQuizPoolKey = useCallback(
+    (language: LanguageCode) => [
+      language,
+      mode,
+      normalQuestionType ?? "default",
+      locale,
+      cards.map((item) => `${item.cardId}:${item.status}:${item.correctCount}`).join(","),
+    ].join("::"),
+    [cards, locale, mode, normalQuestionType],
+  );
+
+  const prepareQuizPool = useCallback(
+    (language: LanguageCode): PreparedQuizPool => {
+      const key = getQuizPoolKey(language);
       const source = filterInventoryCards({
         cards,
         language,
         status: mode,
       }).map((item) => item.card);
-      const limited = normalQuestionType || !count ? source : source.slice(0, count);
-      const shuffled = shuffle(limited);
+      const maxRegularCount = Math.min(
+        Math.max(...QUIZ_COUNT_OPTIONS),
+        source.length,
+      );
+      const listeningCards = [...VOCABULARY_CARDS, ...source];
+      const inventoryById = new Map(cards.map((item) => [item.cardId, item]));
+      const shuffled = shuffle(source).slice(0, maxRegularCount);
       const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
 
       const regularItems: QuizItem[] = shuffled.map((card, index): QuizItem | null => {
-        const inventoryCard = cards.find((item) => item.cardId === card.id)!;
+        const inventoryCard = inventoryById.get(card.id);
+        if (!inventoryCard) return null;
+
         const requirement = getTierRequirement(card.tier);
         const answerLocale = getStudyLocale(card.language, locale);
 
@@ -808,7 +851,7 @@ export function QuizStation({
                 forceLearned,
               };
             case "listening": {
-              const question = buildListeningQuizQuestion(card, [...VOCABULARY_CARDS, ...source]);
+              const question = buildListeningQuizQuestion(card, listeningCards);
               return question
                 ? { card, inventoryCard, questionType: "listening", question, willLearn, forceLearned }
                 : null;
@@ -850,7 +893,7 @@ export function QuizStation({
                     forceLearned,
                   }
                 : null;
-          }
+            }
           }
         }
 
@@ -920,20 +963,13 @@ export function QuizStation({
             card,
             inventoryCard,
             questionType: "true-false",
-            question: buildTrueFalseQuizQuestion(
-              card,
-              VOCABULARY_CARDS,
-              answerLocale,
-            ),
+            question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
             willLearn: false,
           };
         }
 
         if (shouldUseListeningQuestion()) {
-          const listeningQuestion = buildListeningQuizQuestion(
-            card,
-            [...VOCABULARY_CARDS, ...source],
-          );
+          const listeningQuestion = buildListeningQuizQuestion(card, listeningCards);
 
           if (listeningQuestion) {
             return {
@@ -950,14 +986,10 @@ export function QuizStation({
           card,
           inventoryCard,
           questionType: "choice",
-          question: buildQuizQuestion(
-            card,
-            VOCABULARY_CARDS,
-            answerLocale,
-          ),
+          question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
           willLearn: false,
         };
-      }).filter((item): item is QuizItem => item !== null).slice(0, count ?? undefined);
+      }).filter((item): item is QuizItem => item !== null);
 
       const bonusInventoryCards = filterInventoryCards({
         cards,
@@ -968,34 +1000,30 @@ export function QuizStation({
       const bonusLearnedCards = bonusInventoryCards
         .filter((item) => item.inventory.status === "learned")
         .map((item) => item.card);
-      const sessionId = createQuizSessionId();
       const maxBonusQuestionCount = normalQuestionType
         ? 0
         : getMaxBonusQuestionCount(regularItems.length);
-      const bonusPlans = regularItems.map((_, index) => {
+      const bonusPlans = regularItems.map((_, index): PreparedBonusPlan => {
         const preferredKind = getBonusKind(index);
         const candidateKinds = [
           preferredKind,
           ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredKind)),
         ];
         let selectedKind = preferredKind;
-        let selectedBonusId = `${sessionId}-${selectedKind}-${index}`;
         let selectedFallback: BonusQuestion | null = null;
 
         for (const candidateKind of candidateKinds) {
-          const candidateBonusId = `${sessionId}-${candidateKind}-${index}`;
           const candidateFallback = buildFallbackBonusQuestion(
             candidateKind,
             bonusCards,
             language,
             locale,
-            candidateBonusId,
+            `${key}-bonus-${candidateKind}-${index}`,
             bonusLearnedCards,
           );
 
           if (candidateFallback) {
             selectedKind = candidateKind;
-            selectedBonusId = candidateBonusId;
             selectedFallback = candidateFallback;
             break;
           }
@@ -1004,26 +1032,78 @@ export function QuizStation({
         return {
           index,
           kind: selectedKind,
-          bonusId: selectedBonusId,
           fallback: selectedFallback,
+          selectedForMaxDeck: Boolean(
+            selectedFallback && Math.random() < BONUS_QUESTION_PROBABILITY,
+          ),
         };
       });
-      const randomBonusPlans = shuffle(
-        bonusPlans.filter(
-          (plan) => plan.fallback && Math.random() < BONUS_QUESTION_PROBABILITY,
-        ),
-      );
-      const selectedBonusPlans = randomBonusPlans.slice(0, maxBonusQuestionCount);
 
-      // A quiz with available bonus content always gets at least one bonus,
-      // even when every independent probability roll misses.
-      if (selectedBonusPlans.length === 0 && maxBonusQuestionCount > 0) {
+      if (
+        maxBonusQuestionCount > 0 &&
+        !bonusPlans.some((plan) => plan.selectedForMaxDeck && plan.fallback)
+      ) {
         const availableBonusPlans = bonusPlans.filter((plan) => plan.fallback);
         const forcedPlan =
           availableBonusPlans[Math.floor(Math.random() * availableBonusPlans.length)];
+        if (forcedPlan) forcedPlan.selectedForMaxDeck = true;
+      }
 
+      return {
+        key,
+        regularItems,
+        bonusCards,
+        bonusLearnedCards,
+        bonusPlans,
+      };
+    },
+    [cards, getQuizPoolKey, locale, mode, normalQuestionType],
+  );
+
+  const buildDeck = useCallback(
+    (
+      language: LanguageCode,
+      count: number | null,
+      options?: {
+        startSplashAlreadyShown?: boolean;
+        deferPhase?: boolean;
+        preparedPool?: PreparedQuizPool;
+      },
+    ) => {
+      const currentKey = getQuizPoolKey(language);
+      const pool = options?.preparedPool?.key === currentKey
+        ? options.preparedPool
+        : preparedQuizPoolRef.current?.key === currentKey
+          ? preparedQuizPoolRef.current
+          : prepareQuizPool(language);
+      const regularCount = normalQuestionType || !count
+        ? pool.regularItems.length
+        : Math.min(count, pool.regularItems.length);
+      const regularItems = pool.regularItems.slice(0, regularCount);
+      const sessionId = createQuizSessionId();
+      const maxBonusQuestionCount = normalQuestionType
+        ? 0
+        : getMaxBonusQuestionCount(regularItems.length);
+      const availableBonusPlans = pool.bonusPlans.filter(
+        (plan) => plan.fallback && plan.index < regularItems.length,
+      );
+      const selectedBonusPlans = availableBonusPlans
+        .filter((plan) => plan.selectedForMaxDeck)
+        .slice(0, maxBonusQuestionCount)
+        .map((plan) => ({
+          ...plan,
+          bonusId: `${sessionId}-${plan.kind}-${plan.index}`,
+        }));
+
+      // A quiz with available bonus content always gets at least one bonus,
+      // even when every independent probability roll misses for this count.
+      if (selectedBonusPlans.length === 0 && maxBonusQuestionCount > 0) {
+        const forcedPlan = availableBonusPlans[0];
         if (forcedPlan) {
-          selectedBonusPlans.push(forcedPlan);
+          selectedBonusPlans.push({
+            ...forcedPlan,
+            bonusId: `${sessionId}-${forcedPlan.kind}-${forcedPlan.index}`,
+          });
         }
       }
 
@@ -1039,7 +1119,7 @@ export function QuizStation({
       regularItems.forEach((item, index) => {
         items.push(item);
 
-        const plan = bonusPlans[index];
+        const plan = selectedBonusPlans.find((candidate) => candidate.index === index);
         const fallback = plan?.fallback;
         if (!plan || !selectedBonusIds.has(plan.bonusId) || !fallback) return;
 
@@ -1096,18 +1176,22 @@ export function QuizStation({
       void Promise.all(
         gptJobs.map(async (job) => {
           if (job.kind === "sentence-order") {
-            const generated = await requestSentenceBonusQuestion({ language, locale, cards: bonusCards });
+            const generated = await requestSentenceBonusQuestion({
+              language,
+              locale,
+              cards: pool.bonusCards,
+            });
             if (!generated || bonusDeckTokenRef.current !== deckToken) return;
 
             setDeck((current) => current.map((item, itemIndex) => {
               if (!item.isBonus || item.bonusId !== job.bonusId) {
                 return item;
               }
-              const generatedQuestion = buildSentenceBonusFromGenerated(
-                generated,
-                bonusCards,
-                job.bonusId,
-              );
+                const generatedQuestion = buildSentenceBonusFromGenerated(
+                  generated,
+                  pool.bonusCards,
+                  job.bonusId,
+                );
               if (itemIndex <= currentIndexRef.current) {
                 if (
                   itemIndex === currentIndexRef.current &&
@@ -1146,7 +1230,10 @@ export function QuizStation({
             return;
           }
 
-          const generated = await requestCategoryBonusQuestion({ language, cards: bonusCards });
+          const generated = await requestCategoryBonusQuestion({
+            language,
+            cards: pool.bonusCards,
+          });
 
           if (!generated || bonusDeckTokenRef.current !== deckToken) return;
 
@@ -1154,7 +1241,7 @@ export function QuizStation({
             if (!item.isBonus || item.bonusId !== job.bonusId || itemIndex <= currentIndexRef.current) return item;
             const generatedQuestion = buildCategoryBonusFromGenerated(
               generated,
-              bonusCards,
+              pool.bonusCards,
               job.bonusId,
             );
             return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
@@ -1162,8 +1249,34 @@ export function QuizStation({
         }),
       );
     },
-    [cards, clearCardProgressFeedback, mode, locale, normalQuestionType, stats.rank, stats.totalPoints],
+    [
+      clearCardProgressFeedback,
+      getQuizPoolKey,
+      locale,
+      mode,
+      normalQuestionType,
+      prepareQuizPool,
+      stats.rank,
+      stats.totalPoints,
+    ],
   );
+
+  useEffect(() => {
+    preparedQuizPoolRef.current = null;
+    const preparationToken = quizPoolPreparationTokenRef.current + 1;
+    quizPoolPreparationTokenRef.current = preparationToken;
+
+    if (phase !== "count" || !selectedLanguage) return;
+
+    const language = selectedLanguage;
+    const preparationTimeout = window.setTimeout(() => {
+      const pool = prepareQuizPool(language);
+      if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+      preparedQuizPoolRef.current = pool;
+    }, 0);
+
+    return () => window.clearTimeout(preparationTimeout);
+  }, [phase, prepareQuizPool, selectedLanguage]);
 
   useEffect(() => {
     if (phase !== "count" || !selectedLanguage) return;
@@ -1261,7 +1374,9 @@ export function QuizStation({
       skipRankUpCheck = false,
     }: AdvanceQuizOptions = {}) => {
       if (!bypassCelebration && lastLearned) {
-        setPhase("celebration");
+        runQuizViewTransition(() => {
+          setPhase("celebration");
+        });
         return;
       }
 
@@ -1351,6 +1466,10 @@ export function QuizStation({
       runQuizViewTransition(() => {
         currentIndexRef.current = nextIndex;
         setCurrentIndex(nextIndex);
+        if (bypassCelebration) {
+          setLastLearned(null);
+          setCelebrationBasePoints(null);
+        }
         resetQuestionUi();
         setPhase("quiz");
       });
@@ -1448,9 +1567,11 @@ export function QuizStation({
     if (!selectedLanguage) return;
     setSelectedCount(count);
     setAwardedChestTier(null);
-    preparedCountRef.current = null;
+    const preparedPool = preparedQuizPoolRef.current?.key === getQuizPoolKey(selectedLanguage)
+      ? preparedQuizPoolRef.current
+      : undefined;
     runQuizViewTransition(() => {
-      buildDeck(selectedLanguage, count);
+      buildDeck(selectedLanguage, count, { preparedPool });
     });
   }
 
@@ -1787,12 +1908,18 @@ export function QuizStation({
 
   function completeCardProgressReveal() {
     const shouldShowStreak = pendingStreak;
-    clearCardProgressFeedback();
     if (shouldShowStreak) {
-      setPendingStreak(false);
-      setPhase("streak-celebration");
+      runQuizViewTransition(() => {
+        clearCardProgressFeedback();
+        setPendingStreak(false);
+        setPhase("streak-celebration");
+      });
       return;
     }
+
+    // Keep the correct-answer screen mounted until advanceQuiz starts the
+    // transition. Clearing it first would expose the previous question for a
+    // frame and make the next transition start from that stale UI.
     advanceQuiz();
   }
 
@@ -1808,33 +1935,15 @@ export function QuizStation({
   }
 
   function handleContinueFromCelebration() {
-    setLastLearned(null);
-    setCelebrationBasePoints(null);
     advanceQuiz({ bypassCelebration: true });
   }
 
   function handleRestart() {
-    if (selectedLanguage && selectedCount !== null) {
-      setChestOpened(false);
-      setAwardedChestTier(null);
-      buildDeck(selectedLanguage, selectedCount);
-      return;
-    }
-
-    if (selectedLanguage) {
-      const count = filterInventoryCards({
-        cards,
-        language: selectedLanguage,
-        status: mode,
-      }).length;
-
-      if (count < QUIZ_COUNT_MIN) {
-        buildDeck(selectedLanguage, null);
-        return;
-      }
-    }
-
+    // Replay always returns to the count selection screen so the learner can
+    // choose a fresh deck size instead of silently repeating the old one.
+    setSelectedCount(null);
     setChestOpened(false);
+    setAwardedChestTier(null);
     setPhase("count");
   }
 
@@ -2001,6 +2110,9 @@ export function QuizStation({
     );
   }
 
+  const useCssQuizTransition =
+    !supportsViewTransition || useCssQuizTransitionRef.current;
+
   if (phase === "language") {
     return (
       <div className="flex w-full flex-1 flex-col items-center justify-center">
@@ -2045,6 +2157,7 @@ export function QuizStation({
       <CelebrationView
         card={lastLearned}
         basePoints={celebrationBasePoints ?? stats.totalPoints}
+        enterWithCss={useCssQuizTransition}
         onContinue={handleContinueFromCelebration}
       />
     );
@@ -2199,13 +2312,13 @@ export function QuizStation({
     : item.questionType === "listening"
       ? t("quiz.listeningPrompt")
       : item.questionType === "definition"
-        ? t("quiz.definitionPrompt")
+        ? t("quiz.wordLearningQuestion")
         : item.questionType === "sentence-completion"
           ? t("quiz.sentenceCompletionPrompt")
           : item.questionType === "true-false"
             ? t("games.wordChallenge.question")
             : item.questionType === "text"
-              ? t("quiz.learningPrompt")
+              ? t("quiz.wordLearningQuestion")
               : t("quiz.recallPrompt");
   const isCardFirstQuestion =
     !isBonusQuizItem(item) &&
@@ -2234,17 +2347,18 @@ export function QuizStation({
           totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
           scorePulse={bonusScorePulse}
           questionPrompt={mobileQuestionPrompt}
+           questionPromptAccent={item.questionType === "definition" || item.questionType === "text"}
           onExit={handleExit}
           entryAnimated={false}
       />
       <div
-        className="quiz-transition-viewport mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
+        className="quiz-transition-viewport relative mx-auto flex h-auto w-full max-w-5xl flex-col justify-center bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:touch-pan-y lg:h-full"
         data-learn-quiz-page="quiz"
       >
         <div
           key={`quiz-flow-${currentIndex}-${isBonusQuizItem(item) ? item.bonusId : item.card.id}`}
           className={cn(
-            !supportsViewTransition && "quiz-flow-enter-right",
+            useCssQuizTransition && "quiz-flow-enter-right",
             "flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0",
             mobileQuestionPrompt && "max-lg:pt-[3.5rem]",
           )}
@@ -2306,6 +2420,7 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
+                  selectedAnswer={lastAnswer}
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
@@ -2318,6 +2433,7 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
+                  selectedAnswer={lastAnswer}
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
@@ -2329,6 +2445,7 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
+                  selectedAnswer={lastAnswer}
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
                   rerollAction={rerollAction}
@@ -2341,6 +2458,7 @@ export function QuizStation({
                   key={currentIndex}
                   item={item}
                   showingAnswer={showingAnswer}
+                  selectedAnswer={lastAnswer}
                   promptClassName="max-lg:hidden"
                   onAnswer={handleAnswer}
                   onSkip={handleSkip}
@@ -2384,13 +2502,18 @@ export function QuizStation({
           </div>
 
         </div>
+
+        <div
+          className="pointer-events-none absolute inset-0 z-50"
+          data-quiz-transition-action-host
+        />
       </div>
 
       {cardProgressFeedback ? (
         <CardProgressReveal
           item={item}
           feedback={cardProgressFeedback}
-          enterWithCss={!supportsViewTransition}
+          enterWithCss={useCssQuizTransition}
           onContinue={completeCardProgressReveal}
         />
       ) : null}
@@ -2434,35 +2557,49 @@ function CardProgressReveal({
   onContinue: () => void;
 }) {
   const t = useT();
-  const onContinueRef = useRef(onContinue);
-  const isProgressVisible = feedback.stage !== "appearing";
-  const progressCount = feedback.stage === "updating"
-    ? feedback.targetCount
-    : feedback.baseCount;
+  const [hasStarted, setHasStarted] = useState(false);
+  const [progressColorSettled, setProgressColorSettled] = useState(false);
+  const progressTimerRef = useRef<number | null>(null);
+  const progressCount = hasStarted ? feedback.targetCount : feedback.baseCount;
 
   useEffect(() => {
-    onContinueRef.current = onContinue;
-  }, [onContinue]);
+    return () => {
+      if (progressTimerRef.current !== null) window.clearTimeout(progressTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      onContinueRef.current();
-    }, NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS);
-
-    return () => window.clearTimeout(timeoutId);
+    const idleVibrationTimer = window.setTimeout(() => vibrate("tap"), 720);
+    return () => window.clearTimeout(idleVibrationTimer);
   }, []);
 
   function handleContinue() {
-    vibrate("tap");
-    onContinue();
+    if (hasStarted) {
+      if (progressTimerRef.current !== null) {
+        window.clearTimeout(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      onContinue();
+      return;
+    }
+
+    setHasStarted(true);
+    vibrate("result");
+    playSoundEffect("points");
+
+    progressTimerRef.current = window.setTimeout(() => {
+      progressTimerRef.current = null;
+      setProgressColorSettled(true);
+    }, QUIZ_CARD_PROGRESS_ADVANCE_DURATION_MS);
   }
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-y-auto bg-background px-5 py-8 text-center"
+      className="absolute inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-y-auto bg-background px-5 py-8 text-center"
       role="button"
       tabIndex={0}
       aria-label={t("quiz.tapToContinue")}
+      data-no-tap-vibrate
       onClick={handleContinue}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -2470,35 +2607,46 @@ function CardProgressReveal({
           handleContinue();
         }
       }}
+      data-quiz-card-progress-started={hasStarted ? "true" : undefined}
       data-quiz-card-progress-reveal
     >
       <div className={cn(
         enterWithCss && "quiz-flow-enter-right",
-        "flex min-h-full w-full max-w-md flex-col items-center justify-center gap-3",
+        "flex min-h-full w-full max-w-md flex-col items-center justify-center gap-4",
       )}>
-        <div className="text-[clamp(2rem,9vw,4.5rem)] font-black leading-none text-emerald-500">
-          {t("quiz.correctAnswerTitle")}
+        <div
+          className={cn(
+            "relative my-2 aspect-[3/4] w-[min(58vw,15rem)] max-w-full sm:my-4 sm:w-[min(30vw,17rem)]",
+            !hasStarted && "animate-quiz-card-idle-attention",
+          )}
+        >
+          <div
+            className={cn(
+              "relative z-10 h-full w-full",
+              hasStarted && !progressColorSettled && "animate-quiz-card-level-up-grow-hold",
+              progressColorSettled && "animate-quiz-card-level-up-shrink",
+            )}
+            onAnimationEnd={(event) => {
+              if (event.animationName === "quiz-card-level-up-shrink") {
+                onContinue();
+              }
+            }}
+          >
+            <VocabularyCardView
+              card={item.card}
+              inventory={item.inventoryCard}
+              owned
+              initialFace="front"
+              face="front"
+              flippable={false}
+              showActions={false}
+              footerMode="progress"
+              footerProgressCount={progressCount}
+              progressAnimationActive={hasStarted && !progressColorSettled}
+              className="h-full w-full min-h-0 max-w-full max-sm:min-h-0"
+            />
+          </div>
         </div>
-        <p className="text-base font-semibold text-foreground-muted sm:text-lg">
-          {t("quiz.cardLevelAdvanced")}
-        </p>
-        <div className="my-2 aspect-[3/4] w-[min(56vw,15rem)] max-w-full transform-gpu scale-[0.82] sm:my-4 sm:w-[min(30vw,17rem)]">
-          <VocabularyCardView
-            card={item.card}
-            inventory={item.inventoryCard}
-            owned
-            initialFace="front"
-            face="front"
-            flippable={false}
-            showActions={false}
-            footerMode={isProgressVisible ? "progress" : "empty"}
-            footerProgressCount={progressCount}
-            className="h-full w-full min-h-0 max-w-full max-sm:min-h-0"
-          />
-        </div>
-        <p className="text-sm font-semibold text-foreground-muted sm:text-base">
-          {t("quiz.tapToContinue")}
-        </p>
       </div>
     </div>
   );
@@ -2842,62 +2990,6 @@ function getRegularQuizProgress(deck: QuizItem[], currentIndex: number) {
 
 function completeSentence(sentenceWithBlank: string, answer: string) {
   return sentenceWithBlank.replace("_____", answer);
-}
-
-function getRandomQuizCharacter() {
-  const characters = getAiPracticeCharacters();
-  return characters[Math.floor(Math.random() * characters.length)]!;
-}
-
-function QuizSpeechBubble({
-  character,
-  term,
-  language,
-  secondaryText,
-}: {
-  character: AiPracticeCharacter;
-  term: string;
-  language: LanguageCode;
-  secondaryText?: string;
-}) {
-  const t = useT();
-  const characterName = getCharacterName(character, language);
-  const voiceProfile = getCharacterVoiceProfile(character);
-
-  return (
-    <div className="relative -translate-y-5 mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 sm:-translate-y-6 sm:gap-3">
-      <div className="relative h-28 w-28 shrink-0 sm:h-32 sm:w-32">
-        <Image
-          src={character.imageSrc}
-          alt={characterName}
-          fill
-          sizes="128px"
-          className="object-contain object-bottom"
-        />
-      </div>
-      <div className="relative min-w-0 flex-1 rounded-2xl border-[3px] border-[#AAAAAA] bg-background-card px-4 py-3 text-left shadow-sm sm:px-5 sm:py-4 before:absolute before:left-[-0.55rem] before:top-1/2 before:size-4 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px] before:border-[#AAAAAA] before:bg-background-card">
-        <div className="relative flex items-center justify-between gap-3">
-          <h2 className="min-w-0 break-words font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl">
-            {term}
-          </h2>
-          <button
-            type="button"
-            onClick={() => speakCardTerm(term, language, voiceProfile.gender, voiceProfile.age)}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-95 max-sm:size-8"
-            aria-label={`${term} ${t("cards.speak")}`}
-            title={t("cards.speak")}
-          >
-            <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
-          </button>
-        </div>
-        {secondaryText ? (
-          <p className="relative mt-1 break-words text-sm font-semibold leading-snug text-foreground-muted sm:text-base">
-            {secondaryText}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
 }
 
 function useSpeakQuizTermAfterEntry(
@@ -3556,6 +3648,7 @@ export function MobileQuizTopBar({
   totalPoints,
   scorePulse,
   questionPrompt,
+  questionPromptAccent = false,
   onExit,
   entryAnimated = false,
 }: {
@@ -3564,6 +3657,7 @@ export function MobileQuizTopBar({
   totalPoints: number;
   scorePulse: number;
   questionPrompt: string | null;
+  questionPromptAccent?: boolean;
   onExit: () => void;
   entryAnimated?: boolean;
 }) {
@@ -3656,7 +3750,8 @@ export function MobileQuizTopBar({
         >
           <p
             className={cn(
-              "line-clamp-2 w-full translate-x-2 text-left text-xl font-bold leading-tight text-foreground",
+              "line-clamp-2 w-full translate-x-2 text-left text-xl font-bold leading-tight",
+              questionPromptAccent ? "text-action-learned" : "text-foreground",
               canUseSuperWater(locale) && "font-super-water",
             )}
             data-quiz-mobile-prompt
@@ -3741,7 +3836,7 @@ function QuizQuestionActionRow({
   className?: string;
 }) {
   return (
-    <QuizMobileActionPortal>
+    <QuizMobileActionPortal withinTransition>
       <div
         className={cn("mt-1 flex w-full gap-2 sm:mt-2", className)}
         data-quiz-question-actions
@@ -3762,6 +3857,7 @@ function QuizQuestionActionRow({
 export function ListeningQuestion({
   item,
   showingAnswer,
+  selectedAnswer,
   onAnswer,
   onSkip,
   rerollAction,
@@ -3770,6 +3866,7 @@ export function ListeningQuestion({
 }: {
   item: ListeningQuizItem;
   showingAnswer: boolean;
+  selectedAnswer?: string | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
   rerollAction?: QuizRerollAction;
@@ -3777,62 +3874,48 @@ export function ListeningQuestion({
   showNextButton?: boolean;
 }) {
   const t = useT();
-  const { pronunciation, isLoading } = useCardPronunciation(item.card);
-
-  useEffect(() => {
-    speakCardTerm(item.card.term, item.card.language);
-  }, [item.card.id, item.card.language, item.card.term]);
+  const [character] = useState(() => getRandomQuizCharacter());
+  const { pronunciation } = useCardPronunciation(item.card);
+  const voiceProfile = getCharacterVoiceProfile(character);
+  useSpeakQuizTermAfterEntry(item.card, voiceProfile);
 
   return (
     <div
       className="animate-screen-pop relative top-2 flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 sm:top-3 lg:gap-4 lg:p-8"
       data-quiz-question-content="listening"
     >
-      <p className="text-center text-sm font-semibold text-white max-lg:hidden">
-        {t("quiz.listeningPrompt")}
-      </p>
+      <QuizSpeechBubble
+        character={character}
+        term={pronunciation || "..."}
+        spokenTerm={item.card.term}
+        language={item.card.language}
+        speakerPosition="left"
+        speakerClassName="!size-14 !rounded-full !bg-orange-500 max-sm:!size-12"
+        speakerIconClassName="!size-7 max-sm:!size-6"
+        largeCharacter
+      />
 
-      <div className="flex w-full flex-col items-center gap-3 rounded-xl border border-border bg-background-card px-4 py-5 text-center sm:px-6 sm:py-6">
-        <div className="flex min-h-14 w-full items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => speakCardTerm(item.card.term, item.card.language)}
-            className="inline-flex size-14 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-95"
-            aria-label={t("quiz.listeningAgain")}
-            title={t("quiz.listeningAgain")}
-          >
-            <Volume2 className="size-7 text-white" aria-hidden="true" />
-          </button>
-          <div className="flex min-h-8 min-w-0 items-center gap-2 text-left">
-            <span
-              className="text-xl font-semibold text-foreground max-lg:text-white sm:text-2xl"
-              data-quiz-listening-pronunciation
-            >
-              {pronunciation || "..."}
-            </span>
-            {isLoading ? (
-              <Loader2
-                className="size-4 shrink-0 animate-spin text-foreground-muted max-lg:text-white/70"
-                aria-hidden="true"
-              />
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      <div className="relative top-[30px] flex flex-col gap-2 sm:gap-3">
         {item.question.options.map((option) => {
           const isCorrectOption = option === item.question.correctAnswer;
+          const isSelectedOption = showingAnswer && selectedAnswer === option;
+          const feedback = showingAnswer
+            ? isCorrectOption
+              ? "correct"
+              : isSelectedOption
+                ? "incorrect"
+                : "incorrect-revealed"
+            : undefined;
 
           return (
             <QuizWordButton
-              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
+              key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-listening-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
-              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
+              feedback={feedback}
               className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem]"
             >
               {option}
@@ -3867,6 +3950,7 @@ export function ListeningQuestion({
 export function ChoiceQuestion({
   item,
   showingAnswer,
+  selectedAnswer,
   showPrompt = true,
   promptClassName,
   onAnswer,
@@ -3877,6 +3961,7 @@ export function ChoiceQuestion({
 }: {
   item: ChoiceQuizItem;
   showingAnswer: boolean;
+  selectedAnswer?: string | null;
   showPrompt?: boolean;
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
@@ -3909,21 +3994,30 @@ export function ChoiceQuestion({
         character={character}
         term={item.card.term}
         language={item.card.language}
+        largeCharacter
       />
 
       <div className="relative top-[60px] grid grid-cols-2 gap-2 sm:gap-3">
         {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
+          const isSelectedOption = showingAnswer && selectedAnswer === option;
+          const feedback = showingAnswer
+            ? isCorrectOption
+              ? "correct"
+              : isSelectedOption
+                ? "incorrect"
+                : "incorrect-revealed"
+            : undefined;
 
           return (
             <QuizWordButton
-              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
+              key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
-              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
+              feedback={feedback}
               className={cn(
                 "min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-base font-semibold disabled:cursor-default sm:min-h-[5.25rem] lg:min-h-20 lg:py-3 lg:text-base",
               )}
@@ -3960,6 +4054,7 @@ export function ChoiceQuestion({
 export function DefinitionQuestion({
   item,
   showingAnswer,
+  selectedAnswer,
   onAnswer,
   onSkip,
   rerollAction,
@@ -3969,6 +4064,7 @@ export function DefinitionQuestion({
 }: {
   item: DefinitionQuizItem;
   showingAnswer: boolean;
+  selectedAnswer?: string | null;
   onAnswer: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
   rerollAction?: QuizRerollAction;
@@ -3979,88 +4075,63 @@ export function DefinitionQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question;
-  const isMobileViewport = useSyncExternalStore(
-    (callback) => {
-      window.addEventListener("resize", callback);
-      return () => window.removeEventListener("resize", callback);
-    },
-    () => window.innerWidth < 1024,
-    () => false,
-  );
-  const [splashDone, setSplashDone] = useState(false);
-  const [splashColor] = useState(
-    () => CHOICE_OPTION_COLORS[Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)],
-  );
-  const skipSplash = isFirstQuestion;
-
   useEffect(() => {
-    if (!isMobileViewport || skipSplash) {
-      setSplashDone(true);
-      return;
-    }
+    const timeoutId = window.setTimeout(() => {
+      speakCardTerm(item.card.term, item.card.language);
+    }, QUIZ_QUESTION_ENTRY_DURATION_MS);
 
-    const timer = window.setTimeout(() => setSplashDone(true), 1200);
-    return () => window.clearTimeout(timer);
-  }, [isMobileViewport, skipSplash]);
+    return () => window.clearTimeout(timeoutId);
+  }, [item.card.id, item.card.language, item.card.term]);
 
   return (
-    <>
-      {!skipSplash && isMobileViewport && !splashDone
-        ? createPortal(
-            <div
-              className={cn(
-                "pointer-events-none fixed inset-0 z-[60] flex items-center justify-center animate-learning-quiz-splash lg:hidden",
-                splashColor,
-              )}
-              data-learning-quiz-splash
-              aria-hidden="true"
-            >
-              <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
-                {t("quiz.learningQuizSplash")}
-              </span>
-            </div>,
-            document.body,
-          )
-        : null}
       <div
-        className={cn(
-          "animate-screen-pop flex w-full flex-col items-center gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8",
-          splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
-        )}
+        className="animate-screen-pop flex w-full flex-col items-center gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
         data-quiz-question-content="definition"
       >
-      <p className="text-center text-sm font-semibold text-white max-lg:hidden">
-        {t("quiz.definitionPrompt")}
-      </p>
-
-      <div className="flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => speakCardTerm(item.card.term, item.card.language)}
-          className="inline-flex size-10 items-center justify-center rounded-md text-white transition-colors hover:bg-background-muted hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
-          aria-label={`${item.card.term} ${t("cards.speak")}`}
-          title={t("cards.speak")}
-        >
-          <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
-        </button>
-        <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
-          {item.card.term}
-        </h2>
+      <div className="relative top-[20px] flex flex-col items-center gap-2">
+        <p className={cn(
+          "text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl",
+          canUseSuperWater(locale) && "font-super-water",
+        )}>
+          {formatSuperWaterText(locale, t("quiz.definitionPrompt"))}
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => speakCardTerm(item.card.term, item.card.language)}
+            className="inline-flex size-10 items-center justify-center rounded-md text-white transition-colors hover:bg-background-muted hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
+            aria-label={`${item.card.term} ${t("cards.speak")}`}
+            title={t("cards.speak")}
+          >
+            <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
+          </button>
+          <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
+            {item.card.term}
+          </h2>
+        </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 gap-2 sm:gap-3">
+      <div className="relative top-[60px] grid w-full grid-cols-1 gap-2 sm:gap-3">
         {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
+          const isSelectedOption = showingAnswer && selectedAnswer === option;
+          const feedback = showingAnswer
+            ? isCorrectOption
+              ? "correct"
+              : isSelectedOption
+                ? "incorrect"
+                : "incorrect-revealed"
+            : undefined;
 
           return (
             <QuizWordButton
-              key={`${option}-${showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : "idle"}`}
+              key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-definition-option={option}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
-              feedback={showingAnswer ? (isCorrectOption ? "correct" : "incorrect") : undefined}
+              feedback={feedback}
               className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-sm font-semibold disabled:cursor-default sm:min-h-[5.25rem] sm:text-base"
             >
               {option}
@@ -4089,7 +4160,6 @@ export function DefinitionQuestion({
         </Button>
       </div>
       </div>
-    </>
   );
 }
 
@@ -4144,7 +4214,7 @@ export function SentenceCompletionQuestion({
               className="object-contain object-bottom"
             />
           </div>
-          <div className="relative min-h-20 rounded-lg bg-background-card px-4 py-3 text-left before:absolute before:left-12 before:-top-1.5 before:size-3 before:rotate-45 before:bg-background-card">
+          <div className="relative min-h-20 rounded-2xl border-[3px] border-[#AAAAAA] bg-background-card px-4 py-3 text-left before:absolute before:left-12 before:-top-2 before:size-3 before:rotate-45 before:border-l-[3px] before:border-t-[3px] before:border-[#AAAAAA] before:bg-background-card">
             <p
               className="relative text-lg font-semibold leading-relaxed text-white sm:text-xl"
               data-quiz-sentence
@@ -4156,7 +4226,7 @@ export function SentenceCompletionQuestion({
         {mobileCard ? <div className="flex shrink-0 items-end justify-center lg:hidden">{mobileCard}</div> : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+      <div className="relative top-8 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         {question.options.map((option) => {
           const isCorrectOption = option === question.correctAnswer;
           const isSelectedOption = option === selectedAnswer;
@@ -4227,6 +4297,7 @@ export function SentenceCompletionQuestion({
 export function TrueFalseQuestion({
   item,
   showingAnswer,
+  selectedAnswer,
   showPrompt = true,
   promptClassName,
   onAnswer,
@@ -4237,6 +4308,7 @@ export function TrueFalseQuestion({
 }: {
   item: TrueFalseQuizItem;
   showingAnswer: boolean;
+  selectedAnswer?: string | null;
   showPrompt?: boolean;
   promptClassName?: string;
   onAnswer: (answer: string, isCorrect: boolean) => void;
@@ -4288,27 +4360,43 @@ export function TrueFalseQuestion({
             term={item.card.term}
             language={item.card.language}
             secondaryText={`= ${question.proposedMeaning}`}
+            showSpeaker={false}
+            largeCharacter
+            characterClassName="!h-44 !w-44 sm:!h-48 sm:!w-48"
+            bubbleClassName="relative -left-4 sm:-left-6"
+            className="relative top-7"
           />
         </div>
       </div>
 
-      <div className="mt-7 grid w-full grid-cols-2 gap-2 sm:gap-3">
-        {options.map((option) => (
+      <div className="relative top-10 mt-7 grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4">
+        {options.map((option) => {
+          const isSelectedOption = showingAnswer && selectedAnswer === option.value;
+          const feedback = showingAnswer
+            ? option.isCorrect
+              ? "correct"
+              : isSelectedOption
+                ? "incorrect"
+                : "incorrect-revealed"
+            : undefined;
+
+          return (
           <QuizWordButton
-            key={`${option.value}-${showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : "idle"}`}
+            key={`${option.value}-${feedback ?? "idle"}`}
             type="button"
             data-quiz-true-false-option={option.value}
             onClick={() => onAnswer(option.value, option.isCorrect)}
             disabled={showingAnswer}
             wordType={showingAnswer ? "inactive" : option.isCorrect ? "correct" : "incorrect"}
-            feedback={showingAnswer ? (option.isCorrect ? "correct" : "incorrect") : undefined}
+            feedback={feedback}
             className={cn(
-              "min-h-[4.5rem] items-center justify-center px-3 py-2 text-base font-semibold sm:min-h-[5.25rem] lg:min-h-20 lg:py-3",
+              "aspect-square min-h-0 items-center justify-center px-3 py-4 text-2xl font-semibold sm:text-3xl lg:text-4xl",
             )}
           >
             {option.label}
           </QuizWordButton>
-        ))}
+          );
+        })}
       </div>
 
       <QuizQuestionActionRow
@@ -4389,71 +4477,28 @@ export function TextQuestion({
   const t = useT();
   const question = item.question;
   const checkDisabled = textAnswer.trim().length === 0 || isAiValidating || showingAnswer;
-  const isMobileViewport = useSyncExternalStore(
-    (callback) => {
-      window.addEventListener("resize", callback);
-      return () => window.removeEventListener("resize", callback);
-    },
-    () => window.innerWidth < 1024,
-    () => false,
-  );
-  const [splashDone, setSplashDone] = useState(false);
-  const [splashColor] = useState(
-    () =>
-      CHOICE_OPTION_COLORS[
-        Math.floor(Math.random() * CHOICE_OPTION_COLORS.length)
-      ],
-  );
-
-  const skipSplash = isFirstQuestion;
-
-  useEffect(() => {
-    if (!isMobileViewport || skipSplash) {
-      setSplashDone(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setSplashDone(true), 1200);
-    return () => window.clearTimeout(timer);
-  }, [isMobileViewport, skipSplash]);
-
   async function handleSubmit() {
     if (showingAnswer || isAiValidating) return;
     await onSubmitText(textAnswer);
   }
 
   return (
-    <>
-      {!skipSplash && isMobileViewport && !splashDone
-        ? createPortal(
-            <div
-              className={cn(
-                "pointer-events-none fixed inset-0 z-[60] flex items-center justify-center animate-learning-quiz-splash lg:hidden",
-                splashColor,
-              )}
-              data-learning-quiz-splash
-              aria-hidden="true"
-            >
-              <span className="px-6 text-center text-3xl font-bold text-white sm:text-4xl">
-                {t("quiz.learningQuizSplash")}
-              </span>
-            </div>,
-            document.body,
-          )
-        : null}
       <div
-        className={cn(
-          "animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8",
-          splashDone || !isMobileViewport ? "opacity-100" : "opacity-0",
-        )}
+        className="animate-screen-pop flex w-full flex-col gap-3 rounded-lg border border-transparent bg-transparent p-0 lg:gap-4 lg:p-8"
         data-quiz-question-content="text"
       >
-        <p className="text-center text-sm font-semibold text-white max-lg:hidden">
-          {t("quiz.learningPrompt")}
-        </p>
-        <div className="flex items-center justify-center">
+        <div className="relative -top-5 flex flex-col items-center gap-2">
+          <p className={cn(
+            "text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl",
+            canUseSuperWater(locale) && "font-super-water",
+          )}>
+            {formatSuperWaterText(locale, t("quiz.learningPrompt"))}
+          </p>
+          <div className="flex items-center justify-center">
           <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
             {getCardTranslation(item.card, locale)}
           </h2>
+          </div>
         </div>
 
         <div>
@@ -4469,13 +4514,7 @@ export function TextQuestion({
             disabled={showingAnswer || isAiValidating}
             placeholder={t("quiz.learningQuizPlaceholder")}
             className={cn(
-              "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-foreground sm:py-3",
-              showingAnswer &&
-                textResult === "correct" &&
-                "border-emerald-500",
-              showingAnswer &&
-                textResult === "incorrect" &&
-                "border-rose-500",
+              "w-full rounded-2xl border-[3px] border-[#AAAAAA] bg-background px-4 py-2.5 text-sm font-semibold text-foreground outline-none placeholder:text-foreground-muted focus:border-[#AAAAAA] sm:py-3",
             )}
           />
 
@@ -4542,7 +4581,7 @@ export function TextQuestion({
                 )}
               </Button>
             </div>
-            <QuizMobileActionPortal>
+            <QuizMobileActionPortal withinTransition>
               <div
                 className="flex w-full gap-2"
                 data-quiz-bottom-actions
@@ -4563,7 +4602,6 @@ export function TextQuestion({
           </div>
         </div>
       </div>
-    </>
   );
 }
 
@@ -4719,28 +4757,29 @@ function QuizFeedbackStatusIcon({ isCorrect }: { isCorrect: boolean }) {
   );
 }
 
-const LEARNED_CELEBRATION_EXIT_DURATION_MS = 520;
+const LEARNED_REWARD_SETTLE_DELAY_MS = 500;
+const LEARNED_CARD_FLIP_DURATION_MS = 180;
 
 export function CelebrationView({
   card,
   basePoints,
+  enterWithCss = false,
   onContinue,
 }: {
   card: VocabularyCard;
   basePoints: number;
+  enterWithCss?: boolean;
   onContinue: () => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
   const { refreshStats } = useProgressStats();
-  const [cardFace, setCardFace] = useState<"front" | "back">("back");
+  const [cardFace, setCardFace] = useState<"front" | "back">("front");
   const [displayPoints, setDisplayPoints] = useState(basePoints);
   const [scorePulse, setScorePulse] = useState(0);
-  const [isClosing, setIsClosing] = useState(false);
-  const hasTriggered = useRef(false);
+  const [rewardStarted, setRewardStarted] = useState(false);
   const onContinueRef = useRef(onContinue);
   const closeTimerRef = useRef<number | null>(null);
-  const exitTimerRef = useRef<number | null>(null);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
@@ -4750,25 +4789,35 @@ export function CelebrationView({
   }, [onContinue]);
 
   useEffect(() => {
-    if (!isClosing) return;
-
-    exitTimerRef.current = window.setTimeout(() => {
-      onContinueRef.current();
-    }, LEARNED_CELEBRATION_EXIT_DURATION_MS);
-
     return () => {
-      if (exitTimerRef.current !== null) {
-        window.clearTimeout(exitTimerRef.current);
-        exitTimerRef.current = null;
-      }
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     };
-  }, [isClosing]);
+  }, []);
 
   useEffect(() => {
-    if (hasTriggered.current) return;
-    hasTriggered.current = true;
+    if (!rewardStarted) return;
 
-    setCardFace("front");
+    const flipTimers = [
+      window.setTimeout(() => setCardFace("front"), LEARNED_CARD_FLIP_DURATION_MS),
+      window.setTimeout(() => setCardFace("back"), LEARNED_CARD_FLIP_DURATION_MS * 2),
+      window.setTimeout(() => setCardFace("front"), LEARNED_CARD_FLIP_DURATION_MS * 3),
+    ];
+
+    return () => {
+      flipTimers.forEach((timerId) => window.clearTimeout(timerId));
+    };
+  }, [rewardStarted]);
+
+  useEffect(() => {
+    const idleVibrationTimer = window.setTimeout(() => vibrate("tap"), 720);
+    return () => window.clearTimeout(idleVibrationTimer);
+  }, []);
+
+  function handleStartReward() {
+    if (rewardStarted) return;
+
+    setRewardStarted(true);
+    setCardFace("back");
     vibrate("learned");
     playSoundEffect("confetti");
     vibrate("confetti");
@@ -4779,28 +4828,35 @@ export function CelebrationView({
       colors: ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6"],
       disableForReducedMotion: true,
     });
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-      if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
-    };
-  }, []);
+  }
 
   return (
     <div
-      className="animate-screen-pop fixed inset-0 z-40 overflow-hidden bg-background px-4 py-6 text-center sm:px-6 sm:py-8"
+      className={cn(
+        enterWithCss && "quiz-flow-enter-right",
+        "absolute inset-0 z-40 overflow-hidden bg-background px-4 py-6 text-center sm:px-6 sm:py-8",
+      )}
       data-quiz-celebration
       data-quiz-celebration-stage="score-flight"
-      data-quiz-celebration-closing={isClosing ? "true" : undefined}
+      role="button"
+      tabIndex={0}
+      aria-label={t("quiz.tapToContinue")}
+      onClick={handleStartReward}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleStartReward();
+        }
+      }}
     >
-      <div className="relative flex h-full w-full items-center justify-center">
-        <div className="relative flex h-full w-full max-w-5xl flex-1 flex-col">
-          <div
-            className="flex flex-col items-center justify-center gap-1 pt-1 sm:pt-2"
-            data-quiz-celebration-score-group
-          >
+      <div className="relative h-full w-full">
+        <div
+          className={cn(
+            "quiz-learned-reward-hud absolute inset-x-0 top-3 z-10 flex flex-col items-center justify-center gap-1 sm:top-4",
+            rewardStarted && "quiz-learned-reward-hud--visible",
+          )}
+          data-quiz-celebration-score-group
+        >
             <MainPointsDisplay
               targetRef={scoreRef}
               pulse={scorePulse}
@@ -4809,53 +4865,61 @@ export function CelebrationView({
               value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
             />
             <RewardGemHud animate superWater={canUseSuperWater(locale)} />
-          </div>
+        </div>
 
-          <div className="flex flex-1 items-center justify-center py-10 sm:py-12">
-            <div
-                className="flex w-full max-w-2xl flex-col items-center bg-transparent px-6 py-8 sm:px-8 sm:py-10"
-              data-quiz-celebration-content
-            >
-              <h2
-                className={cn(
-                  "text-3xl font-semibold text-foreground sm:text-4xl",
-                  canUseSuperWater(locale) && "font-super-water",
-                )}
-                data-quiz-celebration-title
-              >
-                {formatSuperWaterText(locale, t("quiz.learnedTitle"))}
-              </h2>
+        <h2
+          className={cn(
+            "absolute inset-x-0 top-[clamp(5rem,17vh,8rem)] z-10 text-center text-3xl font-semibold text-foreground sm:text-4xl",
+            canUseSuperWater(locale) && "font-super-water",
+          )}
+          data-quiz-celebration-title
+        >
+          {formatSuperWaterText(locale, t("quiz.learnedTitle"))}
+        </h2>
 
-                <div
-                  ref={cardRef}
-                className="mt-5 w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]"
-                data-quiz-celebration-card
-              >
-                <VocabularyCardView
-                  card={card}
-                  owned
-                  initialFace="back"
-                  face={cardFace}
-                  flippable={false}
-                  className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
-                />
-              </div>
-
-            </div>
+        <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6">
+          <div
+            ref={cardRef}
+            className={cn(
+              "relative w-[min(260px,68vw)] max-w-full sm:w-[min(292px,76vw)]",
+              !rewardStarted && "animate-quiz-card-idle-attention",
+              rewardStarted && "animate-quiz-learned-card-reward",
+            )}
+            style={
+              rewardStarted
+                ? { animationDuration: `${LEARNED_CARD_FLIP_DURATION_MS * 4}ms` }
+                : undefined
+            }
+            data-quiz-celebration-card
+          >
+            <QuizTierRayField tier={card.tier} />
+            <VocabularyCardView
+              card={card}
+              owned
+              initialFace="front"
+              face={cardFace}
+              flippable={false}
+              className="relative z-10 h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
+            />
           </div>
         </div>
       </div>
-      <RewardScatter
-        points={{ amount: gainedPoints, source: cardRef, target: scoreRef, startDelayMs: 1000, zIndex: 50 }}
-        onPointsArrive={(awardedTotal, arrivalIndex) => {
-          setDisplayPoints(basePoints + awardedTotal);
-          setScorePulse(arrivalIndex);
-        }}
-        onPointsComplete={() => {
-          void refreshStats();
-          closeTimerRef.current = window.setTimeout(() => setIsClosing(true), 420);
-        }}
-      />
+      {rewardStarted ? (
+        <RewardScatter
+          points={{ amount: gainedPoints, source: cardRef, target: scoreRef, zIndex: 50 }}
+          onPointsArrive={(awardedTotal, arrivalIndex) => {
+            setDisplayPoints(basePoints + awardedTotal);
+            setScorePulse(arrivalIndex);
+          }}
+          onPointsComplete={() => {
+            void refreshStats();
+            closeTimerRef.current = window.setTimeout(() => {
+              closeTimerRef.current = null;
+              onContinueRef.current();
+            }, LEARNED_REWARD_SETTLE_DELAY_MS);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

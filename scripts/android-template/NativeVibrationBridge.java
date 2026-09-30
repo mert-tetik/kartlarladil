@@ -32,6 +32,8 @@ public final class NativeVibrationBridge {
     public boolean vibrate(String serializedPattern) {
         long[] pattern = parsePattern(serializedPattern);
         if (pattern == null || pattern.length == 0) return false;
+        Vibrator vibrator = getVibrator();
+        if (vibrator == null || !vibrator.hasVibrator()) return false;
         mainHandler.post(() -> play(pattern));
         return true;
     }

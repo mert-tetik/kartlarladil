@@ -14,6 +14,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
 
 interface QuizStreakRewardViewProps {
   streak: number;
@@ -71,6 +72,8 @@ export function QuizStreakRewardView({
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
   const [videoExiting, setVideoExiting] = useState(false);
+  const [videoSource, setVideoSource] = useState("/quiz/streak-reward-background-20260921.mp4");
+  const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [uiExiting, setUiExiting] = useState(false);
   const [mounted, setMounted] = useState(false);
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
@@ -286,6 +289,14 @@ export function QuizStreakRewardView({
     scheduleVideoFade();
   }, [scheduleVideoFade]);
 
+  const handleVideoError = useCallback(() => {
+    if (!isNativeMediaFallbackSource(videoSource)) {
+      setVideoSource(getNativeMediaFallbackSource(videoSource));
+      return;
+    }
+    setVideoUnavailable(true);
+  }, [videoSource]);
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -342,21 +353,23 @@ export function QuizStreakRewardView({
 
   return createPortal(
     <div className="fixed inset-0 z-[70] overflow-hidden bg-transparent" data-streak-reward-view aria-hidden="true">
-      <video
+      {!videoUnavailable ? <video
         ref={videoRef}
         className={cn(
           "pointer-events-none absolute inset-0 h-full w-full object-cover",
           videoExiting ? "animate-streak-reward-video-exit" : "animate-streak-reward-video-enter",
         )}
-        src="/quiz/streak-reward-background-20260921.mp4"
+        key={videoSource}
+        src={videoSource}
         autoPlay
         playsInline
         preload="auto"
         onPlay={handleVideoPlay}
         onPlaying={handleVideoPlay}
         onTimeUpdate={handleVideoTimeUpdate}
+        onError={handleVideoError}
         aria-hidden="true"
-      />
+      /> : null}
       <div className={cn(
         "pointer-events-none absolute inset-0 animate-streak-reward-ui-enter",
         uiExiting && "animate-streak-reward-ui-exit",

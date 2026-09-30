@@ -14,6 +14,7 @@ import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } f
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -52,6 +53,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
+  const [videoSource, setVideoSource] = useState(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
+  const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
   const [pointsDisplayPulse, setPointsDisplayPulse] = useState(0);
@@ -149,6 +152,21 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     videoEndCloseTimeoutRef.current = window.setTimeout(handleCollect, VIDEO_LAST_FRAME_HOLD_MS);
   }, [handleCollect, revealAtVideoTimestamp]);
 
+  const handleVideoError = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    if (!isNativeMediaFallbackSource(videoSource)) {
+      setVideoSource(getNativeMediaFallbackSource(videoSource));
+      return;
+    }
+
+    setVideoUnavailable(true);
+    handleVideoEnded(event);
+  }, [handleVideoEnded, videoSource]);
+
+  useEffect(() => {
+    setVideoSource(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
+    setVideoUnavailable(false);
+  }, [tier.tier]);
+
   useEffect(() => {
     if (reward) {
       rewardPromiseRef.current = Promise.resolve(reward);
@@ -221,8 +239,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
         phase === "disappearing" ? "animate-chest-screen-close" : "animate-screen-pop",
       )}
     >
-      <video
-        key={tier.tier}
+      {!videoUnavailable ? <video
+        key={videoSource}
         autoPlay
         playsInline
         preload="auto"
@@ -232,9 +250,10 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
         onEnded={handleVideoEnded}
         onPlay={handleVideoPlay}
         onTimeUpdate={handleVideoTimeUpdate}
+        onError={handleVideoError}
       >
-        <source src={CHEST_TIER_OPENING_VIDEOS[tier.tier]} type="video/mp4" />
-      </video>
+        <source src={videoSource} type="video/mp4" />
+      </video> : null}
 
       <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
         <div className={cn(

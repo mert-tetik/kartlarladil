@@ -261,7 +261,7 @@ export function MobileCardDisplaySheet({
               flippable={false}
               showActions={false}
               frontFit
-              className="h-auto w-full max-w-[260px] max-sm:min-h-[340px]"
+              className="h-auto w-full max-w-[230px] max-sm:min-h-[300px]"
             />
           </div>,
           "w-full",

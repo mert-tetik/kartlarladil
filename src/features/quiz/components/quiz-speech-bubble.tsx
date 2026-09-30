@@ -1,0 +1,113 @@
+"use client";
+
+import Image from "next/image";
+import { Volume2 } from "lucide-react";
+import { useT } from "@/i18n/locale-provider";
+import {
+  getAiPracticeCharacters,
+  getCharacterName,
+  getCharacterVoiceProfile,
+} from "@/features/ai-practice/ai-practice-data";
+import { speakCardTerm } from "@/features/cards/card-speech";
+import type { AiPracticeCharacter, LanguageCode } from "@/types/domain";
+import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
+
+export function getRandomQuizCharacter() {
+  const characters = getAiPracticeCharacters();
+  return characters[Math.floor(Math.random() * characters.length)]!;
+}
+
+export function QuizSpeechBubble({
+  character,
+  term,
+  spokenTerm,
+  language,
+  secondaryText,
+  showSpeaker = true,
+  speakerPosition = "right",
+  speakerClassName,
+  speakerIconClassName,
+  largeCharacter = false,
+  characterClassName,
+  bubbleClassName,
+  className,
+}: {
+  character: AiPracticeCharacter;
+  term: string;
+  spokenTerm?: string;
+  language: LanguageCode;
+  secondaryText?: string;
+  showSpeaker?: boolean;
+  speakerPosition?: "left" | "right";
+  speakerClassName?: string;
+  speakerIconClassName?: string;
+  largeCharacter?: boolean;
+  characterClassName?: string;
+  bubbleClassName?: string;
+  className?: string;
+}) {
+  const t = useT();
+  const characterName = getCharacterName(character, language);
+  const voiceProfile = getCharacterVoiceProfile(character);
+
+  return (
+    <div className={cn("relative -translate-y-5 mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 sm:-translate-y-6 sm:gap-3", className)}>
+      <div
+        className={cn(
+          "relative shrink-0",
+          largeCharacter ? "h-36 w-36 sm:h-40 sm:w-40" : "h-28 w-28 sm:h-32 sm:w-32",
+          characterClassName,
+        )}
+      >
+        <Image
+          src={character.imageSrc}
+          alt={characterName}
+          fill
+          sizes="128px"
+          className="object-contain object-bottom"
+        />
+      </div>
+      <div className={cn(
+        "relative min-w-0 flex-1 rounded-2xl border-[3px] border-[#AAAAAA] bg-background-card px-4 py-3 text-left shadow-sm sm:px-5 sm:py-4 before:absolute before:left-[-0.55rem] before:top-1/2 before:size-4 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px] before:border-[#AAAAAA] before:bg-background-card",
+        bubbleClassName,
+      )}>
+        <div className={cn(
+          "relative flex items-center justify-between gap-3",
+          speakerPosition === "left" && "justify-start",
+        )}>
+          <h2 className={cn(
+            "min-w-0 break-words font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl",
+            speakerPosition === "left" && "order-2",
+          )}>
+            {term}
+          </h2>
+          {showSpeaker ? (
+            <button
+              type="button"
+              onClick={() => speakCardTerm(spokenTerm ?? term, language, voiceProfile.gender, voiceProfile.age)}
+              onPointerDown={() => vibrate("tap")}
+              className={cn(
+                "inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-transform duration-500 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-90 max-sm:size-8",
+                speakerPosition === "left" && "order-1",
+                speakerClassName,
+              )}
+              aria-label={`${term} ${t("cards.speak")}`}
+              title={t("cards.speak")}
+            >
+              <Volume2
+                className={cn("size-5 max-sm:size-4", speakerIconClassName)}
+                aria-hidden="true"
+              />
+            </button>
+          ) : null}
+        </div>
+        {secondaryText ? (
+          <p className="relative mt-1 break-words text-lg font-semibold leading-snug text-white/80 sm:text-xl">
+            {secondaryText}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}

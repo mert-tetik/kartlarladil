@@ -49,6 +49,7 @@ const MALE_VOICE_HINTS = [
 
 const YOUNG_VOICE_HINTS = ["young", "teen", "child", "kid", "junior", "youth"] as const;
 const ELDER_VOICE_HINTS = ["elder", "elderly", "senior", "grandma", "grandmother", "grandpa", "grandfather", "old"] as const;
+const BROWSER_VOICE_LOAD_TIMEOUT_MS = 1_200;
 
 const SPEECH_LANG_BY_LANGUAGE: Record<LanguageCode, string> = {
   tr: "tr-TR",
@@ -88,13 +89,16 @@ export function speakText(
   const nativeSpeech = window.FoxiesDeckNativeSpeech;
   if (nativeSpeech) {
     if (options?.voiceGender || options?.voiceAge) {
-      return nativeSpeech.speak(
-        text,
-        lang,
-        options.rate ?? 0.95,
-        options.voiceGender,
-        options.voiceAge,
-      );
+      const speakWithProfile = nativeSpeech.speakWithProfile;
+      if (typeof speakWithProfile === "function") {
+        return speakWithProfile(
+          text,
+          lang,
+          options.rate ?? 0.95,
+          options.voiceGender,
+          options.voiceAge,
+        );
+      }
     }
 
     return nativeSpeech.speak(text, lang, options?.rate ?? 0.95);
@@ -104,18 +108,44 @@ export function speakText(
     return false;
   }
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  const matchingVoice = findMatchingVoice(lang, options?.voiceGender, options?.voiceAge);
+  const speechSynthesis = window.speechSynthesis;
+  const speakWithLoadedVoices = () => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const matchingVoice = findMatchingVoice(lang, options?.voiceGender, options?.voiceAge);
 
-  utterance.lang = lang;
-  utterance.rate = options?.rate ?? 0.95;
+    utterance.lang = lang;
+    utterance.rate = options?.rate ?? 0.95;
 
-  if (matchingVoice) {
-    utterance.voice = matchingVoice;
+    if (matchingVoice) {
+      utterance.voice = matchingVoice;
+    }
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  };
+
+  // Mobile browsers often expose an empty voice list on the first render.
+  // Waiting for voiceschanged prevents the first automatic quiz pronunciation
+  // from falling back to the browser's default (usually male) voice.
+  if (speechSynthesis.getVoices().length === 0) {
+    let spoken = false;
+    const speakWhenReady = () => {
+      if (spoken || speechSynthesis.getVoices().length === 0) return;
+      spoken = true;
+      speechSynthesis.removeEventListener("voiceschanged", speakWhenReady);
+      speakWithLoadedVoices();
+    };
+
+    speechSynthesis.addEventListener("voiceschanged", speakWhenReady);
+    window.setTimeout(() => {
+      if (spoken) return;
+      spoken = true;
+      speechSynthesis.removeEventListener("voiceschanged", speakWhenReady);
+      speakWithLoadedVoices();
+    }, BROWSER_VOICE_LOAD_TIMEOUT_MS);
+  } else {
+    speakWithLoadedVoices();
   }
-
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
 
   return true;
 }

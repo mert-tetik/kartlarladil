@@ -125,13 +125,13 @@ export function buildListeningQuizQuestion(
     ),
   );
 
-  if (distractors.length < 3) {
+  if (distractors.length < 2) {
     return null;
   }
 
   return {
     card,
-    options: shuffle([correctTerm, ...shuffle(distractors).slice(0, 3)]),
+    options: shuffle([correctTerm, ...shuffle(distractors).slice(0, 2)]),
     correctAnswer: correctTerm,
   };
 }

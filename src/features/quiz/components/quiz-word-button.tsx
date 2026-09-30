@@ -11,7 +11,14 @@ import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 
 export type QuizWordButtonType = "select" | "correct" | "incorrect" | "neutral" | "inactive" | "invalid-operation";
-export type QuizWordButtonFeedback = "idle" | "selected" | "matched" | "correct" | "incorrect" | "muted";
+export type QuizWordButtonFeedback =
+  | "idle"
+  | "selected"
+  | "matched"
+  | "correct"
+  | "incorrect"
+  | "incorrect-revealed"
+  | "muted";
 
 interface QuizWordButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -29,6 +36,7 @@ const FEEDBACK_CLASSES: Record<QuizWordButtonFeedback, string> = {
   matched: "border-transparent text-white shadow-sm",
   correct: "border-emerald-500 bg-white/[0.11] text-emerald-600 animate-quiz-word-button-correct",
   incorrect: "border-rose-500 bg-background text-rose-600 animate-bonus-incorrect-shake",
+  "incorrect-revealed": "border-rose-500 bg-background text-rose-600",
   muted: "border-[#aaaaaa] bg-background text-foreground opacity-60",
 };
 
@@ -89,7 +97,9 @@ export function QuizWordButton({
 
   return (
     <button
-      key={wordType === "invalid-operation" ? invalidOperationKey : undefined}
+      // Recreate the DOM node when feedback changes so CSS feedback animations
+      // always start from their first frame after an answer is revealed.
+      key={`${wordType}-${visualState}-${wordType === "invalid-operation" ? invalidOperationKey : ""}`}
       {...props}
       type={props.type ?? "button"}
       disabled={disabled || isInactive}

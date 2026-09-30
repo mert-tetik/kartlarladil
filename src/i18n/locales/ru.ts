@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "У вас пока нет слов на языке {language}.",
+  "home.landingGroupQuestion.title": "К какой группе относится слово?",
+  "home.landingGroupQuestion.description": "Выберите правильную группу слов.",
+  "home.landingGroupQuestion.optionsLabel": "Варианты групп слов",
   "cards.grammarDetails": "Грамматика и детали",
   "cards.cardInformation": "Информация о карточке",
   "cards.foreignTerm": "Изучаемое слово",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "Отличная работа — эта карточка теперь отмечена как изученная.",
   "quiz.learnedTitle": "Карточка изучена!",
   "quiz.learningQuizBadge": "Вопрос на изучение",
+  "quiz.wordLearningQuestion": "Вопрос на изучение слова",
   "quiz.definitionBadge": "Вопрос на определение",
   "quiz.definitionPrompt": "Выбери определение",
   "quiz.learningQuizSplash": "Вопрос на изучение карточки",

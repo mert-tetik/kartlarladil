@@ -1533,7 +1533,7 @@ function BonusCheckButton({
   const { locale } = useLocale();
   const copy = getBonusCopy(locale);
   return (
-    <QuizMobileActionPortal>
+    <QuizMobileActionPortal withinTransition>
       <div className="mt-1 flex w-full gap-2" data-quiz-bottom-actions>
         <QuizSkipButton
           className="min-w-0 flex-1"

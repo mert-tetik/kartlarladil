@@ -209,7 +209,7 @@ const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
-        <item name="android:windowBackground">#f76808</item>
+        <item name="android:windowBackground">#000000</item>
     </style>
 </resources>
 `;
@@ -224,10 +224,10 @@ const APP_THEME_V31 = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
-        <item name="android:windowBackground">#f76808</item>
-        <item name="android:windowSplashScreenBackground">#f76808</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:windowSplashScreenBackground">#000000</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">#f76808</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#000000</item>
     </style>
 </resources>
 `;
@@ -251,6 +251,9 @@ function buildProguardBridgeRules(packageName, existingRules) {
   }
   if (!existingRules.includes("NativeVibrationBridge")) {
     rules.push(`-keep class ${packageName}.NativeVibrationBridge { *; }`);
+  }
+  if (!existingRules.includes("NativeTextToSpeechBridge")) {
+    rules.push(`-keep class ${packageName}.NativeTextToSpeechBridge { *; }`);
   }
   if (!existingRules.includes("@android.webkit.JavascriptInterface")) {
     rules.push(`-keepclassmembers class * {

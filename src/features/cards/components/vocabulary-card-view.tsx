@@ -46,6 +46,7 @@ interface VocabularyCardViewProps {
   memoryGame?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
+  progressAnimationActive?: boolean;
   onClick?: () => void;
   staticFace?: boolean;
 }
@@ -200,6 +201,7 @@ export function VocabularyCardView({
   memoryGame = false,
   footerMode = "auto",
   footerProgressCount,
+  progressAnimationActive = false,
   onClick,
   staticFace = false,
 }: VocabularyCardViewProps) {
@@ -271,7 +273,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} />
+        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} />
       </article>
     );
   }
@@ -318,6 +320,7 @@ export function VocabularyCardView({
           memoryGame={memoryGame}
           footerMode={footerMode}
           footerProgressCount={footerProgressCount}
+          progressAnimationActive={progressAnimationActive}
         />
         <CardBack
           card={displayCard}
@@ -354,6 +357,7 @@ function CardFront({
   memoryGame = false,
   footerMode = "auto",
   footerProgressCount,
+  progressAnimationActive = false,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -376,6 +380,7 @@ function CardFront({
   memoryGame?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
+  progressAnimationActive?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -607,7 +612,11 @@ function CardFront({
             <Progress
               value={progress}
               className="bg-white/30"
-              indicatorClassName="bg-white transition-[width] duration-300 ease-out"
+              indicatorClassName={cn(
+                progressAnimationActive
+                  ? "bg-[#f4bd4b] transition-[width,background-color] duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]"
+                  : "bg-white transition-[width,background-color] duration-[300ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+              )}
               indicatorOverlayClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 opacity-0"
             />
           </div>

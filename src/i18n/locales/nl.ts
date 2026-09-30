@@ -1,6 +1,9 @@
 
 const dictionary = {
   "home.mobile.noWordsInLanguage": "Je hebt nog geen woorden voor {language}.",
+  "home.landingGroupQuestion.title": "Bij welke groep hoort het woord?",
+  "home.landingGroupQuestion.description": "Kies de juiste woordgroep.",
+  "home.landingGroupQuestion.optionsLabel": "Opties voor woordgroepen",
   "cards.grammarDetails": "Grammatica en details",
   "cards.cardInformation": "Kaartinformatie",
   "cards.foreignTerm": "Leerwoord",
@@ -521,6 +524,7 @@ const dictionary = {
   "quiz.learnedDescription": "Goed gedaan — deze kaart is nu gemarkeerd als geleerd.",
   "quiz.learnedTitle": "Kaart geleerd!",
   "quiz.learningQuizBadge": "Leer vraag",
+  "quiz.wordLearningQuestion": "Woordleervraag",
   "quiz.definitionBadge": "Definitievraag",
   "quiz.definitionPrompt": "Kies de definitie",
   "quiz.learningQuizSplash": "Kaartleervraag",

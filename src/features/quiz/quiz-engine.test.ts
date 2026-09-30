@@ -129,7 +129,7 @@ describe("quiz engine", () => {
     expect(question.options).toContain(question.correctAnswer);
   });
 
-  it("builds a four-option listening question from the target language", () => {
+  it("builds a three-option listening question from the target language", () => {
     const card = VOCABULARY_CARDS.find((item) => {
       if (item.language !== "en") return false;
 
@@ -139,12 +139,12 @@ describe("quiz engine", () => {
           candidate.language === item.language &&
           candidate.termKind === item.termKind &&
           candidate.term.trim().slice(0, 1).toLocaleLowerCase() === firstLetter,
-      ).length >= 4;
+      ).length >= 3;
     })!;
     const question = buildListeningQuizQuestion(card, VOCABULARY_CARDS);
 
     expect(question).not.toBeNull();
-    expect(question?.options).toHaveLength(4);
+    expect(question?.options).toHaveLength(3);
     expect(question?.correctAnswer).toBe(card.term);
     expect(question?.options).toContain(card.term);
     expect(question?.options.every((option) =>

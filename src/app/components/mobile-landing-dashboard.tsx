@@ -17,6 +17,7 @@ import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
 import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
+import { LandingGroupQuestion } from "@/app/components/landing-group-question";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
 import { MobileImageTextTranslateOverlay } from "@/app/components/mobile-image-text-translate-overlay";
@@ -973,6 +974,10 @@ export function MobileLandingDashboard() {
         onOpenGroups={() => handleOpenCardGroups()}
         showEmptyDeckPointer={activeCount === 0 && !hasLandingLayerOpen}
       />
+
+      <div className="mt-4 shrink-0 pb-4">
+        <LandingGroupQuestion language={selectedLanguage} />
+      </div>
 
       {/* Sheets */}
       <MobileLanguageBottomSheet
