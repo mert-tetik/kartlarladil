@@ -22,6 +22,7 @@ const MOBILE_BOTTOM_SHEET_GRADIENT_START = "color-mix(in srgb, var(--brand) 92%,
 const MOBILE_BOTTOM_SHEET_CIRCLE_COLOR = "color-mix(in srgb, var(--brand) 62%, white)";
 const MOBILE_BOTTOM_SHEET_ANIMATION_MS = 360;
 const MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS = 32;
+const MOBILE_BOTTOM_SHEET_OFFSCREEN_OFFSET = 80;
 
 export type MobileBottomSheetTone = "brand" | "lime" | "purple" | "mission";
 
@@ -143,6 +144,9 @@ export function MobileBottomSheetShell({
   onExitedRef.current = onExited;
 
   const toneStyles = MOBILE_BOTTOM_SHEET_TONES[tone];
+  const hiddenPanelTransform = fullScreen
+    ? "translateY(100%)"
+    : `translateY(calc(100% + ${MOBILE_BOTTOM_SHEET_OFFSCREEN_OFFSET}px))`;
 
   useEffect(() => {
     if (open) {
@@ -282,7 +286,7 @@ export function MobileBottomSheetShell({
           toneStyles.panelClassName,
           panelClassName,
         )}
-        style={{ transform: entered ? `translateY(${dragY}px)` : "translateY(100%)" }}
+        style={{ transform: entered ? `translateY(${dragY}px)` : hiddenPanelTransform }}
       >
         {showPanelDecoration && !fullScreen ? (
           <div

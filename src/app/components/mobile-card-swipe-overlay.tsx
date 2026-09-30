@@ -23,6 +23,7 @@ const INCOMING_ENTRY_DURATION = 520;
 const INCOMING_START_OFFSET = 180;
 const OFFSCREEN_SIDE_OFFSET = 80;
 const PRELOAD_DECK_SIZE = 5;
+const OVERLAY_EXIT_DURATION = 900;
 
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
@@ -58,6 +59,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
   useEffect(() => {
     if (open) {
+      setEntered(false);
       let enterFrame: number | null = null;
       const mountFrame = window.requestAnimationFrame(() => {
         setMounted(true);
@@ -71,7 +73,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     }
 
     const exitFrame = window.requestAnimationFrame(() => setEntered(false));
-    const timer = window.setTimeout(() => setMounted(false), 300);
+    const timer = window.setTimeout(() => setMounted(false), OVERLAY_EXIT_DURATION);
 
     return () => {
       window.cancelAnimationFrame(exitFrame);
@@ -315,12 +317,13 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     ? demoActive ? { transform: getCardTransform(demoX, 0) } : undefined
     : { transform: `translate3d(${incomingX}px, ${incomingY}px, 0) rotate(0deg)`, opacity: incomingIsHidden ? 0 : 1 };
   const shouldRenderCard = card && incoming !== "waiting" && incoming !== "teleporting";
-  return <div role="dialog" aria-modal={open} aria-hidden={!open} inert={!open} data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} className={cn("fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out lg:hidden", entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
-    <div className="relative z-[60] flex min-h-10 items-center justify-center">
+  const overlayPhase = open ? entered ? "open" : "opening" : "exiting";
+  return <div role="dialog" aria-modal={open} aria-hidden={!open} inert={!open} data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} data-card-swipe-phase={overlayPhase} className={cn("card-swipe-overlay fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] lg:hidden", entered && open ? "pointer-events-auto" : "pointer-events-none")}>
+    <div data-card-swipe-part="header" className="relative z-[60] flex min-h-10 items-center justify-center">
       <p
         data-card-swipe-title
         className={cn(
-          "pointer-events-none absolute inset-x-0 text-center text-xl font-bold leading-tight text-foreground",
+          "pointer-events-none absolute inset-x-0 text-left text-xl font-bold leading-tight text-foreground",
           canUseSuperWater(locale) && "font-super-water",
         )}
       >
@@ -329,17 +332,19 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       <button type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button>
     </div>
     <div className="relative flex flex-1 -translate-y-8 items-center justify-center overflow-hidden">
-      <p className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
+      <p data-card-swipe-part="instruction" className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}
       </p>
-      {shouldRenderCard ? <div ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { swipeInteractionActiveRef.current = true; start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative z-10 w-[78vw] max-w-[300px] touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-500 ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
-        <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
-          {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
-          {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
+      {shouldRenderCard ? <div data-card-swipe-part="card" className="relative z-10 w-[78vw] max-w-[300px]">
+        <div ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { swipeInteractionActiveRef.current = true; start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative w-full touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-500 ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
+          <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
+            {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
+            {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
+          </div>
+          {leftActive ? <span className="absolute right-5 top-5 z-30 text-xl font-bold text-white">{t("cards.skip")}</span> : null}
+          {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
+          <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" />
         </div>
-        {leftActive ? <span className="absolute right-5 top-5 z-30 text-xl font-bold text-white">{t("cards.skip")}</span> : null}
-        {rightActive ? <span className="absolute left-5 top-5 z-30 text-xl font-bold text-white">{t("cards.addToDeck")}</span> : null}
-        <VocabularyCardView card={card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" />
       </div> : null}
       {outgoing ? <div data-card-swipe-outgoing className="pointer-events-none absolute z-20 w-[78vw] max-w-[300px] will-change-transform transition-transform duration-300 ease-out" style={{ transform: outgoing.active ? `translate3d(${outgoing.x + (outgoing.direction === "add" ? window.innerWidth + OFFSCREEN_SIDE_OFFSET : -window.innerWidth - OFFSCREEN_SIDE_OFFSET)}px, 0, 0) rotate(${outgoing.rotation + (outgoing.direction === "add" ? 22 : -22)}deg)` : `translate3d(${outgoing.x}px, 0, 0) rotate(${outgoing.rotation}deg)` }}><OutgoingSwipeFeedback direction={outgoing.direction} /><VocabularyCardView card={outgoing.card} initialFace="front" face="front" flippable={false} showActions={false} frontFit frontContentScale={1.25} className="aspect-[3/4] min-h-0 w-full max-sm:aspect-[3/4] max-sm:min-h-0" /></div> : null}
     </div>

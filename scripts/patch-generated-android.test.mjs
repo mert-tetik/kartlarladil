@@ -104,6 +104,10 @@ describe("reproducible Android Firebase bootstrap", () => {
         path.join(projectDir, "app", "src", "main", "AndroidManifest.xml"),
         "utf8",
       );
+      const fileProviderPaths = fs.readFileSync(
+        path.join(projectDir, "app", "src", "main", "res", "xml", "file_paths.xml"),
+        "utf8",
+      );
 
       expect(applicationSource).toContain("package com.example.app;");
       expect(applicationSource).toContain("FirebaseApp.initializeApp(this);");
@@ -111,6 +115,8 @@ describe("reproducible Android Firebase bootstrap", () => {
       expect(patchedGradle).toContain("id 'com.google.gms.google-services'");
       expect(patchedGradle).toContain("implementation 'com.google.firebase:firebase-analytics'");
       expect(patchedManifest).toContain('android:name="com.example.app.Application"');
+      expect(patchedManifest).toContain('android:name="androidx.core.content.FileProvider"');
+      expect(fileProviderPaths).toContain('path="camera/"');
     } finally {
       const resolvedProjectDir = path.resolve(projectDir);
       if (!resolvedProjectDir.startsWith(`${tempRoot}${path.sep}`)) {
@@ -118,5 +124,28 @@ describe("reproducible Android Firebase bootstrap", () => {
       }
       fs.rmSync(resolvedProjectDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Android WebView file input support", () => {
+  it("forwards web file inputs to the native picker and returns the selected URIs", () => {
+    const launcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+
+    expect(launcherSource).toContain("onShowFileChooser");
+    expect(launcherSource).toContain("fileChooserParams.createIntent()");
+    expect(launcherSource).toContain("createCameraCaptureIntent()");
+    expect(launcherSource).toContain("FileProvider.getUriForFile");
+    expect(launcherSource).toContain("FileChooserParams.parseResult(resultCode, data)");
+    expect(launcherSource).toContain("pendingFileChooserCallback.onReceiveValue(null)");
+
+    const patcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "patch-generated-android.mjs"),
+      "utf8",
+    );
+    expect(patcherSource).toContain('android:name="androidx.core.content.FileProvider"');
+    expect(patcherSource).toContain('path="camera/"');
   });
 });

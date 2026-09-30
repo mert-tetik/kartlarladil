@@ -2,22 +2,28 @@ package __PACKAGE__;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.FrameLayout;
+import androidx.core.content.FileProvider;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.ValueCallback;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
 public class LauncherActivity extends Activity {
@@ -28,6 +34,10 @@ public class LauncherActivity extends Activity {
     private NativeTextToSpeechBridge textToSpeechBridge;
     private NativeVibrationBridge vibrationBridge;
     private PermissionRequest pendingAudioPermissionRequest;
+    private ValueCallback<Uri[]> pendingFileChooserCallback;
+    private Uri pendingCameraUri;
+    private File pendingCameraFile;
+    private static final int FILE_CHOOSER_REQUEST_CODE = 4102;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +59,33 @@ public class LauncherActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         webView.setBackgroundColor(Color.BLACK);
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(
+                    WebView view,
+                    ValueCallback<Uri[]> filePathCallback,
+                    FileChooserParams fileChooserParams
+            ) {
+                if (pendingFileChooserCallback != null) {
+                    pendingFileChooserCallback.onReceiveValue(null);
+                }
+                deletePendingCameraCapture();
+
+                pendingFileChooserCallback = filePathCallback;
+                Intent chooserIntent;
+                try {
+                    chooserIntent = fileChooserParams.isCaptureEnabled() && acceptsImage(fileChooserParams)
+                            ? createCameraCaptureIntent()
+                            : fileChooserParams.createIntent();
+                    startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST_CODE);
+                } catch (Exception ignored) {
+                    deletePendingCameraCapture();
+                    pendingFileChooserCallback = null;
+                    filePathCallback.onReceiveValue(null);
+                    return false;
+                }
+                return true;
+            }
+
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 if (!isTrustedOrigin(request.getOrigin()) || !requestsAudioOnly(request)) {
@@ -100,6 +137,49 @@ public class LauncherActivity extends Activity {
         setContentView(contentRoot);
         configureWindow();
         loadStartUrl(getIntent());
+    }
+
+    private Intent createCameraCaptureIntent() throws IOException {
+        File cameraDirectory = new File(getCacheDir(), "camera");
+        if (!cameraDirectory.exists() && !cameraDirectory.mkdirs()) {
+            throw new IOException("Unable to create camera cache directory");
+        }
+
+        File outputFile = File.createTempFile("foxiesdeck-camera-", ".jpg", cameraDirectory);
+        Uri outputUri = FileProvider.getUriForFile(
+                this,
+                getPackageName() + ".fileprovider",
+                outputFile
+        );
+        pendingCameraFile = outputFile;
+        pendingCameraUri = outputUri;
+
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        intent.setClipData(ClipData.newRawUri("output", outputUri));
+        return intent;
+    }
+
+    private static boolean acceptsImage(WebChromeClient.FileChooserParams params) {
+        String[] acceptTypes = params.getAcceptTypes();
+        if (acceptTypes == null || acceptTypes.length == 0) return true;
+
+        for (String acceptType : acceptTypes) {
+            if (acceptType == null || acceptType.isEmpty() || acceptType.startsWith("image/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void deletePendingCameraCapture() {
+        if (pendingCameraFile != null && pendingCameraFile.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            pendingCameraFile.delete();
+        }
+        pendingCameraFile = null;
+        pendingCameraUri = null;
     }
 
     private void configureWindow() {
@@ -211,6 +291,24 @@ public class LauncherActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != FILE_CHOOSER_REQUEST_CODE) return;
+
+        ValueCallback<Uri[]> callback = pendingFileChooserCallback;
+        pendingFileChooserCallback = null;
+        if (callback != null) {
+            Uri[] results = pendingCameraUri != null
+                    ? (resultCode == RESULT_OK && pendingCameraFile != null && pendingCameraFile.length() > 0
+                    ? new Uri[]{pendingCameraUri}
+                    : null)
+                    : WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            callback.onReceiveValue(results);
+        }
+        deletePendingCameraCapture();
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode != AUDIO_PERMISSION_REQUEST_CODE) return;
@@ -241,6 +339,11 @@ public class LauncherActivity extends Activity {
             pendingAudioPermissionRequest.deny();
             pendingAudioPermissionRequest = null;
         }
+        if (pendingFileChooserCallback != null) {
+            pendingFileChooserCallback.onReceiveValue(null);
+            pendingFileChooserCallback = null;
+        }
+        deletePendingCameraCapture();
         if (webView != null) {
             webView.removeJavascriptInterface("FoxiesDeckNativeBilling");
             webView.removeJavascriptInterface("FoxiesDeckNativeSpeech");

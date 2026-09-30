@@ -321,6 +321,30 @@ export function MobileImageTextTranslateOverlay({
     }
   }
 
+  function openFilePicker(inputRef: React.RefObject<HTMLInputElement | null>) {
+    const input = inputRef.current;
+    if (!input) return;
+
+    // Android WebView can keep a file input's previous selection. Clear it
+    // before opening so selecting the same image again still emits `change`.
+    input.value = "";
+
+    // `showPicker` is the most reliable path on modern mobile browsers. Some
+    // WebViews do not expose it (or reject it), so the trusted-click fallback
+    // is required for older Android versions and the packaged app shell.
+    const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof pickerInput.showPicker === "function") {
+      try {
+        pickerInput.showPicker();
+        return;
+      } catch {
+        // Fall through to the WebView-compatible click path.
+      }
+    }
+
+    input.click();
+  }
+
   function cancelImageCrop() {
     setCropQueue([]);
     setActiveCrop(null);
@@ -619,8 +643,9 @@ export function MobileImageTextTranslateOverlay({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => openFilePicker(cameraInputRef)}
                   disabled={cropInProgress}
+                  data-image-text-camera-trigger
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-0 bg-action-learn px-3 text-sm font-semibold text-white transition-colors hover:bg-action-learn-hover active:scale-[0.98]"
                 >
                   <Camera className="size-5" aria-hidden="true" />
@@ -628,16 +653,17 @@ export function MobileImageTextTranslateOverlay({
                 </button>
                 <button
                   type="button"
-                  onClick={() => galleryInputRef.current?.click()}
+                  onClick={() => openFilePicker(galleryInputRef)}
                   disabled={cropInProgress}
+                  data-image-text-gallery-trigger
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-0 bg-action-learned px-3 text-sm font-semibold text-white transition-colors hover:bg-action-review-hover active:scale-[0.98]"
                 >
                   <Upload className="size-5" aria-hidden="true" />
                   {t("imageTranslate.gallery")}
                 </button>
               </div>
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
-              <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" aria-hidden="true" tabIndex={-1} className="sr-only" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
+              <input ref={galleryInputRef} type="file" accept="image/*" multiple aria-hidden="true" tabIndex={-1} className="sr-only" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
             </div>
 
             <div className="flex flex-col gap-1.5">

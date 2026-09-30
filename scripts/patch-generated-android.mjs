@@ -32,6 +32,12 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "EventReceiverActivity.java",
 ];
 
+const FILE_PROVIDER_PATHS = `<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="camera" path="camera/" />
+</paths>
+`;
+
 async function readText(filePath) {
   return fs.readFile(filePath, "utf8");
 }
@@ -127,6 +133,10 @@ dependencies {
     // FoxiesDeckNativeBilling JavaScript bridge.
     implementation 'com.android.billingclient:billing:${PLAY_BILLING_VERSION}'
 
+    // FileProvider exposes camera captures to the WebView without broad
+    // external-storage permissions.
+    implementation 'androidx.core:core:1.16.0'
+
     // Install-time media delivery for the App Bundle.
     implementation 'com.google.android.play:asset-delivery:${ASSET_DELIVERY_VERSION}'
     implementation 'com.google.android.play:review:${PLAY_REVIEW_VERSION}'
@@ -195,6 +205,16 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
                 <data android:scheme="foxiesdeck" android:host="event" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${packageName}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
 `;
@@ -317,6 +337,10 @@ export async function patchGeneratedAndroidProject(
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "values-v31", "styles.xml"),
     APP_THEME_V31,
+  );
+  await writeText(
+    path.join(projectDir, "app", "src", "main", "res", "xml", "file_paths.xml"),
+    FILE_PROVIDER_PATHS,
   );
   await patchJavaTemplates(projectDir, packageName);
 

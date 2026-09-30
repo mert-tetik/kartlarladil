@@ -47,7 +47,7 @@ export function CustomCardDirectionToggle({ value, onChange, learningLanguage }:
       <SegmentedToggle
         value={value}
         onChange={onChange}
-        className="control-gradient-outline w-full [&>button]:inline-flex [&>button]:flex-1 [&>button]:items-center [&>button]:justify-center"
+        className="control-gradient-outline create-card-gradient-outline w-full [&>button]:inline-flex [&>button]:flex-1 [&>button]:items-center [&>button]:justify-center"
         selectedClassName="bg-purple-600 !text-white hover:brightness-105"
         ariaLabel={t("createCard.direction.label")}
         labelClassName="text-black/60 transition-colors duration-300"

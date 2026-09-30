@@ -20,10 +20,79 @@
   --control-outline-fill: var(--brand);
 }
 
+.create-card-gradient-outline {
+  --control-outline-top: #7c3aed;
+  --control-outline-bottom: #c084fc;
+}
+
 @font-face {
   font-family: "Super Water";
   src: url("/fonts/super-water.ttf") format("truetype");
   font-display: swap;
+}
+
+.card-swipe-overlay {
+  transform: translate3d(0, 100%, 0);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="open"] {
+  transform: translate3d(0, 0, 0);
+}
+
+.card-swipe-overlay[data-card-swipe-phase="exiting"] {
+  transform: translate3d(0, 100%, 0);
+  transition-delay: 440ms;
+}
+
+.card-swipe-overlay [data-card-swipe-part] {
+  transform: translate3d(0, -42px, 0);
+  will-change: transform;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="header"] {
+  animation: card-swipe-overlay-enter-from-top 280ms cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="instruction"] {
+  animation: card-swipe-overlay-enter-from-top 280ms cubic-bezier(0.22, 1, 0.36, 1) 600ms both;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="card"] {
+  animation: card-swipe-overlay-enter-from-top 420ms cubic-bezier(0.22, 1, 0.36, 1) 780ms both;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="card"] {
+  animation: card-swipe-overlay-exit-to-top 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="instruction"] {
+  animation: card-swipe-overlay-exit-to-top 260ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="header"] {
+  animation: card-swipe-overlay-exit-to-top 240ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+}
+
+@keyframes card-swipe-overlay-enter-from-top {
+  from {
+    transform: translate3d(0, -42px, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes card-swipe-overlay-exit-to-top {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -42px, 0);
+  }
 }
 
 @variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *):not([data-theme="default"]):not(:where([data-theme="default"] *)));
@@ -2018,6 +2087,13 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 [data-quiz-bottom-actions] .quiz-action-depth > :is(a, button) {
   height: 3rem;
   min-height: 3rem;
+}
+
+/* The transition host is intentionally transparent to taps so the question
+   underneath remains interactive. Its portaled bottom actions are the one
+   exception: restore hit-testing without changing their position or stacking. */
+[data-quiz-transition-action-host] > [data-quiz-bottom-actions] {
+  pointer-events: auto;
 }
 
 /* The isolated Learn test routes use the same bottom action treatment at every viewport size. */

@@ -24,6 +24,7 @@ import type { TranslationKey } from "@/i18n/types";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useAppMessage } from "@/components/app-message-provider";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
@@ -221,7 +222,7 @@ export default function CreateCardPage() {
 
         <div
           data-create-card-form
-          className="relative z-10 flex w-full max-w-md flex-col items-start gap-2 px-4 pt-36 text-left sm:gap-3 sm:pt-40"
+          className="relative z-10 flex w-full max-w-md -translate-y-2 flex-col items-start gap-2 px-4 pt-36 text-left sm:gap-3 sm:pt-40"
         >
           <div className="mb-4 w-full space-y-3 text-left sm:mb-5">
             <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
@@ -239,7 +240,7 @@ export default function CreateCardPage() {
               onFocus={() => window.scrollTo(0, 0)}
               placeholder={termPlaceholder}
               maxLength={120}
-              className="control-gradient-outline h-12 w-full rounded-full px-4 text-base text-black outline-none placeholder:text-gray-500"
+              className="control-gradient-outline create-card-gradient-outline h-12 w-full rounded-full px-4 text-base text-black outline-none placeholder:text-gray-500"
             />
           </div>
 
@@ -247,10 +248,12 @@ export default function CreateCardPage() {
             size="lg"
             onClick={handleGenerate}
             disabled={loading || !term.trim()}
-            className="control-gradient-outline control-gradient-outline-brand h-12 w-full gap-2 rounded-full text-brand-foreground hover:bg-brand-hover"
+            className="control-gradient-outline control-gradient-outline-brand create-card-gradient-outline h-12 w-full gap-2 rounded-full text-brand-foreground hover:bg-brand-hover"
           >
             {loading ? <Loader2 className="size-5 animate-spin" /> : <Library className="size-5" />}
-            {loading ? t("createCard.generating") : t("createCard.generate")}
+            <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+              {formatSuperWaterText(locale, loading ? t("createCard.generating") : t("createCard.generate"))}
+            </span>
           </Button>
         </div>
       </section>
