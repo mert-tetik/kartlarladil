@@ -23,7 +23,7 @@ const INCOMING_ENTRY_DURATION = 520;
 const INCOMING_START_OFFSET = 180;
 const OFFSCREEN_SIDE_OFFSET = 80;
 const PRELOAD_DECK_SIZE = 5;
-const OVERLAY_EXIT_DURATION = 900;
+const OVERLAY_EXIT_DURATION = 1200;
 
 type SwipeDirection = "skip" | "add";
 type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "entering";
@@ -88,6 +88,8 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+
     const resetTimer = window.setTimeout(() => {
       setDeck([]);
       setOutgoing(null);

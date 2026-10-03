@@ -26,9 +26,13 @@ export function QuizSpeechBubble({
   secondaryText,
   showSpeaker = true,
   speakerPosition = "right",
+  speakerLayout = "row",
+  arrowPosition = "left",
   speakerClassName,
   speakerIconClassName,
+  termClassName,
   largeCharacter = false,
+  showCharacter = true,
   characterClassName,
   bubbleClassName,
   className,
@@ -40,9 +44,13 @@ export function QuizSpeechBubble({
   secondaryText?: string;
   showSpeaker?: boolean;
   speakerPosition?: "left" | "right";
+  speakerLayout?: "row" | "stacked";
+  arrowPosition?: "left" | "bottom";
   speakerClassName?: string;
   speakerIconClassName?: string;
+  termClassName?: string;
   largeCharacter?: boolean;
+  showCharacter?: boolean;
   characterClassName?: string;
   bubbleClassName?: string;
   className?: string;
@@ -50,35 +58,49 @@ export function QuizSpeechBubble({
   const t = useT();
   const characterName = getCharacterName(character, language);
   const voiceProfile = getCharacterVoiceProfile(character);
+  const arrowClassName = arrowPosition === "bottom"
+    ? "before:left-1/2 before:top-auto before:bottom-[-0.55rem] before:-translate-x-1/2 before:rotate-45 before:border-b-[3px] before:border-r-[3px] before:border-l-0 before:border-t-0"
+    : "before:left-[-0.55rem] before:top-1/2 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px]";
 
   return (
     <div className={cn("relative -translate-y-5 mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 sm:-translate-y-6 sm:gap-3", className)}>
-      <div
-        className={cn(
-          "relative shrink-0",
-          largeCharacter ? "h-36 w-36 sm:h-40 sm:w-40" : "h-28 w-28 sm:h-32 sm:w-32",
-          characterClassName,
-        )}
-      >
-        <Image
-          src={character.imageSrc}
-          alt={characterName}
-          fill
-          sizes="128px"
-          className="object-contain object-bottom"
-        />
-      </div>
+      {showCharacter ? (
+        <div
+          className={cn(
+            "relative shrink-0",
+            largeCharacter ? "h-36 w-36 sm:h-40 sm:w-40" : "h-28 w-28 sm:h-32 sm:w-32",
+            characterClassName,
+          )}
+        >
+          <Image
+            src={character.imageSrc}
+            alt={characterName}
+            fill
+            sizes={largeCharacter ? "(max-width: 639px) 144px, 160px" : "(max-width: 639px) 112px, 128px"}
+            quality={90}
+            className="object-contain object-bottom"
+          />
+        </div>
+      ) : null}
       <div className={cn(
-        "relative min-w-0 flex-1 rounded-2xl border-[3px] border-[#AAAAAA] bg-background-card px-4 py-3 text-left shadow-sm sm:px-5 sm:py-4 before:absolute before:left-[-0.55rem] before:top-1/2 before:size-4 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px] before:border-[#AAAAAA] before:bg-background-card",
+        "relative min-w-0 flex-1 rounded-2xl border-[3px] border-[#AAAAAA] bg-background px-4 py-3 text-left shadow-sm sm:px-5 sm:py-4 before:absolute before:size-4 before:border-[#AAAAAA] before:bg-background",
+        arrowClassName,
         bubbleClassName,
       )}>
         <div className={cn(
-          "relative flex items-center justify-between gap-3",
-          speakerPosition === "left" && "justify-start",
+          "relative flex",
+          speakerLayout === "stacked"
+            ? "flex-col items-center justify-center gap-1"
+            : "items-center justify-between gap-3",
+          speakerLayout === "row" && speakerPosition === "left" && "justify-start",
         )}>
           <h2 className={cn(
             "min-w-0 break-words font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-4xl",
-            speakerPosition === "left" && "order-2",
+            speakerLayout === "stacked" && "text-center",
+            speakerLayout === "stacked"
+              ? "order-2"
+              : speakerPosition === "left" && "order-2",
+            termClassName,
           )}>
             {term}
           </h2>
@@ -89,7 +111,9 @@ export function QuizSpeechBubble({
               onPointerDown={() => vibrate("tap")}
               className={cn(
                 "inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-transform duration-500 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground active:scale-90 max-sm:size-8",
-                speakerPosition === "left" && "order-1",
+                speakerLayout === "stacked"
+                  ? "order-1"
+                  : speakerPosition === "left" && "order-1",
                 speakerClassName,
               )}
               aria-label={`${term} ${t("cards.speak")}`}

@@ -12,8 +12,11 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "quiz-complete",
   "quiz-stars-complete",
   "quiz-select",
+  "streak-video-whoosh",
+  "streak-count-reveal",
   "rank-highlight",
   "bonus-select",
+  "bonus-invalid-operation",
   "pricing-perk-select",
   "card-swipe-right",
   "card-swipe-left",
@@ -25,6 +28,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "mission-claim",
   "gem-loot",
   "gem-spend",
+  "result-star-collect",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {

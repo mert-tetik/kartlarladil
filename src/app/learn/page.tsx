@@ -74,6 +74,11 @@ function parseBonusTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseBonusAfterEach(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseNormalTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -86,7 +91,7 @@ function parseQuizWordButtonTest(value: string | string[] | undefined): boolean 
 
 function parseNormalQuestionType(
   value: string | string[] | undefined,
-): "choice" | "listening" | "definition" | "true-false" | "sentence-completion" | "text" | null {
+): "choice" | "listening" | "definition" | "true-false" | "sentence-completion" | "text" | "group" | null {
   const rawValue = Array.isArray(value) ? value[0] : value;
   const questionTypes = [
     "choice",
@@ -95,6 +100,7 @@ function parseNormalQuestionType(
     "true-false",
     "sentence-completion",
     "text",
+    "group",
   ] as const;
 
   return questionTypes.includes(rawValue as (typeof questionTypes)[number])
@@ -119,6 +125,7 @@ export default async function LearnPage({
   const resultTest = parseResultTest(params["result-test"]);
   const resultMessageTest = parseResultMessageTest(params["result-message-test"]);
   const bonusTest = parseBonusTest(params["bonus-test"]);
+  const bonusAfterEach = parseBonusAfterEach(params["bonus-after-each"]);
   const normalTestValue = params["normal-test"] ?? params["quiz-normal-test"];
   const normalQuestionType = parseNormalQuestionType(
     params["normal-question"] ??
@@ -148,6 +155,7 @@ export default async function LearnPage({
         resultTest={resultTest}
         resultMessageTest={resultMessageTest}
         bonusTest={bonusTest}
+        bonusAfterEach={bonusAfterEach}
         normalTest={normalTest}
         normalQuestionType={normalQuestionType}
         quizWordButtonTest={quizWordButtonTest}

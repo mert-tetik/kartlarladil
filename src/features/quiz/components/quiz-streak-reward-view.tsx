@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Flame } from "lucide-react";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
@@ -27,7 +26,8 @@ interface QuizStreakRewardViewProps {
   onComplete: () => void;
 }
 
-const REWARD_SCATTER_DELAY_MS = 2800;
+const VIDEO_INTERACTION_PAUSE_FRAME = 64;
+const VIDEO_FRAME_RATE = 30;
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
 const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
 const VIDEO_AUDIO_MAX_VOLUME = 0.75;
@@ -47,7 +47,7 @@ export function QuizStreakRewardView({
   testGemBalances = { blue: 50, green: 30, purple: 15 },
   onComplete,
 }: QuizStreakRewardViewProps) {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLSpanElement>(null);
@@ -55,15 +55,17 @@ export function QuizStreakRewardView({
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   const breakTimerRef = useRef<number | null>(null);
-  const rewardTimerRef = useRef<number | null>(null);
   const audioFadeInFrameRef = useRef<number | null>(null);
   const audioFadeOutTimerRef = useRef<number | null>(null);
   const audioFadeOutFrameRef = useRef<number | null>(null);
   const uiExitTimerRef = useRef<number | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
   const hardCompletionTimeoutRef = useRef<number | null>(null);
+  const interactionPauseFrameRequestRef = useRef<number | null>(null);
   const rewardStartedRef = useRef(false);
   const breakStartedRef = useRef(false);
+  const interactionStartedRef = useRef(false);
+  const videoPausedForInteractionRef = useRef(false);
   const audioFadeInStartedRef = useRef(false);
   const audioFadeOutStartedRef = useRef(false);
   const videoPlaybackStartedRef = useRef(false);
@@ -72,7 +74,7 @@ export function QuizStreakRewardView({
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
   const [videoExiting, setVideoExiting] = useState(false);
-  const [videoSource, setVideoSource] = useState("/quiz/streak-reward-background-20260921.mp4");
+  const [videoSource, setVideoSource] = useState("/quiz/streak-reward-background-20260921.mp4?v=20261002-3");
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [uiExiting, setUiExiting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -138,12 +140,8 @@ export function QuizStreakRewardView({
     if (rewardStartedRef.current) return;
     rewardStartedRef.current = true;
 
-    if (rewardTimerRef.current !== null) {
-      window.clearTimeout(rewardTimerRef.current);
-      rewardTimerRef.current = null;
-    }
     setRewardStarted(true);
-    vibrate("streak-break");
+    vibrate("streak-reward-tap");
   }, []);
 
   const startVideoAudioFadeIn = useCallback(() => {
@@ -214,6 +212,44 @@ export function QuizStreakRewardView({
     audioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
   }, []);
 
+  const pauseVideoAtInteractionFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (
+      !video ||
+      interactionStartedRef.current ||
+      videoPausedForInteractionRef.current ||
+      interactionPauseFrameRequestRef.current !== null
+    ) {
+      return;
+    }
+
+    if (typeof video.requestVideoFrameCallback === "function") {
+      interactionPauseFrameRequestRef.current = video.requestVideoFrameCallback(
+        (_now, metadata) => {
+          interactionPauseFrameRequestRef.current = null;
+          if (interactionStartedRef.current || videoPausedForInteractionRef.current) return;
+
+          if (metadata.presentedFrames >= VIDEO_INTERACTION_PAUSE_FRAME) {
+            videoPausedForInteractionRef.current = true;
+            video.pause();
+            return;
+          }
+
+          pauseVideoAtInteractionFrame();
+        },
+      );
+      return;
+    }
+
+    // Older webviews do not expose requestVideoFrameCallback. This fallback
+    // pauses on the preceding frame boundary rather than seeking backward
+    // after an already-visible overshoot.
+    if (video.currentTime >= (VIDEO_INTERACTION_PAUSE_FRAME - 1) / VIDEO_FRAME_RATE) {
+      videoPausedForInteractionRef.current = true;
+      video.pause();
+    }
+  }, []);
+
   const startBreak = useCallback(() => {
     if (breakStartedRef.current) return;
     breakStartedRef.current = true;
@@ -223,6 +259,10 @@ export function QuizStreakRewardView({
     if (breakTimerRef.current !== null) {
       window.clearTimeout(breakTimerRef.current);
       breakTimerRef.current = null;
+    }
+    if (hardCompletionTimeoutRef.current !== null) {
+      window.clearTimeout(hardCompletionTimeoutRef.current);
+      hardCompletionTimeoutRef.current = null;
     }
     setVideoExiting(true);
     uiExitTimerRef.current = window.setTimeout(() => {
@@ -273,8 +313,11 @@ export function QuizStreakRewardView({
   const handleVideoPlay = useCallback(() => {
     videoPlaybackStartedRef.current = true;
     startVideoAudioFadeIn();
-    scheduleVideoFade();
-  }, [scheduleVideoFade, startVideoAudioFadeIn]);
+    pauseVideoAtInteractionFrame();
+    if (interactionStartedRef.current) {
+      scheduleVideoFade();
+    }
+  }, [pauseVideoAtInteractionFrame, scheduleVideoFade, startVideoAudioFadeIn]);
 
   const handleVideoTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -286,8 +329,13 @@ export function QuizStreakRewardView({
       videoPlaybackStartedRef.current = true;
     }
 
+    if (!interactionStartedRef.current) {
+      pauseVideoAtInteractionFrame();
+      return;
+    }
+
     scheduleVideoFade();
-  }, [scheduleVideoFade]);
+  }, [pauseVideoAtInteractionFrame, scheduleVideoFade]);
 
   const handleVideoError = useCallback(() => {
     if (!isNativeMediaFallbackSource(videoSource)) {
@@ -297,34 +345,48 @@ export function QuizStreakRewardView({
     setVideoUnavailable(true);
   }, [videoSource]);
 
-  useEffect(() => {
-    if (!mounted) return;
+  const handleScreenActivate = useCallback(() => {
+    if (completedRef.current || interactionStartedRef.current) return;
 
-    // Reward timing is independent from media loading/playback. The score and
-    // gem scatter starts three seconds after the screen opens. Video fade-out
-    // is scheduled from the real media clock, exactly 250ms before the final
-    // frame; the UI then remains visible for one second and fades during its
-    // final 300ms.
-    rewardTimerRef.current = window.setTimeout(startRewardScatter, REWARD_SCATTER_DELAY_MS);
+    const video = videoRef.current;
+    if (
+      video &&
+      videoPlaybackStartedRef.current &&
+      !video.paused &&
+      !videoPausedForInteractionRef.current
+    ) {
+      return;
+    }
+
+    interactionStartedRef.current = true;
+    videoPausedForInteractionRef.current = false;
+    if (
+      video &&
+      interactionPauseFrameRequestRef.current !== null &&
+      typeof video.cancelVideoFrameCallback === "function"
+    ) {
+      video.cancelVideoFrameCallback(interactionPauseFrameRequestRef.current);
+      interactionPauseFrameRequestRef.current = null;
+    }
+    startRewardScatter();
+
     hardCompletionTimeoutRef.current = window.setTimeout(() => {
-      if (completedRef.current) return;
-      if (!rewardStartedRef.current) startRewardScatter();
-      if (!breakStartedRef.current) startBreak();
+      hardCompletionTimeoutRef.current = null;
+      if (!completedRef.current && !breakStartedRef.current) {
+        startBreak();
+      }
     }, MEDIA_FALLBACK_DELAY_MS);
 
-    return () => {
-      if (hardCompletionTimeoutRef.current !== null) {
-        window.clearTimeout(hardCompletionTimeoutRef.current);
-        hardCompletionTimeoutRef.current = null;
-      }
-    };
-  }, [mounted, startBreak, startRewardScatter]);
+    if (!video || videoUnavailable) return;
+
+    const playResult = video.play();
+    if (typeof playResult?.catch === "function") {
+      void playResult.catch(() => startBreak());
+    }
+  }, [startBreak, startRewardScatter, videoUnavailable]);
 
   useEffect(() => {
     return () => {
-      if (rewardTimerRef.current !== null) {
-        window.clearTimeout(rewardTimerRef.current);
-      }
       if (audioFadeInFrameRef.current !== null) {
         window.cancelAnimationFrame(audioFadeInFrameRef.current);
       }
@@ -346,13 +408,34 @@ export function QuizStreakRewardView({
       if (hardCompletionTimeoutRef.current !== null) {
         window.clearTimeout(hardCompletionTimeoutRef.current);
       }
+      const video = videoRef.current;
+      if (
+        video &&
+        interactionPauseFrameRequestRef.current !== null &&
+        typeof video.cancelVideoFrameCallback === "function"
+      ) {
+        video.cancelVideoFrameCallback(interactionPauseFrameRequestRef.current);
+      }
     };
   }, []);
 
   if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] overflow-hidden bg-transparent" data-streak-reward-view aria-hidden="true">
+    <div
+      className="fixed inset-0 z-[70] overflow-hidden bg-transparent"
+      data-streak-reward-view
+      role="button"
+      tabIndex={0}
+      aria-label={t("quiz.tapToContinue")}
+      onPointerUp={handleScreenActivate}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleScreenActivate();
+        }
+      }}
+    >
       {!videoUnavailable ? <video
         ref={videoRef}
         className={cn(
@@ -374,7 +457,13 @@ export function QuizStreakRewardView({
         "pointer-events-none absolute inset-0 animate-streak-reward-ui-enter",
         uiExiting && "animate-streak-reward-ui-exit",
       )}>
-        <div className="absolute left-1/2 top-5 -translate-x-1/2 sm:top-8">
+        <div
+          className={cn(
+            "absolute left-1/2 top-5 -translate-x-1/2 sm:top-8",
+            rewardStarted ? "animate-streak-reward-hud-enter" : "opacity-0",
+          )}
+          data-streak-reward-hud
+        >
           <MainPointsDisplay
             targetRef={scoreRef}
             pulse={scorePulse}
@@ -392,16 +481,15 @@ export function QuizStreakRewardView({
         )} data-quiz-streak-scatter-source>
           <span
             className={cn(
-              "text-7xl font-black text-white sm:text-8xl lg:text-9xl",
+              "animate-streak-reward-text-wiggle whitespace-nowrap text-center text-5xl font-black text-white sm:text-7xl lg:text-8xl",
               canUseSuperWater(locale) && "font-super-water",
             )}
           >
-            {formatSuperWaterText(locale, formatNumber(locale, streak))}
+            {formatSuperWaterText(
+              locale,
+              t("quiz.streakCount", { count: formatNumber(locale, streak) }),
+            )}
           </span>
-          <Flame
-            className="size-16 animate-streak-fire text-white sm:size-20"
-            fill="currentColor"
-          />
         </div>
       </div>
       {rewardStarted ? (

@@ -6,7 +6,7 @@ import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
-import { MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
+import { LegacyResultView, MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -258,7 +258,7 @@ describe("ResultView star rating", () => {
 
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: correctCards, incorrect: incorrectCards, learned: learnedCards }}
           selectedCount={10}
@@ -304,7 +304,7 @@ describe("ResultView star rating", () => {
   it("keeps streak reward details out of the practice result", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
           selectedCount={10}
@@ -353,7 +353,7 @@ describe("ResultView star rating", () => {
     render(
       <LocaleProvider initialLocale="tr">
         <AuthSessionProvider user={testUser}>
-          <ResultView
+          <LegacyResultView
             mode="active"
             results={{
               correct: VOCABULARY_CARDS.slice(0, 8),
@@ -378,7 +378,7 @@ describe("ResultView star rating", () => {
   it("shows the leaderboard standing and worldwide label in the result header", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
           selectedCount={10}
@@ -402,7 +402,7 @@ describe("ResultView star rating", () => {
   it("opens the leaderboard overlay from the standing without navigating", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
           selectedCount={10}
@@ -422,7 +422,7 @@ describe("ResultView star rating", () => {
   it("renders only the foreground rank artwork in the result", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: [] }}
           selectedCount={10}
@@ -442,7 +442,7 @@ describe("ResultView star rating", () => {
   it("sends the quiz completed analytics event with summary params", () => {
     render(
       <LocaleProvider initialLocale="tr">
-        <ResultView
+        <LegacyResultView
           mode="active"
           results={{ correct: VOCABULARY_CARDS.slice(0, 8), incorrect: VOCABULARY_CARDS.slice(8, 10), learned: VOCABULARY_CARDS.slice(10, 12) }}
           selectedCount={10}
@@ -1303,12 +1303,58 @@ describe("QuizStation sound feedback", () => {
       expect(playSoundEffect).toHaveBeenCalledWith("correct");
     });
 
-    expect(document.querySelector("[data-quiz-mobile-card]")).toHaveAttribute(
-      "data-quiz-card-feedback",
-      "idle",
-    );
-    expect(document.querySelector("[data-card-footer-mode='empty']")).toBeInTheDocument();
     expect(document.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+  });
+
+  it("shows the learned-card celebration as soon as answer feedback settles", async () => {
+    useInventoryStore.setState({
+      cards: [{ ...inventoryCard, correctCount: 3 }, learnedInventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr", "choice");
+    await startChoiceQuiz();
+    vi.useFakeTimers();
+
+    fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(701);
+    });
+
+    expect(document.querySelector("[data-quiz-celebration]")).toBeInTheDocument();
+  });
+
+  it("renders the visual group question inside the Learn quiz flow", async () => {
+    const groupedCard = VOCABULARY_CARDS.find(
+      (card) => card.language === "en" && card.englishKey === "apple",
+    )!;
+
+    useInventoryStore.setState({
+      cards: [
+        { ...inventoryCard, cardId: groupedCard.id },
+        learnedInventoryCard,
+      ],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr", "group");
+    fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-quiz-question-content="group"]')).toBeInTheDocument();
+    });
+
+    expect(document.querySelectorAll("[data-quiz-group-option]")).toHaveLength(6);
+    expect(document.querySelector("[data-quiz-reroll]")).toBeInTheDocument();
   });
 
   it("places the text-answer question above the card on mobile", async () => {

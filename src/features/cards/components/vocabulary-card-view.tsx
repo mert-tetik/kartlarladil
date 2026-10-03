@@ -49,6 +49,8 @@ interface VocabularyCardViewProps {
   progressAnimationActive?: boolean;
   onClick?: () => void;
   staticFace?: boolean;
+  summaryCard?: boolean;
+  summaryProgressCount?: number;
 }
 
 interface CardFaceState {
@@ -124,6 +126,14 @@ const MEMORY_TIER_ACCENTS: Record<Tier, string> = {
   B1: "bg-violet-500",
   B2: "bg-amber-400",
   C1: "bg-rose-500",
+};
+
+const MEMORY_TIER_BORDERS: Record<Tier, string> = {
+  A1: "border-emerald-500",
+  A2: "border-sky-500",
+  B1: "border-violet-500",
+  B2: "border-amber-400",
+  C1: "border-rose-500",
 };
 
 const MEMORY_CARD_BACKGROUNDS: Record<Tier, string> = {
@@ -204,6 +214,8 @@ export function VocabularyCardView({
   progressAnimationActive = false,
   onClick,
   staticFace = false,
+  summaryCard = false,
+  summaryProgressCount,
 }: VocabularyCardViewProps) {
   const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
   const displayCard =
@@ -273,7 +285,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} />
+        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} summaryCard={summaryCard} summaryProgressCount={summaryProgressCount} />
       </article>
     );
   }
@@ -321,6 +333,8 @@ export function VocabularyCardView({
           footerMode={footerMode}
           footerProgressCount={footerProgressCount}
           progressAnimationActive={progressAnimationActive}
+          summaryCard={summaryCard}
+          summaryProgressCount={summaryProgressCount}
         />
         <CardBack
           card={displayCard}
@@ -358,6 +372,8 @@ function CardFront({
   footerMode = "auto",
   footerProgressCount,
   progressAnimationActive = false,
+  summaryCard = false,
+  summaryProgressCount,
 }: {
   card: VocabularyCard;
   inventory?: InventoryCard;
@@ -381,6 +397,8 @@ function CardFront({
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
   progressAnimationActive?: boolean;
+  summaryCard?: boolean;
+  summaryProgressCount?: number;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -391,8 +409,8 @@ function CardFront({
   const accentClass = memoryGame ? MEMORY_TIER_ACCENTS[card.tier] : style.accent;
   const requirement = TIER_REQUIREMENTS[card.tier];
   const tierPoints = getPointsForTier(card.tier);
-  const visibleProgressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
-  const progress = inventory ? Math.min(100, (visibleProgressCount / requirement) * 100) : 0;
+  const visibleProgressCount = footerProgressCount ?? summaryProgressCount ?? inventory?.correctCount ?? 0;
+  const progress = Math.min(100, (visibleProgressCount / requirement) * 100);
   const learned = inventory?.status === "learned";
   const showOwnedState = owned && !allowOwnedAdd;
   const examplePreview = card.examples[0]?.sentence ?? card.example;
@@ -431,18 +449,32 @@ function CardFront({
       inert={!isFaceUp}
       className={cn(
         "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-white text-slate-950 [backface-visibility:hidden]",
-        compact ? "p-1.5 sm:p-2" : "p-2.5 sm:p-4",
+        compact
+          ? summaryCard
+            ? "p-2.5 sm:p-3"
+            : "p-1.5 sm:p-2"
+          : "p-2.5 sm:p-4",
         frontFit ? "justify-between" : "max-sm:justify-between",
-        memoryGame ? "border-0" : style.border,
+        summaryCard
+          ? "border-0 bg-white text-slate-950"
+          : memoryGame
+            ? "border-0"
+            : style.border,
       )}
     >
+      {summaryCard ? (
+        <div className={cn("pointer-events-none absolute inset-1 z-10 rounded-md border-4", MEMORY_TIER_BORDERS[card.tier])}>
+          <span className={cn("absolute inset-x-0 top-0 h-2", accentClass)} />
+          <span className={cn("absolute inset-x-0 bottom-0 h-2", accentClass)} />
+        </div>
+      ) : null}
       <div
         className={cn(
           "flex items-center justify-between gap-2 text-white",
           compact
             ? "-mx-1.5 -mt-1.5 px-2 py-1 sm:-mx-2 sm:-mt-2 sm:px-2.5 sm:py-1.5"
             : "-mx-2.5 -mt-2.5 px-3 py-2 sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
-          accentClass,
+          summaryCard ? "bg-white text-slate-950" : accentClass,
         )}
       >
         {!frontMinimal ? (
@@ -503,10 +535,13 @@ function CardFront({
         ) : null}
         <h3
           className={cn(
-            "font-display font-semibold leading-none text-slate-950",
+            "min-w-0 max-w-full break-words text-center font-display font-semibold leading-tight",
+            "text-slate-950",
             frontMinimal
               ? compact
-                ? "text-lg max-sm:text-base"
+                ? summaryCard
+                  ? "text-base max-sm:text-sm"
+                  : "text-lg max-sm:text-base"
                 : "text-xl max-sm:text-lg"
               : frontFitCoreText
                 ? "mt-3 text-3xl max-sm:mt-1 sm:text-5xl"
@@ -540,7 +575,7 @@ function CardFront({
             >
               <p
                 className={cn(
-                  "text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
+                  "max-w-full break-words text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
                   frontFit ? "line-clamp-3" : "line-clamp-2",
                 )}
               >
@@ -558,9 +593,9 @@ function CardFront({
           >
             <p
               className={cn(
-                "text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
+                "max-w-full break-words text-center text-lg font-semibold leading-6 max-sm:text-xs max-sm:leading-tight",
                 frontFit ? "line-clamp-3" : "line-clamp-2",
-                "text-base max-sm:text-sm",
+                "text-base text-slate-950 max-sm:text-sm",
               )}
             >
               {cardTranslation}
@@ -569,14 +604,31 @@ function CardFront({
         )}
       </div>
 
+      {summaryProgressCount !== undefined ? (
+        <div className="flex w-full -translate-y-[10px] flex-col items-center gap-0.5 px-1 pb-1" data-card-progress>
+          <span className="text-[8px] font-semibold leading-none text-black">
+            {visibleProgressCount}/{requirement}
+          </span>
+          <Progress
+            value={progress}
+            className="h-1.5 w-4/5 bg-slate-400"
+            indicatorClassName={accentClass}
+          />
+        </div>
+      ) : null}
+
       <div
         className={cn(
           "text-white",
           compact
             ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
             : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
-          accentClass,
-          footerMode === "auto" ? "space-y-2" : "flex min-h-12 items-center",
+          summaryCard ? "bg-white text-slate-950" : accentClass,
+          footerMode === "auto"
+            ? "space-y-2"
+            : memoryGame
+              ? "flex min-h-0 items-center"
+              : "flex min-h-12 items-center",
         )}
         data-card-footer-mode={footerMode}
       >

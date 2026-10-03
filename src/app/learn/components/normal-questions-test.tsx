@@ -13,9 +13,11 @@ import {
   buildTrueFalseQuizQuestion,
   isAnswerSimilarEnough,
 } from "@/features/quiz/quiz-engine";
+import { buildGroupQuestion } from "@/features/quiz/group-question";
 import {
   ChoiceQuestion,
   DefinitionQuestion,
+  GroupQuestion,
   ListeningQuestion,
   MobileQuizFeedback,
   MobileQuizTopBar,
@@ -24,6 +26,7 @@ import {
   TrueFalseQuestion,
   type ChoiceQuizItem,
   type DefinitionQuizItem,
+  type GroupQuizItem,
   type ListeningQuizItem,
   type NormalQuizItem,
   type SentenceCompletionQuizItem,
@@ -87,6 +90,9 @@ function buildNormalTestQuestions(locale: LocaleCode): NormalQuizItem[] {
   const definition = selectRandomQuestion(cards, usedCardIds, (card) =>
     buildDefinitionQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
   );
+  const group = selectRandomQuestion(cards, usedCardIds, (card) =>
+    buildGroupQuestion(card),
+  );
   const trueFalse = selectRandomQuestion(cards, usedCardIds, (card) =>
     buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
   );
@@ -98,7 +104,7 @@ function buildNormalTestQuestions(locale: LocaleCode): NormalQuizItem[] {
   }));
   const character = getAiPracticeCharacters()[0];
 
-  if (!choice || !listening || !definition || !trueFalse || !sentenceCompletion || !text || !character) {
+  if (!choice || !listening || !definition || !group || !trueFalse || !sentenceCompletion || !text || !character) {
     return [];
   }
 
@@ -125,6 +131,14 @@ function buildNormalTestQuestions(locale: LocaleCode): NormalQuizItem[] {
       willLearn: false,
     } satisfies DefinitionQuizItem,
     {
+      card: group.card,
+      inventoryCard: createTestInventoryCard(group.card),
+      questionType: "group",
+      question: group.question,
+      character,
+      willLearn: false,
+    } satisfies GroupQuizItem,
+    {
       card: trueFalse.card,
       inventoryCard: createTestInventoryCard(trueFalse.card),
       questionType: "true-false",
@@ -150,9 +164,17 @@ function buildNormalTestQuestions(locale: LocaleCode): NormalQuizItem[] {
 }
 
 function getCorrectAnswer(item: NormalQuizItem) {
-  return item.questionType === "true-false"
-    ? item.question.actualMeaning
-    : item.question.correctAnswer;
+  if (item.questionType === "true-false") {
+    return item.question.actualMeaning;
+  }
+
+  if (item.questionType === "group") {
+    return item.question.options.find(
+      (option) => option.card.id === item.question.correctOptionId,
+    )?.card.term ?? item.card.term;
+  }
+
+  return item.question.correctAnswer;
 }
 
 export function NormalQuestionsTest() {
@@ -224,7 +246,8 @@ export function NormalQuestionsTest() {
   const isCardFirstQuestion =
     question.questionType === "choice" ||
     question.questionType === "listening" ||
-    question.questionType === "true-false";
+    question.questionType === "true-false" ||
+    question.questionType === "group";
   const isDefinitionQuestion = question.questionType === "definition";
   const isSentenceCompletionQuestion = question.questionType === "sentence-completion";
   const card = (
@@ -279,6 +302,8 @@ export function NormalQuestionsTest() {
               <ListeningQuestion {...commonProps} />
             ) : question.questionType === "definition" ? (
               <DefinitionQuestion {...commonProps} isFirstQuestion />
+            ) : question.questionType === "group" ? (
+              <GroupQuestion {...commonProps} selectedAnswer={lastAnswer} />
             ) : question.questionType === "true-false" ? (
               <TrueFalseQuestion {...commonProps} promptClassName="max-lg:hidden" />
             ) : question.questionType === "sentence-completion" ? (

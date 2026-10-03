@@ -6,13 +6,17 @@ import { useEffect, useState, type ReactNode } from "react";
 export function QuizMobileActionPortal({
   children,
   withinTransition = false,
+  mobileOnly = false,
 }: {
   children: ReactNode;
   withinTransition?: boolean;
+  mobileOnly?: boolean;
 }) {
   const [ready, setReady] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   useEffect(() => {
+    setIsMobileViewport(window.innerWidth < 1024);
     setReady(true);
   }, []);
 
@@ -21,6 +25,10 @@ export function QuizMobileActionPortal({
     !document.querySelector("[data-learn-page]") ||
     document.querySelector("[data-normal-test]")
   ) {
+    return children;
+  }
+
+  if (mobileOnly && !isMobileViewport) {
     return children;
   }
 

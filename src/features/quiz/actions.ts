@@ -51,6 +51,14 @@ export interface AwardQuizResultPointsResult {
   error?: string;
 }
 
+export interface ClaimQuizResultStarsResult {
+  success: boolean;
+  awarded?: boolean;
+  stars?: number;
+  totalStars?: number;
+  error?: string;
+}
+
 export interface AwardQuizBonusPointsResult {
   success: boolean;
   awarded?: boolean;
@@ -205,6 +213,50 @@ export async function awardQuizResultPoints(
   revalidatePath("/profile");
 
   return { success: true, awarded: Boolean(data), points };
+}
+
+export async function claimQuizResultStars(
+  sessionId: string,
+  rawStars: number,
+): Promise<ClaimQuizResultStarsResult> {
+  if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
+    return { success: false, error: "invalid_session" };
+  }
+
+  const stars = Math.round(rawStars);
+  if (stars < 1 || stars > 5) {
+    return { success: false, error: "invalid_stars" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const { data, error } = await supabase.rpc("claim_quiz_result_stars", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_stars: stars,
+  }).maybeSingle<{ awarded: boolean; total_stars: number }>();
+
+  if (error || !data) {
+    return { success: false, error: "database_error" };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/learn");
+
+  return {
+    success: true,
+    awarded: data.awarded,
+    stars,
+    totalStars: data.total_stars,
+  };
 }
 
 export async function awardQuizBonusPoints(

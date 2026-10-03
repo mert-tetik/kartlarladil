@@ -199,4 +199,28 @@ describe("MobileCardSwipeOverlay", () => {
     expect(document.querySelector("[data-card-swipe-outgoing]")).not.toBeInTheDocument();
     expect(addCardMock).not.toHaveBeenCalled();
   });
+
+  it("keeps the visible card mounted for the complete reverse exit animation", async () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<MobileCardSwipeOverlay open language="en" onClose={onClose} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    rerender(<MobileCardSwipeOverlay open={false} language="en" onClose={onClose} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(899);
+    });
+
+    expect(document.querySelector("[data-card-swipe-phase='exiting']")).toBeInTheDocument();
+    expect(document.querySelector("[data-card-swipe-card]")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(301);
+    });
+
+    expect(document.querySelector("[data-card-swipe-phase='exiting']")).not.toBeInTheDocument();
+  });
 });

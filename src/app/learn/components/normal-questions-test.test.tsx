@@ -26,6 +26,7 @@ vi.mock("@/features/quiz/components/quiz-station", () => {
   return {
     ChoiceQuestion: Question,
     DefinitionQuestion: Question,
+    GroupQuestion: Question,
     ListeningQuestion: Question,
     SentenceCompletionQuestion: Question,
     TextQuestion: Question,
@@ -50,6 +51,7 @@ describe("NormalQuestionsTest", () => {
       "choice",
       "listening",
       "definition",
+      "group",
       "true-false",
       "sentence-completion",
       "text",

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import { getRandomQuizCharacter, QuizSpeechBubble } from "@/features/quiz/components/quiz-speech-bubble";
+import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import {
   getChestPreviewPairForCount,
   QUIZ_COUNT_OPTIONS,
@@ -72,15 +73,20 @@ export function QuizCountSelection({
       )}
     >
       <div className="w-full max-w-xl">
-        <QuizSpeechBubble
-          character={character}
-          term={formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
-          language={locale}
-          showSpeaker={false}
-          largeCharacter
-          className="-translate-y-10"
-        />
-        <div className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4">
+        <QuizMobileActionPortal mobileOnly>
+          <QuizSpeechBubble
+            character={character}
+            term={formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
+            language={locale}
+            showSpeaker={false}
+            largeCharacter
+            className="quiz-count-selection-speech -translate-y-[20px]"
+          />
+        </QuizMobileActionPortal>
+        <div
+          className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[60px] max-lg:z-[55] max-lg:bg-background max-lg:px-3 max-lg:pb-[calc(0.75rem+env(safe-area-inset-bottom))] max-lg:pt-3 sm:max-lg:px-5"
+          data-quiz-count-options
+        >
           {QUIZ_COUNT_OPTIONS.map((count) => {
             const unavailable = locked || count > availableCount;
             const selectionLocked = animatingCount !== null;

@@ -39,6 +39,13 @@ describe("vibration", () => {
     expect(isVibrationSupported()).toBe(true);
   });
 
+  it("uses a short, subtle pulse when a reward reaches its display", () => {
+    const browserVibrate = vi.fn();
+    setBrowserVibration(browserVibrate);
+    vibrate("reward-arrival");
+    expect(browserVibrate).toHaveBeenCalledWith([18]);
+  });
+
   it("does not vibrate when the user disabled vibration", () => {
     const nativeVibrate = vi.fn(() => true);
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };

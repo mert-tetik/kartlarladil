@@ -15,11 +15,13 @@ declare global {
   }
 }
 
-export type VibrationPatternName = "tap" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-shockwave" | "streak-exit" | "word-challenge-correct" | "word-challenge-incorrect";
+export type VibrationPatternName = "tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-star-collect" | "word-challenge-correct" | "word-challenge-incorrect";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
   tap: [22],
+  /** Very short, low-strength arrival pulse for reward scatter targets. */
+  "reward-arrival": [18],
   /** Short, solid feedback when a card flips. */
   flip: [22],
   /** Crisp confirmation for a correct answer. */
@@ -40,10 +42,16 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "chest-open": [90, 35, 120],
   /** Heavy multi-pulse impact when a streak reward breaks apart. */
   "streak-break": [110, 28, 170, 34, 250],
+  /** One solid tap when the learner releases the streak reward. */
+  "streak-reward-tap": [120],
+  /** One short, solid tap when the streak label and particles appear. */
+  "streak-count-reveal": [90],
   /** Short impact synced with the streak entrance shockwave. */
   "streak-shockwave": [36, 20, 64],
   /** Strong impact when the streak number and fire icon launch out. */
   "streak-exit": [140, 24, 220, 28, 320],
+  /** Short, solid impact when the result medals begin collecting. */
+  "result-star-collect": [58],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

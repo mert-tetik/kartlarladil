@@ -30,11 +30,14 @@ public final class NativeVibrationBridge {
 
     @JavascriptInterface
     public boolean vibrate(String serializedPattern) {
-        long[] pattern = parsePattern(serializedPattern);
-        if (pattern == null || pattern.length == 0) return false;
+        long[] browserPattern = parsePattern(serializedPattern);
+        if (browserPattern == null || browserPattern.length == 0) return false;
+        // The web API describes a pattern as vibration/pause/vibration. Android
+        // waveforms start with an off duration, so prepend a zero-delay slot.
+        long[] androidPattern = toAndroidWaveform(browserPattern);
         Vibrator vibrator = getVibrator();
         if (vibrator == null || !vibrator.hasVibrator()) return false;
-        mainHandler.post(() -> play(pattern));
+        mainHandler.post(() -> play(androidPattern));
         return true;
     }
 
@@ -87,6 +90,13 @@ public final class NativeVibrationBridge {
         } catch (JSONException | RuntimeException ignored) {
             return null;
         }
+    }
+
+    private static long[] toAndroidWaveform(long[] browserPattern) {
+        long[] androidPattern = new long[browserPattern.length + 1];
+        androidPattern[0] = 0L;
+        System.arraycopy(browserPattern, 0, androidPattern, 1, browserPattern.length);
+        return androidPattern;
     }
 
     public void close() {

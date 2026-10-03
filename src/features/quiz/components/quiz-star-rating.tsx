@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
@@ -10,6 +10,7 @@ interface QuizStarRatingProps {
   rating: number;
   max?: number;
   className?: string;
+  style?: CSSProperties;
   onRevealComplete?: () => void;
 }
 
@@ -22,22 +23,23 @@ const ARC_OFFSETS = [
 ] as const;
 
 const STAR_SIZES = [
-  "size-7 sm:size-9",
-  "size-[2.45rem] sm:size-[2.9rem]",
-  "size-[3rem] sm:size-[3.45rem]",
-  "size-[2.45rem] sm:size-[2.9rem]",
-  "size-7 sm:size-9",
+  "size-9 sm:size-11",
+  "size-[3rem] sm:size-[3.5rem]",
+  "size-[3.5rem] sm:size-[4rem]",
+  "size-[3rem] sm:size-[3.5rem]",
+  "size-9 sm:size-11",
 ] as const;
 
 const PANEL_REVEAL_DELAY_MS = 260;
 const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
-const STAR_IMAGE_SRC = "/quiz/result-cards/star.png";
+const STAR_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 
 export function QuizStarRating({
   rating,
   max = 5,
   className,
+  style,
   onRevealComplete,
 }: QuizStarRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
@@ -82,9 +84,10 @@ export function QuizStarRating({
   return (
     <div
       className={cn(
-        "relative flex h-14 items-end justify-center gap-5 overflow-visible sm:h-16 sm:gap-6",
+        "relative flex h-20 items-end justify-center gap-5 overflow-visible sm:h-24 sm:gap-6",
         className,
       )}
+      style={style}
       role="img"
       aria-label={`${clampedRating} out of ${max} stars`}
       data-quiz-star-rating

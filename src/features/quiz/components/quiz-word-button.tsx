@@ -27,6 +27,8 @@ interface QuizWordButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   selected?: boolean;
   onSelectedChange?: (selected: boolean) => void;
   pressAnimation?: boolean;
+  animationTrigger?: number;
+  correctClassName?: string;
   style?: CSSProperties;
 }
 
@@ -34,7 +36,7 @@ const FEEDBACK_CLASSES: Record<QuizWordButtonFeedback, string> = {
   idle: "border-[#aaaaaa] bg-background text-foreground",
   selected: "border-brand bg-background text-brand ring-2 ring-brand/35",
   matched: "border-transparent text-white shadow-sm",
-  correct: "border-emerald-500 bg-white/[0.11] text-emerald-600 animate-quiz-word-button-correct",
+  correct: "border-emerald-500 bg-[#303030] text-emerald-600 animate-quiz-word-button-correct",
   incorrect: "border-rose-500 bg-background text-rose-600 animate-bonus-incorrect-shake",
   "incorrect-revealed": "border-rose-500 bg-background text-rose-600",
   muted: "border-[#aaaaaa] bg-background text-foreground opacity-60",
@@ -51,6 +53,8 @@ export function QuizWordButton({
   disabled,
   onClick,
   style,
+  animationTrigger = 0,
+  correctClassName,
   ...props
 }: QuizWordButtonProps) {
   const [internalSelected, setInternalSelected] = useState(false);
@@ -99,7 +103,7 @@ export function QuizWordButton({
     <button
       // Recreate the DOM node when feedback changes so CSS feedback animations
       // always start from their first frame after an answer is revealed.
-      key={`${wordType}-${visualState}-${wordType === "invalid-operation" ? invalidOperationKey : ""}`}
+      key={`${wordType}-${visualState}-${wordType === "invalid-operation" ? `${invalidOperationKey}-${animationTrigger}` : ""}`}
       {...props}
       type={props.type ?? "button"}
       disabled={disabled || isInactive}
@@ -108,8 +112,10 @@ export function QuizWordButton({
       className={cn(
         "quiz-word-button relative inline-flex items-center justify-center overflow-visible rounded-2xl border-[3px] border-b-[9px] px-3 py-2 text-sm font-semibold transition-[background-color,border-color,color,opacity,box-shadow] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none",
         FEEDBACK_CLASSES[visualState],
+        visualState === "correct" && correctClassName,
+        visualState === "correct" && "z-20 duration-0",
         visualState === "selected" && "animate-quiz-word-button-select",
-        wordType === "invalid-operation" && invalidOperationKey > 0 && "animate-quiz-word-button-invalid-operation",
+        wordType === "invalid-operation" && (invalidOperationKey > 0 || animationTrigger > 0) && "animate-quiz-word-button-invalid-operation",
         wordType === "select" && "duration-150",
         wordType === "inactive" && inactiveAfterPress && "animate-quiz-word-button-inactive duration-[400ms]",
         wordType === "neutral" && pressAnimation && "quiz-word-button-neutral",

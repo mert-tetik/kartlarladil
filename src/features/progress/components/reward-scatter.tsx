@@ -14,11 +14,13 @@ import {
   type RewardScatterGemRequest,
   type RewardScatterPlacement,
   type RewardScatterRect,
+  type RewardScatterStarsRequest,
 } from "@/features/progress/reward-scatter";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
 const MAX_GEOMETRY_ATTEMPTS = 60;
+const STAR_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 
 export interface PointsScatterRequest {
   amount: number;
@@ -49,6 +51,7 @@ export interface GemsScatterRequest {
 export function RewardScatter({
   points,
   gems,
+  stars,
   onPointsStart,
   onPointsLaunch,
   onPointsArrive,
@@ -57,9 +60,13 @@ export function RewardScatter({
   onGemArrive,
   onGemsStart,
   onGemsComplete,
+  onStarArrive,
+  onStarsStart,
+  onStarsComplete,
 }: {
   points?: PointsScatterRequest | null;
   gems?: GemsScatterRequest | null;
+  stars?: RewardScatterStarsRequest | null;
   onPointsStart?: () => void;
   onPointsLaunch?: () => void;
   onPointsArrive?: (awardedTotal: number, arrivalIndex: number) => void;
@@ -68,12 +75,15 @@ export function RewardScatter({
   onGemArrive?: (type: GemType, amountAwarded: number) => void;
   onGemsStart?: () => void;
   onGemsComplete?: () => void;
+  onStarArrive?: (amountAwarded: number, arrivalIndex: number) => void;
+  onStarsStart?: () => void;
+  onStarsComplete?: () => void;
 }) {
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
-  const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>() });
-  const groupFlightCountsRef = useRef({ points: 0, gems: 0 });
-  const groupArrivalCountsRef = useRef({ points: 0, gems: 0 });
-  const completedGroupsRef = useRef({ points: false, gems: false });
+  const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), stars: new Set<string>() });
+  const groupFlightCountsRef = useRef({ points: 0, gems: 0, stars: 0 });
+  const groupArrivalCountsRef = useRef({ points: 0, gems: 0, stars: 0 });
+  const completedGroupsRef = useRef({ points: false, gems: false, stars: false });
   const callbacksRef = useRef({
     onPointsStart,
     onPointsLaunch,
@@ -83,6 +93,9 @@ export function RewardScatter({
     onGemArrive,
     onGemsStart,
     onGemsComplete,
+    onStarArrive,
+    onStarsStart,
+    onStarsComplete,
   });
   callbacksRef.current = {
     onPointsStart,
@@ -93,6 +106,9 @@ export function RewardScatter({
     onGemArrive,
     onGemsStart,
     onGemsComplete,
+    onStarArrive,
+    onStarsStart,
+    onStarsComplete,
   };
 
   const pointAmount = points?.amount ?? 0;
@@ -121,6 +137,17 @@ export function RewardScatter({
   const gemSourceBlue = gemSources?.blue;
   const gemSourceGreen = gemSources?.green;
   const gemSourcePurple = gemSources?.purple;
+  const starAmount = stars?.amount ?? 0;
+  const starSource = stars?.source;
+  const starSourcesKey = JSON.stringify(stars?.sources ?? null);
+  const starTarget = stars?.target;
+  const starDelay = stars?.startDelayMs ?? 0;
+  const starPlacementKey = JSON.stringify(stars?.placement ?? null);
+  const starScatterX = stars?.scatterOffset?.x;
+  const starScatterY = stars?.scatterOffset?.y;
+  const starIconSize = stars?.iconSize ?? 40;
+  const starZIndex = stars?.zIndex ?? 112;
+  const starArrivalSoundEffect = stars?.arrivalSoundEffect ?? "points";
 
   useEffect(() => {
     if (pointAmount <= 0) return;
@@ -276,6 +303,79 @@ export function RewardScatter({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gemRewardsKey, gemSource, gemSourceBlue, gemSourceGreen, gemSourcePurple, gemTargetSelector, gemDelay, gemPlacementKey, gemIconSize, gemZIndex, gemArrivalSoundEffect]);
 
+  useEffect(() => {
+    if (starAmount <= 0) return;
+
+    let cancelled = false;
+    let geometryAttempt = 0;
+    let frame: number | null = null;
+    const timers: number[] = [];
+    groupArrivalCountsRef.current.stars = 0;
+    groupFlightCountsRef.current.stars = 0;
+    completedGroupsRef.current.stars = false;
+
+    const startWhenReady = () => {
+      if (cancelled) return;
+      const source = resolveRect(starSource, false);
+      const target = resolveRect(starTarget, false)
+        ?? document.querySelector<HTMLElement>("[data-main-stars-target]")?.getBoundingClientRect()
+        ?? null;
+
+      if (!source || !target || !hasArea(source) || !hasArea(target)) {
+        if (geometryAttempt < MAX_GEOMETRY_ATTEMPTS) {
+          geometryAttempt += 1;
+          frame = window.requestAnimationFrame(startWhenReady);
+          return;
+        }
+        completeGroup("stars");
+        return;
+      }
+
+      const starFlights = createRewardScatterFlights({
+        stars: {
+          amount: starAmount,
+          source,
+          sources: stars?.sources,
+          target,
+          startDelayMs: 0,
+          placement: parsePlacement(starPlacementKey),
+          scatterOffset: starScatterX === undefined || starScatterY === undefined
+            ? undefined
+            : { x: starScatterX, y: starScatterY },
+          iconSize: starIconSize,
+          zIndex: starZIndex,
+          arrivalSoundEffect: starArrivalSoundEffect,
+        },
+      }).filter((flight) => flight.channel === "stars");
+
+      if (!starFlights.length) {
+        completeGroup("stars");
+        return;
+      }
+
+      groupFlightCountsRef.current.stars = starFlights.length;
+      arrivedFlightIdsRef.current.stars.clear();
+      callbacksRef.current.onStarsStart?.();
+      setFlights((current) => [...current.filter((flight) => flight.channel !== "stars"), ...starFlights]);
+      scheduleArrivalFallbacks(starFlights, timers);
+    };
+
+    const start = () => {
+      startWhenReady();
+    };
+    const startTimer = starDelay > 0 ? window.setTimeout(start, starDelay) : null;
+    if (startTimer === null) start();
+
+    return () => {
+      cancelled = true;
+      if (startTimer !== null) window.clearTimeout(startTimer);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  // All request fields are expanded so parent re-renders do not restart a running scatter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [starAmount, starSource, starSourcesKey, starTarget, starDelay, starPlacementKey, starScatterX, starScatterY, starIconSize, starZIndex, starArrivalSoundEffect]);
+
   function scheduleArrivalFallbacks(groupFlights: RewardScatterFlight[], timers: number[]) {
     for (const flight of groupFlights) {
       timers.push(window.setTimeout(
@@ -285,11 +385,12 @@ export function RewardScatter({
     }
   }
 
-  function completeGroup(channel: "points" | "gems") {
+  function completeGroup(channel: "points" | "gems" | "stars") {
     if (completedGroupsRef.current[channel]) return;
     completedGroupsRef.current[channel] = true;
     if (channel === "points") callbacksRef.current.onPointsComplete?.();
-    else callbacksRef.current.onGemsComplete?.();
+    else if (channel === "gems") callbacksRef.current.onGemsComplete?.();
+    else callbacksRef.current.onStarsComplete?.();
   }
 
   function handleFlightEnd(flight: RewardScatterFlight) {
@@ -304,10 +405,13 @@ export function RewardScatter({
     } else if (flight.gemType) {
       groupArrivalCountsRef.current.gems += 1;
       callbacksRef.current.onGemArrive?.(flight.gemType, flight.gemAmountAwarded ?? 1);
+    } else if (flight.channel === "stars") {
+      groupArrivalCountsRef.current.stars += 1;
+      callbacksRef.current.onStarArrive?.(flight.pointsAwarded ?? 1, flight.arrivalIndex);
     }
 
     playSoundEffect(flight.arrivalSoundEffect);
-    vibrate("tap");
+    vibrate(flight.channel === "stars" ? "reward-arrival" : "tap");
 
     if (groupArrivalCountsRef.current[flight.channel] >= groupFlightCountsRef.current[flight.channel]) {
       completeGroup(flight.channel);
@@ -318,11 +422,43 @@ export function RewardScatter({
 
   return createPortal(
     <>
+      {flights
+        .filter((flight) => flight.channel === "stars")
+        .map((flight) => (
+          <span
+            key={`${flight.id}-origin`}
+            aria-hidden="true"
+            data-reward-star-origin
+            className="pointer-events-none fixed left-0 top-0 block"
+            style={{
+              width: flight.iconSize,
+              height: flight.iconSize,
+              zIndex: Math.max(0, flight.zIndex - 1),
+              transform: `translate3d(${flight.startX}px, ${flight.startY}px, 0)`,
+            }}
+          >
+            <img
+              src={STAR_IMAGE_SRC}
+              alt=""
+              width={flight.iconSize}
+              height={flight.iconSize}
+              draggable={false}
+              className="object-contain"
+              style={{
+                width: flight.iconSize,
+                height: flight.iconSize,
+                filter: "brightness(0)",
+                opacity: 0.24,
+              }}
+            />
+          </span>
+        ))}
       {flights.map((flight) => (
         <span
           key={flight.id}
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 animate-quiz-score-icon-flight"
+          data-reward-flight-channel={flight.channel}
+          className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "star" ? "animate-quiz-star-icon-flight" : "animate-quiz-score-icon-flight"}`}
           onAnimationStart={() => {
             if (flight.channel === "points") callbacksRef.current.onPointsLaunch?.();
             else if (flight.gemType) callbacksRef.current.onGemLaunch?.(flight.gemType);
@@ -330,6 +466,8 @@ export function RewardScatter({
           onAnimationEnd={() => handleFlightEnd(flight)}
           style={{
             zIndex: flight.zIndex,
+            opacity: 1,
+            transform: `translate3d(${flight.startX}px, ${flight.startY}px, 0)`,
             "--score-flight-start-x": `${flight.startX}px`,
             "--score-flight-start-y": `${flight.startY}px`,
             "--score-flight-scatter-x": `${flight.startX + flight.scatterX}px`,
@@ -341,6 +479,20 @@ export function RewardScatter({
         >
           {flight.visual.kind === "points" ? (
             <ScoreIcon size={flight.iconSize} />
+          ) : flight.visual.kind === "star" ? (
+            <span
+              className="result-star-center-wobble block"
+              style={{ width: flight.iconSize, height: flight.iconSize }}
+            >
+              <img
+                src={STAR_IMAGE_SRC}
+                alt=""
+                width={flight.iconSize}
+                height={flight.iconSize}
+                draggable={false}
+                className="size-full object-contain"
+              />
+            </span>
           ) : (
             <Image
               src={GEM_ASSETS[flight.visual.type]}

@@ -168,9 +168,9 @@ describe("bonus quiz questions", () => {
     const imposter = buildImposterBonusQuestion("en", "session-imposter");
 
     expect(category).not.toBeNull();
-    expect(category?.categories).toHaveLength(3);
+    expect(category?.categories).toHaveLength(2);
     expect(category?.categories.every((item) => item.wordIds.length === 3)).toBe(true);
-    expect(category?.words).toHaveLength(9);
+    expect(category?.words).toHaveLength(6);
 
     expect(imposter).not.toBeNull();
     expect(imposter?.options).toHaveLength(6);
@@ -179,13 +179,12 @@ describe("bonus quiz questions", () => {
   });
 
   it("rejects generated category payloads with duplicate or unknown cards", () => {
-    const cards = ENGLISH_CARDS.slice(0, 9);
+    const cards = ENGLISH_CARDS.slice(0, 6);
     const valid = buildCategoryBonusFromGenerated(
       {
         categories: [
           { name: "one", cardIds: cards.slice(0, 3).map((card) => card.id) },
           { name: "two", cardIds: cards.slice(3, 6).map((card) => card.id) },
-          { name: "three", cardIds: cards.slice(6, 9).map((card) => card.id) },
         ],
       },
       cards,
@@ -196,14 +195,13 @@ describe("bonus quiz questions", () => {
         categories: [
           { name: "one", cardIds: cards.slice(0, 3).map((card) => card.id) },
           { name: "two", cardIds: [cards[3]!.id, cards[3]!.id, cards[4]!.id] },
-          { name: "three", cardIds: cards.slice(6, 9).map((card) => card.id) },
         ],
       },
       cards,
       "session-invalid-category",
     );
 
-    expect(valid?.words).toHaveLength(9);
+    expect(valid?.words).toHaveLength(6);
     expect(invalid).toBeNull();
   });
 });

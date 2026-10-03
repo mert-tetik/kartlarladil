@@ -11,11 +11,6 @@ vi.mock("@/features/progress/progress-client", () => ({
 }));
 
 vi.mock("@/features/quiz/components/bonus-question-view", () => ({
-  BonusQuestionIntro: ({ onComplete }: { onComplete: () => void }) => (
-    <button type="button" data-testid="bonus-test-intro" onClick={onComplete}>
-      intro
-    </button>
-  ),
   BonusQuestionView: ({ question, onSkip }: { question: { kind: string }; onSkip: () => void }) => (
     <div data-testid="bonus-test-question" data-kind={question.kind}>
       <button type="button" onClick={onSkip}>skip</button>
@@ -32,22 +27,18 @@ describe("BonusQuestionsTest", () => {
   it("shows the four production bonus question kinds in sequence", () => {
     render(<BonusQuestionsTest />);
 
-    fireEvent.click(screen.getByTestId("bonus-test-intro"));
     expect(screen.getByTestId("bonus-test-question")).toHaveAttribute("data-kind", "matching");
 
     fireEvent.click(screen.getByRole("button", { name: "skip" }));
     fireEvent.click(screen.getByRole("button", { name: "next" }));
-    fireEvent.click(screen.getByTestId("bonus-test-intro"));
     expect(screen.getByTestId("bonus-test-question")).toHaveAttribute("data-kind", "sentence-order");
 
     fireEvent.click(screen.getByRole("button", { name: "skip" }));
     fireEvent.click(screen.getByRole("button", { name: "next" }));
-    fireEvent.click(screen.getByTestId("bonus-test-intro"));
     expect(screen.getByTestId("bonus-test-question")).toHaveAttribute("data-kind", "category-sort");
 
     fireEvent.click(screen.getByRole("button", { name: "skip" }));
     fireEvent.click(screen.getByRole("button", { name: "next" }));
-    fireEvent.click(screen.getByTestId("bonus-test-intro"));
     expect(screen.getByTestId("bonus-test-question")).toHaveAttribute("data-kind", "imposter");
   });
 });

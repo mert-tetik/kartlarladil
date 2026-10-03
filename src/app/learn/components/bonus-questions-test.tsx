@@ -11,10 +11,7 @@ import {
   type BonusQuestion,
 } from "@/features/quiz/bonus-questions";
 import { requestSentenceBonusQuestion } from "@/features/quiz/bonus-question-client";
-import {
-  BonusQuestionIntro,
-  BonusQuestionView,
-} from "@/features/quiz/components/bonus-question-view";
+import { BonusQuestionView } from "@/features/quiz/components/bonus-question-view";
 import { MobileQuizFeedback } from "@/features/quiz/components/quiz-station";
 import { useLocale } from "@/i18n/locale-provider";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -76,7 +73,6 @@ export function BonusQuestionsTest() {
     };
   }, [locale]);
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [showIntro, setShowIntro] = useState(true);
   const [showingAnswer, setShowingAnswer] = useState(false);
   const [answerAccepted, setAnswerAccepted] = useState<boolean | null>(null);
   const [wasSkipped, setWasSkipped] = useState(false);
@@ -114,7 +110,6 @@ export function BonusQuestionsTest() {
     setWasSkipped(false);
     setTestBonusPoints(0);
     setTestGemPulse(null);
-    setShowIntro(true);
   }, [questions.length]);
 
   if (!question) {
@@ -128,46 +123,45 @@ export function BonusQuestionsTest() {
       data-bonus-test-kind={question.kind}
       data-bonus-test-index={questionIndex}
     >
-      {showIntro ? <BonusQuestionIntro onComplete={() => setShowIntro(false)} /> : null}
-      {!showIntro ? (
-        <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center py-4">
-          <BonusQuestionView
-            key={`${question.kind}-${questionIndex}`}
-            question={question}
-            showingAnswer={showingAnswer}
-            answerAccepted={answerAccepted}
-            wasSkipped={wasSkipped}
-            onSubmit={handleSubmit}
-            onSkip={handleSkip}
-            onNext={handleNext}
-            rewardReady={rewardAnimationActive}
-            showPointFlight={rewardAnimationActive}
-            totalPoints={stats.totalPoints + testBonusPoints}
-            gemRewards={rewardAnimationActive ? [
-              { type: "blue", amount: 2 },
-              { type: "green", amount: 1 },
-              { type: "purple", amount: 1 },
-            ] : []}
-            gemBalances={testGemBalances ?? profileGemBalances}
-            gemPulse={testGemPulse}
-            onPointArrive={(points) => {
-              setTestBonusPoints((current) => Math.max(current, points));
-            }}
-            onGemArrive={(type) => {
-              setTestGemBalances((current) => {
-                const base = current ?? profileGemBalances;
-                return { ...base, [type]: base[type] + 1 };
-              });
-              setTestGemPulse((current) => ({
-                type,
-                key: (current?.key ?? 0) + 1,
-              }));
-            }}
-          />
-        </div>
-      ) : null}
+      <div
+        key={`${question.kind}-${questionIndex}`}
+        className="quiz-flow-enter-right mx-auto flex min-h-full w-full max-w-5xl items-center justify-center py-4"
+      >
+        <BonusQuestionView
+          question={question}
+          showingAnswer={showingAnswer}
+          answerAccepted={answerAccepted}
+          wasSkipped={wasSkipped}
+          onSubmit={handleSubmit}
+          onSkip={handleSkip}
+          onNext={handleNext}
+          rewardReady={rewardAnimationActive}
+          showPointFlight={rewardAnimationActive}
+          totalPoints={stats.totalPoints + testBonusPoints}
+          gemRewards={rewardAnimationActive ? [
+            { type: "blue", amount: 2 },
+            { type: "green", amount: 1 },
+            { type: "purple", amount: 1 },
+          ] : []}
+          gemBalances={testGemBalances ?? profileGemBalances}
+          gemPulse={testGemPulse}
+          onPointArrive={(points) => {
+            setTestBonusPoints((current) => Math.max(current, points));
+          }}
+          onGemArrive={(type) => {
+            setTestGemBalances((current) => {
+              const base = current ?? profileGemBalances;
+              return { ...base, [type]: base[type] + 1 };
+            });
+            setTestGemPulse((current) => ({
+              type,
+              key: (current?.key ?? 0) + 1,
+            }));
+          }}
+        />
+      </div>
       <MobileQuizFeedback
-        isOpen={!showIntro && showingAnswer && answerAccepted !== null}
+        isOpen={showingAnswer && answerAccepted !== null}
         isCorrect={answerAccepted ?? false}
         isBonus
         forceMascotAnimation

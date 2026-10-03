@@ -1,20 +1,10 @@
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import confetti from "canvas-confetti";
 import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
 import { LocaleProvider } from "@/i18n/locale-provider";
-import { vibrate } from "@/lib/vibration";
 
-vi.mock("@/lib/vibration", () => ({
-  vibrate: vi.fn(),
-}));
-
-vi.mock("canvas-confetti", () => ({
-  default: vi.fn(),
-}));
-
-describe("QuizStreakCelebrationView animations", () => {
+describe("QuizStreakCelebrationView", () => {
   function renderView(props: ComponentProps<typeof QuizStreakCelebrationView>) {
     return render(
       <LocaleProvider initialLocale="tr">
@@ -25,89 +15,73 @@ describe("QuizStreakCelebrationView animations", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it("uses the staggered entrance and independent rigid-body exit motion", () => {
+  it("keeps the first video frame paused until the entrance transition ends", () => {
     const onComplete = vi.fn();
+    renderView({ streak: 5, enterWithCss: true, onComplete });
 
-    renderView({ streak: 5, onComplete });
+    const view = document.querySelector("[data-streak-celebration-view]");
+    const video = document.querySelector("video");
+    const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.spyOn>;
 
-    const background = document.querySelector("[data-streak-celebration-background]");
-    const number = document.querySelector("[data-streak-count]");
-    const icon = document.querySelector("[data-streak-fire-icon]");
-
-    expect(background).toHaveClass("animate-streak-celebration-background-enter");
-    expect(number?.parentElement).toHaveClass("animate-streak-celebration-copy-enter");
-    expect(onComplete).not.toHaveBeenCalled();
-    expect(vibrate).not.toHaveBeenCalled();
-    expect(document.querySelector("[data-streak-shockwave]")).not.toBeInTheDocument();
-    expect(document.querySelector("[data-streak-text-shockwave]")).not.toBeInTheDocument();
+    expect(view).toHaveClass("quiz-flow-enter-right");
+    expect(video).toHaveAttribute("src", "/quiz/streak-animation.mp4");
+    expect(play).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(399);
+      vi.advanceTimersByTime(359);
     });
-
-    expect(document.querySelector("[data-streak-shockwave]")).not.toBeInTheDocument();
+    expect(play).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
 
-    const shockwave = document.querySelector("[data-streak-shockwave]");
-    const textShockwave = document.querySelector("[data-streak-text-shockwave]");
-    expect(shockwave).toBeInTheDocument();
-    expect(shockwave?.parentElement).toHaveAttribute("data-streak-fire-shell");
-    expect(shockwave).toHaveClass("z-0");
-    expect(textShockwave).toBeInTheDocument();
-    expect(textShockwave?.parentElement).toHaveAttribute("data-streak-count-shell");
-    expect(textShockwave).toHaveClass("z-20");
-    expect(vibrate).toHaveBeenCalledWith("streak-shockwave");
-    expect(background).toHaveAttribute("data-streak-background-color", "#6FAF64");
-    expect(background).toHaveStyle({ backgroundColor: "#6FAF64" });
+  it("shows the localized streak label at the middle of the video and waits after it ends", () => {
+    const onComplete = vi.fn();
+    renderView({ streak: 5, onComplete });
+    const video = document.querySelector("video") as HTMLVideoElement;
 
     act(() => {
-      vi.advanceTimersByTime(900);
+      vi.advanceTimersByTime(360);
     });
 
-    expect(vibrate).toHaveBeenCalledWith("streak-exit");
-    expect(confetti).toHaveBeenCalledWith({
-      particleCount: 150,
-      spread: 105,
-      origin: { x: 0.5, y: 0.5 },
-      colors: ["#ef4444", "#ffffff"],
-      disableForReducedMotion: true,
+    Object.defineProperty(video, "duration", { configurable: true, value: 1.555 });
+    Object.defineProperty(video, "currentTime", { configurable: true, value: 0.8 });
+    fireEvent.timeUpdate(video);
+    expect(document.querySelector("[data-streak-count-label]")).toHaveTextContent("ÜST ÜSTE 5");
+
+    fireEvent.ended(video);
+    act(() => {
+      vi.advanceTimersByTime(599);
     });
-    expect(background).toHaveClass("animate-streak-celebration-background-exit");
-    expect(background).toHaveAttribute("data-streak-background-color", "#6FAF64");
-    expect(background).toHaveStyle({ backgroundColor: "#6FAF64" });
-    expect(number?.getAttribute("style")).toContain("translate3d(");
-    expect(icon?.getAttribute("style")).toContain("translate3d(");
+    expect(onComplete).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1);
     });
-
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    [10, "#3B82F6"],
-    [15, "#8B5CF6"],
-    [20, "#F59E0B"],
-    [50, "#F59E0B"],
-  ])("uses the %s streak tier color after the shockwave", (streak, color) => {
-    renderView({ streak });
+  it("skips the video hold on a double tap", () => {
+    const onComplete = vi.fn();
+    renderView({ streak: 10, onComplete });
+    const view = document.querySelector("[data-streak-celebration-view]")!;
 
-    act(() => {
-      vi.advanceTimersByTime(400);
-    });
+    fireEvent.pointerUp(view, { pointerType: "touch" });
+    fireEvent.pointerUp(view, { pointerType: "touch" });
 
-    const background = document.querySelector("[data-streak-celebration-background]");
-    expect(background).toHaveAttribute("data-streak-background-color", color);
-    expect(background).toHaveStyle({ backgroundColor: color });
+    expect(onComplete).toHaveBeenCalledTimes(1);
   });
 });

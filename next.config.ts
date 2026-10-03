@@ -45,6 +45,22 @@ const imageRuntimeCaching = [
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@resvg/resvg-js"],
+  images: {
+    localPatterns: [
+      {
+        pathname: "/**",
+        search: "",
+      },
+      {
+        pathname: "/quiz/bonus_img.png",
+        search: "?v=20261001-1",
+      },
+      {
+        pathname: "/quiz/result-cards/star.png",
+        search: "?v=20261003-2",
+      },
+    ],
+  },
   async redirects() {
     return [
       { source: "/kart-cek", destination: "/card-draw", permanent: true },

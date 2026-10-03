@@ -68,8 +68,8 @@ const CATEGORY_FORMAT = {
     properties: {
       categories: {
         type: "array",
-        minItems: 3,
-        maxItems: 3,
+        minItems: 2,
+        maxItems: 2,
         items: {
           type: "object",
           additionalProperties: false,
@@ -151,9 +151,9 @@ export async function POST(request: Request) {
         `Cards:\n${cardList}`,
       ].join("\n")
     : [
-        "Create three clear semantic categories for a vocabulary sorting bonus question.",
+        "Create two clear semantic categories for a vocabulary sorting bonus question.",
         `Category names must be written in ${languageName}.`,
-        "Use exactly three supplied card IDs in each category, never repeat an ID, and use nine different supplied cards in total.",
+        "Use exactly three supplied card IDs in each category, never repeat an ID, and use six different supplied cards in total.",
         "Choose categories that are easy to distinguish for a learner.",
         `Cards:\n${cardList}`,
       ].join("\n");

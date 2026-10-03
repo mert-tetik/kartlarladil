@@ -328,17 +328,88 @@ export const CARD_GROUPS: readonly CardGroupDefinition[] = [
   ]),
 ] as const;
 
-const groupKeySets = new Map(CARD_GROUPS.map((definition) => [definition.id, new Set(definition.englishKeys)]));
+/**
+ * Some lemmas intentionally appear in more than one raw category because they
+ * are useful for describing both concepts. A card, however, must have one
+ * canonical category everywhere in the app. These overrides resolve the
+ * specific-category conflicts before the definition order is used as the
+ * fallback (for example, `foot` belongs to `body`, not `health`).
+ */
+const PREFERRED_GROUP_BY_ENGLISH_KEY: Readonly<Record<string, CardGroupIcon>> = {
+  body: "body",
+  eye: "body",
+  face: "body",
+  foot: "body",
+  hair: "body",
+  hand: "body",
+  head: "body",
+
+  bicycle: "transportVehicles",
+  bike: "transportVehicles",
+  boat: "transportVehicles",
+  bus: "transportVehicles",
+  car: "transportVehicles",
+  drive: "transportVehicles",
+  motorcycle: "transportVehicles",
+  plane: "transportVehicles",
+  ship: "transportVehicles",
+  taxi: "transportVehicles",
+  train: "transportVehicles",
+
+  camera: "technologyDevices",
+  computer: "technologyDevices",
+  keyboard: "technologyDevices",
+  phone: "technologyDevices",
+  program: "technologyDevices",
+  screen: "technologyDevices",
+  software: "technologyDevices",
+  tablet: "technologyDevices",
+
+  bean: "vegetables",
+  bread: "grainsLegumes",
+  flour: "grainsLegumes",
+  lentil: "grainsLegumes",
+  oat: "grainsLegumes",
+  pasta: "grainsLegumes",
+  rice: "grainsLegumes",
+  wheat: "grainsLegumes",
+
+  clothes: "clothes",
+  exercise: "sports",
+  fork: "kitchenUtensils",
+  knife: "kitchenUtensils",
+  plate: "kitchenUtensils",
+  spoon: "kitchenUtensils",
+};
+
+const groupDefinitionsById = new Map(
+  CARD_GROUPS.map((definition) => [definition.id, definition]),
+);
+
+const canonicalGroupByEnglishKey = new Map<string, CardGroupDefinition>();
+
+for (const definition of CARD_GROUPS) {
+  for (const key of definition.englishKeys) {
+    const normalizedKey = key.toLowerCase();
+    const preferredGroupId = PREFERRED_GROUP_BY_ENGLISH_KEY[normalizedKey];
+
+    if (preferredGroupId) {
+      const preferredGroup = groupDefinitionsById.get(preferredGroupId);
+      if (preferredGroup) {
+        canonicalGroupByEnglishKey.set(normalizedKey, preferredGroup);
+      }
+      continue;
+    }
+
+    if (!canonicalGroupByEnglishKey.has(normalizedKey)) {
+      canonicalGroupByEnglishKey.set(normalizedKey, definition);
+    }
+  }
+}
 
 export function getCardsForGroup(groupId: CardGroupIcon, language: LanguageCode): VocabularyCard[] {
-  const keys = groupKeySets.get(groupId);
-
-  if (!keys) {
-    return [];
-  }
-
   return VOCABULARY_CARDS.filter(
-    (card) => card.language === language && keys.has(card.englishKey.toLowerCase()),
+    (card) => card.language === language && getCardGroupForCard(card)?.id === groupId,
   );
 }
 
@@ -347,7 +418,5 @@ export function getCardGroup(groupId: CardGroupIcon): CardGroupDefinition | unde
 }
 
 export function getCardGroupForCard(card: Pick<VocabularyCard, "englishKey">): CardGroupDefinition | undefined {
-  const englishKey = card.englishKey.toLowerCase();
-
-  return CARD_GROUPS.find((definition) => definition.englishKeys.some((key) => key.toLowerCase() === englishKey));
+  return canonicalGroupByEnglishKey.get(card.englishKey.toLowerCase());
 }

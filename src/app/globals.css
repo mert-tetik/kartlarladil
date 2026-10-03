@@ -33,7 +33,7 @@
 
 .card-swipe-overlay {
   transform: translate3d(0, 100%, 0);
-  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 420ms cubic-bezier(0.85, 0, 0.15, 1);
   will-change: transform;
 }
 
@@ -43,41 +43,41 @@
 
 .card-swipe-overlay[data-card-swipe-phase="exiting"] {
   transform: translate3d(0, 100%, 0);
-  transition-delay: 440ms;
+  transition-delay: 720ms;
 }
 
 .card-swipe-overlay [data-card-swipe-part] {
-  transform: translate3d(0, -42px, 0);
+  transform: translate3d(0, 100dvh, 0);
   will-change: transform;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="header"] {
-  animation: card-swipe-overlay-enter-from-top 280ms cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
+  animation: card-swipe-overlay-enter-from-bottom 320ms cubic-bezier(0.85, 0, 0.15, 1) 420ms both;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="instruction"] {
-  animation: card-swipe-overlay-enter-from-top 280ms cubic-bezier(0.22, 1, 0.36, 1) 600ms both;
+  animation: card-swipe-overlay-enter-from-bottom 360ms cubic-bezier(0.85, 0, 0.15, 1) 620ms both;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="open"] [data-card-swipe-part="card"] {
-  animation: card-swipe-overlay-enter-from-top 420ms cubic-bezier(0.22, 1, 0.36, 1) 780ms both;
+  animation: card-swipe-overlay-enter-from-bottom 480ms cubic-bezier(0.85, 0, 0.15, 1) 820ms both;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="card"] {
-  animation: card-swipe-overlay-exit-to-top 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: card-swipe-overlay-exit-to-bottom 480ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="instruction"] {
-  animation: card-swipe-overlay-exit-to-top 260ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  animation: card-swipe-overlay-exit-to-bottom 360ms cubic-bezier(0.85, 0, 0.15, 1) 200ms both;
 }
 
 .card-swipe-overlay[data-card-swipe-phase="exiting"] [data-card-swipe-part="header"] {
-  animation: card-swipe-overlay-exit-to-top 240ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+  animation: card-swipe-overlay-exit-to-bottom 320ms cubic-bezier(0.85, 0, 0.15, 1) 400ms both;
 }
 
-@keyframes card-swipe-overlay-enter-from-top {
+@keyframes card-swipe-overlay-enter-from-bottom {
   from {
-    transform: translate3d(0, -42px, 0);
+    transform: translate3d(0, 100dvh, 0);
   }
 
   to {
@@ -85,13 +85,13 @@
   }
 }
 
-@keyframes card-swipe-overlay-exit-to-top {
+@keyframes card-swipe-overlay-exit-to-bottom {
   from {
     transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translate3d(0, -42px, 0);
+    transform: translate3d(0, 100dvh, 0);
   }
 }
 
@@ -1057,6 +1057,101 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+/* Shared top-to-bottom entrance for result-flow screens and future result steps. */
+@keyframes result-stagger-scale-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1.25rem, 0) scale(0.82);
+  }
+  68% {
+    opacity: 1;
+    transform: translate3d(0, 0.2rem, 0) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.result-stagger-pending {
+  opacity: 0;
+  transform: translate3d(0, -1.25rem, 0) scale(0.82);
+  transform-origin: center;
+}
+
+.result-stagger-enter {
+  animation: result-stagger-scale-in 560ms cubic-bezier(0.22, 1, 0.36, 1) var(--result-stagger-delay, 0ms) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+@keyframes result-stagger-scale-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -1.25rem, 0) scale(0.82);
+  }
+}
+
+.result-stagger-exit {
+  animation: result-stagger-scale-out 560ms cubic-bezier(0.22, 1, 0.36, 1) 0ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+@keyframes result-star-center-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--result-star-center-x), var(--result-star-center-y), 0) scale(0.2);
+  }
+  62% {
+    opacity: 1;
+    transform: translate3d(var(--result-star-center-x), var(--result-star-center-y), 0) scale(3);
+  }
+  88% {
+    opacity: 1;
+    transform: translate3d(var(--result-star-center-x), var(--result-star-center-y), 0) scale(2.86);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(var(--result-star-center-x), var(--result-star-center-y), 0) scale(2.8);
+  }
+}
+
+.result-star-center-flight {
+  animation: result-star-center-flight 720ms cubic-bezier(0.22, 1, 0.36, 1) 500ms both;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@keyframes result-star-center-wobble {
+  0% {
+    transform: rotate(-13deg);
+  }
+  100% {
+    transform: rotate(13deg);
+  }
+}
+
+.result-star-center-wobble {
+  animation: result-star-center-wobble 220ms cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-stagger-enter,
+  .result-stagger-exit,
+  .result-star-center-flight,
+  .result-star-center-wobble {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
 @keyframes quiz-flow-exit-left {
   from {
     transform: translate3d(0, 0, 0);
@@ -1086,6 +1181,59 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 .quiz-flow-enter-right {
   animation: quiz-flow-enter-right 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
+}
+
+@keyframes streak-count-label-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, calc(-50% + 42px), 0) scale(0.72);
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(0, calc(-50% - 4px), 0) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, -50%, 0) scale(1);
+  }
+}
+
+.animate-streak-count-label-enter {
+  animation: streak-count-label-enter 530ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+@keyframes streak-count-particle-burst {
+  from {
+    opacity: 0.95;
+    transform: translate3d(
+      calc(-50% + var(--particle-start-x)),
+      calc(-50% + var(--particle-start-y)),
+      0
+    ) rotate(0deg) scale(0.45);
+  }
+  38% {
+    opacity: 1;
+    transform: translate3d(
+      calc(-50% + var(--particle-mid-x)),
+      calc(-50% + var(--particle-mid-y)),
+      0
+    ) rotate(var(--particle-mid-rotation)) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(
+      calc(-50% + var(--particle-x)),
+      calc(-50% + var(--particle-y)),
+      0
+    ) rotate(var(--particle-rotation)) scale(0.72);
+  }
+}
+
+.streak-count-particle {
+  animation: streak-count-particle-burst 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 
 .quiz-transition-stage {
@@ -1122,7 +1270,21 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: transform;
 }
 
+/* During a delayed transition the detached visual copy owns the exit. Hide
+   the live source so it cannot flash back into view during the settling gap. */
+[data-quiz-transition-fallback-source-hidden] {
+  visibility: hidden !important;
+}
+
 .quiz-transition-fallback-old[data-quiz-card-progress-reveal] {
+  inset: 0 !important;
+}
+
+.quiz-transition-fallback-old[data-bonus-reward-reveal] {
+  inset: 0 !important;
+}
+
+.quiz-transition-fallback-old[data-streak-celebration-view] {
   inset: 0 !important;
 }
 
@@ -1130,7 +1292,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   inset: 0 !important;
 }
 
-.quiz-transition-fallback-old[data-quiz-count-selection] {
+.quiz-transition-fallback-old[data-quiz-transition-fallback-count] {
   inset: 0 !important;
 }
 
@@ -2052,6 +2214,12 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   --quiz-action-depth-color: var(--brand);
 }
 
+.quiz-action-depth--check > :is(a, button) {
+  min-height: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.125rem;
+}
+
 .quiz-action-depth--locked::after {
   filter: brightness(0.52) saturate(0.68);
 }
@@ -2135,8 +2303,94 @@ html[data-route-transition="entering"] [data-route-transition-item] {
     min-height: 3rem;
   }
 
+  [data-quiz-bottom-actions] .quiz-action-depth--check > :is(a, button) {
+    height: 3.5rem;
+    min-height: 3.5rem;
+    font-size: 1.125rem;
+  }
+
+  /* Keep answer-check controls directly above the fixed skip/reroll row. */
+  [data-quiz-check-action] {
+    position: fixed;
+    inset-inline: 1rem;
+    bottom: calc(14px + 4rem + 1rem + env(safe-area-inset-bottom));
+    z-index: 56;
+    width: auto;
+    margin: 0;
+  }
+
+  [data-quiz-check-action][data-quiz-action-hidden="true"] {
+    display: none;
+  }
+
+  /* Text-question guidance stays attached to the viewport above the bottom actions. */
+  [data-quiz-text-speech] {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(14px + 4rem + env(safe-area-inset-bottom));
+    z-index: 54;
+    width: 100%;
+    margin: 0;
+    padding: 0 1rem;
+    transform: translateY(20px);
+    pointer-events: none;
+  }
+
+  [data-quiz-text-speech] > * {
+    pointer-events: auto;
+  }
+
+  .quiz-transition-viewport:has([data-quiz-text-question]) {
+    overflow-y: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  [data-quiz-text-speech] .text-question-speech-row {
+    width: calc(100% - 4rem) !important;
+    max-width: 18rem !important;
+    margin-inline: auto !important;
+  }
+
+  .quiz-count-selection-speech {
+    position: fixed;
+    inset-inline: 0;
+    top: calc(var(--app-header-height) + 1.25rem + 100px);
+    z-index: 54;
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  @keyframes text-question-speech-bubble-enter {
+    from {
+      opacity: 0;
+      scale: 0.82;
+    }
+
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  [data-quiz-text-speech] .text-question-speech-bubble-enter {
+    animation: text-question-speech-bubble-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) 960ms both;
+    transform-origin: center bottom;
+    will-change: opacity, scale;
+  }
+
+  [data-normal-test] [data-quiz-text-speech] {
+    bottom: calc(4px + 4rem + env(safe-area-inset-bottom));
+  }
+
   [data-learn-page] [data-quiz-mobile-feedback] {
     z-index: 70;
+  }
+}
+
+@media (max-width: 1023px) {
+  [data-normal-test] [data-quiz-check-action] {
+    bottom: calc(4px + 4rem + 1rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -2144,6 +2398,12 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   animation: quiz-card-progress-reveal 140ms ease-out both;
 }
 
+.quiz-count-selection-speech {
+  transform: translateY(-25px) !important;
+}
+
+/* Animation 4 has a thin opaque edge in its source frames; trim only the
+   upper and side edges without changing the other mascot animations. */
 @keyframes quiz-card-level-up-grow-hold {
   0% {
     transform: scale(1);
@@ -2505,6 +2765,14 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
 }
 
 @media (max-width: 1023px) {
+  /* Keep the swipe overlay fixed to the real viewport. The route shell has a
+     zero-distance transform for page transitions, which would otherwise turn
+     it into the containing block for this fixed layer. */
+  body:has([data-card-swipe-phase]) .page-transition-shell {
+    transform: none;
+    will-change: auto;
+  }
+
   /* Keep the character picker in a real viewport band. PageTransitionShell has
      a transform, so a fixed child would otherwise be sized by a zero-height
      transition container and render outside the visible area. */
@@ -2620,6 +2888,16 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
 }
 
 /* Hide the Learn page header and site footer while a quiz or result screen is active */
+body:has([data-learn-page]) {
+  --background: #171717;
+}
+
+body:has([data-learn-page]) [data-route-transition-navigation],
+body:has([data-learn-page]) .mobile-main-nav-bar {
+  background-color: #171717;
+  border-color: transparent;
+}
+
 body:has([data-learn-quiz-page]) [data-learn-page-header],
 body:has([data-learn-quiz-page]) footer,
 body:has([data-learn-page]) footer {
@@ -3040,6 +3318,31 @@ body:has([data-ask-page]) footer {
   will-change: transform, opacity;
 }
 
+@keyframes quiz-star-icon-flight {
+  0% {
+    opacity: 1;
+    transform: translate3d(var(--score-flight-start-x), var(--score-flight-start-y), 0) scale(2.8);
+  }
+  52% {
+    opacity: 1;
+    transform: translate3d(var(--score-flight-scatter-x), var(--score-flight-scatter-y), 0) scale(1.75);
+  }
+  88% {
+    opacity: 1;
+    transform: translate3d(var(--score-flight-target-x), var(--score-flight-target-y), 0) scale(0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--score-flight-target-x), var(--score-flight-target-y), 0) scale(0.05);
+  }
+}
+
+.animate-quiz-star-icon-flight {
+  animation: quiz-star-icon-flight 820ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
 @keyframes bonus-reward-pulse {
   0% {
     transform: scale(1);
@@ -3141,6 +3444,122 @@ body:has([data-ask-page]) footer {
 
 .animate-bonus-reward-source-exit {
   animation: bonus-reward-source-exit 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes bonus-reward-reveal-wobble {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.animate-bonus-reward-reveal-rotate {
+  animation: bonus-reward-reveal-wobble 520ms ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes bonus-reward-ray-spin {
+  from {
+    transform: rotate(0deg) scale(1.04);
+  }
+  to {
+    transform: rotate(360deg) scale(1.04);
+  }
+}
+
+.bonus-reward-ray-field {
+  position: absolute;
+  inset: -116%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.84;
+  isolation: isolate;
+  transition: opacity 260ms cubic-bezier(0.85, 0, 0.15, 1),
+    transform 320ms cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+.bonus-reward-ray {
+  position: absolute;
+  inset: -3%;
+  transform-origin: center;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 13%, #000 23%, #000 78%, transparent 100%);
+  mask-image: radial-gradient(circle at center, transparent 0 13%, #000 23%, #000 78%, transparent 100%);
+  animation: bonus-reward-ray-spin 2400ms linear infinite;
+  will-change: transform;
+}
+
+.bonus-reward-ray--yellow {
+  background: repeating-conic-gradient(
+    from 13deg at 50% 50%,
+    transparent 0deg 7deg,
+    #facc15 7deg 11deg,
+    transparent 11deg 19deg,
+    transparent 22deg 30deg,
+    #facc15 30deg 34deg,
+    transparent 34deg 42deg,
+    transparent 45deg 53deg,
+    transparent 57deg 65deg,
+    transparent 68deg 76deg,
+    #facc15 76deg 80deg,
+    transparent 80deg 88deg
+  );
+  filter: drop-shadow(0 0 7px rgb(250 204 21 / 0.5));
+}
+
+.bonus-reward-ray--green {
+  background: repeating-conic-gradient(
+    from 13deg at 50% 50%,
+    transparent 0deg 19deg,
+    #22c55e 19deg 22deg,
+    transparent 22deg 88deg
+  );
+  filter: drop-shadow(0 0 7px rgb(34 197 94 / 0.5));
+}
+
+.bonus-reward-ray--purple {
+  background: repeating-conic-gradient(
+    from 13deg at 50% 50%,
+    transparent 0deg 42deg,
+    #8b5cf6 42deg 45deg,
+    transparent 45deg 88deg
+  );
+  filter: drop-shadow(0 0 7px rgb(139 92 246 / 0.5));
+}
+
+.bonus-reward-ray--blue {
+  background: repeating-conic-gradient(
+    from 13deg at 50% 50%,
+    transparent 0deg 65deg,
+    #3b82f6 65deg 68deg,
+    transparent 68deg 88deg
+  );
+  filter: drop-shadow(0 0 7px rgb(59 130 246 / 0.5));
+}
+
+.bonus-reward-ray-field--hidden {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+@keyframes bonus-reward-reveal-exit {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0);
+  }
+}
+
+.animate-bonus-reward-reveal-exit {
+  animation: bonus-reward-reveal-exit 320ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: transform;
 }
@@ -4068,6 +4487,43 @@ body:has([data-ask-page]) footer {
   animation: streak-reward-ui-enter 520ms 900ms cubic-bezier(0.85, 0, 0.15, 1) both;
   transform-origin: center;
   will-change: opacity, transform;
+}
+
+@keyframes streak-reward-hud-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0) scale(0.86);
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1.035);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-streak-reward-hud-enter {
+  animation: streak-reward-hud-enter 460ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+@keyframes streak-reward-text-wiggle {
+  0%,
+  100% {
+    transform: rotateZ(-3deg);
+  }
+  50% {
+    transform: rotateZ(3deg);
+  }
+}
+
+.animate-streak-reward-text-wiggle {
+  animation: streak-reward-text-wiggle 420ms ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
 }
 
 @keyframes streak-reward-ui-exit {
@@ -5135,6 +5591,30 @@ body:has([data-games-active]) {
   animation-duration: 280ms;
 }
 
+.star-details-overlay {
+  animation: mission-details-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform;
+}
+
+.star-details-overlay--closing {
+  animation: mission-details-screen-exit 500ms cubic-bezier(0.85, 0, 0.15, 1) 360ms both;
+}
+
+.star-details-overlay--preparing {
+  animation: none;
+  transform: scale(0);
+}
+
+.star-details-overlay__item {
+  animation: mission-details-content-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: transform, opacity;
+}
+
+.star-details-overlay--closing .star-details-overlay__item {
+  animation-name: mission-details-content-exit;
+  animation-duration: 280ms;
+}
+
 /* Card displays and their confirmation prompts share the same source-origin
    expansion used by mission details, while keeping their existing layouts. */
 .card-display-overlay,
@@ -5213,6 +5693,10 @@ body:has([data-games-active]) {
   }
 
   .gem-details-overlay--preparing {
+    transform: none;
+  }
+
+  .star-details-overlay--preparing {
     transform: none;
   }
 

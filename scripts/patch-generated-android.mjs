@@ -19,6 +19,7 @@ const TEMPLATE_DIR = path.join(__dirname, "android-template");
 
 export const ANDROID_TARGET_SDK = 36;
 export const PLAY_BILLING_VERSION = "8.0.0";
+export const PLAY_APP_UPDATE_VERSION = "2.1.0";
 export const ASSET_DELIVERY_VERSION = "2.3.0";
 export const PLAY_REVIEW_VERSION = "2.0.2";
 export const ANDROID_JAVA_TEMPLATE_FILES = [
@@ -132,6 +133,10 @@ dependencies {
     // Native Play Billing is exposed to the remote web app through the
     // FoxiesDeckNativeBilling JavaScript bridge.
     implementation 'com.android.billingclient:billing:${PLAY_BILLING_VERSION}'
+
+    // Google Play Immediate In-App Updates gate the first WebView load when a
+    // newer Play-distributed version is available.
+    implementation 'com.google.android.play:app-update:${PLAY_APP_UPDATE_VERSION}'
 
     // FileProvider exposes camera captures to the WebView without broad
     // external-storage permissions.
@@ -368,6 +373,7 @@ export async function patchGeneratedAndroidProject(
     versionName,
     targetSdkVersion: ANDROID_TARGET_SDK,
     playBillingVersion: PLAY_BILLING_VERSION,
+    playAppUpdateVersion: PLAY_APP_UPDATE_VERSION,
     assetDeliveryVersion: ASSET_DELIVERY_VERSION,
     runtime: "hybrid-webview",
     assetPack: "ui_media",

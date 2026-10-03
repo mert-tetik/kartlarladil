@@ -9,8 +9,11 @@ export type SoundEffectName =
   | "quiz-complete"
   | "quiz-stars-complete"
   | "quiz-select"
+  | "streak-video-whoosh"
+  | "streak-count-reveal"
   | "rank-highlight"
   | "bonus-select"
+  | "bonus-invalid-operation"
   | "pricing-perk-select"
   | "card-swipe-right"
   | "card-swipe-left"
@@ -21,7 +24,8 @@ export type SoundEffectName =
   | "level-fail"
   | "mission-claim"
   | "gem-loot"
-  | "gem-spend";
+  | "gem-spend"
+  | "result-star-collect";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -36,6 +40,10 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   confetti: "/sounds/confetti-elevenlabs-v1.mp3",
   "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
+  // Source: user-provided Downloads/1002.mp3, packaged as an MP4 audio track.
+  "streak-video-whoosh": "/sounds/streak-video-whoosh.mp4",
+  // Source: user-provided achievement badge pop sound from Downloads.
+  "streak-count-reveal": "/sounds/streak-count-reveal.mp3?v=20261002-2",
   "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
   "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
@@ -44,6 +52,9 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "mission-claim": "/sounds/stream.mp3",
   "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
   "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
+};
+const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
+  "streak-video-whoosh": 0.8,
 };
 
 let audioContext: AudioContext | null = null;
@@ -112,6 +123,7 @@ function playAudioFile(effect: SoundEffectName) {
   try {
     const audio = new AudioConstructor(src);
     audio.preload = "auto";
+    audio.volume = SOUND_EFFECT_VOLUMES[effect] ?? 1;
 
     const playResult = audio.play();
     if (playResult && typeof playResult.catch === "function") {
@@ -342,6 +354,60 @@ function quizSelect(context: AudioContext, now: number) {
   });
 }
 
+function streakVideoWhoosh(context: AudioContext, now: number) {
+  // Fast, bright launch cue for the streak animation video.
+  playTone(context, {
+    frequency: 920,
+    endFrequency: 2_800,
+    startTime: now,
+    duration: 0.16,
+    gain: 0.065,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: 1_500,
+    endFrequency: 4_200,
+    startTime: now + 0.012,
+    duration: 0.12,
+    gain: 0.032,
+    type: "triangle",
+  });
+  playNoise(context, {
+    startTime: now + 0.015,
+    duration: 0.1,
+    gain: 0.022,
+    filterFrequency: 4_800,
+  });
+}
+
+function streakCountReveal(context: AudioContext, now: number) {
+  // A compact, satisfying pop followed by a bright two-note reveal chime.
+  playTone(context, {
+    frequency: 210,
+    endFrequency: 420,
+    startTime: now,
+    duration: 0.11,
+    gain: 0.085,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    endFrequency: SCALE.C6,
+    startTime: now + 0.045,
+    duration: 0.17,
+    gain: 0.045,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: SCALE.C6,
+    endFrequency: SCALE.E6,
+    startTime: now + 0.09,
+    duration: 0.15,
+    gain: 0.028,
+    type: "triangle",
+  });
+}
+
 function rankHighlight(context: AudioContext, now: number) {
   // A short, gentle ascending chime for moving between rank cards.
   playTone(context, {
@@ -385,6 +451,26 @@ function bonusSelect(context: AudioContext, now: number) {
     startTime: now + 0.035,
     duration: 0.08,
     gain: 0.022,
+    type: "triangle",
+  });
+}
+
+function bonusInvalidOperation(context: AudioContext, now: number) {
+  // A short, soft descending double-beep reserved for rejected bonus matches.
+  playTone(context, {
+    frequency: 285,
+    endFrequency: 205,
+    startTime: now,
+    duration: 0.075,
+    gain: 0.065,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: 190,
+    endFrequency: 125,
+    startTime: now + 0.055,
+    duration: 0.105,
+    gain: 0.055,
     type: "triangle",
   });
 }
@@ -512,6 +598,26 @@ function gemSpend(context: AudioContext, now: number) {
   playTone(context, { frequency: 1320, endFrequency: 1760, startTime: now + 0.06, duration: 0.16, gain: 0.06, type: "triangle" });
 }
 
+function resultStarCollect(context: AudioContext, now: number) {
+  // Short, satisfying medal pickup: a soft thunk followed by a bright chime.
+  playTone(context, {
+    frequency: 190,
+    endFrequency: 125,
+    startTime: now,
+    duration: 0.11,
+    gain: 0.1,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.C6,
+    endFrequency: SCALE.E6,
+    startTime: now + 0.035,
+    duration: 0.14,
+    gain: 0.07,
+    type: "sine",
+  });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
   correct,
   incorrect,
@@ -523,8 +629,11 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "quiz-stars-complete": quizStarsComplete,
   "quiz-select": quizSelect,
+  "streak-video-whoosh": streakVideoWhoosh,
+  "streak-count-reveal": streakCountReveal,
   "rank-highlight": rankHighlight,
   "bonus-select": bonusSelect,
+  "bonus-invalid-operation": bonusInvalidOperation,
   "pricing-perk-select": pricingPerkSelect,
   "card-swipe-right": cardSwipeRight,
   "card-swipe-left": cardSwipeLeft,
@@ -536,6 +645,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "mission-claim": missionClaim,
   "gem-loot": gemLoot,
   "gem-spend": gemSpend,
+  "result-star-collect": resultStarCollect,
 };
 
 export function playSoundEffect(effect: SoundEffectName) {

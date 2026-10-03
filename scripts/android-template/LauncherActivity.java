@@ -22,6 +22,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.ValueCallback;
 
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.UpdateAvailability;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,7 +44,15 @@ public class LauncherActivity extends Activity {
     private ValueCallback<Uri[]> pendingFileChooserCallback;
     private Uri pendingCameraUri;
     private File pendingCameraFile;
+    private AppUpdateManager appUpdateManager;
+    private Intent pendingLaunchIntent;
+    private boolean updateCheckInFlight;
+    private boolean immediateUpdateFlowActive;
+    private boolean startUrlLoaded;
     private static final int FILE_CHOOSER_REQUEST_CODE = 4102;
+    private static final int IMMEDIATE_UPDATE_REQUEST_CODE = 4103;
+    private static final AppUpdateOptions IMMEDIATE_UPDATE_OPTIONS =
+            AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,7 +151,77 @@ public class LauncherActivity extends Activity {
         );
         setContentView(contentRoot);
         configureWindow();
-        loadStartUrl(getIntent());
+        pendingLaunchIntent = getIntent();
+        checkForImmediateUpdate();
+    }
+
+    /**
+     * Gate the first WebView load behind Google Play's native immediate update
+     * flow. Sideloaded/debug builds simply continue when Play cannot provide
+     * update information.
+     */
+    private void checkForImmediateUpdate() {
+        if (startUrlLoaded || updateCheckInFlight || immediateUpdateFlowActive) return;
+        updateCheckInFlight = true;
+        try {
+            appUpdateManager = AppUpdateManagerFactory.create(this);
+            appUpdateManager.getAppUpdateInfo()
+                    .addOnSuccessListener(appUpdateInfo -> {
+                        updateCheckInFlight = false;
+                        handleAppUpdateInfo(appUpdateInfo);
+                    })
+                    .addOnFailureListener(error -> {
+                        updateCheckInFlight = false;
+                        continueLaunch();
+                    });
+        } catch (RuntimeException ignored) {
+            updateCheckInFlight = false;
+            continueLaunch();
+        }
+    }
+
+    private void handleAppUpdateInfo(AppUpdateInfo appUpdateInfo) {
+        boolean updateAvailable = appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE;
+        boolean updateAlreadyInProgress = appUpdateInfo.updateAvailability()
+                == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS;
+
+        if ((updateAvailable || updateAlreadyInProgress)
+                && appUpdateInfo.isUpdateTypeAllowed(IMMEDIATE_UPDATE_OPTIONS)) {
+            immediateUpdateFlowActive = true;
+            try {
+                boolean started = appUpdateManager.startUpdateFlowForResult(
+                        appUpdateInfo,
+                        this,
+                        IMMEDIATE_UPDATE_OPTIONS,
+                        IMMEDIATE_UPDATE_REQUEST_CODE
+                );
+                if (!started) {
+                    immediateUpdateFlowActive = false;
+                    finish();
+                }
+            } catch (RuntimeException ignored) {
+                // A broken/unavailable Play flow must not leave a blank shell.
+                immediateUpdateFlowActive = false;
+                finish();
+            }
+            return;
+        }
+
+        continueLaunch();
+    }
+
+    private void continueLaunch() {
+        if (startUrlLoaded || isFinishing()) return;
+        startUrlLoaded = true;
+        loadStartUrl(pendingLaunchIntent != null ? pendingLaunchIntent : getIntent());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // If Android recreated/resumed the shell while Play had an update in
+        // progress, ask Play for a fresh AppUpdateInfo and resume the flow.
+        checkForImmediateUpdate();
     }
 
     private Intent createCameraCaptureIntent() throws IOException {
@@ -285,6 +370,10 @@ public class LauncherActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (!startUrlLoaded) {
+            pendingLaunchIntent = intent;
+            return;
+        }
         if (intent != null && intent.getData() != null && isAppUrl(intent.getData())) {
             loadStartUrl(intent);
         }
@@ -293,6 +382,17 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == IMMEDIATE_UPDATE_REQUEST_CODE) {
+            immediateUpdateFlowActive = false;
+            if (resultCode == RESULT_OK) {
+                continueLaunch();
+            } else {
+                // Immediate updates are mandatory for this release. Do not
+                // allow the old version to continue after an explicit cancel.
+                finish();
+            }
+            return;
+        }
         if (requestCode != FILE_CHOOSER_REQUEST_CODE) return;
 
         ValueCallback<Uri[]> callback = pendingFileChooserCallback;

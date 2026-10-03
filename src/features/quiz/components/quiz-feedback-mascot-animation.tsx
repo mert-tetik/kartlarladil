@@ -31,6 +31,10 @@ export const BONUS_QUIZ_FEEDBACK_MASCOT: QuizFeedbackMascotAnimation = {
 
 export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 7;
 
+const QUIZ_FEEDBACK_BAR_MASCOTS = NORMAL_QUIZ_FEEDBACK_MASCOTS.filter(
+  (animation) => animation.id === "animation-1" || animation.id === "animation-3",
+);
+
 export function pickQuizFeedbackMascotAnimation(
   isBonus: boolean,
   chanceRoll = Math.random(),
@@ -44,6 +48,21 @@ export function pickQuizFeedbackMascotAnimation(
     Math.floor(selectionRoll * NORMAL_QUIZ_FEEDBACK_MASCOTS.length),
   );
   return NORMAL_QUIZ_FEEDBACK_MASCOTS[index] ?? null;
+}
+
+export function pickQuizFeedbackBarMascotAnimation(
+  isBonus: boolean,
+  isText: boolean,
+  chanceRoll = Math.random(),
+  selectionRoll = Math.random(),
+): QuizFeedbackMascotAnimation | null {
+  if (isBonus || isText || chanceRoll >= QUIZ_FEEDBACK_MASCOT_CHANCE) return null;
+
+  const index = Math.min(
+    QUIZ_FEEDBACK_BAR_MASCOTS.length - 1,
+    Math.floor(selectionRoll * QUIZ_FEEDBACK_BAR_MASCOTS.length),
+  );
+  return QUIZ_FEEDBACK_BAR_MASCOTS[index] ?? null;
 }
 
 export function preloadQuizFeedbackMascotAnimation(
@@ -102,15 +121,17 @@ export function QuizFeedbackMascotAnimationView({
       data-quiz-feedback-mascot={animation.id}
       data-quiz-feedback-mascot-frame={frame}
     >
-      <Image
-        src={getQuizFeedbackMascotFramePath(animation, frame)}
-        alt=""
-        fill
-        unoptimized
-        loading="eager"
-        sizes="(max-width: 640px) 30vw, 176px"
-        className="object-contain object-bottom"
-      />
+      <div className="absolute inset-0">
+        <Image
+          src={getQuizFeedbackMascotFramePath(animation, frame)}
+          alt=""
+          fill
+          unoptimized
+          loading="eager"
+          sizes="(max-width: 640px) 30vw, 176px"
+          className="object-contain object-bottom"
+        />
+      </div>
     </div>
   );
 }

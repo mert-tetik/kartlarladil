@@ -39,6 +39,7 @@ interface LearnQuizShellProps {
   resultTest?: boolean;
   resultMessageTest?: boolean;
   bonusTest?: boolean;
+  bonusAfterEach?: boolean;
   normalTest?: boolean;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
   quizWordButtonTest?: boolean;
@@ -55,6 +56,7 @@ export function LearnQuizShell({
   resultTest = false,
   resultMessageTest = false,
   bonusTest = false,
+  bonusAfterEach = false,
   normalTest = false,
   normalQuestionType = null,
   quizWordButtonTest = false,
@@ -217,6 +219,7 @@ export function LearnQuizShell({
               mode={selectedMode}
               initialLanguage={initialLanguage ?? undefined}
               normalQuestionType={normalQuestionType}
+              bonusAfterEachNormalQuestion={bonusAfterEach}
               onPhaseChange={setPhase}
               onBackToMode={() => {
                 setSelectedMode(null);

@@ -4,6 +4,7 @@ import type { SoundEffectName } from "@/lib/sound-effects";
 const POINTS_PER_SCORE_FLIGHT_ICON = 2;
 const MAX_SCORE_FLIGHT_ICONS = 25;
 const MAX_GEM_FLIGHT_ICONS = 25;
+const MAX_STAR_FLIGHT_ICONS = 5;
 
 export const SCORE_FLIGHT_DURATION_MS = 700;
 export const SCORE_FLIGHT_LAST_START_MS = 780;
@@ -54,10 +55,18 @@ export interface RewardScatterGemRequest extends RewardScatterMotion {
   target: RewardScatterRect;
 }
 
+export interface RewardScatterStarsRequest extends RewardScatterMotion {
+  amount: number;
+  source: RewardScatterRect;
+  sources?: readonly RewardScatterRect[];
+  target: RewardScatterRect;
+}
+
 export interface RewardScatterFlight {
   id: string;
-  channel: "points" | "gems";
-  visual: { kind: "points" } | { kind: "gem"; type: GemType };
+  channel: "points" | "gems" | "stars";
+  animation: "default" | "star";
+  visual: { kind: "points" } | { kind: "gem"; type: GemType } | { kind: "star" };
   gemType?: GemType;
   gemAmountAwarded?: number;
   arrivalIndex: number;
@@ -77,6 +86,7 @@ export interface RewardScatterFlight {
 export interface CreateRewardScatterFlightsInput {
   points?: RewardScatterPointsRequest | null;
   gems?: readonly RewardScatterGemRequest[] | null;
+  stars?: RewardScatterStarsRequest | null;
 }
 
 export function getScoreFlightIconCount(points: number): number {
@@ -108,6 +118,18 @@ export function getGemFlightAwardAtArrival(
   const boundedArrivalIndex = Math.min(arrivalIndex, iconCount);
   const previousTotal = Math.round((totalAmount * (boundedArrivalIndex - 1)) / iconCount);
   const currentTotal = Math.round((totalAmount * boundedArrivalIndex) / iconCount);
+  return currentTotal - previousTotal;
+}
+
+export function getStarFlightAwardAtArrival(
+  totalStars: number,
+  iconCount: number,
+  arrivalIndex: number,
+): number {
+  if (totalStars <= 0 || iconCount <= 0 || arrivalIndex <= 0) return 0;
+  const boundedArrivalIndex = Math.min(arrivalIndex, iconCount);
+  const previousTotal = Math.round((totalStars * (boundedArrivalIndex - 1)) / iconCount);
+  const currentTotal = Math.round((totalStars * boundedArrivalIndex) / iconCount);
   return currentTotal - previousTotal;
 }
 
@@ -145,7 +167,7 @@ function getMotion(
 }
 
 /** Creates score and per-gem flights from independently supplied source and target geometry. */
-export function createRewardScatterFlights({ points, gems }: CreateRewardScatterFlightsInput): RewardScatterFlight[] {
+export function createRewardScatterFlights({ points, gems, stars }: CreateRewardScatterFlightsInput): RewardScatterFlight[] {
   const flights: RewardScatterFlight[] = [];
 
   if (points && points.amount > 0) {
@@ -154,6 +176,7 @@ export function createRewardScatterFlights({ points, gems }: CreateRewardScatter
       flights.push({
         id: `points-${index}`,
         channel: "points",
+        animation: "default",
         visual: points.gemIcon ? { kind: "gem", type: points.gemIcon } : { kind: "points" },
         arrivalIndex: index + 1,
         pointsAwarded: getScoreFlightAwardAtArrival(points.amount, iconCount, index + 1),
@@ -169,6 +192,7 @@ export function createRewardScatterFlights({ points, gems }: CreateRewardScatter
       flights.push({
         id: `gem-${gem.type}-${nextGemId++}`,
         channel: "gems",
+        animation: "default",
         visual: { kind: "gem", type: gem.type },
         gemType: gem.type,
         arrivalIndex: index + 1,
@@ -178,6 +202,31 @@ export function createRewardScatterFlights({ points, gems }: CreateRewardScatter
           iconSize: gem.iconSize ?? 40,
           arrivalSoundEffect: gem.arrivalSoundEffect ?? "gem-loot",
         }),
+      });
+    }
+  }
+
+  if (stars && stars.amount > 0) {
+    const iconCount = Math.min(Math.max(0, Math.round(stars.amount)), MAX_STAR_FLIGHT_ICONS);
+    const starIconSize = stars.iconSize ?? 40;
+    for (let index = 0; index < iconCount; index += 1) {
+      const source = stars.sources?.[index] ?? stars.source;
+      const motion = getMotion(source, stars.target, index, iconCount, {
+        ...stars,
+        iconSize: starIconSize,
+      });
+      flights.push({
+        id: `star-${index}`,
+        channel: "stars",
+        animation: "star",
+        visual: { kind: "star" },
+        arrivalIndex: index + 1,
+        pointsAwarded: getStarFlightAwardAtArrival(stars.amount, iconCount, index + 1),
+        ...motion,
+        startX: motion.startX - starIconSize / 2,
+        startY: motion.startY - starIconSize / 2,
+        targetX: motion.targetX - starIconSize / 2,
+        targetY: motion.targetY - starIconSize / 2,
       });
     }
   }

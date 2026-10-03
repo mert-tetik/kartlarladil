@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Star } from "lucide-react";
 import {
@@ -38,7 +38,7 @@ import {
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
-const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png";
+const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png?v=20261001-1";
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -570,6 +570,8 @@ export function BonusQuestionView({
   gemRewards,
   onGemArrive,
   onGemFlightComplete,
+  rewardRevealVisible = false,
+  onRewardCollect,
 }: {
   question: BonusQuestion;
   language?: LanguageCode;
@@ -592,25 +594,21 @@ export function BonusQuestionView({
   gemRewards?: GemRewards | null;
   onGemArrive?: (type: GemType) => void;
   onGemFlightComplete?: () => void;
+  rewardRevealVisible?: boolean;
+  onRewardCollect?: () => void;
 }) {
   const { locale, t } = useLocale();
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
-  const flightSourceRef = useRef<HTMLDivElement | null>(null);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
   const [sentenceDecorationMounted, setSentenceDecorationMounted] = useState(false);
+  const [rewardRevealCollected, setRewardRevealCollected] = useState(false);
   const [sentenceDecorationCharacter] = useState(() => {
     const characters = getAiPracticeCharacters();
     return characters[Math.floor(Math.random() * characters.length)] ?? characters[0]!;
   });
-  const [rewardSourceRect, setRewardSourceRect] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  const rewardDelivered = showingAnswer && answerAccepted === true && rewardReady;
+  const rewardDelivered = rewardRevealCollected && showingAnswer && answerAccepted === true && rewardReady;
   const rewardFlightReady = rewardDelivered && (showPointFlight || Boolean(gemRewards?.length));
   const showRewardHud = rewardFlightReady;
 
@@ -618,31 +616,11 @@ export function BonusQuestionView({
     setSentenceDecorationMounted(true);
   }, []);
 
-  useLayoutEffect(() => {
-    if (!showRewardHud) {
-      setRewardSourceRect(null);
-      return;
-    }
-
-    const updateRewardSourceRect = () => {
-      const rect = sourceRef.current?.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) {
-        setRewardSourceRect(null);
-        return;
-      }
-
-      setRewardSourceRect({
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      });
-    };
-
-    updateRewardSourceRect();
-    window.addEventListener("resize", updateRewardSourceRect);
-    return () => window.removeEventListener("resize", updateRewardSourceRect);
-  }, [showRewardHud]);
+  function handleRewardRevealCollect() {
+    if (!rewardRevealVisible || rewardRevealCollected) return;
+    setRewardRevealCollected(true);
+    onRewardCollect?.();
+  }
 
   const sentenceDecoration = isSentenceOrder && sentenceDecorationMounted
     ? (
@@ -652,7 +630,7 @@ export function BonusQuestionView({
           aria-hidden="true"
         >
           <div
-            className="absolute bottom-0 left-1/2 h-[min(112vw,36rem)] w-[min(112vw,36rem)] -translate-x-1/2 translate-y-[20%] opacity-25"
+            className="absolute bottom-[15px] left-1/2 h-[min(112vw,36rem)] w-[min(112vw,36rem)] -translate-x-1/2 translate-y-[20%] opacity-25"
             data-bonus-sentence-decoration
           >
             <Image
@@ -669,7 +647,7 @@ export function BonusQuestionView({
 
   const rewardHudContent = showRewardHud ? (
     <div
-      className="pointer-events-none absolute inset-0 z-[70] flex flex-col items-center justify-center gap-1"
+      className="pointer-events-none flex flex-col items-center justify-center gap-1"
       data-bonus-reward-hud
     >
       <MainPointsDisplay
@@ -690,16 +668,10 @@ export function BonusQuestionView({
     </div>
   ) : null;
 
-  const rewardHudPortal = rewardHudContent && rewardSourceRect && typeof document !== "undefined"
+  const rewardHudPortal = rewardHudContent && typeof document !== "undefined"
     ? createPortal(
         <div
-          className="pointer-events-none fixed z-[75] flex items-center justify-center"
-          style={{
-            left: rewardSourceRect.left,
-            top: rewardSourceRect.top,
-            width: rewardSourceRect.width,
-            height: rewardSourceRect.height,
-          }}
+          className="pointer-events-none fixed inset-x-0 top-5 z-[95] flex justify-center"
           data-bonus-reward-hud-layer
         >
           {rewardHudContent}
@@ -708,20 +680,92 @@ export function BonusQuestionView({
       )
     : null;
 
-  const rewardFlightSource = rewardFlightReady && typeof document !== "undefined"
+  const rewardRevealPortal = rewardRevealVisible && typeof document !== "undefined"
     ? createPortal(
         <div
-          ref={flightSourceRef}
-          className="pointer-events-none fixed bottom-0 left-1/2 z-0 size-px -translate-x-1/2"
-          data-bonus-reward-flight-source
-          aria-hidden="true"
-        />,
+          className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-background text-center"
+          role="button"
+          tabIndex={0}
+          aria-label={t("quiz.tapToContinue")}
+          data-bonus-reward-reveal
+          onClick={handleRewardRevealCollect}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleRewardRevealCollect();
+            }
+          }}
+        >
+          <div className="quiz-flow-enter-right flex min-h-full w-full flex-col items-center justify-center gap-5 px-5">
+            <div
+              ref={sourceRef}
+              className="relative aspect-[1536/1000] w-[min(74vw,27rem)] overflow-visible"
+              data-bonus-reward-source
+              data-bonus-reward-source-state={rewardFlightReady ? "exiting" : "idle"}
+              >
+                <div
+                  className={cn(
+                    "bonus-reward-ray-field",
+                    rewardRevealCollected && "bonus-reward-ray-field--hidden",
+                  )}
+                  data-bonus-reward-rays
+                  aria-hidden="true"
+                >
+                  <span className="bonus-reward-ray bonus-reward-ray--yellow" />
+                  <span className="bonus-reward-ray bonus-reward-ray--green" />
+                  <span className="bonus-reward-ray bonus-reward-ray--purple" />
+                  <span className="bonus-reward-ray bonus-reward-ray--blue" />
+                </div>
+              <Image
+                src={BONUS_REWARD_IMAGE}
+                alt=""
+                width={1536}
+                height={1000}
+                sizes="(max-width: 640px) 74vw, 432px"
+                className={cn(
+                  "relative z-10 h-auto w-full object-contain",
+                  rewardRevealCollected
+                    ? "animate-bonus-reward-reveal-exit"
+                    : "animate-bonus-reward-reveal-rotate",
+                )}
+              />
+            </div>
+          </div>
+          {rewardHudPortal}
+          {rewardFlightReady
+            ? <RewardScatter
+                points={showPointFlight ? {
+                  amount: points,
+                  source: sourceRef,
+                  targetSelector: "[data-bonus-reward-score]",
+                  placement: { origin: "center" },
+                  zIndex: 80,
+                } : null}
+                gems={{
+                  rewards: gemRewards ?? [],
+                  source: sourceRef,
+                  targetSelector: '[data-reward-gem-hud-role="reward"] [data-reward-gem-target]',
+                  placement: { origin: "center" },
+                  arrivalSoundEffect: "gem-loot",
+                  zIndex: 112,
+                }}
+                onPointsStart={onFlightStart}
+                onPointsArrive={(awardedTotal) => onPointArrive?.(awardedTotal)}
+                onPointsComplete={onFlightComplete}
+                onGemArrive={onGemArrive}
+                onGemsComplete={onGemFlightComplete}
+              />
+            : null}
+        </div>,
         document.body,
       )
     : null;
 
   return (
-    <div className="relative isolate z-0 w-full">
+    <div className={cn(
+      "relative isolate z-0 w-full",
+      rewardRevealVisible && "quiz-flow-exit-left",
+    )}>
       {sentenceDecoration}
       <div
         className="animate-screen-pop relative z-10 flex w-full max-w-2xl flex-col items-center gap-4 overflow-visible rounded-xl bg-transparent px-1 py-2 text-foreground sm:gap-5 sm:px-4"
@@ -729,45 +773,27 @@ export function BonusQuestionView({
       >
 
       <div className="relative z-10 flex flex-col items-center gap-1 text-center">
-        <div
-          ref={sourceRef}
-          className="relative aspect-[1536/1000] w-[min(10rem,40vw)] overflow-visible"
-          data-bonus-reward-source
-          data-bonus-reward-source-state={rewardFlightReady ? "exiting" : "idle"}
-        >
-          <Image
-            src={BONUS_REWARD_IMAGE}
-            alt=""
-            width={1536}
-            height={1000}
-            sizes="(max-width: 640px) 40vw, 160px"
-            className={cn(
-              "h-auto w-full object-contain",
-              rewardFlightReady && "animate-bonus-reward-source-exit",
-            )}
-          />
-          {!rewardSourceRect ? rewardHudContent : null}
-        </div>
         <h2
           className={cn(
             question.kind === "sentence-order"
-              ? "text-4xl font-semibold text-white sm:text-5xl"
-              : "text-2xl font-semibold text-white sm:text-3xl",
+              ? "-translate-y-7 text-4xl font-semibold text-white sm:text-5xl"
+              : question.kind === "imposter"
+                ? "text-4xl font-semibold text-white sm:text-5xl"
+              : question.kind === "category-sort"
+                ? "-translate-y-5 text-2xl font-semibold text-white sm:text-3xl"
+                : "text-2xl font-semibold text-white sm:text-3xl",
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
-          {formatSuperWaterText(
-            locale,
-            question.kind === "matching"
-              ? MATCHING_BONUS_TITLES[locale]
-            : getBonusTitle(copy, question.kind),
-          )}
+          {question.kind === "matching"
+            ? formatSuperWaterUppercaseText(locale, MATCHING_BONUS_TITLES[locale])
+            : formatSuperWaterText(locale, getBonusTitle(copy, question.kind))}
         </h2>
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-center">
         {question.kind === "matching" ? (
-          <MatchingBonus question={question} language={language} showingAnswer={showingAnswer} answerAccepted={answerAccepted} wasSkipped={wasSkipped} onSubmit={onSubmit} onSkip={onSkip} />
+          <MatchingBonus question={question} language={language} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "sentence-order" ? (
           <SentenceOrderBonus question={question} showingAnswer={showingAnswer} answerAccepted={answerAccepted} onSubmit={onSubmit} onSkip={onSkip} />
         ) : question.kind === "category-sort" ? (
@@ -792,33 +818,7 @@ export function BonusQuestionView({
         </Button>
       </div>
 
-      {rewardHudPortal}
-      {rewardFlightSource}
-
-      {rewardFlightReady
-        ? <RewardScatter
-            points={showPointFlight ? {
-              amount: points,
-              source: flightSourceRef,
-              targetSelector: "[data-bonus-reward-score]",
-              placement: { origin: "center" },
-              zIndex: 80,
-            } : null}
-            gems={{
-              rewards: gemRewards ?? [],
-              source: flightSourceRef,
-              targetSelector: '[data-reward-gem-hud-role="reward"] [data-reward-gem-target]',
-              placement: { origin: "center" },
-              arrivalSoundEffect: "gem-loot",
-              zIndex: 112,
-            }}
-            onPointsStart={onFlightStart}
-            onPointsArrive={(awardedTotal) => onPointArrive?.(awardedTotal)}
-            onPointsComplete={onFlightComplete}
-            onGemArrive={onGemArrive}
-            onGemsComplete={onGemFlightComplete}
-          />
-        : null}
+      {rewardRevealPortal}
     </div>
     </div>
   );
@@ -829,7 +829,6 @@ function MatchingBonus({
   language,
   showingAnswer,
   answerAccepted,
-  wasSkipped,
   onSubmit,
   onSkip,
 }: {
@@ -837,7 +836,6 @@ function MatchingBonus({
   language: LanguageCode;
   showingAnswer: boolean;
   answerAccepted: boolean | null;
-  wasSkipped: boolean;
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
@@ -847,39 +845,58 @@ function MatchingBonus({
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
-  const [animatingPair, setAnimatingPair] = useState<{ termId: string; meaningId: string } | null>(null);
-  const matchAnimationFrameRef = useRef<number | null>(null);
-  const matchAnimationTimerRef = useRef<number | null>(null);
+  const [invalidPair, setInvalidPair] = useState<{ termId: string; meaningId: string } | null>(null);
+  const [invalidAnimationKey, setInvalidAnimationKey] = useState(0);
+  const invalidAnimationTimerRef = useRef<number | null>(null);
+  const matchingCompletionSubmittedRef = useRef(false);
   const matchedMeaningIds = new Set(Object.values(matches));
-  const canCheck = Object.keys(matches).length === question.pairs.length;
-  const isCorrect = question.pairs.every((pair) => matches[pair.id] === pair.id);
+  const allMatchesComplete = Object.keys(matches).length === question.pairs.length;
 
   useEffect(() => () => {
-    if (matchAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(matchAnimationFrameRef.current);
-    }
-    if (matchAnimationTimerRef.current !== null) {
-      window.clearTimeout(matchAnimationTimerRef.current);
+    if (invalidAnimationTimerRef.current !== null) {
+      window.clearTimeout(invalidAnimationTimerRef.current);
     }
   }, []);
 
-  function triggerMatchAnimation(termId: string, meaningId: string) {
-    if (matchAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(matchAnimationFrameRef.current);
-    }
-    if (matchAnimationTimerRef.current !== null) {
-      window.clearTimeout(matchAnimationTimerRef.current);
+  useEffect(() => {
+    if (!allMatchesComplete || showingAnswer || matchingCompletionSubmittedRef.current) return;
+
+    matchingCompletionSubmittedRef.current = true;
+    const timer = window.setTimeout(() => {
+      onSubmit("matching", true);
+    }, MATCHING_CORRECT_ANIMATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [allMatchesComplete, onSubmit, showingAnswer]);
+
+  function triggerInvalidPair(termId: string, meaningId: string) {
+    if (invalidAnimationTimerRef.current !== null) {
+      window.clearTimeout(invalidAnimationTimerRef.current);
     }
 
-    setAnimatingPair(null);
-    matchAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      matchAnimationFrameRef.current = null;
-      setAnimatingPair({ termId, meaningId });
-      matchAnimationTimerRef.current = window.setTimeout(() => {
-        setAnimatingPair((current) => current?.termId === termId && current.meaningId === meaningId ? null : current);
-        matchAnimationTimerRef.current = null;
-      }, MATCHING_PAIR_ANIMATION_MS);
-    });
+    setInvalidPair({ termId, meaningId });
+    setInvalidAnimationKey((current) => current + 1);
+    playSoundEffect("bonus-invalid-operation");
+    vibrate("incorrect");
+    invalidAnimationTimerRef.current = window.setTimeout(() => {
+      setInvalidPair((current) => current?.termId === termId && current.meaningId === meaningId ? null : current);
+      invalidAnimationTimerRef.current = null;
+    }, MATCHING_INVALID_ANIMATION_MS);
+  }
+
+  function completePair(termId: string, meaningId: string) {
+    if (invalidAnimationTimerRef.current !== null) {
+      window.clearTimeout(invalidAnimationTimerRef.current);
+      invalidAnimationTimerRef.current = null;
+    }
+
+    setInvalidPair(null);
+    setMatches((current) => ({ ...current, [termId]: meaningId }));
+    setSelectedTermId(null);
+    setSelectedMeaningId(null);
+    playSoundEffect("bonus-select");
+    vibrate("correct");
+    speakMatchedTerm(termId);
   }
 
   function speakMatchedTerm(termId: string) {
@@ -889,7 +906,6 @@ function MatchingBonus({
 
   function selectTerm(id: string) {
     if (showingAnswer) return;
-    playSoundEffect("bonus-select");
 
     if (!selectedMeaningId) {
       vibrate("tap");
@@ -897,25 +913,19 @@ function MatchingBonus({
       return;
     }
 
-    vibrate(id === selectedMeaningId ? "correct" : "incorrect");
+    const meaningId = selectedMeaningId;
+    if (id === meaningId) {
+      completePair(id, meaningId);
+      return;
+    }
 
-    setMatches((current) => {
-      const next = { ...current };
-      Object.entries(next).forEach(([termId, meaningId]) => {
-        if (termId === id || meaningId === selectedMeaningId) delete next[termId];
-      });
-      next[id] = selectedMeaningId;
-      return next;
-    });
     setSelectedTermId(null);
     setSelectedMeaningId(null);
-    triggerMatchAnimation(id, selectedMeaningId);
-    speakMatchedTerm(id);
+    triggerInvalidPair(id, meaningId);
   }
 
   function selectMeaning(id: string) {
     if (showingAnswer) return;
-    playSoundEffect("bonus-select");
 
     if (!selectedTermId) {
       vibrate("tap");
@@ -923,20 +933,15 @@ function MatchingBonus({
       return;
     }
 
-    vibrate(selectedTermId === id ? "correct" : "incorrect");
+    const termId = selectedTermId;
+    if (termId === id) {
+      completePair(termId, id);
+      return;
+    }
 
-    setMatches((current) => {
-      const next = { ...current };
-      Object.entries(next).forEach(([termId, meaningId]) => {
-        if (termId === selectedTermId || meaningId === id) delete next[termId];
-      });
-      next[selectedTermId] = id;
-      return next;
-    });
     setSelectedTermId(null);
     setSelectedMeaningId(null);
-    triggerMatchAnimation(selectedTermId, id);
-    speakMatchedTerm(selectedTermId);
+    triggerInvalidPair(termId, id);
   }
 
   return (
@@ -947,63 +952,33 @@ function MatchingBonus({
         </h3>
         <div className="flex w-full flex-col items-center gap-3">
          {question.terms.map((pair) => {
-           const matched = Boolean(matches[pair.id]);
-           const skipped = showingAnswer && wasSkipped;
-           const correct = showingAnswer && !skipped && matches[pair.id] === pair.id;
-           const wrong = showingAnswer && (skipped || (matched && matches[pair.id] !== pair.id));
-          const colorIndex = question.pairs.findIndex((candidate) => candidate.id === pair.id);
-          const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
-          const feedback: QuizWordButtonFeedback = correct
-            ? "correct"
-            : wrong
-              ? "incorrect"
-              : showingAnswer
-                ? "muted"
-                : selectedTermId === pair.id
-                  ? "selected"
-                  : matched
-                    ? "matched"
-                    : "idle";
+           const correct = matches[pair.id] === pair.id;
+           const invalid = invalidPair?.termId === pair.id;
+           const feedback: QuizWordButtonFeedback | undefined = correct
+             ? "correct"
+             : invalid
+               ? undefined
+               : selectedTermId === pair.id
+                 ? "selected"
+                 : "idle";
           return (
             <QuizWordButton
               key={`term-${pair.id}`}
               type="button"
-              disabled={showingAnswer}
+              disabled={showingAnswer || correct || invalid}
               onClick={() => selectTerm(pair.id)}
-              wordType={showingAnswer ? "inactive" : "select"}
+              wordType={invalid ? "invalid-operation" : correct ? "correct" : "select"}
               selected={feedback === "selected"}
-              feedback={feedback === "selected" ? undefined : feedback}
-              style={feedback === "matched"
-                ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground }
-                : feedback === "selected"
-                  ? { backgroundColor: "var(--background)", borderColor: "var(--brand)" }
-                  : undefined}
+              feedback={feedback}
+              animationTrigger={invalid ? invalidAnimationKey : undefined}
               className={cn(
-                "h-14 w-[calc(100%-0.5rem)] text-lg sm:text-xl",
-                animatingPair?.termId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm",
+                "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
               )}
               data-bonus-term={pair.id}
-              data-bonus-result={feedback === "matched" ? "idle" : feedback}
+              data-bonus-result={feedback ?? "idle"}
             >
               <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
-                <span
-                  className={cn(
-                    "transition-transform duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
-                    wrong && "-translate-y-0.5",
-                  )}
-                >
-                  {pair.term}
-                </span>
-                <span
-                  className={cn(
-                    "max-w-full overflow-hidden text-xs font-medium leading-4 transition-[max-height,opacity,transform] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]",
-                    wrong ? "max-h-4 translate-y-0 opacity-100" : "max-h-0 translate-y-1 opacity-0",
-                  )}
-                  aria-hidden={!wrong}
-                  data-bonus-correct-answer={pair.id}
-                >
-                  ({pair.meaning})
-                </span>
+                {pair.term}
               </span>
             </QuizWordButton>
           );
@@ -1017,43 +992,31 @@ function MatchingBonus({
         <div className="flex w-full flex-col items-center gap-3">
         {question.meanings.map((pair) => {
           const pairedTermId = Object.entries(matches).find(([, meaningId]) => meaningId === pair.id)?.[0];
-           const skipped = showingAnswer && wasSkipped;
-           const correct = showingAnswer && !skipped && pairedTermId === pair.id;
-           const wrong = showingAnswer && (skipped || (pairedTermId !== undefined && pairedTermId !== pair.id));
-          const colorIndex = pairedTermId ? question.pairs.findIndex((candidate) => candidate.id === pairedTermId) : -1;
-          const pairColor = MATCHING_PAIR_COLORS[Math.max(0, colorIndex) % MATCHING_PAIR_COLORS.length] ?? MATCHING_PAIR_COLORS[0];
+          const correct = pairedTermId === pair.id;
+          const invalid = invalidPair?.meaningId === pair.id;
           const selected = selectedMeaningId === pair.id;
-          const feedback: QuizWordButtonFeedback = correct
+          const feedback: QuizWordButtonFeedback | undefined = correct
             ? "correct"
-            : wrong
-              ? "incorrect"
-              : showingAnswer
-                ? "muted"
-                : selected
-                  ? "selected"
-                  : pairedTermId
-                    ? "matched"
-                    : "idle";
+            : invalid
+              ? undefined
+              : selected
+                ? "selected"
+                : "idle";
           return (
             <QuizWordButton
               key={`meaning-${pair.id}`}
               type="button"
-              disabled={showingAnswer}
+              disabled={showingAnswer || correct || invalid}
               onClick={() => selectMeaning(pair.id)}
-              wordType={showingAnswer ? "inactive" : "select"}
+              wordType={invalid ? "invalid-operation" : correct ? "correct" : "select"}
               selected={feedback === "selected"}
-              feedback={feedback === "selected" ? undefined : feedback}
-              style={feedback === "matched"
-                ? { backgroundColor: pairColor.background, borderColor: pairColor.background, color: pairColor.foreground }
-                : feedback === "selected"
-                  ? { backgroundColor: "var(--background)", borderColor: "var(--brand)" }
-                  : undefined}
+              feedback={feedback}
+              animationTrigger={invalid ? invalidAnimationKey : undefined}
               className={cn(
-                "min-h-14 w-[calc(100%-0.5rem)] text-lg sm:text-xl",
-                animatingPair?.meaningId === pair.id && !showingAnswer && "animate-bonus-matching-pair-confirm",
+                "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
               )}
               data-bonus-meaning={pair.id}
-              data-bonus-result={feedback === "matched" ? "idle" : feedback}
+              data-bonus-result={feedback ?? "idle"}
             >
               {pair.meaning}
             </QuizWordButton>
@@ -1062,12 +1025,15 @@ function MatchingBonus({
         </div>
       </div>
       <div className="relative z-10 col-span-2">
-        <BonusCheckButton
-          disabled={!canCheck || showingAnswer}
-          onClick={() => onSubmit("matching", isCorrect)}
-          showingAnswer={showingAnswer}
-          onSkip={onSkip}
-        />
+        <QuizMobileActionPortal withinTransition>
+          <div className="mt-1 flex w-full justify-center" data-quiz-bottom-actions>
+            <QuizSkipButton
+              className="w-full max-w-sm"
+              disabled={showingAnswer}
+              onClick={onSkip}
+            />
+          </div>
+        </QuizMobileActionPortal>
       </div>
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{matchedMeaningIds.size}</span>
@@ -1088,7 +1054,6 @@ function SentenceOrderBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
-  const { locale } = useLocale();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [displayTokens] = useState(() => shuffleSentenceTokens(question.tokens));
   const [returningTokenId, setReturningTokenId] = useState<string | null>(null);
@@ -1130,17 +1095,7 @@ function SentenceOrderBonus({
 
   return (
     <div className="flex w-full flex-col gap-3" data-bonus-sentence-order>
-      {question.nativeSentence ? (
-        <p
-          className={cn(
-            "w-full text-center text-base font-semibold text-white sm:text-lg",
-          )}
-          data-bonus-native-sentence
-        >
-          {formatSuperWaterText(locale, question.nativeSentence)}
-        </p>
-      ) : null}
-      <div className="min-h-20 rounded-xl border border-border bg-background-card p-3 text-left" data-bonus-sentence-display>
+      <div className="-mt-2 min-h-[7.5rem] -translate-y-7 rounded-xl border border-border bg-background-card p-3 text-left" data-bonus-sentence-display>
         {selectedIds.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {selectedIds.map((id, index) => {
@@ -1175,7 +1130,7 @@ function SentenceOrderBonus({
           </div>
         ) : <span className="text-sm text-foreground-muted">…</span>}
       </div>
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="mt-8 flex translate-y-5 flex-wrap justify-center gap-2">
         {displayTokens.map((token) => (
           <QuizWordButton
             key={token.id}
@@ -1301,51 +1256,7 @@ function CategorySortBonus({
 
   return (
     <div className="flex w-full flex-col gap-3" data-bonus-category-sort>
-      <div className="flex flex-wrap justify-center gap-2">
-        {question.words.map((word) => {
-          const assigned = assignments[word.id];
-          const assignedCategoryIndex = assigned
-            ? question.categories.findIndex((category) => category.id === assigned)
-            : -1;
-          const assignedPalette = assignedCategoryIndex >= 0
-            ? CATEGORY_SORT_PALETTES[assignedCategoryIndex % CATEGORY_SORT_PALETTES.length]
-            : null;
-          const correct = showingAnswer && assigned === categoryByWord.get(word.id);
-          const wrong = showingAnswer && assigned !== categoryByWord.get(word.id);
-          const feedback: QuizWordButtonFeedback = correct
-            ? "correct"
-            : wrong
-              ? "incorrect"
-              : showingAnswer
-                ? "muted"
-                : selectedWordId === word.id
-                  ? "selected"
-                  : assigned
-                    ? "matched"
-                    : "idle";
-          return (
-            <QuizWordButton
-              key={word.id}
-              type="button"
-              disabled={showingAnswer}
-              onClick={() => selectWord(word.id)}
-              wordType={showingAnswer ? "inactive" : "select"}
-              selected={feedback === "selected"}
-              feedback={feedback === "selected" ? undefined : feedback}
-              className={cn(
-                "min-h-14",
-                feedback === "matched" && assignedPalette?.background,
-                returningWordIds[word.id] && "animate-bonus-category-word-return",
-              )}
-              data-bonus-category-word={word.id}
-              data-bonus-result={feedback === "matched" ? "idle" : feedback}
-            >
-              {word.text}
-            </QuizWordButton>
-          );
-        })}
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="relative -translate-y-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {question.categories.map((category) => {
           const categoryIndex = question.categories.findIndex((candidate) => candidate.id === category.id);
           const palette = CATEGORY_SORT_PALETTES[categoryIndex % CATEGORY_SORT_PALETTES.length];
@@ -1392,7 +1303,8 @@ function CategorySortBonus({
                 <span className="flex min-h-8 flex-wrap gap-1">
                   {words.map((word) => {
                     const isReturning = exitingAssignments[word.id] === category.id && assignments[word.id] !== category.id;
-                    const correct = showingAnswer && assignments[word.id] === categoryByWord.get(word.id);
+                    const placed = !isReturning && assignments[word.id] === category.id;
+                    const correct = placed && (!showingAnswer || assignments[word.id] === categoryByWord.get(word.id));
                     const wrong = showingAnswer && assignments[word.id] !== categoryByWord.get(word.id);
                     const feedback: QuizWordButtonFeedback = correct
                       ? "correct"
@@ -1412,6 +1324,7 @@ function CategorySortBonus({
                         }}
                         wordType={showingAnswer || isReturning ? "inactive" : "select"}
                         feedback={feedback}
+                        correctClassName={cn(palette.background, "border-transparent text-white")}
                         className={cn(
                           "px-1.5 py-1 text-xs text-white border-white/30",
                           palette.background,
@@ -1426,6 +1339,50 @@ function CategorySortBonus({
                 </span>
               </div>
             </div>
+          );
+        })}
+      </div>
+      <div className="relative translate-y-5 flex flex-wrap justify-center gap-2">
+        {question.words.map((word) => {
+          const assigned = assignments[word.id];
+          const assignedCategoryIndex = assigned
+            ? question.categories.findIndex((category) => category.id === assigned)
+            : -1;
+          const assignedPalette = assignedCategoryIndex >= 0
+            ? CATEGORY_SORT_PALETTES[assignedCategoryIndex % CATEGORY_SORT_PALETTES.length]
+            : null;
+          const correct = showingAnswer && assigned === categoryByWord.get(word.id);
+          const wrong = showingAnswer && assigned !== categoryByWord.get(word.id);
+          const feedback: QuizWordButtonFeedback = correct
+            ? "correct"
+            : wrong
+              ? "incorrect"
+              : showingAnswer
+                ? "muted"
+                : selectedWordId === word.id
+                  ? "selected"
+                  : assigned
+                    ? "matched"
+                    : "idle";
+          return (
+            <QuizWordButton
+              key={word.id}
+              type="button"
+              disabled={showingAnswer}
+              onClick={() => selectWord(word.id)}
+              wordType={showingAnswer ? "inactive" : "select"}
+              selected={feedback === "selected"}
+              feedback={feedback === "selected" ? undefined : feedback}
+              className={cn(
+                "min-h-14",
+                feedback === "matched" && assignedPalette?.background,
+                returningWordIds[word.id] && "animate-bonus-category-word-return",
+              )}
+              data-bonus-category-word={word.id}
+              data-bonus-result={feedback === "matched" ? "idle" : feedback}
+            >
+              {word.text}
+            </QuizWordButton>
           );
         })}
       </div>
@@ -1457,12 +1414,12 @@ function ImposterBonus({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const copy = getBonusCopy(locale);
   const groupLabel = t(`cards.groups.${question.groupId}` as never);
-  const isCorrect = selectedId === question.correctOptionId;
 
   function selectOption(optionId: string) {
     if (showingAnswer) return;
     playSoundEffect("bonus-select");
     setSelectedId(optionId);
+    onSubmit("imposter", optionId === question.correctOptionId);
   }
 
   return (
@@ -1498,7 +1455,7 @@ function ImposterBonus({
               wordType={showingAnswer ? "inactive" : "select"}
               selected={feedback === "selected"}
               feedback={feedback === "selected" ? undefined : feedback}
-              className="min-h-16 w-full text-lg sm:text-xl"
+              className="h-[5.2rem] min-h-[5.2rem] w-full text-lg sm:text-xl"
               data-bonus-imposter-option={option.id}
               data-bonus-result={feedback}
             >
@@ -1507,12 +1464,15 @@ function ImposterBonus({
           );
         })}
       </div>
-      <BonusCheckButton
-        disabled={!selectedId || showingAnswer}
-        onClick={() => onSubmit("imposter", isCorrect)}
-        showingAnswer={showingAnswer}
-        onSkip={onSkip}
-      />
+      <QuizMobileActionPortal withinTransition>
+        <div className="mt-1 flex w-full justify-center" data-quiz-bottom-actions>
+          <QuizSkipButton
+            className="w-full max-w-sm"
+            disabled={showingAnswer}
+            onClick={onSkip}
+          />
+        </div>
+      </QuizMobileActionPortal>
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{copy.imposterTitle}</span>
     </div>
@@ -1543,9 +1503,9 @@ function BonusCheckButton({
         <div
           className={cn(
             "quiz-action-depth quiz-action-depth--check min-w-0 flex-[1.45]",
-            disabled && "quiz-action-depth--locked",
-            showingAnswer && "hidden",
+            (disabled || showingAnswer) && "quiz-action-depth--locked",
           )}
+          data-quiz-check-action
         >
           <Button
             type="button"
@@ -1562,14 +1522,8 @@ function BonusCheckButton({
   );
 }
 
-const MATCHING_PAIR_COLORS = [
-  { background: "#22c55e", foreground: "#ffffff" },
-  { background: "#3b82f6", foreground: "#ffffff" },
-  { background: "#8b5cf6", foreground: "#ffffff" },
-  { background: "#eab308", foreground: "#111827" },
-] as const;
-
-const MATCHING_PAIR_ANIMATION_MS = 520;
+const MATCHING_CORRECT_ANIMATION_MS = 700;
+const MATCHING_INVALID_ANIMATION_MS = 420;
 
 function getBonusTitle(copy: ReturnType<typeof getBonusCopy>, kind: BonusQuestion["kind"]) {
   if (kind === "matching") return copy.matchingTitle;

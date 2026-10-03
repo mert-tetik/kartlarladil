@@ -3,6 +3,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import {
   CARD_GROUPS,
   CARD_GROUP_IMAGE_PATHS,
+  getCardGroupForCard,
   getCardsForGroup,
   type CardGroupIcon,
 } from "@/features/cards/card-groups";
@@ -97,7 +98,7 @@ export const generatedCategoryBonusSchema = z.object({
       name: z.string().trim().min(1).max(60),
       cardIds: z.array(z.string().trim().min(1).max(160)).length(3),
     }),
-  ).length(3),
+  ).length(2),
 });
 
 export type GeneratedSentenceBonus = z.infer<typeof generatedSentenceBonusSchema>;
@@ -403,10 +404,10 @@ export function buildFallbackCategoryBonusQuestion(
       wordIds: categoryWordIds,
     });
 
-    if (categories.length === 3) break;
+    if (categories.length === 2) break;
   }
 
-  if (categories.length !== 3) return null;
+  if (categories.length !== 2) return null;
 
   return {
     kind: "category-sort",
@@ -425,9 +426,8 @@ export function buildImposterBonusQuestion(
   if (!group) return null;
 
   const groupCards = shuffle(getCardsForGroup(group.id, language)).slice(0, IMPOSTER_GROUP_WORD_COUNT);
-  const groupKeys = new Set(group.englishKeys.map((key) => key.toLowerCase()));
   const outsider = shuffle(VOCABULARY_CARDS).find(
-    (card) => card.language === language && !groupKeys.has(card.englishKey.toLowerCase()),
+    (card) => card.language === language && getCardGroupForCard(card)?.id !== group.id,
   );
 
   if (!outsider) return null;
