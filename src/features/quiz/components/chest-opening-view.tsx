@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent } from "react";
 import Image from "next/image";
 import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
-import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { CHEST_TIER_OPENING_VIDEOS, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
@@ -22,6 +21,7 @@ interface ChestOpeningViewProps {
   onComplete: () => void;
   onRewardReady?: () => Promise<ChestRewardOutcome | null>;
   reward?: ChestRewardOutcome | null;
+  enterWithCss?: boolean;
 }
 
 type ChestPhase = "playing" | "revealed" | "disappearing";
@@ -31,6 +31,7 @@ const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const VIDEO_LAST_FRAME_HOLD_MS = 2000;
 const VIDEO_AUDIO_FADE_DURATION_MS = 800;
 const DISAPPEAR_MS = 500;
+const DOUBLE_TAP_WINDOW_MS = 280;
 
 const GEM_REWARD_BOX_CLASSES: Record<GemType, string> = {
   blue: "border-sky-300/60 bg-sky-500/95",
@@ -44,7 +45,14 @@ const GEM_REWARD_FOOTER_CLASSES: Record<GemType, string> = {
   purple: "bg-violet-700/90",
 };
 
-export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady, reward }: ChestOpeningViewProps) {
+export function ChestOpeningView({
+  tier,
+  totalPoints,
+  onComplete,
+  onRewardReady,
+  reward,
+  enterWithCss = true,
+}: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
   const usesSuperWater = canUseSuperWater(locale);
@@ -72,6 +80,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const rewardRevealTriggeredRef = useRef(false);
   const hasShownRewardsRef = useRef(false);
   const hasTriggeredOpenHapticRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoCompletionModeRef = useRef<"playing" | "ended" | "skipped">("playing");
+  const lastTapAtRef = useRef(0);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
   const rewardPointsRef = useRef<HTMLDivElement | null>(null);
@@ -82,6 +93,9 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   const videoEndCloseTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
   const videoRevealTimeoutRef = useRef<number | null>(null);
+  const pointsScatterCompleteRef = useRef(false);
+  const gemsScatterCompleteRef = useRef(false);
+  const scatterCompletionTriggeredRef = useRef(false);
 
   const rewardGemSourceRefs = useMemo<Partial<Record<GemType, RefObject<HTMLElement | null>>>>(
     () => ({ blue: blueGemRewardRef, green: greenGemRewardRef, purple: purpleGemRewardRef }),
@@ -143,8 +157,60 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     completeTimeoutRef.current = window.setTimeout(onComplete, DISAPPEAR_MS);
   }, [onComplete]);
 
+  const tryCompleteAfterSkippedScatter = useCallback(() => {
+    if (videoCompletionModeRef.current !== "skipped") return;
+    if (scatterCompletionTriggeredRef.current) return;
+
+    const currentRewardPoints = rewardOutcome?.points ?? tier.points;
+    const currentRewardList = rewardOutcome?.rewards ?? [];
+    const pointsFinished = currentRewardPoints <= 0 || pointsScatterCompleteRef.current;
+    const gemsFinished = currentRewardList.length === 0 || gemsScatterCompleteRef.current;
+    if (!pointsFinished || !gemsFinished) return;
+
+    scatterCompletionTriggeredRef.current = true;
+    handleCollect();
+  }, [handleCollect, rewardOutcome, tier.points]);
+
+  const skipVideoToLastFrame = useCallback(() => {
+    if (phase !== "playing" || videoCompletionModeRef.current !== "playing") return;
+
+    videoCompletionModeRef.current = "skipped";
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.volume = 0;
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        try {
+          video.currentTime = video.duration;
+        } catch {
+          // Some browsers reject seeking while the media element is still loading.
+        }
+      }
+    }
+    revealAtVideoTimestamp();
+  }, [phase, revealAtVideoTimestamp]);
+
+  const handleSurfacePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") return;
+
+    const now = Date.now();
+    if (now - lastTapAtRef.current <= DOUBLE_TAP_WINDOW_MS) {
+      lastTapAtRef.current = 0;
+      skipVideoToLastFrame();
+      return;
+    }
+    lastTapAtRef.current = now;
+  }, [skipVideoToLastFrame]);
+
   const handleVideoEnded = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
     event.currentTarget.volume = 0;
+    if (videoCompletionModeRef.current === "skipped") {
+      event.currentTarget.pause();
+      revealAtVideoTimestamp();
+      return;
+    }
+
+    videoCompletionModeRef.current = "ended";
     revealAtVideoTimestamp();
     if (videoEndCloseTimeoutRef.current !== null) {
       window.clearTimeout(videoEndCloseTimeoutRef.current);
@@ -165,6 +231,8 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
   useEffect(() => {
     setVideoSource(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
     setVideoUnavailable(false);
+    videoCompletionModeRef.current = "playing";
+    lastTapAtRef.current = 0;
   }, [tier.tier]);
 
   useEffect(() => {
@@ -234,13 +302,20 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
     <div
       data-chest-opening-view
       data-chest-opening-layout
+      onPointerUp={handleSurfacePointerUp}
+      onDoubleClick={skipVideoToLastFrame}
       className={cn(
-        "relative flex h-full min-h-full w-full items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
-        phase === "disappearing" ? "animate-chest-screen-close" : "animate-screen-pop",
+        "relative flex h-full min-h-full w-full touch-manipulation items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
+        phase === "disappearing"
+          ? "animate-chest-screen-close"
+          : enterWithCss
+            ? "animate-screen-pop"
+            : "opacity-100",
       )}
     >
       {!videoUnavailable ? <video
         key={videoSource}
+        ref={videoRef}
         autoPlay
         playsInline
         preload="auto"
@@ -392,10 +467,18 @@ export function ChestOpeningView({ tier, totalPoints, onComplete, onRewardReady,
           setDisplayPoints(stableTotalPoints + awardedTotal);
           setPointsDisplayPulse(arrivalIndex);
         }}
-        onPointsComplete={() => setPointsPhase("added")}
+        onPointsComplete={() => {
+          pointsScatterCompleteRef.current = true;
+          setPointsPhase("added");
+          tryCompleteAfterSkippedScatter();
+        }}
         onGemLaunch={bumpGemSourcePulse}
         onGemArrive={handleGemArrive}
-        onGemsComplete={() => finishGemRewardDisplay(gemFinalBalancesRef.current)}
+        onGemsComplete={() => {
+          gemsScatterCompleteRef.current = true;
+          finishGemRewardDisplay(gemFinalBalancesRef.current);
+          tryCompleteAfterSkippedScatter();
+        }}
       />
     </div>
   );

@@ -906,7 +906,7 @@ export function MobileLandingDashboard() {
               aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
               data-mobile-main-points
             >
-              <span className="bg-gradient-to-r from-[var(--score-start)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-transparent">
+              <span className="text-[#fbbf24]">
                 {formatNumber(locale, stats.totalPoints)}
               </span>
               <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />

@@ -19,6 +19,7 @@ export type SoundEffectName =
   | "card-swipe-left"
   | "chest-tap"
   | "chest-open"
+  | "chest-crack"
   | "clock-tick-low"
   | "clock-tick-high"
   | "level-fail"
@@ -32,6 +33,12 @@ interface BrowserAudioWindow extends Window {
   AudioContext?: typeof AudioContext;
   webkitAudioContext?: typeof AudioContext;
 }
+
+type PitchShiftableAudio = HTMLAudioElement & {
+  preservesPitch?: boolean;
+  mozPreservesPitch?: boolean;
+  webkitPreservesPitch?: boolean;
+};
 
 const SOUND_EFFECTS_ENABLED = true;
 const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
@@ -48,10 +55,13 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
   "chest-open": "/sounds/chest.mp3",
+  "chest-crack": "/sounds/crack-audio.mp3",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
   "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
   "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
+  // Source: user-provided Downloads/koiroylers-get-coin-351945.mp3.
+  "result-star-collect": "/sounds/medal-collect-koiroylers-v1.mp3",
 };
 const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
   "streak-video-whoosh": 0.8,
@@ -99,7 +109,7 @@ function playSynthesizedEffect(effect: SoundEffectName) {
   }
 }
 
-function playAudioFile(effect: SoundEffectName) {
+function playAudioFile(effect: SoundEffectName, playbackRate = 1) {
   if (typeof window === "undefined") {
     return false;
   }
@@ -124,6 +134,12 @@ function playAudioFile(effect: SoundEffectName) {
     const audio = new AudioConstructor(src);
     audio.preload = "auto";
     audio.volume = SOUND_EFFECT_VOLUMES[effect] ?? 1;
+    const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
+    audio.playbackRate = rate;
+    const pitchShiftableAudio = audio as PitchShiftableAudio;
+    pitchShiftableAudio.preservesPitch = false;
+    pitchShiftableAudio.mozPreservesPitch = false;
+    pitchShiftableAudio.webkitPreservesPitch = false;
 
     const playResult = audio.play();
     if (playResult && typeof playResult.catch === "function") {
@@ -540,6 +556,19 @@ function chestTap(context: AudioContext, now: number) {
   playTone(context, { frequency: 120, startTime: now, duration: 0.08, gain: 0.1, type: "sine" });
 }
 
+function chestCrack(context: AudioContext, now: number) {
+  // Fallback for the provided crack sample if file playback is unavailable.
+  playNoise(context, { startTime: now, duration: 0.12, gain: 0.11, filterFrequency: 260 });
+  playTone(context, {
+    frequency: 115,
+    endFrequency: 58,
+    startTime: now,
+    duration: 0.13,
+    gain: 0.08,
+    type: "sawtooth",
+  });
+}
+
 function chestOpen(context: AudioContext, now: number) {
   // Magical rising sweep + bright chord.
   playTone(context, {
@@ -639,6 +668,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "card-swipe-left": cardSwipeLeft,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
+  "chest-crack": chestCrack,
   "clock-tick-low": clockTickLow,
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,
@@ -648,12 +678,12 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "result-star-collect": resultStarCollect,
 };
 
-export function playSoundEffect(effect: SoundEffectName) {
+export function playSoundEffect(effect: SoundEffectName, options?: { playbackRate?: number }) {
   if (!SOUND_EFFECTS_ENABLED) {
     return;
   }
 
-  if (playAudioFile(effect)) {
+  if (playAudioFile(effect, options?.playbackRate)) {
     return;
   }
 

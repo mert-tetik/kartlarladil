@@ -59,6 +59,18 @@ const nextConfig: NextConfig = {
         pathname: "/quiz/result-cards/star.png",
         search: "?v=20261003-2",
       },
+      {
+        pathname: "/quiz/continuation-motivations/**",
+        search: "?v=20261005-1",
+      },
+      {
+        pathname: "/quiz/result-cards/star.png",
+        search: "?v=20261005-1",
+      },
+      {
+        pathname: "/leaderboard-icon.png",
+        search: "?v=20261005-1",
+      },
     ],
   },
   async redirects() {

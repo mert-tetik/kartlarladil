@@ -1,5 +1,5 @@
 {
-  "version": "aca2eaa3064fbcaaa555f9012353de319b0bffee49f1c000ce25e78672f580b2",
+  "version": "216b9396ede3fd4ca95fd543a65a96d7df3329970a3f7f137d2f01bb2e916f9e",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -496,6 +496,10 @@
     {
       "url": "/chests/chest_background.png",
       "revision": "bee82eef4adc486164398fca265b7ebb4d221f0c74c0ba8e10b56706648b2191"
+    },
+    {
+      "url": "/chests/crack.png",
+      "revision": "4185024d2b90f0dfa43d73703d519eea2173ce4970edfe5eb8b2bafc878f537b"
     },
     {
       "url": "/chests/diamond_chest.png",
@@ -3774,6 +3778,54 @@
       "revision": "3ed579f0a6efef8c167c35c57eaaf13bfdc3fb55b396aa83c1b58d54bb9a25af"
     },
     {
+      "url": "/quiz/continuation-motivations/accuracy-classic-v2-20261004.png",
+      "revision": "a078a10d3e142b8fd9b16dc894704191b3f1612b9aa266c9c4327605c33ade0e"
+    },
+    {
+      "url": "/quiz/continuation-motivations/almost-learned-card-ref-20261004.png",
+      "revision": "5c3e6f3f2db11725c597f7baff7abaa10f21bb9d82add5bf408553d6c62a8ac0"
+    },
+    {
+      "url": "/quiz/continuation-motivations/continue-motivation-character.png",
+      "revision": "e2ab6a9e75ccc5048cab01a0b341b87affb7419135d050a9825b21d963b0c9c5"
+    },
+    {
+      "url": "/quiz/continuation-motivations/draw-cards-card-ref-20261004.png",
+      "revision": "0f0d505b0d866a61bca369a4c580414a2d84051dd46df7d70c35a405fb7f8eb4"
+    },
+    {
+      "url": "/quiz/continuation-motivations/gems-classic-v2-20261004.png",
+      "revision": "6dd1518aeb591dad631cee30ad1950c5094a0fa53964823a6842a47ed4243d99"
+    },
+    {
+      "url": "/quiz/continuation-motivations/level-up-card-ref-20261004.png",
+      "revision": "f030a7177902cadc317832a317b51400be7fa404a2f5d5076998055103686240"
+    },
+    {
+      "url": "/quiz/continuation-motivations/missed-chest-classic-v2-20261004.png",
+      "revision": "241dcb718dbe2341ea028da16e451962ae5d92a8057528346c87c1b1de1d7671"
+    },
+    {
+      "url": "/quiz/continuation-motivations/mistakes-card-ref-20261004.png",
+      "revision": "9f245cc3cfcc31b620b5b56fdb7fb279f186acc37b241462d86d10125d95f29d"
+    },
+    {
+      "url": "/quiz/continuation-motivations/next-rank-classic-v2-20261004.png",
+      "revision": "ce541ea801cb9d08fe1c3565140b5be3d90e650392a45db3cd304066506f5077"
+    },
+    {
+      "url": "/quiz/continuation-motivations/review-motivation-character.png",
+      "revision": "d9d5003143f3a6d7cb592b5cc78ebb92755f2bb29c32d674ea62b634a3547baf"
+    },
+    {
+      "url": "/quiz/continuation-motivations/waiting-cards-card-ref-20261004.png",
+      "revision": "3fe44f6ad722b6d1a7d29a73b2af2d1ad167ce5f41b04cf28c1aa446e84ad434"
+    },
+    {
+      "url": "/quiz/continuation-motivations/xp-classic-v2-20261004.png",
+      "revision": "df34d5dba7f585b1dc43db72dcbd9b8faca1fdf4333550d2c6c815ff6a6ad5f3"
+    },
+    {
       "url": "/quiz/count-options/10.png",
       "revision": "3b888065a6100b247b2f48ad3c0d63a231e30016352258652fa291e53c811793"
     },
@@ -3880,6 +3932,10 @@
     {
       "url": "/result-buttons/replay_button.png",
       "revision": "d6072a36e53e5333a6c3a2928c95f1b8d82095c613dd48d776bb7109ce699626"
+    },
+    {
+      "url": "/result-buttons/replay_button_blue.png",
+      "revision": "b7d365c14ddb14cdf65d8dcd7f9a67399ec907994ec00731fc84e4d539d0f834"
     },
     {
       "url": "/score-icon.webp",

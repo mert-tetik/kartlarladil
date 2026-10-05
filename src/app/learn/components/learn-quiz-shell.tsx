@@ -16,6 +16,8 @@ import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration
 import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
 import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
 import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
+import { QuizChestRewardTest } from "@/app/learn/components/quiz-chest-reward-test";
+import { QuizContinuationMotivationTest } from "@/app/learn/components/quiz-continuation-motivation-test";
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
 import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
 import { QuizWordButtonTest } from "@/app/learn/components/quiz-word-button-test";
@@ -38,11 +40,14 @@ interface LearnQuizShellProps {
   streakRewardTest?: boolean;
   resultTest?: boolean;
   resultMessageTest?: boolean;
+  chestRewardTest?: boolean;
+  continuationMotivationTest?: boolean;
   bonusTest?: boolean;
   bonusAfterEach?: boolean;
   normalTest?: boolean;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
   quizWordButtonTest?: boolean;
+  quizCompletionTest?: boolean;
 }
 
 export function LearnQuizShell({
@@ -55,11 +60,14 @@ export function LearnQuizShell({
   streakRewardTest = false,
   resultTest = false,
   resultMessageTest = false,
+  chestRewardTest = false,
+  continuationMotivationTest = false,
   bonusTest = false,
   bonusAfterEach = false,
   normalTest = false,
   normalQuestionType = null,
   quizWordButtonTest = false,
+  quizCompletionTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -114,7 +122,7 @@ export function LearnQuizShell({
   }, [initialMode]);
 
   useEffect(() => {
-    if (bonusTest || normalTest) return;
+    if (bonusTest || normalTest || chestRewardTest || continuationMotivationTest) return;
 
     if (!hydrated || cloudLoading || !cloudInventoryReady) {
       return;
@@ -134,6 +142,8 @@ export function LearnQuizShell({
     hasUsableCardsForMode,
     hydrated,
     normalTest,
+    chestRewardTest,
+    continuationMotivationTest,
     ownerUserId,
     redirectToLanding,
     selectedMode,
@@ -161,6 +171,14 @@ export function LearnQuizShell({
 
   if (resultMessageTest) {
     return <QuizResultMessageTest />;
+  }
+
+  if (chestRewardTest) {
+    return <QuizChestRewardTest />;
+  }
+
+  if (continuationMotivationTest) {
+    return <QuizContinuationMotivationTest />;
   }
 
   if (quizWordButtonTest) {
@@ -220,6 +238,7 @@ export function LearnQuizShell({
               initialLanguage={initialLanguage ?? undefined}
               normalQuestionType={normalQuestionType}
               bonusAfterEachNormalQuestion={bonusAfterEach}
+              quizCompletionTest={quizCompletionTest}
               onPhaseChange={setPhase}
               onBackToMode={() => {
                 setSelectedMode(null);

@@ -69,6 +69,16 @@ function parseResultMessageTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseChestRewardTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseContinuationMotivationTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseBonusTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -85,6 +95,11 @@ function parseNormalTest(value: string | string[] | undefined): boolean {
 }
 
 function parseQuizWordButtonTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseQuizCompletionTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
 }
@@ -124,6 +139,12 @@ export default async function LearnPage({
   const streakRewardTest = parseStreakRewardTest(params["streak-reward-test"]);
   const resultTest = parseResultTest(params["result-test"]);
   const resultMessageTest = parseResultMessageTest(params["result-message-test"]);
+  const chestRewardTest = parseChestRewardTest(params["chest-reward-test"]);
+  const continuationMotivationTest = parseContinuationMotivationTest(
+    params["continuation-test"] ??
+      params["continuation-motivation-test"] ??
+      params["quiz-continuation-test"],
+  );
   const bonusTest = parseBonusTest(params["bonus-test"]);
   const bonusAfterEach = parseBonusAfterEach(params["bonus-after-each"]);
   const normalTestValue = params["normal-test"] ?? params["quiz-normal-test"];
@@ -137,6 +158,7 @@ export default async function LearnPage({
   const quizWordButtonTest = parseQuizWordButtonTest(
     params["quiz-word-button-test"] ?? params["quiz-button-test"],
   );
+  const quizCompletionTest = parseQuizCompletionTest(params["quiz-completion-test"]);
 
   return (
     <section
@@ -154,11 +176,14 @@ export default async function LearnPage({
         streakRewardTest={streakRewardTest}
         resultTest={resultTest}
         resultMessageTest={resultMessageTest}
+        chestRewardTest={chestRewardTest}
+        continuationMotivationTest={continuationMotivationTest}
         bonusTest={bonusTest}
         bonusAfterEach={bonusAfterEach}
         normalTest={normalTest}
         normalQuestionType={normalQuestionType}
         quizWordButtonTest={quizWordButtonTest}
+        quizCompletionTest={quizCompletionTest}
       />
     </section>
   );

@@ -16,6 +16,15 @@ export const CHEST_TIER_TEXT_CLASSES: Record<ChestTier, string> = {
   ruby: "text-red-500",
 };
 
+export const CHEST_TIER_BUTTON_CLASSES: Record<ChestTier, string> = {
+  wood: "bg-amber-800",
+  iron: "bg-slate-500",
+  gold: "bg-yellow-500",
+  diamond: "bg-cyan-400",
+  emerald: "bg-emerald-500",
+  ruby: "bg-red-500",
+};
+
 export const CHEST_TIER_BORDER_CLASSES: Record<ChestTier, string> = {
   wood: "border-amber-800",
   iron: "border-slate-500",

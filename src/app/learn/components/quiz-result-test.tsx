@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
+import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import { ResultFlowView } from "@/features/quiz/components/quiz-station";
 
 const TEST_CARDS = VOCABULARY_CARDS.slice(0, 10);
 const RESULT_TEST_LEARNED_CARDS = VOCABULARY_CARDS.slice(0, 14);
 const RESULT_TEST_ADVANCED_CARDS = VOCABULARY_CARDS.slice(14, 28);
 const RESULT_TEST_REOPEN_DELAY_MS = 1000;
+const RESULT_TEST_IRON_CHEST = CHEST_TIERS.find((tier) => tier.tier === "iron") ?? CHEST_TIERS[0]!;
 
 export function QuizResultTest() {
   const [round, setRound] = useState(0);
@@ -52,10 +55,18 @@ export function QuizResultTest() {
             selectedCount={10}
             quizDurationSeconds={113}
             chestOpened
+            showChestRewardGate
+            chestTier={round % 2 === 0 ? RESULT_TEST_IRON_CHEST : null}
+            chestTotalPoints={0}
+            onChestRewardReady={round % 2 === 0
+              ? () => Promise.resolve(createChestRewardPreview("iron"))
+              : undefined}
             locked={false}
             showResultMessage
             learnedCards={RESULT_TEST_LEARNED_CARDS}
             advancedCards={RESULT_TEST_ADVANCED_CARDS}
+            currentRankIcon="medal"
+            nextRankIcon="book"
             onContinue={handleContinue}
             onRestart={handleContinue}
             onExit={() => undefined}

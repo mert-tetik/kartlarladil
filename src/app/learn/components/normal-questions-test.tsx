@@ -279,8 +279,6 @@ export function NormalQuestionsTest() {
       <MobileQuizTopBar
         currentIndex={questionIndex}
         total={Math.max(questions.length, 1)}
-        totalPoints={0}
-        scorePulse={0}
         questionPrompt={null}
         onExit={() => undefined}
       />

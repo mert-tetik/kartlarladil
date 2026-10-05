@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -199,7 +200,7 @@ public class LauncherActivity extends Activity {
                     immediateUpdateFlowActive = false;
                     finish();
                 }
-            } catch (RuntimeException ignored) {
+            } catch (IntentSender.SendIntentException | RuntimeException ignored) {
                 // A broken/unavailable Play flow must not leave a blank shell.
                 immediateUpdateFlowActive = false;
                 finish();

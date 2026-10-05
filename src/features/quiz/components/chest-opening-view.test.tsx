@@ -15,9 +15,11 @@ vi.mock("@/lib/vibration", () => ({
 describe("ChestOpeningView", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -104,5 +106,44 @@ describe("ChestOpeningView", () => {
       vi.advanceTimersByTime(500);
     });
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the opening video on a touch double tap and reveals the rewards immediately", () => {
+    const onComplete = vi.fn();
+    const reward = {
+      points: 20,
+      rewards: [{ type: "blue" as const, amount: 2 }],
+      balances: { blue: 2, green: 0, purple: 0 },
+    };
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={100}
+          reward={reward}
+          onComplete={onComplete}
+        />
+      </LocaleProvider>,
+    );
+
+    const view = document.querySelector("[data-chest-opening-view]");
+    const video = document.querySelector<HTMLVideoElement>("[data-chest-opening-video]");
+    expect(view).toBeInTheDocument();
+    expect(video).toBeInTheDocument();
+    Object.defineProperty(video, "duration", { configurable: true, value: 5 });
+    Object.defineProperty(video, "currentTime", { configurable: true, writable: true, value: 1 });
+
+    act(() => {
+      fireEvent.pointerUp(view!, { pointerType: "touch" });
+      vi.advanceTimersByTime(100);
+      fireEvent.pointerUp(view!, { pointerType: "touch" });
+    });
+
+    expect(video).toHaveProperty("currentTime", 5);
+    expect(document.querySelector("[data-chest-reward-sources]")).toBeInTheDocument();
+    expect(document.querySelector("[data-chest-opening-video]")).toBeInTheDocument();
+    expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
+    expect(onComplete).not.toHaveBeenCalled();
   });
 });

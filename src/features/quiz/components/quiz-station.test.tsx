@@ -1175,7 +1175,7 @@ describe("QuizStation sound feedback", () => {
     expect(nextButton).toBeEnabled();
   });
 
-  it("uses one mobile quiz control bar for exit, session progress, and score", async () => {
+  it("uses one mobile quiz control bar for exit and session progress", async () => {
     renderQuizStation();
     await startChoiceQuiz();
 
@@ -1191,9 +1191,9 @@ describe("QuizStation sound feedback", () => {
     expect(progressTrack).toHaveClass("h-3.5", "rounded-full");
     expect(progressIndicator).toHaveClass("bg-amber-400");
     expect(progressIndicator).not.toHaveClass("bg-gradient-to-r");
-    expect(bar?.querySelector("[data-quiz-progress-midpoint]")).toHaveClass("bg-amber-400");
-    expect(bar?.querySelector("[data-quiz-progress-end]")).toHaveClass("bg-amber-400");
-    expect(bar?.querySelector("[data-quiz-total-score]")).toHaveTextContent("0");
+    expect(bar?.querySelector("[data-quiz-progress-midpoint]")).not.toBeInTheDocument();
+    expect(bar?.querySelector("[data-quiz-progress-end]")).not.toBeInTheDocument();
+    expect(bar?.querySelector("[data-quiz-total-score]")).not.toBeInTheDocument();
   });
 
   it("reveals and then updates progress without moving the quiz layout", async () => {

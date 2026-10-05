@@ -422,37 +422,6 @@ export function RewardScatter({
 
   return createPortal(
     <>
-      {flights
-        .filter((flight) => flight.channel === "stars")
-        .map((flight) => (
-          <span
-            key={`${flight.id}-origin`}
-            aria-hidden="true"
-            data-reward-star-origin
-            className="pointer-events-none fixed left-0 top-0 block"
-            style={{
-              width: flight.iconSize,
-              height: flight.iconSize,
-              zIndex: Math.max(0, flight.zIndex - 1),
-              transform: `translate3d(${flight.startX}px, ${flight.startY}px, 0)`,
-            }}
-          >
-            <img
-              src={STAR_IMAGE_SRC}
-              alt=""
-              width={flight.iconSize}
-              height={flight.iconSize}
-              draggable={false}
-              className="object-contain"
-              style={{
-                width: flight.iconSize,
-                height: flight.iconSize,
-                filter: "brightness(0)",
-                opacity: 0.24,
-              }}
-            />
-          </span>
-        ))}
       {flights.map((flight) => (
         <span
           key={flight.id}

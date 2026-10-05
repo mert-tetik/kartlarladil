@@ -9,9 +9,11 @@ vi.mock("@/features/quiz/components/quiz-station", () => ({
       selectedCount: number;
       chestOpened: boolean;
       showResultMessage: boolean;
+      showChestRewardGate: boolean;
+      chestTier: { tier: string } | null;
       learnedCards: unknown[];
       advancedCards: unknown[];
-      onRestart: () => void;
+      onContinue: () => void;
     }) => (
       <button
         type="button"
@@ -23,9 +25,11 @@ vi.mock("@/features/quiz/components/quiz-station", () => ({
         data-selected-count={props.selectedCount}
         data-chest-opened={String(props.chestOpened)}
         data-result-message={String(props.showResultMessage)}
+        data-chest-gate={String(props.showChestRewardGate)}
+        data-chest-tier={props.chestTier?.tier ?? "missed"}
         data-learned-cards={props.learnedCards.length}
         data-advanced-cards={props.advancedCards.length}
-        onClick={props.onRestart}
+        onClick={props.onContinue}
       />
     ),
 }));
@@ -42,6 +46,8 @@ describe("QuizResultTest", () => {
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-selected-count", "10");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-opened", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-result-message", "true");
+    expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-gate", "true");
+    expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-tier", "iron");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-learned-cards", "14");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-advanced-cards", "14");
   });
@@ -64,6 +70,7 @@ describe("QuizResultTest", () => {
       });
 
       expect(document.querySelector("[data-result-test-view]")).toBeInTheDocument();
+      expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-tier", "missed");
       expect(document.querySelector("[data-quiz-result-test]")).toHaveAttribute(
         "data-quiz-result-test-round",
         "1",

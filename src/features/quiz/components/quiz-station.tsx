@@ -122,12 +122,16 @@ import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gem
 import { spendGemAction } from "@/features/gems/gem-actions";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
+import { QuizChestRewardGate } from "@/features/quiz/components/quiz-chest-reward-gate";
+import { QuizContinuationMotivationView } from "@/features/quiz/components/quiz-continuation-motivation-view";
+import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-continuation-motivations";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
   BonusQuestionView,
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
+import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
 import { QuizStarRating } from "@/features/quiz/components/quiz-star-rating";
 import {
   getChestTierByCount,
@@ -158,14 +162,12 @@ import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/component
 import { RewardStarHud } from "@/features/progress/components/reward-star-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
-import { ScorePulse } from "@/features/progress/components/score-pulse";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 import type { RewardScatterRect } from "@/features/progress/reward-scatter";
 
 import {
   formatCards,
   formatNumber,
-  formatPoints,
   getLanguageDisplayName,
   getRankLabel,
 } from "@/i18n/labels";
@@ -194,6 +196,7 @@ import type {
   TrueFalseQuizQuestion,
   AiPracticeCharacter,
   RankDefinition,
+  RankIconId,
   VocabularyCard,
 } from "@/types/domain";
 
@@ -201,6 +204,7 @@ type QuizPhase =
   | "language"
   | "count"
   | "quiz"
+  | "quiz-completion"
   | "streak-celebration"
   | "streak-reward"
   | "celebration"
@@ -540,6 +544,7 @@ export function QuizStation({
   initialLanguage,
   normalQuestionType,
   bonusAfterEachNormalQuestion = false,
+  quizCompletionTest = false,
   onPhaseChange,
   onBackToMode,
 }: {
@@ -547,6 +552,7 @@ export function QuizStation({
   initialLanguage?: LanguageCode;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
   bonusAfterEachNormalQuestion?: boolean;
+  quizCompletionTest?: boolean;
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
 }) {
@@ -613,6 +619,11 @@ export function QuizStation({
   const [chestCelebrationNextPhase, setChestCelebrationNextPhase] = useState<
     "chest" | "streak-reward" | "result-pending" | null
   >(null);
+  const [quizCompletionNextPhase, setQuizCompletionNextPhase] = useState<
+    "streak-reward" | "result-pending"
+  >("result-pending");
+  const [quizCompletionHasAchievementCards, setQuizCompletionHasAchievementCards] = useState(false);
+  const [quizCompletionTestNextIndex, setQuizCompletionTestNextIndex] = useState<number | null>(null);
   const [resultMessageOnResult, setResultMessageOnResult] = useState(false);
   const [bonusPointFlightEnabled, setBonusPointFlightEnabled] = useState(false);
   const [bonusGemRewards, setBonusGemRewards] = useState<GemRewards>([]);
@@ -696,17 +707,26 @@ export function QuizStation({
     source: HTMLElement;
   };
 
-  function createFallbackTransitionSnapshot(): FallbackTransitionSnapshot | null {
+  function createFallbackTransitionSnapshot({
+    fadeQuizTopBar = false,
+  }: {
+    fadeQuizTopBar?: boolean;
+  } = {}): FallbackTransitionSnapshot | null {
+    const quizPage = document.querySelector<HTMLElement>("[data-learn-quiz-page='quiz']");
+    const quizStage = fadeQuizTopBar ? quizPage?.parentElement : null;
     const source =
       document.querySelector<HTMLElement>("[data-bonus-reward-reveal]") ??
       document.querySelector<HTMLElement>("[data-streak-celebration-view]") ??
+      document.querySelector<HTMLElement>("[data-quiz-completion-progress]") ??
       document.querySelector<HTMLElement>("[data-quiz-card-progress-reveal]") ??
       document.querySelector<HTMLElement>("[data-quiz-celebration]") ??
       document.querySelector<HTMLElement>("[data-quiz-count-selection]") ??
-      document.querySelector<HTMLElement>("[data-learn-quiz-page='quiz']");
+      quizStage ??
+      quizPage;
     if (!source) return null;
 
     const isCountSelectionSnapshot = source.matches("[data-quiz-count-selection]");
+    const isQuizStageSnapshot = source === quizStage;
     const snapshot = source.cloneNode(true) as HTMLElement;
     snapshot.removeAttribute("style");
     snapshot.setAttribute("aria-hidden", "true");
@@ -723,6 +743,14 @@ export function QuizStation({
       snapshot.removeAttribute("data-quiz-count-selection");
       snapshot.setAttribute("data-quiz-transition-fallback-count", "true");
     }
+    if (isQuizStageSnapshot) {
+      snapshot.setAttribute("data-quiz-transition-fallback-quiz-stage", "true");
+    }
+    if (fadeQuizTopBar) {
+      snapshot
+        .querySelector<HTMLElement>("[data-mobile-quiz-top-bar]")
+        ?.classList.add("quiz-completion-topbar-fade");
+    }
     snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
       element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
     });
@@ -733,11 +761,12 @@ export function QuizStation({
 
   type QuizViewTransitionOptions = {
     delayIncomingMs?: number;
+    fadeQuizTopBar?: boolean;
   };
 
   function runQuizViewTransition(
     update: () => void,
-    { delayIncomingMs = 0 }: QuizViewTransitionOptions = {},
+    { delayIncomingMs = 0, fadeQuizTopBar = false }: QuizViewTransitionOptions = {},
   ) {
     if (typeof document === "undefined") {
       update();
@@ -760,6 +789,9 @@ export function QuizStation({
     const isStreakBoundary = Boolean(
       document.querySelector<HTMLElement>("[data-streak-celebration-view]"),
     );
+    const isQuizCompletionBoundary = Boolean(
+      document.querySelector<HTMLElement>("[data-quiz-completion-progress]"),
+    );
     const hasNativeTransition =
       typeof transitionDocument.startViewTransition === "function";
     const shouldDelayIncoming = delayIncomingMs > 0;
@@ -771,6 +803,8 @@ export function QuizStation({
       !isCountBoundary &&
       !isBonusRewardBoundary &&
       !isStreakBoundary &&
+      !isQuizCompletionBoundary &&
+      !fadeQuizTopBar &&
       !shouldDelayIncoming;
     useCssQuizTransitionRef.current = !useNativeTransition;
 
@@ -781,7 +815,7 @@ export function QuizStation({
       return;
     }
 
-    const fallbackTransition = createFallbackTransitionSnapshot();
+    const fallbackTransition = createFallbackTransitionSnapshot({ fadeQuizTopBar });
 
     if (shouldDelayIncoming) {
       if (!fallbackTransition) {
@@ -1365,6 +1399,7 @@ export function QuizStation({
       setChestOpened(false);
       setAwardedChestTier(null);
       setChestCelebrationNextPhase(null);
+      setQuizCompletionTestNextIndex(null);
       setStreak(0);
       setMaxStreak(0);
       setQuizSessionId(sessionId);
@@ -1693,47 +1728,27 @@ export function QuizStation({
           ? "streak-reward"
           : "result-pending";
 
-        if (!hasRewardChest && nextResultPhase === "result-pending") {
-          runQuizViewTransition(
-            () => {
-              setResultMessageOnResult(true);
-              setPhase("result-pending");
-            },
-            { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
-          );
-          return;
+        if (hasRewardChest && selectedCount !== null) {
+          setAwardedChestTier(resolveAwardedChestTier(selectedCount) ?? null);
         }
 
-        if (hasAchievementCards) {
-          runQuizViewTransition(
-            () => {
-              if (hasRewardChest && selectedCount !== null) {
-                setAwardedChestTier(resolveAwardedChestTier(selectedCount) ?? null);
-              }
-              setChestCelebrationNextPhase(hasRewardChest ? "chest" : nextResultPhase);
-              setPhase("chest-celebration");
-            },
-            { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
-          );
-          return;
+        if (resultsOverride) {
+          setResults(quizResults);
         }
-
-        if (hasRewardChest) {
-          runQuizViewTransition(
-            () => {
-              setAwardedChestTier(resolveAwardedChestTier(selectedCount) ?? null);
-              setPhase("chest");
-            },
-            { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
-          );
-          return;
-        }
-
+        setQuizCompletionNextPhase(nextResultPhase);
+        setQuizCompletionHasAchievementCards(hasAchievementCards);
         runQuizViewTransition(
-          () => {
-            setPhase(nextResultPhase);
-          },
-          { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
+          () => setPhase("quiz-completion"),
+          { fadeQuizTopBar: true },
+        );
+        return;
+      }
+
+      if (quizCompletionTest) {
+        setQuizCompletionTestNextIndex(currentIndex + 1);
+        runQuizViewTransition(
+          () => setPhase("quiz-completion"),
+          { fadeQuizTopBar: true },
         );
         return;
       }
@@ -1764,6 +1779,7 @@ export function QuizStation({
       resetQuestionUi,
       results,
       selectedCount,
+      quizCompletionTest,
       announceQuizRankUp,
     ],
   );
@@ -2296,6 +2312,59 @@ export function QuizStation({
     setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
   }
 
+  function handleQuizCompletionComplete() {
+    if (quizCompletionTestNextIndex !== null) {
+      const nextIndex = quizCompletionTestNextIndex;
+      setQuizCompletionTestNextIndex(null);
+      runQuizViewTransition(() => {
+        currentIndexRef.current = nextIndex;
+        setCurrentIndex(nextIndex);
+        setBonusRewardRevealVisible(false);
+        resetQuestionUi();
+        setPhase("quiz");
+      });
+      return;
+    }
+
+    if (quizCompletionNextPhase === "result-pending") {
+      runQuizViewTransition(
+        () => {
+          setResultMessageOnResult(true);
+          setPhase("result-pending");
+        },
+        { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
+      );
+      return;
+    }
+
+    if (quizCompletionHasAchievementCards) {
+      runQuizViewTransition(
+        () => {
+          setChestCelebrationNextPhase(quizCompletionNextPhase);
+          setPhase("chest-celebration");
+        },
+        { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
+      );
+      return;
+    }
+
+    runQuizViewTransition(
+      () => setPhase(quizCompletionNextPhase),
+      { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
+    );
+  }
+
+  function handleResultChestFlowComplete() {
+    if (awardedChestTier) {
+      setChestOpened(true);
+    }
+    setAwardedChestTier(null);
+    if (mode === "learned") {
+      setSelectedCount(null);
+    }
+    setPhase("count");
+  }
+
   async function prepareChestReward(tier: ChestTierDefinition["tier"]): Promise<ChestRewardOutcome | null> {
     if (!user || !quizSessionId) return null;
     setPendingChestAward(true);
@@ -2487,6 +2556,15 @@ export function QuizStation({
     );
   }
 
+  if (phase === "quiz-completion") {
+    return (
+      <QuizCompletionProgressView
+        enterWithCss={useCssQuizTransition}
+        onComplete={handleQuizCompletionComplete}
+      />
+    );
+  }
+
   if (phase === "celebration" && lastLearned) {
     return (
       <CelebrationView
@@ -2500,6 +2578,26 @@ export function QuizStation({
 
   if (phase === "result") {
     const achievementCards = getQuizAchievementCards(results);
+    const currentNormalItems = deck.filter((item) => !isBonusQuizItem(item));
+    const nearLearnedCards = new Set(
+      currentNormalItems
+        .filter((item) => {
+          if (mode !== "active" || item.willLearn || item.inventoryCard.status === "learned") {
+            return false;
+          }
+
+          const requirement = getTierRequirement(item.card.tier);
+          return item.inventoryCard.correctCount + 1 >= Math.max(1, requirement - 1);
+        })
+        .map((item) => item.card.id),
+    ).size;
+    const remainingActiveCards = selectedLanguage
+      ? filterInventoryCards({
+          cards,
+          language: selectedLanguage,
+          status: "active",
+        }).length
+      : 0;
     const advancedCardProgress = Object.fromEntries(
       achievementCards.advancedCards.map((card) => {
         const quizItem = deck.find((item) => item.card.id === card.id && item.isBonus !== true);
@@ -2523,6 +2621,13 @@ export function QuizStation({
             quizSessionId={quizSessionId}
             quizDurationSeconds={quizDurationSeconds ?? 0}
             chestOpened={chestOpened}
+            showChestRewardGate
+            chestTier={awardedChestTier}
+            chestTotalPoints={stats.totalPoints}
+            onChestRewardReady={awardedChestTier
+              ? () => prepareChestReward(awardedChestTier.tier)
+              : undefined}
+            onContinue={handleResultChestFlowComplete}
             streakRewardStreak={getRewardableQuizStreak(maxStreak)}
             streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
             locked={false}
@@ -2530,6 +2635,14 @@ export function QuizStation({
             learnedCards={achievementCards.learnedCards}
             advancedCards={achievementCards.advancedCards}
             advancedCardProgress={advancedCardProgress}
+            remainingActiveCards={remainingActiveCards}
+            nearLearnedCards={nearLearnedCards}
+            nearLevelUpCards={achievementCards.advancedCards.length}
+            rankProgressPercent={stats.rankProgressPercent}
+            pointsToNextRank={stats.pointsToNextRank}
+            currentRankIcon={stats.rank.icon}
+            nextRankIcon={stats.nextRank?.icon ?? null}
+            gainedGems={0}
             onResultMessageComplete={() => setResultMessageOnResult(false)}
             onRestart={handleRestart}
             onExit={handleExit}
@@ -2720,15 +2833,13 @@ export function QuizStation({
   return (
     <>
       <MobileQuizTopBar
-          currentIndex={regularProgress.current - 1}
-          total={regularProgress.total}
-          totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
-          scorePulse={bonusScorePulse}
-          questionPrompt={mobileQuestionPrompt}
-          questionPromptAccent={item.questionType === "definition" || item.questionType === "text"}
-          questionPromptIsBonus={isBonusQuizItem(item)}
-          onExit={handleExit}
-          entryAnimated={false}
+        currentIndex={regularProgress.current - 1}
+        total={regularProgress.total}
+        questionPrompt={mobileQuestionPrompt}
+        questionPromptAccent={item.questionType === "definition" || item.questionType === "text"}
+        questionPromptIsBonus={isBonusQuizItem(item)}
+        onExit={handleExit}
+        entryAnimated={false}
       />
       <div
         className="quiz-transition-viewport relative mx-auto flex h-auto w-full max-w-5xl flex-col justify-center overflow-x-hidden overflow-y-hidden bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-hidden max-lg:overscroll-none lg:h-full"
@@ -4065,8 +4176,6 @@ function QuizProgressHeader({
 export function MobileQuizTopBar({
   currentIndex,
   total,
-  totalPoints,
-  scorePulse,
   questionPrompt,
   questionPromptAccent = false,
   questionPromptIsBonus = false,
@@ -4075,8 +4184,6 @@ export function MobileQuizTopBar({
 }: {
   currentIndex: number;
   total: number;
-  totalPoints: number;
-  scorePulse: number;
   questionPrompt: string | null;
   questionPromptAccent?: boolean;
   questionPromptIsBonus?: boolean;
@@ -4086,10 +4193,6 @@ export function MobileQuizTopBar({
   const { locale } = useLocale();
   const t = useT();
   const quizProgress = Math.min(100, ((currentIndex + 1) / total) * 100);
-  const currentQuestion = currentIndex + 1;
-  const midpointQuestion = Math.ceil(total / 2);
-  const progressMarkerClass = "bg-amber-400";
-  const trackMarkerClass = "bg-[#262626]";
 
   return (
     <>
@@ -4119,47 +4222,16 @@ export function MobileQuizTopBar({
           aria-valuenow={currentIndex + 1}
           data-quiz-session-progress
         >
-          <div className="relative mr-2">
+          <div className="relative mr-[14px]">
             <Progress
               value={quizProgress}
-              className="h-3.5 rounded-full bg-[#262626]"
+              className="h-[18px] rounded-full bg-[#262626]"
               indicatorClassName="bg-amber-400 transition-[width] duration-300 ease-out"
+              indicatorOverlayClassName="left-[5px] right-[5px] top-[calc(50%_-_3px)] bottom-auto h-[5px] -translate-y-1/2 rounded-full bg-white/50"
             />
-            <span
-              className={cn(
-                "absolute left-1/2 top-1/2 inline-flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white shadow-sm",
-                canUseSuperWater(locale) && "font-super-water",
-                currentQuestion >= midpointQuestion ? progressMarkerClass : trackMarkerClass,
-              )}
-              data-quiz-progress-midpoint
-            >
-              {formatSuperWaterText(locale, formatNumber(locale, midpointQuestion))}
-            </span>
-            <span
-              className={cn(
-                "absolute right-0 top-1/2 inline-flex size-7 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white shadow-sm",
-                canUseSuperWater(locale) && "font-super-water",
-                currentQuestion >= total ? progressMarkerClass : trackMarkerClass,
-              )}
-              data-quiz-progress-end
-            >
-              {formatSuperWaterText(locale, formatNumber(locale, total))}
-            </span>
           </div>
         </div>
 
-        <div
-          className="inline-flex shrink-0 items-center justify-center gap-0"
-          aria-label={formatPoints(locale, totalPoints)}
-          data-quiz-total-score
-        >
-          <ScorePulse pulse={scorePulse} className="gap-1.5">
-            <ScoreIcon size={22} className="size-[22px]" />
-            <span className={cn("bg-gradient-to-r from-[var(--score-highlight)] via-[var(--score-highlight)] to-[var(--score-end)] bg-clip-text text-base font-bold text-transparent", canUseSuperWater(locale) && "font-super-water")}>
-              {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
-            </span>
-          </ScorePulse>
-        </div>
       </div>
 
       {questionPrompt ? (
@@ -5583,9 +5655,21 @@ type ResultFlowViewProps = {
   streakRewardPoints?: number;
   locked?: boolean;
   showResultMessage?: boolean;
+  showChestRewardGate?: boolean;
+  chestTier?: ChestTierDefinition | null;
+  chestTotalPoints?: number;
+  onChestRewardReady?: () => Promise<ChestRewardOutcome | null>;
   learnedCards?: readonly VocabularyCard[];
   advancedCards?: readonly VocabularyCard[];
   advancedCardProgress?: Readonly<Record<string, number>>;
+  remainingActiveCards?: number;
+  nearLearnedCards?: number;
+  nearLevelUpCards?: number;
+  rankProgressPercent?: number;
+  pointsToNextRank?: number;
+  currentRankIcon?: RankIconId;
+  nextRankIcon?: RankIconId | null;
+  gainedGems?: number;
   onResultMessageComplete?: () => void;
   onContinue?: () => void;
   onRestart: () => void;
@@ -5594,14 +5678,134 @@ type ResultFlowViewProps = {
 
 export function ResultFlowView({
   showResultMessage = false,
+  showChestRewardGate = false,
+  chestTier = null,
+  chestTotalPoints = 0,
+  onChestRewardReady,
   learnedCards = [],
   advancedCards = [],
   advancedCardProgress,
+  remainingActiveCards = 0,
+  nearLearnedCards = 0,
+  nearLevelUpCards = 0,
+  rankProgressPercent = 0,
+  pointsToNextRank = 0,
+  currentRankIcon = "trophy",
+  nextRankIcon = "medal",
+  gainedGems = 0,
   onResultMessageComplete,
   ...resultProps
 }: ResultFlowViewProps) {
+  const t = useT();
+  const { locale } = useLocale();
+  const { data: leaderboardData } = useLeaderboardData({
+    enabled: resultProps.mode !== "learned",
+    refreshOnMount: true,
+  });
   const [messageStageVisible] = useState(showResultMessage);
   const [resultStageVisible, setResultStageVisible] = useState(!showResultMessage);
+  const [chestGateVisible, setChestGateVisible] = useState(false);
+  const [continuationMotivationVisible, setContinuationMotivationVisible] = useState(false);
+  const [chestRewardGemCount, setChestRewardGemCount] = useState(gainedGems);
+  const resultPerformance = getQuizPerformanceSummary(
+    resultProps.mode,
+    resultProps.results,
+    resultProps.selectedCount,
+    resultProps.chestOpened,
+  );
+  const missedChestRequiredAccuracy = formatNumber(locale, 70);
+  const missedChestReason = resultProps.mode === "active"
+    ? t("chest.missedReason", { required: missedChestRequiredAccuracy })
+    : t("chest.missedMode");
+  const missedChestProgress = t("chest.missedProgress", {
+    accuracy: formatNumber(locale, resultPerformance.accuracy),
+  });
+  const chestWasMissed =
+    showChestRewardGate && resultProps.mode === "active" && chestTier === null;
+  const starRating =
+    resultPerformance.accuracy >= 90
+      ? 5
+      : resultPerformance.accuracy >= 75
+        ? 4
+        : resultPerformance.accuracy >= 60
+          ? 3
+          : resultPerformance.accuracy >= 40
+            ? 2
+            : 1;
+  const continuationInput: QuizContinuationMotivationInput = {
+    nearLearnedCount: nearLearnedCards,
+    nearLevelUpCount: nearLevelUpCards,
+    rankProgressPercent,
+    pointsToNextRank,
+    accuracy: resultPerformance.accuracy,
+    incorrectCount: resultProps.results.incorrect.length,
+    answeredCount:
+      resultProps.results.correct.length +
+      resultProps.results.incorrect.length +
+      (resultProps.results.bonusCorrect ?? 0) +
+      (resultProps.results.bonusIncorrect ?? 0),
+    remainingActiveCards,
+    gainedXp: getQuizResultRewardPoints(starRating, resultProps.selectedCount ?? 10) ?? 0,
+    gainedGems: chestRewardGemCount,
+    earnedMedals: starRating,
+    chestWasMissed,
+    chestMissedByPercentagePoints: Math.max(0, 70 - resultPerformance.accuracy),
+  };
+
+  const handleResultContinue = () => {
+    if (showChestRewardGate && !chestGateVisible) {
+      setChestGateVisible(true);
+      return;
+    }
+
+    resultProps.onContinue?.();
+  };
+
+  const handleChestRewardReady = useCallback(async () => {
+    const outcome = await onChestRewardReady?.();
+    if (outcome) {
+      setChestRewardGemCount(
+        outcome.rewards.reduce((total, reward) => total + reward.amount, 0),
+      );
+    }
+    return outcome ?? null;
+  }, [onChestRewardReady]);
+
+  const handleChestGateComplete = () => {
+    setChestGateVisible(false);
+    setContinuationMotivationVisible(true);
+  };
+
+  const handleContinuationContinue = () => {
+    setContinuationMotivationVisible(false);
+    resultProps.onContinue?.();
+  };
+
+  const handleContinuationExit = () => {
+    setContinuationMotivationVisible(false);
+    resultProps.onExit();
+  };
+
+  if (resultProps.mode === "learned") {
+    return (
+      <div
+        className="relative h-full w-full overflow-hidden"
+        data-quiz-result-flow
+        data-quiz-review-result-only
+      >
+        <QuizContinuationMotivationView
+          input={continuationInput}
+          hasMoreCardsToLearn={remainingActiveCards > 0}
+          isReviewQuiz
+          currentRankIcon={currentRankIcon}
+          nextRankIcon={nextRankIcon}
+          leaderboardData={leaderboardData}
+          onContinue={handleContinuationContinue}
+          onExit={handleContinuationExit}
+        />
+      </div>
+    );
+  }
 
   if (messageStageVisible) {
     return (
@@ -5621,19 +5825,92 @@ export function ResultFlowView({
             className="absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-[var(--background)]"
             data-quiz-result-main-layer
           >
-            <ResultView {...resultProps} />
+            <ResultView {...resultProps} onContinue={handleResultContinue} />
           </div>
+        ) : null}
+        {resultStageVisible && chestGateVisible ? (
+          <div className="absolute inset-0 z-40 overflow-hidden bg-[var(--background)]" data-quiz-chest-reward-layer>
+            <QuizChestRewardGate
+              tier={chestTier}
+              totalPoints={chestTotalPoints}
+              accuracy={resultPerformance.accuracy}
+              missedReason={missedChestReason}
+              missedProgress={missedChestProgress}
+              onComplete={handleChestGateComplete}
+              onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
+            />
+          </div>
+        ) : null}
+        {resultStageVisible && continuationMotivationVisible ? (
+          <QuizContinuationMotivationView
+            input={continuationInput}
+            hasMoreCardsToLearn={remainingActiveCards > 0}
+            currentRankIcon={currentRankIcon}
+            nextRankIcon={nextRankIcon}
+            leaderboardData={leaderboardData}
+            onContinue={handleContinuationContinue}
+            onExit={handleContinuationExit}
+          />
         ) : null}
       </div>
     );
   }
 
-  return <ResultView {...resultProps} />;
+  return (
+    <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
+      <ResultView {...resultProps} onContinue={handleResultContinue} />
+      {chestGateVisible ? (
+        <div className="absolute inset-0 z-40 overflow-hidden bg-[var(--background)]" data-quiz-chest-reward-layer>
+          <QuizChestRewardGate
+            tier={chestTier}
+            totalPoints={chestTotalPoints}
+            accuracy={resultPerformance.accuracy}
+            missedReason={missedChestReason}
+            missedProgress={missedChestProgress}
+            onComplete={handleChestGateComplete}
+            onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
+          />
+        </div>
+      ) : null}
+      {continuationMotivationVisible ? (
+        <QuizContinuationMotivationView
+          input={continuationInput}
+          hasMoreCardsToLearn={remainingActiveCards > 0}
+          leaderboardData={leaderboardData}
+          onContinue={handleContinuationContinue}
+          onExit={handleContinuationExit}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 const RESULT_STAR_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 const RESULT_STAR_CENTER_ICON_SIZE = 58;
 const RESULT_STAR_CENTER_PHASE_MS = 1300;
+const RESULT_STAR_COLLECT_PLAYBACK_RATE_STEP = 0.2;
+const RESULT_STAR_COLLECT_MAX_PLAYBACK_RATE = 2.5;
+const RESULT_STAR_HUD_PULSE_DURATION_MS = 350;
+const RESULT_ANIMATION_VIDEO_SOURCES = [
+  "/quiz/result_animation_1.mp4?v=20261003-1",
+  "/quiz/result_animation_2.mp4?v=20261004-1",
+] as const;
+let resultAnimationVideoIndex = 0;
+
+function getNextResultAnimationVideoSource() {
+  const source = RESULT_ANIMATION_VIDEO_SOURCES[resultAnimationVideoIndex];
+  resultAnimationVideoIndex = (resultAnimationVideoIndex + 1) % RESULT_ANIMATION_VIDEO_SOURCES.length;
+  return source;
+}
+
+type ResultStarFlightRequest = {
+  flightId: number;
+  amount: number;
+  source: RewardScatterRect;
+  sources: RewardScatterRect[];
+  target: RewardScatterRect;
+  totalStars: number;
+};
 
 export function ResultView({
   mode,
@@ -5675,17 +5952,14 @@ export function ResultView({
     return 1;
   }, [performance.accuracy, quizSessionId]);
   const [displayedStars, setDisplayedStars] = useState(user?.profile.quizResultStars ?? 0);
-  const [starPulse, setStarPulse] = useState<number | boolean>(0);
+  const [starPulse, setStarPulse] = useState<number | null>(null);
   const [claimingStars, setClaimingStars] = useState(false);
   const [claimedStars, setClaimedStars] = useState(false);
   const [starsFlightMounted, setStarsFlightMounted] = useState(false);
-  const [starFlightRequest, setStarFlightRequest] = useState<{
-    amount: number;
-    source: RewardScatterRect;
-    sources: RewardScatterRect[];
-    target: RewardScatterRect;
-    totalStars: number;
-  } | null>(null);
+  const [starFlightRequests, setStarFlightRequests] = useState<ResultStarFlightRequest[]>([]);
+  const [openMenu, setOpenMenu] = useState<
+    "correct" | "incorrect" | "learned" | null
+  >(null);
   const [starCenterFlight, setStarCenterFlight] = useState<{
     sources: RewardScatterRect[];
     center: RewardScatterRect;
@@ -5697,13 +5971,33 @@ export function ResultView({
   const starSourceRef = useRef<HTMLDivElement>(null);
   const starTargetRef = useRef<HTMLSpanElement>(null);
   const starCenterTimerRef = useRef<number | null>(null);
+  const starCollectSoundCountRef = useRef(0);
+  const starPulseSequenceRef = useRef(0);
+  const starPulseTimerRef = useRef<number | null>(null);
+  const starFlightSequenceRef = useRef(0);
+  const activeStarFlightsRef = useRef(0);
   const starRemainingRef = useRef(0);
   const isResultTest = !quizSessionId;
+  const resultAnimationSourceInitializedRef = useRef(false);
+  const [resultAnimationVideoSource, setResultAnimationVideoSource] = useState<
+    (typeof RESULT_ANIMATION_VIDEO_SOURCES)[number]
+  >(
+    RESULT_ANIMATION_VIDEO_SOURCES[0],
+  );
+
+  useLayoutEffect(() => {
+    if (resultAnimationSourceInitializedRef.current) return;
+    resultAnimationSourceInitializedRef.current = true;
+    setResultAnimationVideoSource(getNextResultAnimationVideoSource());
+  }, []);
 
   useEffect(() => {
     return () => {
       if (starCenterTimerRef.current !== null) {
         window.clearTimeout(starCenterTimerRef.current);
+      }
+      if (starPulseTimerRef.current !== null) {
+        window.clearTimeout(starPulseTimerRef.current);
       }
     };
   }, []);
@@ -5713,6 +6007,15 @@ export function ResultView({
       setDisplayedStars(user?.profile.quizResultStars ?? 0);
     }
   }, [claimingStars, claimedStars, user?.profile.quizResultStars]);
+
+  const playMedalCollectSound = useCallback(() => {
+    const playbackRate = Math.min(
+      RESULT_STAR_COLLECT_MAX_PLAYBACK_RATE,
+      1 + starCollectSoundCountRef.current * RESULT_STAR_COLLECT_PLAYBACK_RATE_STEP,
+    );
+    playSoundEffect("result-star-collect", { playbackRate });
+    starCollectSoundCountRef.current += 1;
+  }, []);
 
   const startStarCollection = useCallback((
     currentStars: number,
@@ -5734,6 +6037,11 @@ export function ResultView({
     setDisplayedStars(currentStars);
     setStarsFlightMounted(false);
     setStarCenterTapReady(false);
+    setStarPulse(null);
+    starCollectSoundCountRef.current = 0;
+    starFlightSequenceRef.current = 0;
+    activeStarFlightsRef.current = 0;
+    setStarFlightRequests([]);
     starRemainingRef.current = starRating;
     const resolvedSourceRects = Array.from(
       { length: starRating },
@@ -5753,23 +6061,26 @@ export function ResultView({
   }, [starRating]);
 
   const collectNextStar = useCallback(() => {
-    if (!starCenterFlight || !starCenterTapReady || starFlightRequest) return;
+    if (!starCenterFlight || !starCenterTapReady) return;
 
     const remaining = starRemainingRef.current;
     if (remaining <= 0) return;
 
     starRemainingRef.current = remaining - 1;
-    playSoundEffect("result-star-collect");
+    playMedalCollectSound();
     vibrate("result-star-collect");
     setStarCenterFlight((current) => current ? { ...current, remaining: current.remaining - 1 } : current);
-    setStarFlightRequest({
+    const flightRequest: ResultStarFlightRequest = {
+      flightId: ++starFlightSequenceRef.current,
       amount: 1,
       source: starCenterFlight.center,
       sources: [starCenterFlight.center],
       target: starCenterFlight.target,
       totalStars: starCenterFlight.totalStars,
-    });
-  }, [starCenterFlight, starCenterTapReady, starFlightRequest]);
+    };
+    activeStarFlightsRef.current += 1;
+    setStarFlightRequests((current) => [...current, flightRequest]);
+  }, [playMedalCollectSound, starCenterFlight, starCenterTapReady]);
 
   const collectStars = useCallback(() => {
     if (claimingStars || claimedStars) return;
@@ -5868,9 +6179,14 @@ export function ResultView({
             count: results.learned.length,
             tone: "amber" as const,
           },
-        ]
-      : []),
+      ]
+    : []),
   ];
+  const menuConfig = {
+    correct: { title: t("quiz.resultCorrect"), cards: results.correct, tone: "emerald" as const },
+    incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect, tone: "rose" as const },
+    learned: { title: t("quiz.resultLearned"), cards: results.learned, tone: "amber" as const },
+  } as const;
   const title = canUseSuperWater(locale)
     ? formatSuperWaterText(locale, t("quiz.resultFinishedTitle"))
     : t("quiz.resultFinishedTitle");
@@ -5887,7 +6203,7 @@ export function ResultView({
       key: "xp",
       label: formatSuperWaterUppercaseText(locale, t("quiz.resultTotalXp")),
       value: formatNumber(locale, totalXp),
-      icon: Zap,
+      icon: Star,
       className: "border-yellow-400 bg-transparent text-yellow-300",
       headerClassName: "bg-yellow-400",
     },
@@ -5931,7 +6247,7 @@ export function ResultView({
         <div className="relative h-full max-h-full aspect-square max-w-full overflow-hidden bg-[var(--background)]">
           <video
             className="block h-full w-full object-contain"
-            src="/quiz/result_animation_1.mp4?v=20261003-1"
+            src={resultAnimationVideoSource}
             autoPlay
             muted={false}
             playsInline
@@ -5974,8 +6290,9 @@ export function ResultView({
         <p
           data-result-performance-message
           className={cn(
-            "shrink-0 text-sm font-bold uppercase leading-none text-white/55 sm:text-base",
+            "result-stagger-enter shrink-0 text-sm font-bold uppercase leading-none text-white/55 sm:text-base",
           )}
+          style={{ "--result-stagger-delay": "160ms" } as CSSProperties}
         >
           {performanceMessageText}
         </p>
@@ -6019,7 +6336,8 @@ export function ResultView({
                 icon={card.icon}
                 label={card.label}
                 count={card.count}
-                nonInteractive
+                disabled={card.count === 0}
+                onClick={() => setOpenMenu(card.key)}
               />
             ))}
           </div>
@@ -6064,55 +6382,84 @@ export function ResultView({
         </div>
       </main>
 
-      <div className="pointer-events-none absolute left-4 top-4 z-30">
-        <RewardStarHud
-          stars={displayedStars}
-          pulse={starPulse ? { key: Number(starPulse) } : null}
-          targetRef={starTargetRef}
-          size="large"
+      {openMenu ? (
+        <ResultMenu
+          title={menuConfig[openMenu].title}
+          cards={menuConfig[openMenu].cards}
+          tone={menuConfig[openMenu].tone}
+          onClose={() => setOpenMenu(null)}
         />
-      </div>
+      ) : null}
 
-      {starFlightRequest ? (
+      {typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="result-stagger-enter pointer-events-none fixed left-4 top-4 z-[260]"
+              style={{ "--result-stagger-delay": "80ms" } as CSSProperties}
+            >
+              <RewardStarHud
+                stars={displayedStars}
+                pulse={starPulse === null ? null : { key: starPulse }}
+                targetRef={starTargetRef}
+                size="large"
+                className="rounded-xl pr-3"
+              />
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {starFlightRequests.map((flightRequest) => (
         <RewardScatter
+          key={flightRequest.flightId}
           stars={{
-            amount: starFlightRequest.amount,
-            source: starFlightRequest.source,
-            sources: starFlightRequest.sources,
-            target: starFlightRequest.target,
+            amount: flightRequest.amount,
+            source: flightRequest.source,
+            sources: flightRequest.sources,
+            target: flightRequest.target,
             placement: { origin: "center" },
             scatterOffset: { x: -48, y: -44 },
             iconSize: RESULT_STAR_CENTER_ICON_SIZE,
             zIndex: 200,
             arrivalSoundEffect: "points",
           }}
-          onStarArrive={(amountAwarded, arrivalIndex) => {
+          onStarArrive={(amountAwarded) => {
             setDisplayedStars((current) => current + amountAwarded);
-            setStarPulse(arrivalIndex);
+            starPulseSequenceRef.current += 1;
+            setStarPulse(starPulseSequenceRef.current);
           }}
           onStarsStart={() => setStarsFlightMounted(true)}
           onStarsComplete={() => {
+            activeStarFlightsRef.current = Math.max(0, activeStarFlightsRef.current - 1);
+            setStarFlightRequests((current) => current.filter((item) => item.flightId !== flightRequest.flightId));
+
+            if (activeStarFlightsRef.current > 0) return;
+
             if (starRemainingRef.current > 0) {
-              setStarFlightRequest(null);
               setStarsFlightMounted(false);
               return;
             }
 
-            const finalStars = starFlightRequest.totalStars;
-            setDisplayedStars(finalStars);
-            setStarPulse(0);
-            setClaimingStars(false);
-            setStarsFlightMounted(false);
-            setClaimedStars(true);
-            setStarCenterFlight(null);
-            setStarCenterTapReady(false);
-            setStarFlightRequest(null);
-            updateProfileField({ quizResultStars: finalStars });
-            void refreshProfile();
-            onContinue?.();
+            if (starPulseTimerRef.current !== null) {
+              window.clearTimeout(starPulseTimerRef.current);
+            }
+            starPulseTimerRef.current = window.setTimeout(() => {
+              starPulseTimerRef.current = null;
+              const finalStars = flightRequest.totalStars;
+              setDisplayedStars(finalStars);
+              setClaimingStars(false);
+              setStarsFlightMounted(false);
+              setClaimedStars(true);
+              setStarCenterFlight(null);
+              setStarCenterTapReady(false);
+              setStarFlightRequests([]);
+              updateProfileField({ quizResultStars: finalStars });
+              void refreshProfile();
+              onContinue?.();
+            }, RESULT_STAR_HUD_PULSE_DURATION_MS);
           }}
         />
-      ) : null}
+      ))}
 
       {starCenterFlight && typeof document !== "undefined"
         ? createPortal(
@@ -6120,7 +6467,7 @@ export function ResultView({
               className="pointer-events-none fixed inset-0 z-[140]"
               data-result-star-center-flight
             >
-              {starCenterTapReady && !starFlightRequest ? (
+              {starCenterTapReady && starCenterFlight.remaining > 0 ? (
                 <button
                   type="button"
                   className="pointer-events-auto fixed inset-0 z-[139] cursor-pointer appearance-none border-0 bg-transparent p-0 focus-visible:outline-none"
@@ -6601,7 +6948,7 @@ function ResultMenu({
   onClose,
 }: {
   title: string;
-  cards: VocabularyCard[];
+  cards: readonly VocabularyCard[];
   tone: "emerald" | "rose" | "amber";
   onClose: () => void;
 }) {
@@ -6614,7 +6961,7 @@ function ResultMenu({
 
   return createPortal(
     <div
-      className="animate-screen-pop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
+      className="animate-screen-pop fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
       data-result-menu
       onClick={onClose}
     >

@@ -31,10 +31,11 @@ const CELEBRATION_MESSAGE_EARLY_START_MS = 450;
 const CELEBRATION_VIDEO_ERROR_FALLBACK_DELAY_MS = 750;
 const CELEBRATION_MESSAGE_DELAY_MS = 1000;
 const CELEBRATION_MESSAGE_EXIT_DURATION_MS = 420;
-const RESULT_SUMMARY_PANEL_ENTER_DURATION_MS = 650;
+const RESULT_SUMMARY_PANEL_ENTER_DURATION_MS = 1400;
 const RESULT_SUMMARY_CONTENT_DELAY_MS = 80;
 const CELEBRATION_COMPLETE_DELAY_MS = 500;
 const RESULT_MESSAGE_WAVE_SRC = "/quiz/result-message-wave-20261003-1.png";
+const RESULT_MESSAGE_WAVE_HEIGHT_CSS = "177.9167vw";
 
 export function ChestCelebrationView({
   onComplete,
@@ -51,7 +52,7 @@ export function ChestCelebrationView({
   const [summaryExiting, setSummaryExiting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [videoSource, setVideoSource] = useState(
-    "/quiz/result_message_video.mp4?v=20261002-1",
+    "/quiz/result_message_video.mp4?v=20261004-2",
   );
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [messageKey] = useState(() =>
@@ -65,6 +66,7 @@ export function ChestCelebrationView({
   const messageTimerRef = useRef<number | null>(null);
   const summaryTimerRef = useRef<number | null>(null);
   const summaryContentTimerRef = useRef<number | null>(null);
+  const summaryMessageHideTimerRef = useRef<number | null>(null);
   const summaryAutoCompleteTimerRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const completionStartedRef = useRef(false);
@@ -100,10 +102,13 @@ export function ChestCelebrationView({
   }, [hasSummaryCards, preserveMessageOnComplete]);
 
   const showSummary = () => {
-    setMessageVisible(false);
     summaryTimerRef.current = window.setTimeout(() => {
       summaryTimerRef.current = null;
       setSummaryPanelVisible(true);
+      summaryMessageHideTimerRef.current = window.setTimeout(() => {
+        summaryMessageHideTimerRef.current = null;
+        setMessageVisible(false);
+      }, RESULT_SUMMARY_PANEL_ENTER_DURATION_MS);
       if (hasSummaryCards) {
         summaryContentTimerRef.current = window.setTimeout(() => {
           summaryContentTimerRef.current = null;
@@ -195,6 +200,9 @@ export function ChestCelebrationView({
       if (summaryContentTimerRef.current !== null) {
         window.clearTimeout(summaryContentTimerRef.current);
       }
+      if (summaryMessageHideTimerRef.current !== null) {
+        window.clearTimeout(summaryMessageHideTimerRef.current);
+      }
       if (summaryAutoCompleteTimerRef.current !== null) {
         window.clearTimeout(summaryAutoCompleteTimerRef.current);
       }
@@ -229,7 +237,6 @@ export function ChestCelebrationView({
           key={videoSource}
           src={videoSource}
           autoPlay
-          muted
           onEnded={finishVideo}
           onError={handleVideoError}
           onLoadedMetadata={handleVideoLoadedMetadata}
@@ -260,9 +267,15 @@ export function ChestCelebrationView({
 
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 z-20 overflow-visible bg-[var(--background)] transform-gpu transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          closing || !summaryPanelVisible ? "translate-y-full" : "translate-y-0",
+          "pointer-events-none absolute inset-0 z-20 overflow-visible bg-[var(--background)] transform-gpu transition-transform duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
         )}
+        style={{
+          transform: closing
+            ? "translateY(100%)"
+            : summaryPanelVisible
+              ? "translateY(0)"
+              : `translateY(calc(100% + ${RESULT_MESSAGE_WAVE_HEIGHT_CSS}))`,
+        }}
         data-quiz-result-summary-panel
       >
         <Image
@@ -273,12 +286,7 @@ export function ChestCelebrationView({
           height={854}
           sizes="100vw"
           className={cn(
-            "pointer-events-none absolute left-0 top-0 z-0 block h-auto w-full max-w-none select-none transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-            closing
-              ? "translate-y-0 opacity-0"
-              : !summaryPanelVisible
-                ? "translate-y-0 opacity-100"
-                : "-translate-y-full opacity-100",
+            "pointer-events-none absolute bottom-full left-0 z-0 block h-auto w-full max-w-none select-none opacity-100",
           )}
         />
         <div
@@ -291,7 +299,7 @@ export function ChestCelebrationView({
           data-chest-celebration-summary
         >
           <div className="pointer-events-auto h-full min-h-0 w-full overflow-y-auto overscroll-contain">
-            <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-center gap-6 p-4 sm:p-6">
+            <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-center gap-8 p-4 sm:p-6">
               {learnedCards.length > 0 ? (
                 <AchievementCardSection
                   title={t("quiz.resultLearned")}
@@ -374,20 +382,16 @@ function AchievementCardSection({
 
   return (
     <section
-      className={cn(
-        "flex flex-col gap-3 rounded-2xl p-3 sm:p-4",
-        exiting ? "result-stagger-exit" : reveal ? "result-stagger-enter" : "result-stagger-pending",
-        tone === "learned" ? "bg-[#159fe3]" : "bg-[#13b873]",
-      )}
+      className="flex flex-col gap-3 rounded-2xl p-3 sm:p-4"
       style={{ "--result-stagger-delay": `${staggerOffsetMs}ms` } as CSSProperties}
       data-chest-achievement-section={tone}
     >
       <h2
         className={cn(
-          "text-center text-2xl font-bold uppercase sm:text-3xl",
+          "text-center text-3xl font-bold uppercase sm:text-4xl",
           exiting ? "result-stagger-exit" : reveal ? "result-stagger-enter" : "result-stagger-pending",
           canUseSuperWater(locale) && "font-super-water",
-          "text-white",
+          tone === "learned" ? "text-sky-400" : "text-emerald-400",
         )}
         style={{ "--result-stagger-delay": `${staggerOffsetMs + 80}ms` } as CSSProperties}
       >
