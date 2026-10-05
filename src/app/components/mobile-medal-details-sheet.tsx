@@ -9,13 +9,13 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import { RESULT_STAR_IMAGE_SRC } from "@/features/progress/components/reward-star-hud";
+import { RESULT_MEDAL_IMAGE_SRC } from "@/features/progress/components/reward-medal-hud";
 
 const CONTENT_ENTER_DELAY_MS = 520;
 const CONTENT_STEP_MS = 70;
 const CLOSE_ANIMATION_MS = 860;
 
-export function MobileStarDetailsSheet({
+export function MobileMedalDetailsSheet({
   open,
   onClose,
   sourceRect = null,
@@ -74,10 +74,10 @@ export function MobileStarDetailsSheet({
     ? `${sourceRect.left + sourceRect.width / 2}px ${sourceRect.top + sourceRect.height / 2}px`
     : "50% 50%";
   const useSuperWater = canUseSuperWater(locale);
-  const title = formatSuperWaterText(locale, t("stars.detailsTitle"));
-  const name = formatSuperWaterText(locale, t("stars.name"));
-  const description = formatSuperWaterText(locale, t("stars.description"));
-  const stars = user?.profile.quizResultStars ?? 0;
+  const title = formatSuperWaterText(locale, t("medals.detailsTitle"));
+  const name = formatSuperWaterText(locale, t("medals.name"));
+  const description = formatSuperWaterText(locale, t("medals.description"));
+  const medals = user?.profile.quizResultMedals ?? 0;
   const contentItemCount = 3;
 
   function renderContentItem(index: number, children: ReactNode, className?: string) {
@@ -106,7 +106,7 @@ export function MobileStarDetailsSheet({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      data-mobile-star-details
+      data-mobile-medal-details
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -129,8 +129,8 @@ export function MobileStarDetailsSheet({
             1,
             <p className={cn("mt-2 w-full text-3xl font-bold leading-none text-amber-400", useSuperWater && "font-super-water")}>
               <span className="inline-flex items-center justify-center gap-1.5">
-                {formatNumber(locale, stars)}
-                <Image src={RESULT_STAR_IMAGE_SRC} alt="" width={22} height={22} className="size-[22px] object-contain" />
+                {formatNumber(locale, medals)}
+                <Image src={RESULT_MEDAL_IMAGE_SRC} alt="" width={22} height={22} className="size-[22px] object-contain" />
               </span>
             </p>,
             "w-full",
@@ -158,7 +158,7 @@ export function MobileStarDetailsSheet({
         </div>
         <div className="pointer-events-none absolute left-1/2 top-0 z-20 size-40 -translate-x-1/2">
           <Image
-            src={RESULT_STAR_IMAGE_SRC}
+            src={RESULT_MEDAL_IMAGE_SRC}
             alt=""
             width={160}
             height={160}

@@ -17,6 +17,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
@@ -24,8 +25,8 @@ const SCORE_GAIN_ANIMATION_MS = 700;
 const RANK_UP_TEST_PARAM = "rank-up-test";
 const RANK_UP_TEST_DELAY_MS = 1000;
 const RANK_UP_TEST_REPEAT_DELAY_MS = 2000;
-const RANK_UP_REVEAL_DELAY_MS = 3000;
-const RANK_UP_CLOSE_ANIMATION_MS = 360;
+const RANK_UP_UI_CLOSE_SEQUENCE_MS = 620;
+const RANK_UP_BACKGROUND_CLOSE_ANIMATION_MS = 520;
 
 export function RankProgressPopover({
   stats,
@@ -378,9 +379,11 @@ export function RankUpMenu({
   const previousRank = fromRank ?? getPreviousRank(rank);
   const [revealed, setRevealed] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [backgroundClosing, setBackgroundClosing] = useState(false);
   const [backgroundPhase, setBackgroundPhase] = useState<"first" | "loop">("first");
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
-  const closeTimerRef = useRef<number | null>(null);
+  const foregroundCloseTimerRef = useRef<number | null>(null);
+  const backgroundCloseTimerRef = useRef<number | null>(null);
 
   function handleClose() {
     if (closing) {
@@ -388,32 +391,43 @@ export function RankUpMenu({
     }
 
     setClosing(true);
-    closeTimerRef.current = window.setTimeout(onClose, RANK_UP_CLOSE_ANIMATION_MS);
+    foregroundCloseTimerRef.current = window.setTimeout(() => {
+      setBackgroundClosing(true);
+      backgroundCloseTimerRef.current = window.setTimeout(
+        onClose,
+        RANK_UP_BACKGROUND_CLOSE_ANIMATION_MS,
+      );
+    }, RANK_UP_UI_CLOSE_SEQUENCE_MS);
   }
 
-  useEffect(() => {
-    playSoundEffect("rank-up-opening");
+  function handleReveal() {
+    if (revealed || closing) {
+      return;
+    }
 
-    const timer = window.setTimeout(() => {
-      playSoundEffect("rank-up-reveal");
-      setRevealed(true);
-    }, RANK_UP_REVEAL_DELAY_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [rank.id]);
+    vibrate("streak-reward-tap");
+    playSoundEffect("rank-up-reveal");
+    setRevealed(true);
+  }
 
   useEffect(() => {
     if (!revealed) {
       return;
     }
 
-    void backgroundVideoRef.current?.play().catch(() => undefined);
+    const playResult = backgroundVideoRef.current?.play();
+    if (playResult && typeof playResult.catch === "function") {
+      void playResult.catch(() => undefined);
+    }
   }, [backgroundPhase, revealed]);
 
   useEffect(() => {
     return () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
+      if (foregroundCloseTimerRef.current !== null) {
+        window.clearTimeout(foregroundCloseTimerRef.current);
+      }
+      if (backgroundCloseTimerRef.current !== null) {
+        window.clearTimeout(backgroundCloseTimerRef.current);
       }
     };
   }, []);
@@ -422,12 +436,13 @@ export function RankUpMenu({
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className={cn("rank-up-menu fixed inset-0 z-50 flex bg-black", closing && "rank-up-menu--closing")}
+      className={cn("rank-up-menu fixed inset-0 z-50 flex bg-background", closing && "rank-up-menu--closing")}
+      onPointerDown={handleReveal}
     >
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 z-0 overflow-hidden transition-opacity duration-700 ease-out",
-          revealed ? "opacity-100" : "opacity-0",
+          "pointer-events-none absolute inset-0 z-0 overflow-hidden transition-opacity duration-[520ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          revealed && !backgroundClosing ? "opacity-100" : "opacity-0",
         )}
         aria-hidden="true"
       >
@@ -453,16 +468,17 @@ export function RankUpMenu({
         />
         <div className="absolute inset-0 bg-black/40" />
       </div>
-      <RankUpConfetti revealed={revealed} />
-      <div
-        className="relative z-10 flex min-h-full w-full items-stretch justify-center lg:items-start lg:justify-end lg:p-4"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            handleClose();
-          }
-        }}
-      >
-        <div className="relative flex h-full w-full flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+56px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:w-[min(92vw,420px)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
+      <div className={cn("rank-up-foreground", closing && "rank-up-foreground--closing")}>
+        <RankUpConfetti revealed={revealed} />
+        <div
+          className="relative z-10 flex min-h-full w-full items-center justify-center lg:p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              handleClose();
+            }
+          }}
+        >
+          <div className="relative flex h-full w-full max-w-[420px] flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+56px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:max-h-[calc(100vh-2rem)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
           <button
             type="button"
             aria-label={t("rank.closeUp")}
@@ -471,6 +487,7 @@ export function RankUpMenu({
               "absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
               "rank-up-close-control",
               revealed && "rank-up-close-control--visible",
+              closing && "rank-up-close-control--closing",
               "lg:top-4",
             )}
           >
@@ -478,7 +495,13 @@ export function RankUpMenu({
           </button>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div className={cn("rank-up-sequence-item rank-up-sequence-title w-full", revealed && "rank-up-sequence-item--visible")}>
+            <div
+              className={cn(
+                "rank-up-sequence-item rank-up-sequence-title w-full",
+                revealed && "rank-up-sequence-item--visible",
+                closing && "rank-up-sequence-item--closing",
+              )}
+            >
               <div className="translate-y-4">
                 <ConvexRankTitle
                   text={usesSuperWater ? formatSuperWaterText(locale, t("rank.up")) : t("rank.up")}
@@ -487,15 +510,26 @@ export function RankUpMenu({
                 />
               </div>
             </div>
-            <div className="relative mt-8 size-52 shrink-0 sm:size-56 lg:size-48">
-              <div className={cn("absolute inset-0 flex items-center justify-center rank-up-old-rank", revealed && "rank-up-old-rank--exit")}>
+            <div
+              className={cn(
+                "rank-up-sequence-rank relative mt-8 size-52 shrink-0 sm:size-56 lg:size-48",
+                closing && "rank-up-sequence-item--closing",
+              )}
+            >
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center rank-up-old-rank",
+                  !revealed && "rank-up-old-rank--intro",
+                  revealed && "rank-up-old-rank--exit",
+                )}
+              >
                 <RankIcon icon={previousRank.icon} className={cn("size-full scale-[1.18]", getRankIconTone(previousRank.icon))} sizes="288px" />
               </div>
               <div className={cn("absolute inset-0 flex items-center justify-center rank-up-new-rank", revealed && "rank-up-new-rank--visible")}>
                 <RankIcon icon={rank.icon} className={cn("size-full scale-[1.18]", getRankIconTone(rank.icon))} sizes="288px" />
               </div>
             </div>
-            <p className={cn("rank-up-sequence-item rank-up-sequence-name mt-6 text-4xl font-bold text-foreground sm:text-5xl", revealed && "rank-up-sequence-item--visible", usesSuperWater && "font-super-water")}>
+            <p className={cn("rank-up-sequence-item rank-up-sequence-name mt-6 text-4xl font-bold text-foreground sm:text-5xl", revealed && "rank-up-sequence-item--visible", closing && "rank-up-sequence-item--closing", usesSuperWater && "font-super-water")}>
               {usesSuperWater ? (
                 <>
                   <span className="sr-only">{getRankLabel(rank, locale)}</span>
@@ -511,6 +545,7 @@ export function RankUpMenu({
               className={cn(
                 "rank-up-sequence-item rank-up-sequence-action relative isolate mt-8 inline-flex h-16 w-[12.38rem] shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-4 text-center text-2xl font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]",
                 revealed && "rank-up-sequence-item--visible",
+                closing && "rank-up-sequence-item--closing",
                 usesSuperWater && "font-super-water",
               )}
               style={{ aspectRatio: "1000 / 323" }}
@@ -527,6 +562,7 @@ export function RankUpMenu({
               </span>
               <span className="relative z-10">{formatSuperWaterText(locale, continueLabel)}</span>
             </button>
+          </div>
           </div>
         </div>
       </div>
@@ -612,7 +648,7 @@ function ConvexRankTitle({
   const curveId = `${id}-rank-up-curve`;
 
   return (
-    <div className="relative w-full max-w-[22rem]" style={{ aspectRatio: "1325 / 395" }}>
+    <div className="relative mx-auto w-full max-w-[22rem]" style={{ aspectRatio: "1325 / 395" }}>
       <Image
         src="/rank-up/kurdele-v1.png"
         alt=""

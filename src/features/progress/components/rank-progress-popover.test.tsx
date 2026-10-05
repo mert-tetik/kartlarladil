@@ -8,6 +8,7 @@ import { setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import type { ProgressStats } from "@/types/domain";
 
@@ -19,6 +20,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+}));
+
+vi.mock("@/lib/vibration", () => ({
+  vibrate: vi.fn(),
 }));
 
 vi.mock("@/lib/twa-analytics", () => ({
@@ -112,15 +117,20 @@ describe("RankProgressPopover", () => {
 
     const rankUpDialog = screen.getByRole("dialog", { name: /Rütbe atlad/ });
     expect(rankUpDialog).toBeVisible();
-    expect(playSoundEffect).toHaveBeenCalledTimes(1);
-    expect(playSoundEffect).toHaveBeenCalledWith("rank-up-opening");
+    expect(playSoundEffect).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(3000);
     });
 
-    expect(playSoundEffect).toHaveBeenCalledTimes(2);
-    expect(playSoundEffect).toHaveBeenLastCalledWith("rank-up-reveal");
+    expect(playSoundEffect).not.toHaveBeenCalled();
+    expect(within(rankUpDialog).getByRole("heading", { name: "Rütbe atladın" }).closest(".rank-up-sequence-item")).not.toHaveClass("rank-up-sequence-item--visible");
+
+    fireEvent.pointerDown(rankUpDialog);
+
+    expect(vibrate).toHaveBeenCalledWith("streak-reward-tap");
+    expect(playSoundEffect).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).toHaveBeenCalledWith("rank-up-reveal");
     expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_rank_up", {
       params: {
         rank_id: nextStats.rank.id,
@@ -138,7 +148,7 @@ describe("RankProgressPopover", () => {
 
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
     act(() => {
-      vi.advanceTimersByTime(360);
+      vi.advanceTimersByTime(940);
     });
     expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
   });
@@ -200,7 +210,7 @@ describe("RankProgressPopover", () => {
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(360);
+      vi.advanceTimersByTime(940);
     });
     expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
 

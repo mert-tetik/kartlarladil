@@ -3,7 +3,7 @@ import {
   awardChestPoints,
   awardQuizBonusPoints,
   awardQuizResultPoints,
-  claimQuizResultStars,
+  claimQuizResultMedals,
 } from "@/features/quiz/actions";
 
 const mockGetUser = vi.hoisted(() => vi.fn());
@@ -83,7 +83,7 @@ describe("awardQuizResultPoints", () => {
   });
 });
 
-describe("claimQuizResultStars", () => {
+describe("claimQuizResultMedals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetUser.mockResolvedValue({
@@ -92,16 +92,16 @@ describe("claimQuizResultStars", () => {
     });
   });
 
-  it("rejects invalid sessions and star counts before touching Supabase", async () => {
-    await expect(claimQuizResultStars("not-a-uuid", 3)).resolves.toEqual({
+  it("rejects invalid sessions and medal counts before touching Supabase", async () => {
+    await expect(claimQuizResultMedals("not-a-uuid", 3)).resolves.toEqual({
       success: false,
       error: "invalid_session",
     });
     await expect(
-      claimQuizResultStars("00000000-0000-4000-8000-000000000008", 6),
+      claimQuizResultMedals("00000000-0000-4000-8000-000000000008", 6),
     ).resolves.toEqual({
       success: false,
-      error: "invalid_stars",
+      error: "invalid_medals",
     });
 
     expect(mockGetUser).not.toHaveBeenCalled();
@@ -112,39 +112,39 @@ describe("claimQuizResultStars", () => {
     const sessionId = "00000000-0000-4000-8000-000000000009";
     mockRpc.mockReturnValue({
       maybeSingle: vi.fn().mockResolvedValue({
-        data: { awarded: true, total_stars: 17 },
+        data: { awarded: true, total_medals: 17 },
         error: null,
       }),
     });
 
-    await expect(claimQuizResultStars(sessionId, 4)).resolves.toEqual({
+    await expect(claimQuizResultMedals(sessionId, 4)).resolves.toEqual({
       success: true,
       awarded: true,
-      stars: 4,
-      totalStars: 17,
+      medals: 4,
+      totalMedals: 17,
     });
-    expect(mockRpc).toHaveBeenCalledWith("claim_quiz_result_stars", {
+    expect(mockRpc).toHaveBeenCalledWith("claim_quiz_result_medals", {
       p_user_id: "user-1",
       p_session_id: sessionId,
-      p_stars: 4,
+      p_medals: 4,
     });
   });
 
   it("does not replay a duplicate session reward", async () => {
     mockRpc.mockReturnValue({
       maybeSingle: vi.fn().mockResolvedValue({
-        data: { awarded: false, total_stars: 17 },
+        data: { awarded: false, total_medals: 17 },
         error: null,
       }),
     });
 
     await expect(
-      claimQuizResultStars("00000000-0000-4000-8000-00000000000a", 4),
+      claimQuizResultMedals("00000000-0000-4000-8000-00000000000a", 4),
     ).resolves.toEqual({
       success: true,
       awarded: false,
-      stars: 4,
-      totalStars: 17,
+      medals: 4,
+      totalMedals: 17,
     });
   });
 });

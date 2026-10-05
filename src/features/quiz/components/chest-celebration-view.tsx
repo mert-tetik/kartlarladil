@@ -52,7 +52,7 @@ export function ChestCelebrationView({
   const [summaryExiting, setSummaryExiting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [videoSource, setVideoSource] = useState(
-    "/quiz/result_message_video.mp4?v=20261004-2",
+    "/quiz/result_message_video.mp4?v=20261005-2",
   );
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [messageKey] = useState(() =>
@@ -231,7 +231,7 @@ export function ChestCelebrationView({
       >
         {!videoUnavailable ? <video
           className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-150 ease-linear",
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
             viewVisible ? "opacity-100" : "opacity-0",
           )}
           key={videoSource}

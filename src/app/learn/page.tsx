@@ -44,6 +44,11 @@ function parseLearnedCelebrationTest(value: string | string[] | undefined): bool
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseCardProgressTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseStreakTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -104,6 +109,11 @@ function parseQuizCompletionTest(value: string | string[] | undefined): boolean 
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseQuizFlowTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseNormalQuestionType(
   value: string | string[] | undefined,
 ): "choice" | "listening" | "definition" | "true-false" | "sentence-completion" | "text" | "group" | null {
@@ -134,6 +144,9 @@ export default async function LearnPage({
   const initialMode = parsePracticeMode(params.mode);
   const initialLanguage = parseLanguage(params.language);
   const learnedCelebrationTest = parseLearnedCelebrationTest(params["learned-celebration-test"]);
+  const cardProgressTest = parseCardProgressTest(
+    params["card-progress-test"] ?? params["quiz-card-progress-test"],
+  );
   const startTest = parseStartTest(params["start-test"] ?? params["quiz-start-test"]);
   const streakTest = parseStreakTest(params["streak-test"]);
   const streakRewardTest = parseStreakRewardTest(params["streak-reward-test"]);
@@ -159,6 +172,7 @@ export default async function LearnPage({
     params["quiz-word-button-test"] ?? params["quiz-button-test"],
   );
   const quizCompletionTest = parseQuizCompletionTest(params["quiz-completion-test"]);
+  const quizFlowTest = parseQuizFlowTest(params["quiz-flow-test"]);
 
   return (
     <section
@@ -171,6 +185,7 @@ export default async function LearnPage({
         initialMode={initialMode}
         initialLanguage={initialLanguage}
         learnedCelebrationTest={learnedCelebrationTest}
+        cardProgressTest={cardProgressTest}
         startTest={startTest}
         streakTest={streakTest}
         streakRewardTest={streakRewardTest}
@@ -184,6 +199,7 @@ export default async function LearnPage({
         normalQuestionType={normalQuestionType}
         quizWordButtonTest={quizWordButtonTest}
         quizCompletionTest={quizCompletionTest}
+        quizFlowTest={quizFlowTest}
       />
     </section>
   );

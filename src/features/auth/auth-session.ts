@@ -14,7 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const LANGUAGE_CODE_SET = new Set<LanguageCode>(LANGUAGE_CODES);
 const LOCALE_CODE_SET = new Set<LocaleCode>(LOCALE_CODES);
 const PROFILE_SELECT_BASE = "display_name, preferred_language_code, preferred_ui_locale, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index";
-const PROFILE_SELECT_WITH_STARS = `${PROFILE_SELECT_BASE}, quiz_result_stars`;
+const PROFILE_SELECT_WITH_MEDALS = `${PROFILE_SELECT_BASE}, quiz_result_medals`;
 
 interface ProfileRow {
   display_name: string | null;
@@ -27,7 +27,7 @@ interface ProfileRow {
   streak_points: number | null;
   mission_points: number | null;
   quiz_result_points: number | null;
-  quiz_result_stars?: number | null;
+  quiz_result_medals?: number | null;
   game_points?: number | null;
   gem_points?: number | null;
   blue_gems?: number | null;
@@ -62,7 +62,7 @@ function normalizeProfile(row?: ProfileRow | null): AuthProfile {
     streakPoints: row?.streak_points ?? 0,
     missionPoints: row?.mission_points ?? 0,
     quizResultPoints: row?.quiz_result_points ?? 0,
-    quizResultStars: row?.quiz_result_stars ?? 0,
+    quizResultMedals: row?.quiz_result_medals ?? 0,
     gamePoints: row?.game_points ?? 0,
     gemPoints: row?.gem_points ?? 0,
     blueGems: row?.blue_gems ?? 0,
@@ -119,7 +119,7 @@ export async function getRequestOrigin() {
 async function readProfile(supabase: SupabaseClient, userId: string) {
   const result = await supabase
     .from("user_profiles")
-    .select(PROFILE_SELECT_WITH_STARS)
+    .select(PROFILE_SELECT_WITH_MEDALS)
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
@@ -129,7 +129,7 @@ async function readProfile(supabase: SupabaseClient, userId: string) {
 
   // Keep auth/profile rendering alive while the new balance column is waiting
   // to be applied to the remote Supabase project.
-  if (result.error.code !== "42703" || !result.error.message?.includes("quiz_result_stars")) {
+  if (result.error.code !== "42703" || !result.error.message?.includes("quiz_result_medals")) {
     return null;
   }
 

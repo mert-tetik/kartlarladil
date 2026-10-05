@@ -14,13 +14,13 @@ import {
   type RewardScatterGemRequest,
   type RewardScatterPlacement,
   type RewardScatterRect,
-  type RewardScatterStarsRequest,
+  type RewardScatterMedalsRequest,
 } from "@/features/progress/reward-scatter";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
 const MAX_GEOMETRY_ATTEMPTS = 60;
-const STAR_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 
 export interface PointsScatterRequest {
   amount: number;
@@ -51,7 +51,7 @@ export interface GemsScatterRequest {
 export function RewardScatter({
   points,
   gems,
-  stars,
+  medals,
   onPointsStart,
   onPointsLaunch,
   onPointsArrive,
@@ -60,13 +60,13 @@ export function RewardScatter({
   onGemArrive,
   onGemsStart,
   onGemsComplete,
-  onStarArrive,
-  onStarsStart,
-  onStarsComplete,
+  onMedalArrive,
+  onMedalsStart,
+  onMedalsComplete,
 }: {
   points?: PointsScatterRequest | null;
   gems?: GemsScatterRequest | null;
-  stars?: RewardScatterStarsRequest | null;
+  medals?: RewardScatterMedalsRequest | null;
   onPointsStart?: () => void;
   onPointsLaunch?: () => void;
   onPointsArrive?: (awardedTotal: number, arrivalIndex: number) => void;
@@ -75,15 +75,15 @@ export function RewardScatter({
   onGemArrive?: (type: GemType, amountAwarded: number) => void;
   onGemsStart?: () => void;
   onGemsComplete?: () => void;
-  onStarArrive?: (amountAwarded: number, arrivalIndex: number) => void;
-  onStarsStart?: () => void;
-  onStarsComplete?: () => void;
+  onMedalArrive?: (amountAwarded: number, arrivalIndex: number) => void;
+  onMedalsStart?: () => void;
+  onMedalsComplete?: () => void;
 }) {
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
-  const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), stars: new Set<string>() });
-  const groupFlightCountsRef = useRef({ points: 0, gems: 0, stars: 0 });
-  const groupArrivalCountsRef = useRef({ points: 0, gems: 0, stars: 0 });
-  const completedGroupsRef = useRef({ points: false, gems: false, stars: false });
+  const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), medals: new Set<string>() });
+  const groupFlightCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
+  const groupArrivalCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
+  const completedGroupsRef = useRef({ points: false, gems: false, medals: false });
   const callbacksRef = useRef({
     onPointsStart,
     onPointsLaunch,
@@ -93,9 +93,9 @@ export function RewardScatter({
     onGemArrive,
     onGemsStart,
     onGemsComplete,
-    onStarArrive,
-    onStarsStart,
-    onStarsComplete,
+    onMedalArrive,
+    onMedalsStart,
+    onMedalsComplete,
   });
   callbacksRef.current = {
     onPointsStart,
@@ -106,9 +106,9 @@ export function RewardScatter({
     onGemArrive,
     onGemsStart,
     onGemsComplete,
-    onStarArrive,
-    onStarsStart,
-    onStarsComplete,
+    onMedalArrive,
+    onMedalsStart,
+    onMedalsComplete,
   };
 
   const pointAmount = points?.amount ?? 0;
@@ -137,17 +137,17 @@ export function RewardScatter({
   const gemSourceBlue = gemSources?.blue;
   const gemSourceGreen = gemSources?.green;
   const gemSourcePurple = gemSources?.purple;
-  const starAmount = stars?.amount ?? 0;
-  const starSource = stars?.source;
-  const starSourcesKey = JSON.stringify(stars?.sources ?? null);
-  const starTarget = stars?.target;
-  const starDelay = stars?.startDelayMs ?? 0;
-  const starPlacementKey = JSON.stringify(stars?.placement ?? null);
-  const starScatterX = stars?.scatterOffset?.x;
-  const starScatterY = stars?.scatterOffset?.y;
-  const starIconSize = stars?.iconSize ?? 40;
-  const starZIndex = stars?.zIndex ?? 112;
-  const starArrivalSoundEffect = stars?.arrivalSoundEffect ?? "points";
+  const medalAmount = medals?.amount ?? 0;
+  const medalSource = medals?.source;
+  const medalSourcesKey = JSON.stringify(medals?.sources ?? null);
+  const medalTarget = medals?.target;
+  const medalDelay = medals?.startDelayMs ?? 0;
+  const medalPlacementKey = JSON.stringify(medals?.placement ?? null);
+  const medalScatterX = medals?.scatterOffset?.x;
+  const medalScatterY = medals?.scatterOffset?.y;
+  const medalIconSize = medals?.iconSize ?? 40;
+  const medalZIndex = medals?.zIndex ?? 112;
+  const medalArrivalSoundEffect = medals?.arrivalSoundEffect ?? "points";
 
   useEffect(() => {
     if (pointAmount <= 0) return;
@@ -304,21 +304,21 @@ export function RewardScatter({
   }, [gemRewardsKey, gemSource, gemSourceBlue, gemSourceGreen, gemSourcePurple, gemTargetSelector, gemDelay, gemPlacementKey, gemIconSize, gemZIndex, gemArrivalSoundEffect]);
 
   useEffect(() => {
-    if (starAmount <= 0) return;
+    if (medalAmount <= 0) return;
 
     let cancelled = false;
     let geometryAttempt = 0;
     let frame: number | null = null;
     const timers: number[] = [];
-    groupArrivalCountsRef.current.stars = 0;
-    groupFlightCountsRef.current.stars = 0;
-    completedGroupsRef.current.stars = false;
+    groupArrivalCountsRef.current.medals = 0;
+    groupFlightCountsRef.current.medals = 0;
+    completedGroupsRef.current.medals = false;
 
     const startWhenReady = () => {
       if (cancelled) return;
-      const source = resolveRect(starSource, false);
-      const target = resolveRect(starTarget, false)
-        ?? document.querySelector<HTMLElement>("[data-main-stars-target]")?.getBoundingClientRect()
+      const source = resolveRect(medalSource, false);
+      const target = resolveRect(medalTarget, false)
+        ?? document.querySelector<HTMLElement>("[data-main-medals-target]")?.getBoundingClientRect()
         ?? null;
 
       if (!source || !target || !hasArea(source) || !hasArea(target)) {
@@ -327,43 +327,43 @@ export function RewardScatter({
           frame = window.requestAnimationFrame(startWhenReady);
           return;
         }
-        completeGroup("stars");
+        completeGroup("medals");
         return;
       }
 
-      const starFlights = createRewardScatterFlights({
-        stars: {
-          amount: starAmount,
+      const medalFlights = createRewardScatterFlights({
+        medals: {
+          amount: medalAmount,
           source,
-          sources: stars?.sources,
+          sources: medals?.sources,
           target,
           startDelayMs: 0,
-          placement: parsePlacement(starPlacementKey),
-          scatterOffset: starScatterX === undefined || starScatterY === undefined
+          placement: parsePlacement(medalPlacementKey),
+          scatterOffset: medalScatterX === undefined || medalScatterY === undefined
             ? undefined
-            : { x: starScatterX, y: starScatterY },
-          iconSize: starIconSize,
-          zIndex: starZIndex,
-          arrivalSoundEffect: starArrivalSoundEffect,
+            : { x: medalScatterX, y: medalScatterY },
+          iconSize: medalIconSize,
+          zIndex: medalZIndex,
+          arrivalSoundEffect: medalArrivalSoundEffect,
         },
-      }).filter((flight) => flight.channel === "stars");
+      }).filter((flight) => flight.channel === "medals");
 
-      if (!starFlights.length) {
-        completeGroup("stars");
+      if (!medalFlights.length) {
+        completeGroup("medals");
         return;
       }
 
-      groupFlightCountsRef.current.stars = starFlights.length;
-      arrivedFlightIdsRef.current.stars.clear();
-      callbacksRef.current.onStarsStart?.();
-      setFlights((current) => [...current.filter((flight) => flight.channel !== "stars"), ...starFlights]);
-      scheduleArrivalFallbacks(starFlights, timers);
+      groupFlightCountsRef.current.medals = medalFlights.length;
+      arrivedFlightIdsRef.current.medals.clear();
+      callbacksRef.current.onMedalsStart?.();
+      setFlights((current) => [...current.filter((flight) => flight.channel !== "medals"), ...medalFlights]);
+      scheduleArrivalFallbacks(medalFlights, timers);
     };
 
     const start = () => {
       startWhenReady();
     };
-    const startTimer = starDelay > 0 ? window.setTimeout(start, starDelay) : null;
+    const startTimer = medalDelay > 0 ? window.setTimeout(start, medalDelay) : null;
     if (startTimer === null) start();
 
     return () => {
@@ -374,7 +374,7 @@ export function RewardScatter({
     };
   // All request fields are expanded so parent re-renders do not restart a running scatter.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [starAmount, starSource, starSourcesKey, starTarget, starDelay, starPlacementKey, starScatterX, starScatterY, starIconSize, starZIndex, starArrivalSoundEffect]);
+  }, [medalAmount, medalSource, medalSourcesKey, medalTarget, medalDelay, medalPlacementKey, medalScatterX, medalScatterY, medalIconSize, medalZIndex, medalArrivalSoundEffect]);
 
   function scheduleArrivalFallbacks(groupFlights: RewardScatterFlight[], timers: number[]) {
     for (const flight of groupFlights) {
@@ -385,12 +385,12 @@ export function RewardScatter({
     }
   }
 
-  function completeGroup(channel: "points" | "gems" | "stars") {
+  function completeGroup(channel: "points" | "gems" | "medals") {
     if (completedGroupsRef.current[channel]) return;
     completedGroupsRef.current[channel] = true;
     if (channel === "points") callbacksRef.current.onPointsComplete?.();
     else if (channel === "gems") callbacksRef.current.onGemsComplete?.();
-    else callbacksRef.current.onStarsComplete?.();
+    else callbacksRef.current.onMedalsComplete?.();
   }
 
   function handleFlightEnd(flight: RewardScatterFlight) {
@@ -405,13 +405,13 @@ export function RewardScatter({
     } else if (flight.gemType) {
       groupArrivalCountsRef.current.gems += 1;
       callbacksRef.current.onGemArrive?.(flight.gemType, flight.gemAmountAwarded ?? 1);
-    } else if (flight.channel === "stars") {
-      groupArrivalCountsRef.current.stars += 1;
-      callbacksRef.current.onStarArrive?.(flight.pointsAwarded ?? 1, flight.arrivalIndex);
+    } else if (flight.channel === "medals") {
+      groupArrivalCountsRef.current.medals += 1;
+      callbacksRef.current.onMedalArrive?.(flight.pointsAwarded ?? 1, flight.arrivalIndex);
     }
 
     playSoundEffect(flight.arrivalSoundEffect);
-    vibrate(flight.channel === "stars" ? "reward-arrival" : "tap");
+    vibrate(flight.channel === "medals" ? "reward-arrival" : "tap");
 
     if (groupArrivalCountsRef.current[flight.channel] >= groupFlightCountsRef.current[flight.channel]) {
       completeGroup(flight.channel);
@@ -427,7 +427,7 @@ export function RewardScatter({
           key={flight.id}
           aria-hidden="true"
           data-reward-flight-channel={flight.channel}
-          className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "star" ? "animate-quiz-star-icon-flight" : "animate-quiz-score-icon-flight"}`}
+          className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "medal" ? "animate-quiz-medal-icon-flight" : "animate-quiz-score-icon-flight"}`}
           onAnimationStart={() => {
             if (flight.channel === "points") callbacksRef.current.onPointsLaunch?.();
             else if (flight.gemType) callbacksRef.current.onGemLaunch?.(flight.gemType);
@@ -448,13 +448,13 @@ export function RewardScatter({
         >
           {flight.visual.kind === "points" ? (
             <ScoreIcon size={flight.iconSize} />
-          ) : flight.visual.kind === "star" ? (
+          ) : flight.visual.kind === "medal" ? (
             <span
-              className="result-star-center-wobble block"
+              className="result-medal-center-wobble block"
               style={{ width: flight.iconSize, height: flight.iconSize }}
             >
               <img
-                src={STAR_IMAGE_SRC}
+                src={MEDAL_IMAGE_SRC}
                 alt=""
                 width={flight.iconSize}
                 height={flight.iconSize}

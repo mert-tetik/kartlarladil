@@ -16,6 +16,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { playSoundEffect } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 
+const CHEST_OPENING_CHEST_MOVE_MS = 760;
 const CHEST_OPENING_OVERLAY_READY_MS = 800;
 const MISSED_CLOSE_STEP_MS = 150;
 const MISSED_CLOSE_ELEMENT_MS = 150;
@@ -98,15 +99,18 @@ const { locale } = useLocale();
     setOpeningFullyVisible(false);
     openingFrameRef.current = window.requestAnimationFrame(() => {
       openingFrameRef.current = null;
-      setOpeningVisible(true);
       openingFrameRef.current = window.requestAnimationFrame(() => {
         openingFrameRef.current = null;
         setChestOpeningMotion((motion) => (motion ? { ...motion, moving: true } : motion));
+        openingReadyTimeoutRef.current = window.setTimeout(() => {
+          openingReadyTimeoutRef.current = null;
+          setOpeningVisible(true);
+          openingReadyTimeoutRef.current = window.setTimeout(() => {
+            openingReadyTimeoutRef.current = null;
+            setOpeningFullyVisible(true);
+          }, CHEST_OPENING_OVERLAY_READY_MS);
+        }, CHEST_OPENING_CHEST_MOVE_MS);
       });
-      openingReadyTimeoutRef.current = window.setTimeout(() => {
-        openingReadyTimeoutRef.current = null;
-        setOpeningFullyVisible(true);
-      }, CHEST_OPENING_OVERLAY_READY_MS);
     });
   };
 
@@ -154,7 +158,7 @@ const { locale } = useLocale();
                     width: chestOpeningMotion.width,
                     height: chestOpeningMotion.height,
                     transform: chestOpeningMotion.moving
-                      ? `translate3d(${chestOpeningMotion.deltaX}px, ${chestOpeningMotion.deltaY}px, 0) scale(1.06)`
+                      ? `translate3d(${chestOpeningMotion.deltaX}px, ${chestOpeningMotion.deltaY}px, 0) scale(1.02)`
                       : "translate3d(0, 0, 0) scale(1)",
                     transition: chestOpeningMotion.moving
                       ? "transform 760ms cubic-bezier(0.85, 0, 0.15, 1)"
@@ -326,7 +330,12 @@ const { locale } = useLocale();
       <div
         className={cn(
           "absolute inset-0 z-10 overflow-hidden",
-          openingVisible ? "quiz-chest-opening-overlay-enter" : "pointer-events-none opacity-0",
+          openingVisible
+            ? cn(
+                "quiz-chest-opening-overlay-enter",
+                openingFullyVisible ? "pointer-events-auto" : "pointer-events-none",
+              )
+            : "pointer-events-none opacity-0",
         )}
       >
         <ChestOpeningView

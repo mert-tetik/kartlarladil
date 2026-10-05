@@ -43,7 +43,7 @@ const LANGUAGE_CODES: LanguageCode[] = [
 ];
 const LOCALE_CODES: LocaleCode[] = LANGUAGE_CODES;
 const PROFILE_SELECT_BASE = "display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, profile_picture_index";
-const PROFILE_SELECT_WITH_STARS = `${PROFILE_SELECT_BASE}, quiz_result_stars`;
+const PROFILE_SELECT_WITH_MEDALS = `${PROFILE_SELECT_BASE}, quiz_result_medals`;
 
 function normalizeClientProfile(row: {
   display_name: string | null;
@@ -56,7 +56,7 @@ function normalizeClientProfile(row: {
   streak_points: number | null;
   mission_points: number | null;
   quiz_result_points: number | null;
-  quiz_result_stars?: number | null;
+  quiz_result_medals?: number | null;
   game_points?: number | null;
   gem_points?: number | null;
   blue_gems?: number | null;
@@ -87,7 +87,7 @@ function normalizeClientProfile(row: {
     streakPoints: row.streak_points ?? 0,
     missionPoints: row.mission_points ?? 0,
     quizResultPoints: row.quiz_result_points ?? 0,
-    quizResultStars: row.quiz_result_stars ?? 0,
+    quizResultMedals: row.quiz_result_medals ?? 0,
     gamePoints: row.game_points ?? 0,
     gemPoints: row.gem_points ?? 0,
     blueGems: row.blue_gems ?? 0,
@@ -152,11 +152,11 @@ export function AuthSessionProvider({
 
     let { data, error } = await client
       .from("user_profiles")
-      .select(PROFILE_SELECT_WITH_STARS)
+      .select(PROFILE_SELECT_WITH_MEDALS)
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (error?.code === "42703" && error.message?.includes("quiz_result_stars")) {
+    if (error?.code === "42703" && error.message?.includes("quiz_result_medals")) {
       ({ data, error } = await client
         .from("user_profiles")
         .select(PROFILE_SELECT_BASE)

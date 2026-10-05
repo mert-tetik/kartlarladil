@@ -7,7 +7,8 @@ export type SoundEffectName =
   | "learned"
   | "confetti"
   | "quiz-complete"
-  | "quiz-stars-complete"
+  | "quiz-medals-complete"
+  | "quiz-completion-progress-pop"
   | "quiz-select"
   | "streak-video-whoosh"
   | "streak-count-reveal"
@@ -26,7 +27,7 @@ export type SoundEffectName =
   | "mission-claim"
   | "gem-loot"
   | "gem-spend"
-  | "result-star-collect";
+  | "result-medal-collect";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -46,6 +47,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   learned: "/sounds/learned-elevenlabs-v1.mp3",
   confetti: "/sounds/confetti-elevenlabs-v1.mp3",
   "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
+  "quiz-completion-progress-pop": "/sounds/quiz-completion-progress-pop.mp3",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
   // Source: user-provided Downloads/1002.mp3, packaged as an MP4 audio track.
   "streak-video-whoosh": "/sounds/streak-video-whoosh.mp4",
@@ -54,6 +56,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
   "card-swipe-left": "/sounds/card-swipe-left-elevenlabs-v1.mp3",
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
+  "rank-up-reveal": "/sounds/rank-up-reveal.mp3",
   "chest-open": "/sounds/chest.mp3",
   "chest-crack": "/sounds/crack-audio.mp3",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
@@ -61,7 +64,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
   "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
   // Source: user-provided Downloads/koiroylers-get-coin-351945.mp3.
-  "result-star-collect": "/sounds/medal-collect-koiroylers-v1.mp3",
+  "result-medal-collect": "/sounds/medal-collect-koiroylers-v1.mp3",
 };
 const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
   "streak-video-whoosh": 0.8,
@@ -342,8 +345,8 @@ function quizComplete(context: AudioContext, now: number) {
   });
 }
 
-function quizStarsComplete(context: AudioContext, now: number) {
-  // Short, bright confirmation jingle after the earned stars finish revealing.
+function quizMedalsComplete(context: AudioContext, now: number) {
+  // Short, bright confirmation jingle after the earned medals finish revealing.
   const notes = [SCALE.G5, SCALE.C6, SCALE.E6, SCALE.G6];
   notes.forEach((frequency, index) => {
     playTone(context, {
@@ -355,6 +358,26 @@ function quizStarsComplete(context: AudioContext, now: number) {
     });
   });
   playChord(context, [SCALE.C6, SCALE.E6, SCALE.G6], now + 0.18, 0.34, 0.025);
+}
+
+function quizCompletionProgressPop(context: AudioContext, now: number) {
+  // Fallback for browsers that cannot play the packaged achievement pop file.
+  playTone(context, {
+    frequency: 220,
+    endFrequency: 460,
+    startTime: now,
+    duration: 0.1,
+    gain: 0.08,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    endFrequency: SCALE.C6,
+    startTime: now + 0.04,
+    duration: 0.16,
+    gain: 0.045,
+    type: "sine",
+  });
 }
 
 function quizSelect(context: AudioContext, now: number) {
@@ -627,7 +650,7 @@ function gemSpend(context: AudioContext, now: number) {
   playTone(context, { frequency: 1320, endFrequency: 1760, startTime: now + 0.06, duration: 0.16, gain: 0.06, type: "triangle" });
 }
 
-function resultStarCollect(context: AudioContext, now: number) {
+function resultMedalCollect(context: AudioContext, now: number) {
   // Short, satisfying medal pickup: a soft thunk followed by a bright chime.
   playTone(context, {
     frequency: 190,
@@ -656,7 +679,8 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   learned,
   confetti,
   "quiz-complete": quizComplete,
-  "quiz-stars-complete": quizStarsComplete,
+  "quiz-medals-complete": quizMedalsComplete,
+  "quiz-completion-progress-pop": quizCompletionProgressPop,
   "quiz-select": quizSelect,
   "streak-video-whoosh": streakVideoWhoosh,
   "streak-count-reveal": streakCountReveal,
@@ -675,7 +699,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "mission-claim": missionClaim,
   "gem-loot": gemLoot,
   "gem-spend": gemSpend,
-  "result-star-collect": resultStarCollect,
+  "result-medal-collect": resultMedalCollect,
 };
 
 export function playSoundEffect(effect: SoundEffectName, options?: { playbackRate?: number }) {

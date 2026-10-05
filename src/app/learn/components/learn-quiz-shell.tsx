@@ -11,6 +11,7 @@ import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { QuizStation } from "@/features/quiz/components/quiz-station";
 import type { NormalQuizItem, QuizPhase } from "@/features/quiz/components/quiz-station";
 import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
+import { CardProgressRevealTest } from "@/app/learn/components/card-progress-reveal-test";
 import { QuizStartTest } from "@/app/learn/components/quiz-start-test";
 import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
 import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
@@ -35,6 +36,7 @@ interface LearnQuizShellProps {
   initialMode: PracticeMode | null;
   initialLanguage?: LanguageCode | null;
   learnedCelebrationTest?: boolean;
+  cardProgressTest?: boolean;
   startTest?: boolean;
   streakTest?: boolean;
   streakRewardTest?: boolean;
@@ -48,6 +50,7 @@ interface LearnQuizShellProps {
   normalQuestionType?: NormalQuizItem["questionType"] | null;
   quizWordButtonTest?: boolean;
   quizCompletionTest?: boolean;
+  quizFlowTest?: boolean;
 }
 
 export function LearnQuizShell({
@@ -55,6 +58,7 @@ export function LearnQuizShell({
   initialMode,
   initialLanguage,
   learnedCelebrationTest = false,
+  cardProgressTest = false,
   startTest = false,
   streakTest = false,
   streakRewardTest = false,
@@ -68,6 +72,7 @@ export function LearnQuizShell({
   normalQuestionType = null,
   quizWordButtonTest = false,
   quizCompletionTest = false,
+  quizFlowTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -151,6 +156,10 @@ export function LearnQuizShell({
 
   if (learnedCelebrationTest) {
     return <LearnedCelebrationTest />;
+  }
+
+  if (cardProgressTest) {
+    return <CardProgressRevealTest />;
   }
 
   if (startTest) {
@@ -239,6 +248,7 @@ export function LearnQuizShell({
               normalQuestionType={normalQuestionType}
               bonusAfterEachNormalQuestion={bonusAfterEach}
               quizCompletionTest={quizCompletionTest}
+              quizFlowTest={quizFlowTest}
               onPhaseChange={setPhase}
               onBackToMode={() => {
                 setSelectedMode(null);

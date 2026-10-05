@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createRewardScatterFlights,
   getGemFlightAwardAtArrival,
-  getStarFlightAwardAtArrival,
+  getMedalFlightAwardAtArrival,
 } from "./reward-scatter";
 
 describe("createRewardScatterFlights", () => {
@@ -93,11 +93,11 @@ describe("createRewardScatterFlights", () => {
     expect(smallAward.reduce((sum, amount) => sum + amount, 0)).toBe(5);
   });
 
-  it("creates one dedicated flight and one arrival award per earned star", () => {
+  it("creates one dedicated flight and one arrival award per earned medal", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
 
     const flights = createRewardScatterFlights({
-      stars: {
+      medals: {
         amount: 5,
         source: { left: 300, top: 400, width: 100, height: 40 },
         target: { left: 16, top: 16, width: 60, height: 28 },
@@ -106,12 +106,12 @@ describe("createRewardScatterFlights", () => {
     });
 
     expect(flights).toHaveLength(5);
-    expect(flights.every((flight) => flight.channel === "stars")).toBe(true);
-    expect(flights.every((flight) => flight.animation === "star")).toBe(true);
+    expect(flights.every((flight) => flight.channel === "medals")).toBe(true);
+    expect(flights.every((flight) => flight.animation === "medal")).toBe(true);
     expect(flights.every((flight) => flight.scatterX === -48 && flight.scatterY === -44)).toBe(true);
     expect(flights.map((flight) => flight.pointsAwarded)).toEqual([1, 1, 1, 1, 1]);
 
-    const awards = Array.from({ length: 5 }, (_, index) => getStarFlightAwardAtArrival(5, 5, index + 1));
+    const awards = Array.from({ length: 5 }, (_, index) => getMedalFlightAwardAtArrival(5, 5, index + 1));
     expect(awards).toEqual([1, 1, 1, 1, 1]);
   });
 });

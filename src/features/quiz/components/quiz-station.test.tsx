@@ -208,6 +208,28 @@ const learnedInventoryCard: InventoryCard = {
 };
 
 describe("MobileQuizFeedback", () => {
+  it("keeps the wrong-answer continue button visible and enabled immediately", () => {
+    const onNext = vi.fn();
+    render(
+      <LocaleProvider initialLocale="en">
+        <MobileQuizFeedback
+          isOpen={true}
+          isCorrect={false}
+          correctAnswer="apple"
+          showNextButton={false}
+          onNext={onNext}
+        />
+      </LocaleProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Continue" });
+    expect(button).toBeVisible();
+    expect(button).toBeEnabled();
+
+    fireEvent.click(button);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the previous content while closing so the next card does not flash the old color", () => {
     const onNext = vi.fn();
     const { rerender, container } = render(
@@ -270,35 +292,35 @@ describe("ResultView star rating", () => {
     );
   }
 
-  it("shows 5 filled stars for 100% accuracy", () => {
+  it("shows 5 medals for 100% accuracy", () => {
     renderResultView(10, 0);
-    expect(document.querySelector('[data-quiz-star-rating-value="5"]')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(5);
+    expect(document.querySelector('[data-quiz-medal-rating-value="5"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(5);
   });
 
-  it("shows 4 filled stars for 80% accuracy", () => {
+  it("shows 4 medals for 80% accuracy", () => {
     renderResultView(8, 2);
-    expect(document.querySelector('[data-quiz-star-rating-value="4"]')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(4);
-    expect(document.querySelectorAll('[data-quiz-star="empty"]')).toHaveLength(1);
+    expect(document.querySelector('[data-quiz-medal-rating-value="4"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(4);
+    expect(document.querySelectorAll('[data-quiz-medal="empty"]')).toHaveLength(1);
   });
 
-  it("shows 3 filled stars for 70% accuracy", () => {
+  it("shows 3 medals for 70% accuracy", () => {
     renderResultView(7, 3);
-    expect(document.querySelector('[data-quiz-star-rating-value="3"]')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(3);
+    expect(document.querySelector('[data-quiz-medal-rating-value="3"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(3);
   });
 
-  it("shows 2 filled stars for 50% accuracy", () => {
+  it("shows 2 medals for 50% accuracy", () => {
     renderResultView(5, 5);
-    expect(document.querySelector('[data-quiz-star-rating-value="2"]')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(2);
+    expect(document.querySelector('[data-quiz-medal-rating-value="2"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(2);
   });
 
   it("shows 1 filled star for 0% accuracy", () => {
     renderResultView(0, 5);
-    expect(document.querySelector('[data-quiz-star-rating-value="1"]')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-quiz-star="filled"]')).toHaveLength(1);
+    expect(document.querySelector('[data-quiz-medal-rating-value="1"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(1);
   });
 
   it("keeps streak reward details out of the practice result", () => {

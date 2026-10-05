@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
-interface QuizStarRatingProps {
+interface QuizMedalRatingProps {
   rating: number;
   max?: number;
   className?: string;
@@ -22,7 +22,7 @@ const ARC_OFFSETS = [
   "translate-y-2",
 ] as const;
 
-const STAR_SIZES = [
+const MEDAL_SIZES = [
   "size-9 sm:size-11",
   "size-[3rem] sm:size-[3.5rem]",
   "size-[3.5rem] sm:size-[4rem]",
@@ -33,15 +33,15 @@ const STAR_SIZES = [
 const PANEL_REVEAL_DELAY_MS = 260;
 const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
-const STAR_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 
-export function QuizStarRating({
+export function QuizMedalRating({
   rating,
   max = 5,
   className,
   style,
   onRevealComplete,
-}: QuizStarRatingProps) {
+}: QuizMedalRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
   const [ready, setReady] = useState(false);
   const [showEmpty, setShowEmpty] = useState(clampedRating === 0);
@@ -62,7 +62,7 @@ export function QuizStarRating({
     const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * STAGGER_MS + DROP_DURATION_MS;
     const timer = window.setTimeout(() => {
       setShowEmpty(true);
-      playSoundEffect("quiz-stars-complete");
+      playSoundEffect("quiz-medals-complete");
       onRevealCompleteRef.current?.();
     }, revealAt);
     return () => window.clearTimeout(timer);
@@ -89,20 +89,20 @@ export function QuizStarRating({
       )}
       style={style}
       role="img"
-      aria-label={`${clampedRating} out of ${max} stars`}
-      data-quiz-star-rating
-      data-quiz-star-rating-value={clampedRating}
+      aria-label={`${clampedRating} out of ${max} medals`}
+      data-quiz-medal-rating
+      data-quiz-medal-rating-value={clampedRating}
     >
       {Array.from({ length: max }, (_, index) => {
         const filled = index < clampedRating;
         const offset = ARC_OFFSETS[index];
-        const sizeClass = STAR_SIZES[index];
+        const sizeClass = MEDAL_SIZES[index];
 
         if (filled) {
           return (
             <div key={index} className={cn("flex items-end", offset)}>
               <Image
-                src={STAR_IMAGE_SRC}
+                src={MEDAL_IMAGE_SRC}
                 alt=""
                 width={64}
                 height={64}
@@ -110,13 +110,13 @@ export function QuizStarRating({
                   sizeClass,
                   "origin-bottom",
                   "object-contain",
-                  ready ? "animate-star-drop" : "opacity-0",
+                  ready ? "animate-medal-drop" : "opacity-0",
                 )}
                 style={{
                   animationDelay: `${index * STAGGER_MS}ms`,
                 }}
-                data-quiz-star="filled"
-                data-quiz-star-index={index}
+                data-quiz-medal="filled"
+                data-quiz-medal-index={index}
               />
             </div>
           );
@@ -131,11 +131,11 @@ export function QuizStarRating({
                 showEmpty ? "opacity-100" : "opacity-0",
                 "transition-none",
               )}
-              data-quiz-star="empty"
-              data-quiz-star-index={index}
+              data-quiz-medal="empty"
+              data-quiz-medal-index={index}
             >
               <Image
-                src={STAR_IMAGE_SRC}
+                src={MEDAL_IMAGE_SRC}
                 alt=""
                 fill
                 sizes="4rem"
@@ -146,11 +146,11 @@ export function QuizStarRating({
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-foreground-muted"
                 style={{
-                  maskImage: `url("${STAR_IMAGE_SRC}")`,
+                  maskImage: `url("${MEDAL_IMAGE_SRC}")`,
                   maskPosition: "center",
                   maskRepeat: "no-repeat",
                   maskSize: "contain",
-                  WebkitMaskImage: `url("${STAR_IMAGE_SRC}")`,
+                  WebkitMaskImage: `url("${MEDAL_IMAGE_SRC}")`,
                   WebkitMaskPosition: "center",
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskSize: "contain",

@@ -4,7 +4,7 @@ import type { SoundEffectName } from "@/lib/sound-effects";
 const POINTS_PER_SCORE_FLIGHT_ICON = 2;
 const MAX_SCORE_FLIGHT_ICONS = 25;
 const MAX_GEM_FLIGHT_ICONS = 25;
-const MAX_STAR_FLIGHT_ICONS = 5;
+const MAX_MEDAL_FLIGHT_ICONS = 5;
 
 export const SCORE_FLIGHT_DURATION_MS = 700;
 export const SCORE_FLIGHT_LAST_START_MS = 780;
@@ -55,7 +55,7 @@ export interface RewardScatterGemRequest extends RewardScatterMotion {
   target: RewardScatterRect;
 }
 
-export interface RewardScatterStarsRequest extends RewardScatterMotion {
+export interface RewardScatterMedalsRequest extends RewardScatterMotion {
   amount: number;
   source: RewardScatterRect;
   sources?: readonly RewardScatterRect[];
@@ -64,9 +64,9 @@ export interface RewardScatterStarsRequest extends RewardScatterMotion {
 
 export interface RewardScatterFlight {
   id: string;
-  channel: "points" | "gems" | "stars";
-  animation: "default" | "star";
-  visual: { kind: "points" } | { kind: "gem"; type: GemType } | { kind: "star" };
+  channel: "points" | "gems" | "medals";
+  animation: "default" | "medal";
+  visual: { kind: "points" } | { kind: "gem"; type: GemType } | { kind: "medal" };
   gemType?: GemType;
   gemAmountAwarded?: number;
   arrivalIndex: number;
@@ -86,7 +86,7 @@ export interface RewardScatterFlight {
 export interface CreateRewardScatterFlightsInput {
   points?: RewardScatterPointsRequest | null;
   gems?: readonly RewardScatterGemRequest[] | null;
-  stars?: RewardScatterStarsRequest | null;
+  medals?: RewardScatterMedalsRequest | null;
 }
 
 export function getScoreFlightIconCount(points: number): number {
@@ -121,15 +121,15 @@ export function getGemFlightAwardAtArrival(
   return currentTotal - previousTotal;
 }
 
-export function getStarFlightAwardAtArrival(
-  totalStars: number,
+export function getMedalFlightAwardAtArrival(
+  totalMedals: number,
   iconCount: number,
   arrivalIndex: number,
 ): number {
-  if (totalStars <= 0 || iconCount <= 0 || arrivalIndex <= 0) return 0;
+  if (totalMedals <= 0 || iconCount <= 0 || arrivalIndex <= 0) return 0;
   const boundedArrivalIndex = Math.min(arrivalIndex, iconCount);
-  const previousTotal = Math.round((totalStars * (boundedArrivalIndex - 1)) / iconCount);
-  const currentTotal = Math.round((totalStars * boundedArrivalIndex) / iconCount);
+  const previousTotal = Math.round((totalMedals * (boundedArrivalIndex - 1)) / iconCount);
+  const currentTotal = Math.round((totalMedals * boundedArrivalIndex) / iconCount);
   return currentTotal - previousTotal;
 }
 
@@ -167,7 +167,7 @@ function getMotion(
 }
 
 /** Creates score and per-gem flights from independently supplied source and target geometry. */
-export function createRewardScatterFlights({ points, gems, stars }: CreateRewardScatterFlightsInput): RewardScatterFlight[] {
+export function createRewardScatterFlights({ points, gems, medals }: CreateRewardScatterFlightsInput): RewardScatterFlight[] {
   const flights: RewardScatterFlight[] = [];
 
   if (points && points.amount > 0) {
@@ -206,27 +206,27 @@ export function createRewardScatterFlights({ points, gems, stars }: CreateReward
     }
   }
 
-  if (stars && stars.amount > 0) {
-    const iconCount = Math.min(Math.max(0, Math.round(stars.amount)), MAX_STAR_FLIGHT_ICONS);
-    const starIconSize = stars.iconSize ?? 40;
+  if (medals && medals.amount > 0) {
+    const iconCount = Math.min(Math.max(0, Math.round(medals.amount)), MAX_MEDAL_FLIGHT_ICONS);
+    const medalIconSize = medals.iconSize ?? 40;
     for (let index = 0; index < iconCount; index += 1) {
-      const source = stars.sources?.[index] ?? stars.source;
-      const motion = getMotion(source, stars.target, index, iconCount, {
-        ...stars,
-        iconSize: starIconSize,
+      const source = medals.sources?.[index] ?? medals.source;
+      const motion = getMotion(source, medals.target, index, iconCount, {
+        ...medals,
+        iconSize: medalIconSize,
       });
       flights.push({
-        id: `star-${index}`,
-        channel: "stars",
-        animation: "star",
-        visual: { kind: "star" },
+        id: `medal-${index}`,
+        channel: "medals",
+        animation: "medal",
+        visual: { kind: "medal" },
         arrivalIndex: index + 1,
-        pointsAwarded: getStarFlightAwardAtArrival(stars.amount, iconCount, index + 1),
+        pointsAwarded: getMedalFlightAwardAtArrival(medals.amount, iconCount, index + 1),
         ...motion,
-        startX: motion.startX - starIconSize / 2,
-        startY: motion.startY - starIconSize / 2,
-        targetX: motion.targetX - starIconSize / 2,
-        targetY: motion.targetY - starIconSize / 2,
+        startX: motion.startX - medalIconSize / 2,
+        startY: motion.startY - medalIconSize / 2,
+        targetX: motion.targetX - medalIconSize / 2,
+        targetY: motion.targetY - medalIconSize / 2,
       });
     }
   }

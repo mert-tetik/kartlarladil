@@ -51,11 +51,11 @@ export interface AwardQuizResultPointsResult {
   error?: string;
 }
 
-export interface ClaimQuizResultStarsResult {
+export interface ClaimQuizResultMedalsResult {
   success: boolean;
   awarded?: boolean;
-  stars?: number;
-  totalStars?: number;
+  medals?: number;
+  totalMedals?: number;
   error?: string;
 }
 
@@ -173,16 +173,16 @@ export async function awardQuizStreakPoints(sessionId: string, rawStreak: number
 
 export async function awardQuizResultPoints(
   sessionId: string,
-  rawStars: number,
+  rawMedals: number,
   rawCardCount = 10,
 ): Promise<AwardQuizResultPointsResult> {
   if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
     return { success: false, error: "invalid_session" };
   }
 
-  const stars = Math.round(rawStars);
+  const medals = Math.round(rawMedals);
   const cardCount = Math.round(rawCardCount);
-  const points = getQuizResultRewardPoints(stars, cardCount);
+  const points = getQuizResultRewardPoints(medals, cardCount);
   if (points === null) {
     return { success: false, error: "invalid_points" };
   }
@@ -201,7 +201,8 @@ export async function awardQuizResultPoints(
   const { data, error } = await supabase.rpc("award_quiz_result_points", {
     p_user_id: user.id,
     p_session_id: sessionId,
-    p_stars: stars,
+    // The deployed legacy RPC still names this quiz quality input p_stars.
+    p_stars: medals,
     p_card_count: cardCount,
   });
 
@@ -215,17 +216,17 @@ export async function awardQuizResultPoints(
   return { success: true, awarded: Boolean(data), points };
 }
 
-export async function claimQuizResultStars(
+export async function claimQuizResultMedals(
   sessionId: string,
-  rawStars: number,
-): Promise<ClaimQuizResultStarsResult> {
+  rawMedals: number,
+): Promise<ClaimQuizResultMedalsResult> {
   if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
     return { success: false, error: "invalid_session" };
   }
 
-  const stars = Math.round(rawStars);
-  if (stars < 1 || stars > 5) {
-    return { success: false, error: "invalid_stars" };
+  const medals = Math.round(rawMedals);
+  if (medals < 1 || medals > 5) {
+    return { success: false, error: "invalid_medals" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -238,11 +239,11 @@ export async function claimQuizResultStars(
     return { success: false, error: "unauthorized" };
   }
 
-  const { data, error } = await supabase.rpc("claim_quiz_result_stars", {
+  const { data, error } = await supabase.rpc("claim_quiz_result_medals", {
     p_user_id: user.id,
     p_session_id: sessionId,
-    p_stars: stars,
-  }).maybeSingle<{ awarded: boolean; total_stars: number }>();
+    p_medals: medals,
+  }).maybeSingle<{ awarded: boolean; total_medals: number }>();
 
   if (error || !data) {
     return { success: false, error: "database_error" };
@@ -254,8 +255,8 @@ export async function claimQuizResultStars(
   return {
     success: true,
     awarded: data.awarded,
-    stars,
-    totalStars: data.total_stars,
+    medals,
+    totalMedals: data.total_medals,
   };
 }
 

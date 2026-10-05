@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export type VibrationPatternName = "tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-star-collect" | "word-challenge-correct" | "word-challenge-incorrect";
+export type VibrationPatternName = "tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "word-challenge-correct" | "word-challenge-incorrect";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
@@ -51,7 +51,7 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   /** Strong impact when the streak number and fire icon launch out. */
   "streak-exit": [140, 24, 220, 28, 320],
   /** Short, solid impact when the result medals begin collecting. */
-  "result-star-collect": [58],
+  "result-medal-collect": [58],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

@@ -201,7 +201,7 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
     const header = document.querySelector("header") as HTMLElement | null;
     const rankLabel = document.querySelector("[data-quiz-result-panel] h2") as HTMLElement | null;
     const lowerSection = document.querySelector("[data-result-lower-section]") as HTMLElement | null;
-    const stars = Array.from(document.querySelectorAll("[data-quiz-star-index]")) as HTMLElement[];
+    const medals = Array.from(document.querySelectorAll("[data-quiz-medal-index]")) as HTMLElement[];
 
     if (!overlay || !panel || !header || !rankLabel || !lowerSection) {
       return null;
@@ -215,8 +215,8 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
 
     const standing = document.querySelector("[data-leaderboard-standing]") as HTMLElement | null;
     const scope = document.querySelector("[data-leaderboard-scope]") as HTMLElement | null;
-    const starRects = stars.map((star) => {
-      const rect = star.getBoundingClientRect();
+    const medalRects = medals.map((medal) => {
+      const rect = medal.getBoundingClientRect();
 
       return {
         width: rect.width,
@@ -238,7 +238,7 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
       viewportHeight: window.innerHeight,
       standingFontSize: standing ? Number.parseFloat(window.getComputedStyle(standing).fontSize) : 0,
       scopeFontSize: scope ? Number.parseFloat(window.getComputedStyle(scope).fontSize) : 0,
-      starRects,
+      medalRects,
     };
   });
 
@@ -250,12 +250,12 @@ test("learn practice result stays vertically centered on mobile", async ({ page 
   expect(layout!.standingFontSize).toBeGreaterThanOrEqual(30);
   expect(layout!.scopeFontSize).toBeLessThan(layout!.standingFontSize);
   expect(layout!.lowerSectionTop - layout!.rankLabelBottom).toBeGreaterThanOrEqual(8);
-  expect(layout!.starRects).toHaveLength(5);
-  expect(layout!.starRects[2]!.width).toBeGreaterThan(layout!.starRects[1]!.width);
-  expect(layout!.starRects[1]!.width).toBeGreaterThan(layout!.starRects[0]!.width);
-  expect(layout!.starRects[3]!.width).toBeGreaterThan(layout!.starRects[4]!.width);
-  expect(layout!.starRects[1]!.left - layout!.starRects[0]!.right).toBeGreaterThanOrEqual(8);
-  expect(layout!.starRects[2]!.left - layout!.starRects[1]!.right).toBeGreaterThanOrEqual(8);
+  expect(layout!.medalRects).toHaveLength(5);
+  expect(layout!.medalRects[2]!.width).toBeGreaterThan(layout!.medalRects[1]!.width);
+  expect(layout!.medalRects[1]!.width).toBeGreaterThan(layout!.medalRects[0]!.width);
+  expect(layout!.medalRects[3]!.width).toBeGreaterThan(layout!.medalRects[4]!.width);
+  expect(layout!.medalRects[1]!.left - layout!.medalRects[0]!.right).toBeGreaterThanOrEqual(8);
+  expect(layout!.medalRects[2]!.left - layout!.medalRects[1]!.right).toBeGreaterThanOrEqual(8);
 
   await page.screenshot({
     path: ".tmp/visual-tests/learn-result-mobile.png",

@@ -23,7 +23,7 @@ vi.mock("@/features/auth/auth-client", () => ({
 }));
 
 vi.mock("@/i18n/locale-provider", () => ({
-  useLocale: () => ({ locale: "en" }),
+  useLocale: () => ({ locale: "en", t: (key: string) => key }),
 }));
 
 vi.mock("@/features/progress/components/reward-gem-hud", () => ({
@@ -86,8 +86,10 @@ function renderReward(onComplete = vi.fn()) {
       onComplete={onComplete}
     />,
   );
-  const video = view.container.querySelector("video");
-  if (!video) throw new Error("Reward video was not rendered");
+  const videos = view.container.querySelectorAll("video");
+  const video = videos[0];
+  const continuationVideo = videos[1];
+  if (!video || !continuationVideo) throw new Error("Reward video segments were not rendered");
 
   // jsdom does not calculate layout, but the shared scatter controller needs
   // real source/target geometry before it can render flight particles.
@@ -97,42 +99,60 @@ function renderReward(onComplete = vi.fn()) {
   scatterSource.getBoundingClientRect = () => new DOMRect(120, 300, 180, 120);
   pointsTarget.getBoundingClientRect = () => new DOMRect(140, 30, 160, 50);
 
-  Object.defineProperty(video, "duration", { configurable: true, value: 4.064 });
+  Object.defineProperty(video, "duration", { configurable: true, value: 64 / 30 });
   Object.defineProperty(video, "currentTime", { configurable: true, writable: true, value: 0 });
   Object.defineProperty(video, "paused", { configurable: true, value: false });
   fireEvent.play(video);
-  return { ...view, video, onComplete };
+  return { ...view, video, continuationVideo, onComplete };
 }
 
 describe("QuizStreakRewardView timing", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it("starts the scatter 2.8 seconds after the screen opens and then closes", () => {
-    const { container, onComplete } = renderReward();
-    const video = container.querySelector("video")!;
+  it("holds the first segment at its last frame until the user continues", () => {
+    const { container, video, continuationVideo, onComplete } = renderReward();
 
     act(() => {
-      vi.advanceTimersByTime(2799);
+      vi.advanceTimersByTime(5000);
     });
     expect(video.className).toContain("animate-streak-reward-video-enter");
+    expect(container.querySelector(".animate-streak-reward-break")).toBeNull();
 
-    act(() => {
-      vi.advanceTimersByTime(1);
+    Object.defineProperty(video, "paused", { configurable: true, value: true });
+    Object.defineProperty(video, "ended", { configurable: true, value: true });
+    Object.defineProperty(continuationVideo, "duration", {
+      configurable: true,
+      value: 1.933,
     });
-    expect(container.querySelectorAll(".animate-quiz-score-icon-flight").length).toBeGreaterThan(0);
+    Object.defineProperty(continuationVideo, "currentTime", {
+      configurable: true,
+      writable: true,
+      value: 0,
+    });
+    fireEvent.pointerUp(container.querySelector("[data-streak-reward-view]")!);
+    fireEvent.play(continuationVideo);
+
     expect(container.querySelector(".animate-streak-reward-break")).not.toBeNull();
 
     act(() => {
-      vi.advanceTimersByTime(1014);
+      Object.defineProperty(continuationVideo, "currentTime", {
+        configurable: true,
+        writable: true,
+        value: 1.9,
+      });
+      fireEvent.timeUpdate(continuationVideo);
+      vi.advanceTimersByTime(0);
     });
-    expect(video.className).toContain("animate-streak-reward-video-exit");
+    expect(continuationVideo.className).toContain("animate-streak-reward-video-exit");
 
     act(() => {
       vi.advanceTimersByTime(250);
@@ -152,20 +172,32 @@ describe("QuizStreakRewardView timing", () => {
   });
 
   it("aligns the fade start with the video's actual end time", () => {
-    const { container } = renderReward();
-    const video = container.querySelector("video")!;
+    const { container, video, continuationVideo } = renderReward();
 
-    Object.defineProperty(video, "currentTime", { configurable: true, writable: true, value: 4.0 });
-    act(() => {
-      fireEvent.timeUpdate(video);
+    Object.defineProperty(video, "paused", { configurable: true, value: true });
+    Object.defineProperty(video, "ended", { configurable: true, value: true });
+    fireEvent.pointerUp(container.querySelector("[data-streak-reward-view]")!);
+    Object.defineProperty(continuationVideo, "duration", {
+      configurable: true,
+      value: 1.933,
     });
 
-    expect(video.className).toContain("animate-streak-reward-video-enter");
+    Object.defineProperty(continuationVideo, "currentTime", {
+      configurable: true,
+      writable: true,
+      value: 1.9,
+    });
+    act(() => {
+      fireEvent.play(continuationVideo);
+      fireEvent.timeUpdate(continuationVideo);
+    });
+
+    expect(continuationVideo.className).toContain("opacity-100");
 
     act(() => {
       vi.advanceTimersByTime(0);
     });
 
-    expect(video.className).toContain("animate-streak-reward-video-exit");
+    expect(continuationVideo.className).toContain("animate-streak-reward-video-exit");
   });
 });

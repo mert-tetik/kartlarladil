@@ -22,7 +22,7 @@ import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet
 import { MobileImageTextTranslateOverlay } from "@/app/components/mobile-image-text-translate-overlay";
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
-import { MobileStarDetailsSheet } from "@/app/components/mobile-star-details-sheet";
+import { MobileMedalDetailsSheet } from "@/app/components/mobile-medal-details-sheet";
 import { preloadDayStreakVideo } from "@/app/components/mobile-day-streak-menu";
 import { useOptionalMobileDayStreakOverlay } from "@/app/components/mobile-day-streak-overlay-provider";
 import { useTheme } from "@/components/theme-provider";
@@ -79,7 +79,7 @@ import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
 import type { GemType } from "@/features/gems/gem-types";
-import { RewardStarHud } from "@/features/progress/components/reward-star-hud";
+import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
@@ -168,8 +168,8 @@ export function MobileLandingDashboard() {
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
-  const [starDetailsOpen, setStarDetailsOpen] = useState(false);
-  const [selectedStarSourceRect, setSelectedStarSourceRect] = useState<DOMRect | null>(null);
+  const [medalDetailsOpen, setMedalDetailsOpen] = useState(false);
+  const [selectedMedalSourceRect, setSelectedMedalSourceRect] = useState<DOMRect | null>(null);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
   const [cardCenterOpen, setCardCenterOpen] = useState(false);
   const [rankLayoutHeight, setRankLayoutHeight] = useState<number | null>(null);
@@ -400,7 +400,7 @@ export function MobileLandingDashboard() {
     imageTextTranslateOpen ||
     groupCardOpen ||
     selectedGem !== null ||
-    starDetailsOpen ||
+    medalDetailsOpen ||
     dayStreakOpen;
   const leaderboardViewer = leaderboardData?.viewer;
   const leaderboardPosition =
@@ -706,13 +706,13 @@ export function MobileLandingDashboard() {
           type="button"
           onClick={(event) => {
             vibrate("tap");
-            setSelectedStarSourceRect(event.currentTarget.getBoundingClientRect());
-            setStarDetailsOpen(true);
+            setSelectedMedalSourceRect(event.currentTarget.getBoundingClientRect());
+            setMedalDetailsOpen(true);
           }}
           className="flex h-7 items-center justify-center rounded-md px-0.5 transition-transform active:scale-95"
-          aria-label={t("stars.name")}
+          aria-label={t("medals.name")}
         >
-          <RewardStarHud />
+          <RewardMedalHud />
         </button>
       </div>
 
@@ -1057,10 +1057,10 @@ export function MobileLandingDashboard() {
         }}
       />
 
-      <MobileStarDetailsSheet
-        open={starDetailsOpen}
-        sourceRect={selectedStarSourceRect}
-        onClose={() => setStarDetailsOpen(false)}
+      <MobileMedalDetailsSheet
+        open={medalDetailsOpen}
+        sourceRect={selectedMedalSourceRect}
+        onClose={() => setMedalDetailsOpen(false)}
       />
 
       <UpgradeDialog

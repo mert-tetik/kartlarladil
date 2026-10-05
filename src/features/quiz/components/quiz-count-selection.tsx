@@ -36,13 +36,11 @@ const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
 export function QuizCountSelection({
   mode,
   availableCount,
-  selectedCount,
   locked = false,
   onSelect,
 }: {
   mode: PracticeMode;
   availableCount: number;
-  selectedCount: number | null;
   locked?: boolean;
   onSelect: (count: number) => void;
 }) {
@@ -80,6 +78,7 @@ export function QuizCountSelection({
             language={locale}
             showSpeaker={false}
             largeCharacter
+            characterVideoSrc="/quiz/kac-kartla-calisacaksin.mp4?v=20261006-2"
             className="quiz-count-selection-speech -translate-y-[20px]"
           />
         </QuizMobileActionPortal>
@@ -104,7 +103,6 @@ export function QuizCountSelection({
                 className={cn(
                   "h-20 min-h-0 w-full justify-center px-4 py-2 sm:h-24 sm:px-5",
                   unavailable && "grayscale opacity-45",
-                  selectedCount === count && "border-brand ring-2 ring-brand/30",
                 )}
               >
                 <span className="flex w-full flex-col items-center justify-center gap-1 pb-1">

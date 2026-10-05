@@ -25,7 +25,7 @@ export interface AwardProgressGemRewardInput {
   claimKey: string;
   level?: number;
   streak?: number;
-  stars?: number;
+  medals?: number;
   cardCount?: number;
 }
 
@@ -42,16 +42,16 @@ export interface AwardProgressGemRewardResult {
 export async function awardProgressGemRewardAction(
   input: AwardProgressGemRewardInput,
 ): Promise<AwardProgressGemRewardResult> {
-  const { source, claimKey, level, streak, stars, cardCount } = input;
+  const { source, claimKey, level, streak, medals, cardCount } = input;
   if (
     !PROGRESS_GEM_SOURCES.has(source) ||
     !PROGRESS_GEM_CLAIM_PATTERN.test(claimKey) ||
     (source === "game-level" && (!Number.isInteger(level) || level! < 1 || level! > 1000)) ||
     (source === "quiz-streak" && (!Number.isInteger(streak) || streak! < 5 || streak! > 10000)) ||
     (source === "quiz-result" && (
-      !Number.isInteger(stars) ||
-      stars! < 1 ||
-      stars! > 5 ||
+      !Number.isInteger(medals) ||
+      medals! < 1 ||
+      medals! > 5 ||
       !Number.isInteger(cardCount) ||
       !QUIZ_COUNT_OPTIONS.includes(cardCount as (typeof QUIZ_COUNT_OPTIONS)[number])
     ))
@@ -68,7 +68,9 @@ export async function awardProgressGemRewardAction(
       p_source: source,
       p_level: level ?? null,
       p_streak: streak ?? null,
-      p_stars: stars ?? null,
+      // The deployed legacy RPC still exposes this quality input as p_stars.
+      // It represents the quiz medal rating, not the collectible balance.
+      p_stars: medals ?? null,
       p_card_count: cardCount ?? null,
     }).maybeSingle<{
       awarded: boolean;

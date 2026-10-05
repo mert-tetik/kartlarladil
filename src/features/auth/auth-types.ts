@@ -19,7 +19,7 @@ export interface AuthProfile {
   streakPoints?: number;
   missionPoints?: number;
   quizResultPoints?: number;
-  quizResultStars?: number;
+  quizResultMedals?: number;
   gamePoints?: number;
   gemPoints?: number;
   blueGems?: number;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { Progress } from "@/components/ui/progress";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatSuperWaterText } from "@/lib/super-water";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 
 interface QuizCompletionProgressViewProps {
@@ -12,12 +13,16 @@ interface QuizCompletionProgressViewProps {
 }
 
 const QUIZ_COMPLETION_FILL_DURATION_MS = 1_400;
-const QUIZ_COMPLETION_PARTICLE_DURATION_MS = 820;
-const QUIZ_COMPLETION_LABEL_HOLD_MS = 760;
+const QUIZ_COMPLETION_PARTICLE_START_OFFSET_MS = 120;
+const QUIZ_COMPLETION_PARTICLE_DURATION_MS = 480;
+const QUIZ_COMPLETION_LABEL_ENTER_DURATION_MS = 520;
+const QUIZ_COMPLETION_LABEL_HOLD_MS = 1_000;
 const QUIZ_COMPLETION_EXIT_DURATION_MS = 420;
 const QUIZ_COMPLETION_PARTICLE_COUNT = 22;
 
 type CompletionParticle = {
+  startX: number;
+  startY: number;
   y: number;
   x: number;
   rotation: number;
@@ -28,15 +33,22 @@ type CompletionParticle = {
 };
 
 function createCompletionParticles(): CompletionParticle[] {
-  return Array.from({ length: QUIZ_COMPLETION_PARTICLE_COUNT }, () => ({
-    x: 34 + Math.round(Math.random() * 82),
-    y: Math.round((Math.random() - 0.5) * 126),
-    rotation: Math.round((Math.random() - 0.5) * 300),
-    size: 7 + Math.round(Math.random() * 7),
-    duration: 650 + Math.round(Math.random() * 180),
-    delay: Math.round(Math.random() * 110),
-    color: "#facc15",
-  }));
+  return Array.from({ length: QUIZ_COMPLETION_PARTICLE_COUNT }, () => {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 52 + Math.random() * 92;
+
+    return {
+      startX: 5 + Math.round(Math.random() * 90),
+      startY: 16 + Math.round(Math.random() * 68),
+      x: Math.round(Math.cos(angle) * distance),
+      y: Math.round(Math.sin(angle) * distance),
+      rotation: Math.round((Math.random() - 0.5) * 300),
+      size: 7 + Math.round(Math.random() * 7),
+      duration: 300 + Math.round(Math.random() * 100),
+      delay: Math.round(Math.random() * 45),
+      color: "#facc15",
+    };
+  });
 }
 
 export function QuizCompletionProgressView({
@@ -48,6 +60,7 @@ export function QuizCompletionProgressView({
   const completedRef = useRef(false);
   const [progress, setProgress] = useState(0);
   const [particlesVisible, setParticlesVisible] = useState(false);
+  const [progressComplete, setProgressComplete] = useState(false);
   const [labelVisible, setLabelVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const [particles] = useState(createCompletionParticles);
@@ -66,12 +79,21 @@ export function QuizCompletionProgressView({
     const frameId = window.requestAnimationFrame(() => setProgress(100));
     const particleTimer = window.setTimeout(
       () => setParticlesVisible(true),
-      QUIZ_COMPLETION_FILL_DURATION_MS,
+      Math.max(
+        0,
+        QUIZ_COMPLETION_FILL_DURATION_MS -
+        QUIZ_COMPLETION_PARTICLE_START_OFFSET_MS,
+      ),
     );
+    const completionTimer = window.setTimeout(() => {
+      setProgressComplete(true);
+      playSoundEffect("quiz-completion-progress-pop");
+    }, QUIZ_COMPLETION_FILL_DURATION_MS);
 
     return () => {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(particleTimer);
+      window.clearTimeout(completionTimer);
     };
   }, []);
 
@@ -91,7 +113,7 @@ export function QuizCompletionProgressView({
 
     const closeTimer = window.setTimeout(
       () => setClosing(true),
-      QUIZ_COMPLETION_LABEL_HOLD_MS,
+      QUIZ_COMPLETION_LABEL_ENTER_DURATION_MS + QUIZ_COMPLETION_LABEL_HOLD_MS,
     );
 
     return () => window.clearTimeout(closeTimer);
@@ -119,20 +141,26 @@ export function QuizCompletionProgressView({
     >
       <div
         className={cn(
-          "flex w-full items-center justify-center px-8 transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          "absolute inset-0 flex items-center justify-center px-8 transition-[scale,opacity] duration-[420ms] ease-[cubic-bezier(0.85,0,0.15,1)] will-change-[scale,opacity]",
           closing ? "scale-0 opacity-0" : "scale-100 opacity-100",
         )}
       >
         <div className="relative w-full max-w-[22rem]">
           <Progress
             value={progress}
-            className="h-[18px] rounded-full bg-[#262626]"
-            indicatorClassName="bg-amber-400 transition-[width] duration-[1400ms] ease-[cubic-bezier(0.78,0,1,1)]"
+            className={cn(
+              "h-[18px] rounded-full bg-[#262626]",
+              progressComplete && "animate-quiz-completion-progress-pulse",
+            )}
+            indicatorClassName={cn(
+              "bg-amber-400 transition-[width] duration-[1400ms] ease-[cubic-bezier(0.78,0,1,1)]",
+              progressComplete && "animate-quiz-completion-progress-glow",
+            )}
             indicatorOverlayClassName="left-[5px] right-[5px] top-[calc(50%_-_3px)] bottom-auto h-[5px] -translate-y-1/2 rounded-full bg-white/50"
           />
 
           <span
-            className="pointer-events-none absolute left-[calc(100%_-_5px)] top-1/2 z-10 block h-0 w-0"
+            className="pointer-events-none absolute inset-0 z-10 block"
             aria-hidden="true"
           >
             {particlesVisible
@@ -142,6 +170,8 @@ export function QuizCompletionProgressView({
                     className="quiz-completion-particle absolute left-0 top-0 block rounded-[2px]"
                     style={
                       {
+                        left: `${particle.startX}%`,
+                        top: `${particle.startY}%`,
                         width: particle.size,
                         height: particle.size,
                         backgroundColor: particle.color,
@@ -158,15 +188,8 @@ export function QuizCompletionProgressView({
           </span>
 
         </div>
-      </div>
-
-      {labelVisible ? (
-        <div
-          className={cn(
-            "pointer-events-none fixed bottom-[calc(50%+29px)] left-0 z-20 w-full transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-            closing ? "scale-0 opacity-0" : "scale-100 opacity-100",
-          )}
-        >
+        {labelVisible ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-[calc(50%+29px)] z-20 w-full">
           <p
             className="m-0 whitespace-nowrap text-center text-4xl font-bold leading-none text-yellow-400 animate-quiz-completion-label-enter sm:text-6xl"
             data-quiz-completion-label
@@ -175,8 +198,9 @@ export function QuizCompletionProgressView({
               {formatSuperWaterText(locale, t("quiz.finished"))}
             </span>
           </p>
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

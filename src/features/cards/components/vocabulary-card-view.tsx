@@ -44,6 +44,7 @@ interface VocabularyCardViewProps {
   translationLocale?: LocaleCode;
   primaryTranslationOnly?: boolean;
   memoryGame?: boolean;
+  continuousFlip?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
   progressAnimationActive?: boolean;
@@ -209,6 +210,7 @@ export function VocabularyCardView({
   translationLocale,
   primaryTranslationOnly = false,
   memoryGame = false,
+  continuousFlip = false,
   footerMode = "auto",
   footerProgressCount,
   progressAnimationActive = false,
@@ -307,7 +309,11 @@ export function VocabularyCardView({
       <div
         className={cn(
           "relative h-full min-h-[inherit] w-full transition-transform duration-250 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
-          isFaceUp ? "[transform:rotateY(0deg)]" : "[transform:rotateY(180deg)]",
+          continuousFlip
+            ? "animate-quiz-card-continuous-two-turn"
+            : isFaceUp
+              ? "[transform:rotateY(0deg)]"
+              : "[transform:rotateY(180deg)]",
         )}
       >
         <CardFront
@@ -666,7 +672,12 @@ function CardFront({
               className="bg-white/30"
               indicatorClassName={cn(
                 progressAnimationActive
-                  ? "bg-[#f4bd4b] transition-[width,background-color] duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]"
+                  ? cn(
+                      card.tier === "B2"
+                        ? "bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8]"
+                        : "bg-gradient-to-r from-[#ffad03] to-[#ffcd03]",
+                      "transition-[width,background-color] duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+                    )
                   : "bg-white transition-[width,background-color] duration-[300ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
               )}
               indicatorOverlayClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 opacity-0"

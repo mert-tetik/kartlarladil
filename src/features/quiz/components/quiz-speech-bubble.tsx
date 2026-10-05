@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Volume2 } from "lucide-react";
+import { useEffect, useRef, type SyntheticEvent } from "react";
 import { useT } from "@/i18n/locale-provider";
 import {
   getAiPracticeCharacters,
@@ -33,6 +34,7 @@ export function QuizSpeechBubble({
   termClassName,
   largeCharacter = false,
   showCharacter = true,
+  characterVideoSrc,
   characterClassName,
   bubbleClassName,
   className,
@@ -51,6 +53,7 @@ export function QuizSpeechBubble({
   termClassName?: string;
   largeCharacter?: boolean;
   showCharacter?: boolean;
+  characterVideoSrc?: string;
   characterClassName?: string;
   bubbleClassName?: string;
   className?: string;
@@ -72,14 +75,18 @@ export function QuizSpeechBubble({
             characterClassName,
           )}
         >
-          <Image
-            src={character.imageSrc}
-            alt={characterName}
-            fill
-            sizes={largeCharacter ? "(max-width: 639px) 144px, 160px" : "(max-width: 639px) 112px, 128px"}
-            quality={90}
-            className="object-contain object-bottom"
-          />
+          {characterVideoSrc ? (
+            <QuizSpeechCharacterVideo src={characterVideoSrc} label={characterName} />
+          ) : (
+            <Image
+              src={character.imageSrc}
+              alt={characterName}
+              fill
+              sizes={largeCharacter ? "(max-width: 639px) 144px, 160px" : "(max-width: 639px) 112px, 128px"}
+              quality={90}
+              className="object-contain object-bottom"
+            />
+          )}
         </div>
       ) : null}
       <div className={cn(
@@ -133,5 +140,42 @@ export function QuizSpeechBubble({
         ) : null}
       </div>
     </div>
+  );
+}
+
+const CHARACTER_VIDEO_REPLAY_DELAY_MS = 4000;
+
+function QuizSpeechCharacterVideo({ src, label }: { src: string; label: string }) {
+  const replayTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (replayTimerRef.current !== null) {
+        window.clearTimeout(replayTimerRef.current);
+      }
+    };
+  }, []);
+
+  function handleEnded(event: SyntheticEvent<HTMLVideoElement>) {
+    const video = event.currentTarget;
+    replayTimerRef.current = window.setTimeout(() => {
+      replayTimerRef.current = null;
+      video.currentTime = 0;
+      void video.play().catch(() => undefined);
+    }, CHARACTER_VIDEO_REPLAY_DELAY_MS);
+  }
+
+  return (
+    <video
+      src={src}
+      aria-label={label}
+      autoPlay
+      muted
+      playsInline
+      preload="auto"
+      onEnded={handleEnded}
+      className="absolute inset-0 size-full object-contain object-bottom"
+      data-quiz-speech-character-video
+    />
   );
 }
